@@ -3,10 +3,57 @@ import { contextBuilder, headersBuilder } from '../../context-configs/builder';
 import { inkeepManagementTools } from '../../tools/inkeepManagementTools';
 import { builder } from './builder';
 
+const selectEvalConfig = functionTool({
+  name: 'select_eval_config',
+  description:
+    'Present available datasets and evaluators for the user to select before running evaluations. The user will see a structured selection UI. After approval, the result contains the selected IDs.',
+  needsApproval: true,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      datasets: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            itemCount: { type: 'number' },
+          },
+        },
+        description: 'Available datasets to choose from',
+      },
+      evaluators: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+          },
+        },
+        description: 'Available evaluators to choose from',
+      },
+    },
+    required: ['datasets', 'evaluators'],
+  },
+  dependencies: {},
+  execute: async (input: Record<string, unknown>) => {
+    if (input.skip) {
+      return { skipped: true, selectedDatasetIds: [], selectedEvaluatorIds: [] };
+    }
+    return {
+      skipped: false,
+      selectedDatasetIds: (input.selectedDatasetIds as string[]) || [],
+      selectedEvaluatorIds: (input.selectedEvaluatorIds as string[]) || [],
+    };
+  },
+});
+
 const waitForEvaluations = functionTool({
   name: 'wait_for_evaluations',
   description:
-    'Wait for evaluations to complete before checking results. Call this IMMEDIATELY after triggering workflows-run-dataset-items and BEFORE polling for results. Blocks for ~25 seconds.',
+    'Wait for evaluations to complete before checking results. Call this IMMEDIATELY after triggering a dataset run and BEFORE polling for results. Blocks for ~25 seconds.',
   inputSchema: {
     type: 'object',
     properties: {},
@@ -16,7 +63,7 @@ const waitForEvaluations = functionTool({
     await new Promise((resolve) => setTimeout(resolve, 25000));
     return {
       message:
-        'Wait complete. You can now poll for evaluation results using triggers-list-trigger-invocations.',
+        'Wait complete. You can now poll for evaluation results using evaluations-get-dataset-run-items.',
     };
   },
 });
@@ -53,11 +100,15 @@ Use the **delegate_to_builder** tool to have the Builder apply config changes on
 - Your full analysis of what needs to change
 - Specific recommendations for prompt/config changes
 
-The Builder will apply the edits and control will return to you when it's done. Do NOT use transfer — use delegation so you retain control for Step 4.
+The Builder will apply the edits and control will return to you when it's done. Do NOT use transfer — use delegation so you retain control for the next steps.
 
-### Step 4: Generate Dataset + Evaluators
+### Step 3.5: Review Branch Changes
 
-After the Builder returns, create a dataset and evaluators to validate the changes that were just applied:
+After the Builder returns, call **branches-get-branch-diff** with the branch name to see what tables were modified. Present a brief summary of the changes to the user (e.g., "Updated agent prompt configuration on branch X") before proceeding.
+
+### Step 4: Generate Dataset + Evaluators + Dataset Run Config
+
+Create a dataset, evaluators, and a dataset run config to validate the changes:
 
 1. Call **evaluations-create-dataset** with a descriptive name
 2. Call **evaluations-create-dataset-items-bulk** with AGENT-GENERATED test cases:
@@ -76,31 +127,31 @@ After the Builder returns, create a dataset and evaluators to validate the chang
      - \`model\`: model config object — the \`model\` field MUST use slash-separated provider/model format, e.g. \`{"model": "anthropic/claude-sonnet-4-20250514"}\`
    - The schema and model fields are REQUIRED — the API will reject the request without them
 
-4. Create a batch evaluation job config (NOT a continuous evaluation run config):
-   - Call **evaluations-create-evaluation-job-config** with a descriptive name
-   - Call **evaluations-add-evaluator-to-job-config** to attach each evaluator to the job config
-   - Save the \`evaluationJobConfigId\` — you will need it in Step 5
+4. Create a dataset run config that links the dataset to the agent being tested:
+   - Call **evaluations-create-dataset-run-config** with:
+     - \`name\`: a descriptive name (e.g., "Formality improvement run")
+     - \`datasetId\`: the ID of the dataset you created above
+     - \`agentIds\`: array containing the ID of the agent being improved
+   - Save the returned \`id\` — this is your \`runConfigId\` for Step 5
 
 ### Step 5: Run Evaluations (AUTOMATIC — do NOT ask the user)
 
-IMMEDIATELY run the dataset items with inline evaluation in a single call:
+Trigger the dataset run with inline evaluations in a single call:
 
-1. Call **evaluations-list-dataset-items** to get the items from the dataset you created
-2. Call **workflows-run-dataset-items** with ALL of these fields:
-   - \`datasetRunId\`: generate a unique ID like "run-<timestamp>"
-   - \`datasetId\`: the ID of the dataset you created in Step 4
-   - \`items\`: map each dataset item to \`{ id: <datasetItemId>, agentId: <the agent being improved>, input: <the dataset item's input> }\`
-   - \`evaluatorIds\`: array of evaluator IDs you created in Step 4 — this runs evaluators inline on each item
-   - \`evaluationRunId\`: generate a unique ID like "eval-run-<timestamp>"
-   - \`evaluationJobConfigId\`: the job config ID from Step 4 — this links results for retrieval
+1. Call **evaluations-trigger-dataset-run** with:
+   - \`runConfigId\`: the dataset run config ID from Step 4
+   - \`evaluatorIds\`: array of evaluator IDs you created in Step 4
+2. The response returns \`datasetRunId\`, \`status\`, and \`totalItems\`. Save the \`datasetRunId\`.
 3. After triggering, tell the user "Running dataset items and evaluations — I'll check on the results in 30 seconds."
 4. **IMMEDIATELY call the wait_for_evaluations tool.** This tool blocks for 25 seconds — you MUST call it BEFORE any polling. Do NOT skip this step. NEVER poll without calling wait_for_evaluations first.
 5. After wait_for_evaluations returns, poll for completion:
-   - Call **triggers-list-trigger-invocations** with \`scheduledTriggerId\` set to the \`datasetRunId\` you used
-   - Check if all invocations have status "success" or "failed"
+   - Call **evaluations-get-dataset-run-items** with \`runId\` set to the \`datasetRunId\`
+   - Check if all items have status "completed" or "failed" (vs "pending")
    - If some are still "pending", call **wait_for_evaluations** again BEFORE retrying the poll (up to 5 attempts). NEVER poll back-to-back without a wait in between.
-   - IMPORTANT: If you get 0 results or all "pending" on first poll, that is EXPECTED — the workflows take time to process
-6. Once all items complete, call **evaluations-get-evaluation-job-config-results** with \`configId\` set to the evaluation job config ID from Step 4
+   - IMPORTANT: If you get all "pending" on first poll, that is EXPECTED — the workflows take time to process
+6. Once all items complete, get the evaluation results:
+   - Call **evaluations-get-dataset-run** with \`runId\` set to the \`datasetRunId\` — this returns the run details including \`evaluationJobConfigId\`
+   - Call **evaluations-get-evaluation-job-config-results** with \`configId\` set to the \`evaluationJobConfigId\` from the run
 7. Present a clear summary table showing each test case, the evaluator score, and reasoning
 
 ### Step 6: Offer Merge
@@ -131,8 +182,8 @@ Generate 5-10 diverse test cases that cover different scenarios.
 1. Branch FIRST
 2. Analyze feedback
 3. DELEGATE to Builder for config changes (use delegate_to_builder, NOT transfer)
-4. After Builder returns: Generate dataset + evaluators + evaluation job config
-5. RUN dataset items with inline evaluators (single call, do NOT ask)
+4. After Builder returns: Generate dataset + evaluators + dataset run config
+5. TRIGGER dataset run with evaluators (single call, do NOT ask)
 6. Show results, then merge LAST
 
 ## Important Notes
@@ -146,6 +197,7 @@ Generate 5-10 diverse test cases that cover different scenarios.
   canDelegateTo: () => [builder],
   canUse: () => [
     waitForEvaluations,
+    selectEvalConfig,
     inkeepManagementTools.with({
       headers: {
         'x-forwarded-cookie': `${headersBuilder.toTemplate('x-forwarded-cookie')}`,
@@ -153,6 +205,7 @@ Generate 5-10 diverse test cases that cover different scenarios.
       selectedTools: [
         // Branches (approval only for create/merge)
         'branches-list-branches',
+        'branches-get-branch-diff',
         { name: 'branches-create-branch', needsApproval: true },
         { name: 'branches-merge-branch', needsApproval: true },
         // Datasets
@@ -170,19 +223,18 @@ Generate 5-10 diverse test cases that cover different scenarios.
         'evaluations-create-evaluator',
         'evaluations-get-evaluator',
         'evaluations-update-evaluator',
-        // Evaluation job configs (batch evaluation)
-        'evaluations-create-evaluation-job-config',
-        'evaluations-add-evaluator-to-job-config',
+        // Dataset run configs (create config + trigger run)
+        'evaluations-create-dataset-run-config',
+        'evaluations-trigger-dataset-run',
+        // Dataset run status + results
+        'evaluations-get-dataset-run',
+        'evaluations-get-dataset-run-items',
         'evaluations-get-evaluation-job-config-results',
-        // Trigger dataset runs (evaluators run inline per item)
-        'workflows-run-dataset-items',
-        // Check invocation status (for polling eval completion)
-        'triggers-list-trigger-invocations',
         // Agents (read-only, for understanding the project structure)
         'agents-list-agents',
         'agents-get-agent',
-        'sub-agent-list-subagents',
-        'sub-agent-get-subagent-by-id',
+        'sub-agents-list-subagents',
+        'sub-agents-get-subagent-by-id',
       ],
     }),
   ],

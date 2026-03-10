@@ -85,6 +85,7 @@ export const SPAN_KEYS = {
   CONTEXT_HEADERS_KEYS: 'context.headers_keys',
 
   // Message attributes
+  MESSAGE_ID: 'message.id',
   MESSAGE_CONTENT: 'message.content',
   MESSAGE_PARTS: 'message.parts',
   MESSAGE_TIMESTAMP: 'message.timestamp',

@@ -153,8 +153,8 @@ export async function copyFullTraceToClipboard(
  * This mirrors what timeline-item.tsx renders without clicking into details.
  */
 const VISIBLE_FIELDS_BY_TYPE: Record<ActivityKind, (keyof ActivityItem)[]> = {
-  [ACTIVITY_TYPES.USER_MESSAGE]: ['messageContent', 'messageParts'],
-  [ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE]: ['aiResponseContent'],
+  [ACTIVITY_TYPES.USER_MESSAGE]: ['messageId', 'messageContent', 'messageParts'],
+  [ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE]: ['messageId', 'aiResponseContent'],
   [ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT]: ['aiStreamTextContent'],
   [ACTIVITY_TYPES.CONTEXT_FETCH]: ['toolResult'],
   [ACTIVITY_TYPES.CONTEXT_RESOLUTION]: ['contextUrl'],

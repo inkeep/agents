@@ -267,7 +267,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, runConfigId } = c.req.valid('param');
     const db = c.get('db');
-    const { evaluatorIds } = c.req.valid('json');
+    const { evaluatorIds, branchName } = c.req.valid('json');
 
     try {
       const config = await getDatasetRunConfigById(db)({
@@ -374,7 +374,6 @@ app.openapi(
             id: datasetItem.id,
             input: datasetItem.input,
             expectedOutput: datasetItem.expectedOutput,
-            simulationAgent: datasetItem.simulationAgent,
             scheduledTriggerInvocationId: inv?.id ?? generateId(),
           };
         })
@@ -387,6 +386,7 @@ app.openapi(
         items,
         evaluatorIds,
         evaluationRunId,
+        ref: branchName,
       });
 
       logger.info(

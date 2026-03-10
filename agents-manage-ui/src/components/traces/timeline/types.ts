@@ -77,6 +77,7 @@ export interface ActivityItem {
   inputTokens?: number;
   outputTokens?: number;
   serviceTier?: string;
+  messageId?: string;
   aiResponseContent?: string;
   aiResponseTimestamp?: string;
   messageContent?: string;

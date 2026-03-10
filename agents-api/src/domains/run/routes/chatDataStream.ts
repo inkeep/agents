@@ -346,9 +346,11 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const userText = extractTextFromParts(messageParts) || '';
 
       logger.info({ userText, lastUserMessage }, 'userText');
+      const userMessageId = generateId();
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
         messageSpan.setAttributes({
+          'message.id': userMessageId,
           'message.timestamp': new Date().toISOString(),
           'message.content': userText,
           'agent.name': agentName,
@@ -369,7 +371,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
         }
       }
       await createMessage(runDbClient)({
-        id: generateId(),
+        id: userMessageId,
         tenantId,
         projectId,
         conversationId,
@@ -380,7 +382,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
-          'message.id': conversationId,
+          'message.id': userMessageId,
           'database.operation': 'insert',
         });
       }

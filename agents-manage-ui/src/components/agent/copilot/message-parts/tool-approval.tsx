@@ -2,6 +2,7 @@ import type { ToolUIPart } from 'ai';
 import { CheckIcon, GitMergeIcon, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Heading } from '@/components/agent/sidepane/heading';
+import { BranchDiffContent } from '@/components/branches/branch-diff-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { FieldDiff } from '@/lib/actions/tool-approval';
@@ -118,6 +119,7 @@ const MergeBranchApproval = ({ tool, approve }: ToolApprovalProps) => {
   const { input } = tool;
   const req = (input as Record<string, any>).request || input;
   const branchName = req.branchName || 'unknown';
+  const { tenantId, projectId } = req;
 
   return (
     <ApprovalWrapper entityType="Branch" operationType="merge" icon={GitMergeIcon}>
@@ -129,6 +131,9 @@ const MergeBranchApproval = ({ tool, approve }: ToolApprovalProps) => {
           <div className="text-xs text-muted-foreground italic">{req.body.message}</div>
         )}
       </div>
+      {tenantId && projectId && branchName !== 'unknown' && (
+        <BranchDiffContent tenantId={tenantId} projectId={projectId} branchName={branchName} />
+      )}
       <ApprovalButtons
         state={tool.state}
         approve={approve}
@@ -169,7 +174,6 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   const isDeleteOperation = toolName.includes('delete');
   const isMergeOperation = toolName === 'branches-merge-branch';
   const isCreateBranch = toolName === 'branches-create-branch';
-
   if (isMergeOperation) {
     return <MergeBranchApproval tool={tool} approve={approve} />;
   }

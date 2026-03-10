@@ -176,6 +176,8 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           const { top, bottom } = editorInstance.getOption(editor.EditorOption.padding);
           contentHeight = lines.length * lineHeight + top + bottom;
         }
+        // Account for horizontal scrollbar so it doesn't overlap the last line
+        contentHeight += editorInstance.getLayoutInfo().horizontalScrollbarHeight;
 
         if (container) {
           container.style.height = `${contentHeight}px`;

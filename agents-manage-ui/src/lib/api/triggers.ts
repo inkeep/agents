@@ -138,6 +138,7 @@ export async function rerunTrigger(
   params: {
     userMessage: string;
     messageParts?: Part[];
+    forwardedHeaders?: Record<string, string>;
   }
 ): Promise<{ success: boolean; invocationId: string; conversationId: string }> {
   validateTenantId(tenantId);

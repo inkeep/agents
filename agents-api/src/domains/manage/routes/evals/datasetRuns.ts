@@ -152,7 +152,6 @@ app.openapi(
                     datasetId: z.string(),
                     input: z.any().nullable().optional(),
                     expectedOutput: z.any().nullable().optional(),
-                    simulationAgent: z.any().nullable().optional(),
                     createdAt: z.string(),
                     updatedAt: z.string(),
                     conversations: z.array(
@@ -385,6 +384,7 @@ const DatasetRunItemResponseSchema = z.object({
   completedAt: z.string().nullable().optional(),
   attemptNumber: z.number(),
   createdAt: z.string(),
+  updatedAt: z.string(),
   conversationId: z.string().nullable().optional(),
 });
 
@@ -446,6 +446,7 @@ app.openapi(
           completedAt: inv.completedAt ?? null,
           attemptNumber: inv.attemptNumber,
           createdAt: inv.createdAt,
+          updatedAt: inv.createdAt,
           conversationId: rel?.conversationId ?? null,
         };
       });

@@ -1,9 +1,10 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, MessageSquare, Search, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, MessageSquare, Search, Sparkles, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
+import { toast } from 'sonner';
 import { DeleteFeedbackConfirmation } from '@/components/feedback/delete-feedback-confirmation';
 import EmptyState from '@/components/layout/empty-state';
 import { Badge } from '@/components/ui/badge';
@@ -18,8 +19,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { triggerFeedbackImprovementAction } from '@/lib/actions/feedback';
 import type { Feedback } from '@/lib/api/feedback';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
+
+const FEEDBACK_IMPROVER_AGENT_ID = 'feedback-improver';
 
 function truncate(value: string, max = 120): string {
   if (value.length <= max) return value;
@@ -52,10 +57,48 @@ export function FeedbackTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { PUBLIC_INKEEP_COPILOT_TENANT_ID, PUBLIC_INKEEP_COPILOT_PROJECT_ID } =
+    useRuntimeConfig();
 
   const [conversationId, setConversationId] = React.useState(filters.conversationId ?? '');
   const [messageId, setMessageId] = React.useState(filters.messageId ?? '');
   const [deleteFeedbackId, setDeleteFeedbackId] = React.useState<string | null>(null);
+  const [improvingId, setImprovingId] = React.useState<string | null>(null);
+
+  const handleImprove = async (item: Feedback) => {
+    if (!PUBLIC_INKEEP_COPILOT_TENANT_ID || !PUBLIC_INKEEP_COPILOT_PROJECT_ID) {
+      toast.error('Copilot is not configured');
+      return;
+    }
+
+    setImprovingId(item.id);
+
+    const feedbackDetails =
+      typeof item.details === 'string' && item.details
+        ? item.details
+        : 'Improve this conversation based on user feedback';
+
+    const result = await triggerFeedbackImprovementAction(
+      PUBLIC_INKEEP_COPILOT_TENANT_ID,
+      PUBLIC_INKEEP_COPILOT_PROJECT_ID,
+      FEEDBACK_IMPROVER_AGENT_ID,
+      {
+        feedbackDetails,
+        conversationId: item.conversationId,
+        messageId: item.messageId ?? undefined,
+        targetTenantId: tenantId,
+        targetProjectId: projectId,
+      }
+    );
+
+    setImprovingId(null);
+
+    if (result.success) {
+      toast.success('Improvement started — check the Branches page when the agent is done');
+    } else {
+      toast.error(result.error ?? 'Failed to trigger improvement');
+    }
+  };
 
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -218,7 +261,7 @@ export function FeedbackTable({
               <TableHead className="w-[240px]">Conversation</TableHead>
               <TableHead className="w-[240px]">Message</TableHead>
               <TableHead>Details</TableHead>
-              <TableHead className="w-[56px]" />
+              <TableHead className="w-[80px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -246,6 +289,20 @@ export function FeedbackTable({
                     {item.details ? truncate(item.details, 240) : '-'}
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Improve with AI"
+                      disabled={improvingId === item.id}
+                      onClick={() => handleImprove(item)}
+                    >
+                      {improvingId === item.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4" />
+                      )}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"

@@ -3,7 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import {
   type Branch,
+  type BranchDiffDetailItem,
+  type BranchDiffSummaryItem,
   deleteBranch,
+  fetchBranchDiffDetails,
+  fetchBranchDiffSummary,
   fetchBranches,
   type MergeResult,
   mergeBranch,
@@ -61,6 +65,46 @@ export async function mergeBranchAction(
     const result = await mergeBranch(tenantId, projectId, branchName, message);
     revalidatePath(`/${tenantId}/projects/${projectId}/branches`);
     return { success: true, data: result };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return { success: false, error: error.message, code: error.error.code };
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function fetchBranchDiffSummaryAction(
+  tenantId: string,
+  projectId: string,
+  branchName: string
+): Promise<ActionResult<BranchDiffSummaryItem[]>> {
+  try {
+    const data = await fetchBranchDiffSummary(tenantId, projectId, branchName);
+    return { success: true, data };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return { success: false, error: error.message, code: error.error.code };
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function fetchBranchDiffDetailsAction(
+  tenantId: string,
+  projectId: string,
+  branchName: string
+): Promise<ActionResult<BranchDiffDetailItem[]>> {
+  try {
+    const data = await fetchBranchDiffDetails(tenantId, projectId, branchName);
+    return { success: true, data };
   } catch (error) {
     if (error instanceof ApiError) {
       return { success: false, error: error.message, code: error.error.code };

@@ -700,7 +700,6 @@ export class SubAgent implements SubAgentInterface {
 
   private async createFunctionTool(toolId: string, functionTool: FunctionTool): Promise<void> {
     try {
-      // Serialize the function and get tool data
       const functionData = functionTool.serializeFunction();
       const toolData = functionTool.serializeTool();
 
@@ -737,7 +736,7 @@ export class SubAgent implements SubAgentInterface {
         'Function creation response received'
       );
 
-      if (!functionResponse.ok) {
+      if (!functionResponse.ok && functionResponse.status !== 409) {
         const errorText = await functionResponse.text();
         logger.error(
           {
@@ -752,7 +751,13 @@ export class SubAgent implements SubAgentInterface {
         throw new Error(`Failed to create function: ${functionResponse.status} ${errorText}`);
       }
 
-      // Create a tool with type 'function' at project level
+      if (functionResponse.status === 409) {
+        logger.info(
+          { agentId: this.getId(), toolId },
+          'Function already exists, continuing to ensure tool and relation'
+        );
+      }
+
       const toolUrl = `${this.baseURL}/manage/tenants/${this.tenantId}/crud/projects/${this.projectId}/tools`;
       logger.info(
         {
@@ -775,7 +780,6 @@ export class SubAgent implements SubAgentInterface {
           functionId: toolData.functionId,
           config: {
             type: 'function',
-            // No inline function details - reference via functionId only
           },
         }),
       });
@@ -790,7 +794,7 @@ export class SubAgent implements SubAgentInterface {
         'Tool creation response received'
       );
 
-      if (!toolResponse.ok) {
+      if (!toolResponse.ok && toolResponse.status !== 409) {
         const errorText = await toolResponse.text();
         logger.error(
           {
@@ -805,8 +809,17 @@ export class SubAgent implements SubAgentInterface {
         throw new Error(`Failed to create tool: ${toolResponse.status} ${errorText}`);
       }
 
-      // Create agent-tool relation
-      await this.createAgentToolRelation(toolData.id);
+      if (toolResponse.status === 409) {
+        logger.info(
+          { agentId: this.getId(), toolId },
+          'Tool already exists, continuing to ensure relation'
+        );
+      }
+
+      const toolPolicies = functionTool.config.needsApproval
+        ? { [toolData.name]: { needsApproval: true } }
+        : undefined;
+      await this.createAgentToolRelation(toolData.id, undefined, undefined, toolPolicies);
 
       logger.info(
         {
@@ -814,7 +827,7 @@ export class SubAgent implements SubAgentInterface {
           functionId: functionData.id,
           toolId: toolData.id,
         },
-        'Function and tool created successfully'
+        'Function and tool created/ensured successfully'
       );
     } catch (error) {
       logger.error(

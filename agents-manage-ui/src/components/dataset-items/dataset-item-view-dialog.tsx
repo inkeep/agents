@@ -1,8 +1,6 @@
 'use client';
 
-import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -41,12 +39,6 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
     item.input.messages.length > 0;
   const hasExpectedOutput =
     item.expectedOutput && Array.isArray(item.expectedOutput) && item.expectedOutput.length > 0;
-  const hasSimulationAgent = !!(
-    item.simulationAgent &&
-    typeof item.simulationAgent === 'object' &&
-    !Array.isArray(item.simulationAgent) &&
-    (item.simulationAgent.prompt || item.simulationAgent.model)
-  );
 
   const inputMessages =
     hasInput && item.input && typeof item.input === 'object' && 'messages' in item.input
@@ -58,24 +50,13 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
       : undefined;
   const hasInputHeaders = !!(inputHeaders && Object.keys(inputHeaders).length > 0);
 
-  const hasModel =
-    !!item.simulationAgent &&
-    typeof item.simulationAgent === 'object' &&
-    'model' in item.simulationAgent;
-  const hasStopWhen =
-    !!item.simulationAgent &&
-    typeof item.simulationAgent === 'object' &&
-    'stopWhen' in item.simulationAgent &&
-    !!item.simulationAgent.stopWhen;
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>View Dataset Item</DialogTitle>
           <DialogDescription>
-            View the input messages, expected output, and simulation configuration for this dataset
-            item.
+            View the input messages and expected output for this dataset item.
           </DialogDescription>
         </DialogHeader>
 
@@ -157,92 +138,6 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-
-          {/* Simulation Agent */}
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium">Simulation Agent Definition</Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                Configuration for simulating a multi-turn conversation (optional)
-              </p>
-            </div>
-
-            {!hasSimulationAgent ? (
-              <div className="text-center py-8 border border-dashed rounded-md">
-                <p className="text-sm text-muted-foreground">No simulation agent configured</p>
-              </div>
-            ) : (
-              <Collapsible defaultOpen className="border rounded-md bg-background">
-                <CollapsibleTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center justify-start gap-2 w-full group p-0 h-auto hover:!bg-transparent transition-colors py-2 px-4"
-                  >
-                    <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                    View Simulation Agent Configuration
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-6 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
-                  {/* Prompt */}
-                  {!!item.simulationAgent &&
-                    typeof item.simulationAgent === 'object' &&
-                    'prompt' in item.simulationAgent && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Prompt</Label>
-                        <div className="bg-muted rounded-md p-3">
-                          <pre className="text-sm whitespace-pre-wrap break-words">
-                            {typeof item.simulationAgent.prompt === 'string'
-                              ? item.simulationAgent.prompt
-                              : JSON.stringify(item.simulationAgent.prompt, null, 2)}
-                          </pre>
-                        </div>
-                      </div>
-                    )}
-                  {/* Model */}
-                  {hasModel && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Model</Label>
-                      <div className="bg-muted rounded-md p-3">
-                        <pre className="text-sm whitespace-pre-wrap break-words">
-                          {JSON.stringify(
-                            item.simulationAgent &&
-                              typeof item.simulationAgent === 'object' &&
-                              'model' in item.simulationAgent
-                              ? item.simulationAgent.model
-                              : null,
-                            null,
-                            2
-                          )}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Stop When */}
-                  {hasStopWhen && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Execution Limits</Label>
-                      <div className="bg-muted rounded-md p-3">
-                        <pre className="text-sm whitespace-pre-wrap break-words">
-                          {JSON.stringify(
-                            item.simulationAgent &&
-                              typeof item.simulationAgent === 'object' &&
-                              'stopWhen' in item.simulationAgent
-                              ? item.simulationAgent.stopWhen
-                              : null,
-                            null,
-                            2
-                          )}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-                </CollapsibleContent>
-              </Collapsible>
             )}
           </div>
 

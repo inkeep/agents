@@ -542,6 +542,10 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
             },
             {
+              key: SPAN_KEYS.MESSAGE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
               key: SPAN_KEYS.MESSAGE_CONTENT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
@@ -597,6 +601,10 @@ function buildConversationListPayload(
             {
               key: SPAN_KEYS.DURATION_NANO,
               ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.MESSAGE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
               key: SPAN_KEYS.AI_RESPONSE_CONTENT,
@@ -1425,6 +1433,7 @@ export async function GET(
       inputTokens?: number;
       outputTokens?: number;
       serviceTier?: string;
+      messageId?: string;
       aiResponseContent?: string;
       aiResponseTimestamp?: string;
       aiResponseText?: string;
@@ -1665,6 +1674,7 @@ export async function GET(
         result: hasError
           ? 'Message processing failed'
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
+        messageId: getString(span, SPAN_KEYS.MESSAGE_ID, '') || undefined,
         messageContent: getString(span, SPAN_KEYS.MESSAGE_CONTENT, ''),
         messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
         // Trigger-specific attributes
@@ -1696,6 +1706,7 @@ export async function GET(
         result: hasError
           ? 'AI response failed'
           : `AI response sent successfully (${durMs.toFixed(2)}ms)`,
+        messageId: getString(span, SPAN_KEYS.MESSAGE_ID, '') || undefined,
         aiResponseContent: getString(span, SPAN_KEYS.AI_RESPONSE_CONTENT, ''),
         aiResponseTimestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP, '') || undefined,
         hasError,

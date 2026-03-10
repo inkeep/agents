@@ -125,9 +125,11 @@ export const CodeDiff: FC<CodeDiffProps> = ({
         // Get the height from the modified editor (or original, they should be similar)
         const modifiedEditor = diffEditor.getModifiedEditor();
         const contentHeight = modifiedEditor.getContentHeight();
+        // Account for horizontal scrollbar so it doesn't overlap the last line
+        const scrollbarHeight = modifiedEditor.getLayoutInfo().horizontalScrollbarHeight;
 
         if (contentHeight > 0) {
-          container.style.height = `${contentHeight}px`;
+          container.style.height = `${contentHeight + scrollbarHeight}px`;
           diffEditor.layout();
         }
       }
@@ -171,7 +173,14 @@ export const CodeDiff: FC<CodeDiffProps> = ({
 
   if (!hasOriginalValue) {
     return (
-      <MonacoEditor value={newValue} uri={modifiedUri} readOnly className={className} {...props} />
+      <MonacoEditor
+        value={newValue}
+        uri={modifiedUri}
+        readOnly
+        className={cn('w-full', className)}
+        editorOptions={editorOptions}
+        {...props}
+      />
     );
   }
 

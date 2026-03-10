@@ -19,11 +19,6 @@ export interface DatasetItem {
     headers?: Record<string, string>;
   } | null;
   expectedOutput?: Array<{ role: string; content: unknown }> | null;
-  simulationAgent?: {
-    stopWhen?: unknown;
-    prompt: string;
-    model: unknown;
-  } | null;
   createdAt: string;
   updatedAt: string;
   tenantId: string;
@@ -37,11 +32,6 @@ export interface DatasetItemInsert {
     headers?: Record<string, string>;
   } | null;
   expectedOutput?: Array<{ role: string; content: unknown }> | null;
-  simulationAgent?: {
-    stopWhen?: unknown;
-    prompt: string;
-    model: unknown;
-  } | null;
 }
 
 export interface DatasetItemUpdate {
@@ -50,11 +40,6 @@ export interface DatasetItemUpdate {
     headers?: Record<string, string>;
   } | null;
   expectedOutput?: Array<{ role: string; content: unknown }> | null;
-  simulationAgent?: {
-    stopWhen?: unknown;
-    prompt: string;
-    model: unknown;
-  } | null;
 }
 
 /**

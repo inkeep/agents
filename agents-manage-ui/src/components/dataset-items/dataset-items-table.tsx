@@ -73,14 +73,13 @@ export function DatasetItemsTable({
               <TableHead>Updated At</TableHead>
               <TableHead>Input</TableHead>
               <TableHead>Expected Output</TableHead>
-              <TableHead>Simulation Agent</TableHead>
               <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={5} className="py-12">
+                <TableCell colSpan={4} className="py-12">
                   <div className="flex flex-col items-center gap-4">
                     <span className="text-muted-foreground">No items yet</span>
                     <DatasetItemFormDialog
@@ -101,13 +100,6 @@ export function DatasetItemsTable({
               </TableRow>
             ) : (
               items.map((item, index) => {
-                const hasSimulationAgent = !!(
-                  item.simulationAgent &&
-                  typeof item.simulationAgent === 'object' &&
-                  !Array.isArray(item.simulationAgent) &&
-                  (item.simulationAgent.prompt || item.simulationAgent.model)
-                );
-
                 return (
                   <TableRow key={item.id} noHover>
                     <TableCell className="text-sm text-muted-foreground">
@@ -119,15 +111,6 @@ export function DatasetItemsTable({
                     <TableCell>
                       {item.expectedOutput ? (
                         <ReadOnlyEditor name={`output_${index}`} value={item.expectedOutput} />
-                      ) : (
-                        <span className="text-sm text-muted-foreground italic">None</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {hasSimulationAgent ? (
-                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          Configured
-                        </span>
                       ) : (
                         <span className="text-sm text-muted-foreground italic">None</span>
                       )}

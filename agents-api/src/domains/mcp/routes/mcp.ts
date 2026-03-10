@@ -35,6 +35,10 @@ app.all('/', async (c) => {
     headersToForward.cookie = headersToForward['x-forwarded-cookie'];
   }
 
+  if (!headersToForward.authorization && env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET) {
+    headersToForward.authorization = `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`;
+  }
+
   const targetRef = c.req.header('x-target-ref');
 
   const createSDKWithHeaders = () => {

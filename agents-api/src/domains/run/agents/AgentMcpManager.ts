@@ -94,11 +94,12 @@ export class AgentMcpManager {
         };
       }
 
+      const hasBrowserSession = !!this.config.forwardedHeaders?.['x-forwarded-cookie'];
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
         {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          contextConfigId: this.config.contextConfigId || undefined,
+          contextConfigId: hasBrowserSession ? this.config.contextConfigId || undefined : undefined,
           conversationId: conversationId || undefined,
         },
         this.convertToMCPToolConfig(tool, agentToolRelationHeaders),

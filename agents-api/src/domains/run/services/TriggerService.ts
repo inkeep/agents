@@ -494,6 +494,7 @@ export async function dispatchExecution(params: {
   transformedPayload: unknown;
   messageParts: Part[];
   userMessageText: string;
+  forwardedHeaders?: Record<string, string>;
 }): Promise<{ invocationId: string; conversationId: string }> {
   const {
     tenantId,
@@ -543,6 +544,7 @@ export async function dispatchExecution(params: {
     messageParts,
     resolvedRef,
     dispatchedAt,
+    forwardedHeaders: params.forwardedHeaders,
   });
 
   // Attach error handling so failures are always logged and invocation status is updated to failed
@@ -611,6 +613,7 @@ export async function executeAgentAsync(
     dispatchedAt?: number;
     runAsUserId?: string;
     datasetRunId?: string;
+    forwardedHeaders?: Record<string, string>;
   } & (
     | { userMessage: string; messageParts: Part[]; messages?: undefined }
     | {
@@ -632,6 +635,7 @@ export async function executeAgentAsync(
     runAsUserId,
     messages,
     datasetRunId,
+    forwardedHeaders: callerForwardedHeaders,
   } = params;
 
   let userMessage: string;
@@ -861,7 +865,10 @@ export async function executeAgentAsync(
           timestamp
         );
 
-        // Execute the agent
+        const triggerForwardedHeaders: Record<string, string> = {
+          ...(callerForwardedHeaders || {}),
+        };
+
         const executionHandler = new ExecutionHandler();
         const result = await executionHandler.execute({
           executionContext,
@@ -873,6 +880,7 @@ export async function executeAgentAsync(
           sseHelper: noOpStreamHelper,
           emitOperations: false,
           ...(datasetRunId && { datasetRunId }),
+          forwardedHeaders: triggerForwardedHeaders,
         });
 
         if (!result.success) {

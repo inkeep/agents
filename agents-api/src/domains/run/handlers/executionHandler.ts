@@ -508,9 +508,11 @@ export class ExecutionHandler {
           }
 
           // Stream completion operation - wrapped in span for tracing
+          const responseMessageId = generateId();
           return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
             try {
               span.setAttributes({
+                'message.id': responseMessageId,
                 'ai.response.content': textContent || 'No response content',
                 'ai.response.timestamp': new Date().toISOString(),
                 'subAgent.name': agent?.subAgents[currentAgentId]?.name,
@@ -519,7 +521,7 @@ export class ExecutionHandler {
 
               // Store the agent response in the database with both text and parts
               await createMessage(runDbClient)({
-                id: generateId(),
+                id: responseMessageId,
                 tenantId,
                 projectId,
                 conversationId,

@@ -31,6 +31,7 @@ export const BranchInfoSchema = z
     baseName: z.string().describe('User-provided branch name'),
     fullName: z.string().describe('Full namespaced branch name'),
     hash: z.string().describe('Current commit hash of the branch'),
+    latestCommitDate: z.string().nullable().optional().describe('Date of the latest commit'),
   })
   .openapi('BranchInfo');
 

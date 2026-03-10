@@ -1,3 +1,4 @@
+import type * as Monaco from 'monaco-editor';
 import { CodeDiff } from './code-diff';
 import { TextDiff } from './text-diff';
 
@@ -11,6 +12,7 @@ interface DiffFieldProps {
   subAgentId?: string;
   newValue: any;
   renderAsCode?: boolean;
+  editorOptions?: Monaco.editor.IStandaloneDiffEditorConstructionOptions;
 }
 
 const formatFieldName = (field: string) => {
@@ -26,6 +28,7 @@ export const DiffField = ({
   field,
   newValue,
   renderAsCode = false,
+  editorOptions,
 }: DiffFieldProps) => {
   const bothStrings = typeof originalValue === 'string' && typeof newValue === 'string';
   const useCodeDiff = !bothStrings || renderAsCode;
@@ -45,6 +48,7 @@ export const DiffField = ({
                 : ''
           }
           newValue={typeof newValue === 'string' ? newValue : JSON.stringify(newValue, null, 2)}
+          editorOptions={editorOptions}
         />
       )}
     </div>

@@ -9,6 +9,7 @@ export interface Branch {
   fullName: string;
   isProtected: boolean;
   createdAt?: string;
+  latestCommitDate?: string | null;
 }
 
 export interface MergeResult {
@@ -58,6 +59,64 @@ export async function deleteBranch(
     `tenants/${tenantId}/projects/${projectId}/branches/${branchName}`,
     { method: 'DELETE' }
   );
+}
+
+export interface BranchDiffSummaryItem {
+  tableName: string;
+  diffType: string;
+  dataChange: boolean;
+  schemaChange: boolean;
+}
+
+export async function fetchBranchDiffSummary(
+  tenantId: string,
+  projectId: string,
+  branchName: string
+): Promise<BranchDiffSummaryItem[]> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<{ data: BranchDiffSummaryItem[] }>(
+    `tenants/${tenantId}/projects/${projectId}/branches/${branchName}/diff`
+  );
+
+  return response.data;
+}
+
+export interface BranchDiffField {
+  field: string;
+  oldValue: string | null;
+  newValue: string | null;
+  renderAsCode: boolean;
+}
+
+export interface BranchDiffChange {
+  entityId: string;
+  entityName: string;
+  changeType: string;
+  fields: BranchDiffField[];
+}
+
+export interface BranchDiffDetailItem {
+  tableName: string;
+  displayName: string;
+  diffType: string;
+  changes: BranchDiffChange[];
+}
+
+export async function fetchBranchDiffDetails(
+  tenantId: string,
+  projectId: string,
+  branchName: string
+): Promise<BranchDiffDetailItem[]> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<{ data: BranchDiffDetailItem[] }>(
+    `tenants/${tenantId}/projects/${projectId}/branches/${branchName}/diff/details`
+  );
+
+  return response.data;
 }
 
 export async function mergeBranch(

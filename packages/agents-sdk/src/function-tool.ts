@@ -17,11 +17,16 @@ export interface FunctionToolInterface {
 
 export class FunctionTool implements FunctionToolInterface {
   public config: FunctionToolConfig;
+  public toolPolicies: Record<string, { needsApproval?: boolean }> | undefined;
   private id: string;
 
   constructor(config: FunctionToolConfig) {
     this.config = config;
     this.id = generateIdFromName(config.name);
+
+    if (config.needsApproval) {
+      this.toolPolicies = { [config.name]: { needsApproval: true } };
+    }
 
     if (!config.dependencies) {
       const executeCode =

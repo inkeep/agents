@@ -1669,7 +1669,9 @@ export class Agent {
       this.setConversationId(conversationId);
     }
 
-    const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
+    const resolvedContext = conversationId
+      ? await this.getResolvedContext(conversationId, this.config.forwardedHeaders)
+      : null;
 
     let processedPrompt = this.config.prompt || '';
     if (resolvedContext && this.config.prompt) {

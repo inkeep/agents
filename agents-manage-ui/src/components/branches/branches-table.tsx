@@ -1,6 +1,6 @@
 'use client';
 
-import { GitBranch, GitMerge, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Eye, GitBranch, GitMerge, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import EmptyState from '@/components/layout/empty-state';
@@ -23,17 +23,20 @@ import {
 } from '@/components/ui/table';
 import type { Branch } from '@/lib/api/branches';
 import { DeleteBranchConfirmation, MergeBranchConfirmation } from './branch-actions';
+import { BranchDiffDialog } from './branch-diff-dialog';
 
 interface BranchesTableProps {
   tenantId: string;
   projectId: string;
   branches: Branch[];
+  branchHasChanges?: Record<string, boolean>;
 }
 
-export function BranchesTable({ tenantId, projectId, branches }: BranchesTableProps) {
+export function BranchesTable({ tenantId, projectId, branches, branchHasChanges }: BranchesTableProps) {
   const router = useRouter();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
+  const [diffTarget, setDiffTarget] = useState<string | null>(null);
 
   const nonMainBranches = branches.filter((b) => b.baseName !== 'main');
 
@@ -70,7 +73,11 @@ export function BranchesTable({ tenantId, projectId, branches }: BranchesTablePr
                 <TableRow key={branch.baseName}>
                   <TableCell className="font-mono text-sm">{branch.baseName}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">active</Badge>
+                    {branchHasChanges?.[branch.baseName] ? (
+                      <Badge variant="success">Has changes</Badge>
+                    ) : (
+                      <Badge variant="outline">No changes</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -80,6 +87,10 @@ export function BranchesTable({ tenantId, projectId, branches }: BranchesTablePr
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setDiffTarget(branch.baseName)}>
+                          <Eye className="size-4 mr-2" />
+                          View diff
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setMergeTarget(branch.baseName)}>
                           <GitMerge className="size-4 mr-2" />
                           Merge into main
@@ -120,6 +131,16 @@ export function BranchesTable({ tenantId, projectId, branches }: BranchesTablePr
           isOpen={!!mergeTarget}
           onOpenChange={(open) => !open && setMergeTarget(null)}
           onMerged={() => router.refresh()}
+        />
+      )}
+
+      {diffTarget && (
+        <BranchDiffDialog
+          tenantId={tenantId}
+          projectId={projectId}
+          branchName={diffTarget}
+          isOpen={!!diffTarget}
+          onOpenChange={(open) => !open && setDiffTarget(null)}
         />
       )}
     </>

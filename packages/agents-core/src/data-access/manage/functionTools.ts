@@ -292,8 +292,17 @@ export const upsertSubAgentFunctionToolRelation =
         )
         .limit(1);
 
-      // If relation exists, return it instead of creating a new one
+      // If relation exists, update toolPolicies if provided, then return
       if (existingRelations.length > 0) {
+        const existingId = existingRelations[0].id;
+
+        if (toolPolicies !== undefined) {
+          await db
+            .update(subAgentFunctionToolRelations)
+            .set({ toolPolicies })
+            .where(eq(subAgentFunctionToolRelations.id, existingId));
+        }
+
         logger.info(
           {
             tenantId,
@@ -301,11 +310,12 @@ export const upsertSubAgentFunctionToolRelation =
             agentId,
             subAgentId,
             functionToolId,
-            relationId: existingRelations[0].id,
+            relationId: existingId,
+            toolPoliciesUpdated: toolPolicies !== undefined,
           },
-          'Sub_agent-function tool relation already exists, returning existing relation'
+          'Sub_agent-function tool relation already exists, updated and returning'
         );
-        return { id: existingRelations[0].id };
+        return { id: existingId };
       }
 
       // Relation doesn't exist, create a new one

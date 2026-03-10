@@ -1,5 +1,6 @@
 'use client';
 
+import { GitMerge } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -12,7 +13,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { deleteBranchAction, mergeBranchAction } from '@/lib/actions/branches';
+import { BranchDiffContent } from './branch-diff-dialog';
 
 interface DeleteBranchConfirmationProps {
   tenantId: string;
@@ -114,22 +127,27 @@ export function MergeBranchConfirmation({
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Merge branch</AlertDialogTitle>
-          <AlertDialogDescription>
-            Merge <strong>{branchName}</strong> into <strong>main</strong>? This will apply all
-            changes from this branch to the main configuration.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleMerge} disabled={isPending}>
-            {isPending ? 'Merging...' : 'Merge'}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent size="3xl" className="max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Merge branch</DialogTitle>
+          <DialogDescription>
+            Merge <Badge variant="code">{branchName}</Badge> into <Badge variant="code">main</Badge>
+          </DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <BranchDiffContent tenantId={tenantId} projectId={projectId} branchName={branchName} />
+        </ScrollArea>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button onClick={handleMerge} disabled={isPending}>
+            <GitMerge className="size-4" />
+            {isPending ? 'Merging...' : 'Merge into main'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

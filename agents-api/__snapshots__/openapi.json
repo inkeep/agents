@@ -1153,6 +1153,29 @@
           }
         ]
       },
+      "BranchDiffItem": {
+        "properties": {
+          "dataChange": {
+            "type": "boolean"
+          },
+          "diffType": {
+            "type": "string"
+          },
+          "schemaChange": {
+            "type": "boolean"
+          },
+          "tableName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tableName",
+          "diffType",
+          "dataChange",
+          "schemaChange"
+        ],
+        "type": "object"
+      },
       "BranchInfo": {
         "properties": {
           "baseName": {
@@ -2947,67 +2970,6 @@
         },
         "type": "object"
       },
-      "DatasetRunInvocation": {
-        "properties": {
-          "agentId": {
-            "maxLength": 256,
-            "type": "string"
-          },
-          "attemptNumber": {
-            "maximum": 2147483647,
-            "minimum": -2147483648,
-            "type": "integer"
-          },
-          "completedAt": {
-            "nullable": true,
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "datasetItemId": {
-            "maxLength": 256,
-            "type": "string"
-          },
-          "datasetRunId": {
-            "maxLength": 256,
-            "type": "string"
-          },
-          "id": {
-            "maxLength": 256,
-            "type": "string"
-          },
-          "startedAt": {
-            "nullable": true,
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "pending",
-              "running",
-              "completed",
-              "failed"
-            ],
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "agentId",
-          "datasetRunId",
-          "datasetItemId",
-          "status",
-          "startedAt",
-          "completedAt",
-          "attemptNumber",
-          "createdAt",
-          "updatedAt"
-        ],
-        "type": "object"
-      },
       "DatasetUpdate": {
         "properties": {
           "createdAt": {
@@ -4160,6 +4122,37 @@
           "createdAt": {
             "type": "string"
           },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "id": {
             "maxLength": 256,
             "type": "string"
@@ -4169,83 +4162,11 @@
             "nullable": true,
             "type": "string"
           },
-          "properties": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
-          "reasons": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
           "type": {
             "maxLength": 20,
             "type": "string"
           },
           "updatedAt": {
-            "type": "string"
-          },
-          "userId": {
-            "maxLength": 256,
-            "nullable": true,
-            "type": "string"
-          },
-          "userType": {
-            "maxLength": 20,
-            "nullable": true,
             "type": "string"
           }
         },
@@ -4254,10 +4175,7 @@
           "conversationId",
           "messageId",
           "type",
-          "reasons",
-          "properties",
-          "userId",
-          "userType",
+          "details",
           "createdAt",
           "updatedAt"
         ],
@@ -4271,73 +4189,15 @@
           "createdAt": {
             "type": "string"
           },
+          "details": {
+            "nullable": true,
+            "type": "string"
+          },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "messageId": {
             "$ref": "#/components/schemas/ResourceId"
-          },
-          "properties": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
-          "reasons": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
           },
           "type": {
             "enum": [
@@ -4347,18 +4207,6 @@
             "type": "string"
           },
           "updatedAt": {
-            "type": "string"
-          },
-          "userId": {
-            "maxLength": 256,
-            "nullable": true,
-            "type": "string"
-          },
-          "userType": {
-            "enum": [
-              "user",
-              "api_key"
-            ],
             "type": "string"
           }
         },
@@ -4406,73 +4254,15 @@
           "createdAt": {
             "type": "string"
           },
+          "details": {
+            "nullable": true,
+            "type": "string"
+          },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "messageId": {
             "$ref": "#/components/schemas/ResourceId"
-          },
-          "properties": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
-          "reasons": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
           },
           "type": {
             "enum": [
@@ -4482,18 +4272,6 @@
             "type": "string"
           },
           "updatedAt": {
-            "type": "string"
-          },
-          "userId": {
-            "maxLength": 256,
-            "nullable": true,
-            "type": "string"
-          },
-          "userType": {
-            "enum": [
-              "user",
-              "api_key"
-            ],
             "type": "string"
           }
         },
@@ -6004,6 +5782,81 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/McpTool"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "MergeBranchConflictResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "hasConflicts": {
+                "enum": [
+                  true
+                ],
+                "type": "boolean"
+              },
+              "status": {
+                "enum": [
+                  "conflicts"
+                ],
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "toHead": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "from",
+              "to",
+              "hasConflicts"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "MergeBranchResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "hasConflicts": {
+                "type": "boolean"
+              },
+              "status": {
+                "enum": [
+                  "success",
+                  "conflicts"
+                ],
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "from",
+              "to",
+              "hasConflicts"
+            ],
+            "type": "object"
           }
         },
         "required": [
@@ -25858,6 +25711,268 @@
         }
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/branches/{branchName}/diff": {
+      "get": {
+        "description": "Get a summary of changes on a branch compared to main",
+        "operationId": "get-branch-diff",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "branchName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/BranchDiffItem"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Diff summary retrieved"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Branch Diff",
+        "tags": [
+          "Branches"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/branches/{branchName}/merge": {
+      "post": {
+        "description": "Merge a branch into the project main branch.",
+        "operationId": "merge-branch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "branchName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "message": {
+                    "description": "Optional commit message for the merge",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeBranchResponse"
+                }
+              }
+            },
+            "description": "Branch merged successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeBranchConflictResponse"
+                }
+              }
+            },
+            "description": "Merge has conflicts"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Merge Branch",
+        "tags": [
+          "Branches"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/conversations/{id}": {
       "get": {
         "operationId": "get-conversation",
@@ -29449,20 +29564,59 @@
                   "properties": {
                     "data": {
                       "items": {
-                        "allOf": [
-                          {
-                            "$ref": "#/components/schemas/DatasetRunInvocation"
+                        "properties": {
+                          "agentId": {
+                            "type": "string"
                           },
-                          {
-                            "properties": {
-                              "conversationId": {
-                                "nullable": true,
-                                "type": "string"
-                              }
-                            },
-                            "type": "object"
+                          "attemptNumber": {
+                            "type": "number"
+                          },
+                          "completedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "conversationId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "datasetItemId": {
+                            "type": "string"
+                          },
+                          "datasetRunId": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "startedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "tenantId": {
+                            "type": "string"
                           }
-                        ]
+                        },
+                        "required": [
+                          "id",
+                          "tenantId",
+                          "projectId",
+                          "agentId",
+                          "datasetRunId",
+                          "datasetItemId",
+                          "status",
+                          "attemptNumber",
+                          "createdAt"
+                        ],
+                        "type": "object"
                       },
                       "type": "array"
                     },
@@ -34540,7 +34694,7 @@
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/feedback": {
       "get": {
-        "description": "List feedback for a conversation, optionally filtered by message",
+        "description": "List feedback for a project, optionally filtered by conversation or message",
         "operationId": "list-feedback",
         "parameters": [
           {
@@ -34578,12 +34732,12 @@
             }
           },
           {
-            "description": "Filter by conversation ID",
+            "description": "Optionally filter by conversation ID",
             "in": "query",
             "name": "conversationId",
-            "required": true,
+            "required": false,
             "schema": {
-              "description": "Filter by conversation ID",
+              "description": "Optionally filter by conversation ID",
               "type": "string"
             }
           },

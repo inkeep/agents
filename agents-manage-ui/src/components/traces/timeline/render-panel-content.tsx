@@ -259,10 +259,9 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info
-              label="Message content"
-              value={a.messageContent || 'Message content not available'}
-            />
+          <Bubble className="break-words">
+          <Streamdown>{a.messageContent || 'Message content not available'}</Streamdown>
+          </Bubble>
             {targetTenantId && (
               <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
             )}

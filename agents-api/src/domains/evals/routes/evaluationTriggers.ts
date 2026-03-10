@@ -2,10 +2,7 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
-  createDatasetRun,
   createEvaluationRun,
-  createScheduledTriggerInvocation,
-  createTriggerInvocation,
   generateId,
   getConversation,
   getEvaluationSuiteConfigById,
@@ -14,7 +11,6 @@ import {
   listEvaluationRunConfigsWithSuiteConfigs,
   type ResolvedRef,
   TenantProjectParamsSchema,
-  TriggerDatasetRunSchema,
   TriggerEvaluationJobSchema,
   withRef,
 } from '@inkeep/agents-core';
@@ -24,8 +20,6 @@ import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { evalApiKeyAuth } from '../../../middleware/evalsAuth';
-import type { DatasetRunQueueItem } from '../services/datasetRun';
-import { queueDatasetRunItems } from '../services/datasetRun';
 import { queueEvaluationJobConversations } from '../services/evaluationJob';
 import { evaluateConversationWorkflow } from '../workflow';
 
@@ -450,152 +444,6 @@ app.openapi(
       );
       return c.json(
         { error: 'Failed to trigger evaluation job', message: (err as Error).message },
-        500
-      );
-    }
-  }
-);
-
-app.openapi(
-  createProtectedRoute({
-    method: 'post',
-    path: '/run-dataset-items',
-    summary: 'Run dataset items',
-    description: 'Runs dataset items for processing through the chat API',
-    operationId: 'run-dataset-items',
-    tags: ['Evaluations'],
-    permission: evalApiKeyAuth(),
-    request: {
-      params: TenantProjectParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: TriggerDatasetRunSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      202: {
-        description: 'Workflows queued successfully',
-        content: {
-          'application/json': {
-            schema: z.object({
-              queued: z.number(),
-              failed: z.number(),
-              datasetRunId: z.string(),
-            }),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
-    const body = c.req.valid('json');
-    const {
-      datasetRunId,
-      datasetId,
-      items,
-      evaluatorIds,
-      evaluationRunId,
-      evaluationRunConfigId,
-      evaluationJobConfigId,
-    } = body;
-
-    const ref = c.req.query('ref') || c.req.header('x-target-ref') || undefined;
-
-    try {
-      logger.info(
-        { tenantId, projectId, datasetRunId, itemCount: items.length, ref },
-        'Triggering dataset run'
-      );
-
-      await createDatasetRun(runDbClient)({
-        id: datasetRunId,
-        tenantId,
-        projectId,
-        datasetId: datasetId ?? datasetRunId,
-      });
-
-      if (evaluationRunId) {
-        await createEvaluationRun(runDbClient)({
-          id: evaluationRunId,
-          tenantId,
-          projectId,
-          evaluationRunConfigId: evaluationRunConfigId ?? undefined,
-          evaluationJobConfigId: evaluationJobConfigId ?? undefined,
-        });
-      }
-
-      const invocations = await Promise.all(
-        items.map(async (item) => {
-          const invocationId = generateId();
-
-          const [scheduledInvocation] = await Promise.all([
-            createScheduledTriggerInvocation(runDbClient)({
-              id: invocationId,
-              tenantId,
-              projectId,
-              agentId: item.agentId,
-              scheduledTriggerId: datasetRunId,
-              status: 'pending',
-              scheduledFor: new Date().toISOString(),
-              resolvedPayload: {
-                datasetItemId: item.id,
-                datasetRunId,
-                messages: (item.input as any)?.messages,
-              },
-              idempotencyKey: `${datasetRunId}-${item.agentId}-${item.id ?? generateId()}`,
-              attemptNumber: 1,
-            }),
-            createTriggerInvocation(runDbClient)({
-              id: invocationId,
-              tenantId,
-              projectId,
-              agentId: item.agentId,
-              triggerId: datasetRunId,
-              status: 'pending',
-              requestPayload: {
-                datasetItemId: item.id,
-                datasetRunId,
-                messages: (item.input as any)?.messages,
-              },
-            }),
-          ]);
-
-          return scheduledInvocation;
-        })
-      );
-
-      const queueItems: DatasetRunQueueItem[] = items.map((item, idx) => ({
-        agentId: item.agentId,
-        id: item.id,
-        input: item.input,
-        expectedOutput: item.expectedOutput,
-        simulationAgent: item.simulationAgent,
-        scheduledTriggerInvocationId: invocations[idx].id,
-      }));
-
-      const result = await queueDatasetRunItems({
-        tenantId,
-        projectId,
-        datasetRunId,
-        items: queueItems,
-        evaluatorIds,
-        evaluationRunId,
-        ref,
-      });
-
-      return c.json({ ...result, datasetRunId }, 202) as any;
-    } catch (err) {
-      logger.error({ err, tenantId, projectId, datasetRunId }, 'Failed to trigger dataset run');
-      return c.json(
-        createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to trigger dataset run',
-        }),
         500
       );
     }

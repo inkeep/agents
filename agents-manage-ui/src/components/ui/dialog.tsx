@@ -66,6 +66,8 @@ const dialogContentVariants = cva(
         md: 'sm:max-w-lg',
         lg: 'sm:max-w-xl',
         xl: 'sm:max-w-2xl',
+        '2xl': 'sm:max-w-4xl',
+        '3xl': 'sm:max-w-6xl',
         fullscreen: 'w-screen h-screen',
       },
     },

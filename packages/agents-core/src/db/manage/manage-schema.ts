@@ -33,7 +33,6 @@ import type {
   AgentStopWhen,
   ModelSettings,
   SignatureVerificationConfig,
-  SimulationAgent,
   StopWhen,
   SubAgentStopWhen,
 } from '../../validation/schemas';
@@ -691,15 +690,12 @@ export const dataset = pgTable(
 );
 
 /**
- *
  * Individual test case within a dataset. Contains the input messages to send
- * to an agent and optionally expected output or simulation configuration.
+ * to an agent and optionally expected output.
  * When a dataset run executes, it creates conversations from these items.
  *
- *
  * Includes: input (messages array with optional headers), expected output (array of messages),
- * simulation agent (stopWhen conditions, prompt/modelConfig), and timestamps
- * simulationAgent is for when a user wants to create a multi-turn simulation aka a simulating agent is creating input messages based on a persona
+ * and timestamps.
  */
 export const datasetItem = pgTable(
   'dataset_item',
@@ -708,7 +704,6 @@ export const datasetItem = pgTable(
     datasetId: varchar('dataset_id', { length: 256 }).notNull(),
     input: jsonb('input').$type<DatasetItemInput>().notNull(),
     expectedOutput: jsonb('expected_output').$type<DatasetItemExpectedOutput>(),
-    simulationAgent: jsonb('simulation_agent').$type<SimulationAgent>(),
     ...timestamps,
   },
   (table) => [

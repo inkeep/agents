@@ -239,7 +239,6 @@ import type {
   TriggerApiUpdateSchema,
   TriggerBatchConversationEvaluationSchema,
   TriggerConversationEvaluationSchema,
-  TriggerDatasetRunSchema,
   TriggerEvaluationJobSchema,
   TriggerInsertSchema,
   TriggerInvocationApiInsertSchema,
@@ -340,7 +339,6 @@ export type DatasetRunConfigAgentRelationUpdate = z.infer<
   typeof DatasetRunConfigAgentRelationUpdateSchema
 >;
 export type DatasetRunItem = z.infer<typeof DatasetRunItemSchema>;
-export type TriggerDatasetRunRequest = z.infer<typeof TriggerDatasetRunSchema>;
 export type TriggerConversationEvaluationRequest = z.infer<
   typeof TriggerConversationEvaluationSchema
 >;

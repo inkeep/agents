@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "skills": {
+    "browser": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "72589e479150a2652692540a9b5d20e67cd31edfd3e83fe3e2f8a35eff7ad35b"
+    },
+    "debug": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "8bcc471fcfd6971fa4255733ca252cfa7183841231da222cde05a7cca9a9c912"
+    },
+    "docs": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "f8cd259524b648091563bcb9d224e460d5a51b8e07fd3b640c5ba1c82db230a4"
+    },
+    "explore": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "544c643b232eed0d14c9960e2d6343c635e3bf5f95e56826e6f9b10d605fed91"
+    },
+    "implement": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "b14de5ea176009fd9d237366cddac366218e8c7d72f75a361f0e95796c7f869a"
+    },
+    "pr": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "f7cb964bb4f80a12a6b4f09d5eb3bf0f026e8805e09c7d69dcabf13956283314"
+    },
+    "qa": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "31554f8a7742f10e264d577aba5699264e7b1cb1cc1787a18d756b9a682a9223"
+    },
+    "review": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "667ea421c148ba3087a8b9c1552c62d546cf232d74d127cc430c019faee9d5bd"
+    },
+    "ship": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "9b144549b583a564c7f3e37400674bd0c328ab7ddaffea23b5d3f98897497f56"
+    },
+    "spec": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "c3b0cf8b67f8c3a5e7d780baf51b8167fe450765e51f83235738e71fa97e74a0"
+    },
+    "tdd": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "3830b118899555fc19daa54725b3136fb0ee2d8aaf39a2f60f8b48e439843566"
+    }
+  }
+}

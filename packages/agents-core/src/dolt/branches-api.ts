@@ -2,6 +2,10 @@ import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
 import type { BranchInfo } from '../validation/dolt-schemas';
+
+function naiveDateToUtcIso(d: Date | string): string {
+    return typeof d === 'string' ? d.endsWith('Z') ? d : `${d.replace(' ', 'T')}Z` : d.toISOString();
+}
 import {
   doltBranch,
   doltCheckout,
@@ -226,6 +230,7 @@ export const createBranch =
       baseName: name,
       fullName,
       hash: newBranch.hash,
+      latestCommitDate: newBranch.latest_commit_date ? naiveDateToUtcIso(newBranch.latest_commit_date) : null,
     };
   };
 
@@ -281,6 +286,7 @@ export const getBranch =
       baseName: name,
       fullName,
       hash: branch.hash,
+      latestCommitDate: branch.latest_commit_date ? naiveDateToUtcIso(branch.latest_commit_date) : null,
     };
   };
 
@@ -305,6 +311,7 @@ export const listBranches =
         baseName: b.name.substring(prefix.length),
         fullName: b.name,
         hash: b.hash,
+        latestCommitDate: b.latest_commit_date ? naiveDateToUtcIso(b.latest_commit_date) : null,
       }));
 
     return projectBranches;

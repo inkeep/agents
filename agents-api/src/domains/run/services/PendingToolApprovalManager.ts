@@ -2,6 +2,12 @@ import { getLogger } from '../../../logger';
 
 const logger = getLogger('PendingToolApprovalManager');
 
+export interface ToolApprovalResult {
+  approved: boolean;
+  reason?: string;
+  data?: Record<string, unknown>;
+}
+
 // Cleanup interval - every 2 minutes
 const APPROVAL_CLEANUP_INTERVAL_MS = 2 * 60 * 1000;
 
@@ -15,7 +21,7 @@ export interface PendingToolApproval {
   conversationId: string;
   subAgentId: string;
   createdAt: number;
-  resolve: (result: { approved: boolean; reason?: string }) => void;
+  resolve: (result: ToolApprovalResult) => void;
   reject: (error: Error) => void;
   timeoutId: ReturnType<typeof setTimeout>;
 }
@@ -50,7 +56,7 @@ export class PendingToolApprovalManager {
     args: any,
     conversationId: string,
     subAgentId: string
-  ): Promise<{ approved: boolean; reason?: string }> {
+  ): Promise<ToolApprovalResult> {
     return new Promise((resolve, reject) => {
       // Set up automatic timeout/cleanup
       const timeoutId = setTimeout(() => {
@@ -90,7 +96,7 @@ export class PendingToolApprovalManager {
   /**
    * Approve a pending tool call
    */
-  approveToolCall(toolCallId: string): boolean {
+  approveToolCall(toolCallId: string, data?: Record<string, unknown>): boolean {
     const approval = this.pendingApprovals.get(toolCallId);
 
     if (!approval) {
@@ -103,14 +109,14 @@ export class PendingToolApprovalManager {
         toolCallId,
         toolName: approval.toolName,
         conversationId: approval.conversationId,
+        hasData: !!data,
       },
       'Tool approved by user, resuming execution'
     );
 
-    // Clean up and resolve the promise with approval result
     clearTimeout(approval.timeoutId);
     this.pendingApprovals.delete(toolCallId);
-    approval.resolve({ approved: true });
+    approval.resolve({ approved: true, data });
 
     return true;
   }

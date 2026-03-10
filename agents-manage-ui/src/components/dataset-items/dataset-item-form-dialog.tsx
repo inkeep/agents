@@ -23,7 +23,6 @@ import {
 import type { DatasetItem } from '@/lib/api/dataset-items';
 import { ExpectedOutputForm } from './expected-output-form';
 import { MessagesInputForm } from './messages-input-form';
-import { SimulationAgentForm } from './simulation-agent-form';
 import { type DatasetItemFormData, datasetItemSchema } from './validation';
 
 interface DatasetItemFormDialogProps {
@@ -43,46 +42,12 @@ const formatFormData = (data?: DatasetItem): DatasetItemFormData => {
     return {
       input: '',
       expectedOutput: '',
-      simulationAgent: null,
     };
-  }
-
-  // Parse simulationAgent from JSON to object if it exists
-  let simulationAgent: DatasetItemFormData['simulationAgent'] = null;
-  if (data.simulationAgent) {
-    // If it's already an object, use it directly
-    if (typeof data.simulationAgent === 'object' && data.simulationAgent !== null) {
-      simulationAgent = {
-        prompt: (data.simulationAgent as any).prompt || '',
-        model: {
-          model: (data.simulationAgent as any).model?.model || '',
-          providerOptions: (data.simulationAgent as any).model?.providerOptions || undefined,
-        },
-        stopWhen: (data.simulationAgent as any).stopWhen || {},
-      };
-    } else if (typeof data.simulationAgent === 'string') {
-      // If it's a string, try to parse it
-      try {
-        const parsed = JSON.parse(data.simulationAgent);
-        simulationAgent = {
-          prompt: parsed.prompt || '',
-          model: {
-            model: parsed.model?.model || '',
-            providerOptions: parsed.model?.providerOptions || undefined,
-          },
-          stopWhen: parsed.stopWhen || {},
-        };
-      } catch {
-        // If parsing fails, keep as string for fallback
-        simulationAgent = data.simulationAgent as any;
-      }
-    }
   }
 
   return {
     input: data.input ? JSON.stringify(data.input, null, 2) : '',
     expectedOutput: data.expectedOutput ? JSON.stringify(data.expectedOutput, null, 2) : '',
-    simulationAgent,
   };
 };
 
@@ -126,10 +91,8 @@ export function DatasetItemFormDialog({
   };
 
   const onSubmit = async (data: DatasetItemFormData) => {
-    // Double-check validation before proceeding
     const isValid = await form.trigger();
     if (!isValid) {
-      // Form validation failed - errors should be displayed
       const firstError = Object.keys(form.formState.errors)[0];
       if (firstError) {
         const errorElement = document
@@ -143,7 +106,6 @@ export function DatasetItemFormDialog({
     }
 
     try {
-      // Validate that input is provided and has at least one message
       if (!data.input?.trim()) {
         toast.error('Input is required. Please add at least one message.');
         return;
@@ -155,70 +117,9 @@ export function DatasetItemFormDialog({
         return;
       }
 
-      // Handle simulationAgent - it might be an object or a string
-      let simulationAgent: DatasetItem['simulationAgent'] = null;
-      if (data.simulationAgent) {
-        if (typeof data.simulationAgent === 'string') {
-          simulationAgent = parseJsonField(data.simulationAgent) as DatasetItem['simulationAgent'];
-        } else if (typeof data.simulationAgent === 'object' && data.simulationAgent !== null) {
-          // Check if the object has any meaningful values - if not, set to null (optional)
-          const hasPrompt = data.simulationAgent.prompt?.trim() || '';
-          const hasModel = data.simulationAgent.model?.model?.trim() || '';
-          const hasStopWhen =
-            data.simulationAgent.stopWhen &&
-            ((data.simulationAgent.stopWhen.transferCountIs !== null &&
-              data.simulationAgent.stopWhen.transferCountIs !== undefined) ||
-              (data.simulationAgent.stopWhen.stepCountIs !== null &&
-                data.simulationAgent.stopWhen.stepCountIs !== undefined));
-
-          // If any field is configured, validate that both prompt and model are present
-          if (hasPrompt || hasModel || hasStopWhen) {
-            if (!hasPrompt || !hasModel) {
-              // Validation error - trigger form validation to show errors and prevent submission
-              const isValid = await form.trigger('simulationAgent');
-              if (!isValid) {
-                // Scroll to the error
-                const errorElement = document.querySelector('[data-slot="form-message"]');
-                if (errorElement) {
-                  errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                return;
-              }
-              // If validation somehow passed but we still don't have both, don't submit
-              return;
-            }
-            // It has values, ensure model.model is a valid string
-            const modelValue = data.simulationAgent.model?.model?.trim();
-            if (!modelValue) {
-              // This shouldn't happen if validation passed, but double-check
-              await form.trigger('simulationAgent');
-              return;
-            }
-            // Clean up the object - remove any null/undefined values
-            const cleaned = {
-              prompt: data.simulationAgent.prompt?.trim() || '',
-              model: {
-                model: modelValue,
-                ...(data.simulationAgent.model?.providerOptions && {
-                  providerOptions: data.simulationAgent.model.providerOptions,
-                }),
-              },
-              ...(data.simulationAgent.stopWhen && {
-                stopWhen: data.simulationAgent.stopWhen,
-              }),
-            };
-            simulationAgent = cleaned as DatasetItem['simulationAgent'];
-          } else {
-            // All fields are empty, treat as null (optional)
-            simulationAgent = null;
-          }
-        }
-      }
-
       const payload = {
         input: parsedInput,
         expectedOutput: parseJsonField(data.expectedOutput || '') as DatasetItem['expectedOutput'],
-        simulationAgent,
       };
 
       let result: ActionResult;
@@ -258,8 +159,7 @@ export function DatasetItemFormDialog({
         <DialogHeader>
           <DialogTitle>{itemId ? 'Edit Test Suite Item' : 'Create Test Suite Item'}</DialogTitle>
           <DialogDescription>
-            Define the input messages, expected output, and optional simulation configuration for
-            this test case.
+            Define the input messages and expected output for this test case.
           </DialogDescription>
         </DialogHeader>
 
@@ -292,17 +192,6 @@ export function DatasetItemFormDialog({
                     label="Expected Output"
                     description="Expected response messages from the agent (optional)"
                   />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="simulationAgent"
-              render={() => (
-                <FormItem>
-                  <SimulationAgentForm control={form.control} />
-                  <FormMessage />
                 </FormItem>
               )}
             />

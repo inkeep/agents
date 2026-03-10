@@ -317,9 +317,11 @@ app.openapi(chatCompletionsRoute, async (c) => {
       // Extract text content from parts
       const userMessage = extractTextFromParts(messageParts);
 
+      const userMessageId = generateId();
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
         messageSpan.setAttributes({
+          'message.id': userMessageId,
           'message.content': userMessage,
           'message.timestamp': Date.now(),
         });
@@ -338,7 +340,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         }
       }
       await createMessage(runDbClient)({
-        id: generateId(),
+        id: userMessageId,
         tenantId,
         projectId,
         conversationId,
@@ -352,7 +354,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
-          'message.id': conversationId,
+          'message.id': userMessageId,
           'database.operation': 'insert',
         });
       }

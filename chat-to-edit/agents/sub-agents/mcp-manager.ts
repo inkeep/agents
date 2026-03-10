@@ -22,7 +22,7 @@ When helping users add MCPs to their agent graph, follow this strict priority or
   - "Slack" should match "Slack Workspace"
   - "GitHub" should match "GitHub Integration"
   - Use your semantic understanding to match user intent to existing MCPs
-- **If found** → Call **sub-agent-tool-relations-create-subagent-tool-relation** to link it to the target subagent
+- **If found** → Call **sub-agents-create-subagent-tool-relation** to link it to the target subagent
   - Parameters: { toolId: "<found-tool-id>", subAgentId: "<target-subagent-id>" }
   - Response: "I've linked your existing {name} MCP to {subagent}"
 - **Why this matters**: Prevents duplicate tools, avoids redundant OAuth flows, provides instant connection
@@ -55,7 +55,7 @@ When helping users add MCPs to their agent graph, follow this strict priority or
    - Purpose: Get all connected tools
    - Returns: Array of tool objects with { id, name, type, config, ... }
 
-2. **sub-agent-tool-relations-create-subagent-tool-relation**
+2. **sub-agents-create-subagent-tool-relation**
    - Purpose: Link the existing tool to the target subagent
    - Parameters: 
      - toolId: Use the "id" field from the tool found in step 1
@@ -81,7 +81,7 @@ When helping users add MCPs to their agent graph, follow this strict priority or
    - Returns: Created tool object with { id, name, ... }
    - **CRITICAL**: Extract and save the "id" field from this response - you'll need it in the next step
 
-4. **sub-agent-tool-relations-create-subagent-tool-relation**
+4. **sub-agents-create-subagent-tool-relation**
    - Purpose: Link the newly created tool to the target subagent
    - Parameters:
      - toolId: Use the "id" field from the tool created in step 3 (NOT the catalog entry id)
@@ -97,9 +97,9 @@ When helping users add MCPs to their agent graph, follow this strict priority or
 3. **Semantic matching**: Use your understanding to match names (e.g., "Linear" === "Linear Issue Tracker")
 4. **Extract IDs carefully**: 
    - tools-create-tool returns a tool with an "id" field
-   - This "id" is what you pass to sub-agent-tool-relations-create-subagent-tool-relation as "toolId"
+   - This "id" is what you pass to sub-agents-create-subagent-tool-relation as "toolId"
    - Do NOT use catalog entry IDs as toolIds
-5. **Two-step creation**: New MCPs always require tools-create-tool THEN sub-agent-tool-relations-create-subagent-tool-relation (in that order)
+5. **Two-step creation**: New MCPs always require tools-create-tool THEN sub-agents-create-subagent-tool-relation (in that order)
 6. **OAuth happens automatically**: After creating the relation, the UI will display an OAuth connection card to the user
 
 ## Decision Tree
@@ -123,16 +123,16 @@ Remember: Existing → Catalog → Custom. Always follow this order!`,
   canUse: () => [
     inkeepManagementTools.with({
       selectedTools: [
-        'health',
+        'health-health',
         'tools-list-tools',
         'tools-get-tool',
         { name: 'tools-create-tool', needsApproval: true },
         { name: 'tools-update-tool', needsApproval: true },
         'MCP-catalog-list-mcp-catalog',
-        { name: 'sub-agent-tool-relations-create-subagent-tool-relation', needsApproval: true },
-        { name: 'sub-agent-tool-relations-update-subagent-tool-relation', needsApproval: true },
-        'sub-agent-tool-relations-get-subagent-tool-relation',
-        'sub-agent-tool-relations-list-subagent-tool-relations',
+        { name: 'sub-agents-create-subagent-tool-relation', needsApproval: true },
+        { name: 'sub-agents-update-subagent-tool-relation', needsApproval: true },
+        'sub-agents-get-subagent-tool-relation',
+        'sub-agents-list-subagent-tool-relations',
       ],
     }),
   ],

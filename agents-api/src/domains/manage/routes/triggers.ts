@@ -682,6 +682,12 @@ app.openapi(
                 .array(PartSchema)
                 .optional()
                 .describe('Optional structured message parts (from original trace)'),
+              forwardedHeaders: z
+                .record(z.string(), z.string())
+                .optional()
+                .describe(
+                  'Optional headers to forward to the agent execution context (e.g. x-target-tenant-id)'
+                ),
             }),
           },
         },
@@ -708,7 +714,11 @@ app.openapi(
     const db = c.get('db');
     const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
-    const { userMessage, messageParts: rawMessageParts } = c.req.valid('json');
+    const {
+      userMessage,
+      messageParts: rawMessageParts,
+      forwardedHeaders,
+    } = c.req.valid('json');
 
     logger.info({ tenantId, projectId, agentId, triggerId }, 'Rerunning trigger');
 
@@ -746,6 +756,7 @@ app.openapi(
         transformedPayload: undefined,
         messageParts,
         userMessageText: userMessage,
+        forwardedHeaders,
       }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
