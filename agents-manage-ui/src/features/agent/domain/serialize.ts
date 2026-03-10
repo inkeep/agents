@@ -3,13 +3,7 @@ import type { AgentMetadata } from '@/components/agent/configuration/agent-types
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
-import type {
-  AgentToolConfigLookup,
-  FullAgentDefinition,
-  InternalAgentDefinition,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
+import type { FullAgentDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
 import { generateId } from '@/lib/utils/id-utils';
@@ -106,10 +100,7 @@ function processModels(modelsData: AgentMetadata['models']): AgentMetadata['mode
 export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
-  metadata?: AgentMetadata,
-  agentToolConfigLookup?: AgentToolConfigLookup,
-  subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
-  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
+  metadata?: AgentMetadata
 ): FullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
   const externalAgents: Record<string, ExternalAgent> = {};
@@ -149,10 +140,10 @@ export function serializeAgentData(
         const mcpNode = nodes.find((n) => n.id === edge.target);
 
         if (mcpNode && mcpNode.type === NodeType.MCP) {
-          const toolId = (mcpNode.data as any).toolId;
+          const toolId = mcpNode.data.toolId;
 
           if (toolId) {
-            const tempSelectedTools = (mcpNode.data as any).tempSelectedTools;
+            const tempSelectedTools = mcpNode.data.tempSelectedTools;
             let toolSelection: string[] | null = null;
 
             const relationshipId = (mcpNode.data as any).relationshipId;
@@ -163,17 +154,6 @@ export function serializeAgentData(
                 toolSelection = tempSelectedTools;
               } else if (tempSelectedTools === null) {
                 toolSelection = null; // All tools selected
-              }
-            } else {
-              // No changes made to tool selection - preserve existing selection
-              const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
-                : null;
-              if (existingConfig?.toolSelection) {
-                toolSelection = existingConfig.toolSelection;
-              } else {
-                // Default to all tools selected when no existing data found
-                toolSelection = null;
               }
             }
 
@@ -188,14 +168,6 @@ export function serializeAgentData(
               ) {
                 toolHeaders = tempHeaders;
               }
-            } else {
-              // No changes made to headers - preserve existing headers
-              const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
-                : null;
-              if (existingConfig?.headers) {
-                toolHeaders = existingConfig.headers;
-              }
             }
 
             const tempToolPolicies = (mcpNode.data as any).tempToolPolicies;
@@ -208,14 +180,6 @@ export function serializeAgentData(
                 !Array.isArray(tempToolPolicies)
               ) {
                 toolPolicies = tempToolPolicies;
-              }
-            } else {
-              // No changes made to tool policies - preserve existing policies
-              const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
-                : null;
-              if (existingConfig?.toolPolicies) {
-                toolPolicies = existingConfig.toolPolicies;
               }
             }
 
@@ -396,11 +360,11 @@ export function serializeAgentData(
       const isTargetExternal = targetExternalAgent !== undefined;
       const isTargetTeamAgent = targetTeamAgent !== undefined;
 
-      if (!sourceAgent || !(edge.data as any)?.relationships) {
+      if (!sourceAgent || !edge.data?.relationships) {
         continue;
       }
 
-      const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
+      const relationships = edge.data.relationships as A2AEdgeData['relationships'];
 
       // Helper function to add relationship
       const addRelationship = (
@@ -494,13 +458,6 @@ export function serializeAgentData(
             ) {
               externalAgentHeaders = tempHeaders;
             }
-          } else {
-            const existingConfig = relationshipId
-              ? subAgentExternalAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
-              : null;
-            if (existingConfig?.headers) {
-              externalAgentHeaders = existingConfig.headers;
-            }
           }
 
           addRelationship(
@@ -530,13 +487,6 @@ export function serializeAgentData(
               !Array.isArray(tempHeaders)
             ) {
               teamAgentHeaders = tempHeaders;
-            }
-          } else {
-            const existingConfig = relationshipId
-              ? subAgentTeamAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
-              : null;
-            if (existingConfig?.headers) {
-              teamAgentHeaders = existingConfig.headers;
             }
           }
 
@@ -727,7 +677,7 @@ export function validateSerializedData(
     // All subAgents are internal agents (external agents are project-scoped)
     if (agent.canUse) {
       // Skip tool validation if tools data is not available (project-scoped)
-      const toolsData = (data as any).tools;
+      const toolsData = data.tools;
       if (toolsData) {
         for (const canUseItem of agent.canUse) {
           const toolId = canUseItem.toolId;
