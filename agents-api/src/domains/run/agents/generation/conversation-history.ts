@@ -15,19 +15,15 @@ import {
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 
-async function hydrateConversationHistoryBlobParts(
+export async function hydrateConversationHistoryBlobParts(
   messages: MessageSelect[],
   hydrate: HydrateBlobToDataUrl
 ): Promise<{ hydrated: MessageSelect[]; nonHydrated: MessageSelect[] }> {
-  const hydrated: MessageSelect[] = [];
-  const nonHydrated: MessageSelect[] = [];
-
-  await Promise.all(
-    messages.map(async (msg) => {
+  const hydratedResults = await Promise.all(
+    messages.map(async (msg): Promise<{ message: MessageSelect; hydrated: boolean }> => {
       const content = msg.content;
       if (!content?.parts?.length) {
-        nonHydrated.push(msg);
-        return;
+        return { message: msg, hydrated: false };
       }
 
       let hasHydratedParts = false;
@@ -48,13 +44,16 @@ async function hydrateConversationHistoryBlobParts(
       );
 
       const processedMsg = { ...msg, content: { ...content, parts } };
-      if (hasHydratedParts) {
-        hydrated.push(processedMsg);
-      } else {
-        nonHydrated.push(processedMsg);
-      }
+      return { message: processedMsg, hydrated: hasHydratedParts };
     })
   );
+
+  const hydrated = hydratedResults
+    .filter((result) => result.hydrated)
+    .map((result) => result.message);
+  const nonHydrated = hydratedResults
+    .filter((result) => !result.hydrated)
+    .map((result) => result.message);
 
   return { hydrated, nonHydrated };
 }
@@ -132,11 +131,22 @@ export async function buildConversationHistory({
     conversationHistory = nonHydrated;
   }
 
-  console.log('conversationHistoryWithFileData', conversationHistoryWithFileData);
-
   const conversationHistoryString = formatMessagesAsConversationHistory(conversationHistory);
 
-  const conversationHistoryTokens = estimateTokens(conversationHistoryString);
+  const hydratedHistoryWithFileData = conversationHistoryWithFileData
+    .flatMap((msg) => msg.content?.parts ?? [])
+    .map((part) => {
+      if (part.kind === 'text' && typeof part.text === 'string') {
+        return part.text;
+      }
+      if (part.kind === 'file' && typeof part.data === 'string') {
+        return part.data;
+      }
+      return '';
+    })
+    .join('\n');
+  const conversationHistoryTokens =
+    estimateTokens(conversationHistoryString) + estimateTokens(hydratedHistoryWithFileData);
   const updatedContextBreakdown: ContextBreakdown = {
     components: {
       ...initialContextBreakdown.components,
@@ -176,18 +186,20 @@ export function buildInitialMessages({
 
   if (conversationHistoryWithFileData?.length) {
     conversationHistoryWithFileData.forEach((msg) => {
-      const content = (msg.content?.parts ?? []).flatMap((part) => {
-        if (part.kind !== 'file' || typeof part.data !== 'string') {
-          return [];
+      const content = (msg.content?.parts ?? []).reduce<AiSdkContentPart[]>((acc, part) => {
+        if (part.kind === 'text' && typeof part.text === 'string') {
+          acc.push({ type: 'text', text: part.text });
+          return acc;
         }
 
-        return [
-          {
-            type: 'image' as const,
-            image: part.data,
-          },
-        ];
-      });
+        if (part.kind === 'file' && typeof part.data === 'string') {
+          // Temporarily hard code to image. Must update when we add other file types.
+          acc.push({ type: 'image', image: part.data });
+          return acc;
+        }
+
+        return acc;
+      }, []);
 
       if (content?.length && content.length > 0) {
         messages.push({ role: 'user', content });
