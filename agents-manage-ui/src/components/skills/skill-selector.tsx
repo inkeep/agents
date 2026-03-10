@@ -18,7 +18,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSkillsQuery } from '@/lib/query/skills';
-import { cn } from '@/lib/utils';
+import { cn, createLookup } from '@/lib/utils';
 
 interface SkillSelectorProps {
   selectedSkills: AgentSkill[];
@@ -59,6 +59,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
   const { data: availableSkills } = useSkillsQuery();
+  const skillById = createLookup(availableSkills);
 
   const handleDrop = (targetId: string) => {
     if (!draggingId) return;
@@ -147,8 +148,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                 </div>
                 <div className="grow">
                   <div className="text-sm text-foreground font-medium line-clamp-1">{skill.id}</div>
-                  {/* @ts-expect-error fixme */}
-                  <div className="line-clamp-1">{skill.description}</div>
+                  <div className="line-clamp-1">{skillById[skill.id]?.description}</div>
                 </div>
                 <Checkbox
                   checked={skill.alwaysLoaded}
