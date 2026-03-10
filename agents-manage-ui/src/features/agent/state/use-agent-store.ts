@@ -46,11 +46,7 @@ interface AgentPersistedStateData {
 }
 
 interface AgentActions {
-  setInitial(
-    nodes: Node[],
-    edges: Edge[],
-    metadata: AgentMetadata
-  ): void;
+  setInitial(nodes: Node[], edges: Edge[], metadata: AgentMetadata): void;
   reset(): void;
   setNodes(updater: (prev: Node[]) => Node[]): void;
   setEdges(updater: (prev: Edge[]) => Edge[]): void;
