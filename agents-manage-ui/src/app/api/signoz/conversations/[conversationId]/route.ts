@@ -1127,7 +1127,15 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: 'compression.input_tokens',
+              key: 'compression.generated_tokens',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.total_context_tokens',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.trigger_at',
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
             {
@@ -1139,20 +1147,8 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.FLOAT64_TAG,
             },
             {
-              key: 'compression.result.artifact_count',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: 'compression.message_count',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: 'compression.hard_limit',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: 'compression.safety_buffer',
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+              key: 'compression.result.high_level',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
               key: 'compression.success',
@@ -1160,10 +1156,6 @@ function buildConversationListPayload(
             },
             {
               key: 'compression.error',
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: 'compression.result.summary',
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ],
@@ -1489,13 +1481,11 @@ export async function GET(
       otelStatusDescription?: string;
       // compression specifics
       compressionType?: string;
-      compressionInputTokens?: number;
+      compressionGeneratedTokens?: number;
+      compressionTotalContextTokens?: number;
+      compressionTriggerAt?: number;
       compressionOutputTokens?: number;
       compressionRatio?: number;
-      compressionArtifactCount?: number;
-      compressionMessageCount?: number;
-      compressionHardLimit?: number;
-      compressionSafetyBuffer?: number;
       compressionError?: string;
       compressionSummary?: string;
       maxStepsReached?: boolean;
@@ -1938,15 +1928,16 @@ export async function GET(
 
       // Extract compression-specific attributes
       const compressionType = getString(span, 'compression.type', '');
-      const inputTokens = getNumber(span, 'compression.input_tokens', 0);
+      const generatedTokens = getNumber(span, 'compression.generated_tokens', 0);
+      const totalContextTokens = getNumber(span, 'compression.total_context_tokens', 0);
+      const triggerAt = getNumber(span, 'compression.trigger_at', 0);
       const outputTokens = getNumber(span, 'compression.result.output_tokens', 0);
       const compressionRatio = getNumber(span, 'compression.result.compression_ratio', 0);
-      const artifactCount = getNumber(span, 'compression.result.artifact_count', 0);
       const messageCount = getNumber(span, 'compression.message_count', 0);
-      const hardLimit = getNumber(span, 'compression.hard_limit', 0);
-      const safetyBuffer = getNumber(span, 'compression.safety_buffer', 0);
       const compressionError = getString(span, 'compression.error', '');
-      const compressionSummary = getString(span, 'compression.result.summary', '');
+      const compressionSummary =
+        getString(span, 'compression.result.high_level', '') ||
+        getString(span, 'compression.result.summary', '');
 
       const description =
         compressionType === 'mid_generation'
@@ -1970,16 +1961,14 @@ export async function GET(
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result:
           compressionError ||
-          `Compressed ${messageCount} messages, ${inputTokens} → ${outputTokens} tokens`,
+          `Compressed ${messageCount} messages, ${totalContextTokens} → ${outputTokens} tokens`,
         // Compression-specific fields
         compressionType,
-        compressionInputTokens: inputTokens,
+        compressionGeneratedTokens: generatedTokens,
+        compressionTotalContextTokens: totalContextTokens,
+        compressionTriggerAt: triggerAt,
         compressionOutputTokens: outputTokens,
         compressionRatio,
-        compressionArtifactCount: artifactCount,
-        compressionMessageCount: messageCount,
-        compressionHardLimit: hardLimit,
-        compressionSafetyBuffer: safetyBuffer,
         compressionError: compressionError || undefined,
         compressionSummary: compressionSummary || undefined,
       });
