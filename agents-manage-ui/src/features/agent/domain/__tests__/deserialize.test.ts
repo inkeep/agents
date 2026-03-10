@@ -7,6 +7,7 @@ import {
   getCurrentSelectedToolsForNode,
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
+import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 
 describe('deserializeAgentData', () => {
   it('hydrates MCP relation config onto node data so it round-trips without a lookup', () => {
@@ -255,6 +256,113 @@ describe('deserializeAgentData', () => {
     ) as any;
 
     expect(getCurrentHeadersForExternalAgentNode(externalAgentNode)).toEqual({
+      Authorization: 'Bearer token',
+    });
+  });
+
+  it('hydrates team agent headers onto node data so it round-trips without a lookup', () => {
+    const fullAgent = {
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: '',
+      defaultSubAgentId: 'sub-agent-1',
+      subAgents: {
+        'sub-agent-1': {
+          id: 'sub-agent-1',
+          name: 'Sub agent 1',
+          description: '',
+          prompt: 'Handle requests',
+          type: 'internal',
+          dataComponents: [],
+          artifactComponents: [],
+          canUse: [],
+          canTransferTo: [],
+          canDelegateTo: [
+            {
+              agentId: 'team-agent-1',
+              headers: {
+                Authorization: 'Bearer token',
+              },
+              subAgentTeamAgentRelationId: 'team-relation-1',
+            },
+          ],
+        },
+      },
+      teamAgents: {
+        'team-agent-1': {
+          id: 'team-agent-1',
+          name: 'Team Agent',
+          description: 'Team description',
+        },
+      },
+    } as any;
+
+    const deserialized = deserializeAgentData(fullAgent);
+    const teamAgentNode = deserialized.nodes.find((node) => node.type === NodeType.TeamAgent);
+
+    expect(teamAgentNode?.data).toMatchObject({
+      relationshipId: 'team-relation-1',
+      tempHeaders: {
+        Authorization: 'Bearer token',
+      },
+    });
+
+    const serialized = serializeAgentData(deserialized.nodes, deserialized.edges);
+
+    expect(serialized.subAgents['sub-agent-1'].canDelegateTo).toEqual([
+      {
+        agentId: 'team-agent-1',
+        headers: {
+          Authorization: 'Bearer token',
+        },
+        subAgentTeamAgentRelationId: 'team-relation-1',
+      },
+    ]);
+  });
+
+  it('preserves the previous team-agent lookup behavior through the helper function', () => {
+    const fullAgent = {
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: '',
+      defaultSubAgentId: 'sub-agent-1',
+      subAgents: {
+        'sub-agent-1': {
+          id: 'sub-agent-1',
+          name: 'Sub agent 1',
+          description: '',
+          prompt: 'Handle requests',
+          type: 'internal',
+          dataComponents: [],
+          artifactComponents: [],
+          canUse: [],
+          canTransferTo: [],
+          canDelegateTo: [
+            {
+              agentId: 'team-agent-1',
+              headers: {
+                Authorization: 'Bearer token',
+              },
+              subAgentTeamAgentRelationId: 'team-relation-1',
+            },
+          ],
+        },
+      },
+      teamAgents: {
+        'team-agent-1': {
+          id: 'team-agent-1',
+          name: 'Team Agent',
+          description: 'Team description',
+        },
+      },
+    } as any;
+
+    const deserialized = deserializeAgentData(fullAgent);
+    const teamAgentNode = deserialized.nodes.find(
+      (node) => node.type === NodeType.TeamAgent
+    ) as any;
+
+    expect(getCurrentHeadersForTeamAgentNode(teamAgentNode)).toEqual({
       Authorization: 'Bearer token',
     });
   });

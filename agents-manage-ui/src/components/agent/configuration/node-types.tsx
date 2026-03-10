@@ -92,6 +92,7 @@ export interface TeamAgentNodeData extends Record<string, unknown> {
   name: string;
   description?: string;
   relationshipId?: string | null;
+  tempHeaders?: Record<string, string> | null;
 }
 
 export const nodeTypes = {
