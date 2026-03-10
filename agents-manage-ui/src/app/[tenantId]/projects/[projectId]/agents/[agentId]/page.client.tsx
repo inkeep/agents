@@ -60,10 +60,6 @@ import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { saveAgent } from '@/lib/services/save-agent';
-import type {
-  SubAgentTeamAgentConfig,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
@@ -172,30 +168,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         selected: edge.id === edgeId,
       }))
     : result.edges;
-
-  // Helper functions to compute lookups from agent data
-  const subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup = (() => {
-    if (!agent.subAgents) return {};
-    const lookup: SubAgentTeamAgentConfigLookup = {};
-    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
-      if (agentData && 'canDelegateTo' in agentData && agentData.canDelegateTo) {
-        const teamAgentConfigs: Record<string, SubAgentTeamAgentConfig> = {};
-        agentData.canDelegateTo
-          .filter((delegate) => typeof delegate === 'object' && 'agentId' in delegate)
-          .forEach((delegate) => {
-            // For team agents, the delegate is just the target agent ID string
-            teamAgentConfigs[delegate.agentId] = {
-              agentId: delegate.agentId,
-              headers: delegate.headers ?? undefined,
-            };
-          });
-        if (Object.keys(teamAgentConfigs).length > 0) {
-          lookup[subAgentId] = teamAgentConfigs;
-        }
-      }
-    });
-    return lookup;
-  })();
 
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
   const { storeNodes, edges, metadata } = useAgentStore((state) => ({
@@ -585,7 +557,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const onSubmit = async (): Promise<boolean> => {
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
-      serializedData = serializeAgentData(nodes, edges, metadata, subAgentTeamAgentConfigLookup);
+      serializedData = serializeAgentData(nodes, edges, metadata);
     } catch (error) {
       if (isContextConfigParseError(error)) {
         const errorObjects = [
@@ -880,7 +852,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
                 selectedEdgeId={edgeId}
                 onClose={closeSidePane}
                 backToAgent={backToAgent}
-                subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
                 disabled={isCopilotStreaming || !canEdit}
               />
             </ResizablePanel>
