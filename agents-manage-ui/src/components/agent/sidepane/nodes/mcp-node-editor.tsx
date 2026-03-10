@@ -227,24 +227,23 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
       markUnsaved();
       return;
     }
+    let parsedHeaders: unknown;
     try {
-      const parsedHeaders = JSON.parse(value);
-
-      if (
-        typeof parsedHeaders === 'object' &&
-        parsedHeaders !== null &&
-        !Array.isArray(parsedHeaders)
-      ) {
-        // Valid format - save to node data
-        updateNodeData(selectedNode.id, {
-          ...selectedNode.data,
-          tempHeaders: parsedHeaders,
-        });
-        markUnsaved();
-      }
+      parsedHeaders = JSON.parse(value);
     } catch {
-      // Invalid JSON - don't save, but allow user to continue typing
-      // The ExpandableJsonEditor will show the validation error
+      return;
+    }
+
+    if (
+      typeof parsedHeaders === 'object' &&
+      parsedHeaders !== null &&
+      !Array.isArray(parsedHeaders)
+    ) {
+      updateNodeData(selectedNode.id, {
+        ...selectedNode.data,
+        tempHeaders: parsedHeaders,
+      });
+      markUnsaved();
     }
   };
 
