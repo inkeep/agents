@@ -25,7 +25,6 @@ export function getCurrentSelectedToolsForNode(node: {
   data: MCPNodeData;
   id: string;
 }): string[] | null {
-  // First check if we have temporary selections stored on the node (from recent clicks)
   if (node.data.tempSelectedTools !== undefined) {
     return (node.data as any).tempSelectedTools;
   }
