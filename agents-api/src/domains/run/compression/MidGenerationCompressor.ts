@@ -16,6 +16,7 @@ const logger = getLogger('MidGenerationCompressor');
 export class MidGenerationCompressor extends BaseCompressor {
   private shouldCompress = false;
   private generatedMessagesBaseline: number | null = null;
+  private compressionCycleCount = 0;
 
   /**
    * Called after compression succeeds to record where the next cycle's generated messages start.
@@ -124,7 +125,11 @@ export class MidGenerationCompressor extends BaseCompressor {
 
     const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(messages);
 
-    const summary = await this.createConversationSummary(messages, toolCallToArtifactMap);
+    const summary = await this.createConversationSummary(
+      messages,
+      toolCallToArtifactMap,
+      this.compressionCycleCount
+    );
 
     // Calculate context size after compression
     const contextSizeAfter = this.estimateTokens(JSON.stringify(summary));
@@ -140,6 +145,7 @@ export class MidGenerationCompressor extends BaseCompressor {
     });
 
     this.shouldCompress = false;
+    this.compressionCycleCount++;
 
     logger.info(
       {
@@ -160,6 +166,10 @@ export class MidGenerationCompressor extends BaseCompressor {
     };
   }
 
+  getCompressionCycleCount(): number {
+    return this.compressionCycleCount;
+  }
+
   /**
    * Get current state for debugging
    */
@@ -167,6 +177,7 @@ export class MidGenerationCompressor extends BaseCompressor {
     return {
       ...super.getState(),
       shouldCompress: this.shouldCompress,
+      compressionCycleCount: this.compressionCycleCount,
     };
   }
 }

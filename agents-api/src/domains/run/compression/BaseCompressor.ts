@@ -485,7 +485,8 @@ export abstract class BaseCompressor {
 
   protected async createConversationSummary(
     messages: any[],
-    toolCallToArtifactMap: Record<string, CompressedArtifactInfo>
+    toolCallToArtifactMap: Record<string, CompressedArtifactInfo>,
+    compressionCycle = 0
   ): Promise<any> {
     const oversizedArtifacts = Object.values(toolCallToArtifactMap).filter((a) => a.isOversized);
     if (oversizedArtifacts.length > 0) {
@@ -509,6 +510,7 @@ export abstract class BaseCompressor {
       summarizerModel: this.summarizerModel,
       messageFormatter: (maxChars) =>
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
+      compressionCycle,
     });
 
     logger.info(

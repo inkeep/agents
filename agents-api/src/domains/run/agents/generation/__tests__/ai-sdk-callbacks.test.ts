@@ -28,6 +28,7 @@ function makeCompressor(overrides: Partial<Record<string, any>> = {}): any {
     markCompressed: vi.fn(),
     calculateContextSize: vi.fn().mockReturnValue(1000),
     getHardLimit: vi.fn().mockReturnValue(100000),
+    getCompressionCycleCount: vi.fn().mockReturnValue(0),
     getState: vi.fn().mockReturnValue({ config: { safetyBuffer: 10000 } }),
     safeCompress: vi.fn().mockResolvedValue({
       artifactIds: [],
@@ -124,7 +125,7 @@ describe('handlePrepareStepCompression', () => {
     // originalMessages (2) + injected summary message (1)
     expect(result.messages?.length).toBe(3);
     expect(result.messages?.at(-1)?.role).toBe('user');
-    expect(result.messages?.at(-1)?.content).toContain('YOU MUST RESPOND NOW');
+    expect(result.messages?.at(-1)?.content).toContain('RESPOND NOW');
   });
 
   it('returns originalMessages + compressedMessages when safeCompress returns array summary', async () => {

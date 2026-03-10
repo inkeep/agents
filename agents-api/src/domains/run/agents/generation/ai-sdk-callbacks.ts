@@ -53,6 +53,7 @@ export async function handlePrepareStepCompression(
       );
 
       if (generatedMessages.length > 0) {
+        const compressionCycle = compressor.getCompressionCycleCount();
         let compressionResult: Awaited<ReturnType<typeof compressor.safeCompress>>;
         try {
           compressionResult = await compressor.safeCompress(generatedMessages, totalTokens);
@@ -104,12 +105,26 @@ export async function handlePrepareStepCompression(
           }));
         }
 
+        const forAgentSteps: string[] = summaryData.next_steps?.for_agent ?? [];
+        const hasNewWork = forAgentSteps.some(
+          (s: string) => !s.startsWith('STOP:') && !s.startsWith('DO NOT RE-CALL')
+        );
+
+        let stopInstruction: string;
+        if (compressionCycle >= 1) {
+          stopInstruction = `**STOP ALL TOOL CALLS.** Context has been compressed ${compressionCycle + 1} times — you are in a loop. Respond immediately with what you have found.`;
+        } else if (!hasNewWork || forAgentSteps.length === 0) {
+          stopInstruction = `**RESPOND NOW.** The next steps above indicate all relevant tool calls have already been made. Use the findings above to answer immediately.`;
+        } else {
+          stopInstruction = `**Complete only the specific new actions listed in next_steps.for_agent above, then respond.** Skip any items marked STOP or DO NOT RE-CALL — those results already exist as artifacts. Do not make any other tool calls.`;
+        }
+
         const summaryMessage = JSON.stringify(summaryData);
         finalMessages.push({
           role: 'user',
           content: `Your research has been compressed due to context limits. Here is everything you have discovered so far: ${summaryMessage}
 
-**YOU MUST RESPOND NOW.** You have already conducted extensive research. Do NOT make additional tool calls unless there is a specific critical piece of information that is completely absent from the above summary and is absolutely required to answer the question. If the summary contains enough to answer — even partially — provide your answer immediately. Every unnecessary tool call wastes context and risks losing more of your research. When referencing artifacts, use <artifact:ref id="artifact_id" tool="tool_call_id" /> tags with the exact IDs above.`,
+${stopInstruction} When referencing artifacts, use <artifact:ref id="artifact_id" tool="tool_call_id" /> tags with the exact IDs above.`,
         });
 
         logger.info(
