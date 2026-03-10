@@ -2,8 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
+import { type ArtifactComponent, fetchArtifactComponents } from '@/lib/api/artifact-components';
 
 const artifactComponentQueryKeys = {
   list: (tenantId: string, projectId: string) =>
@@ -21,10 +20,7 @@ export function useArtifactComponentsQuery({ enabled = true }: { enabled?: boole
   return useQuery<ArtifactComponent[]>({
     queryKey: artifactComponentQueryKeys.list(tenantId, projectId),
     async queryFn() {
-      const response = await fetchArtifactComponentsAction(tenantId, projectId);
-      if (!response.success || !response.data) {
-        throw new Error(response.error);
-      }
+      const response = await fetchArtifactComponents(tenantId, projectId);
       return response.data;
     },
     enabled,
