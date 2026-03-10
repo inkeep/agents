@@ -38,7 +38,7 @@ import {
   markRunningStep,
 } from '../steps/scheduledTriggerSteps';
 
-const chainLogger = getLogger('workflow-scheduled-trigger-chain');
+const logger = getLogger('workflow-scheduled-trigger-runner');
 
 export type ScheduledTriggerRunnerPayload = {
   tenantId: string;
@@ -98,11 +98,31 @@ async function startNextIterationStep(params: {
           workflowRunId: run.runId,
           status: 'running',
         });
+      } else {
+        logger.warn(
+          {
+            scheduledTriggerId: params.scheduledTriggerId,
+            childRunId: run.runId,
+          },
+          'Scheduled workflow record not found — child workflow untrackable'
+        );
       }
     });
+  } else {
+    // Child is already running (start() succeeded above) but we can't update
+    // the DB with its runId. The child's adoption path will recover.
+    logger.warn(
+      {
+        scheduledTriggerId: params.scheduledTriggerId,
+        childRunId: run.runId,
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+      },
+      'Failed to resolve ref after chaining — child will self-adopt via parentRunId'
+    );
   }
 
-  chainLogger.info(
+  logger.info(
     {
       scheduledTriggerId: params.scheduledTriggerId,
       parentRunId: params.currentRunId,
@@ -255,14 +275,23 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     });
 
     if (!isOneTime) {
-      await startNextIterationStep({
-        tenantId,
-        projectId,
-        agentId,
-        scheduledTriggerId,
-        lastScheduledFor: invocation.scheduledFor,
-        currentRunId: runnerId,
-      });
+      try {
+        await startNextIterationStep({
+          tenantId,
+          projectId,
+          agentId,
+          scheduledTriggerId,
+          lastScheduledFor: invocation.scheduledFor,
+          currentRunId: runnerId,
+        });
+      } catch (err) {
+        await logStep('Failed to chain to next iteration after cancellation', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
+      }
     }
 
     return { status: 'cancelled', invocationId: invocation.id };
@@ -286,6 +315,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         scheduledTriggerId,
         invocationId: invocation.id,
       });
+      lastError = null;
       break;
     }
 
@@ -397,14 +427,23 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     return { status: 'stopped', reason: preChainCheck.reason };
   }
 
-  await startNextIterationStep({
-    tenantId,
-    projectId,
-    agentId,
-    scheduledTriggerId,
-    lastScheduledFor: invocation.scheduledFor,
-    currentRunId: runnerId,
-  });
+  try {
+    await startNextIterationStep({
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      lastScheduledFor: invocation.scheduledFor,
+      currentRunId: runnerId,
+    });
+  } catch (err) {
+    await logStep('Failed to chain to next iteration', {
+      scheduledTriggerId,
+      invocationId: invocation.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
 
   return { status: 'chained', invocationId: invocation.id };
 }

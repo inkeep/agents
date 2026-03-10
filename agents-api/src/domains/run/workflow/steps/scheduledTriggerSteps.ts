@@ -207,14 +207,27 @@ export async function checkTriggerEnabledStep(params: {
     // Adoption: parent called start() to create this child but crashed before updating
     // the DB with the child's runId. DB still holds the parent's ID, so adopt it.
     if (params.parentRunId && workflow.workflowRunId === params.parentRunId) {
-      await withRef(manageDbPool, resolvedRef, async (db) => {
-        await updateScheduledWorkflowRunId(db)({
-          scopes,
-          scheduledWorkflowId: workflow.id,
-          workflowRunId: params.runnerId,
-          status: 'running',
+      try {
+        await withRef(manageDbPool, resolvedRef, async (db) => {
+          await updateScheduledWorkflowRunId(db)({
+            scopes,
+            scheduledWorkflowId: workflow.id,
+            workflowRunId: params.runnerId,
+            status: 'running',
+          });
         });
-      });
+      } catch (err) {
+        logger.error(
+          {
+            scheduledTriggerId: params.scheduledTriggerId,
+            parentRunId: params.parentRunId,
+            runnerId: params.runnerId,
+            error: err instanceof Error ? err.message : String(err),
+          },
+          'Failed to adopt workflowRunId — step will be retried by workflow framework'
+        );
+        throw err;
+      }
       logger.info(
         {
           scheduledTriggerId: params.scheduledTriggerId,
