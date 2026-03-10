@@ -1,32 +1,19 @@
-import type { Edge } from '@xyflow/react';
 import type { TeamAgentNodeData } from '@/components/agent/configuration/node-types';
-import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 
 /**
- * Enhanced lookup for headers - uses relationshipId for team agents
- * Similar to external agents but simpler since team agents are within the same project
+ * Reads the current headers from team agent node data.
  */
-export function getCurrentHeadersForTeamAgentNode(
-  node: { data: TeamAgentNodeData; id: string },
-  subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup,
-  _edges: Edge[]
-): Record<string, string> {
+export function getCurrentHeadersForTeamAgentNode(node: {
+  data: TeamAgentNodeData;
+  id: string;
+}): Record<string, string> {
   // First check if we have temporary headers stored on the node (from recent edits)
-  if ((node.data as any).tempHeaders !== undefined) {
+  if (
+    (node.data as any).tempHeaders !== undefined &&
+    (node.data as any).tempHeaders !== null &&
+    typeof (node.data as any).tempHeaders === 'object'
+  ) {
     return (node.data as any).tempHeaders;
   }
-
-  // If node has relationshipId, find config by relationshipId
-  const relationshipId = (node.data as any).relationshipId;
-  if (relationshipId) {
-    for (const teamAgentMap of Object.values(subAgentTeamAgentConfigLookup)) {
-      const config = teamAgentMap[relationshipId];
-      if (config) {
-        return config.headers ?? {};
-      }
-    }
-  }
-
-  // No relationshipId found, return empty headers
   return {};
 }
