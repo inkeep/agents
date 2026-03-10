@@ -298,6 +298,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       }
       const fullProject = fullProjectResult.data;
       const updatedAgent = fullProject?.agents?.[agentId];
+      // This makes current values the new default values
+      form.reset(serializeAgentForm(updatedAgent));
 
       // Deserialize agent data to nodes and edges
       const { nodes, edges } = deserializeAgentData(updatedAgent);
