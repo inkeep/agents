@@ -41,8 +41,7 @@ export function getCurrentHeadersForNode(node: {
 }): Record<string, string> {
   // First check if we have temporary headers stored on the node (from recent edits)
   if (
-    node.data.tempHeaders !== undefined &&
-    node.data.tempHeaders !== null &&
+    node.data.tempHeaders &&
     typeof node.data.tempHeaders === 'object'
   ) {
     return (node.data as any).tempHeaders;
@@ -59,8 +58,7 @@ export function getCurrentToolPoliciesForNode(node: {
 }): Record<string, { needsApproval?: boolean }> {
   // First check if we have temporary toolPolicies stored on the node (from recent edits)
   if (
-    node.data.tempToolPolicies !== undefined &&
-    node.data.tempToolPolicies !== null &&
+    node.data.tempToolPolicies &&
     typeof node.data.tempToolPolicies === 'object'
   ) {
     return (node.data as any).tempToolPolicies;
