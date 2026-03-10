@@ -16,7 +16,6 @@ import type {
   UpdateAgentResponse,
   UpdateFullAgentResponse,
 } from '../types/agent-full';
-import { ApiError } from '../types/errors';
 import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -148,4 +147,4 @@ export async function deleteFullAgent(
 }
 
 // Export the error class for use in server actions
-export { ApiError };
+export { ApiError } from '../types/errors';

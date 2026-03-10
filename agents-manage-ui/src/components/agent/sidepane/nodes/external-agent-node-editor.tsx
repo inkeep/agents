@@ -11,7 +11,6 @@ import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
-import type { Credential } from '@/lib/api/credentials';
 import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
@@ -22,7 +21,6 @@ import { TextareaField } from '../form-components/text-area';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
-  credentialLookup: Record<string, Credential>;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   errorHelpers?: ErrorHelpers;
 }

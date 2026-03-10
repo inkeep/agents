@@ -4,9 +4,6 @@ import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { Credential } from '@/lib/api/credentials';
-import type { DataComponent } from '@/lib/api/data-components';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
@@ -44,12 +41,9 @@ interface SidePaneProps {
   selectedEdgeId: string | null;
   onClose: () => void;
   backToAgent: () => void;
-  dataComponentLookup: Record<string, DataComponent>;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
   agentToolConfigLookup: AgentToolConfigLookup;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
-  credentialLookup: Record<string, Credential>;
   disabled?: boolean;
 }
 
@@ -58,12 +52,9 @@ export function SidePane({
   selectedEdgeId,
   onClose,
   backToAgent,
-  dataComponentLookup,
-  artifactComponentLookup,
   agentToolConfigLookup,
   subAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup,
-  credentialLookup,
   disabled = false,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
@@ -125,8 +116,6 @@ export function SidePane({
           return (
             <SubAgentNodeEditor
               selectedNode={selectedNode as Node<AgentNodeData>}
-              dataComponentLookup={dataComponentLookup}
-              artifactComponentLookup={artifactComponentLookup}
               errorHelpers={errorHelpers}
             />
           );
@@ -134,7 +123,6 @@ export function SidePane({
           return (
             <ExternalAgentNodeEditor
               selectedNode={selectedNode as Node<ExternalAgentNodeData>}
-              credentialLookup={credentialLookup}
               subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
               errorHelpers={errorHelpers}
             />
@@ -184,13 +172,10 @@ export function SidePane({
     selectedEdgeId,
     selectedNode,
     selectedEdge,
-    dataComponentLookup,
-    artifactComponentLookup,
     hasFieldError,
     getFieldErrorMessage,
     getFirstErrorField,
     agentToolConfigLookup,
-    credentialLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
     errors,
