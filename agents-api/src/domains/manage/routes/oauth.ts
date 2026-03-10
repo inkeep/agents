@@ -15,13 +15,13 @@ import {
   type CredentialReferenceApiInsert,
   CredentialReferenceApiSelectSchema,
   CredentialStoreType,
-  createCredentialReference,
   generateId,
   getCredentialReferenceWithResources,
   getProjectMainResolvedRef,
   getToolById,
   OAuthCallbackQuerySchema,
   updateTool,
+  upsertCredentialReference,
   withRef,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
@@ -32,7 +32,9 @@ import type { ManageAppVariables } from '../../../types/app';
 import { oauthService, retrievePKCEVerifier } from '../../../utils/oauthService';
 
 /**
- * Find existing credential or create a new one (idempotent operation)
+ * Find existing credential or create/update one (idempotent operation).
+ * Uses upsert to handle reconnection for user-scoped credentials
+ * where the (toolId, userId) unique constraint may already be satisfied.
  */
 async function findOrCreateCredential(
   db: AgentsManageDatabaseClient,
@@ -41,7 +43,7 @@ async function findOrCreateCredential(
   credentialData: CredentialReferenceApiInsert
 ) {
   try {
-    // Try to find existing credential first
+    // Try to find existing credential by ID first
     const existingCredential = await getCredentialReferenceWithResources(db)({
       scopes: { tenantId, projectId },
       id: credentialData.id,
@@ -52,14 +54,16 @@ async function findOrCreateCredential(
       return validatedCredential;
     }
   } catch {
-    // Credential not found, continue with creation
+    // Credential not found by ID, continue with upsert
   }
 
   try {
-    const credential = await createCredentialReference(db)({
-      ...credentialData,
-      tenantId,
-      projectId,
+    const credential = await upsertCredentialReference(db)({
+      data: {
+        ...credentialData,
+        tenantId,
+        projectId,
+      },
     });
 
     const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);

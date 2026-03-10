@@ -299,21 +299,23 @@ export const countCredentialReferences =
 
 /**
  * Upsert a credential reference (create if it doesn't exist, update if it does)
+ * For user-scoped credentials (toolId + userId set), also checks the unique constraint pair.
  */
 export const upsertCredentialReference =
   (db: AgentsManageDatabaseClient) =>
   async (params: { data: CredentialReferenceInsert }): Promise<CredentialReferenceSelect> => {
     const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
 
-    const existing = await getCredentialReference(db)({
+    // Check by ID first
+    const existingById = await getCredentialReference(db)({
       scopes,
       id: params.data.id,
     });
 
-    if (existing) {
+    if (existingById) {
       const updated = await updateCredentialReference(db)({
         scopes,
-        id: params.data.id,
+        id: existingById.id,
         data: {
           name: params.data.name,
           type: params.data.type,
@@ -326,5 +328,32 @@ export const upsertCredentialReference =
       }
       return updated;
     }
+
+    // For user-scoped credentials, check by (toolId, userId) unique constraint
+    if (params.data.toolId && params.data.userId) {
+      const existingByToolUser = await getUserScopedCredentialReference(db)({
+        scopes,
+        toolId: params.data.toolId,
+        userId: params.data.userId,
+      });
+
+      if (existingByToolUser) {
+        const updated = await updateCredentialReference(db)({
+          scopes,
+          id: existingByToolUser.id,
+          data: {
+            name: params.data.name,
+            type: params.data.type,
+            credentialStoreId: params.data.credentialStoreId,
+            retrievalParams: params.data.retrievalParams,
+          },
+        });
+        if (!updated) {
+          throw new Error('Failed to update credential reference - no rows affected');
+        }
+        return updated;
+      }
+    }
+
     return await createCredentialReference(db)(params.data);
   };

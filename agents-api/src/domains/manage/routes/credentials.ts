@@ -13,12 +13,14 @@ import {
   getCredentialReferenceById,
   getCredentialReferenceWithResources,
   getCredentialStoreLookupKeyFromRetrievalParams,
+  getUserScopedCredentialReference,
   ListResponseSchema,
   listCredentialReferencesPaginated,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateCredentialReference,
+  upsertCredentialReference,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -152,7 +154,40 @@ app.openapi(
       projectId,
     };
 
-    const credential = await createCredentialReference(db)(credentialData);
+    // For user-scoped credentials, clean up the old credential store connection before upserting
+    if (credentialData.toolId && credentialData.userId) {
+      const existingCredential = await getUserScopedCredentialReference(db)({
+        scopes: { tenantId, projectId },
+        toolId: credentialData.toolId,
+        userId: credentialData.userId,
+      });
+
+      if (existingCredential?.retrievalParams) {
+        const credentialStores = c.get('credentialStores');
+        const oldStore = credentialStores.get(existingCredential.credentialStoreId);
+
+        if (oldStore) {
+          const oldLookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
+            retrievalParams: existingCredential.retrievalParams,
+            credentialStoreType: oldStore.type,
+          });
+
+          if (oldLookupKey) {
+            try {
+              await oldStore.delete(oldLookupKey);
+            } catch {
+              // Best-effort cleanup — don't block the upsert if the old connection is already gone
+            }
+          }
+        }
+      }
+    }
+
+    const isUserScoped = credentialData.toolId && credentialData.userId;
+
+    const credential = isUserScoped
+      ? await upsertCredentialReference(db)({ data: credentialData })
+      : await createCredentialReference(db)(credentialData);
     const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
     return c.json({ data: validatedCredential }, 201);
   }
