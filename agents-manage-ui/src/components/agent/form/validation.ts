@@ -140,7 +140,9 @@ export const FullAgentSubAgentSchema = z.strictObject({
   models: MyModelsSchema,
   stopWhen: z.strictObject({
     ...SubAgentStopWhenSchema.shape,
-    stepCountIs: z.preprocess((v) => v ?? undefined, SubAgentStopWhenSchema.shape.stepCountIs),
+    stepCountIs: z
+      .preprocess((v) => v ?? undefined, SubAgentStopWhenSchema.shape.stepCountIs)
+      .optional(),
   }),
 });
 type FullAgentSubAgent = z.input<typeof FullAgentSubAgentSchema>;

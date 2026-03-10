@@ -33,6 +33,7 @@ export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
         canUse: [],
         dataComponents: [],
         artifactComponents: [],
+        stopWhen: {},
       },
       { shouldDirty: true }
     );
