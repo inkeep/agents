@@ -9,7 +9,6 @@ import { useShallow } from 'zustand/react/shallow';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
-import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -19,7 +18,6 @@ interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
   metadata: AgentMetadata;
-  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
@@ -51,13 +49,9 @@ interface AgentActions {
   setInitial(
     nodes: Node[],
     edges: Edge[],
-    metadata: AgentMetadata,
-    subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup
+    metadata: AgentMetadata
   ): void;
   reset(): void;
-  setSubAgentExternalAgentConfigLookup(
-    subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup
-  ): void;
   setNodes(updater: (prev: Node[]) => Node[]): void;
   setEdges(updater: (prev: Edge[]) => Edge[]): void;
   onNodesChange(changes: NodeChange[]): void;
@@ -120,7 +114,6 @@ const initialAgentState: AgentStateData = {
     prompt: undefined,
     statusUpdates: undefined,
   },
-  subAgentExternalAgentConfigLookup: {},
   dirty: false,
   history: [],
   future: [],
@@ -142,12 +135,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   variableSuggestions: [],
   // Separate "namespace" for actions
   actions: {
-    setInitial(nodes, edges, metadata, subAgentExternalAgentConfigLookup = {}) {
+    setInitial(nodes, edges, metadata) {
       set({
         nodes,
         edges,
         metadata,
-        subAgentExternalAgentConfigLookup,
         dirty: false,
         history: [],
         future: [],
@@ -161,9 +153,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       // and then immediately re-expand due to the user’s persisted preference.
       const { isSidebarSessionOpen: _, ...state } = initialAgentState;
       set({ ...state, playgroundConversationId: generateId() });
-    },
-    setSubAgentExternalAgentConfigLookup(subAgentExternalAgentConfigLookup) {
-      set({ subAgentExternalAgentConfigLookup });
     },
     setNodes(updater) {
       set((state) => ({ nodes: updater(state.nodes) }));
