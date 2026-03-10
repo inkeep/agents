@@ -51,7 +51,6 @@ export function getCurrentToolPoliciesForNode(node: {
   data: MCPNodeData;
   id: string;
 }): Record<string, { needsApproval?: boolean }> {
-  // First check if we have temporary toolPolicies stored on the node (from recent edits)
   if (node.data.tempToolPolicies && typeof node.data.tempToolPolicies === 'object') {
     return (node.data as any).tempToolPolicies;
   }
