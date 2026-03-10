@@ -136,6 +136,12 @@ export const FullAgentSubAgentSchema = z.strictObject({
   ...SubAgentSchema.shape,
   type: SubAgentSchema.shape.type.default('internal'),
   models: MyModelsSchema,
+  stopWhen: z.strictObject({
+    ...SubAgentSchema.shape.stopWhen.unwrap().shape,
+    stepCountIs: NullToUndefinedSchema.pipe(
+      SubAgentSchema.shape.stopWhen.unwrap().shape.stepCountIs
+    ),
+  }),
 });
 type FullAgentSubAgent = z.input<typeof FullAgentSubAgentSchema>;
 
@@ -261,8 +267,10 @@ export function serializeAgentForm(data: FullAgentResponse) {
         key,
         {
           ...value,
-          // `stopWhen` can be `null` from api response
-          stopWhen: value.stopWhen ?? undefined,
+          stopWhen: {
+            // `stopWhen` can be `null` from api response
+            stepCountIs: value.stopWhen?.stepCountIs ?? null,
+          },
           models: serializeModels(value.models ?? {}),
         },
       ])

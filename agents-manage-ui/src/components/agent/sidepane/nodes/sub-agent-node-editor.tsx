@@ -176,8 +176,8 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
           type="number"
           placeholder="50"
           label={
-            <div className="flex items-center gap-2">
-              <Label htmlFor="step-count">Max steps</Label>
+            <>
+              Max steps
               <InheritanceIndicator
                 {...getExecutionLimitInheritanceStatus(
                   'agent',
@@ -187,7 +187,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
                 )}
                 size="sm"
               />
-            </div>
+            </>
           }
           description="Maximum number of execution steps for this sub agent (defaults to 50 if not set)"
           isRequired={isRequired(FullAgentSubAgentSchema, 'stopWhen.stepCountIs')}
