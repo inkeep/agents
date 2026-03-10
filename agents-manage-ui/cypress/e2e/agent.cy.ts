@@ -43,9 +43,15 @@ describe('Agent', () => {
   });
 
   it('should correctly handle dirty state', () => {
-    cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
-    // Disable json schema builder
-    cy.contains('JSON').click();
+    cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem(
+          'inkeep:agent',
+          // Disable json schema builder
+          JSON.stringify({ state: { jsonSchemaMode: true }, version: 0 })
+        );
+      },
+    });
     for (const selector of [
       '[name=name]',
       'textarea[name=description]',
@@ -54,6 +60,10 @@ describe('Agent', () => {
       '[data-uri$="contextConfig.contextVariables.json"] textarea',
       '[data-uri$="contextConfig.headersSchema.json"] textarea',
     ]) {
+      typeAndUndo(selector);
+    }
+
+    function typeAndUndo(selector: string) {
       cy.get('[type=submit]').should('have.prop', 'disabled', true);
       cy.get(selector).type('0', { force: true });
       cy.get('[type=submit]').should('have.prop', 'disabled', false);
