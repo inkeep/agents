@@ -7,7 +7,8 @@ import { agentSessionManager, type ToolCallData } from '../../session/AgentSessi
 import { generateToolId } from '../../utils/agent-operations';
 import { isToolResultDenied } from '../../utils/tool-result';
 import type { AgentRunContext, AiSdkToolDefinition, ToolType } from '../agent-types';
-import { formatToolResult } from '../generation/tool-result';
+import { buildToolResultForConversationHistory } from '../generation/tool-result-for-conversation-history';
+import { buildToolResultForModelInput } from '../generation/tool-result-for-model-input';
 import { getRelationshipIdForTool } from './tool-utils';
 
 const logger = getLogger('Agent');
@@ -74,6 +75,7 @@ export function wrapToolWithStreaming(
   const originalExecute = toolDefinition.execute;
   return {
     ...toolDefinition,
+    toModelOutput: ({ output }: { output: unknown }) => buildToolResultForModelInput(output),
     execute: async (args: any, context?: any) => {
       const startTime = Date.now();
       const toolCallId = context?.toolCallId || generateToolId();
@@ -176,15 +178,22 @@ export function wrapToolWithStreaming(
         if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
           try {
             const messageId = generateId();
+            const messageContent = await buildToolResultForConversationHistory(
+              ctx,
+              toolName,
+              args,
+              result,
+              toolCallId,
+              toolResultConversationId,
+              messageId
+            );
             const messagePayload = {
               id: messageId,
               tenantId: ctx.config.tenantId,
               projectId: ctx.config.projectId,
               conversationId: toolResultConversationId,
               role: 'assistant',
-              content: {
-                text: formatToolResult(toolName, args, result, toolCallId),
-              },
+              content: messageContent,
               visibility: 'internal',
               messageType: 'tool-result',
               fromSubAgentId: ctx.config.id,

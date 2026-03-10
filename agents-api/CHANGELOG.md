@@ -1,5 +1,58 @@
 # @inkeep/agents-api
 
+## 0.58.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.5
+- @inkeep/agents-email@0.58.5
+- @inkeep/agents-mcp@0.58.5
+- @inkeep/agents-work-apps@0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- f475d74: Fix GitHub MCP tool access to be project-scoped instead of globally scoped by toolId
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [87ac81f]
+- Updated dependencies [b6a126f]
+- Updated dependencies [f475d74]
+- Updated dependencies [2d6ec44]
+  - @inkeep/agents-core@0.58.4
+  - @inkeep/agents-work-apps@0.58.4
+  - @inkeep/agents-email@0.58.4
+  - @inkeep/agents-mcp@0.58.4
+
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+- 676d18b: Fix optional data component fields accepting null values in structured output validation
+- Updated dependencies [0714ac6]
+  - @inkeep/agents-work-apps@0.58.3
+  - @inkeep/agents-core@0.58.3
+  - @inkeep/agents-email@0.58.3
+  - @inkeep/agents-mcp@0.58.3
+
+## 0.58.2
+
+### Patch Changes
+
+- ee5b4c9: Add image persistence to conversation history
+- eb5b16f: timeout recorded in spans
+- 558e723: Refactor Agent.ts into focused domain modules (generation, streaming, tools, services) and reorganize run-domain utilities into artifacts, compression, session, and stream subdirectories
+- ee5b4c9: Image security for chat API: URL validation, byte sniffing, format allowlist
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+  - @inkeep/agents-work-apps@0.58.2
+  - @inkeep/agents-email@0.58.2
+  - @inkeep/agents-mcp@0.58.2
+
 ## 0.58.1
 
 ### Patch Changes

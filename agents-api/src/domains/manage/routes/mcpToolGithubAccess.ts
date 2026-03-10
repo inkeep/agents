@@ -9,7 +9,7 @@ import {
   getToolById,
   setMcpToolAccessMode,
   setMcpToolRepositoryAccess,
-  TenantProjectParamsSchema,
+  TenantProjectToolParamsSchema,
   validateRepositoryOwnership,
   WorkAppGitHubAccessModeSchema,
   WorkAppGitHubAccessSetRequestSchema,
@@ -25,10 +25,6 @@ import type { ManageAppVariables } from '../../../types/app';
 const logger = getLogger('mcp-tool-github-access');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
-
-const TenantProjectToolParamsSchema = TenantProjectParamsSchema.extend({
-  toolId: z.string().min(1).describe('The tool ID'),
-});
 
 const McpToolGitHubAccessModeSchema = WorkAppGitHubAccessModeSchema.describe(
   'Access mode: "all" means the MCP tool has access to all project repositories, ' +
@@ -132,7 +128,7 @@ app.openapi(
     await validateGitHubWorkappTool(db, tenantId, projectId, toolId);
 
     // Get explicit mode from mode table (defaults to 'selected' if not set)
-    const mode = await getMcpToolAccessMode(runDbClient)(toolId);
+    const mode = await getMcpToolAccessMode(runDbClient)({ tenantId, projectId, toolId });
 
     if (mode === 'all') {
       logger.info(
@@ -149,8 +145,11 @@ app.openapi(
     }
 
     // mode === 'selected': get the specific repositories
-    const repositoriesWithDetails =
-      await getMcpToolRepositoryAccessWithDetails(runDbClient)(toolId);
+    const repositoriesWithDetails = await getMcpToolRepositoryAccessWithDetails(runDbClient)({
+      tenantId,
+      projectId,
+      toolId,
+    });
 
     logger.info(
       { tenantId, projectId, toolId, repositoryCount: repositoriesWithDetails.length },

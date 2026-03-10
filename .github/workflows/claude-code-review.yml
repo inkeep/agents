@@ -10,7 +10,7 @@ jobs:
   pr-review:
     if: |
       (github.event_name == 'pull_request' &&
-        (github.event.sender.type != 'Bot' || github.event.sender.login == 'inkeep-internal-ci[bot]') &&
+        (github.event.sender.type != 'Bot' || github.event.sender.login == 'inkeep-internal-ci[bot]' || github.event.sender.login == 'github-actions[bot]') &&
         !startsWith(github.event.pull_request.head.ref, 'changeset-release/')
       ) ||
       (

@@ -7,6 +7,7 @@ import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpToolGitHubAccessRoutes from './routes/mcpToolGithubAccess';
+import mcpToolSlackAccessRoutes from './routes/mcpToolSlackAccess';
 import oauthRoutes from './routes/oauth';
 import passwordResetLinksRoutes from './routes/passwordResetLinks';
 import playgroundTokenRoutes from './routes/playgroundToken';
@@ -53,6 +54,12 @@ export function createManageRoutes() {
   app.route(
     '/tenants/:tenantId/projects/:projectId/tools/:toolId/github-access',
     mcpToolGitHubAccessRoutes
+  );
+
+  // Mount MCP tool Slack access routes under tenant/project/tool
+  app.route(
+    '/tenants/:tenantId/projects/:projectId/tools/:toolId/slack-access',
+    mcpToolSlackAccessRoutes
   );
 
   // Mount full project routes directly under tenant

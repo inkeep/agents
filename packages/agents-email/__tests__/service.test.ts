@@ -56,7 +56,7 @@ describe('sendEmail', () => {
       from: 'Test <noreply@example.com>',
       replyTo: 'support@example.com',
       to: 'user@example.com',
-      subject: 'Alice invited you to Acme',
+      subject: 'Alice invited you to Inkeep',
       react: createElement(InvitationEmail, {
         data: {
           to: 'user@example.com',
@@ -74,7 +74,7 @@ describe('sendEmail', () => {
         from: 'Test <noreply@example.com>',
         replyTo: 'support@example.com',
         to: 'user@example.com',
-        subject: 'Alice invited you to Acme',
+        subject: 'Alice invited you to Inkeep',
         html: expect.stringContaining('Alice'),
       })
     );

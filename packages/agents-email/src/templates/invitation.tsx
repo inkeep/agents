@@ -41,13 +41,13 @@ export function InvitationEmail({ data }: InvitationEmailProps) {
 
   return (
     <EmailLayout
-      previewText={`Accept your invitation to join ${organizationName} as ${role}.`}
+      previewText={`Accept your invitation to the ${organizationName} organization on Inkeep as ${role}.`}
       securityText="If you didn't expect this invitation, you can safely ignore this email."
     >
       <Section>
         <Text className="text-email-text text-[16px] leading-[24px] mt-0">
-          {inviterName} invited you to join <strong>{organizationName}</strong> as{' '}
-          <strong>{role}</strong>.
+          {inviterName} invited you to the <strong>{organizationName}</strong> organization on
+          Inkeep as <strong>{role}</strong>.
         </Text>
         <Text className="text-email-text-secondary text-[14px] leading-[20px]">
           {getInstructions(authMethod)}

@@ -21,6 +21,8 @@ import { generateId } from '@/lib/utils/id-utils';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
 import { WorkAppGitHubCard } from './work-app-github-card';
 import { WorkAppGitHubRepositoryConfigDialog } from './work-app-github-repository-config-dialog';
+import { WorkAppSlackCard } from './work-app-slack-card';
+import { WorkAppSlackChannelConfigDialog } from './work-app-slack-channel-config-dialog';
 
 /**
  * Remove user_id from Composio URLs before storing in DB.
@@ -51,6 +53,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const [selectedMode, setSelectedMode] = useState<SelectionMode>('popular');
   const [searchQuery, setSearchQuery] = useState('');
   const [gitHubDialogOpen, setGitHubDialogOpen] = useState(false);
+  const [slackDialogOpen, setSlackDialogOpen] = useState(false);
   const router = useRouter();
 
   const { handleOAuthLogin } = useOAuthLogin({
@@ -227,6 +230,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       {selectedMode === 'workapps' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <WorkAppGitHubCard onClick={() => setGitHubDialogOpen(true)} />
+          <WorkAppSlackCard onClick={() => setSlackDialogOpen(true)} />
         </div>
       )}
 
@@ -245,6 +249,17 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
         projectId={projectId}
         open={gitHubDialogOpen}
         onOpenChange={setGitHubDialogOpen}
+        onSuccess={(toolId: string) => {
+          router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
+        }}
+      />
+
+      {/* Slack configuration dialog for Work Apps */}
+      <WorkAppSlackChannelConfigDialog
+        tenantId={tenantId}
+        projectId={projectId}
+        open={slackDialogOpen}
+        onOpenChange={setSlackDialogOpen}
         onSuccess={(toolId: string) => {
           router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
         }}

@@ -1,5 +1,46 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.5
+
+### Patch Changes
+
+- 5d3dba9: ui fix for webhooks and triggers
+  - @inkeep/agents-core@0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- 0451e1d: Add new models: anthropic/claude-opus-4, anthropic/claude-sonnet-4, anthropic/claude-3-7-sonnet, anthropic/claude-3-5-sonnet, anthropic/claude-3-5-sonnet-20240620, anthropic/claude-3-5-haiku, anthropic/claude-3-opus, anthropic/claude-3-haiku, google/gemini-3-flash, google/gemini-3.1-flash-lite-preview, google/gemini-2.5-flash-preview-09-2025, google/gemini-2.5-flash-lite-preview-09-2025, google/gemini-2.0-flash, google/gemini-2.0-flash-lite, openai/gpt-5.2-codex, openai/gpt-5.1-thinking, openai/gpt-5.1-codex, openai/gpt-5.1-codex-max, openai/gpt-5.1-codex-mini, openai/gpt-5-pro, openai/gpt-5-codex, openai/o3-pro, openai/o3, openai/o3-mini, openai/o4-mini, openai/o1, openai/gpt-4o, openai/gpt-4o-mini, openai/gpt-4-turbo, openai/gpt-3.5-turbo, openai/codex-mini. Remove from UI: Claude Haiku 3.5 (deprecated), Gemini 3 Flash Preview (replaced by stable Gemini 3 Flash), Claude Opus 4.1 (consolidated to Claude Opus 4).
+- d7c1001: Add GPT-5.2 Pro and GPT-5.3 Codex to model constants and UI picker
+- d7827b3: Add `FlowButton` component and fix SVG icon color for `Ship` and `Agent Settings` toolbar buttons
+- e5cd90f: rename `firstNestedMessage()` to `flatNestedFieldMessage()`
+- f95fd53: Make agent flow buttons on left panel normal case and on right panel upper case
+- b4fc0c0: fixing numbers for contains queries
+- fbe68b9: Extract `animateGraph` action from agent store into dedicated `useAnimateGraph` hook
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [f475d74]
+  - @inkeep/agents-core@0.58.4
+
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+- Updated dependencies [0714ac6]
+  - @inkeep/agents-core@0.58.3
+
+## 0.58.2
+
+### Patch Changes
+
+- 31c0f68: Add new models: openai/gpt-5.4, openai/gpt-5.4-pro
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+
 ## 0.58.1
 
 ### Patch Changes

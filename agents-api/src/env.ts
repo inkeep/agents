@@ -180,6 +180,7 @@ const envSchema = z
       .describe('Secret for signing GitHub OAuth state (minimum 32 characters)'),
     GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
     GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
+    SLACK_MCP_API_KEY: z.string().optional().describe('API key for the Slack MCP'),
 
     // Slack Socket Mode (local development)
     SLACK_APP_TOKEN: z

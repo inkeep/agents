@@ -16,6 +16,8 @@ import {
 import { organization, user } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
+  ChannelAccessMode,
+  ChannelIds,
   ConversationMetadata,
   MessageContent,
   MessageMetadata,
@@ -860,7 +862,7 @@ export const workAppGitHubMcpToolAccessMode = pgTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.toolId] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.toolId] }),
     index('work_app_github_mcp_tool_access_mode_tenant_idx').on(table.tenantId),
     index('work_app_github_mcp_tool_access_mode_project_idx').on(table.projectId),
     foreignKey({
@@ -912,4 +914,33 @@ export const workAppGitHubMcpToolRepositoryAccessRelations = relations(
       references: [workAppGitHubRepositories.id],
     }),
   })
+);
+
+// ============================================================================
+// SLACK WORK APP MCP ACCESS CONFIG
+// ============================================================================
+
+export const workAppSlackMcpToolAccessConfig = pgTable(
+  'work_app_slack_mcp_tool_access_config',
+  {
+    toolId: varchar('tool_id', { length: 256 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    channelAccessMode: varchar('channel_access_mode', { length: 20 })
+      .$type<ChannelAccessMode>()
+      .notNull(),
+    dmEnabled: boolean('dm_enabled').notNull().default(false),
+    channelIds: jsonb('channel_ids').$type<ChannelIds>().notNull().default([]),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.toolId] }),
+    index('work_app_slack_mcp_tool_access_config_tenant_idx').on(table.tenantId),
+    index('work_app_slack_mcp_tool_access_config_project_idx').on(table.projectId),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'work_app_slack_mcp_tool_access_config_tenant_fk',
+    }).onDelete('cascade'),
+  ]
 );

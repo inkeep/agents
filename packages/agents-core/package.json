@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.58.1",
+  "version": "0.58.5",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -53,6 +53,10 @@
     "./constants/schema-validation": {
       "types": "./dist/constants/schema-validation/index.d.ts",
       "import": "./dist/constants/schema-validation/index.js"
+    },
+    "./constants/allowed-image-formats": {
+      "types": "./dist/constants/allowed-image-formats.d.ts",
+      "import": "./dist/constants/allowed-image-formats.js"
     },
     "./credential-stores": {
       "types": "./dist/credential-stores/index.d.ts",
@@ -154,8 +158,8 @@
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
     "@modelcontextprotocol/sdk": "^1.17.2",
-    "@nangohq/node": "^0.69.5",
-    "@nangohq/types": "^0.69.5",
+    "@nangohq/node": "^0.69.41",
+    "@nangohq/types": "^0.69.41",
     "@napi-rs/keyring": "^1.2.0",
     "@openrouter/ai-sdk-provider": "^2.1.0",
     "@opentelemetry/api": "^1.9.0",

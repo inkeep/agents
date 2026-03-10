@@ -3,15 +3,8 @@
 import type * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
 import { type ComponentProps, createContext, use, useId } from 'react';
-import {
-  Controller,
-  type ControllerProps,
-  type FieldPath,
-  type FieldValues,
-  FormProvider,
-  useFormContext,
-  useFormState,
-} from 'react-hook-form';
+import type { ControllerProps, FieldPath, FieldValues } from 'react-hook-form';
+import { Controller, FormProvider, useFormContext, useFormState } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +17,7 @@ type FormFieldContextValue<
   name: TName;
 };
 
-const FormFieldContext = createContext<FormFieldContextValue>({} as FormFieldContextValue);
+const FormFieldContext = createContext<FormFieldContextValue | null>(null);
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
@@ -40,34 +33,36 @@ const FormField = <
   );
 };
 
-const useFormField = () => {
+function useFormField() {
   const fieldContext = use(FormFieldContext);
   const itemContext = use(FormItemContext);
-  const { getFieldState } = useFormContext();
-  const formState = useFormState({ name: fieldContext.name });
-  const fieldState = getFieldState(fieldContext.name, formState);
-
   if (!fieldContext) {
     throw new Error('useFormField must be used within a <FormField />');
   }
-
+  if (!itemContext) {
+    throw new Error('useFormField must be used within a <FormItem />');
+  }
+  const { name } = fieldContext;
+  const { getFieldState } = useFormContext();
+  const formState = useFormState({ name });
+  const fieldState = getFieldState(name, formState);
   const { id } = itemContext;
 
   return {
     id,
-    name: fieldContext.name,
+    name,
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
     ...fieldState,
   };
-};
+}
 
 type FormItemContextValue = {
   id: string;
 };
 
-const FormItemContext = createContext<FormItemContextValue>({} as FormItemContextValue);
+const FormItemContext = createContext<FormItemContextValue | null>(null);
 
 function FormItem({ className, ...props }: ComponentProps<'div'>) {
   const id = useId();
@@ -129,7 +124,7 @@ function FormDescription({ className, ...props }: ComponentProps<'p'>) {
   );
 }
 
-function firstNestedMessage(node: unknown, path: string[] = []): string | undefined {
+export function flatNestedFieldMessage(node: unknown, path: string[] = []): string | undefined {
   if (!node || typeof node !== 'object') return;
 
   if ('message' in node && typeof node.message === 'string') {
@@ -143,18 +138,18 @@ function firstNestedMessage(node: unknown, path: string[] = []): string | undefi
   → at ${/* z.prettifyError like format  */ pathLike}`;
   }
 
-  for (const [key, value] of Object.entries(node)) {
-    const msg = firstNestedMessage(value, [...path, key]);
-    if (msg) {
-      return msg;
-    }
-  }
+  return Object.entries(node)
+    .flatMap(([key, value]) => {
+      const msg = flatNestedFieldMessage(value, [...path, key]);
+      return msg ? [msg] : [];
+    })
+    .join('\n');
 }
 
 function FormMessage({ className, children, ...props }: ComponentProps<'p'>) {
   const { error, formMessageId } = useFormField();
 
-  const body = firstNestedMessage(error) || children;
+  const body = flatNestedFieldMessage(error) || children;
 
   if (!body) {
     return;

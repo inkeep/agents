@@ -101,7 +101,7 @@ export function saveSlackDevConfig(config: SlackDevConfig): boolean {
   if (!configPath) return false;
 
   try {
-    writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+    writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
     cachedConfig = config;
     cacheExpiresAt = Date.now() + CACHE_TTL_MS;
     return true;

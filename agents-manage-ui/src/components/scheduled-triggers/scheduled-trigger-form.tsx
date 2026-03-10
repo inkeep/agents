@@ -350,9 +350,8 @@ export function ScheduledTriggerForm({
                 Loading users...
               </div>
             ) : mode === 'create' && isAdmin ? (
-              // Multi-user select for admins in create mode
-              <FormItem>
-                <FormLabel>Run as Users</FormLabel>
+              <div className="grid gap-2">
+                <span className="text-sm font-medium leading-none">Run as Users</span>
                 <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -421,10 +420,10 @@ export function ScheduledTriggerForm({
                     ))}
                   </div>
                 )}
-                <FormDescription>
+                <p className="text-sm text-muted-foreground">
                   Select multiple users to create one trigger per user.
-                </FormDescription>
-              </FormItem>
+                </p>
+              </div>
             ) : (
               // Single select for non-admins or edit mode
               <FormField

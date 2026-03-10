@@ -19,17 +19,25 @@ concurrency:
 
 jobs:
   ci:
+    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
     runs-on: ubuntu-32gb
     timeout-minutes: 30
+    permissions:
+      contents: write
     env:
       TURBO_TELEMETRY_DISABLED: 1
       TURBO_CACHE_DIR: .turbo
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      GIT_AUTHOR_NAME: github-actions[bot]
+      GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -77,6 +85,43 @@ jobs:
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
+
+      # Auto-update OpenAPI snapshot on PRs (skip fork PRs since GITHUB_TOKEN is read-only)
+      # Gate: only run when files that affect the OpenAPI spec changed.
+      # These paths mirror the pre-commit hook in package.json lint-staged config.
+      - name: Check for OpenAPI-affecting changes
+        id: openapi-changes
+        if: |
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | \
+             grep -qE '^agents-api/src/(domains/.*/routes/|openapi\.|createApp\.)'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build dependencies for snapshot update
+        if: steps.openapi-changes.outputs.changed == 'true'
+        run: pnpm exec turbo build --filter=@inkeep/agents-api...
+        env:
+          ENVIRONMENT: test
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+
+      - name: Update OpenAPI snapshot
+        if: steps.openapi-changes.outputs.changed == 'true'
+        run: pnpm --filter @inkeep/agents-api openapi:update-snapshot
+        env:
+          ENVIRONMENT: test
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+
+      - name: Commit OpenAPI snapshot if changed
+        if: steps.openapi-changes.outputs.changed == 'true'
+        run: |
+          scripts/ci-commit-and-push.sh agents-api/__snapshots__/openapi.json "chore: update OpenAPI snapshot" "${{ github.head_ref }}"
 
       - name: Install Playwright
         run: pnpx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
@@ -148,6 +193,7 @@ jobs:
           fi
 
   create-agents-e2e:
+    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
     runs-on: ubuntu-32gb
     name: Create Agents E2E Tests
 

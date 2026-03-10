@@ -13,13 +13,13 @@ function toArray<T>(value: T | T[] | undefined): T[] {
 
 export function createProtectedRoute<T extends CreateRouteParams>(
   config: T & {
-    permission: ProjectScopedMiddleware;
+    permission: ProjectScopedMiddleware<any>;
     request: { params: ZodType<{ projectId: string }> };
   }
 ): T;
 export function createProtectedRoute<T extends CreateRouteParams>(
   config: T & {
-    permission: ProjectScopedMiddleware;
+    permission: ProjectScopedMiddleware<any>;
     request: { params: ZodType<{ id: string }> };
   }
 ): T;

@@ -35,6 +35,7 @@ import { getLogger } from '../../utils/logger';
 import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
 import { cascadeDeleteByTool } from '../runtime/cascade-delete';
 import { isGithubWorkAppTool } from '../runtime/github-work-app-installations';
+import { isSlackWorkAppTool } from '../runtime/slack-work-app-mcp';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
 import { updateAgentToolRelation } from './subAgentRelations';
 
@@ -227,7 +228,19 @@ const discoverToolsFromServer = async (
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': tool.tenantId,
+        'x-inkeep-project-id': tool.projectId,
         Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
+      };
+    }
+
+    if (isSlackWorkAppTool(tool)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': tool.tenantId,
+        'x-inkeep-project-id': tool.projectId,
+        Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
       };
     }
 
@@ -584,13 +597,17 @@ export const deleteTool =
     const isWorkApp = deleted.isWorkApp;
     const isGithub = isWorkApp && deleted.config.mcp.server.url.includes('/github/mcp');
 
-    if (isGithub) {
+    if (isGithub || isSlackWorkAppTool(deleted)) {
       try {
         // getActiveBranch uses Dolt-specific SQL (active_branch()) which isn't available in pglite/postgres
         const currentBranch = await getActiveBranch(db)();
         if (currentBranch === `${params.scopes.tenantId}_${params.scopes.projectId}_main`) {
           const runDbClient = createAgentsRunDatabaseClient();
-          await cascadeDeleteByTool(runDbClient)({ toolId: params.toolId });
+          await cascadeDeleteByTool(runDbClient)({
+            toolId: params.toolId,
+            tenantId: params.scopes.tenantId,
+            projectId: params.scopes.projectId,
+          });
         }
       } catch (error) {
         // If we can't get the active branch (e.g., not using Dolt), skip the cascade delete
