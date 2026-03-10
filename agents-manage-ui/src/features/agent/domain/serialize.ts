@@ -3,11 +3,7 @@ import type { AgentMetadata } from '@/components/agent/configuration/agent-types
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
-import type {
-  FullAgentDefinition,
-  InternalAgentDefinition,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
+import type { FullAgentDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
 import { generateId } from '@/lib/utils/id-utils';
@@ -104,8 +100,7 @@ function processModels(modelsData: AgentMetadata['models']): AgentMetadata['mode
 export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
-  metadata?: AgentMetadata,
-  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
+  metadata?: AgentMetadata
 ): FullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
   const externalAgents: Record<string, ExternalAgent> = {};
@@ -492,13 +487,6 @@ export function serializeAgentData(
               !Array.isArray(tempHeaders)
             ) {
               teamAgentHeaders = tempHeaders;
-            }
-          } else {
-            const existingConfig = relationshipId
-              ? subAgentTeamAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
-              : null;
-            if (existingConfig?.headers) {
-              teamAgentHeaders = existingConfig.headers;
             }
           }
 
