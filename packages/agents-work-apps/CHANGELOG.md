@@ -1,5 +1,14 @@
 # @inkeep/agents-work-apps
 
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- Updated dependencies [a9c2857]
+- Updated dependencies [16e5e8d]
+  - @inkeep/agents-core@0.58.6
+
 ## 0.58.5
 
 ### Patch Changes
