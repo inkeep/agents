@@ -1,8 +1,8 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Project } from '@/lib/types/project';
 import { fetchProjects } from '@/lib/api/projects';
+import type { Project } from '@/lib/types/project';
 
 const projectQueryKeys = {
   list: (tenantId: string) => ['projects', tenantId] as const,

@@ -2,8 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import type { Agent } from '@/lib/types/agent-full';
 import { fetchAgents } from '@/lib/api/agent-full-client';
+import type { Agent } from '@/lib/types/agent-full';
 
 const agentQueryKeys = {
   list: (tenantId: string, projectId: string) => ['agents', tenantId, projectId] as const,
