@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.58.7
+
+### Patch Changes
+
+- b1b440a: daisy chain trigger
+  - @inkeep/agents-core@0.58.7
+  - @inkeep/agents-email@0.58.7
+  - @inkeep/agents-mcp@0.58.7
+  - @inkeep/agents-work-apps@0.58.7
+
 ## 0.58.6
 
 ### Patch Changes
