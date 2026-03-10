@@ -61,8 +61,6 @@ import { getFullProjectAction } from '@/lib/actions/project-full';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { saveAgent } from '@/lib/services/save-agent';
 import type {
-  SubAgentExternalAgentConfig,
-  SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfig,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
@@ -372,17 +370,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       // Extract metadata
       const metadata = extractAgentMetadata(updatedAgent);
 
-      // Recompute agent-specific lookups from the updated agent data
-      const updatedSubAgentExternalAgentConfigLookup =
-        computeSubAgentExternalAgentConfigLookup(updatedAgent);
-
       // Update the store with all refreshed data
-      setInitial(
-        enrichNodes(nodesWithSelection),
-        edgesWithSelection,
-        metadata,
-        updatedSubAgentExternalAgentConfigLookup
-      );
+      setInitial(enrichNodes(nodesWithSelection), edgesWithSelection, metadata);
 
       // Update project data in store so components using useProjectData get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);
@@ -626,7 +615,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         nodes,
         edges,
         metadata,
-        subAgentExternalAgentConfigLookup,
         subAgentTeamAgentConfigLookup
       );
     } catch (error) {
@@ -923,7 +911,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
                 selectedEdgeId={edgeId}
                 onClose={closeSidePane}
                 backToAgent={backToAgent}
-                subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
                 subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
                 disabled={isCopilotStreaming || !canEdit}
               />
