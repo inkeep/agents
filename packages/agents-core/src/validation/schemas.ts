@@ -1847,7 +1847,7 @@ export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
 // ── App Credential Schemas ──────────────────────────────────────────────────
 
-const ALLOWED_DOMAIN_PATTERN =
+export const ALLOWED_DOMAIN_PATTERN =
   /^(\*|\*\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?)$/;
 
 const AllowedDomainSchema = z

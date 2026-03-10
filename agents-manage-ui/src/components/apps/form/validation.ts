@@ -1,3 +1,4 @@
+import { ALLOWED_DOMAIN_PATTERN } from '@inkeep/agents-core';
 import { z } from 'zod';
 
 export const APP_TYPE_OPTIONS = [
@@ -12,9 +13,6 @@ export const APP_TYPE_OPTIONS = [
     description: 'For server-to-server API access',
   },
 ] as const;
-
-const ALLOWED_DOMAIN_PATTERN =
-  /^(\*|\*\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?)$/;
 
 function validateDomainList(val: string | undefined) {
   if (val === undefined) return true;
