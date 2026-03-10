@@ -4,7 +4,6 @@ import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
 import type {
-  AgentToolConfigLookup,
   FullAgentDefinition,
   InternalAgentDefinition,
   SubAgentExternalAgentConfigLookup,
@@ -107,7 +106,6 @@ export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
   metadata?: AgentMetadata,
-  agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
 ): FullAgentDefinition {
@@ -164,17 +162,6 @@ export function serializeAgentData(
               } else if (tempSelectedTools === null) {
                 toolSelection = null; // All tools selected
               }
-            } else {
-              // No changes made to tool selection - preserve existing selection
-              const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
-                : null;
-              if (existingConfig?.toolSelection) {
-                toolSelection = existingConfig.toolSelection;
-              } else {
-                // Default to all tools selected when no existing data found
-                toolSelection = null;
-              }
             }
 
             const tempHeaders = (mcpNode.data as any).tempHeaders;
@@ -188,14 +175,6 @@ export function serializeAgentData(
               ) {
                 toolHeaders = tempHeaders;
               }
-            } else {
-              // No changes made to headers - preserve existing headers
-              const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
-                : null;
-              if (existingConfig?.headers) {
-                toolHeaders = existingConfig.headers;
-              }
             }
 
             const tempToolPolicies = (mcpNode.data as any).tempToolPolicies;
@@ -208,14 +187,6 @@ export function serializeAgentData(
                 !Array.isArray(tempToolPolicies)
               ) {
                 toolPolicies = tempToolPolicies;
-              }
-            } else {
-              // No changes made to tool policies - preserve existing policies
-              const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
-                : null;
-              if (existingConfig?.toolPolicies) {
-                toolPolicies = existingConfig.toolPolicies;
               }
             }
 

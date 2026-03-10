@@ -19,91 +19,51 @@ export function findOrphanedTools(
 }
 
 /**
- * Enhanced lookup for selected tools - uses relationshipId for true isolation
+ * Reads the current selected tools from MCP node data.
  */
-export function getCurrentSelectedToolsForNode(
-  node: { data: MCPNodeData; id: string },
-  agentToolConfigLookup: Record<
-    string,
-    Record<string, { toolId: string; toolSelection?: string[] | null }>
-  >
-): string[] | null {
+export function getCurrentSelectedToolsForNode(node: {
+  data: MCPNodeData;
+  id: string;
+}): string[] | null {
   // First check if we have temporary selections stored on the node (from recent clicks)
   if (node.data.tempSelectedTools !== undefined) {
     return (node.data as any).tempSelectedTools;
   }
-
-  // If node has relationshipId, find config by relationshipId
-  const { relationshipId } = node.data;
-  if (relationshipId) {
-    for (const toolsMap of Object.values(agentToolConfigLookup)) {
-      const config = toolsMap[relationshipId];
-      if (config) {
-        return config.toolSelection || null;
-      }
-    }
-  }
-
-  // No relationshipId found, return null (show all tools selected)
   return null;
 }
 
 /**
- * Enhanced lookup for headers - uses relationshipId
+ * Reads the current headers from MCP node data.
  */
-export function getCurrentHeadersForNode(
-  node: { data: MCPNodeData; id: string },
-  agentToolConfigLookup: Record<
-    string,
-    Record<string, { toolId: string; headers?: Record<string, string> }>
-  >
-): Record<string, string> {
+export function getCurrentHeadersForNode(node: {
+  data: MCPNodeData;
+  id: string;
+}): Record<string, string> {
   // First check if we have temporary headers stored on the node (from recent edits)
-  if (node.data.tempHeaders !== undefined) {
+  if (
+    node.data.tempHeaders !== undefined &&
+    node.data.tempHeaders !== null &&
+    typeof node.data.tempHeaders === 'object'
+  ) {
     return (node.data as any).tempHeaders;
   }
-
-  // If node has relationshipId, find config by relationshipId
-  const { relationshipId } = node.data;
-  if (relationshipId) {
-    for (const toolsMap of Object.values(agentToolConfigLookup)) {
-      const config = toolsMap[relationshipId];
-      if (config) {
-        return config.headers || {};
-      }
-    }
-  }
-
-  // No relationshipId found, return empty headers
   return {};
 }
 
 /**
- * Enhanced lookup for toolPolicies - uses relationshipId
+ * Reads the current tool policies from MCP node data.
  */
-export function getCurrentToolPoliciesForNode(
-  node: { data: MCPNodeData; id: string },
-  agentToolConfigLookup: Record<
-    string,
-    Record<string, { toolId: string; toolPolicies?: Record<string, { needsApproval?: boolean }> }>
-  >
-): Record<string, { needsApproval?: boolean }> {
+export function getCurrentToolPoliciesForNode(node: {
+  data: MCPNodeData;
+  id: string;
+}): Record<string, { needsApproval?: boolean }> {
   // First check if we have temporary toolPolicies stored on the node (from recent edits)
-  if (node.data.tempToolPolicies !== undefined) {
+  if (
+    node.data.tempToolPolicies !== undefined &&
+    node.data.tempToolPolicies !== null &&
+    typeof node.data.tempToolPolicies === 'object'
+  ) {
     return (node.data as any).tempToolPolicies;
   }
-
-  // If node has relationshipId, find config by relationshipId
-  const { relationshipId } = node.data;
-  if (relationshipId) {
-    for (const toolsMap of Object.values(agentToolConfigLookup)) {
-      const config = toolsMap[relationshipId];
-      if (config) {
-        return config.toolPolicies || {};
-      }
-    }
-  }
-
-  // No relationshipId found, default to empty object
   return {};
 }
