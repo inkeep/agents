@@ -18,7 +18,7 @@
  *    10. User A: chat message 4 (new conversation via /run/api/chat)
  *    11. User A: list conversations — expect at least 3
  *    12. User A: get conversation by ID (Vercel format) — verify parts[]
- *    13. User A: get conversation by ID (OpenAI format) — verify content
+ *    13. User A: get conversation by ID (OpenAI format) — expect 400
  *
  *   Phase 3 — User B conversations + isolation
  *    14. Create anonymous session for User B
@@ -342,14 +342,12 @@ async function listConversations(
 async function getConversationById(
   appId: string,
   token: string,
-  conversationId: string,
-  format: 'vercel' | 'openai' = 'vercel'
+  conversationId: string
 ): Promise<{ conversation: any; messages: any[] }> {
   const pow = await freshPow();
-  const { status, body } = await fetchJson(
-    `${API_URL}/run/v1/conversations/${conversationId}?format=${format}`,
-    { headers: appAuthHeaders(appId, token, pow) }
-  );
+  const { status, body } = await fetchJson(`${API_URL}/run/v1/conversations/${conversationId}`, {
+    headers: appAuthHeaders(appId, token, pow),
+  });
 
   if (status === 401) fail(`Get conversation auth rejected: ${JSON.stringify(body)}`);
   if (status !== 200) fail(`Get conversation failed (${status}): ${JSON.stringify(body, null, 2)}`);
@@ -577,24 +575,17 @@ async function main() {
       `Vercel format: ${vercelMsgs.length} messages, content="${firstVercelMsg.content.slice(0, 50)}...", parts[0].type=text`
     );
 
-    // Step 13: Get conversation by ID (OpenAI format)
-    step('User A: get conversation by ID (OpenAI format)');
-    const { messages: openaiMsgs } = await getConversationById(
-      appId,
-      userA.token,
-      firstConvId,
-      'openai'
-    );
-    const firstOpenAIMsg = openaiMsgs[0];
-    if (typeof firstOpenAIMsg.content !== 'string' && !Array.isArray(firstOpenAIMsg.content))
-      fail(
-        `OpenAI format: content should be string or array, got ${typeof firstOpenAIMsg.content}`
+    // Step 13: OpenAI format should return 400
+    step('User A: get conversation by ID (OpenAI format — expect 400)');
+    {
+      const pow = await freshPow();
+      const { status, body } = await fetchJson(
+        `${API_URL}/run/v1/conversations/${firstConvId}?format=openai`,
+        { headers: appAuthHeaders(appId, userA.token, pow) }
       );
-    if ((firstOpenAIMsg as any).parts !== undefined)
-      fail('OpenAI format: should not have parts field');
-    ok(
-      `OpenAI format: ${openaiMsgs.length} messages, content type=${typeof firstOpenAIMsg.content}`
-    );
+      if (status !== 400) fail(`Expected 400 for openai format, got ${status}`);
+      ok(`OpenAI format correctly rejected: ${body.error?.message ?? JSON.stringify(body)}`);
+    }
 
     // =====================================================================
     // Phase 3: User B + cross-isolation

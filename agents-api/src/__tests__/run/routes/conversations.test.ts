@@ -336,7 +336,7 @@ describe('Run API - End-User Conversation History', () => {
       expect(body.data.messages[0].role).toBe('user');
       expect(body.data.messages[0].content).toBe('Hello, I need help');
       expect(body.data.messages[0].parts).toEqual([{ type: 'text', text: 'Hello, I need help' }]);
-      expect(body.data.messages[1].role).toBe('agent');
+      expect(body.data.messages[1].role).toBe('assistant');
     });
 
     it('should not include internal messages', async () => {
@@ -350,7 +350,7 @@ describe('Run API - End-User Conversation History', () => {
       const body = await res.json();
       const roles = body.data.messages.map((m: any) => m.role);
       expect(roles).not.toContain('system');
-      expect(body.data.messages.every((m: any) => m.content.text !== 'Internal routing note')).toBe(
+      expect(body.data.messages.every((m: any) => m.content !== 'Internal routing note')).toBe(
         true
       );
     });
@@ -394,6 +394,18 @@ describe('Run API - End-User Conversation History', () => {
       });
 
       expect(res.status).toBe(404);
+    });
+
+    it('should return 400 when requesting openai format', async () => {
+      const { appId, token, conv } = await setupConversationWithMessages('conv-get-openai-err');
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}?format=openai`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.message).toContain('OpenAI message format is not available yet');
     });
 
     it('should return 401 without end-user auth', async () => {

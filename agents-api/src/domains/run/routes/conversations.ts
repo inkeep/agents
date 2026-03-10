@@ -11,6 +11,7 @@ import {
   ListResponseSchema,
   listConversations,
   type MessageContent,
+  toISODateString,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -29,8 +30,6 @@ const app = new OpenAPIHono<{ Variables: AppVariables }>();
 // Message format converters: DB MessageContent → Vercel / OpenAI
 // ---------------------------------------------------------------------------
 
-type MessageFormat = 'vercel' | 'openai';
-
 interface VercelMessage {
   id: string;
   role: string;
@@ -39,35 +38,10 @@ interface VercelMessage {
   createdAt: string;
 }
 
-interface OpenAIMessage {
-  id: string;
-  role: string;
-  content: string | Array<Record<string, unknown>>;
-  createdAt: string;
-}
-
-function dbPartToVercelPart(part: {
-  kind: string;
-  text?: string;
-  data?: unknown;
-  metadata?: Record<string, unknown>;
-}): Record<string, unknown> | null {
-  switch (part.kind) {
-    case 'text':
-      return { type: 'text', text: part.text ?? '' };
-    case 'file':
-      return { type: 'file', data: part.data, ...(part.metadata && { metadata: part.metadata }) };
-    case 'image':
-      return { type: 'image', text: part.data ?? part.text ?? '' };
-    case 'data':
-      return { type: 'data', data: part.data, ...(part.metadata && { metadata: part.metadata }) };
-    default: {
-      const result: Record<string, unknown> = { type: part.kind };
-      if (part.text) result.text = part.text;
-      if (part.data) result.data = part.data;
-      return result;
-    }
-  }
+/** Map internal DB roles to standard roles expected by consumers. */
+function normalizeRole(role: string): string {
+  if (role === 'agent') return 'assistant';
+  return role;
 }
 
 function extractText(content: MessageContent): string {
@@ -76,7 +50,7 @@ function extractText(content: MessageContent): string {
     return content.parts
       .filter((p) => p.kind === 'text' && p.text)
       .map((p) => p.text as string)
-      .join(' ');
+      .join('');
   }
   return '';
 }
@@ -87,15 +61,11 @@ function toVercelMessage(msg: {
   content: MessageContent;
   createdAt: string;
 }): VercelMessage {
+  const role = normalizeRole(msg.role);
   const text = extractText(msg.content);
   const parts: Array<Record<string, unknown>> = [];
 
-  if (msg.content.parts) {
-    for (const part of msg.content.parts) {
-      const converted = dbPartToVercelPart(part);
-      if (converted) parts.push(converted);
-    }
-  } else if (text) {
+  if (text) {
     parts.push({ type: 'text', text });
   }
 
@@ -111,50 +81,7 @@ function toVercelMessage(msg: {
     }
   }
 
-  return { id: msg.id, role: msg.role, content: text, parts, createdAt: msg.createdAt };
-}
-
-function toOpenAIMessage(msg: {
-  id: string;
-  role: string;
-  content: MessageContent;
-  createdAt: string;
-}): OpenAIMessage {
-  const text = extractText(msg.content);
-
-  if (msg.content.tool_calls) {
-    return {
-      id: msg.id,
-      role: msg.role,
-      content: text,
-      createdAt: msg.createdAt,
-    };
-  }
-
-  if (msg.content.parts?.some((p) => p.kind === 'file' || p.kind === 'image')) {
-    const contentParts: Array<Record<string, unknown>> = [];
-    for (const part of msg.content.parts) {
-      if (part.kind === 'text') {
-        contentParts.push({ type: 'text', text: part.text ?? '' });
-      } else if (part.kind === 'file' || part.kind === 'image') {
-        const fileData = part.data as Record<string, unknown> | undefined;
-        const url = fileData?.uri ?? fileData?.bytes;
-        if (url) {
-          contentParts.push({ type: 'image_url', image_url: { url } });
-        }
-      }
-    }
-    return { id: msg.id, role: msg.role, content: contentParts, createdAt: msg.createdAt };
-  }
-
-  return { id: msg.id, role: msg.role, content: text, createdAt: msg.createdAt };
-}
-
-function formatMessage(
-  msg: { id: string; role: string; content: MessageContent; createdAt: string },
-  format: MessageFormat
-): VercelMessage | OpenAIMessage {
-  return format === 'vercel' ? toVercelMessage(msg) : toOpenAIMessage(msg);
+  return { id: msg.id, role, content: text, parts, createdAt: toISODateString(msg.createdAt) };
 }
 
 // ---------------------------------------------------------------------------
@@ -181,17 +108,10 @@ const VercelMessageSchema = z.object({
   createdAt: z.string(),
 });
 
-const OpenAIMessageSchema = z.object({
-  id: z.string(),
-  role: z.string(),
-  content: z.union([z.string(), z.array(z.record(z.string(), z.unknown()))]),
-  createdAt: z.string(),
-});
-
 const ConversationDetailResponseSchema = z
   .object({
     data: ConversationListItemSchema.extend({
-      messages: z.array(z.union([VercelMessageSchema, OpenAIMessageSchema])),
+      messages: z.array(VercelMessageSchema),
     }),
     pagination: z.object({
       page: z.number(),
@@ -285,8 +205,8 @@ app.openapi(
           id: conv.id,
           agentId: conv.agentId,
           title,
-          createdAt: conv.createdAt,
-          updatedAt: conv.updatedAt,
+          createdAt: toISODateString(conv.createdAt),
+          updatedAt: toISODateString(conv.updatedAt),
         };
       })
     );
@@ -316,7 +236,7 @@ app.openapi(
     path: '/{conversationId}',
     summary: 'Get Conversation',
     description:
-      'Get a conversation and its messages. Returns messages in Vercel AI SDK format by default. Use `?format=openai` for OpenAI Chat Completions format. The conversation must belong to the authenticated end-user.',
+      'Get a conversation and its messages. Returns messages in Vercel AI SDK UIMessage format. The conversation must belong to the authenticated end-user.',
     operationId: 'get-end-user-conversation',
     tags: ['Conversations'],
     security: [{ bearerAuth: [] }],
@@ -350,6 +270,13 @@ app.openapi(
     const { conversationId } = c.req.valid('param');
     const { page = 1, limit = 50, format = 'vercel' } = c.req.valid('query');
 
+    if (format === 'openai') {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'OpenAI message format is not available yet. Use format=vercel (default).',
+      });
+    }
+
     const conversation = await getConversation(runDbClient)({
       scopes: { tenantId, projectId },
       conversationId,
@@ -376,22 +303,19 @@ app.openapi(
     ]);
 
     const formattedMessages = messageList.map((msg) =>
-      formatMessage(
-        {
-          id: msg.id,
-          role: msg.role,
-          content: msg.content as MessageContent,
-          createdAt: msg.createdAt,
-        },
-        format as MessageFormat
-      )
+      toVercelMessage({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content as MessageContent,
+        createdAt: msg.createdAt,
+      })
     );
 
     let title = conversation.title;
     if (!title) {
       const firstUserMsg = formattedMessages.find((m) => m.role === 'user');
       if (firstUserMsg) {
-        const text = typeof firstUserMsg.content === 'string' ? firstUserMsg.content : '';
+        const text = firstUserMsg.content;
         if (text) {
           title = text.length > 100 ? `${text.slice(0, 100)}...` : text;
         }
@@ -399,7 +323,7 @@ app.openapi(
     }
 
     logger.debug(
-      { tenantId, projectId, endUserId, conversationId, format, messageCount: messageList.length },
+      { tenantId, projectId, endUserId, conversationId, messageCount: messageList.length },
       'Retrieved conversation'
     );
 
@@ -410,8 +334,8 @@ app.openapi(
         id: conversation.id,
         agentId: conversation.agentId,
         title,
-        createdAt: conversation.createdAt,
-        updatedAt: conversation.updatedAt,
+        createdAt: toISODateString(conversation.createdAt),
+        updatedAt: toISODateString(conversation.updatedAt),
         messages: formattedMessages,
       },
       pagination: {

@@ -3245,77 +3245,37 @@
               },
               "messages": {
                 "items": {
-                  "anyOf": [
-                    {
-                      "properties": {
-                        "content": {
-                          "type": "string"
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "parts": {
-                          "items": {
-                            "additionalProperties": {
-                              "nullable": true
-                            },
-                            "type": "object"
-                          },
-                          "type": "array"
-                        },
-                        "role": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "role",
-                        "content",
-                        "parts",
-                        "createdAt"
-                      ],
-                      "type": "object"
+                  "properties": {
+                    "content": {
+                      "type": "string"
                     },
-                    {
-                      "properties": {
-                        "content": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "items": {
-                                "additionalProperties": {
-                                  "nullable": true
-                                },
-                                "type": "object"
-                              },
-                              "type": "array"
-                            }
-                          ]
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "parts": {
+                      "items": {
+                        "additionalProperties": {
+                          "nullable": true
                         },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "role": {
-                          "type": "string"
-                        }
+                        "type": "object"
                       },
-                      "required": [
-                        "id",
-                        "role",
-                        "content",
-                        "createdAt"
-                      ],
-                      "type": "object"
+                      "type": "array"
+                    },
+                    "role": {
+                      "type": "string"
                     }
-                  ]
+                  },
+                  "required": [
+                    "id",
+                    "role",
+                    "content",
+                    "parts",
+                    "createdAt"
+                  ],
+                  "type": "object"
                 },
                 "type": "array"
               },
@@ -40378,7 +40338,7 @@
     },
     "/run/v1/conversations/{conversationId}": {
       "get": {
-        "description": "Get a conversation and its messages. Returns messages in Vercel AI SDK format by default. Use `?format=openai` for OpenAI Chat Completions format. The conversation must belong to the authenticated end-user.",
+        "description": "Get a conversation and its messages. Returns messages in Vercel AI SDK UIMessage format. The conversation must belong to the authenticated end-user.",
         "operationId": "get-end-user-conversation",
         "parameters": [
           {
