@@ -103,6 +103,10 @@ export async function handleStopWhenConditions(
   ctx: AgentRunContext,
   steps: any[]
 ): Promise<boolean> {
+  if (ctx.pendingDurableApproval) {
+    return true;
+  }
+
   const last = steps.at(-1);
   if (last && 'text' in last && last.text) {
     try {

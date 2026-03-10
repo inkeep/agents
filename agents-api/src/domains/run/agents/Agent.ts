@@ -146,6 +146,22 @@ export class Agent {
     this.ctx.delegationId = delegationId;
   }
 
+  setDurableWorkflowRunId(runId: string | undefined) {
+    this.ctx.durableWorkflowRunId = runId;
+  }
+
+  setApprovedToolCalls(
+    approvedToolCalls:
+      | Record<string, { approved: boolean; reason?: string; originalToolCallId?: string }>
+      | undefined
+  ) {
+    this.ctx.approvedToolCalls = approvedToolCalls;
+  }
+
+  getPendingDurableApproval(): { toolCallId: string; toolName: string; args: unknown } | undefined {
+    return this.ctx.pendingDurableApproval;
+  }
+
   getTaskDenialRedirects(): Array<{ toolName: string; toolCallId: string; reason: string }> {
     return this.ctx.taskDenialRedirects;
   }

@@ -6,6 +6,7 @@ import { getLogger } from '../../../../logger';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
 import { isToolResultDenied } from '../../utils/tool-result';
+import { DurableApprovalRequiredError } from '../../workflow/errors/DurableApprovalRequiredError';
 import type { AgentRunContext, AiSdkToolDefinition, ToolType } from '../agent-types';
 import { buildToolResultForConversationHistory } from '../generation/tool-result-for-conversation-history';
 import { buildToolResultForModelInput } from '../generation/tool-result-for-model-input';
@@ -108,17 +109,26 @@ export function wrapToolWithStreaming(
 
       const needsApproval = options?.needsApproval || false;
 
-      if (streamRequestId && streamHelper && !isInternalToolForUi) {
+      const preApprovedEntry = ctx.durableWorkflowRunId
+        ? ctx.approvedToolCalls?.[toolName]
+        : undefined;
+      const effectiveToolCallId = preApprovedEntry?.originalToolCallId ?? toolCallId;
+      const isPreApproved = !!preApprovedEntry;
+
+      if (streamRequestId && streamHelper && !isInternalToolForUi && !isPreApproved) {
         const inputText = JSON.stringify(args ?? {});
 
-        await streamHelper.writeToolInputStart({ toolCallId, toolName });
+        await streamHelper.writeToolInputStart({ toolCallId: effectiveToolCallId, toolName });
 
         for (const part of chunkString(inputText, 16)) {
-          await streamHelper.writeToolInputDelta({ toolCallId, inputTextDelta: part });
+          await streamHelper.writeToolInputDelta({
+            toolCallId: effectiveToolCallId,
+            inputTextDelta: part,
+          });
         }
 
         await streamHelper.writeToolInputAvailable({
-          toolCallId,
+          toolCallId: effectiveToolCallId,
           toolName,
           input: args ?? {},
           providerMetadata: context?.providerMetadata,
@@ -129,7 +139,7 @@ export function wrapToolWithStreaming(
         const toolCallData: ToolCallData = {
           toolName,
           input: args,
-          toolCallId,
+          toolCallId: effectiveToolCallId,
           relationshipId,
           inDelegatedAgent: ctx.isDelegatedAgent,
         };
@@ -183,7 +193,7 @@ export function wrapToolWithStreaming(
               toolName,
               args,
               result,
-              toolCallId,
+              effectiveToolCallId,
               toolResultConversationId,
               messageId
             );
@@ -200,7 +210,7 @@ export function wrapToolWithStreaming(
               metadata: {
                 a2a_metadata: {
                   toolName,
-                  toolCallId,
+                  toolCallId: effectiveToolCallId,
                   toolArgs: args,
                   toolOutput: result,
                   timestamp: Date.now(),
@@ -213,7 +223,7 @@ export function wrapToolWithStreaming(
             await createMessage(runDbClient)(messagePayload);
           } catch (error) {
             logger.warn(
-              { error, toolName, toolCallId, conversationId: toolResultConversationId },
+              { error, toolName, toolCallId: effectiveToolCallId, conversationId: toolResultConversationId },
               'Failed to store tool result in conversation history'
             );
           }
@@ -223,7 +233,7 @@ export function wrapToolWithStreaming(
           agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
             toolName,
             output: result,
-            toolCallId,
+            toolCallId: effectiveToolCallId,
             duration,
             relationshipId,
             needsApproval,
@@ -235,9 +245,9 @@ export function wrapToolWithStreaming(
 
         if (streamRequestId && streamHelper && !isInternalToolForUi) {
           if (isDeniedResult) {
-            await streamHelper.writeToolOutputDenied({ toolCallId });
+            await streamHelper.writeToolOutputDenied({ toolCallId: effectiveToolCallId });
           } else {
-            await streamHelper.writeToolOutputAvailable({ toolCallId, output: result });
+            await streamHelper.writeToolOutputAvailable({ toolCallId: effectiveToolCallId, output: result });
           }
         }
 
@@ -249,13 +259,18 @@ export function wrapToolWithStreaming(
       } catch (error) {
         const duration = Date.now() - startTime;
         const rootCause = unwrapError(error);
+
+        if (rootCause instanceof DurableApprovalRequiredError) {
+          throw rootCause;
+        }
+
         const errorMessage = rootCause.message;
 
         if (streamRequestId && !isInternalToolForUi) {
           agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
             toolName,
             output: null,
-            toolCallId,
+            toolCallId: effectiveToolCallId,
             duration,
             error: errorMessage,
             relationshipId,
@@ -265,7 +280,7 @@ export function wrapToolWithStreaming(
         }
 
         if (streamRequestId && streamHelper && !isInternalToolForUi) {
-          await streamHelper.writeToolOutputError({ toolCallId, errorText: errorMessage });
+          await streamHelper.writeToolOutputError({ toolCallId: effectiveToolCallId, errorText: errorMessage });
         }
 
         throw rootCause;
