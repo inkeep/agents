@@ -7,6 +7,7 @@ import {
 } from '@inkeep/agents-core';
 import Ajv, { type ValidateFunction } from 'ajv';
 import type { Context, Next } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import { ContextResolver } from './ContextResolver';
 
 const logger = getLogger('context-validation');
@@ -434,6 +435,9 @@ export async function contextValidationMiddleware(c: Context, next: Next) {
 
     return next();
   } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
     logger.error(
       {
         error: error instanceof Error ? error.message : 'Unknown error',
