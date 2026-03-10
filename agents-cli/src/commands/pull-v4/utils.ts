@@ -155,6 +155,27 @@ export function buildComponentFileName(id: string, name?: string): string {
   return `${kebabName}-${shortId}.ts`;
 }
 
+let _importStems: Record<string, string> = {};
+let _importStemsActive = false;
+
+export function setImportStems(stems: Record<string, string>): void {
+  _importStems = stems;
+  _importStemsActive = Object.keys(stems).length > 0;
+}
+
+export function getImportStem(id: string): string {
+  const stem = _importStems[id];
+  if (stem !== undefined) {
+    return stem;
+  }
+  if (_importStemsActive && !isHumanReadableId(id)) {
+    console.warn(
+      `[inkeep pull] No import stem registered for "${id}". The generated import path may be incorrect.`
+    );
+  }
+  return id;
+}
+
 export function createUniqueReferenceName(
   baseName: string,
   reservedNames: Set<string>,

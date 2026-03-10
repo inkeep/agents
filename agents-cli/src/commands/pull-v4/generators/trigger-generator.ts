@@ -4,6 +4,7 @@ import {
   addValueToObject,
   convertNullToUndefined,
   createFactoryDefinition,
+  getImportStem,
   toCamelCase,
 } from '../utils';
 
@@ -132,7 +133,7 @@ export function generateTriggerDefinition(data: TriggerDefinitionData): SourceFi
     const varName = toCamelCase(signingSecretCredentialReferenceId as string);
     sourceFile.addImportDeclaration({
       namedImports: [varName],
-      moduleSpecifier: `../../credentials/${signingSecretCredentialReferenceId}`,
+      moduleSpecifier: `../../credentials/${getImportStem(signingSecretCredentialReferenceId as string)}`,
     });
     configObject.addPropertyAssignment({
       name: 'signingSecretCredentialReference',

@@ -8,6 +8,7 @@
  * 3. Reference resolution for code generation
  */
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { buildComponentFileName } from './utils';
 
 export type ComponentType =
   | 'agents'
@@ -520,40 +521,52 @@ export function registerAllComponents(
   // Register project
   registry.register(project.id, 'project', 'index.ts');
 
-  // Register credentials
   if (project.credentialReferences) {
-    for (const credId of Object.keys(project.credentialReferences)) {
-      registry.register(credId, 'credentials', `credentials/${credId}.ts`);
+    for (const [credId, data] of Object.entries(project.credentialReferences)) {
+      registry.register(
+        credId,
+        'credentials',
+        `credentials/${buildComponentFileName(credId, data.name ?? undefined)}`
+      );
     }
   }
 
-  // Register tools
   if (project.tools) {
-    for (const toolId of Object.keys(project.tools)) {
-      registry.register(toolId, 'tools', `tools/${toolId}.ts`);
+    for (const [toolId, data] of Object.entries(project.tools)) {
+      registry.register(
+        toolId,
+        'tools',
+        `tools/${buildComponentFileName(toolId, data.name ?? undefined)}`
+      );
     }
   }
 
-  // Register function tools - functionTools has the name/description, functions has the code
-  // We generate files based on functionTools IDs since that's the user-facing entity
   const registeredFunctionToolIds = new Set<string>();
 
-  // Register functionTools first (they have the name that identifies the tool)
   if (project.functionTools) {
-    for (const funcToolId of Object.keys(project.functionTools)) {
-      registry.register(funcToolId, 'functionTools', `tools/functions/${funcToolId}.ts`);
+    for (const [funcToolId, data] of Object.entries(project.functionTools)) {
+      registry.register(
+        funcToolId,
+        'functionTools',
+        `tools/functions/${buildComponentFileName(funcToolId, data.name ?? undefined)}`
+      );
       registeredFunctionToolIds.add(funcToolId);
     }
   }
 
-  // Also check agent-level functionTools
   if (project.agents) {
     for (const agentData of Object.values(project.agents)) {
       const agentFunctionTools = (agentData as any).functionTools;
       if (agentFunctionTools) {
-        for (const funcToolId of Object.keys(agentFunctionTools)) {
+        for (const [funcToolId, data] of Object.entries(agentFunctionTools) as Array<
+          [string, any]
+        >) {
           if (!registeredFunctionToolIds.has(funcToolId)) {
-            registry.register(funcToolId, 'functionTools', `tools/functions/${funcToolId}.ts`);
+            registry.register(
+              funcToolId,
+              'functionTools',
+              `tools/functions/${buildComponentFileName(funcToolId, data?.name ?? undefined)}`
+            );
             registeredFunctionToolIds.add(funcToolId);
           }
         }
@@ -561,69 +574,94 @@ export function registerAllComponents(
     }
   }
 
-  // Register data components
   if (project.dataComponents) {
-    for (const componentId of Object.keys(project.dataComponents)) {
-      registry.register(componentId, 'dataComponents', `data-components/${componentId}.ts`);
+    for (const [componentId, data] of Object.entries(project.dataComponents)) {
+      registry.register(
+        componentId,
+        'dataComponents',
+        `data-components/${buildComponentFileName(componentId, data.name ?? undefined)}`
+      );
     }
   }
 
-  // Register artifact components
   if (project.artifactComponents) {
-    for (const componentId of Object.keys(project.artifactComponents)) {
-      registry.register(componentId, 'artifactComponents', `artifact-components/${componentId}.ts`);
+    for (const [componentId, data] of Object.entries(project.artifactComponents)) {
+      registry.register(
+        componentId,
+        'artifactComponents',
+        `artifact-components/${buildComponentFileName(componentId, data.name ?? undefined)}`
+      );
     }
   }
 
-  // Register external agents
   if (project.externalAgents) {
-    for (const extAgentId of Object.keys(project.externalAgents)) {
-      registry.register(extAgentId, 'externalAgents', `external-agents/${extAgentId}.ts`);
+    for (const [extAgentId, data] of Object.entries(project.externalAgents)) {
+      registry.register(
+        extAgentId,
+        'externalAgents',
+        `external-agents/${buildComponentFileName(extAgentId, data.name ?? undefined)}`
+      );
     }
   }
 
-  // Register skills
   if (project.skills) {
     for (const skillId of Object.keys(project.skills)) {
       registry.register(skillId, 'skills', `skills/${skillId}.md`);
     }
   }
 
-  // Register extracted status components
   const statusComponents = extractStatusComponents(project);
-  for (const statusId of Object.keys(statusComponents)) {
-    registry.register(statusId, 'statusComponents', `status-components/${statusId}.ts`);
+  for (const [statusId, data] of Object.entries(statusComponents)) {
+    registry.register(
+      statusId,
+      'statusComponents',
+      `status-components/${buildComponentFileName(statusId, data.name ?? undefined)}`
+    );
   }
 
-  // Register agents
   if (project.agents) {
-    for (const agentId of Object.keys(project.agents)) {
-      registry.register(agentId, 'agents', `agents/${agentId}.ts`);
+    for (const [agentId, agentData] of Object.entries(project.agents)) {
+      registry.register(
+        agentId,
+        'agents',
+        `agents/${buildComponentFileName(agentId, agentData.name ?? undefined)}`
+      );
     }
   }
 
-  // Register triggers (agent-scoped)
   if (project.agents) {
     for (const agentData of Object.values(project.agents)) {
       const agentTriggers = (agentData as any).triggers;
       if (agentTriggers) {
-        for (const triggerId of Object.keys(agentTriggers)) {
-          registry.register(triggerId, 'triggers', `agents/triggers/${triggerId}.ts`);
+        for (const [triggerId, triggerData] of Object.entries(agentTriggers) as Array<
+          [string, any]
+        >) {
+          registry.register(
+            triggerId,
+            'triggers',
+            `agents/triggers/${buildComponentFileName(triggerId, triggerData?.name ?? undefined)}`
+          );
         }
       }
     }
   }
 
-  // Register extracted sub-agents
   const subAgents = extractSubAgents(project);
-  for (const subAgentId of Object.keys(subAgents)) {
-    registry.register(subAgentId, 'subAgents', `agents/sub-agents/${subAgentId}.ts`);
+  for (const [subAgentId, data] of Object.entries(subAgents)) {
+    registry.register(
+      subAgentId,
+      'subAgents',
+      `agents/sub-agents/${buildComponentFileName(subAgentId, data?.name ?? undefined)}`
+    );
   }
 
-  // Register extracted context configs
   const contextConfigs = extractContextConfigs(project);
-  for (const contextId of Object.keys(contextConfigs)) {
-    registry.register(contextId, 'contextConfigs', `context-configs/${contextId}.ts`);
+  for (const [contextId, data] of Object.entries(contextConfigs)) {
+    registry.register(
+      contextId,
+      'contextConfigs',
+      `context-configs/${buildComponentFileName(contextId, data?.name ?? undefined)}`
+    );
   }
 }
 

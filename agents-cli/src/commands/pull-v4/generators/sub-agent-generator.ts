@@ -10,6 +10,7 @@ import {
   createFactoryDefinition,
   formatInlineLiteral,
   formatTemplate,
+  getImportStem,
   hasReferences,
   isPlainObject,
   resolveReferenceName,
@@ -95,7 +96,7 @@ export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
   if (namedImports.length > 0 && parsed.contextConfigId) {
     sourceFile.addImportDeclaration({
       namedImports: [...new Set(namedImports)],
-      moduleSpecifier: `../../context-configs/${parsed.contextConfigId}`,
+      moduleSpecifier: `../../context-configs/${getImportStem(parsed.contextConfigId)}`,
     });
   }
 
@@ -155,7 +156,7 @@ function addCanUseToolImports(
   for (const [toolId, referenceName] of toolImportsById) {
     sourceFile.addImportDeclaration({
       namedImports: [referenceName],
-      moduleSpecifier: `../../tools/${toolId}`,
+      moduleSpecifier: `../../tools/${getImportStem(toolId)}`,
     });
   }
 }
@@ -204,7 +205,7 @@ function addReferenceImports(
   for (const [referenceId, referenceName] of importByReferenceId) {
     sourceFile.addImportDeclaration({
       namedImports: [referenceName],
-      moduleSpecifier: `${basePath}/${referenceId}`,
+      moduleSpecifier: `${basePath}/${getImportStem(referenceId)}`,
     });
   }
 }
@@ -330,13 +331,14 @@ function resolveDelegateTargetType(
 }
 
 function resolveDelegateImportModuleSpecifier(type: DelegateTargetType, id: string): string {
+  const stem = getImportStem(id);
   switch (type) {
     case 'subAgents':
-      return `./${id}`;
+      return `./${stem}`;
     case 'agents':
-      return `../${id}`;
+      return `../${stem}`;
     case 'externalAgents':
-      return `../../external-agents/${id}`;
+      return `../../external-agents/${stem}`;
   }
 }
 

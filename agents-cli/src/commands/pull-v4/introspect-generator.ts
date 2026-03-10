@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { Node, type SourceFile, SyntaxKind } from 'ts-morph';
 import { buildComponentRegistryFromParsing } from './component-parser';
@@ -21,6 +21,7 @@ import {
   collectTemplateVariableNames,
   createInMemoryProject,
   isPlainObject,
+  setImportStems,
   toCamelCase,
 } from './utils';
 
@@ -132,17 +133,31 @@ export async function introspectGenerate({
     completeAgentIds,
     existingComponentRegistry,
   };
+  setImportStems({});
   const tasks = createGenerationTasks();
   const failures: string[] = [];
   const generatedFiles: string[] = [];
 
+  const collectedRecords: Array<{
+    generate: (payload: any) => SourceFile;
+    record: GenerationRecord<any>;
+  }> = [];
+  const importStems: Record<string, string> = {};
+
   for (const task of tasks) {
     const records = task.collect(context);
     for (const record of records) {
-      const sourceFile = task.generate(record.payload);
-      writeTypeScriptFile(record.filePath, sourceFile.getFullText(), writeMode);
-      generatedFiles.push(record.filePath);
+      collectedRecords.push({ generate: task.generate, record });
+      importStems[record.id] ??= basename(record.filePath, '.ts');
     }
+  }
+
+  setImportStems(importStems);
+
+  for (const { generate, record } of collectedRecords) {
+    const sourceFile = generate(record.payload);
+    writeTypeScriptFile(record.filePath, sourceFile.getFullText(), writeMode);
+    generatedFiles.push(record.filePath);
   }
 
   const unsupportedCounts = collectUnsupportedComponentCounts(project);
@@ -339,11 +354,16 @@ function collectContextConfigRecords(
     }
 
     if (!contextConfigRecordsById.has(contextConfigId)) {
+      const contextConfigName =
+        typeof normalizedContextConfig.name === 'string' ? normalizedContextConfig.name : undefined;
       const contextConfigFilePath = resolveRecordFilePath(
         context,
         'contextConfigs',
         contextConfigId,
-        join(context.paths.contextConfigsDir, `${contextConfigId}.ts`)
+        join(
+          context.paths.contextConfigsDir,
+          buildComponentFileName(contextConfigId, contextConfigName)
+        )
       );
       const credentialReferenceOverrides = collectContextConfigCredentialReferenceOverrides(
         context,
@@ -974,11 +994,16 @@ function collectContextTemplateReferences(
     return;
   }
 
+  const contextConfigName =
+    typeof contextConfig.value.name === 'string' ? contextConfig.value.name : undefined;
   const contextConfigFilePath = resolveRecordFilePath(
     context,
     'contextConfigs',
     contextConfigId,
-    join(context.paths.contextConfigsDir, `${contextConfigId}.ts`)
+    join(
+      context.paths.contextConfigsDir,
+      buildComponentFileName(contextConfigId, contextConfigName)
+    )
   );
   const isLocal = normalizeFilePath(contextConfigFilePath) === normalizeFilePath(targetFilePath);
 

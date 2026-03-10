@@ -8,6 +8,7 @@ import {
   createFactoryDefinition,
   createUniqueReferenceName,
   formatStringLiteral,
+  getImportStem,
   hasReferences,
   resolveReferenceName,
   toCamelCase,
@@ -228,7 +229,7 @@ function addReferenceImports(
           ? reference.importName
           : { name: reference.importName, alias: reference.localName },
       ],
-      moduleSpecifier: `${basePath}/${reference.id}`,
+      moduleSpecifier: `${basePath}/${getImportStem(reference.id)}`,
     });
   }
 }
