@@ -347,6 +347,16 @@ async function generateSecrets() {
       placeholders: ['adminADMIN!@12'],
       generate: () => randomBytes(6).toString('base64url'),
     },
+    {
+      varName: 'INKEEP_ANON_JWT_SECRET',
+      placeholders: [],
+      generate: () => randomBytes(32).toString('hex'),
+    },
+    {
+      varName: 'INKEEP_POW_HMAC_SECRET',
+      placeholders: [],
+      generate: () => randomBytes(32).toString('hex'),
+    },
   ];
 
   for (const { varName, placeholders, generate } of secretDefs) {

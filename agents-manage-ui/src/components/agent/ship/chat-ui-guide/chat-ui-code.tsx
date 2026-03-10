@@ -1,8 +1,8 @@
-import type { InkeepAIChatSettings, InkeepBaseSettings } from '@inkeep/agents-ui/types';
+import type { InkeepBaseSettings } from '@inkeep/agents-ui/types';
 import { TabsContent } from '@radix-ui/react-tabs';
 import { Streamdown } from 'streamdown';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { indentJson, replaceTemplatePlaceholders } from '../utils';
+import { indentJson, replaceTemplatePlaceholders, serializeExtraSettings } from '../utils';
 import { ChatUIComponent } from './chat-ui-preview-form';
 import {
   jsChatButtonTemplate,
@@ -17,33 +17,27 @@ import {
 interface ChatUICodeProps {
   component: ChatUIComponent;
   baseSettings: InkeepBaseSettings;
-  aiChatSettings: InkeepAIChatSettings;
+  extraAiChatSettings: Record<string, unknown>;
+  baseUrl: string;
 }
 
 const generateReactCode = (
   component: ChatUIComponent,
-  componentName: string,
-  baseSettingsJson: string,
-  aiChatSettingsJson: string
+  replacements: Record<string, string>
 ): string => {
   const componentTemplate =
     component === ChatUIComponent.SIDEBAR_CHAT
       ? reactSidebarComponentTemplate
       : reactComponentTemplate;
 
-  const componentCode = replaceTemplatePlaceholders(componentTemplate, {
-    COMPONENT_NAME: componentName,
-    BASE_SETTINGS: baseSettingsJson,
-    AI_CHAT_SETTINGS: aiChatSettingsJson,
-  });
+  const componentCode = replaceTemplatePlaceholders(componentTemplate, replacements);
 
   return `${reactInstallSnippet}\n\nAdd the component to your application:\n\`\`\`tsx\n${componentCode}\n\`\`\``;
 };
 
 const generateJavaScriptCode = (
   component: ChatUIComponent,
-  baseSettingsJson: string,
-  aiChatSettingsJson: string
+  replacements: Record<string, string>
 ): string => {
   const componentTemplates: Record<ChatUIComponent, string> = {
     [ChatUIComponent.CHAT_BUTTON]: jsChatButtonTemplate,
@@ -51,15 +45,17 @@ const generateJavaScriptCode = (
     [ChatUIComponent.EMBEDDED_CHAT]: jsEmbeddedChatTemplate,
   };
 
-  const componentCode = replaceTemplatePlaceholders(componentTemplates[component], {
-    BASE_SETTINGS: baseSettingsJson,
-    AI_CHAT_SETTINGS: aiChatSettingsJson,
-  });
+  const componentCode = replaceTemplatePlaceholders(componentTemplates[component], replacements);
 
   return `${jsScriptTagSnippet}\n\n${componentCode}`;
 };
 
-export const ChatUICode = ({ component, baseSettings, aiChatSettings }: ChatUICodeProps) => {
+export const ChatUICode = ({
+  component,
+  baseSettings,
+  extraAiChatSettings,
+  baseUrl,
+}: ChatUICodeProps) => {
   const componentMap: Record<ChatUIComponent, string> = {
     [ChatUIComponent.EMBEDDED_CHAT]: 'InkeepEmbeddedChat',
     [ChatUIComponent.CHAT_BUTTON]: 'InkeepChatButton',
@@ -68,15 +64,18 @@ export const ChatUICode = ({ component, baseSettings, aiChatSettings }: ChatUICo
   const componentName = componentMap[component];
 
   const baseSettingsJson = indentJson(JSON.stringify(baseSettings, null, 2), 2);
-  const aiChatSettingsJson = indentJson(JSON.stringify(aiChatSettings, null, 2), 2);
+  const extraSettingsStr = serializeExtraSettings(extraAiChatSettings, 4);
 
-  const reactCode = generateReactCode(
-    component,
-    componentName,
-    baseSettingsJson,
-    aiChatSettingsJson
-  );
-  const javascriptCode = generateJavaScriptCode(component, baseSettingsJson, aiChatSettingsJson);
+  const replacements: Record<string, string> = {
+    APP_ID: 'YOUR_APP_ID',
+    BASE_URL: baseUrl,
+    BASE_SETTINGS: baseSettingsJson,
+    EXTRA_AI_CHAT_SETTINGS: extraSettingsStr,
+    COMPONENT_NAME: componentName,
+  };
+
+  const reactCode = generateReactCode(component, replacements);
+  const javascriptCode = generateJavaScriptCode(component, replacements);
 
   return (
     <div>
