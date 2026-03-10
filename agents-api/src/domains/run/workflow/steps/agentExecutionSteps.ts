@@ -32,7 +32,10 @@ export type AgentExecutionStepPayload = {
   resolvedRef: ResolvedRef;
   forwardedHeaders?: Record<string, string>;
   outputFormat?: 'sse' | 'vercel';
-  approvedToolCalls?: Record<string, { approved: boolean; reason?: string; originalToolCallId?: string }>;
+  approvedToolCalls?: Record<
+    string,
+    { approved: boolean; reason?: string; originalToolCallId?: string }
+  >;
 };
 
 export type RunAgentExecutionStepResult =
