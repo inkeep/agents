@@ -4,9 +4,9 @@ import { getLedgerArtifacts } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { toolSessionManager } from '../agents/services/ToolSessionManager';
 import { type CompressedArtifactInfo, detectOversizedArtifact } from '../artifacts/artifact-utils';
 import { agentSessionManager } from '../session/AgentSession';
-import { toolSessionManager } from '../agents/services/ToolSessionManager';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
 import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
 import { estimateTokens as estimateTokensUtil } from '../utils/token-estimator';
@@ -540,7 +540,11 @@ export abstract class BaseCompressor {
         related_artifacts: this.cumulativeSummary.related_artifacts.map((a) => {
           const db = nameMap.get(a.tool_call_id);
           return db
-            ? { ...a, name: db.name ?? a.name, ...(db.description ? { description: db.description } : {}) }
+            ? {
+                ...a,
+                name: db.name ?? a.name,
+                ...(db.description ? { description: db.description } : {}),
+              }
             : a;
         }),
       };
@@ -548,7 +552,10 @@ export abstract class BaseCompressor {
       return refreshed;
     } catch (error) {
       logger.warn(
-        { sessionId: this.sessionId, error: error instanceof Error ? error.message : String(error) },
+        {
+          sessionId: this.sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        },
         'Failed to refresh artifact names from DB, using cached summary'
       );
       return this.cumulativeSummary;
@@ -677,7 +684,9 @@ export abstract class BaseCompressor {
             'compression.result.artifact_ids': fallbackResult.artifactIds.join(','),
             'compression.result.output_tokens': fallbackTokens,
             'compression.result.compression_ratio':
-              totalContextTokens > 0 ? (totalContextTokens - fallbackTokens) / totalContextTokens : 0,
+              totalContextTokens > 0
+                ? (totalContextTokens - fallbackTokens) / totalContextTokens
+                : 0,
           });
           compressionSpan.setStatus({ code: SpanStatusCode.OK });
           return fallbackResult;

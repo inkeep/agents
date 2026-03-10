@@ -24,7 +24,6 @@ export async function handlePrepareStepCompression(
     ...generatedMessages,
   ]);
 
-
   if (compressionNeeded) {
     compressor.markCompressed(stepMessages.length);
 

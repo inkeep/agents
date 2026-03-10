@@ -75,11 +75,7 @@ export function buildBaseGenerationConfig(
     messages,
     tools: sanitizedTools,
     prepareStep: async ({ messages: stepMessages }: { messages: unknown[] }) => {
-      return await handlePrepareStepCompression(
-        stepMessages,
-        compressor,
-        originalMessageCount
-      );
+      return await handlePrepareStepCompression(stepMessages, compressor, originalMessageCount);
     },
     stopWhen: async ({ steps }: { steps: unknown[] }) => {
       return await handleStopWhenConditions(ctx, steps);

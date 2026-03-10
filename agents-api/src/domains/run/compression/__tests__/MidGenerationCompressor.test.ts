@@ -151,9 +151,7 @@ describe('MidGenerationCompressor', () => {
         metadata: { isOversized: false, toolArgs: {}, toolName: 'search' },
       };
 
-      vi.mocked(getLedgerArtifacts).mockReturnValue(
-        vi.fn().mockResolvedValue([existingArtifact])
-      );
+      vi.mocked(getLedgerArtifacts).mockReturnValue(vi.fn().mockResolvedValue([existingArtifact]));
 
       const batch = makeToolResultMessages(1, 'cached');
       await compressor.compress(batch);

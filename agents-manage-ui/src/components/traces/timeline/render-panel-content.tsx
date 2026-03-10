@@ -751,10 +751,7 @@ export function renderPanelContent({
               label="Total tokens"
               value={a.compressionTotalContextTokens?.toLocaleString() || '0'}
             />
-            <Info
-              label="Context limit"
-              value={a.compressionTriggerAt?.toLocaleString() || '0'}
-            />
+            <Info label="Context limit" value={a.compressionTriggerAt?.toLocaleString() || '0'} />
             <Info
               label="Summary tokens"
               value={a.compressionOutputTokens?.toLocaleString() || '0'}

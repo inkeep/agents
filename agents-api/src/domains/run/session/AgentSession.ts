@@ -1464,9 +1464,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
             },
           });
 
-          const lastUserMessage = [...recentMessages]
-            .reverse()
-            .find((m: any) => m.role === 'user')?.content?.text ?? null;
+          const lastUserMessage =
+            [...recentMessages].reverse().find((m: any) => m.role === 'user')?.content?.text ??
+            null;
 
           const conversationHistory = recentMessages
             .map((m: any) => {

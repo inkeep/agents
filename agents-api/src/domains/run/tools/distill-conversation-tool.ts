@@ -163,7 +163,6 @@ Return **only** valid JSON.`;
 
       const estimatedTokens = estimateTokens(prompt);
 
-
       if (estimatedTokens > safeLimit) {
         logger.info(
           { conversationId, attempt: attempt.name, estimatedTokens, safeLimit },

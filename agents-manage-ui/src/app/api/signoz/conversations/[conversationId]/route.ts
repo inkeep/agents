@@ -1935,7 +1935,8 @@ export async function GET(
       const compressionRatio = getNumber(span, 'compression.result.compression_ratio', 0);
       const messageCount = getNumber(span, 'compression.message_count', 0);
       const compressionError = getString(span, 'compression.error', '');
-      const compressionSummary = getString(span, 'compression.result.high_level', '') ||
+      const compressionSummary =
+        getString(span, 'compression.result.high_level', '') ||
         getString(span, 'compression.result.summary', '');
 
       const description =
