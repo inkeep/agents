@@ -1930,10 +1930,7 @@ export async function GET(
       const compressionType = getString(span, SPAN_KEYS.COMPRESSION_TYPE, '');
       const generatedTokens = getNumber(span, SPAN_KEYS.COMPRESSION_GENERATED_TOKENS, 0);
       const totalContextTokens = getNumber(span, SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS, 0);
-      const triggerAt =
-        getNumber(span, SPAN_KEYS.COMPRESSION_TRIGGER_AT, 0) ||
-        getNumber(span, SPAN_KEYS.COMPRESSION_HARD_LIMIT, 0) -
-          getNumber(span, SPAN_KEYS.COMPRESSION_SAFETY_BUFFER, 0);
+      const triggerAt = getNumber(span, SPAN_KEYS.COMPRESSION_TRIGGER_AT, 0);
       const outputTokens = getNumber(span, SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS, 0);
       const compressionRatio = getNumber(span, SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO, 0);
       const messageCount = getNumber(span, SPAN_KEYS.COMPRESSION_MESSAGE_COUNT, 0);
