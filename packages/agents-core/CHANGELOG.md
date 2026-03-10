@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.58.8
+
+### Patch Changes
+
+- e89948d: Add app credentials with anonymous JWT sessions, domain validation, and PoW challenge support
+
 ## 0.58.7
 
 ## 0.58.6
