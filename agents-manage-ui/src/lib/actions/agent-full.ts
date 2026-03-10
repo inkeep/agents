@@ -14,12 +14,11 @@ import {
   createAgent as apiCreateAgent,
   createFullAgent as apiCreateFullAgent,
   deleteFullAgent as apiDeleteFullAgent,
-  fetchAgents as apiFetchAgents,
   getFullAgent as apiGetFullAgent,
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
-import type { Agent, FullAgentDefinition } from '../types/agent-full';
+import type { FullAgentDefinition } from '../types/agent-full';
 
 /**
  * Result type for server actions - follows a consistent pattern
@@ -34,25 +33,6 @@ type ActionResult<T = void> =
       error: string;
       code?: string;
     };
-
-export async function getAllAgentsAction(
-  tenantId: string,
-  projectId: string
-): Promise<ActionResult<Agent[]>> {
-  try {
-    const response = await apiFetchAgents(tenantId, projectId);
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch agent',
-      code: 'unknown_error',
-    };
-  }
-}
 
 export async function createAgentAction(
   tenantId: string,
