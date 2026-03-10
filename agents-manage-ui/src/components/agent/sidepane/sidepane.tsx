@@ -4,11 +4,6 @@ import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
 import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
@@ -41,9 +36,6 @@ interface SidePaneProps {
   selectedEdgeId: string | null;
   onClose: () => void;
   backToAgent: () => void;
-  agentToolConfigLookup: AgentToolConfigLookup;
-  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
-  subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
   disabled?: boolean;
 }
 
@@ -52,9 +44,6 @@ export function SidePane({
   selectedEdgeId,
   onClose,
   backToAgent,
-  agentToolConfigLookup,
-  subAgentExternalAgentConfigLookup,
-  subAgentTeamAgentConfigLookup,
   disabled = false,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
@@ -123,7 +112,6 @@ export function SidePane({
           return (
             <ExternalAgentNodeEditor
               selectedNode={selectedNode as Node<ExternalAgentNodeData>}
-              subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
               errorHelpers={errorHelpers}
             />
           );
@@ -135,7 +123,6 @@ export function SidePane({
           return (
             <TeamAgentNodeEditor
               selectedNode={selectedNode as Node<TeamAgentNodeData>}
-              subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
               errorHelpers={errorHelpers}
             />
           );
@@ -147,12 +134,7 @@ export function SidePane({
           return <MCPSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.MCP: {
-          return (
-            <MCPServerNodeEditor
-              selectedNode={selectedNode as Node<MCPNodeData>}
-              agentToolConfigLookup={agentToolConfigLookup}
-            />
-          );
+          return <MCPServerNodeEditor selectedNode={selectedNode as Node<MCPNodeData>} />;
         }
         case NodeType.FunctionTool: {
           return (
@@ -175,9 +157,6 @@ export function SidePane({
     hasFieldError,
     getFieldErrorMessage,
     getFirstErrorField,
-    agentToolConfigLookup,
-    subAgentExternalAgentConfigLookup,
-    subAgentTeamAgentConfigLookup,
     errors,
   ]);
 
