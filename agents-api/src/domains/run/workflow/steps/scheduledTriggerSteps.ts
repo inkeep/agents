@@ -24,6 +24,7 @@ import {
   resolveRef,
   type ScheduledTriggerInvocation,
   updateScheduledTriggerInvocationStatus,
+  updateScheduledWorkflowRunId,
   withRef,
 } from '@inkeep/agents-core';
 import { CronExpressionParser } from 'cron-parser';
@@ -156,6 +157,7 @@ export async function checkTriggerEnabledStep(params: {
   agentId: string;
   scheduledTriggerId: string;
   runnerId: string;
+  parentRunId?: string | null;
 }) {
   'use step';
 
@@ -202,11 +204,30 @@ export async function checkTriggerEnabledStep(params: {
 
   // If workflowRunId changed in the workflow record, this runner was superseded
   if (workflow?.workflowRunId && workflow.workflowRunId !== params.runnerId) {
-    logger.info(
-      { scheduledTriggerId: params.scheduledTriggerId, reason: 'superseded' },
-      'Scheduled trigger workflow stopping'
-    );
-    return { shouldContinue: false, reason: 'superseded', trigger: null };
+    if (params.parentRunId && workflow.workflowRunId === params.parentRunId) {
+      await withRef(manageDbPool, resolvedRef, async (db) => {
+        await updateScheduledWorkflowRunId(db)({
+          scopes,
+          scheduledWorkflowId: workflow.id,
+          workflowRunId: params.runnerId,
+          status: 'running',
+        });
+      });
+      logger.info(
+        {
+          scheduledTriggerId: params.scheduledTriggerId,
+          parentRunId: params.parentRunId,
+          newRunnerId: params.runnerId,
+        },
+        'Child workflow adopted workflowRunId from parent'
+      );
+    } else {
+      logger.info(
+        { scheduledTriggerId: params.scheduledTriggerId, reason: 'superseded' },
+        'Scheduled trigger workflow stopping'
+      );
+      return { shouldContinue: false, reason: 'superseded', trigger: null };
+    }
   }
 
   return {
