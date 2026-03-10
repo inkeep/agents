@@ -61,10 +61,8 @@ import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { updateFullAgentAction } from '@/lib/actions/agent-full';
 import { getFullProjectAction } from '@/lib/actions/project-full';
-import type {
-  FullAgentResponse,
-} from '@/lib/types/agent-full';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import type { FullAgentResponse } from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
@@ -147,9 +145,7 @@ function formatFormErrors<FV extends FieldValues>(errors: FieldErrors<FV>) {
   return lines;
 }
 
-export const Agent: FC<AgentProps> = ({
-  agent,
-}) => {
+export const Agent: FC<AgentProps> = ({ agent }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
@@ -591,10 +587,7 @@ export const Agent: FC<AgentProps> = ({
   const form = useFullAgentFormContext();
 
   const onFormSubmit: HandleSubmitParams[0] = async (data): Promise<void> => {
-    const serializedData = serializeAgentData(
-      nodes,
-      edges,
-    );
+    const serializedData = serializeAgentData(nodes, edges);
 
     const functionToolNodeMap = new Map<string, string>();
     nodes.forEach((node) => {

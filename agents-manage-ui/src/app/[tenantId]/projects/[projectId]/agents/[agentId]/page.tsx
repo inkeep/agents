@@ -1,9 +1,9 @@
 import type { FC } from 'react';
 import { serializeAgentForm } from '@/components/agent/form/validation';
 import FullPageError from '@/components/errors/full-page-error';
+import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 import { getFullAgent } from '@/lib/api/agent-full-client';
 import { Agent } from './page.client';
-import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,9 +13,11 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   const { agentId, tenantId, projectId } = await params;
   try {
     const agent = await getFullAgent(tenantId, projectId, agentId);
-    return <FullAgentFormProvider defaultValues={serializeAgentForm(agent.data)}>
-      <Agent agent={agent.data} />
-    </FullAgentFormProvider>
+    return (
+      <FullAgentFormProvider defaultValues={serializeAgentForm(agent.data)}>
+        <Agent agent={agent.data} />
+      </FullAgentFormProvider>
+    );
   } catch (error) {
     return (
       <FullPageError

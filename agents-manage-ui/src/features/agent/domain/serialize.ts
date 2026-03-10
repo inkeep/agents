@@ -3,10 +3,7 @@ import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
-import type {
-  InternalAgentDefinition,
-  PartialFullAgentDefinition,
-} from '@/lib/types/agent-full';
+import type { InternalAgentDefinition, PartialFullAgentDefinition } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
 
@@ -74,10 +71,7 @@ function processModels(modelsData?: AgentModels): AgentModels | undefined {
 /**
  * Transforms React Flow nodes and edges back into the API data structure
  */
-export function serializeAgentData(
-  nodes: Node[],
-  edges: Edge[],
-): PartialFullAgentDefinition {
+export function serializeAgentData(nodes: Node[], edges: Edge[]): PartialFullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
   const externalAgents: Record<string, ExternalAgent> = {};
   const teamAgents: Record<string, TeamAgent> = {};
