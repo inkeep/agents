@@ -8,6 +8,12 @@ import { isRefWritable, resolveRef } from './ref-helpers';
 
 const logger = getLogger('ref-middleware');
 
+const MERGE_ROUTE_PATTERN = /\/branches\/merge(\/preview)?$/;
+
+export function isMergeRoute(path: string): boolean {
+  return MERGE_ROUTE_PATTERN.test(path);
+}
+
 export type RefContext = {
   resolvedRef?: ResolvedRef;
 };
@@ -92,9 +98,21 @@ export const createRefMiddleware = (
   } = options;
 
   return async (c: Context, next: Next) => {
-    const ref = c.req.query('ref');
+    let ref = c.req.query('ref');
     const path = c.req.path;
     const pathSplit = path.split('/');
+
+    if (!ref && isMergeRoute(path) && c.req.method === 'POST') {
+      try {
+        const body = await c.req.json();
+        if (body && typeof body.targetBranch === 'string') {
+          ref = body.targetBranch;
+          logger.debug({ ref }, 'Extracted targetBranch from merge route body as ref');
+        }
+      } catch {
+        logger.debug({}, 'Could not extract targetBranch from merge route body');
+      }
+    }
 
     const tenantId = extractTenantId(c);
     let projectId = extractProjectId(c);
