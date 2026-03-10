@@ -1,8 +1,8 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchProjectsAction } from '@/lib/actions/projects';
 import type { Project } from '@/lib/types/project';
+import { fetchProjects } from '@/lib/api/projects';
 
 const projectQueryKeys = {
   list: (tenantId: string) => ['projects', tenantId] as const,
@@ -19,10 +19,7 @@ export function useProjectsQuery({
   return useQuery<Project[]>({
     queryKey: projectQueryKeys.list(tenantId),
     async queryFn() {
-      const response = await fetchProjectsAction(tenantId);
-      if (!response.success || !response.data) {
-        throw new Error(response.error);
-      }
+      const response = await fetchProjects(tenantId);
       return response.data;
     },
     enabled,
