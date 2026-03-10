@@ -162,4 +162,10 @@ export const executionLimitsDefaults = {
 
   // COMPRESSION_ENABLED: Whether compression is enabled (set to false to disable)
   COMPRESSION_ENABLED: true,
+
+  // Durable execution timeout constants
+  DURABLE_LLM_GENERATION_TIMEOUT_MS: 60 * 60 * 1000,
+  DURABLE_MCP_TOOL_TIMEOUT_MS: 30 * 60 * 1000,
+  DURABLE_FUNCTION_TOOL_TIMEOUT_MS: 10 * 60 * 1000,
+  DURABLE_TOOL_APPROVAL_TIMEOUT_MS: 30 * 60 * 1000,
 } as const;

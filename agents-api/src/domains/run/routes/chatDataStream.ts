@@ -18,6 +18,7 @@ import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-cor
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { stream } from 'hono/streaming';
+import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
@@ -30,6 +31,7 @@ import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream
 import { ImageUrlSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
+import { agentExecutionWorkflow } from '../workflow/functions/agentExecution';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -379,6 +381,50 @@ app.openapi(chatDataStreamRoute, async (c) => {
         messageSpan.addEvent('user.message.stored', {
           'message.id': conversationId,
           'database.operation': 'insert',
+        });
+      }
+
+      if (agent.executionMode === 'durable') {
+        const requestId = `chatds-${Date.now()}`;
+        const run = await start(agentExecutionWorkflow, [
+          {
+            tenantId,
+            projectId,
+            agentId,
+            conversationId,
+            userMessage: userText,
+            messageParts: messageParts.length > 0 ? messageParts : undefined,
+            requestId,
+            resolvedRef: executionContext.resolvedRef,
+            forwardedHeaders:
+              Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
+            outputFormat: 'vercel',
+          },
+        ]);
+        logger.info(
+          { runId: run.runId, conversationId, agentId },
+          'Durable execution started via /chat'
+        );
+        c.header('x-workflow-run-id', run.runId);
+        c.header('content-type', 'text/event-stream');
+        c.header('cache-control', 'no-cache');
+        c.header('connection', 'keep-alive');
+        c.header('x-vercel-ai-data-stream', 'v2');
+        c.header('x-accel-buffering', 'no');
+        return stream(c, async (s) => {
+          try {
+            const reader = run.readable.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              await s.write(value);
+            }
+          } catch (error) {
+            logger.error(
+              { error, runId: run.runId },
+              'Error streaming durable execution via /chat'
+            );
+          }
         });
       }
 

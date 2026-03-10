@@ -62,6 +62,7 @@ import {
   workAppSlackChannelAgentConfigs,
   workAppSlackMcpToolAccessConfig,
   workAppSlackWorkspaces,
+  workflowExecutions,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -461,6 +462,7 @@ export const AgentInsertSchema = createInsertSchema(agents, {
           'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
         example: 'my-default-subagent',
       }),
+  executionMode: () => z.enum(['classic', 'durable']).optional(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -3184,3 +3186,21 @@ export const UserProfileApiUpdateSchema = UserProfileUpdateSchema.omit({
   id: true,
   userId: true,
 });
+
+// Workflow Execution Schemas (Runtime DB - unversioned)
+export const WorkflowExecutionStatusEnum = z.enum(['running', 'suspended', 'completed', 'failed']);
+
+export const WorkflowExecutionSelectSchema = createSelectSchema(workflowExecutions).extend({
+  status: WorkflowExecutionStatusEnum,
+});
+
+export const WorkflowExecutionInsertSchema = createInsertSchema(workflowExecutions)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    status: WorkflowExecutionStatusEnum.default('running'),
+  });
+
+export const WorkflowExecutionUpdateSchema = WorkflowExecutionInsertSchema.partial();

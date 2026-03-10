@@ -95,6 +95,10 @@ export const agents = pgTable(
     statusUpdates: jsonb('status_updates').$type<StatusUpdateSettings>(),
     prompt: text('prompt'),
     stopWhen: jsonb('stop_when').$type<AgentStopWhen>(),
+    executionMode: varchar('execution_mode', { length: 50 })
+      .$type<'classic' | 'durable'>()
+      .notNull()
+      .default('classic'),
     ...timestamps,
   },
   (table) => [

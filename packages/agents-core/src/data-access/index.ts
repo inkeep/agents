@@ -45,5 +45,6 @@ export * from './runtime/triggerInvocations';
 export * from './runtime/userProfiles';
 export * from './runtime/users';
 export * from './runtime/workAppSlack';
+export * from './runtime/workflowExecutions';
 
 export * from './validation';

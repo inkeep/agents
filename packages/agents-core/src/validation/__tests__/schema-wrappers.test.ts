@@ -249,6 +249,7 @@ describe('Schema Wrapper Functions', () => {
         statusUpdates: null,
         prompt: null,
         stopWhen: null,
+        executionMode: 'classic',
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };

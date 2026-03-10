@@ -21,6 +21,10 @@
             "nullable": true,
             "type": "string"
           },
+          "executionMode": {
+            "maxLength": 50,
+            "type": "string"
+          },
           "id": {
             "maxLength": 256,
             "type": "string"
@@ -140,6 +144,7 @@
           "statusUpdates",
           "prompt",
           "stopWhen",
+          "executionMode",
           "createdAt",
           "updatedAt"
         ],
@@ -166,6 +171,13 @@
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
+          },
+          "executionMode": {
+            "enum": [
+              "classic",
+              "durable"
+            ],
+            "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -346,6 +358,13 @@
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
+          },
+          "executionMode": {
+            "enum": [
+              "classic",
+              "durable"
+            ],
+            "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -38227,6 +38246,449 @@
         "summary": "Chat (Vercel Streaming Protocol)",
         "tags": [
           "Chat"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/api/executions": {
+      "post": {
+        "description": "Starts a durable workflow-backed agent execution. Returns an SSE stream with an x-workflow-run-id header for reconnection.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "forwardedHeaders": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "messages": {
+                    "description": "The conversation messages",
+                    "items": {
+                      "properties": {
+                        "content": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "items": {
+                                "oneOf": [
+                                  {
+                                    "properties": {
+                                      "text": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "text"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "text"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  {
+                                    "properties": {
+                                      "image_url": {
+                                        "properties": {
+                                          "detail": {
+                                            "enum": [
+                                              "auto",
+                                              "low",
+                                              "high"
+                                            ],
+                                            "type": "string"
+                                          },
+                                          "url": {
+                                            "anyOf": [
+                                              {
+                                                "format": "uri",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "pattern": "^data:image\\/(png|jpeg|jpg|webp);base64,",
+                                                "type": "string"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "url"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "image_url"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "image_url"
+                                    ],
+                                    "type": "object"
+                                  }
+                                ]
+                              },
+                              "type": "array"
+                            }
+                          ],
+                          "description": "The message content"
+                        },
+                        "role": {
+                          "enum": [
+                            "system",
+                            "user",
+                            "assistant",
+                            "function",
+                            "tool"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "role",
+                        "content"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "messages"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Streaming SSE response. The x-workflow-run-id header contains the run ID for reconnection.",
+            "headers": {
+              "Content-Type": {
+                "required": false,
+                "schema": {
+                  "default": "text/event-stream",
+                  "type": "string"
+                }
+              },
+              "x-workflow-run-id": {
+                "required": true,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Agent not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create durable agent execution",
+        "tags": [
+          "Executions"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/api/executions/:executionId": {
+      "get": {
+        "description": "Returns the status of a durable execution.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "executionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "agentId": {
+                      "type": "string"
+                    },
+                    "conversationId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "running",
+                        "suspended",
+                        "completed",
+                        "failed"
+                      ],
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "conversationId",
+                    "agentId",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Execution status"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Execution not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get execution status",
+        "tags": [
+          "Executions"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/api/executions/:executionId/approvals/:toolCallId": {
+      "post": {
+        "description": "Resumes a suspended durable execution by approving or denying a pending tool call.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "executionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "toolCallId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "approved": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "approved"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Tool call approval submitted"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Execution not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Approve or deny a tool call",
+        "tags": [
+          "Executions"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/api/executions/:executionId/stream": {
+      "get": {
+        "description": "Reconnects to the SSE stream of an existing durable execution.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "executionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "SSE stream"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Execution not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Reconnect to execution stream",
+        "tags": [
+          "Executions"
         ],
         "x-authz": {
           "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
