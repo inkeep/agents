@@ -61,6 +61,7 @@ export function AppUpdateForm({
         name: data.name,
         description: data.description || undefined,
         defaultAgentId: data.defaultAgentId || undefined,
+        defaultProjectId: data.defaultAgentId ? projectId : null,
         enabled: data.enabled,
       };
 

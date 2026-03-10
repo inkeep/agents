@@ -42,6 +42,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
         description: data.description || undefined,
         type: appType,
         defaultAgentId: data.defaultAgentId || undefined,
+        defaultProjectId: data.defaultAgentId ? projectId : undefined,
         config:
           appType === 'web_client'
             ? {

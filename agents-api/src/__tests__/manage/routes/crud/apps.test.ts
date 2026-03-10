@@ -59,6 +59,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       expect(app.name).toBe('Test App');
       expect(app.enabled).toBe(true);
       expect(app.defaultAgentId).toBe('agent-1');
+      expect(app.defaultProjectId).toBe(projectId);
       expect(app.config.type).toBe('web_client');
       expect(app.config.webClient.allowedDomains).toEqual(['help.customer.com']);
     });
@@ -157,6 +158,89 @@ describe('App CRUD Routes - Integration Tests', () => {
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/nonexistent-${generateId()}`
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('defaultProjectId auto-set', () => {
+    it('should auto-set defaultProjectId when defaultAgentId is provided on create', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-default-project-create');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { app } = await createTestApp({ tenantId, projectId });
+      expect(app.defaultAgentId).toBe('agent-1');
+      expect(app.defaultProjectId).toBe(projectId);
+    });
+
+    it('should not set defaultProjectId when defaultAgentId is absent on create', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-no-default-agent');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'No Agent App',
+          type: 'api',
+          config: { type: 'api', api: {} },
+        }),
+      });
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.data.app.defaultAgentId).toBeNull();
+      expect(body.data.app.defaultProjectId).toBeNull();
+    });
+
+    it('should auto-set defaultProjectId when defaultAgentId is set on update', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-default-project-update');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            name: 'No Agent App',
+            type: 'api',
+            config: { type: 'api', api: {} },
+          }),
+        }
+      );
+      const { app } = (await createRes.json()).data;
+
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ defaultAgentId: 'agent-2' }),
+        }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = (await updateRes.json()).data;
+      expect(updated.defaultAgentId).toBe('agent-2');
+      expect(updated.defaultProjectId).toBe(projectId);
+    });
+
+    it('should clear defaultProjectId when defaultAgentId is cleared on update', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-clear-default');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { app } = await createTestApp({ tenantId, projectId });
+      expect(app.defaultProjectId).toBe(projectId);
+
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ defaultAgentId: null }),
+        }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = (await updateRes.json()).data;
+      expect(updated.defaultAgentId).toBeNull();
+      expect(updated.defaultProjectId).toBeNull();
     });
   });
 

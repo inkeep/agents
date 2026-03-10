@@ -163,7 +163,7 @@ app.openapi(
       description: body.description,
       type: body.type,
       defaultAgentId: body.defaultAgentId,
-      defaultProjectId: body.defaultProjectId,
+      defaultProjectId: body.defaultAgentId ? (body.defaultProjectId ?? projectId) : null,
       enabled: body.enabled ?? true,
       config: body.config,
     });
@@ -211,13 +211,18 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
+
+    const data = { ...body };
+    if ('defaultAgentId' in data) {
+      data.defaultProjectId = data.defaultAgentId ? (data.defaultProjectId ?? projectId) : null;
+    }
 
     const updatedApp = await updateAppForTenant(runDbClient)({
       scopes: { tenantId },
       id,
-      data: body,
+      data,
     });
 
     if (!updatedApp) {
