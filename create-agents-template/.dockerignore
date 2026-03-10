@@ -1,0 +1,16 @@
+node_modules
+.git
+__tests__
+*.test.ts
+*.spec.ts
+.env
+.env.*
+.turbo
+.next
+dist
+coverage
+.DS_Store
+README.md
+mprocs.yaml
+docker-compose*.yml
+Dockerfile*
