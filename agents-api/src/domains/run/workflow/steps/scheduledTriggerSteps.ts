@@ -204,6 +204,8 @@ export async function checkTriggerEnabledStep(params: {
 
   // If workflowRunId changed in the workflow record, this runner was superseded
   if (workflow?.workflowRunId && workflow.workflowRunId !== params.runnerId) {
+    // Adoption: parent called start() to create this child but crashed before updating
+    // the DB with the child's runId. DB still holds the parent's ID, so adopt it.
     if (params.parentRunId && workflow.workflowRunId === params.parentRunId) {
       await withRef(manageDbPool, resolvedRef, async (db) => {
         await updateScheduledWorkflowRunId(db)({

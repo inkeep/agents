@@ -8,8 +8,6 @@
  * 4. Executes the agent with retries
  * 5. For cron triggers, starts a fresh workflow for the next iteration (daisy-chain)
  *
- * This keeps the event log bounded (~15 events per run) and avoids the
- * accumulated replay delay that occurs with long-lived while(true) loops.
  */
 
 import {
