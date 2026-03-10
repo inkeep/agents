@@ -3,6 +3,8 @@ import {
   type CredentialStuffer,
   configureComposioMCPServer,
   type FullExecutionContext,
+  isDevToolsMcp,
+  isDevToolsSearchMcp,
   isGithubWorkAppTool,
   isSlackWorkAppTool,
   JsonTransformer,
@@ -13,6 +15,7 @@ import {
   type McpServerConfig,
   type McpTool,
   resolveSlackUserContext,
+  signMcpAccessToken,
 } from '@inkeep/agents-core';
 import { jsonSchema, tool } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
@@ -139,6 +142,19 @@ export class AgentMcpManager {
         'x-inkeep-tenant-id': this.config.tenantId,
         'x-inkeep-project-id': this.config.projectId,
         Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
+      };
+    }
+
+    if (isDevToolsMcp(tool) || isDevToolsSearchMcp(tool)) {
+      const jwt = await signMcpAccessToken({
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+      });
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tenant-id': this.config.tenantId,
+        'x-inkeep-project-id': this.config.projectId,
+        Authorization: `Bearer ${jwt}`,
       };
     }
 

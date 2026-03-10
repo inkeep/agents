@@ -6,6 +6,7 @@ import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
 import devToolsMcpRoutes from './dev-tools-mcp';
+import devToolsSearchMcpRoutes from './dev-tools-search-mcp';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
@@ -300,6 +301,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Dev tools MCP - utility tools for text, JSON, image, HTTP, and scratchpad
   app.route('/dev-tools', devToolsMcpRoutes);
+
+  // Dev tools search MCP - web search tools powered by Exa
+  app.route('/dev-tools-search', devToolsSearchMcpRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

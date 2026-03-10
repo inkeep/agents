@@ -1,5 +1,4 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { env } from '../env';
 import { registerEncodingTools } from './tools/encoding';
 import { registerHtmlTools } from './tools/html';
 import { registerHttpTools } from './tools/http';
@@ -7,7 +6,6 @@ import { registerImageTools } from './tools/image';
 import { registerJsonTools } from './tools/json-tools';
 import type { ScratchpadStore } from './tools/scratchpad';
 import { registerScratchpadTools } from './tools/scratchpad';
-import { registerSearchTools } from './tools/search';
 import { registerTextTools } from './tools/text';
 import { registerUtilityTools } from './tools/utility';
 
@@ -102,7 +100,12 @@ Never skip step 1 when the source is structured data.
 The framework resolves references before invoking the tool — the tool always receives the real content. Never inline large strings when a reference is available.
 `.trim();
 
-export function createDevToolsServer(sessionId: string): McpServer {
+export interface DevToolsScope {
+  tenantId: string;
+  projectId: string;
+}
+
+export function createDevToolsServer(sessionId: string, _scope?: DevToolsScope): McpServer {
   const server = new McpServer(
     { name: 'inkeep-dev-tools', version: '1.0.0' },
     { instructions: SERVER_INSTRUCTIONS }
@@ -118,10 +121,6 @@ export function createDevToolsServer(sessionId: string): McpServer {
   registerHttpTools(server);
   registerUtilityTools(server);
   registerScratchpadTools(server, pad);
-
-  if (env.EXA_API_KEY) {
-    registerSearchTools(server, env.EXA_API_KEY);
-  }
 
   return server;
 }

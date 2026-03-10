@@ -20,6 +20,7 @@ export * from './db/manage/manage-schema';
 export * from './db/runtime/runtime-schema';
 export * from './dolt/index';
 export { loadEnvironmentFiles } from './env';
+export * from './mcp/built-in-mcps';
 export * from './types/index';
 export * from './types/server';
 export * from './utils/index';
