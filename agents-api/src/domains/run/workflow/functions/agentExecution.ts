@@ -38,7 +38,10 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
   await markWorkflowRunningStep({ payload, workflowRunId });
 
-  const approvedToolCalls: Record<string, { approved: boolean; reason?: string; originalToolCallId?: string }> = {};
+  const approvedToolCalls: Record<
+    string,
+    { approved: boolean; reason?: string; originalToolCallId?: string }
+  > = {};
   let approvalRound = 0;
 
   try {
@@ -63,7 +66,10 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         const hook = toolApprovalHook.create({ token });
         const approvalResult = await hook;
 
-        approvedToolCalls[result.toolName] = { ...approvalResult, originalToolCallId: result.toolCallId };
+        approvedToolCalls[result.toolName] = {
+          ...approvalResult,
+          originalToolCallId: result.toolCallId,
+        };
         approvalRound++;
 
         await markWorkflowResumingStep({
