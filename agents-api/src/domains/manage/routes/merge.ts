@@ -1,6 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import {
+  applyResolutions,
   areBranchesSchemaCompatible,
   commonGetErrorResponses,
   createApiError,
@@ -14,10 +15,14 @@ import {
   doltHashOf,
   doltMerge,
   doltTableConflicts,
+  ErrorResponseSchema,
   getBranch,
+  getFullProject,
   managePkMap,
+  releaseAdvisoryLock,
   syncSchemaFromMain,
   TenantProjectParamsSchema,
+  tryAdvisoryLock,
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -345,6 +350,242 @@ app.openapi(
       await cleanupTempBranch(db, previewTempBranch);
       if (localTempBranchName) {
         await cleanupTempBranch(db, localTempBranchName);
+      }
+    }
+  }
+);
+
+const MERGE_LOCK_PREFIX = 'merge_execute_';
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/merge',
+    summary: 'Execute Merge',
+    description: 'Execute a merge between two branches with optional conflict resolutions.',
+    operationId: 'merge-execute',
+    tags: ['Branches'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: MergeExecuteRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Merge executed successfully',
+        content: {
+          'application/json': {
+            schema: MergeExecuteResponseSchema,
+          },
+        },
+      },
+      409: {
+        description: 'Conflict — stale hashes, concurrent merge, or unresolved conflicts',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const {
+      sourceBranch,
+      targetBranch,
+      sourceHash,
+      targetHash,
+      message,
+      author,
+      resolutions,
+      baseCommit,
+      localProjectDefinition,
+    } = body;
+
+    const sourceFullName = `${tenantId}_${projectId}_${sourceBranch}`;
+    const targetFullName = `${tenantId}_${projectId}_${targetBranch}`;
+
+    const [sourceBranchInfo, targetBranchInfo] = await Promise.all([
+      getBranch(db)({ tenantId, projectId, name: sourceBranch }),
+      getBranch(db)({ tenantId, projectId, name: targetBranch }),
+    ]);
+
+    if (!sourceBranchInfo) {
+      throw createApiError({
+        code: 'not_found',
+        message: `Source branch '${sourceBranch}' not found`,
+      });
+    }
+
+    if (!targetBranchInfo) {
+      throw createApiError({
+        code: 'not_found',
+        message: `Target branch '${targetBranch}' not found`,
+      });
+    }
+
+    let effectiveSourceFullName = sourceFullName;
+    let localTempBranchName: string | null = null;
+
+    if (baseCommit && localProjectDefinition) {
+      localTempBranchName = generateTempBranchName('cli_source');
+      await createTempBranchFromCommit(db)({
+        name: localTempBranchName,
+        commitHash: baseCommit,
+      });
+
+      try {
+        await doltCheckout(db)({ branch: localTempBranchName });
+        await updateFullProjectServerSide(db)({
+          scopes: { tenantId, projectId },
+          projectData: localProjectDefinition as FullProjectDefinition,
+        });
+        await doltAddAndCommit(db)({
+          message: 'Apply local project definition for merge execute',
+        });
+      } catch (error) {
+        await cleanupTempBranch(db, localTempBranchName);
+        throw error;
+      }
+
+      effectiveSourceFullName = localTempBranchName;
+    }
+
+    const [currentSourceHash, currentTargetHash] = await Promise.all([
+      doltHashOf(db)({ revision: effectiveSourceFullName }),
+      doltHashOf(db)({ revision: targetFullName }),
+    ]);
+
+    if (currentSourceHash !== sourceHash || currentTargetHash !== targetHash) {
+      if (localTempBranchName) await cleanupTempBranch(db, localTempBranchName);
+      throw createApiError({
+        code: 'conflict',
+        message: 'Branch state has changed since preview. Please re-preview the merge.',
+      });
+    }
+
+    const lockAcquired = await tryAdvisoryLock(db)(MERGE_LOCK_PREFIX, targetFullName);
+
+    if (!lockAcquired) {
+      if (localTempBranchName) await cleanupTempBranch(db, localTempBranchName);
+      throw createApiError({
+        code: 'conflict',
+        message: 'Another merge is in progress on the target branch. Please try again.',
+      });
+    }
+
+    const executeTempBranch = generateTempBranchName('execute');
+
+    try {
+      await createTempBranchFromCommit(db)({
+        name: executeTempBranch,
+        commitHash: targetHash,
+      });
+
+      const mergeResult = await doltMerge(db)({
+        fromBranch: effectiveSourceFullName,
+        toBranch: executeTempBranch,
+        message: message ?? `Merge ${sourceBranch} into ${targetBranch}`,
+        author,
+      });
+
+      if (mergeResult.hasConflicts) {
+        if (!resolutions || resolutions.length === 0) {
+          try {
+            await doltAbortMerge(db)();
+          } catch {
+            // may not be in merge state
+          }
+          throw createApiError({
+            code: 'conflict',
+            message:
+              'Merge has conflicts but no resolutions were provided. Please re-preview and provide resolutions.',
+          });
+        }
+
+        const conflictTables = await doltConflicts(db)();
+        let totalConflicts = 0;
+        for (const ct of conflictTables) {
+          const tableConflicts = await doltTableConflicts(db)({ tableName: ct.table });
+          totalConflicts += tableConflicts.length;
+        }
+
+        if (resolutions.length < totalConflicts) {
+          try {
+            await doltAbortMerge(db)();
+          } catch {
+            // may not be in merge state
+          }
+          throw createApiError({
+            code: 'bad_request',
+            message: `Resolutions provided (${resolutions.length}) do not cover all conflicts (${totalConflicts}). All conflicts must be resolved.`,
+          });
+        }
+
+        await applyResolutions(db)(resolutions);
+
+        await doltAddAndCommit(db)({
+          message:
+            message ?? `Merge ${sourceBranch} into ${targetBranch} (with conflict resolution)`,
+          author,
+        });
+      }
+
+      const mergedProject = await getFullProject(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      if (!mergedProject) {
+        throw createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to read merged project state from temp branch',
+        });
+      }
+
+      await doltCheckout(db)({ branch: targetFullName });
+
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: mergedProject as unknown as FullProjectDefinition,
+      });
+
+      await doltAddAndCommit(db)({
+        message: message ?? `Merge ${sourceBranch} into ${targetBranch}`,
+        author,
+      });
+
+      const newTargetHash = await doltHashOf(db)({ revision: targetFullName });
+
+      return c.json(
+        {
+          data: {
+            status: 'success' as const,
+            mergeCommitHash: newTargetHash,
+            sourceBranch,
+            targetBranch,
+          },
+        },
+        200
+      );
+    } finally {
+      await cleanupTempBranch(db, executeTempBranch);
+      if (localTempBranchName) {
+        await cleanupTempBranch(db, localTempBranchName);
+      }
+      try {
+        await releaseAdvisoryLock(db)(MERGE_LOCK_PREFIX, targetFullName);
+      } catch {
+        // lock released when connection closes
       }
     }
   }

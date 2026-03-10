@@ -1,3 +1,4 @@
+export * from './advisory-lock';
 export * from './branch';
 export * from './branches-api';
 export * from './commit';
