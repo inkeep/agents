@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.58.8
+
+### Patch Changes
+
+- e89948d: Add app credentials with anonymous JWT sessions, domain validation, and PoW challenge support
+- e89948d: Add anonymous user session conversation history endpoint
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+  - @inkeep/agents-work-apps@0.58.8
+  - @inkeep/agents-email@0.58.8
+  - @inkeep/agents-mcp@0.58.8
+
 ## 0.58.7
 
 ### Patch Changes
