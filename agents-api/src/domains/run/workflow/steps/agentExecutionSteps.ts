@@ -155,6 +155,7 @@ export async function runAgentExecutionStep(params: {
     unregisterStreamHelper(requestId);
   }
 
+<<<<<<< HEAD
   if (result.pendingApproval) {
     await sseHelper.complete();
     await closeable.close();
