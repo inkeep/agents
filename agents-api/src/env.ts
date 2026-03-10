@@ -97,11 +97,11 @@ const envSchema = z
       .number()
       .int()
       .min(60)
-      .max(604800)
+      .max(2592000)
       .optional()
-      .default(86400)
+      .default(2592000)
       .describe(
-        'Lifetime in seconds for anonymous session JWTs. Min 60s, max 604800s (7 days). Default 86400s (24 hours).'
+        'Lifetime in seconds for anonymous session JWTs. Min 60s, max 2592000s (30 days). Default 2592000s (30 days).'
       ),
 
     // Proof-of-Work (ALTCHA)
@@ -124,9 +124,9 @@ const envSchema = z
       .min(60)
       .max(3600)
       .optional()
-      .default(300)
+      .default(3600)
       .describe(
-        'PoW challenge expiry in seconds. Min 60s, max 3600s (1 hour). Default 300s (5 minutes).'
+        'PoW challenge expiry in seconds. Min 60s, max 3600s (1 hour). Default 3600s (1 hour).'
       ),
 
     // JWT Keys (for Playground)

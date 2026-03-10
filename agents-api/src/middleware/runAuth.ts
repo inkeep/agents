@@ -512,7 +512,13 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
 
     const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
     if (!pow.ok) {
-      return { authResult: null, failureMessage: pow.error };
+      const failureMessage =
+        pow.error === 'pow_expired'
+          ? 'Proof-of-work challenge has expired. Please request a new challenge.'
+          : pow.error === 'pow_required'
+            ? 'Proof-of-work challenge solution is required.'
+            : 'Proof-of-work challenge solution is invalid.';
+      return { authResult: null, failureMessage };
     }
 
     if (!bearerToken) {

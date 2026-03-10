@@ -139,8 +139,8 @@ describe('Anonymous Session Endpoint', () => {
 
       const exp = payload.exp as number;
       const iat = payload.iat as number;
-      expect(exp - iat).toBe(86400);
-      expect(exp).toBeGreaterThanOrEqual(beforeRequest + 86400);
+      expect(exp - iat).toBe(env.INKEEP_ANON_SESSION_LIFETIME_SECONDS);
+      expect(exp).toBeGreaterThanOrEqual(beforeRequest + env.INKEEP_ANON_SESSION_LIFETIME_SECONDS);
     });
 
     it('should return 404 for non-existent app ID', async () => {
@@ -340,7 +340,7 @@ describe('Anonymous Session PoW Enforcement', () => {
       expect(body.token).toBeDefined();
     });
 
-    it('should return 400 pow_required when PoW is enabled but header missing', async () => {
+    it('should return 400 with human-readable message when PoW header is missing', async () => {
       (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
 
       const tenantId = await createTestTenantWithOrg('anon-pow-required');
@@ -359,10 +359,10 @@ describe('Anonymous Session PoW Enforcement', () => {
       expect(res.status).toBe(400);
       const body = await res.json();
       expect(body.error.code).toBe('bad_request');
-      expect(body.error.message).toBe('pow_required');
+      expect(body.error.message).toBe('Proof-of-work challenge solution is required.');
     });
 
-    it('should return 400 pow_invalid when PoW solution is invalid', async () => {
+    it('should return 400 with human-readable message when PoW solution is invalid', async () => {
       (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
 
       const tenantId = await createTestTenantWithOrg('anon-pow-invalid');
@@ -382,7 +382,59 @@ describe('Anonymous Session PoW Enforcement', () => {
       expect(res.status).toBe(400);
       const body = await res.json();
       expect(body.error.code).toBe('bad_request');
-      expect(body.error.message).toBe('pow_invalid');
+      expect(body.error.message).toBe('Proof-of-work challenge solution is invalid.');
+    });
+
+    it('should return 400 with expiry message when PoW solution is expired', async () => {
+      const { createChallenge, solveChallenge } = await import('altcha-lib');
+
+      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
+
+      const tenantId = await createTestTenantWithOrg('anon-pow-expired');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+
+      const challenge = await createChallenge({
+        hmacKey: TEST_POW_SECRET,
+        algorithm: 'SHA-256',
+        maxnumber: 1000,
+        expires: new Date(Date.now() - 1000),
+      });
+
+      const { promise: solutionPromise } = solveChallenge(
+        challenge.challenge,
+        challenge.salt,
+        challenge.algorithm,
+        challenge.maxnumber
+      );
+      const solution = await solutionPromise;
+
+      const payload = btoa(
+        JSON.stringify({
+          algorithm: challenge.algorithm,
+          challenge: challenge.challenge,
+          number: solution?.number,
+          salt: challenge.salt,
+          signature: challenge.signature,
+        })
+      );
+
+      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'https://help.customer.com',
+          'X-Inkeep-Challenge-Solution': payload,
+        },
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe('bad_request');
+      expect(body.error.message).toBe(
+        'Proof-of-work challenge has expired. Please request a new challenge.'
+      );
     });
 
     it('should succeed with valid PoW solution', async () => {

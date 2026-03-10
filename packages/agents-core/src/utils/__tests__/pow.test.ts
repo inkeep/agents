@@ -74,7 +74,7 @@ describe('verifyPoW', () => {
     expect(result).toEqual({ ok: true });
   });
 
-  it('should return pow_invalid for an expired challenge', async () => {
+  it('should return pow_expired for an expired challenge', async () => {
     const challenge = await createChallenge({
       hmacKey: TEST_HMAC_SECRET,
       algorithm: 'SHA-256',
@@ -104,6 +104,6 @@ describe('verifyPoW', () => {
       makeRequest({ 'x-inkeep-challenge-solution': payload }),
       TEST_HMAC_SECRET
     );
-    expect(result).toEqual({ ok: false, error: 'pow_invalid' });
+    expect(result).toEqual({ ok: false, error: 'pow_expired' });
   });
 });

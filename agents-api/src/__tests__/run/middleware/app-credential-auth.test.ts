@@ -355,7 +355,7 @@ describe('App Credential Authentication', () => {
   });
 
   describe('PoW verification for web_client apps', () => {
-    it('should reject with pow_required when PoW check fails with missing header', async () => {
+    it('should reject with human-readable message when PoW header is missing', async () => {
       const appRecord = makeWebClientApp();
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
@@ -374,10 +374,10 @@ describe('App Credential Authentication', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('pow_required');
+      expect(body).toContain('Proof-of-work challenge solution is required.');
     });
 
-    it('should reject with pow_invalid when PoW solution is invalid', async () => {
+    it('should reject with human-readable message when PoW solution is invalid', async () => {
       const appRecord = makeWebClientApp();
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
@@ -396,7 +396,31 @@ describe('App Credential Authentication', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('pow_invalid');
+      expect(body).toContain('Proof-of-work challenge solution is invalid.');
+    });
+
+    it('should reject with expiry message when PoW solution is expired', async () => {
+      const appRecord = makeWebClientApp();
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      validateOriginMock.mockReturnValue(true);
+      verifyPoWMock.mockResolvedValueOnce({ ok: false, error: 'pow_expired' });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_ANON_JWT}`,
+          'x-inkeep-app-id': 'app-id-1',
+          Origin: 'https://help.customer.com',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.text();
+      expect(body).toContain(
+        'Proof-of-work challenge has expired. Please request a new challenge.'
+      );
     });
 
     it('should succeed when PoW passes', async () => {

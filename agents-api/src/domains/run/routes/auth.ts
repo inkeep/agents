@@ -174,7 +174,13 @@ app.openapi(
 
     const pow = await verifyPoW(c.req.raw, env.INKEEP_POW_HMAC_SECRET);
     if (!pow.ok) {
-      throw createApiError({ code: 'bad_request', message: pow.error });
+      const message =
+        pow.error === 'pow_expired'
+          ? 'Proof-of-work challenge has expired. Please request a new challenge.'
+          : pow.error === 'pow_required'
+            ? 'Proof-of-work challenge solution is required.'
+            : 'Proof-of-work challenge solution is invalid.';
+      throw createApiError({ code: 'bad_request', message });
     }
 
     const anonUserId = `anon_${crypto.randomUUID()}`;

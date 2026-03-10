@@ -3,7 +3,28 @@
 Choose the authentication method:
 
 <Tabs>
-<Tab title="Using an API Key">
+<Tab title="App Credential (recommended)">
+
+App credentials are the recommended auth method for browser-facing deployments. The App ID is safe to expose client-side.
+
+**Setup:**
+1. [Create an app credential](/talk-to-your-agents/app-credentials#create-an-app) for your project
+2. Request an anonymous session token from your client
+3. Use the token and App ID in chat requests
+
+**Request Headers:**
+```http
+Authorization: Bearer <session_token>
+X-Inkeep-App-Id: <app_id>
+```
+
+See [Chat Components → Authentication](/talk-to-your-agents/chat-components#authentication) for the full integration guide.
+
+</Tab>
+
+<Tab title="API Key (server-to-server)">
+
+Use API keys for server-to-server integrations where the secret is never exposed to end-users.
 
 **Create an API Key:**
 1. Open the Visual Builder Dashboard
@@ -15,9 +36,14 @@ Choose the authentication method:
 ```http
 Authorization: Bearer <api_key>
 ```
+
+<Warning>
+API keys are secrets. Never expose them in client-side code or browser requests.
+</Warning>
+
 </Tab>
 
-<Tab title="Without API key">
+<Tab title="Development (no auth)">
 
 When running the API server locally with `pnpm dev`, authentication is automatically bypassed. You can use headers in the request instead:
 
