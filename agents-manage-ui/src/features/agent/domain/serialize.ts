@@ -6,7 +6,6 @@ import { type AgentNodeData, NodeType } from '@/components/agent/configuration/n
 import type {
   FullAgentDefinition,
   InternalAgentDefinition,
-  SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
@@ -106,7 +105,6 @@ export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
   metadata?: AgentMetadata,
-  subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
 ): FullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
@@ -464,13 +462,6 @@ export function serializeAgentData(
               !Array.isArray(tempHeaders)
             ) {
               externalAgentHeaders = tempHeaders;
-            }
-          } else {
-            const existingConfig = relationshipId
-              ? subAgentExternalAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
-              : null;
-            if (existingConfig?.headers) {
-              externalAgentHeaders = existingConfig.headers;
             }
           }
 
