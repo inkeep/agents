@@ -2,7 +2,7 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
@@ -42,10 +42,9 @@ export function MCPServerNodeEditor({
   selectedNode,
   agentToolConfigLookup,
 }: MCPServerNodeEditorProps) {
+  'use memo';
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-  });
+  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
   const { updateNodeData } = useReactFlow();
 
   const { tenantId, projectId } = useParams<{
@@ -68,9 +67,9 @@ export function MCPServerNodeEditor({
   const skeletonToolData = skeletonToolLookup[selectedNode.data.toolId];
   const toolData = liveToolData ?? skeletonToolData;
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
+  function getCurrentHeaders(): Record<string, string> {
     return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
-  }, [selectedNode, agentToolConfigLookup]);
+  }
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');

@@ -1,6 +1,5 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
-import { useMemo } from 'react';
 import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
@@ -44,6 +43,7 @@ const ListSection = ({
 };
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
+  'use memo';
   const { name, isDefault, description, models, status } = data;
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const modelName = models?.base?.model;
@@ -57,18 +57,10 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const nodeErrors = getNodeErrors(subAgentId);
   const hasErrors = hasNodeErrors(subAgentId);
 
-  const dataComponentNames = useMemo(
-    () =>
-      data?.dataComponents?.map((id: string) => dataComponentsById[id]?.name).filter(Boolean) || [],
-    [data?.dataComponents, dataComponentsById]
-  );
-  const artifactComponentNames = useMemo(
-    () =>
-      data?.artifactComponents
-        ?.map((id: string) => artifactComponentsById[id]?.name)
-        .filter(Boolean) || [],
-    [artifactComponentsById, data?.artifactComponents]
-  );
+  const dataComponentNames =
+    data.dataComponents?.map((id) => dataComponentsById[id]?.name).filter(Boolean) || [];
+  const artifactComponentNames =
+    data.artifactComponents?.map((id) => artifactComponentsById[id]?.name).filter(Boolean) || [];
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';
