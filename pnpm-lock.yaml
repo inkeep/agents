@@ -566,14 +566,14 @@ importers:
         specifier: ^0.15.13
         version: 0.15.13(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
       '@nangohq/frontend':
-        specifier: ^0.69.5
-        version: 0.69.20
+        specifier: ^0.69.41
+        version: 0.69.41
       '@nangohq/node':
-        specifier: ^0.69.5
-        version: 0.69.20
+        specifier: ^0.69.41
+        version: 0.69.41
       '@nangohq/types':
-        specifier: ^0.69.5
-        version: 0.69.20
+        specifier: ^0.69.41
+        version: 0.69.41
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
@@ -926,11 +926,11 @@ importers:
         specifier: ^1.17.2
         version: 1.26.0(zod@4.3.6)
       '@nangohq/node':
-        specifier: ^0.69.5
-        version: 0.69.20
+        specifier: ^0.69.41
+        version: 0.69.41
       '@nangohq/types':
-        specifier: ^0.69.5
-        version: 0.69.20
+        specifier: ^0.69.41
+        version: 0.69.41
       '@napi-rs/keyring':
         specifier: ^1.2.0
         version: 1.2.0
@@ -1195,8 +1195,8 @@ importers:
         specifier: ^1.25.3
         version: 1.26.0(zod@4.3.6)
       '@nangohq/node':
-        specifier: ^0.69.20
-        version: 0.69.20
+        specifier: ^0.69.41
+        version: 0.69.41
       '@octokit/auth-app':
         specifier: ^8.1.2
         version: 8.2.0
@@ -3331,12 +3331,22 @@ packages:
   '@nangohq/frontend@0.69.20':
     resolution: {integrity: sha512-vWlj0zQBOy44HjgEthJpdVsuGmtRIjgoyP8BLLEuXul289ylwPo2Odz30f5miFE2O2dPBeHI1aqME3cKvYweXw==}
 
+  '@nangohq/frontend@0.69.41':
+    resolution: {integrity: sha512-eCkjoc6d4Pc7GNXqRd27mheAebaWIZG8UtDsAPFFDblTNrUebk9IckorlKKyCqgy894g3Ujq4js8+Xb0fnmWKg==}
+
   '@nangohq/node@0.69.20':
     resolution: {integrity: sha512-1qTHvx3u5DScC+g2YM9IBH6p6qqqYfcdZY38B4VtCzlAzjLsIqFZyC8X7HlTIDLBMWcluRA3Be4UEtbfVFh+RA==}
     engines: {node: '>=20.0'}
 
+  '@nangohq/node@0.69.41':
+    resolution: {integrity: sha512-InZ6IPdn0QSupMPO822rSpakkBTxQNI4nhKMy7a0++5dKqC89iTrMPvNWx2VGLljMtPrdY6pzch3zZBPKQ/nCA==}
+    engines: {node: '>=20.0'}
+
   '@nangohq/types@0.69.20':
     resolution: {integrity: sha512-hi0FMO4xEYByOot3ZemJ9y0RubUQ5d4ruqx7b41lnxfbY9rkXLII+cH1dsET7oMOS4yZh5sK6+82mQflKwjN9Q==}
+
+  '@nangohq/types@0.69.41':
+    resolution: {integrity: sha512-VYBgDw0EowkTOQEd18dAKM1kCJBYgzXkGHwC3ApRpb32ygNeqWuUclUU55W5MAkZVW7tMOfovSFOg3KNINnF3w==}
 
   '@napi-rs/keyring-darwin-arm64@1.2.0':
     resolution: {integrity: sha512-CA83rDeyONDADO25JLZsh3eHY8yTEtm/RS6ecPsY+1v+dSawzT9GywBMu2r6uOp1IEhQs/xAfxgybGAFr17lSA==}
@@ -17734,8 +17744,8 @@ snapshots:
       '@electric-sql/pglite': 0.3.14
       '@hono/zod-openapi': 1.2.0(hono@4.12.5)(zod@4.3.6)
       '@modelcontextprotocol/sdk': 1.26.0(zod@4.3.6)
-      '@nangohq/node': 0.69.20
-      '@nangohq/types': 0.69.20
+      '@nangohq/node': 0.69.41
+      '@nangohq/types': 0.69.41
       '@openrouter/ai-sdk-provider': 1.5.4(ai@6.0.14(zod@4.3.6))(zod@4.3.6)
       '@opentelemetry/api': 1.9.0
       ai: 6.0.14(zod@4.3.6)
@@ -18577,6 +18587,12 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  '@nangohq/frontend@0.69.41':
+    dependencies:
+      '@nangohq/types': 0.69.41
+    transitivePeerDependencies:
+      - debug
+
   '@nangohq/node@0.69.20':
     dependencies:
       '@nangohq/types': 0.69.20
@@ -18584,7 +18600,22 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  '@nangohq/node@0.69.41':
+    dependencies:
+      '@nangohq/types': 0.69.41
+      axios: 1.13.5(debug@4.4.3)
+    transitivePeerDependencies:
+      - debug
+
   '@nangohq/types@0.69.20':
+    dependencies:
+      axios: 1.13.5(debug@4.4.3)
+      json-schema: 0.4.0
+      type-fest: 4.41.0
+    transitivePeerDependencies:
+      - debug
+
+  '@nangohq/types@0.69.41':
     dependencies:
       axios: 1.13.5(debug@4.4.3)
       json-schema: 0.4.0
@@ -25938,6 +25969,14 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 7.3.0(@types/node@20.19.27)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+
+  '@vitest/mocker@3.2.4(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      '@vitest/spy': 3.2.4
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitest/mocker@3.2.4(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
@@ -34368,7 +34407,7 @@ snapshots:
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@vitest/mocker': 3.2.4(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4

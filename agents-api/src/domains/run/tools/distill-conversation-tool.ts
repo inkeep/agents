@@ -1,12 +1,6 @@
 import type { ModelSettings } from '@inkeep/agents-core';
-import { ModelFactory } from '@inkeep/agents-core';
-import { generateText, Output } from 'ai';
 import { z } from 'zod';
-import { getLogger } from '../../../logger';
-import { getModelContextWindow } from '../utils/model-context-utils';
-import { estimateTokens } from '../utils/token-estimator';
-
-const logger = getLogger('distill-conversation-tool');
+import { distillWithTruncation } from './distill-utils';
 
 export const ConversationSummarySchema = z.object({
   type: z.literal('conversation_summary_v1'),
@@ -24,7 +18,7 @@ export const ConversationSummarySchema = z.object({
     for_agent: z
       .array(z.string())
       .describe(
-        "Content-focused actions: what to discover, analyze, or present. Don't get trapped in an infinite loop of tool calls. You have already done a lot of work that is why you are being compressed. Don't encourage too much more work."
+        "Audit all tool calls in this batch AND in the current summary's related_artifacts. For any tool+input combination that has already been called: output \"STOP: '[tool_name]([input])' already called [N] times — use artifact [id]\". For oversized artifacts: output \"DO NOT RE-CALL '[tool_name]' for '[topic]' — artifact exists, name/preview sufficient, re-calling will not retrieve more\". Only list genuinely new actions if critical information is still missing. Keep to ≤5 items total."
       ),
     for_user: z.array(z.string()).describe('Actions for user based on discovered content'),
   }),
@@ -56,43 +50,40 @@ export async function distillConversation(params: {
   currentSummary?: ConversationSummary | null;
   summarizerModel?: ModelSettings;
   messageFormatter: (maxChars?: number) => string;
+  compressionCycle?: number;
 }): Promise<ConversationSummary> {
-  const { conversationId, currentSummary, summarizerModel, messageFormatter } = params;
+  const {
+    conversationId,
+    currentSummary,
+    summarizerModel,
+    messageFormatter,
+    compressionCycle = 0,
+  } = params;
 
-  try {
-    const modelToUse = summarizerModel;
-    if (!modelToUse?.model?.trim()) {
-      throw new Error('Summarizer model is required');
-    }
+  const cycleNote =
+    compressionCycle > 0
+      ? `\n⚠️ This is compression cycle ${compressionCycle + 1} — context has already been compressed ${compressionCycle} time(s). Prefer flagging tool calls as STOP/DO NOT RE-CALL unless information is genuinely absent from all prior artifacts.`
+      : '';
 
-    const modelContextInfo = getModelContextWindow(modelToUse);
-    if (!modelContextInfo.contextWindow) {
-      throw new Error('Could not determine model context window for distillation');
-    }
-    const contextWindow = modelContextInfo.contextWindow;
-    const safeLimit = Math.floor(contextWindow * 0.8);
+  const existingSummaryContext = currentSummary
+    ? `**Current summary (MUST be preserved and built upon):**${cycleNote}
 
-    logger.info(
-      { conversationId, contextWindow, safeLimit, modelId: modelContextInfo.modelId },
-      'Starting distillation with context window limits'
-    );
+⚠️ CRITICAL: This is an INCREMENTAL UPDATE. The agent has already done substantial research. You MUST:
+- PRESERVE every finding, fact, and detail from the current summary
+- KEEP ALL related_artifacts from the current summary — do not drop any
+- ADD new discoveries from the messages below on top of what already exists
+- NEVER lose previously captured information
 
-    const generationConfig = ModelFactory.prepareGenerationConfig(modelToUse);
+\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\``
+    : `**Current summary:** None (first distillation)${cycleNote}`;
 
-    const existingSummaryContext = currentSummary
-      ? `**Current summary:**\n\n\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\``
-      : '**Current summary:** None (first distillation)';
-
-    const truncationAttempts = [
-      { name: 'no_truncation', maxChars: undefined },
-      { name: 'moderate', maxChars: Math.floor(safeLimit * 4) },
-      { name: 'aggressive', maxChars: Math.floor(safeLimit * 2) },
-    ];
-
-    for (const attempt of truncationAttempts) {
-      const formattedMessages = messageFormatter(attempt.maxChars);
-
-      const prompt = `You are a conversation summarization assistant. Your job is to create or update a compact, structured summary that captures VALUABLE CONTENT and FINDINGS, not just operational details.
+  const output = await distillWithTruncation({
+    conversationId,
+    summarizerModel,
+    schema: ConversationSummarySchema,
+    buildPrompt: (
+      formattedMessages
+    ) => `You are a conversation summarization assistant. Your job is to create or update a compact, structured summary that captures VALUABLE CONTENT and FINDINGS, not just operational details.
 
 ${existingSummaryContext}
 
@@ -113,7 +104,7 @@ Create/update a summary using this exact JSON schema:
   "decisions": ["<concrete decisions made>"],
   "open_questions": ["<unresolved issues>"],
   "next_steps": {
-    "for_agent": ["<what agent should do>"],
+    "for_agent": ["<see examples below>"],
     "for_user": ["<what user should do>"]
   },
   "related_artifacts": [
@@ -136,77 +127,47 @@ Create/update a summary using this exact JSON schema:
 🎯 **BUILD KNOWLEDGE**: When updating existing summary, ADD new discoveries to existing knowledge
 🎯 **BE CONCRETE**: Use specific details from tool results, not generic descriptions
 🎯 **BE CONCISE**: Keep ALL fields brief - you are compressing to save context, not writing a report
-🎯 **LIMIT NEXT STEPS**: Agent has already done substantial work - suggest minimal follow-up actions only
 🎯 **HANDLE TRANSFERS SIMPLY**: Agent transfers/delegations are just routing - don't look for reasons or justifications. Simply note "conversation transferred to [specialist]" if relevant.
 
-**Examples:**
-❌ BAD: "Assistant used search tool and created artifacts"
-✅ GOOD: "Inkeep supports streaming structured objects, OpenAI-compatible APIs, analytics logging, and Zendesk integration"
+**for_agent RULES — audit before suggesting any action:**
+🔍 Check: has this tool+input already been called in this batch OR in the current summary's related_artifacts?
+  → If yes: output "STOP: '[tool_name]([input])' already called [N] times — use artifact [id]"
+🔍 Check: is this artifact oversized?
+  → If yes: output "DO NOT RE-CALL '[tool_name]' for '[topic]' — artifact exists, name/preview sufficient, re-calling will not retrieve more content"
+🔍 Only list a new action if genuinely critical information is completely absent from all artifacts and the summary
 
-❌ BAD: "Tool calls were made to gather information"
-✅ GOOD: "Platform includes 10 feature categories: chat widgets, knowledge base, analytics, integrations, theming options"
+**for_agent Examples:**
 
-❌ BAD: "Assistant needed to transfer to QA because user required specialized testing help"
-✅ GOOD: "Conversation transferred to QA specialist"
+Scenario A — everything already covered, agent should stop:
+\`\`\`json
+"for_agent": [
+  "STOP: 'search_docs(authentication setup)' already called 3 times — use artifact compress_search_call-abc_123",
+  "DO NOT RE-CALL 'get_api_reference' for 'rate limits' — artifact exists with name/preview, re-calling will not retrieve more",
+  "Respond now with findings from existing artifacts"
+]
+\`\`\`
+
+Scenario B — one gap remains, specific new action warranted:
+\`\`\`json
+"for_agent": [
+  "STOP: 'search_docs(webhooks)' already called 2 times — use artifact compress_search_call-xyz_456",
+  "Retrieve pricing page — not yet covered in any artifact"
+]
+\`\`\`
+
+Scenario C — first compression, meaningful work still ahead:
+\`\`\`json
+"for_agent": [
+  "Fetch the user permissions API endpoint — not yet covered",
+  "Check if SSO is documented under enterprise features"
+]
+\`\`\`
 
 **Focus on WHAT WAS LEARNED, not HOW IT WAS LEARNED**
 
-Return **only** valid JSON.`;
-
-      const estimatedTokens = estimateTokens(prompt);
-
-      if (estimatedTokens > safeLimit) {
-        logger.info(
-          { conversationId, attempt: attempt.name, estimatedTokens, safeLimit },
-          'Prompt exceeds safe limit, trying more aggressive truncation'
-        );
-        continue;
-      }
-
-      try {
-        const { output: summary } = await generateText({
-          ...generationConfig,
-          prompt,
-          output: Output.object({ schema: ConversationSummarySchema }),
-        });
-
-        summary.session_id = conversationId;
-        return summary;
-      } catch (llmError) {
-        const errorMessage = llmError instanceof Error ? llmError.message : String(llmError);
-        if (errorMessage.includes('too long') || errorMessage.includes('token')) {
-          logger.info(
-            { conversationId, attempt: attempt.name, error: errorMessage },
-            'LLM rejected prompt as too long, trying more aggressive truncation'
-          );
-          continue;
-        }
-        throw llmError;
-      }
-    }
-
-    throw new Error(
-      `Failed to distill conversation: all truncation attempts exceeded limits (context window: ${contextWindow}, safe limit: ${safeLimit})`
-    );
-  } catch (error) {
-    logger.error(
-      { conversationId, error: error instanceof Error ? error.message : 'Unknown error' },
-      'Failed to distill conversation'
-    );
-
-    return {
-      type: 'conversation_summary_v1',
-      session_id: conversationId,
-      _fallback: true,
-      high_level: 'Ongoing conversation session',
-      user_intent: 'Continue working on current task',
-      related_artifacts: [],
-      decisions: [],
-      open_questions: ['Review recent work and determine next steps'],
-      next_steps: {
-        for_agent: ['Continue with current task'],
-        for_user: ['Provide additional guidance if needed'],
-      },
-    };
-  }
+Return **only** valid JSON.`,
+    messageFormatter,
+  });
+  output.session_id = conversationId;
+  return output;
 }
