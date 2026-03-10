@@ -6,7 +6,6 @@ import { getLogger } from '../../../../logger';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
 import { isToolResultDenied } from '../../utils/tool-result';
-import { DurableApprovalRequiredError } from '../../workflow/errors/DurableApprovalRequiredError';
 import type { AgentRunContext, AiSdkToolDefinition, ToolType } from '../agent-types';
 import { buildToolResultForConversationHistory } from '../generation/tool-result-for-conversation-history';
 import { buildToolResultForModelInput } from '../generation/tool-result-for-model-input';
@@ -183,6 +182,10 @@ export function wrapToolWithStreaming(
         const result = await originalExecute(resolvedArgs, context);
         const duration = Date.now() - startTime;
 
+        if (ctx.pendingDurableApproval) {
+          return result;
+        }
+
         const toolResultConversationId = ctx.conversationId;
 
         if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
@@ -223,7 +226,12 @@ export function wrapToolWithStreaming(
             await createMessage(runDbClient)(messagePayload);
           } catch (error) {
             logger.warn(
-              { error, toolName, toolCallId: effectiveToolCallId, conversationId: toolResultConversationId },
+              {
+                error,
+                toolName,
+                toolCallId: effectiveToolCallId,
+                conversationId: toolResultConversationId,
+              },
               'Failed to store tool result in conversation history'
             );
           }
@@ -247,7 +255,10 @@ export function wrapToolWithStreaming(
           if (isDeniedResult) {
             await streamHelper.writeToolOutputDenied({ toolCallId: effectiveToolCallId });
           } else {
-            await streamHelper.writeToolOutputAvailable({ toolCallId: effectiveToolCallId, output: result });
+            await streamHelper.writeToolOutputAvailable({
+              toolCallId: effectiveToolCallId,
+              output: result,
+            });
           }
         }
 
@@ -259,11 +270,6 @@ export function wrapToolWithStreaming(
       } catch (error) {
         const duration = Date.now() - startTime;
         const rootCause = unwrapError(error);
-
-        if (rootCause instanceof DurableApprovalRequiredError) {
-          throw rootCause;
-        }
-
         const errorMessage = rootCause.message;
 
         if (streamRequestId && !isInternalToolForUi) {
@@ -280,7 +286,10 @@ export function wrapToolWithStreaming(
         }
 
         if (streamRequestId && streamHelper && !isInternalToolForUi) {
-          await streamHelper.writeToolOutputError({ toolCallId: effectiveToolCallId, errorText: errorMessage });
+          await streamHelper.writeToolOutputError({
+            toolCallId: effectiveToolCallId,
+            errorText: errorMessage,
+          });
         }
 
         throw rootCause;
