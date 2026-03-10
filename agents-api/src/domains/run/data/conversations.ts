@@ -8,6 +8,7 @@ import {
   generateId,
   getConversationHistory,
   getLedgerArtifacts,
+  type MessageSelect,
   type ResolvedRef,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
@@ -145,7 +146,7 @@ export async function getScopedHistory({
   conversationId: string;
   filters?: ConversationScopeOptions;
   options?: ConversationHistoryConfig;
-}): Promise<any[]> {
+}): Promise<MessageSelect[]> {
   try {
     // First, get ALL messages to find the latest compression summary
     // IMPORTANT: Always include internal messages and disable truncation to ensure tool results are available
@@ -160,7 +161,7 @@ export async function getScopedHistory({
       (msg) =>
         msg.messageType === 'compression_summary' &&
         (msg.metadata?.a2a_metadata?.compressionType === 'conversation_history' ||
-          msg.metadata?.compressionType === 'conversation_history')
+          (msg.metadata as unknown as any)?.compressionType === 'conversation_history')
     );
 
     const latestCompressionSummary =
@@ -172,7 +173,7 @@ export async function getScopedHistory({
 
     const limit = options?.limit;
 
-    let messages: any[];
+    let messages: MessageSelect[];
     if (latestCompressionSummary) {
       // Get the summary + all messages after it
       const summaryDate = new Date(latestCompressionSummary.createdAt);
@@ -426,7 +427,7 @@ export async function getConversationHistoryWithCompression({
   baseModel?: any;
   streamRequestId?: string;
   fullContextSize?: number;
-}): Promise<string> {
+}): Promise<MessageSelect[]> {
   const historyOptions = options ?? createDefaultConversationHistoryConfig();
 
   // IMPORTANT: For conversation compression, we MUST include internal messages (tool results)
@@ -440,7 +441,7 @@ export async function getConversationHistoryWithCompression({
   };
 
   // Get scoped history (same as legacy method)
-  const conversationHistory = await getScopedHistory({
+  let conversationHistory = await getScopedHistory({
     tenantId,
     projectId,
     conversationId,
@@ -449,22 +450,21 @@ export async function getConversationHistoryWithCompression({
   });
 
   // Remove current message if it matches the last message (same as legacy)
-  let messagesToFormat = conversationHistory;
   if (currentMessage && conversationHistory.length > 0) {
     const lastMessage = conversationHistory[conversationHistory.length - 1];
     if (lastMessage.content.text === currentMessage) {
-      messagesToFormat = conversationHistory.slice(0, -1);
+      conversationHistory = conversationHistory.slice(0, -1);
     }
   }
 
-  if (!messagesToFormat.length) {
-    return '';
+  if (!conversationHistory.length) {
+    return [];
   }
 
   // Replace tool-result content with compact artifact references BEFORE compression.
   // This ensures the compressor sees the actual trimmed size rather than the raw
   // oversized tool output that was already persisted as a ledger artifact.
-  const toolCallIds = messagesToFormat
+  const toolCallIds = conversationHistory
     .filter((msg) => msg.messageType === 'tool-result')
     .map((msg) => msg.metadata?.a2a_metadata?.toolCallId)
     .filter((id): id is string => !!id);
@@ -479,10 +479,10 @@ export async function getConversationHistoryWithCompression({
         artifacts.filter((a) => a.toolCallId).map((a) => [a.toolCallId as string, a])
       );
       if (artifactsByToolCallId.size > 0) {
-        messagesToFormat = messagesToFormat.map((msg) => {
+        conversationHistory = conversationHistory.map((msg) => {
           if (msg.messageType !== 'tool-result') return msg;
           const tcId = msg.metadata?.a2a_metadata?.toolCallId;
-          const artifact = tcId ? artifactsByToolCallId.get(tcId) : undefined;
+          const artifact = typeof tcId === 'string' ? artifactsByToolCallId.get(tcId) : undefined;
           if (!artifact) return msg;
           const toolArgs = msg.metadata?.a2a_metadata?.toolArgs;
           const rawArgs = toolArgs ? JSON.stringify(toolArgs) : undefined;
@@ -520,17 +520,18 @@ export async function getConversationHistoryWithCompression({
   }
 
   if (summarizerModel) {
-    const firstMsg = messagesToFormat[0];
+    const firstMsg = conversationHistory[0];
     const compressionSummary =
       firstMsg?.messageType === 'compression_summary' &&
       (firstMsg?.metadata?.a2a_metadata?.compressionType === 'conversation_history' ||
-        firstMsg?.metadata?.compressionType === 'conversation_history')
+        (firstMsg?.metadata as unknown as { compressionType?: string })?.compressionType ===
+          'conversation_history')
         ? firstMsg
         : null;
 
     if (compressionSummary) {
       const priorSummary = compressionSummary.metadata?.a2a_metadata?.summaryData ?? null;
-      const messagesAfterCompression = messagesToFormat.slice(1);
+      const messagesAfterCompression = conversationHistory.slice(1);
 
       const recompressResult = await compressConversationIfNeeded(messagesAfterCompression, {
         conversationId,
@@ -544,11 +545,11 @@ export async function getConversationHistoryWithCompression({
       });
 
       const wasRecompressed = recompressResult[0]?.messageType === 'compression_summary';
-      messagesToFormat = wasRecompressed
+      conversationHistory = wasRecompressed
         ? recompressResult
         : [compressionSummary, ...messagesAfterCompression];
     } else {
-      messagesToFormat = await compressConversationIfNeeded(messagesToFormat, {
+      conversationHistory = await compressConversationIfNeeded(conversationHistory, {
         conversationId,
         tenantId,
         projectId,
@@ -560,7 +561,7 @@ export async function getConversationHistoryWithCompression({
     }
   }
 
-  return formatMessagesAsConversationHistory(messagesToFormat);
+  return conversationHistory;
 }
 
 /**
@@ -892,10 +893,12 @@ export function reconstructMessageText(msg: any): string {
 
   return parts
     .map((part: any) => {
-      if (part.type === 'text') {
+      const partKind = part.kind ?? part.type;
+
+      if (partKind === 'text') {
         return part.text ?? '';
       }
-      if (part.type === 'data') {
+      if (partKind === 'data') {
         try {
           const data = typeof part.data === 'string' ? JSON.parse(part.data) : part.data;
           if (data?.artifactId && data?.toolCallId) {
@@ -910,9 +913,9 @@ export function reconstructMessageText(msg: any): string {
     .join('');
 }
 
-function formatMessagesAsConversationHistory(messages: any[]): string {
+export function formatMessagesAsConversationHistory(messages: MessageSelect[]): string {
   const formattedHistory = messages
-    .map((msg: any) => {
+    .map((msg: MessageSelect) => {
       let roleLabel: string;
 
       if (msg.role === 'user') {
@@ -937,8 +940,13 @@ function formatMessagesAsConversationHistory(messages: any[]): string {
         roleLabel = msg.role || 'system';
       }
 
-      return `${roleLabel}: """${reconstructMessageText(msg)}"""`;
+      const reconstructedMsgText = reconstructMessageText(msg);
+      if (!reconstructedMsgText) {
+        return null;
+      }
+      return `${roleLabel}: """${reconstructedMsgText}"""`;
     })
+    .filter((msg): msg is string => msg !== null)
     .join('\n');
 
   return `<conversation_history>\n${formattedHistory}\n</conversation_history>\n`;

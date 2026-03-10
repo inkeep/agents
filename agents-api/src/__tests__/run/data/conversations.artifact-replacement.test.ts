@@ -96,13 +96,15 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
     );
 
     const result = await getConversationHistoryWithCompression(baseParams);
+    const toolResult = result.find((msg) => msg.messageType === 'tool-result');
+    const toolResultText = toolResult?.content?.text ?? '';
 
-    expect(result).toContain('Artifact: "Google Doc"');
-    expect(result).toContain('id: art-1');
-    expect(result).toContain('args:');
-    expect(result).toContain('description: Fetched document content');
-    expect(result).toContain('summary:');
-    expect(result).not.toContain(rawContent);
+    expect(toolResultText).toContain('Artifact: "Google Doc"');
+    expect(toolResultText).toContain('id: art-1');
+    expect(toolResultText).toContain('args:');
+    expect(toolResultText).toContain('description: Fetched document content');
+    expect(toolResultText).toContain('summary:');
+    expect(toolResultText).not.toContain(rawContent);
   });
 
   it('batches toolCallId lookups in a single getLedgerArtifacts call', async () => {
@@ -133,8 +135,10 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
     mockGetLedgerArtifacts.mockReturnValue(vi.fn().mockResolvedValue([]));
 
     const result = await getConversationHistoryWithCompression(baseParams);
+    const toolResult = result.find((msg) => msg.messageType === 'tool-result');
+    const toolResultText = toolResult?.content?.text ?? '';
 
-    expect(result).toContain(content);
-    expect(result).not.toContain('Artifact:');
+    expect(toolResultText).toContain(content);
+    expect(toolResultText).not.toContain('Artifact:');
   });
 });

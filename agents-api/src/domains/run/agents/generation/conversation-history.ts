@@ -1,8 +1,12 @@
-import type { FilePart } from '@inkeep/agents-core';
+import type { FilePart, MessageSelect } from '@inkeep/agents-core';
+import type { ModelMessage } from 'ai';
 import {
   createDefaultConversationHistoryConfig,
+  formatMessagesAsConversationHistory,
   getConversationHistoryWithCompression,
 } from '../../data/conversations';
+import type { HydrateBlobToDataUrl } from '../../services/blob-storage';
+import { isBlobUri } from '../../services/blob-storage';
 import {
   type ContextBreakdown,
   calculateBreakdownTotal,
@@ -11,15 +15,70 @@ import {
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 
-export async function buildConversationHistory(
-  ctx: AgentRunContext,
-  contextId: string,
-  taskId: string,
-  userMessage: string,
-  streamRequestId: string | undefined,
-  initialContextBreakdown: ContextBreakdown
-): Promise<{ conversationHistory: string; contextBreakdown: ContextBreakdown }> {
-  let conversationHistory = '';
+async function hydrateConversationHistoryBlobParts(
+  messages: MessageSelect[],
+  hydrate: HydrateBlobToDataUrl
+): Promise<{ hydrated: MessageSelect[]; nonHydrated: MessageSelect[] }> {
+  const hydrated: MessageSelect[] = [];
+  const nonHydrated: MessageSelect[] = [];
+
+  await Promise.all(
+    messages.map(async (msg) => {
+      const content = msg.content;
+      if (!content?.parts?.length) {
+        nonHydrated.push(msg);
+        return;
+      }
+
+      let hasHydratedParts = false;
+      const parts = await Promise.all(
+        content.parts.map(async (part: NonNullable<MessageSelect['content']['parts']>[number]) => {
+          if (part.kind !== 'file' || typeof part.data !== 'string' || !isBlobUri(part.data)) {
+            return part;
+          }
+          const mimeType =
+            typeof part.metadata?.mimeType === 'string' ? part.metadata.mimeType : undefined;
+          const dataUrl = await hydrate(part.data, mimeType);
+          if (dataUrl) {
+            hasHydratedParts = true;
+            return { ...part, data: dataUrl };
+          }
+          return part;
+        })
+      );
+
+      const processedMsg = { ...msg, content: { ...content, parts } };
+      if (hasHydratedParts) {
+        hydrated.push(processedMsg);
+      } else {
+        nonHydrated.push(processedMsg);
+      }
+    })
+  );
+
+  return { hydrated, nonHydrated };
+}
+
+export async function buildConversationHistory({
+  ctx,
+  contextId,
+  taskId,
+  userMessage,
+  streamRequestId,
+  initialContextBreakdown,
+}: {
+  ctx: AgentRunContext;
+  contextId: string;
+  taskId: string;
+  userMessage: string;
+  streamRequestId: string | undefined;
+  initialContextBreakdown: ContextBreakdown;
+}): Promise<{
+  conversationHistoryWithFileData: MessageSelect[];
+  conversationHistoryString: string;
+  contextBreakdown: ContextBreakdown;
+}> {
+  let conversationHistory: MessageSelect[] = [];
   const historyConfig =
     ctx.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
 
@@ -63,7 +122,21 @@ export async function buildConversationHistory(
     }
   }
 
-  const conversationHistoryTokens = estimateTokens(conversationHistory);
+  let conversationHistoryWithFileData: MessageSelect[] = [];
+  if (ctx.hydrateBlobToDataUrl && conversationHistory.length > 0) {
+    const { hydrated, nonHydrated } = await hydrateConversationHistoryBlobParts(
+      conversationHistory,
+      ctx.hydrateBlobToDataUrl
+    );
+    conversationHistoryWithFileData = hydrated;
+    conversationHistory = nonHydrated;
+  }
+
+  console.log('conversationHistoryWithFileData', conversationHistoryWithFileData);
+
+  const conversationHistoryString = formatMessagesAsConversationHistory(conversationHistory);
+
+  const conversationHistoryTokens = estimateTokens(conversationHistoryString);
   const updatedContextBreakdown: ContextBreakdown = {
     components: {
       ...initialContextBreakdown.components,
@@ -74,20 +147,52 @@ export async function buildConversationHistory(
 
   calculateBreakdownTotal(updatedContextBreakdown);
 
-  return { conversationHistory, contextBreakdown: updatedContextBreakdown };
+  return {
+    conversationHistoryWithFileData,
+    conversationHistoryString,
+    contextBreakdown: updatedContextBreakdown,
+  };
 }
 
-export function buildInitialMessages(
-  systemPrompt: string,
-  conversationHistory: string,
-  userMessage: string,
-  imageParts?: FilePart[]
-): any[] {
-  const messages: any[] = [];
+export function buildInitialMessages({
+  systemPrompt,
+  conversationHistory,
+  userMessage,
+  imageParts,
+  conversationHistoryWithFileData,
+}: {
+  systemPrompt: string;
+  conversationHistory: string;
+  userMessage: string;
+  imageParts?: FilePart[];
+  conversationHistoryWithFileData?: MessageSelect[];
+}): ModelMessage[] {
+  const messages: ModelMessage[] = [];
   messages.push({ role: 'system', content: systemPrompt });
 
   if (conversationHistory.trim() !== '') {
     messages.push({ role: 'user', content: conversationHistory });
+  }
+
+  if (conversationHistoryWithFileData?.length) {
+    conversationHistoryWithFileData.forEach((msg) => {
+      const content = (msg.content?.parts ?? []).flatMap((part) => {
+        if (part.kind !== 'file' || typeof part.data !== 'string') {
+          return [];
+        }
+
+        return [
+          {
+            type: 'image' as const,
+            image: part.data,
+          },
+        ];
+      });
+
+      if (content?.length && content.length > 0) {
+        messages.push({ role: 'user', content });
+      }
+    });
   }
 
   const userContent = buildUserMessageContent(userMessage, imageParts);

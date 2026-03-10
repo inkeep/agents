@@ -7,6 +7,7 @@ import type {
   ConversationSelect,
   ConversationUpdate,
   MessageContent,
+  MessageSelect,
   PaginationConfig,
   ProjectScopeConfig,
 } from '../../types/index';
@@ -224,7 +225,10 @@ function extractMessageText(content: MessageContent): string {
 /**
  * Apply context window management by truncating or summarizing old messages
  */
-function applyContextWindowManagement(messageHistory: any[], maxTokens: number): any[] {
+function applyContextWindowManagement(
+  messageHistory: MessageSelect[],
+  maxTokens: number
+): MessageSelect[] {
   // Simple token estimation: ~4 characters per token
   const estimateTokens = (text: string) => Math.ceil(text.length / 4);
 
@@ -243,7 +247,8 @@ function applyContextWindowManagement(messageHistory: any[], maxTokens: number):
     } else {
       // Add a summary message for truncated history if there are more messages
       if (i > 0) {
-        const summaryMessage = {
+        const summaryMessage: MessageSelect = {
+          ...messageHistory[0],
           id: `summary-${getConversationId()}`,
           role: 'system',
           content: {
@@ -251,7 +256,6 @@ function applyContextWindowManagement(messageHistory: any[], maxTokens: number):
           },
           visibility: 'system',
           messageType: 'chat',
-          createdAt: messageHistory[0].createdAt,
         };
         managedHistory.unshift(summaryMessage);
       }
@@ -271,7 +275,7 @@ export const getConversationHistory =
     scopes: ProjectScopeConfig;
     conversationId: string;
     options?: ConversationHistoryConfig;
-  }) => {
+  }): Promise<MessageSelect[]> => {
     const { scopes, conversationId, options = {} } = params;
     const { tenantId, projectId } = scopes;
 
@@ -298,7 +302,7 @@ export const getConversationHistory =
       whereConditions.push(inArray(messages.messageType, messageTypes));
     }
 
-    const messageHistory = await db
+    const messageHistory: MessageSelect[] = await db
       .select()
       .from(messages)
       .where(and(...whereConditions))

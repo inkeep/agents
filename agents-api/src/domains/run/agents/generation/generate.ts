@@ -181,14 +181,15 @@ export async function runGenerate(
           contextBreakdown: initialContextBreakdown,
         } = await loadToolsAndPrompts(ctx, sessionId, streamRequestId || undefined, runtimeContext);
 
-        const { conversationHistory, contextBreakdown } = await buildConversationHistory(
-          ctx,
-          contextId,
-          taskId,
-          userMessage,
-          streamRequestId || undefined,
-          initialContextBreakdown
-        );
+        const { conversationHistoryString, contextBreakdown, conversationHistoryWithFileData } =
+          await buildConversationHistory({
+            ctx,
+            contextId,
+            taskId,
+            userMessage,
+            streamRequestId: streamRequestId || undefined,
+            initialContextBreakdown,
+          });
 
         const breakdownAttributes: Record<string, number> = {};
         for (const componentDef of V1_BREAKDOWN_SCHEMA) {
@@ -203,12 +204,13 @@ export async function runGenerate(
         let response: ResolvedGenerationResponse;
         let textResponse: string;
 
-        const messages = buildInitialMessages(
+        const messages = buildInitialMessages({
           systemPrompt,
-          conversationHistory,
+          conversationHistory: conversationHistoryString,
+          conversationHistoryWithFileData,
           userMessage,
-          imageParts
-        );
+          imageParts,
+        });
 
         const { originalMessageCount, compressor } = setupCompression(
           ctx,
