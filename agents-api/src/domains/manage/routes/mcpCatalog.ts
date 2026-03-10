@@ -285,6 +285,15 @@ const PREBUILT_MCP_SERVERS: PrebuiltMCPServer[] = [
     description: 'Meta (Facebook) advertising management',
   },
   {
+    id: 'posthog',
+    name: 'PostHog',
+    url: 'https://mcp.posthog.com/mcp',
+    transport: MCPTransportType.streamableHttp,
+    imageUrl: 'https://posthog.com/favicon.svg?v=6e5ac8d4a5b381b5caa29396fbf7c955',
+    category: 'analytics',
+    description: 'Analytics and event tracking',
+  },
+  {
     id: 'prisma',
     name: 'Prisma',
     url: 'https://mcp.prisma.io/mcp',
