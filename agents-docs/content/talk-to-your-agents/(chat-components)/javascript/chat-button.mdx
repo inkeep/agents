@@ -23,16 +23,84 @@ The chat button component is a simple way to trigger the Inkeep chat bubble in y
   <Step>
     Insert the Chat Button by using the `Inkeep.ChatButton()` function.
 
-    ```ts
-    const config: InkeepChatButtonProps = {
-      aiChatSettings: {
-        agentUrl: "https://your-api.example.com/run/api/chat",
-        apiKey: process.env.INKEEP_API_KEY, // Your API key
-      },
-    };
+    <Tabs>
+      <Tab title="App Credential (recommended)">
 
-    const chatButton = Inkeep.ChatButton(config);
-    ```
+        Use an app credential with a session token for secure client-side authentication:
+
+        ```js
+        const APP_ID = "app_your-app-id"; // From Visual Builder → Apps
+        const BASE_URL = "https://your-api.example.com";
+
+        async function getSessionToken() {
+          const response = await fetch(`${BASE_URL}/run/auth/apps/${APP_ID}/anonymous-session`, {
+            method: "POST",
+          });
+          const data = await response.json();
+          return data.token;
+        }
+
+        const token = await getSessionToken();
+
+        const config = {
+          aiChatSettings: {
+            agentUrl: `${BASE_URL}/run/api/chat`,
+            apiKey: token,
+            headers: {
+              "X-Inkeep-App-Id": APP_ID,
+            },
+          },
+        };
+
+        const chatButton = Inkeep.ChatButton(config);
+        ```
+
+        **To set up:** Create an app credential in the Visual Builder → **Apps** with your allowed domains. See [App Credentials](/talk-to-your-agents/app-credentials) for details.
+
+      </Tab>
+
+      <Tab title="API Key (deprecated)">
+
+        <Warning>
+          API keys are deprecated for client-side use. Use [app credentials](/talk-to-your-agents/app-credentials) instead.
+        </Warning>
+
+        ```js
+        const config = {
+          aiChatSettings: {
+            agentUrl: "https://your-api.example.com/run/api/chat",
+            apiKey: "YOUR_API_KEY",
+          },
+        };
+
+        const chatButton = Inkeep.ChatButton(config);
+        ```
+
+      </Tab>
+
+      <Tab title="Development">
+
+        For local development, use headers with your agent IDs:
+
+        ```js
+        const config = {
+          aiChatSettings: {
+            agentUrl: "http://localhost:3003/api/chat",
+            headers: {
+              "x-inkeep-tenant-id": "your-tenant-id",
+              "x-inkeep-project-id": "your-project-id",
+              "x-inkeep-agent-id": "your-agent-id",
+            },
+          },
+        };
+
+        const chatButton = Inkeep.ChatButton(config);
+        ```
+
+        **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+
+      </Tab>
+    </Tabs>
 
   </Step>
 </Steps>

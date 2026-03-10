@@ -28,9 +28,70 @@ pnpm add @inkeep/agents-ui
 ## Quick Start
 
 <Tabs>
-  <Tab title="Production">
+  <Tab title="App Credential (recommended)">
 
-    Use an API key for secure authentication in production:
+    Use an app credential with a session token for secure client-side authentication:
+
+    ```tsx
+    import { useState, useEffect } from "react";
+    import { InkeepModalChat, type InkeepModalChatProps } from "@inkeep/agents-ui";
+
+    const APP_ID = "app_your-app-id"; // From Visual Builder → Apps
+    const BASE_URL = "https://your-api.example.com";
+
+    async function getSessionToken() {
+      const response = await fetch(`${BASE_URL}/run/auth/apps/${APP_ID}/anonymous-session`, {
+        method: "POST",
+      });
+      const data = await response.json();
+      return data.token;
+    }
+
+    function App() {
+      const [token, setToken] = useState<string | null>(null);
+      const [isModalOpen, setIsModalOpen] = useState(false);
+
+      useEffect(() => {
+        getSessionToken().then(setToken);
+      }, []);
+
+      if (!token) return null;
+
+      const modalProps: InkeepModalChatProps = {
+        aiChatSettings: {
+          agentUrl: `${BASE_URL}/run/api/chat`,
+          apiKey: token,
+          headers: {
+            "X-Inkeep-App-Id": APP_ID,
+          },
+        },
+        openSettings: {
+          isOpen: isModalOpen,
+          onOpenChange: setIsModalOpen,
+        },
+      };
+
+      return (
+        <>
+          <button onClick={() => setIsModalOpen(true)}>
+            Open Inkeep Assistant
+          </button>
+
+          <InkeepModalChat {...modalProps} />
+        </>
+      );
+    }
+    ```
+
+    **To set up:** Create an app credential in the Visual Builder → **Apps** with your allowed domains. See [App Credentials](/talk-to-your-agents/app-credentials) for details.
+
+  </Tab>
+
+  <Tab title="API Key (deprecated)">
+
+    <Warning>
+      API keys are deprecated for client-side use. Use [app credentials](/talk-to-your-agents/app-credentials) instead.
+    </Warning>
 
     ```tsx
     import { useState } from "react";
@@ -41,7 +102,7 @@ pnpm add @inkeep/agents-ui
 
       const modalProps: InkeepModalChatProps = {
         aiChatSettings: {
-          agentUrl: "https://your-api.example.com/api/chat",
+          agentUrl: "https://your-api.example.com/run/api/chat",
           apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
         },
         openSettings: {
@@ -62,12 +123,6 @@ pnpm add @inkeep/agents-ui
     }
     ```
 
-    **To get an API key:**
-    1. Open the Visual Builder Dashboard
-    2. Navigate to your Project → **API Keys**
-    3. Click **Create New Key** and select your agent
-    4. Copy the key (shown once) and store it in your environment variables
-
   </Tab>
 
   <Tab title="Development">
@@ -79,7 +134,7 @@ pnpm add @inkeep/agents-ui
     import {
       InkeepModalChat,
       type InkeepModalChatProps,
-    } from "@inkeep/cxkit-react";
+    } from "@inkeep/agents-ui";
 
     function App() {
       const [isModalOpen, setIsModalOpen] = useState(false);
