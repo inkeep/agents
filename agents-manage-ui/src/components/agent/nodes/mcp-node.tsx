@@ -5,7 +5,6 @@ import type { FC, ReactNode } from 'react';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { cn, createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
@@ -66,7 +65,6 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const skeletonToolLookup = createLookup(mcpTools);
-  const agentToolConfigLookup = useAgentStore((state) => state.agentToolConfigLookup);
 
   // Get skeleton data from initial page load (status: 'unknown', availableTools: [])
   const skeletonToolData = skeletonToolLookup[data.toolId];
@@ -90,8 +88,8 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     activeTools: toolData?.config?.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup);
-  const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup);
+  const selectedTools = getCurrentSelectedToolsForNode(props);
+  const toolPolicies = getCurrentToolPoliciesForNode(props);
 
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
   const hasOrphanedTools = orphanedTools.length > 0;

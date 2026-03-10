@@ -63,7 +63,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const toolData = liveToolData ?? skeletonToolData;
 
   function getCurrentHeaders(): Record<string, string> {
-    return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
+    return getCurrentHeadersForNode(selectedNode);
   }
 
   // Local state for headers input (allows invalid JSON while typing)
@@ -90,8 +90,8 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
         : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup);
-  const currentToolPolicies = getCurrentToolPoliciesForNode(selectedNode, agentToolConfigLookup);
+  const selectedTools = getCurrentSelectedToolsForNode(selectedNode);
+  const currentToolPolicies = getCurrentToolPoliciesForNode(selectedNode);
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
 
   // Track if we've already shown the warning for this node to avoid repeated toasts
