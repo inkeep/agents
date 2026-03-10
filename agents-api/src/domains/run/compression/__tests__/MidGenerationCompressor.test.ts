@@ -8,6 +8,10 @@ vi.mock('../../session/AgentSession', () => ({
   },
 }));
 
+vi.mock('../../agents/services/ToolSessionManager', () => ({
+  toolSessionManager: { getToolResult: vi.fn().mockReturnValue(undefined) },
+}));
+
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = (await importOriginal()) as any;
   return {
@@ -49,13 +53,13 @@ function makeToolResultMessages(count: number, prefix = 'call'): any[] {
 }
 
 const mockSummary = {
+  type: 'conversation_summary_v1' as const,
   high_level: 'Summary of research',
   user_intent: 'Find information',
-  decisions: { for_agent: [] as string[], for_user: [] as string[] },
+  decisions: [],
   open_questions: [],
-  next_steps: [],
+  next_steps: { for_agent: [], for_user: [] },
   related_artifacts: [],
-  text_messages: [],
 };
 
 describe('MidGenerationCompressor', () => {
@@ -87,7 +91,18 @@ describe('MidGenerationCompressor', () => {
     vi.restoreAllMocks();
   });
 
-  describe('lastProcessedMessageIndex reset after compression', () => {
+  describe('markCompressed / effectiveBaseline', () => {
+    it('effectiveBaseline falls back to originalMessageCount before any compression', () => {
+      expect(compressor.effectiveBaseline(42)).toBe(42);
+    });
+
+    it('effectiveBaseline returns recorded baseline after markCompressed', () => {
+      compressor.markCompressed(100);
+      expect(compressor.effectiveBaseline(42)).toBe(100);
+    });
+  });
+
+  describe('generatedMessagesBaseline tracking across compression cycles', () => {
     it('processes all new messages on second compression after context reset', async () => {
       const { distillConversation } = await import('../../tools/distill-conversation-tool');
 

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
-import { getLedgerArtifacts } from '@inkeep/agents-core';
+import { getLedgerArtifacts, SPAN_KEYS } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -515,9 +515,11 @@ export abstract class BaseCompressor {
   private async refreshSummaryArtifactNames(): Promise<ConversationSummary | null> {
     if (!this.cumulativeSummary?.related_artifacts?.length) return this.cumulativeSummary;
 
+    // Only query artifacts that still lack a name — names don't change once set,
+    // so previously refreshed artifacts need no further DB lookup.
     const toolCallIds = this.cumulativeSummary.related_artifacts
-      .map((a) => a.tool_call_id)
-      .filter(Boolean);
+      .filter((a) => a.tool_call_id && !a.name)
+      .map((a) => a.tool_call_id);
 
     if (!toolCallIds.length) return this.cumulativeSummary;
 
@@ -624,16 +626,16 @@ export abstract class BaseCompressor {
       'compressor.safe_compress',
       {
         attributes: {
-          'compression.type': this.getCompressionType(),
-          'compression.session_id': this.sessionId,
-          'compression.message_count': messages.length,
-          'compression.base_context_tokens': baseContextTokens,
-          'compression.generated_tokens': generatedTokens,
-          'compression.total_context_tokens': totalContextTokens,
-          'compression.hard_limit': hardLimit,
-          'compression.trigger_at': triggerAt,
-          'compression.safety_buffer': this.config.safetyBuffer,
-          'compression.overage': totalContextTokens - triggerAt,
+          [SPAN_KEYS.COMPRESSION_TYPE]: this.getCompressionType(),
+          [SPAN_KEYS.COMPRESSION_SESSION_ID]: this.sessionId,
+          [SPAN_KEYS.COMPRESSION_MESSAGE_COUNT]: messages.length,
+          [SPAN_KEYS.COMPRESSION_BASE_CONTEXT_TOKENS]: baseContextTokens,
+          [SPAN_KEYS.COMPRESSION_GENERATED_TOKENS]: generatedTokens,
+          [SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS]: totalContextTokens,
+          [SPAN_KEYS.COMPRESSION_HARD_LIMIT]: hardLimit,
+          [SPAN_KEYS.COMPRESSION_TRIGGER_AT]: triggerAt,
+          [SPAN_KEYS.COMPRESSION_SAFETY_BUFFER]: this.config.safetyBuffer,
+          [SPAN_KEYS.COMPRESSION_OVERAGE]: totalContextTokens - triggerAt,
         },
       },
       async (compressionSpan: Span) => {
@@ -644,20 +646,21 @@ export abstract class BaseCompressor {
             : this.estimateTokens(result.summary);
           const summary = Array.isArray(result.summary) ? null : result.summary;
           compressionSpan.setAttributes({
-            'compression.success': true,
-            'compression.result.artifact_count': result.artifactIds.length,
-            'compression.result.artifact_ids': result.artifactIds.join(','),
-            'compression.result.output_tokens': resultTokens,
-            'compression.result.compression_ratio':
+            [SPAN_KEYS.COMPRESSION_SUCCESS]: true,
+            [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_COUNT]: result.artifactIds.length,
+            [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_IDS]: result.artifactIds.join(','),
+            [SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS]: resultTokens,
+            [SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO]:
               generatedTokens > 0 ? (generatedTokens - resultTokens) / generatedTokens : 0,
-            'compression.result.high_level': summary?.high_level ?? '',
-            'compression.result.user_intent': summary?.user_intent ?? '',
-            'compression.result.decisions': JSON.stringify(summary?.decisions ?? []),
-            'compression.result.next_steps_for_agent': JSON.stringify(
-              summary?.next_steps?.for_agent ?? []
-            ),
-            'compression.result.open_questions_count': summary?.open_questions?.length ?? 0,
-            'compression.result.related_artifact_count': summary?.related_artifacts?.length ?? 0,
+            [SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL]: summary?.high_level ?? '',
+            [SPAN_KEYS.COMPRESSION_RESULT_USER_INTENT]: summary?.user_intent ?? '',
+            [SPAN_KEYS.COMPRESSION_RESULT_DECISIONS_COUNT]: summary?.decisions?.length ?? 0,
+            [SPAN_KEYS.COMPRESSION_RESULT_NEXT_STEPS_FOR_AGENT_COUNT]:
+              summary?.next_steps?.for_agent?.length ?? 0,
+            [SPAN_KEYS.COMPRESSION_RESULT_OPEN_QUESTIONS_COUNT]:
+              summary?.open_questions?.length ?? 0,
+            [SPAN_KEYS.COMPRESSION_RESULT_RELATED_ARTIFACT_COUNT]:
+              summary?.related_artifacts?.length ?? 0,
           });
           compressionSpan.setStatus({ code: SpanStatusCode.OK });
           return result;
@@ -672,21 +675,19 @@ export abstract class BaseCompressor {
             'Compression failed, using simple fallback'
           );
           compressionSpan.setAttributes({
-            'compression.error': error instanceof Error ? error.message : String(error),
+            [SPAN_KEYS.COMPRESSION_ERROR]: error instanceof Error ? error.message : String(error),
           });
           const fallbackResult = await this.simpleCompressionFallback(messages);
           const fallbackTokens = Array.isArray(fallbackResult.summary)
             ? this.calculateContextSize(fallbackResult.summary)
             : this.estimateTokens(fallbackResult.summary);
           compressionSpan.setAttributes({
-            'compression.success': true,
-            'compression.result.artifact_count': fallbackResult.artifactIds.length,
-            'compression.result.artifact_ids': fallbackResult.artifactIds.join(','),
-            'compression.result.output_tokens': fallbackTokens,
-            'compression.result.compression_ratio':
-              totalContextTokens > 0
-                ? (totalContextTokens - fallbackTokens) / totalContextTokens
-                : 0,
+            [SPAN_KEYS.COMPRESSION_SUCCESS]: true,
+            [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_COUNT]: fallbackResult.artifactIds.length,
+            [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_IDS]: fallbackResult.artifactIds.join(','),
+            [SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS]: fallbackTokens,
+            [SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO]:
+              generatedTokens > 0 ? (generatedTokens - fallbackTokens) / generatedTokens : 0, // same denominator as success path
           });
           compressionSpan.setStatus({ code: SpanStatusCode.OK });
           return fallbackResult;

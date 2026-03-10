@@ -25,8 +25,6 @@ export async function handlePrepareStepCompression(
   ]);
 
   if (compressionNeeded) {
-    compressor.markCompressed(stepMessages.length);
-
     const state = compressor.getState();
     const hardLimit = compressor.getHardLimit();
     const { safetyBuffer } = state.config;
@@ -52,7 +50,19 @@ export async function handlePrepareStepCompression(
     );
 
     if (generatedMessages.length > 0) {
-      const compressionResult = await compressor.safeCompress(generatedMessages, totalTokens);
+      let compressionResult: Awaited<ReturnType<typeof compressor.safeCompress>>;
+      try {
+        compressionResult = await compressor.safeCompress(generatedMessages, totalTokens);
+      } catch (error) {
+        logger.error(
+          { error: error instanceof Error ? error.message : String(error) },
+          'Mid-generation compression failed, continuing without compression'
+        );
+        return {};
+      }
+
+      // Record baseline only after compression succeeds so a failure doesn't corrupt the next cycle
+      compressor.markCompressed(stepMessages.length);
 
       if (Array.isArray(compressionResult.summary)) {
         const compressedMessages = compressionResult.summary;
