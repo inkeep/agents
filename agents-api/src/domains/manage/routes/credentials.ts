@@ -132,6 +132,14 @@ app.openapi(
       },
     },
     responses: {
+      200: {
+        description: 'Credential updated successfully (user-scoped upsert)',
+        content: {
+          'application/json': {
+            schema: CredentialReferenceResponse,
+          },
+        },
+      },
       201: {
         description: 'Credential created successfully',
         content: {
@@ -154,13 +162,18 @@ app.openapi(
       projectId,
     };
 
+    const isUserScoped = !!(credentialData.toolId && credentialData.userId);
+    let hadExistingUserScopedCredential = false;
     // For user-scoped credentials, clean up the old credential store connection before upserting
-    if (credentialData.toolId && credentialData.userId) {
+    if (isUserScoped) {
       const existingCredential = await getUserScopedCredentialReference(db)({
         scopes: { tenantId, projectId },
-        toolId: credentialData.toolId,
-        userId: credentialData.userId,
+        // biome-ignore lint/style/noNonNullAssertion: narrowed by isUserScoped guard above
+        toolId: credentialData.toolId!,
+        // biome-ignore lint/style/noNonNullAssertion: narrowed by isUserScoped guard above
+        userId: credentialData.userId!,
       });
+      hadExistingUserScopedCredential = existingCredential != null;
 
       if (existingCredential?.retrievalParams) {
         const credentialStores = c.get('credentialStores');
@@ -183,13 +196,12 @@ app.openapi(
       }
     }
 
-    const isUserScoped = credentialData.toolId && credentialData.userId;
-
     const credential = isUserScoped
       ? await upsertCredentialReference(db)({ data: credentialData })
       : await createCredentialReference(db)(credentialData);
     const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
-    return c.json({ data: validatedCredential }, 201);
+    const status = isUserScoped && hadExistingUserScopedCredential ? 200 : 201;
+    return c.json({ data: validatedCredential }, status);
   }
 );
 

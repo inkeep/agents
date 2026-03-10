@@ -299,6 +299,8 @@ app.openapi(
           await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
           newCredentialData = {
             id: generateId(),
+            toolId,
+            userId: c.get('userId'),
             name: tool.name,
             type: CredentialStoreType.keychain,
             credentialStoreId: 'keychain-default',
