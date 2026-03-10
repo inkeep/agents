@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { screen, waitFor } from '@testing-library/react';
 import type { FC } from 'react';
-import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
+import { fetchArtifactComponents } from '@/lib/api/artifact-components';
 import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { renderWithClient } from './test-utils';
 
@@ -12,8 +12,8 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/lib/actions/artifact-components', () => ({
-  fetchArtifactComponentsAction: vi.fn(),
+vi.mock('@/lib/api/artifact-components', () => ({
+  fetchArtifactComponents: vi.fn(),
 }));
 
 const artifactComponent = {
@@ -32,11 +32,8 @@ const ArtifactComponentsConsumer: FC<{ label: string }> = ({ label }) => {
 
 describe('useArtifactComponentsQuery', () => {
   it('dedupes artifact component requests for the same project', async () => {
-    const fetchArtifactComponentsActionMock = vi.mocked(fetchArtifactComponentsAction);
-    fetchArtifactComponentsActionMock.mockResolvedValue({
-      success: true,
-      data: [artifactComponent as any],
-    });
+    const fetchArtifactComponentsActionMock = vi.mocked(fetchArtifactComponents);
+    fetchArtifactComponentsActionMock.mockResolvedValue({ data: [artifactComponent] } as any);
 
     const { queryClient } = renderWithClient(
       <>

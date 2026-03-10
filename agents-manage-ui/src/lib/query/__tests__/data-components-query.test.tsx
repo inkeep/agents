@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { screen, waitFor } from '@testing-library/react';
 import type { FC } from 'react';
-import { fetchDataComponentsAction } from '@/lib/actions/data-components';
+import { fetchDataComponents } from '@/lib/api/data-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { renderWithClient } from './test-utils';
 
@@ -12,8 +12,8 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/lib/actions/data-components', () => ({
-  fetchDataComponentsAction: vi.fn(),
+vi.mock('@/lib/api/data-components', () => ({
+  fetchDataComponents: vi.fn(),
 }));
 
 const dataComponent = {
@@ -30,11 +30,8 @@ const DataComponentsConsumer: FC<{ label: string }> = ({ label }) => {
 
 describe('useDataComponentsQuery', () => {
   it('dedupes data component requests for the same project', async () => {
-    const fetchDataComponentsActionMock = vi.mocked(fetchDataComponentsAction);
-    fetchDataComponentsActionMock.mockResolvedValue({
-      success: true,
-      data: [dataComponent as any],
-    });
+    const fetchDataComponentsActionMock = vi.mocked(fetchDataComponents);
+    fetchDataComponentsActionMock.mockResolvedValue({ data: [dataComponent] } as any);
 
     const { queryClient } = renderWithClient(
       <>
