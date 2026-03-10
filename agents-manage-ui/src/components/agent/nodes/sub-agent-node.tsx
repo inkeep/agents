@@ -1,6 +1,5 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
-import { useMemo } from 'react';
 import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
@@ -8,9 +7,10 @@ import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
 import { STATIC_LABELS } from '@/constants/theme';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
-import { cn } from '@/lib/utils';
+import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { cn, createLookup } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
@@ -43,13 +43,13 @@ const ListSection = ({
 };
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
+  'use memo';
   const { name, isDefault, description, models, status } = data;
+  const { data: artifactComponents } = useArtifactComponentsQuery();
   const modelName = models?.base?.model;
-
-  const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
-    dataComponentLookup: state.dataComponentLookup,
-    artifactComponentLookup: state.artifactComponentLookup,
-  }));
+  const { data: dataComponents } = useDataComponentsQuery();
+  const dataComponentsById = createLookup(dataComponents);
+  const artifactComponentsById = createLookup(artifactComponents);
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
@@ -57,19 +57,10 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const nodeErrors = getNodeErrors(subAgentId);
   const hasErrors = hasNodeErrors(subAgentId);
 
-  const dataComponentNames = useMemo(
-    () =>
-      data?.dataComponents?.map((id: string) => dataComponentLookup[id]?.name).filter(Boolean) ||
-      [],
-    [data?.dataComponents, dataComponentLookup]
-  );
-  const artifactComponentNames = useMemo(
-    () =>
-      data?.artifactComponents
-        ?.map((id: string) => artifactComponentLookup[id]?.name)
-        .filter(Boolean) || [],
-    [data?.artifactComponents, artifactComponentLookup]
-  );
+  const dataComponentNames =
+    data.dataComponents?.map((id) => dataComponentsById[id]?.name).filter(Boolean) || [];
+  const artifactComponentNames =
+    data.artifactComponents?.map((id) => artifactComponentsById[id]?.name).filter(Boolean) || [];
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';
