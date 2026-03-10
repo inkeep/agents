@@ -1,11 +1,15 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { NodeType, nodeTypeMap } from '../configuration/node-types';
 import { CopilotTrigger } from './copilot-trigger';
 import { NodeItem } from './node-item';
 
-export default function NodeLibrary({ sandboxEnabled }: { sandboxEnabled: boolean }) {
+export default function NodeLibrary() {
+  const { data: capabilities, isFetching } = useCapabilitiesQuery();
+  const sandboxEnabled = isFetching || capabilities?.sandbox?.configured;
+
   const nodeTypes: NodeItem[] = [
     nodeTypeMap[NodeType.MCPPlaceholder],
     nodeTypeMap[NodeType.SubAgentPlaceholder],

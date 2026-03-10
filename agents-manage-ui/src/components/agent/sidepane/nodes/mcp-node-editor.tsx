@@ -2,7 +2,7 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
@@ -16,11 +16,12 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
-import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
+import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
+import { createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import {
   findOrphanedTools,
@@ -41,10 +42,9 @@ export function MCPServerNodeEditor({
   selectedNode,
   agentToolConfigLookup,
 }: MCPServerNodeEditorProps) {
+  'use memo';
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-  });
+  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
   const { updateNodeData } = useReactFlow();
 
   const { tenantId, projectId } = useParams<{
@@ -52,9 +52,8 @@ export function MCPServerNodeEditor({
     projectId: string;
   }>();
   const { markUnsaved } = useAgentActions();
-
-  // Get skeleton data from store
-  const toolLookup = useAgentStore((state) => state.toolLookup);
+  const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
+  const skeletonToolLookup = createLookup(mcpTools);
 
   // Lazy-load actual tool status
   const { data: liveToolData, isLoading: isLoadingToolStatus } = useMcpToolStatusQuery({
@@ -65,12 +64,12 @@ export function MCPServerNodeEditor({
   });
 
   // Use live data if available, fall back to skeleton from store
-  const skeletonToolData = toolLookup[selectedNode.data.toolId];
+  const skeletonToolData = skeletonToolLookup[selectedNode.data.toolId];
   const toolData = liveToolData ?? skeletonToolData;
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
+  function getCurrentHeaders(): Record<string, string> {
     return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
-  }, [selectedNode, agentToolConfigLookup]);
+  }
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');

@@ -6,8 +6,8 @@ import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
-import { cn } from '@/lib/utils';
+import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import { cn, createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import {
   findOrphanedTools,
@@ -64,13 +64,12 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
 
   const { data, selected } = props;
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
-  const { toolLookup, agentToolConfigLookup } = useAgentStore((state) => ({
-    toolLookup: state.toolLookup,
-    agentToolConfigLookup: state.agentToolConfigLookup,
-  }));
+  const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
+  const skeletonToolLookup = createLookup(mcpTools);
+  const agentToolConfigLookup = useAgentStore((state) => state.agentToolConfigLookup);
 
   // Get skeleton data from initial page load (status: 'unknown', availableTools: [])
-  const skeletonToolData = toolLookup[data.toolId];
+  const skeletonToolData = skeletonToolLookup[data.toolId];
 
   // Lazy-load actual status for this specific tool
   const { data: liveToolData, isLoading: isConnecting } = useMcpToolStatusQuery({
