@@ -38,7 +38,6 @@ export function getCurrentHeadersForNode(node: {
   data: MCPNodeData;
   id: string;
 }): Record<string, string> {
-  // First check if we have temporary headers stored on the node (from recent edits)
   if (node.data.tempHeaders && typeof node.data.tempHeaders === 'object') {
     return (node.data as any).tempHeaders;
   }
