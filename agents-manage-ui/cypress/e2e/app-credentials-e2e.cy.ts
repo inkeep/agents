@@ -220,7 +220,7 @@ describe(
         failOnStatusCode: false,
       }).then((res) => {
         expect(res.status).to.equal(400);
-        expect(res.body.error.message).to.equal('pow_required');
+        expect(res.body.error.message).to.equal('Proof-of-work challenge solution is required.');
       });
     });
 
@@ -241,7 +241,7 @@ describe(
         failOnStatusCode: false,
       }).then((res) => {
         expect(res.status).to.equal(400);
-        expect(res.body.error.message).to.equal('pow_invalid');
+        expect(res.body.error.message).to.equal('Proof-of-work challenge solution is invalid.');
       });
     });
 
