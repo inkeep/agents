@@ -1928,24 +1928,17 @@ export async function GET(
 
       // Extract compression-specific attributes
       const compressionType = getString(span, SPAN_KEYS.COMPRESSION_TYPE, '');
-      const generatedTokens =
-        getNumber(span, SPAN_KEYS.COMPRESSION_GENERATED_TOKENS, 0) ||
-        getNumber(span, 'compression.input_tokens', 0); // fallback for pre-deployment spans
-      const totalContextTokens =
-        getNumber(span, SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS, 0) ||
-        getNumber(span, 'compression.full_context_size', 0); // fallback for pre-deployment spans
+      const generatedTokens = getNumber(span, SPAN_KEYS.COMPRESSION_GENERATED_TOKENS, 0);
+      const totalContextTokens = getNumber(span, SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS, 0);
       const triggerAt =
         getNumber(span, SPAN_KEYS.COMPRESSION_TRIGGER_AT, 0) ||
         getNumber(span, SPAN_KEYS.COMPRESSION_HARD_LIMIT, 0) -
-          getNumber(span, SPAN_KEYS.COMPRESSION_SAFETY_BUFFER, 0) ||
-        0; // fallback for pre-deployment spans
+          getNumber(span, SPAN_KEYS.COMPRESSION_SAFETY_BUFFER, 0);
       const outputTokens = getNumber(span, SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS, 0);
       const compressionRatio = getNumber(span, SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO, 0);
       const messageCount = getNumber(span, SPAN_KEYS.COMPRESSION_MESSAGE_COUNT, 0);
       const compressionError = getString(span, SPAN_KEYS.COMPRESSION_ERROR, '');
-      const compressionSummary =
-        getString(span, SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL, '') ||
-        getString(span, 'compression.result.summary', '');
+      const compressionSummary = getString(span, SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL, '');
 
       const description =
         compressionType === 'mid_generation'
@@ -1963,7 +1956,7 @@ export async function GET(
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(
           span,
-          'compression.session_id',
+          SPAN_KEYS.COMPRESSION_SESSION_ID,
           getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT)
         ),
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),

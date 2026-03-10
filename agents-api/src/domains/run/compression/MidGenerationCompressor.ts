@@ -82,15 +82,23 @@ export class MidGenerationCompressor extends BaseCompressor {
     // Check manual request first - no calculation needed
     if (this.shouldCompress) return true;
 
-    // Use base class logic for automatic compression
     const contextSize = this.calculateContextSize(messages);
-    const remaining = this.config.hardLimit - contextSize;
+    // On 2nd+ cycles the injected summary message is in the LLM's context but not in
+    // stepMessages (AI SDK doesn't track prepareStep injections). Add its tokens so the
+    // threshold check reflects actual context size.
+    const summaryTokens = this.cumulativeSummary
+      ? this.estimateTokens(JSON.stringify(this.cumulativeSummary))
+      : 0;
+    const totalSize = contextSize + summaryTokens;
+    const remaining = this.config.hardLimit - totalSize;
     const needsCompression = remaining <= this.config.safetyBuffer;
 
     logger.debug(
       {
         sessionId: this.sessionId,
         contextSize,
+        summaryTokens,
+        totalSize,
         hardLimit: this.config.hardLimit,
         safetyBuffer: this.config.safetyBuffer,
         remaining,
