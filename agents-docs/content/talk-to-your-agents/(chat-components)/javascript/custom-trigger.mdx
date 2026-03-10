@@ -27,34 +27,123 @@ Custom triggers give you complete control over how users open Inkeep modals in y
   <Step>
     Insert the ModalChat widget by using the `Inkeep.ModalChat()` function.
 
-    ```js
-    const config = {
-      baseSettings: {
-        apiKey: "YOUR_API_KEY",
-      },
-      aiChatSettings: {
-        aiAssistantName: "Keepie",
-      },
-      openSettings: {
-        onOpenChange: handleOpenChange,
-      },
-    };
+    <Tabs>
+      <Tab title="App Credential (recommended)">
 
-    // Initialize modal chat
-    const modalChat = Inkeep.ModalChat(config);
+        Use an app credential with a session token for secure client-side authentication:
 
-    function handleOpenChange(newOpen) {
-      modalChat.update({ openSettings: { isOpen: newOpen } });
-    }
+        ```js
+        const APP_ID = "app_your-app-id"; // From Visual Builder → Apps
+        const BASE_URL = "https://your-api.example.com";
 
-    // trigger
-    document.querySelector("#chat-button").addEventListener("click", () => {
-      modalChat.update({ openSettings: { isOpen: true } });
-    });
+        async function getSessionToken() {
+          const response = await fetch(`${BASE_URL}/run/auth/apps/${APP_ID}/anonymous-session`, {
+            method: "POST",
+          });
+          const data = await response.json();
+          return data.token;
+        }
 
-    // Access chat methods
-    modalChat.clearChat();
-    ```
+        const token = await getSessionToken();
+
+        const config = {
+          aiChatSettings: {
+            agentUrl: `${BASE_URL}/run/api/chat`,
+            apiKey: token,
+            headers: {
+              "X-Inkeep-App-Id": APP_ID,
+            },
+          },
+          openSettings: {
+            onOpenChange: handleOpenChange,
+          },
+        };
+
+        // Initialize modal chat
+        const modalChat = Inkeep.ModalChat(config);
+
+        function handleOpenChange(newOpen) {
+          modalChat.update({ openSettings: { isOpen: newOpen } });
+        }
+
+        // trigger
+        document.querySelector("#chat-button").addEventListener("click", () => {
+          modalChat.update({ openSettings: { isOpen: true } });
+        });
+        ```
+
+        **To set up:** Create an app credential in the Visual Builder → **Apps** with your allowed domains. See [App Credentials](/talk-to-your-agents/app-credentials) for details.
+
+      </Tab>
+
+      <Tab title="API Key (deprecated)">
+
+        <Warning>
+          API keys are deprecated for client-side use. Use [app credentials](/talk-to-your-agents/app-credentials) instead.
+        </Warning>
+
+        ```js
+        const config = {
+          aiChatSettings: {
+            agentUrl: "https://your-api.example.com/run/api/chat",
+            apiKey: "YOUR_API_KEY",
+          },
+          openSettings: {
+            onOpenChange: handleOpenChange,
+          },
+        };
+
+        // Initialize modal chat
+        const modalChat = Inkeep.ModalChat(config);
+
+        function handleOpenChange(newOpen) {
+          modalChat.update({ openSettings: { isOpen: newOpen } });
+        }
+
+        // trigger
+        document.querySelector("#chat-button").addEventListener("click", () => {
+          modalChat.update({ openSettings: { isOpen: true } });
+        });
+        ```
+
+      </Tab>
+
+      <Tab title="Development">
+
+        For local development, use headers with your agent IDs:
+
+        ```js
+        const config = {
+          aiChatSettings: {
+            agentUrl: "http://localhost:3003/api/chat",
+            headers: {
+              "x-inkeep-tenant-id": "your-tenant-id",
+              "x-inkeep-project-id": "your-project-id",
+              "x-inkeep-agent-id": "your-agent-id",
+            },
+          },
+          openSettings: {
+            onOpenChange: handleOpenChange,
+          },
+        };
+
+        // Initialize modal chat
+        const modalChat = Inkeep.ModalChat(config);
+
+        function handleOpenChange(newOpen) {
+          modalChat.update({ openSettings: { isOpen: newOpen } });
+        }
+
+        // trigger
+        document.querySelector("#chat-button").addEventListener("click", () => {
+          modalChat.update({ openSettings: { isOpen: true } });
+        });
+        ```
+
+        **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+
+      </Tab>
+    </Tabs>
 
   </Step>
 </Steps>
