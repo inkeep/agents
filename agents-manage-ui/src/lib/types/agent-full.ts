@@ -71,4 +71,4 @@ export type AgentToolConfig = {
 };
 
 // AgentToolConfigLookup: subAgentId -> relationshipId -> config
-export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
+type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
