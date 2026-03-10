@@ -86,8 +86,7 @@ export class ExecutionHandler {
       forwardedHeaders,
     } = params;
 
-    const { tenantId, projectId, project, agentId, apiKey, baseUrl, resolvedRef } =
-      executionContext;
+    const { tenantId, projectId, project, agentId, baseUrl, resolvedRef } = executionContext;
 
     registerStreamHelper(requestId, sseHelper);
 
