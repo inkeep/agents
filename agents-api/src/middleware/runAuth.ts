@@ -2,6 +2,7 @@ import {
   type BaseExecutionContext,
   canUseProjectStrict,
   getAppById,
+  getPoWErrorMessage,
   isSlackUserToken,
   updateAppLastUsed,
   validateAndGetApiKey,
@@ -512,13 +513,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
 
     const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
     if (!pow.ok) {
-      const failureMessage =
-        pow.error === 'pow_expired'
-          ? 'Proof-of-work challenge has expired. Please request a new challenge.'
-          : pow.error === 'pow_required'
-            ? 'Proof-of-work challenge solution is required.'
-            : 'Proof-of-work challenge solution is invalid.';
-      return { authResult: null, failureMessage };
+      throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
     }
 
     if (!bearerToken) {

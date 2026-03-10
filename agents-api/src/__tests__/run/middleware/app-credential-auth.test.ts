@@ -46,6 +46,14 @@ vi.mock('@inkeep/agents-core', () => ({
   canUseProjectStrict: canUseProjectStrictMock,
   validateTargetAgent: validateTargetAgentMock,
   verifyPoW: verifyPoWMock,
+  getPoWErrorMessage: (error: string) => {
+    const messages: Record<string, string> = {
+      pow_expired: 'Proof-of-work challenge has expired. Please request a new challenge.',
+      pow_required: 'Proof-of-work challenge solution is required.',
+      pow_invalid: 'Proof-of-work challenge solution is invalid.',
+    };
+    return messages[error] ?? 'Unknown PoW error';
+  },
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -372,7 +380,7 @@ describe('App Credential Authentication', () => {
         },
       });
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(400);
       const body = await res.text();
       expect(body).toContain('Proof-of-work challenge solution is required.');
     });
@@ -394,7 +402,7 @@ describe('App Credential Authentication', () => {
         },
       });
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(400);
       const body = await res.text();
       expect(body).toContain('Proof-of-work challenge solution is invalid.');
     });
@@ -416,7 +424,7 @@ describe('App Credential Authentication', () => {
         },
       });
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(400);
       const body = await res.text();
       expect(body).toContain(
         'Proof-of-work challenge has expired. Please request a new challenge.'

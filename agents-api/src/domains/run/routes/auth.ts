@@ -4,6 +4,7 @@ import {
   commonGetErrorResponses,
   createApiError,
   getAppById,
+  getPoWErrorMessage,
   validateOrigin,
   verifyPoW,
 } from '@inkeep/agents-core';
@@ -174,13 +175,7 @@ app.openapi(
 
     const pow = await verifyPoW(c.req.raw, env.INKEEP_POW_HMAC_SECRET);
     if (!pow.ok) {
-      const message =
-        pow.error === 'pow_expired'
-          ? 'Proof-of-work challenge has expired. Please request a new challenge.'
-          : pow.error === 'pow_required'
-            ? 'Proof-of-work challenge solution is required.'
-            : 'Proof-of-work challenge solution is invalid.';
-      throw createApiError({ code: 'bad_request', message });
+      throw createApiError({ code: 'bad_request', message: getPoWErrorMessage(pow.error) });
     }
 
     const anonUserId = `anon_${crypto.randomUUID()}`;
