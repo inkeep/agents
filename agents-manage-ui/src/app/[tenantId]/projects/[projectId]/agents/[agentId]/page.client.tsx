@@ -61,8 +61,6 @@ import { getFullProjectAction } from '@/lib/actions/project-full';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { saveAgent } from '@/lib/services/save-agent';
 import type {
-  AgentToolConfig,
-  AgentToolConfigLookup,
   SubAgentExternalAgentConfig,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfig,
@@ -178,44 +176,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     : result.edges;
 
   // Helper functions to compute lookups from agent data
-  const computeAgentToolConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
-  ): AgentToolConfigLookup => {
-    if (!agentData?.subAgents) return {} as AgentToolConfigLookup;
-
-    const lookup: AgentToolConfigLookup = {};
-    Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-      if (subAgentData?.canUse) {
-        const toolsMap: Record<string, AgentToolConfig> = {};
-        subAgentData.canUse.forEach((tool) => {
-          if (tool.agentToolRelationId) {
-            const config: AgentToolConfig = {
-              toolId: tool.toolId,
-            };
-
-            if (tool.toolSelection !== undefined) {
-              config.toolSelection = tool.toolSelection;
-            }
-
-            if (tool.headers) {
-              config.headers = tool.headers;
-            }
-
-            if (tool.toolPolicies) {
-              config.toolPolicies = tool.toolPolicies;
-            }
-
-            toolsMap[tool.agentToolRelationId] = config;
-          }
-        });
-        if (Object.keys(toolsMap).length > 0) {
-          lookup[subAgentId] = toolsMap;
-        }
-      }
-    });
-    return lookup;
-  };
-
   const computeSubAgentExternalAgentConfigLookup = (
     agentData?: ExtendedFullAgentDefinition | null
   ): SubAgentExternalAgentConfigLookup => {
@@ -239,8 +199,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     });
     return lookup;
   };
-
-  const agentToolConfigLookup = computeAgentToolConfigLookup(agent);
 
   const subAgentExternalAgentConfigLookup = computeSubAgentExternalAgentConfigLookup(agent);
 
