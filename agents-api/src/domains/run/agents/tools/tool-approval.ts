@@ -6,7 +6,6 @@ import { pendingToolApprovalManager } from '../../session/PendingToolApprovalMan
 import { toolApprovalUiBus } from '../../session/ToolApprovalUiBus';
 import { createDeniedToolResult } from '../../utils/tool-result';
 import { tracer } from '../../utils/tracer';
-import { DurableApprovalRequiredError } from '../../workflow/errors/DurableApprovalRequiredError';
 import type { AgentRunContext } from '../agent-types';
 
 const logger = getLogger('Agent');
@@ -17,7 +16,9 @@ export async function waitForToolApproval(
   toolName: string,
   args: unknown,
   providerMetadata: unknown
-): Promise<{ approved: false; deniedResult: unknown } | { approved: true }> {
+): Promise<
+  { approved: false; deniedResult: unknown } | { approved: true } | { approved: 'pending' }
+> {
   logger.info({ toolName, toolCallId, args }, 'Tool requires approval - waiting for user response');
 
   const currentSpan = trace.getActiveSpan();
@@ -29,21 +30,13 @@ export async function waitForToolApproval(
     });
   }
 
-  tracer.startActiveSpan(
-    'tool.approval_requested',
-    {
-      attributes: {
-        'tool.name': toolName,
-        'tool.callId': toolCallId,
-        'subAgent.id': ctx.config.id,
-        'subAgent.name': ctx.config.name,
-      },
-    },
-    (requestSpan: Span) => {
-      requestSpan.setStatus({ code: SpanStatusCode.OK });
-      requestSpan.end();
-    }
-  );
+  const baseSpanAttributes = {
+    'tool.name': toolName,
+    'tool.callId': toolCallId,
+    'subAgent.id': ctx.config.id,
+    'subAgent.name': ctx.config.name,
+    ...(ctx.conversationId ? { 'conversation.id': ctx.conversationId } : {}),
+  };
 
   if (ctx.durableWorkflowRunId) {
     const approvedToolCalls = ctx.approvedToolCalls;
@@ -57,10 +50,7 @@ export async function waitForToolApproval(
             'tool.approval_denied',
             {
               attributes: {
-                'tool.name': toolName,
-                'tool.callId': toolCallId,
-                'subAgent.id': ctx.config.id,
-                'subAgent.name': ctx.config.name,
+                ...baseSpanAttributes,
                 'tool.approval.reason': preApproved.reason,
               },
             },
@@ -79,14 +69,7 @@ export async function waitForToolApproval(
 
         tracer.startActiveSpan(
           'tool.approval_approved',
-          {
-            attributes: {
-              'tool.name': toolName,
-              'tool.callId': toolCallId,
-              'subAgent.id': ctx.config.id,
-              'subAgent.name': ctx.config.name,
-            },
-          },
+          { attributes: baseSpanAttributes },
           (approvedSpan: Span) => {
             logger.info({ toolName, toolCallId }, 'Tool approved (durable pre-approved decision)');
             approvedSpan.setStatus({ code: SpanStatusCode.OK });
@@ -96,6 +79,15 @@ export async function waitForToolApproval(
         return { approved: true };
       }
     }
+
+    tracer.startActiveSpan(
+      'tool.approval_requested',
+      { attributes: baseSpanAttributes },
+      (requestSpan: Span) => {
+        requestSpan.setStatus({ code: SpanStatusCode.OK });
+        requestSpan.end();
+      }
+    );
 
     const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
     if (streamHelper) {
@@ -120,8 +112,17 @@ export async function waitForToolApproval(
     }
 
     ctx.pendingDurableApproval = { toolCallId, toolName, args };
-    throw new DurableApprovalRequiredError(toolCallId, toolName, args);
+    return { approved: 'pending' };
   }
+
+  tracer.startActiveSpan(
+    'tool.approval_requested',
+    { attributes: baseSpanAttributes },
+    (requestSpan: Span) => {
+      requestSpan.setStatus({ code: SpanStatusCode.OK });
+      requestSpan.end();
+    }
+  );
 
   const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
   if (streamHelper) {
@@ -170,10 +171,7 @@ export async function waitForToolApproval(
       'tool.approval_denied',
       {
         attributes: {
-          'tool.name': toolName,
-          'tool.callId': toolCallId,
-          'subAgent.id': ctx.config.id,
-          'subAgent.name': ctx.config.name,
+          ...baseSpanAttributes,
           'tool.approval.reason': approvalResult.reason,
         },
       },
@@ -193,14 +191,7 @@ export async function waitForToolApproval(
 
   tracer.startActiveSpan(
     'tool.approval_approved',
-    {
-      attributes: {
-        'tool.name': toolName,
-        'tool.callId': toolCallId,
-        'subAgent.id': ctx.config.id,
-        'subAgent.name': ctx.config.name,
-      },
-    },
+    { attributes: baseSpanAttributes },
     (approvedSpan: Span) => {
       logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
       approvedSpan.setStatus({ code: SpanStatusCode.OK });
@@ -242,7 +233,9 @@ export async function parseAndCheckApproval<T>(
   args: T,
   providerMetadata: unknown,
   needsApproval: boolean
-): Promise<{ args: T; denied: false } | { args: T; denied: true; result: unknown }> {
+): Promise<
+  { args: T; denied: false; pendingApproval?: true } | { args: T; denied: true; result: unknown }
+> {
   let processedArgs: T;
   try {
     processedArgs = parseEmbeddedJson(args);
@@ -262,6 +255,9 @@ export async function parseAndCheckApproval<T>(
 
   if (needsApproval) {
     const approval = await waitForToolApproval(ctx, toolCallId, toolName, args, providerMetadata);
+    if (approval.approved === 'pending') {
+      return { args: processedArgs, denied: false, pendingApproval: true };
+    }
     if (!approval.approved) {
       const deniedResult = approval.deniedResult as { reason?: string } | undefined;
       recordDenial(ctx, toolName, toolCallId, deniedResult?.reason);
