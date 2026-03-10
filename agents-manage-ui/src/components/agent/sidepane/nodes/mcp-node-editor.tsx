@@ -219,8 +219,16 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
 
     // Only save to node data if the JSON is valid
     const trimmed = value.trim();
+    if (trimmed === '') {
+      updateNodeData(selectedNode.id, {
+        ...selectedNode.data,
+        tempHeaders: {},
+      });
+      markUnsaved();
+      return;
+    }
     try {
-      const parsedHeaders = trimmed === '' ? {} : JSON.parse(value);
+      const parsedHeaders = JSON.parse(value);
 
       if (
         typeof parsedHeaders === 'object' &&
