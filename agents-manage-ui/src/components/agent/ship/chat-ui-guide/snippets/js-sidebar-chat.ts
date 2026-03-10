@@ -17,10 +17,10 @@ Insert the SidebarChat widget by using the \`Inkeep.SidebarChat()\` function.
 
 \`\`\`js
 const config = {
-  appId: "{{APP_ID}}",
-  baseUrl: "{{BASE_URL}}",
   baseSettings: {{BASE_SETTINGS}},
   aiChatSettings: {
+    appId: "{{APP_ID}}",
+    baseUrl: "{{BASE_URL}}",
 {{EXTRA_AI_CHAT_SETTINGS}}
   }
 };
