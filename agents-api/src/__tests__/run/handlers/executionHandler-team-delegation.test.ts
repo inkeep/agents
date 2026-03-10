@@ -260,7 +260,7 @@ describe('ExecutionHandler - Team Delegation JWT Regeneration', () => {
     );
   });
 
-  it('should use original apiKey for sub-agent calls when NOT in team delegation context', async () => {
+  it('should generate service token for internal A2A calls even without team delegation', async () => {
     const executionContext = createMockExecutionContext(false);
     const mockStreamHelper = createMockStreamHelper();
 
@@ -273,15 +273,21 @@ describe('ExecutionHandler - Team Delegation JWT Regeneration', () => {
       sseHelper: mockStreamHelper as any,
     });
 
-    // generateServiceToken should NOT be called in non-team delegation context
-    expect(generateServiceTokenMock).not.toHaveBeenCalled();
+    // generateServiceToken should always be called for internal A2A calls,
+    // regardless of auth method (app credential, API key, etc.)
+    expect(generateServiceTokenMock).toHaveBeenCalledWith({
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      originAgentId: 'parent-agent',
+      targetAgentId: 'sub-agent-1',
+    });
 
-    // A2AClient should use the original apiKey
+    // A2AClient should use the generated service token, not the original apiKey
     expect(a2aClientConstructorMock).toHaveBeenCalledWith(
       'http://localhost:3000/run/agents',
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: 'Bearer sk_test_regular_api_key_123456',
+          Authorization: 'Bearer fresh-jwt-for-sub-agent',
         }),
       })
     );
