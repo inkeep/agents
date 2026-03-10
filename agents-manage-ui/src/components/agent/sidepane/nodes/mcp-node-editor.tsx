@@ -20,7 +20,6 @@ import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
-import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import {
@@ -35,13 +34,9 @@ import { SchemaOverrideBadge } from './schema-override-badge';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
-  agentToolConfigLookup: AgentToolConfigLookup;
 }
 
-export function MCPServerNodeEditor({
-  selectedNode,
-  agentToolConfigLookup,
-}: MCPServerNodeEditorProps) {
+export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) {
   'use memo';
   const { canEdit } = useProjectPermissions();
   const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
