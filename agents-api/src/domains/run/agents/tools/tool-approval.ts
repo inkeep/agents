@@ -6,6 +6,7 @@ import { pendingToolApprovalManager } from '../../session/PendingToolApprovalMan
 import { toolApprovalUiBus } from '../../session/ToolApprovalUiBus';
 import { createDeniedToolResult } from '../../utils/tool-result';
 import { tracer } from '../../utils/tracer';
+import { DurableApprovalRequiredError } from '../../workflow/errors/DurableApprovalRequiredError';
 import type { AgentRunContext } from '../agent-types';
 
 const logger = getLogger('Agent');
@@ -43,6 +44,84 @@ export async function waitForToolApproval(
       requestSpan.end();
     }
   );
+
+  if (ctx.durableWorkflowRunId) {
+    const approvedToolCalls = ctx.approvedToolCalls;
+    if (approvedToolCalls) {
+      const preApproved = approvedToolCalls[toolName];
+      if (preApproved !== undefined) {
+        delete approvedToolCalls[toolName];
+
+        if (!preApproved.approved) {
+          const deniedResult = tracer.startActiveSpan(
+            'tool.approval_denied',
+            {
+              attributes: {
+                'tool.name': toolName,
+                'tool.callId': toolCallId,
+                'subAgent.id': ctx.config.id,
+                'subAgent.name': ctx.config.name,
+                'tool.approval.reason': preApproved.reason,
+              },
+            },
+            (denialSpan: Span) => {
+              logger.info(
+                { toolName, toolCallId, reason: preApproved.reason },
+                'Tool execution denied (durable pre-approved decision)'
+              );
+              denialSpan.setStatus({ code: SpanStatusCode.OK });
+              denialSpan.end();
+              return createDeniedToolResult(toolCallId, preApproved.reason);
+            }
+          );
+          return { approved: false, deniedResult };
+        }
+
+        tracer.startActiveSpan(
+          'tool.approval_approved',
+          {
+            attributes: {
+              'tool.name': toolName,
+              'tool.callId': toolCallId,
+              'subAgent.id': ctx.config.id,
+              'subAgent.name': ctx.config.name,
+            },
+          },
+          (approvedSpan: Span) => {
+            logger.info({ toolName, toolCallId }, 'Tool approved (durable pre-approved decision)');
+            approvedSpan.setStatus({ code: SpanStatusCode.OK });
+            approvedSpan.end();
+          }
+        );
+        return { approved: true };
+      }
+    }
+
+    const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
+    if (streamHelper) {
+      await streamHelper.writeToolApprovalRequest({
+        approvalId: `aitxt-${toolCallId}`,
+        toolCallId,
+        toolName,
+        input: args as Record<string, unknown>,
+      });
+    } else if (ctx.isDelegatedAgent) {
+      const currentStreamRequestId = ctx.streamRequestId ?? '';
+      if (currentStreamRequestId) {
+        await toolApprovalUiBus.publish(currentStreamRequestId, {
+          type: 'approval-needed',
+          toolCallId,
+          toolName,
+          input: args,
+          providerMetadata,
+          approvalId: `aitxt-${toolCallId}`,
+        });
+      }
+    }
+
+    ctx.pendingDurableApproval = { toolCallId, toolName, args };
+    throw new DurableApprovalRequiredError(toolCallId, toolName, args);
+  }
 
   const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
   if (streamHelper) {

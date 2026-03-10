@@ -47,6 +47,10 @@ interface ExecutionHandlerParams {
   datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
   /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for auth) */
   forwardedHeaders?: Record<string, string>;
+  /** Durable workflow run ID — present when running inside a WDK workflow */
+  durableWorkflowRunId?: string;
+  /** Pre-approved tool decisions keyed by toolName — accumulated across approval loops */
+  approvedToolCalls?: Record<string, { approved: boolean; reason?: string; originalToolCallId?: string }>;
 }
 
 interface ExecutionResult {
@@ -54,6 +58,7 @@ interface ExecutionResult {
   error?: string;
   iterations: number;
   response?: string; // Optional response for MCP contexts
+  pendingApproval?: { toolCallId: string; toolName: string; args: unknown };
 }
 
 export class ExecutionHandler {
@@ -310,6 +315,10 @@ export class ExecutionHandler {
         if (fromSubAgentId) {
           messageMetadata.fromSubAgentId = fromSubAgentId;
         }
+        if (params.durableWorkflowRunId) {
+          messageMetadata.durable_workflow_run_id = params.durableWorkflowRunId;
+          messageMetadata.approved_tool_calls = JSON.stringify(params.approvedToolCalls ?? {});
+        }
 
         // On the first iteration, use the original message parts if provided (includes data parts from triggers)
         // On subsequent iterations (after transfers), use text-only since currentMessage is updated
@@ -390,6 +399,20 @@ export class ExecutionHandler {
           }
 
           continue;
+        }
+
+        const firstArtifactData = (messageResponse.result as any)?.artifacts?.[0]?.parts?.[0]
+          ?.data as { type?: string; toolCallId?: string; toolName?: string; args?: unknown };
+        if (firstArtifactData?.type === 'durable-approval-required') {
+          return {
+            success: true,
+            iterations,
+            pendingApproval: {
+              toolCallId: firstArtifactData.toolCallId ?? '',
+              toolName: firstArtifactData.toolName ?? '',
+              args: firstArtifactData.args,
+            },
+          };
         }
 
         if (isTransferTask(messageResponse.result)) {

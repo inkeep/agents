@@ -336,8 +336,12 @@ app.openapi(approveToolCallRoute, async (c) => {
     throw createApiError({ code: 'not_found', message: 'Execution not found' });
   }
 
-  const token = `tool-approval:${execution.conversationId}:${toolCallId}`;
-  await toolApprovalHook.resume(token, { approved, reason });
+  const token = `tool-approval:${execution.conversationId}:${executionId}:${toolCallId}`;
+
+  await toolApprovalHook.resume(token, {
+    approved,
+    reason: approved ? undefined : reason,
+  });
 
   return c.json({ success: true as boolean }, 200);
 });

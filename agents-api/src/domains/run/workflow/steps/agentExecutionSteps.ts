@@ -32,7 +32,12 @@ export type AgentExecutionStepPayload = {
   resolvedRef: ResolvedRef;
   forwardedHeaders?: Record<string, string>;
   outputFormat?: 'sse' | 'vercel';
+  approvedToolCalls?: Record<string, { approved: boolean; reason?: string; originalToolCallId?: string }>;
 };
+
+export type RunAgentExecutionStepResult =
+  | { type: 'completed'; success: boolean; error?: string }
+  | { type: 'needs_approval'; toolCallId: string; toolName: string; args: unknown };
 
 export async function markWorkflowRunningStep(params: {
   payload: AgentExecutionStepPayload;
@@ -59,10 +64,12 @@ export async function markWorkflowRunningStep(params: {
 
 export async function runAgentExecutionStep(params: {
   payload: AgentExecutionStepPayload;
-}): Promise<{ success: boolean; error?: string }> {
+  workflowRunId: string;
+  streamNamespace?: string;
+}): Promise<RunAgentExecutionStepResult> {
   'use step';
 
-  const { payload } = params;
+  const { payload, workflowRunId, streamNamespace } = params;
   const {
     tenantId,
     projectId,
@@ -73,6 +80,7 @@ export async function runAgentExecutionStep(params: {
     requestId,
     resolvedRef,
     forwardedHeaders,
+    approvedToolCalls,
   } = payload;
 
   const project = await withRef(manageDbPool, resolvedRef, (db) =>
@@ -107,7 +115,7 @@ export async function runAgentExecutionStep(params: {
 
   const timestamp = Math.floor(Date.now() / 1000);
 
-  const writable = getWritable<Uint8Array>();
+  const writable = getWritable<Uint8Array>(streamNamespace ? { namespace: streamNamespace } : {});
   let closeable: { close(): Promise<void> };
   let sseHelper:
     | ReturnType<typeof createSSEStreamHelper>
@@ -125,7 +133,7 @@ export async function runAgentExecutionStep(params: {
 
   registerStreamHelper(requestId, sseHelper);
   const handler = new ExecutionHandler();
-  let result: { success: boolean; error?: string };
+  let result: Awaited<ReturnType<typeof handler.execute>>;
   try {
     result = await handler.execute({
       executionContext,
@@ -137,15 +145,66 @@ export async function runAgentExecutionStep(params: {
       sseHelper,
       emitOperations: false,
       forwardedHeaders,
+      durableWorkflowRunId: workflowRunId,
+      approvedToolCalls,
     });
   } finally {
     unregisterStreamHelper(requestId);
   }
 
+  if (result.pendingApproval) {
+    await sseHelper.complete();
+    await closeable.close();
+    return {
+      type: 'needs_approval',
+      toolCallId: result.pendingApproval.toolCallId,
+      toolName: result.pendingApproval.toolName,
+      args: result.pendingApproval.args,
+    };
+  }
+
   await sseHelper.complete();
   await closeable.close();
 
-  return { success: result.success, error: result.error };
+  return { type: 'completed', success: result.success, error: result.error };
+}
+
+export async function markWorkflowSuspendedStep(params: {
+  tenantId: string;
+  projectId: string;
+  workflowRunId: string;
+  continuationStreamNamespace: string;
+}): Promise<void> {
+  'use step';
+  const { tenantId, projectId, workflowRunId, continuationStreamNamespace } = params;
+
+  await updateWorkflowExecutionStatus(runDbClient)({
+    tenantId,
+    projectId,
+    id: workflowRunId,
+    status: 'suspended',
+    metadata: { continuationStreamNamespace },
+  });
+
+  logger.info({ workflowRunId }, 'Workflow execution marked as suspended (awaiting tool approval)');
+}
+
+export async function markWorkflowResumingStep(params: {
+  tenantId: string;
+  projectId: string;
+  workflowRunId: string;
+}): Promise<void> {
+  'use step';
+  const { tenantId, projectId, workflowRunId } = params;
+
+  await updateWorkflowExecutionStatus(runDbClient)({
+    tenantId,
+    projectId,
+    id: workflowRunId,
+    status: 'running',
+  });
+
+  logger.info({ workflowRunId }, 'Workflow execution marked as running (resuming after approval)');
 }
 
 export async function markWorkflowCompleteStep(params: {

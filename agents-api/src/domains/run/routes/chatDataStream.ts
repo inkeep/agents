@@ -9,6 +9,7 @@ import {
   getActiveAgentForConversation,
   getConversation,
   getConversationId,
+  getWorkflowExecutionByConversation,
   loggerFactory,
   type Part,
   PartSchema,
@@ -18,7 +19,7 @@ import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-cor
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { stream } from 'hono/streaming';
-import { start } from 'workflow/api';
+import { getRun, start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
@@ -31,7 +32,7 @@ import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream
 import { ImageUrlSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
-import { agentExecutionWorkflow } from '../workflow/functions/agentExecution';
+import { agentExecutionWorkflow, toolApprovalHook } from '../workflow/functions/agentExecution';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -173,16 +174,58 @@ app.openapi(chatDataStreamRoute, async (c) => {
         return c.json({ success: false, error: 'Conversation not found' }, 404);
       }
 
+      // Check if there is a suspended durable execution for this conversation.
+      const durableExecution = await getWorkflowExecutionByConversation(runDbClient)({
+        tenantId,
+        projectId,
+        conversationId,
+      });
+
+      const isDurable = durableExecution?.status === 'suspended';
+
+      if (isDurable && durableExecution) {
+        await Promise.all(
+          approvalParts.map(async (approvalPart: any) => {
+            const toolCallId = approvalPart.toolCallId as string;
+            const approved = !!approvalPart.approval?.approved;
+            const reason = approvalPart.approval?.reason as string | undefined;
+            const token = `tool-approval:${conversationId}:${durableExecution.id}:${toolCallId}`;
+            await toolApprovalHook.resume(token, {
+              approved,
+              reason: approved ? undefined : reason,
+            });
+          })
+        );
+
+        const namespace = (durableExecution.metadata as any)?.continuationStreamNamespace as
+          | string
+          | undefined;
+        const run = getRun(durableExecution.id);
+
+        c.header('Content-Type', 'text/event-stream');
+        c.header('Cache-Control', 'no-cache');
+        c.header('Connection', 'keep-alive');
+
+        return stream(c, async (s) => {
+          const readable = run.getReadable({ namespace });
+          const reader = readable.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            await s.write(value);
+          }
+        });
+      }
+
       const results = approvalParts.map((approvalPart: any) => {
         const toolCallId = approvalPart.toolCallId as string;
         const approved = !!approvalPart.approval?.approved;
         const reason = approvalPart.approval?.reason as string | undefined;
 
-        // Resolve the pending approval (in-memory). Idempotent: if already processed, returns false.
+        // Classic in-memory approval path.
         const ok = approved
           ? pendingToolApprovalManager.approveToolCall(toolCallId)
           : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
-
         return { toolCallId, approved, alreadyProcessed: !ok };
       });
 
