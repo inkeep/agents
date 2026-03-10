@@ -333,6 +333,26 @@ export const createTaskHandler = (
       agent.setDelegationStatus(isDelegation);
       agent.setDelegationId(delegationId);
 
+      const durableWorkflowRunId = task.context?.metadata?.durable_workflow_run_id as
+        | string
+        | undefined;
+      const approvedToolCallsRaw = task.context?.metadata?.approved_tool_calls;
+      const approvedToolCalls =
+        approvedToolCallsRaw !== undefined
+          ? typeof approvedToolCallsRaw === 'string'
+            ? (JSON.parse(approvedToolCallsRaw) as Record<
+                string,
+                { approved: boolean; reason?: string; originalToolCallId?: string }
+              >)
+            : (approvedToolCallsRaw as Record<
+                string,
+                { approved: boolean; reason?: string; originalToolCallId?: string }
+              >)
+          : undefined;
+
+      agent.setDurableWorkflowRunId(durableWorkflowRunId);
+      agent.setApprovedToolCalls(approvedToolCalls);
+
       if (isDelegation) {
         logger.info(
           { subAgentId: config.subAgentId, taskId: task.id, delegationId },
@@ -377,6 +397,30 @@ export const createTaskHandler = (
           ...(config.apiKey ? { apiKey: config.apiKey } : {}),
         },
       });
+
+      const pendingApproval = agent.getPendingDurableApproval();
+      if (pendingApproval) {
+        return {
+          status: { state: TaskState.Completed },
+          artifacts: [
+            {
+              artifactId: generateId(),
+              parts: [
+                {
+                  kind: 'data' as const,
+                  data: {
+                    type: 'durable-approval-required',
+                    toolCallId: pendingApproval.toolCallId,
+                    toolName: pendingApproval.toolName,
+                    args: pendingApproval.args,
+                  },
+                },
+              ],
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        };
+      }
 
       const stepContents =
         response.steps && Array.isArray(response.steps)

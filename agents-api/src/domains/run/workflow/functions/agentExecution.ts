@@ -3,7 +3,9 @@ import { defineHook, getWorkflowMetadata } from 'workflow';
 import {
   markWorkflowCompleteStep,
   markWorkflowFailedStep,
+  markWorkflowResumingStep,
   markWorkflowRunningStep,
+  markWorkflowSuspendedStep,
   runAgentExecutionStep,
 } from '../steps/agentExecutionSteps';
 
@@ -22,7 +24,7 @@ export type AgentExecutionPayload = {
 
 /**
  * Hook for tool approval: external systems resume this to approve/deny a tool call.
- * Token format: `tool-approval:${conversationId}:${toolCallId}`
+ * Token format: `tool-approval:${conversationId}:${workflowRunId}:${toolCallId}`
  */
 export const toolApprovalHook = defineHook<
   { approved: boolean; reason?: string },
@@ -36,17 +38,54 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
   await markWorkflowRunningStep({ payload, workflowRunId });
 
-  try {
-    const result = await runAgentExecutionStep({ payload });
+  const approvedToolCalls: Record<string, { approved: boolean; reason?: string; originalToolCallId?: string }> = {};
+  let approvalRound = 0;
 
-    if (!result.success) {
-      await markWorkflowFailedStep({
-        tenantId: payload.tenantId,
-        projectId: payload.projectId,
+  try {
+    while (true) {
+      const streamNamespace = approvalRound === 0 ? undefined : `r${approvalRound}`;
+      const result = await runAgentExecutionStep({
+        payload: { ...payload, approvedToolCalls: { ...approvedToolCalls } },
         workflowRunId,
-        error: result.error ?? 'Agent execution failed',
+        streamNamespace,
       });
-      return { success: false, error: result.error };
+
+      if (result.type === 'needs_approval') {
+        const continuationStreamNamespace = `r${approvalRound + 1}`;
+        await markWorkflowSuspendedStep({
+          tenantId: payload.tenantId,
+          projectId: payload.projectId,
+          workflowRunId,
+          continuationStreamNamespace,
+        });
+
+        const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${result.toolCallId}`;
+        const hook = toolApprovalHook.create({ token });
+        const approvalResult = await hook;
+
+        approvedToolCalls[result.toolName] = { ...approvalResult, originalToolCallId: result.toolCallId };
+        approvalRound++;
+
+        await markWorkflowResumingStep({
+          tenantId: payload.tenantId,
+          projectId: payload.projectId,
+          workflowRunId,
+        });
+
+        continue;
+      }
+
+      if (!result.success) {
+        await markWorkflowFailedStep({
+          tenantId: payload.tenantId,
+          projectId: payload.projectId,
+          workflowRunId,
+          error: result.error ?? 'Agent execution failed',
+        });
+        return { success: false, error: result.error };
+      }
+
+      break;
     }
 
     await markWorkflowCompleteStep({
