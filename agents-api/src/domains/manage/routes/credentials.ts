@@ -5,6 +5,7 @@ import {
   CredentialReferenceApiUpdateSchema,
   CredentialReferenceListResponse,
   CredentialReferenceResponse,
+  type CredentialStore,
   commonGetErrorResponses,
   createApiError,
   createCredentialReference,
@@ -162,6 +163,9 @@ app.openapi(
       projectId,
     };
 
+    let oldLookupKey: string | null | undefined;
+    let oldStore: CredentialStore | undefined;
+
     const isUserScoped = !!(credentialData.toolId && credentialData.userId);
     let hadExistingUserScopedCredential = false;
     // For user-scoped credentials, clean up the old credential store connection before upserting
@@ -177,21 +181,13 @@ app.openapi(
 
       if (existingCredential?.retrievalParams) {
         const credentialStores = c.get('credentialStores');
-        const oldStore = credentialStores.get(existingCredential.credentialStoreId);
+        oldStore = credentialStores.get(existingCredential.credentialStoreId);
 
         if (oldStore) {
-          const oldLookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
+          oldLookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
             retrievalParams: existingCredential.retrievalParams,
             credentialStoreType: oldStore.type,
           });
-
-          if (oldLookupKey) {
-            try {
-              await oldStore.delete(oldLookupKey);
-            } catch {
-              // Best-effort cleanup — don't block the upsert if the old connection is already gone
-            }
-          }
         }
       }
     }
@@ -199,6 +195,15 @@ app.openapi(
     const credential = isUserScoped
       ? await upsertCredentialReference(db)({ data: credentialData })
       : await createCredentialReference(db)(credentialData);
+
+    if (oldLookupKey && oldStore) {
+      try {
+        await oldStore.delete(oldLookupKey);
+      } catch {
+        // Best-effort cleanup — don't block the upsert if the old connection is already gone
+      }
+    }
+
     const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
     const status = isUserScoped && hadExistingUserScopedCredential ? 200 : 201;
     return c.json({ data: validatedCredential }, status);

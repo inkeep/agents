@@ -42,19 +42,15 @@ async function findOrCreateCredential(
   projectId: string,
   credentialData: CredentialReferenceApiInsert
 ) {
-  try {
-    // Try to find existing credential by ID first
-    const existingCredential = await getCredentialReferenceWithResources(db)({
-      scopes: { tenantId, projectId },
-      id: credentialData.id,
-    });
+  // Try to find existing credential by ID first
+  const existingCredential = await getCredentialReferenceWithResources(db)({
+    scopes: { tenantId, projectId },
+    id: credentialData.id,
+  });
 
-    if (existingCredential) {
-      const validatedCredential = CredentialReferenceApiSelectSchema.parse(existingCredential);
-      return validatedCredential;
-    }
-  } catch {
-    // Credential not found by ID, continue with upsert
+  if (existingCredential) {
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(existingCredential);
+    return validatedCredential;
   }
 
   try {
@@ -248,6 +244,7 @@ app.openapi(
         toolId,
         tenantId,
         projectId,
+        userId,
         clientInformation,
         metadata,
         resourceUrl,
@@ -300,7 +297,7 @@ app.openapi(
           newCredentialData = {
             id: generateId(),
             toolId,
-            userId: c.get('userId'),
+            userId,
             name: tool.name,
             type: CredentialStoreType.keychain,
             credentialStoreId: 'keychain-default',
