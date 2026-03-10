@@ -8,10 +8,7 @@ export function getCurrentHeadersForTeamAgentNode(node: {
   id: string;
 }): Record<string, string> {
   // First check if we have temporary headers stored on the node (from recent edits)
-  if (
-    (node.data as any).tempHeaders &&
-    typeof (node.data as any).tempHeaders === 'object'
-  ) {
+  if ((node.data as any).tempHeaders && typeof (node.data as any).tempHeaders === 'object') {
     return (node.data as any).tempHeaders;
   }
   return {};
