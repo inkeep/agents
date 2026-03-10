@@ -98,6 +98,9 @@ export async function getFunctionTools(
           if (parsed.denied) {
             return parsed.result;
           }
+          if (parsed.pendingApproval) {
+            return null;
+          }
           const finalArgs = parsed.args;
 
           logger.debug(
