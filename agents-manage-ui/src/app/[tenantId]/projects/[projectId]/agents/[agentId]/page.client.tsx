@@ -174,32 +174,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     : result.edges;
 
   // Helper functions to compute lookups from agent data
-  const computeSubAgentExternalAgentConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
-  ): SubAgentExternalAgentConfigLookup => {
-    if (!agentData?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
-    const lookup: SubAgentExternalAgentConfigLookup = {};
-    Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-      if (subAgentData && 'canDelegateTo' in subAgentData && subAgentData.canDelegateTo) {
-        const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
-        subAgentData.canDelegateTo
-          .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
-          .forEach((delegate) => {
-            externalAgentConfigs[delegate.externalAgentId] = {
-              externalAgentId: delegate.externalAgentId,
-              headers: delegate.headers ?? undefined,
-            };
-          });
-        if (Object.keys(externalAgentConfigs).length > 0) {
-          lookup[subAgentId] = externalAgentConfigs;
-        }
-      }
-    });
-    return lookup;
-  };
-
-  const subAgentExternalAgentConfigLookup = computeSubAgentExternalAgentConfigLookup(agent);
-
   const subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup = (() => {
     if (!agent.subAgents) return {};
     const lookup: SubAgentTeamAgentConfigLookup = {};
