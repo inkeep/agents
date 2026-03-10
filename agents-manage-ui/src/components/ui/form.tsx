@@ -39,14 +39,14 @@ function useFormField() {
   if (!fieldContext) {
     throw new Error('useFormField must be used within a <FormField />');
   }
-  if (!itemContext) {
-    throw new Error('useFormField must be used within a <FormItem />');
-  }
+  // if (!itemContext) {
+  //  throw new Error('useFormField must be used within a <FormItem />');
+  // }
   const { name } = fieldContext;
   const { getFieldState } = useFormContext();
   const formState = useFormState({ name });
   const fieldState = getFieldState(name, formState);
-  const { id } = itemContext;
+  const { id } = itemContext as any;
 
   return {
     id,
