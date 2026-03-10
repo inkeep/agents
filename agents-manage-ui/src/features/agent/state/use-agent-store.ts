@@ -9,10 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-} from '@/lib/types/agent-full';
+import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -22,7 +19,6 @@ interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
   metadata: AgentMetadata;
-  agentToolConfigLookup: AgentToolConfigLookup;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   dirty: boolean;
   history: HistoryEntry[];
@@ -56,11 +52,9 @@ interface AgentActions {
     nodes: Node[],
     edges: Edge[],
     metadata: AgentMetadata,
-    agentToolConfigLookup?: AgentToolConfigLookup,
     subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup
   ): void;
   reset(): void;
-  setAgentToolConfigLookup(agentToolConfigLookup: AgentToolConfigLookup): void;
   setSubAgentExternalAgentConfigLookup(
     subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup
   ): void;
@@ -126,7 +120,6 @@ const initialAgentState: AgentStateData = {
     prompt: undefined,
     statusUpdates: undefined,
   },
-  agentToolConfigLookup: {},
   subAgentExternalAgentConfigLookup: {},
   dirty: false,
   history: [],
@@ -149,18 +142,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   variableSuggestions: [],
   // Separate "namespace" for actions
   actions: {
-    setInitial(
-      nodes,
-      edges,
-      metadata,
-      agentToolConfigLookup = {},
-      subAgentExternalAgentConfigLookup = {}
-    ) {
+    setInitial(nodes, edges, metadata, subAgentExternalAgentConfigLookup = {}) {
       set({
         nodes,
         edges,
         metadata,
-        agentToolConfigLookup,
         subAgentExternalAgentConfigLookup,
         dirty: false,
         history: [],
@@ -175,9 +161,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       // and then immediately re-expand due to the user’s persisted preference.
       const { isSidebarSessionOpen: _, ...state } = initialAgentState;
       set({ ...state, playgroundConversationId: generateId() });
-    },
-    setAgentToolConfigLookup(agentToolConfigLookup) {
-      set({ agentToolConfigLookup });
     },
     setSubAgentExternalAgentConfigLookup(subAgentExternalAgentConfigLookup) {
       set({ subAgentExternalAgentConfigLookup });
