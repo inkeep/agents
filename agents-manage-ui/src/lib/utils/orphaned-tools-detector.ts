@@ -1,5 +1,3 @@
-import type { MCPNodeData } from '@/components/agent/configuration/node-types';
-
 export interface ActiveTool {
   name: string;
   description?: string;
