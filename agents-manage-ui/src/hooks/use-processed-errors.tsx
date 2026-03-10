@@ -16,18 +16,17 @@ export function useProcessedErrors(
   field: string;
   message?: string;
 }> {
+  'use memo';
   const { control } = useFullAgentFormContext();
   const { errors } = useFormState({
     control,
     name: `${entity}.${key}`,
   });
-  const fieldErrors = errors?.[entity]?.[key];
-  const processedErrors = fieldErrors
-    ? Object.entries(fieldErrors).map(([key, value]) => ({
-        field: key,
-        message: flatNestedFieldMessage(value),
-      }))
-    : [];
+  const fieldErrors = errors?.[entity]?.[key] ?? {};
+  const processedErrors = Object.entries(fieldErrors).map(([key, value]) => ({
+    field: key,
+    message: flatNestedFieldMessage(value),
+  }));
 
   return processedErrors;
 }

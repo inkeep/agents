@@ -169,12 +169,11 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
       className={cn(
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
         isConnecting && 'animate-pulse opacity-80',
+        (hasErrors || hasStatusErrors) && 'ring-2 ring-red-300 border-red-300',
         (needsAuth || hasOrphanedTools) &&
           'ring-2 ring-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/30',
         isExecuting && 'node-executing',
-        isInvertedDelegating && 'node-delegating-inverted',
-        // TODO doesn't work
-        (hasErrors || hasStatusErrors) && 'ring-2 ring-red-300 border-red-300'
+        isInvertedDelegating && 'node-delegating-inverted'
       )}
     >
       {hasErrors && <ErrorIndicator errors={processedErrors} />}

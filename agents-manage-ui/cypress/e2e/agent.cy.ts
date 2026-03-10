@@ -34,7 +34,7 @@ describe('Agent', () => {
     });
 
     it('should navigates to the page when changes are saved', () => {
-      cy.get('label').contains('Description').next().clear();
+      cy.get('label').contains('Description').next().type('TEST');
       cy.contains('Projects').click();
       cy.get('[role=dialog]').contains('Save changes').click();
       cy.get('[role=dialog]').should('not.exist');
