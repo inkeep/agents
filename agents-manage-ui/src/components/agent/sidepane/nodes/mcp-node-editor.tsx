@@ -22,12 +22,7 @@ import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
 import { createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
-import {
-  findOrphanedTools,
-  getCurrentHeadersForNode,
-  getCurrentSelectedToolsForNode,
-  getCurrentToolPoliciesForNode,
-} from '@/lib/utils/orphaned-tools-detector';
+import { findOrphanedTools } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
 import { FieldLabel } from '../form-components/label';
 import { SchemaOverrideBadge } from './schema-override-badge';
@@ -62,17 +57,13 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const skeletonToolData = skeletonToolLookup[selectedNode.data.toolId];
   const toolData = liveToolData ?? skeletonToolData;
 
-  function getCurrentHeaders(): Record<string, string> {
-    return getCurrentHeadersForNode(selectedNode);
-  }
-
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');
 
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
-    const newHeaders = getCurrentHeaders();
+    const newHeaders = selectedNode.data.tempHeaders ?? {};
     setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
@@ -90,8 +81,8 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
         : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(selectedNode);
-  const currentToolPolicies = getCurrentToolPoliciesForNode(selectedNode);
+  const selectedTools = selectedNode.data.tempSelectedTools ?? null;
+  const currentToolPolicies = selectedNode.data.tempToolPolicies ?? {};
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
 
   // Track if we've already shown the warning for this node to avoid repeated toasts

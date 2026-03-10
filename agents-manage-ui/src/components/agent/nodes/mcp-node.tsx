@@ -8,11 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { cn, createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
-import {
-  findOrphanedTools,
-  getCurrentSelectedToolsForNode,
-  getCurrentToolPoliciesForNode,
-} from '@/lib/utils/orphaned-tools-detector';
+import { findOrphanedTools } from '@/lib/utils/orphaned-tools-detector';
 import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
@@ -58,10 +54,9 @@ const TruncateToolBadge: FC<{
   );
 };
 
-export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
+export function MCPNode({ data, selected }: NodeProps & { data: MCPNodeData }) {
   'use memo';
 
-  const { data, selected } = props;
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const skeletonToolLookup = createLookup(mcpTools);
@@ -88,8 +83,8 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     activeTools: toolData?.config?.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(props);
-  const toolPolicies = getCurrentToolPoliciesForNode(props);
+  const selectedTools = data.tempSelectedTools ?? null;
+  const toolPolicies = data.tempToolPolicies ?? {};
 
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
   const hasOrphanedTools = orphanedTools.length > 0;

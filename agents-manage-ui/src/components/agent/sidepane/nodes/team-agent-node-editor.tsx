@@ -12,7 +12,6 @@ import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { teamAgentHeadersTemplate } from '@/lib/templates';
-import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
@@ -75,17 +74,13 @@ export function TeamAgentNodeEditor({ selectedNode, errorHelpers }: TeamAgentNod
     isEditing: false,
   });
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForTeamAgentNode(selectedNode);
-  }, [selectedNode]);
-
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');
 
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
-    const newHeaders = getCurrentHeaders();
+    const newHeaders = selectedNode.data.tempHeaders ?? {};
     setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
