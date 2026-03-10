@@ -15,8 +15,13 @@
 
 import './commands';
 
-// Login before each test to ensure authenticated state
+// Login before each test to ensure authenticated state.
+// Tests that set { testIsolation: false } and don't need UI login
+// can skip this by checking a suite-level tag or env flag.
 beforeEach(() => {
+  // Skip login for API-only test suites (e.g. app-credentials-e2e)
+  const specName = Cypress.spec?.relative || '';
+  if (specName.includes('app-credentials-e2e')) return;
   cy.login();
 });
 

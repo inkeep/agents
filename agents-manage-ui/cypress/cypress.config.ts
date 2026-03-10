@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import { defineConfig } from 'cypress';
 
@@ -20,6 +21,8 @@ export default defineConfig({
   env: {
     TEST_USER_EMAIL: process.env.INKEEP_AGENTS_MANAGE_UI_USERNAME,
     TEST_USER_PASSWORD: process.env.INKEEP_AGENTS_MANAGE_UI_PASSWORD,
+    BYPASS_SECRET: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
+    API_URL: process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002',
   },
   e2e: {
     video: true,
@@ -32,6 +35,77 @@ export default defineConfig({
         log(message: string) {
           console.log(message);
           return null;
+        },
+        solvePow(challenge: {
+          algorithm: string;
+          challenge: string;
+          maxnumber: number;
+          salt: string;
+          signature: string;
+        }): string {
+          const algo = challenge.algorithm.replace('-', '').toLowerCase();
+          for (let n = 0; n <= challenge.maxnumber; n++) {
+            const hash = createHash(algo).update(`${challenge.salt}${n}`).digest('hex');
+            if (hash === challenge.challenge) {
+              return Buffer.from(
+                JSON.stringify({
+                  algorithm: challenge.algorithm,
+                  challenge: challenge.challenge,
+                  number: n,
+                  salt: challenge.salt,
+                  signature: challenge.signature,
+                })
+              ).toString('base64');
+            }
+          }
+          throw new Error('PoW solve exhausted maxnumber');
+        },
+        async chatSSE(params: {
+          url: string;
+          headers: Record<string, string>;
+          body: string;
+        }): Promise<{ text: string; conversationId: string }> {
+          const res = await fetch(params.url, {
+            method: 'POST',
+            headers: params.headers,
+            body: params.body,
+          });
+          if (res.status !== 200) {
+            const text = await res.text();
+            throw new Error(`Chat failed (${res.status}): ${text.slice(0, 500)}`);
+          }
+          const raw = await res.text();
+          let fullText = '';
+          let convId = '';
+          for (const line of raw.split('\n')) {
+            if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+            try {
+              const chunk = JSON.parse(line.slice(6));
+              const delta = chunk.choices?.[0]?.delta;
+              if (delta?.content) {
+                if (delta.content.startsWith('{"type":"data-operation"')) {
+                  try {
+                    const op = JSON.parse(delta.content);
+                    if (op.data?.details?.conversationId) convId = op.data.details.conversationId;
+                  } catch {
+                    /* ignore */
+                  }
+                } else {
+                  fullText += delta.content;
+                }
+              }
+              if (chunk.conversationId) convId = chunk.conversationId;
+              if (chunk.id && !convId) convId = chunk.id;
+              const dataOp = chunk.data ?? chunk;
+              if (dataOp?.type === 'completion_complete' && dataOp?.details?.conversationId) {
+                convId = dataOp.details.conversationId;
+              }
+            } catch {
+              /* skip */
+            }
+          }
+          if (!fullText) throw new Error(`Empty agent response. Raw: ${raw.slice(0, 500)}`);
+          return { text: fullText, conversationId: convId };
         },
       });
 

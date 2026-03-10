@@ -10,6 +10,7 @@ import type {
   AgentWithinContextOfProjectSelectSchema,
   AgentWithinContextOfProjectSelectSchemaWithRelationIds,
   AllAgentSchema,
+  AnonymousSessionResponseSchema,
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
   ApiKeyApiSelectSchema,
@@ -17,6 +18,13 @@ import type {
   ApiKeyInsertSchema,
   ApiKeySelectSchema,
   ApiKeyUpdateSchema,
+  AppApiCreationResponseSchema,
+  AppApiInsertSchema,
+  AppApiSelectSchema,
+  AppApiUpdateSchema,
+  AppInsertSchema,
+  AppSelectSchema,
+  AppUpdateSchema,
   ArtifactComponentApiInsertSchema,
   ArtifactComponentApiSelectSchema,
   ArtifactComponentApiUpdateSchema,
@@ -534,6 +542,16 @@ export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiInsert = z.infer<typeof ApiKeyApiInsertSchema>;
 export type ApiKeyApiUpdate = z.infer<typeof ApiKeyApiUpdateSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
+
+export type AppSelect = z.infer<typeof AppSelectSchema>;
+export type AppInsert = z.infer<typeof AppInsertSchema>;
+export type AppUpdate = z.infer<typeof AppUpdateSchema>;
+export type AppApiSelect = z.infer<typeof AppApiSelectSchema>;
+export type AppApiInsert = z.infer<typeof AppApiInsertSchema>;
+export type AppApiUpdate = z.infer<typeof AppApiUpdateSchema>;
+export type AppApiCreationResponse = z.infer<typeof AppApiCreationResponseSchema>;
+
+export type AnonymousSessionResponse = z.infer<typeof AnonymousSessionResponseSchema>;
 
 export type CredentialReferenceSelect = z.infer<typeof CredentialReferenceSelectSchema>;
 export type CredentialReferenceInsert = z.infer<typeof CredentialReferenceInsertSchema>;

@@ -77,6 +77,17 @@ runs:
         ENVIRONMENT: test
       run: pnpm exec turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-sdk'
 
+    - name: Write AI provider keys to .env
+      shell: bash
+      run: |
+        # Append AI provider API keys from the workflow env into .env so the API
+        # server picks them up via loadEnvironmentFiles(). We cannot export them
+        # to $GITHUB_ENV because that leaks into the Next.js build step.
+        if [ -n "$ANTHROPIC_API_KEY" ]; then
+          sed -i "s|^ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}|" .env
+          echo "Wrote ANTHROPIC_API_KEY to .env"
+        fi
+
     - name: Start backend API server
       shell: bash
       env:
@@ -131,6 +142,9 @@ runs:
 
     - name: Run Cypress E2E Tests
       shell: bash
+      env:
+        CYPRESS_E2E_PROJECT_ID: activities-planner
+        CYPRESS_E2E_AGENT_ID: friendly-agent
       run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
 
     - name: Upload Cypress Screenshots
