@@ -14,6 +14,7 @@
     "PORT",
     "LOG_LEVEL"
   ],
+  "globalDependencies": ["pnpm-lock.yaml", "patches/*"],
   "tasks": {
     "transit": {
       "dependsOn": ["^transit"]
