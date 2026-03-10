@@ -8,17 +8,6 @@ const APPROVAL_CLEANUP_INTERVAL_MS = 2 * 60 * 1000;
 // Approval timeout - 10 minutes (same as OAuth PKCE timeout)
 const APPROVAL_TIMEOUT_MS = 10 * 60 * 1000;
 
-const PENDING_APPROVALS_KEY = '__inkeep_pendingToolApprovals';
-const CLEANUP_STARTED_KEY = '__inkeep_pendingToolApprovalsCleanupStarted';
-
-function getPendingApprovals(): Map<string, PendingToolApproval> {
-  const g = globalThis as Record<string, unknown>;
-  if (!g[PENDING_APPROVALS_KEY]) {
-    g[PENDING_APPROVALS_KEY] = new Map<string, PendingToolApproval>();
-  }
-  return g[PENDING_APPROVALS_KEY] as Map<string, PendingToolApproval>;
-}
-
 export interface PendingToolApproval {
   toolCallId: string;
   toolName: string;
@@ -38,13 +27,10 @@ export interface PendingToolApproval {
  */
 export class PendingToolApprovalManager {
   private static instance: PendingToolApprovalManager;
+  private pendingApprovals: Map<string, PendingToolApproval> = new Map();
 
   private constructor() {
-    const g = globalThis as Record<string, unknown>;
-    if (!g[CLEANUP_STARTED_KEY]) {
-      g[CLEANUP_STARTED_KEY] = true;
-      setInterval(() => this.cleanupExpiredApprovals(), APPROVAL_CLEANUP_INTERVAL_MS);
-    }
+    setInterval(() => this.cleanupExpiredApprovals(), APPROVAL_CLEANUP_INTERVAL_MS);
   }
 
   static getInstance(): PendingToolApprovalManager {
@@ -65,7 +51,7 @@ export class PendingToolApprovalManager {
     subAgentId: string
   ): Promise<{ approved: boolean; reason?: string }> {
     return new Promise((resolve, reject) => {
-      const pendingApprovals = getPendingApprovals();
+      const pendingApprovals = this.pendingApprovals;
       const timeoutId = setTimeout(() => {
         pendingApprovals.delete(toolCallId);
         resolve({
@@ -104,7 +90,7 @@ export class PendingToolApprovalManager {
    * Approve a pending tool call
    */
   approveToolCall(toolCallId: string): boolean {
-    const pendingApprovals = getPendingApprovals();
+    const pendingApprovals = this.pendingApprovals;
     const approval = pendingApprovals.get(toolCallId);
 
     if (!approval) {
@@ -132,7 +118,7 @@ export class PendingToolApprovalManager {
    * Deny a pending tool call
    */
   denyToolCall(toolCallId: string, reason?: string): boolean {
-    const pendingApprovals = getPendingApprovals();
+    const pendingApprovals = this.pendingApprovals;
     const approval = pendingApprovals.get(toolCallId);
 
     if (!approval) {
@@ -164,7 +150,7 @@ export class PendingToolApprovalManager {
    * Clean up expired approvals (called by interval timer)
    */
   private cleanupExpiredApprovals(): void {
-    const pendingApprovals = getPendingApprovals();
+    const pendingApprovals = this.pendingApprovals;
     const now = Date.now();
     let cleanedUp = 0;
 
@@ -186,7 +172,7 @@ export class PendingToolApprovalManager {
    * Get current status for monitoring
    */
   getStatus() {
-    const pendingApprovals = getPendingApprovals();
+    const pendingApprovals = this.pendingApprovals;
     return {
       pendingApprovals: pendingApprovals.size,
       approvals: Array.from(pendingApprovals.values()).map((approval) => ({
