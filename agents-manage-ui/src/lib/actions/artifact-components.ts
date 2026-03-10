@@ -10,41 +10,10 @@ import type { ArtifactComponent } from '../api/artifact-components';
 import {
   createArtifactComponent,
   deleteArtifactComponent,
-  fetchArtifactComponents,
   updateArtifactComponent,
 } from '../api/artifact-components';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
-
-/**
- * Fetch all artifacts
- */
-export async function fetchArtifactComponentsAction(
-  tenantId: string,
-  projectId: string
-): Promise<ActionResult<ArtifactComponent[]>> {
-  try {
-    const result = await fetchArtifactComponents(tenantId, projectId);
-    return {
-      success: true,
-      data: result.data,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
 
 /**
  * Create a new artifact
