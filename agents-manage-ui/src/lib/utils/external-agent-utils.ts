@@ -1,33 +1,19 @@
-import type { Edge } from '@xyflow/react';
 import type { ExternalAgentNodeData } from '@/components/agent/configuration/node-types';
 
 /**
- * Enhanced lookup for headers - uses relationshipId
+ * Reads the current headers from external agent node data.
  */
-export function getCurrentHeadersForExternalAgentNode(
-  node: { data: ExternalAgentNodeData; id: string },
-  subAgentExternalAgentConfigLookup: Record<
-    string,
-    Record<string, { externalAgentId: string; headers?: Record<string, string> }>
-  >,
-  _edges: Edge[]
-): Record<string, string> {
+export function getCurrentHeadersForExternalAgentNode(node: {
+  data: ExternalAgentNodeData;
+  id: string;
+}): Record<string, string> {
   // First check if we have temporary headers stored on the node (from recent edits)
-  if ((node.data as any).tempHeaders !== undefined) {
+  if (
+    (node.data as any).tempHeaders !== undefined &&
+    (node.data as any).tempHeaders !== null &&
+    typeof (node.data as any).tempHeaders === 'object'
+  ) {
     return (node.data as any).tempHeaders;
   }
-
-  // If node has relationshipId, find config by relationshipId
-  const relationshipId = (node.data as any).relationshipId;
-  if (relationshipId) {
-    for (const externalAgentMap of Object.values(subAgentExternalAgentConfigLookup)) {
-      const config = externalAgentMap[relationshipId];
-      if (config) {
-        return config.headers ?? {};
-      }
-    }
-  }
-
-  // No relationshipId found, return empty headers
   return {};
 }
