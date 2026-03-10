@@ -12,7 +12,6 @@ import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { teamAgentHeadersTemplate } from '@/lib/templates';
-import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
@@ -21,15 +20,10 @@ import { TextareaField } from '../form-components/text-area';
 
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;
-  subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
   errorHelpers?: ErrorHelpers;
 }
 
-export function TeamAgentNodeEditor({
-  selectedNode,
-  subAgentTeamAgentConfigLookup,
-  errorHelpers,
-}: TeamAgentNodeEditorProps) {
+export function TeamAgentNodeEditor({ selectedNode, errorHelpers }: TeamAgentNodeEditorProps) {
   const { canEdit } = useProjectPermissions();
   const { updateNodeData } = useReactFlow();
   const { markUnsaved } = useAgentActions();
@@ -82,8 +76,8 @@ export function TeamAgentNodeEditor({
   });
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);
-  }, [selectedNode, subAgentTeamAgentConfigLookup]);
+    return getCurrentHeadersForTeamAgentNode(selectedNode);
+  }, [selectedNode]);
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');
