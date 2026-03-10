@@ -131,6 +131,9 @@ runs:
 
     - name: Run Cypress E2E Tests
       shell: bash
+      env:
+        CYPRESS_E2E_PROJECT_ID: activities-planner
+        CYPRESS_E2E_AGENT_ID: activities-planner
       run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
 
     - name: Upload Cypress Screenshots
