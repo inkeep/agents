@@ -18,17 +18,8 @@ interface ChatUICodeProps {
   component: ChatUIComponent;
   baseSettings: InkeepBaseSettings;
   extraAiChatSettings: Record<string, unknown>;
-  agentUrl: string;
-  shouldEmitDataOperations: boolean;
+  baseUrl: string;
 }
-
-const computeSessionUrl = (agentUrl: string): string => {
-  return agentUrl.replace(/\/api\/chat$/, '/auth/apps/');
-};
-
-const computeChallengeUrl = (agentUrl: string): string => {
-  return agentUrl.replace(/\/api\/chat$/, '/auth/pow/challenge');
-};
 
 const generateReactCode = (
   component: ChatUIComponent,
@@ -63,8 +54,7 @@ export const ChatUICode = ({
   component,
   baseSettings,
   extraAiChatSettings,
-  agentUrl,
-  shouldEmitDataOperations,
+  baseUrl,
 }: ChatUICodeProps) => {
   const componentMap: Record<ChatUIComponent, string> = {
     [ChatUIComponent.EMBEDDED_CHAT]: 'InkeepEmbeddedChat',
@@ -73,20 +63,13 @@ export const ChatUICode = ({
   };
   const componentName = componentMap[component];
 
-  const sessionUrl = `${computeSessionUrl(agentUrl)}" + APP_ID + "/anonymous-session`;
-  const challengeUrl = computeChallengeUrl(agentUrl);
-  const baseSettingsJson = indentJson(JSON.stringify(baseSettings, null, 2), 4);
-
-  const emitOperationsLine = shouldEmitDataOperations ? '        "x-emit-operations": "true"' : '';
-  const extraSettingsStr = serializeExtraSettings(extraAiChatSettings, 6);
+  const baseSettingsJson = indentJson(JSON.stringify(baseSettings, null, 2), 2);
+  const extraSettingsStr = serializeExtraSettings(extraAiChatSettings, 4);
 
   const replacements: Record<string, string> = {
     APP_ID: 'YOUR_APP_ID',
-    AGENT_URL: agentUrl,
-    SESSION_URL: sessionUrl,
-    CHALLENGE_URL: challengeUrl,
+    BASE_URL: baseUrl,
     BASE_SETTINGS: baseSettingsJson,
-    EMIT_OPERATIONS: emitOperationsLine,
     EXTRA_AI_CHAT_SETTINGS: extraSettingsStr,
     COMPONENT_NAME: componentName,
   };

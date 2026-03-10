@@ -19,6 +19,7 @@ interface ChatUIProps {
 export function ChatUIGuide() {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
+  const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
   const form = useForm<Partial<ChatUIProps>>({
     defaultValues: {
       component: ChatUIComponent.EMBEDDED_CHAT,
@@ -86,8 +87,7 @@ export function ChatUIGuide() {
             placeholder: aiChatSettings.placeholder,
             aiAssistantAvatar: aiChatSettings.aiAssistantAvatar,
           }}
-          agentUrl={agentUrl}
-          shouldEmitDataOperations={shouldEmitDataOperations}
+          baseUrl={baseUrl}
         />
       </TabsContent>
     </Tabs>
