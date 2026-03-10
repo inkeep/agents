@@ -140,10 +140,10 @@ export function serializeAgentData(
         const mcpNode = nodes.find((n) => n.id === edge.target);
 
         if (mcpNode && mcpNode.type === NodeType.MCP) {
-          const toolId = (mcpNode.data as any).toolId;
+          const toolId = mcpNode.data.toolId;
 
           if (toolId) {
-            const tempSelectedTools = (mcpNode.data as any).tempSelectedTools;
+            const tempSelectedTools = mcpNode.data.tempSelectedTools;
             let toolSelection: string[] | null = null;
 
             const relationshipId = (mcpNode.data as any).relationshipId;
@@ -360,11 +360,11 @@ export function serializeAgentData(
       const isTargetExternal = targetExternalAgent !== undefined;
       const isTargetTeamAgent = targetTeamAgent !== undefined;
 
-      if (!sourceAgent || !(edge.data as any)?.relationships) {
+      if (!sourceAgent || !edge.data?.relationships) {
         continue;
       }
 
-      const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
+      const relationships = edge.data.relationships as A2AEdgeData['relationships'];
 
       // Helper function to add relationship
       const addRelationship = (
@@ -677,7 +677,7 @@ export function validateSerializedData(
     // All subAgents are internal agents (external agents are project-scoped)
     if (agent.canUse) {
       // Skip tool validation if tools data is not available (project-scoped)
-      const toolsData = (data as any).tools;
+      const toolsData = data.tools;
       if (toolsData) {
         for (const canUseItem of agent.canUse) {
           const toolId = canUseItem.toolId;

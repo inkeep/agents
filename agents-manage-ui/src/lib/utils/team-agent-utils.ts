@@ -7,8 +7,8 @@ export function getCurrentHeadersForTeamAgentNode(node: {
   data: TeamAgentNodeData;
   id: string;
 }): Record<string, string> {
-  if ((node.data as any).tempHeaders && typeof (node.data as any).tempHeaders === 'object') {
-    return (node.data as any).tempHeaders;
+  if (node.data.tempHeaders && typeof node.data.tempHeaders === 'object') {
+    return node.data.tempHeaders;
   }
   return {};
 }

@@ -26,7 +26,7 @@ export function getCurrentSelectedToolsForNode(node: {
   id: string;
 }): string[] | null {
   if (node.data.tempSelectedTools !== undefined) {
-    return (node.data as any).tempSelectedTools;
+    return node.data.tempSelectedTools;
   }
   return null;
 }
@@ -39,7 +39,7 @@ export function getCurrentHeadersForNode(node: {
   id: string;
 }): Record<string, string> {
   if (node.data.tempHeaders && typeof node.data.tempHeaders === 'object') {
-    return (node.data as any).tempHeaders;
+    return node.data.tempHeaders;
   }
   return {};
 }
@@ -52,7 +52,7 @@ export function getCurrentToolPoliciesForNode(node: {
   id: string;
 }): Record<string, { needsApproval?: boolean }> {
   if (node.data.tempToolPolicies && typeof node.data.tempToolPolicies === 'object') {
-    return (node.data as any).tempToolPolicies;
+    return node.data.tempToolPolicies;
   }
   return {};
 }

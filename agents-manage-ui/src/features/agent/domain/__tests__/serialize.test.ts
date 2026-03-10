@@ -27,7 +27,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.models).toBeUndefined();
     });
@@ -53,7 +53,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.models).toBeUndefined();
     });
@@ -79,7 +79,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.models).toEqual({
         base: { model: 'gpt-4' },
@@ -109,7 +109,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.models).toEqual({
         base: undefined,
@@ -139,7 +139,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.models).toEqual({
         base: undefined,
@@ -169,7 +169,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.models).toEqual({
         base: { model: 'gpt-4' },
@@ -195,7 +195,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.models).toBeUndefined();
     });
@@ -235,7 +235,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -281,7 +281,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       // When tempSelectedTools is null, all tools should be selected (toolSelection: null)
       expect(result.subAgents.agent1.canUse).toBeDefined();
@@ -327,7 +327,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -372,7 +372,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       // selectedTools should not be created if tempSelectedTools is undefined
       expect((result.subAgents.agent1 as any).selectedTools).toBeUndefined();
@@ -413,7 +413,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       // When tempSelectedTools is undefined and there's an edge to MCP tool,
       // the toolSelection will be null (all tools selected by default)
@@ -464,7 +464,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, undefined);
+      const result = serializeAgentData(nodes, edges);
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -486,15 +486,10 @@ describe('serializeAgentData', () => {
 
     it('throws when `contextVariables` contains invalid JSON', () => {
       try {
-        serializeAgentData(
-          baseNodes,
-          edges,
-          {
-            // @ts-expect-error -- ignore
-            contextConfig: { contextVariables: '{' },
-          },
-          {}
-        );
+        serializeAgentData(baseNodes, edges, {
+          // @ts-expect-error -- ignore
+          contextConfig: { contextVariables: '{' },
+        });
         throw new Error('Expected `serializeAgentData` to throw');
       } catch (error) {
         expect(isContextConfigParseError(error)).toBe(true);
@@ -506,15 +501,10 @@ describe('serializeAgentData', () => {
 
     it('throws when `headersSchema` contains invalid JSON', () => {
       try {
-        serializeAgentData(
-          baseNodes,
-          edges,
-          {
-            // @ts-expect-error -- ignore
-            contextConfig: { headersSchema: '{' },
-          },
-          {}
-        );
+        serializeAgentData(baseNodes, edges, {
+          // @ts-expect-error -- ignore
+          contextConfig: { headersSchema: '{' },
+        });
         throw new Error('Expected `serializeAgentData` to throw');
       } catch (error) {
         expect(isContextConfigParseError(error)).toBe(true);
@@ -534,8 +524,7 @@ describe('serializeAgentData', () => {
             contextVariables: '{"foo":"bar"}',
             headersSchema: '{"type":"object"}',
           },
-        },
-        {}
+        }
       );
       expect(result).toBeTruthy();
     });
@@ -552,8 +541,7 @@ describe('serializeAgentData', () => {
             contextVariables: '', // cleared
             headersSchema: '', // cleared
           },
-        },
-        {}
+        }
       );
 
       // When there's an existing contextConfigId but fields are cleared,
@@ -576,8 +564,7 @@ describe('serializeAgentData', () => {
             contextVariables: '',
             headersSchema: '',
           },
-        },
-        {}
+        }
       );
 
       // When there's no existing contextConfigId and fields are empty,
@@ -598,8 +585,7 @@ describe('serializeAgentData', () => {
             contextVariables: '{"foo":"bar"}',
             headersSchema: '', // cleared
           },
-        },
-        {}
+        }
       );
 
       expect((result as any).contextConfigId).toBe(existingContextConfigId);
@@ -622,8 +608,7 @@ describe('serializeAgentData', () => {
             contextVariables: '', // cleared
             headersSchema: '{"type":"object"}',
           },
-        },
-        {}
+        }
       );
 
       expect((result as any).contextConfigId).toBe(existingContextConfigId);

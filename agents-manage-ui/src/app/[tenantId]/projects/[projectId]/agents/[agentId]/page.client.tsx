@@ -509,7 +509,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     const targetNode = nodes.find(
       (node) =>
         node.id === nodeId || // Direct match (no custom ID set)
-        (node.data as any)?.id === nodeId // Custom agent ID match
+        node.data?.id === nodeId // Custom agent ID match
     );
 
     if (targetNode) {
