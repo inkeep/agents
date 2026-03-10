@@ -136,4 +136,27 @@ describe('handlePrepareStepCompression', () => {
     const result = await handlePrepareStepCompression(makeMessages(6), compressor, 2);
     expect(result).toEqual({});
   });
+
+  it('returns empty when isCompressionNeeded throws (outer catch)', async () => {
+    const compressor = makeCompressor({
+      isCompressionNeeded: vi.fn().mockImplementation(() => {
+        throw new Error('unexpected compressor error');
+      }),
+    });
+
+    const result = await handlePrepareStepCompression(makeMessages(6), compressor, 2);
+    expect(result).toEqual({});
+    expect(compressor.markCompressed).not.toHaveBeenCalled();
+  });
+
+  it('returns empty when effectiveBaseline throws (outer catch)', async () => {
+    const compressor = makeCompressor({
+      effectiveBaseline: vi.fn().mockImplementation(() => {
+        throw new Error('baseline error');
+      }),
+    });
+
+    const result = await handlePrepareStepCompression(makeMessages(6), compressor, 2);
+    expect(result).toEqual({});
+  });
 });
