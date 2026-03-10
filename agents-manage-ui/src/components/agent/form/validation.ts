@@ -132,15 +132,15 @@ export const FullAgentTeamAgentSchema = z.object({
   // TODO or tempHeaders
   headers: StringToStringRecordSchema.optional(),
 });
+const SubAgentStopWhenSchema = SubAgentSchema.shape.stopWhen.unwrap();
+
 export const FullAgentSubAgentSchema = z.strictObject({
   ...SubAgentSchema.shape,
   type: SubAgentSchema.shape.type.default('internal'),
   models: MyModelsSchema,
   stopWhen: z.strictObject({
-    ...SubAgentSchema.shape.stopWhen.unwrap().shape,
-    stepCountIs: NullToUndefinedSchema.pipe(
-      SubAgentSchema.shape.stopWhen.unwrap().shape.stepCountIs
-    ),
+    ...SubAgentStopWhenSchema.shape,
+    stepCountIs: z.preprocess((v) => v ?? undefined, SubAgentStopWhenSchema.shape.stepCountIs),
   }),
 });
 type FullAgentSubAgent = z.input<typeof FullAgentSubAgentSchema>;
