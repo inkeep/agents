@@ -58,22 +58,8 @@ import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
-import { fetchToolsAction } from '@/lib/actions/tools';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { Credential } from '@/lib/api/credentials';
-import type { DataComponent } from '@/lib/api/data-components';
-import type { ExternalAgent } from '@/lib/api/external-agents';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { saveAgent } from '@/lib/services/save-agent';
-import type {
-  AgentToolConfig,
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfig,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfig,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
-import type { Skill } from '@/lib/types/skills';
-import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
@@ -100,12 +86,6 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  dataComponentLookup: Record<string, DataComponent>;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
-  toolLookup: Record<string, MCPTool>;
-  credentialLookup: Record<string, Credential>;
-  skills: Skill[];
-  sandboxEnabled: boolean;
 }
 
 type ReactFlowProps = ComponentProps<typeof ReactFlow>;
@@ -121,15 +101,7 @@ const nonValidationErrors = new Set([
   'bad_request',
 ]);
 
-export const Agent: FC<AgentProps> = ({
-  agent,
-  dataComponentLookup,
-  artifactComponentLookup,
-  toolLookup,
-  credentialLookup,
-  sandboxEnabled,
-  skills,
-}) => {
+export const Agent: FC<AgentProps> = ({ agent }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
@@ -146,6 +118,8 @@ export const Agent: FC<AgentProps> = ({
     tenantId: string;
     projectId: string;
   }>();
+  const { data: mcpTools, refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
+  const toolLookup = createLookup(mcpTools);
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
@@ -195,96 +169,6 @@ export const Agent: FC<AgentProps> = ({
       }))
     : result.edges;
 
-  // Helper functions to compute lookups from agent data
-  const computeAgentToolConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
-  ): AgentToolConfigLookup => {
-    if (!agentData?.subAgents) return {} as AgentToolConfigLookup;
-
-    const lookup: AgentToolConfigLookup = {};
-    Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-      if (subAgentData?.canUse) {
-        const toolsMap: Record<string, AgentToolConfig> = {};
-        subAgentData.canUse.forEach((tool) => {
-          if (tool.agentToolRelationId) {
-            const config: AgentToolConfig = {
-              toolId: tool.toolId,
-            };
-
-            if (tool.toolSelection !== undefined) {
-              config.toolSelection = tool.toolSelection;
-            }
-
-            if (tool.headers) {
-              config.headers = tool.headers;
-            }
-
-            if (tool.toolPolicies) {
-              config.toolPolicies = tool.toolPolicies;
-            }
-
-            toolsMap[tool.agentToolRelationId] = config;
-          }
-        });
-        if (Object.keys(toolsMap).length > 0) {
-          lookup[subAgentId] = toolsMap;
-        }
-      }
-    });
-    return lookup;
-  };
-
-  const computeSubAgentExternalAgentConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
-  ): SubAgentExternalAgentConfigLookup => {
-    if (!agentData?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
-    const lookup: SubAgentExternalAgentConfigLookup = {};
-    Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-      if (subAgentData && 'canDelegateTo' in subAgentData && subAgentData.canDelegateTo) {
-        const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
-        subAgentData.canDelegateTo
-          .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
-          .forEach((delegate) => {
-            externalAgentConfigs[delegate.externalAgentId] = {
-              externalAgentId: delegate.externalAgentId,
-              headers: delegate.headers ?? undefined,
-            };
-          });
-        if (Object.keys(externalAgentConfigs).length > 0) {
-          lookup[subAgentId] = externalAgentConfigs;
-        }
-      }
-    });
-    return lookup;
-  };
-
-  const agentToolConfigLookup = computeAgentToolConfigLookup(agent);
-
-  const subAgentExternalAgentConfigLookup = computeSubAgentExternalAgentConfigLookup(agent);
-
-  const subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup = (() => {
-    if (!agent.subAgents) return {};
-    const lookup: SubAgentTeamAgentConfigLookup = {};
-    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
-      if (agentData && 'canDelegateTo' in agentData && agentData.canDelegateTo) {
-        const teamAgentConfigs: Record<string, SubAgentTeamAgentConfig> = {};
-        agentData.canDelegateTo
-          .filter((delegate) => typeof delegate === 'object' && 'agentId' in delegate)
-          .forEach((delegate) => {
-            // For team agents, the delegate is just the target agent ID string
-            teamAgentConfigs[delegate.agentId] = {
-              agentId: delegate.agentId,
-              headers: delegate.headers ?? undefined,
-            };
-          });
-        if (Object.keys(teamAgentConfigs).length > 0) {
-          lookup[subAgentId] = teamAgentConfigs;
-        }
-      }
-    });
-    return lookup;
-  })();
-
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
   const { storeNodes, edges, metadata } = useAgentStore((state) => ({
     storeNodes: state.nodes,
@@ -329,16 +213,7 @@ export const Agent: FC<AgentProps> = ({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
-    setInitial(
-      agentNodes,
-      agentEdges,
-      extractAgentMetadata(agent),
-      skills,
-      dataComponentLookup,
-      artifactComponentLookup,
-      toolLookup,
-      agentToolConfigLookup
-    );
+    setInitial(agentNodes, agentEdges, extractAgentMetadata(agent));
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
     // Only auto-add if user has edit permission
@@ -406,11 +281,9 @@ export const Agent: FC<AgentProps> = ({
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doRequest(): Promise<void> {
-      const [fullProjectResult, toolsResult] = await Promise.all([
+      const [fullProjectResult] = await Promise.all([
         getFullProjectAction(tenantId, projectId),
-        options?.fetchTools
-          ? fetchToolsAction(tenantId, projectId, { skipDiscovery: true })
-          : Promise.resolve(null),
+        options?.fetchTools ? refetchMcpTools() : Promise.resolve(null),
       ]);
 
       if (!fullProjectResult.success) {
@@ -421,11 +294,6 @@ export const Agent: FC<AgentProps> = ({
       const updatedAgent = fullProject?.agents?.[
         agent.id as keyof typeof fullProject.agents
       ] as ExtendedFullAgentDefinition;
-
-      // Update tool lookup if tools were fetched
-      const updatedToolLookup = toolsResult?.success
-        ? createLookup(toolsResult.data)
-        : fullProject.tools || {};
 
       // Deserialize agent data to nodes and edges
       const { nodes, edges } = deserializeAgentData(updatedAgent);
@@ -448,29 +316,8 @@ export const Agent: FC<AgentProps> = ({
       // Extract metadata
       const metadata = extractAgentMetadata(updatedAgent);
 
-      // Create lookups from full project data
-      const updatedDataComponentLookup = fullProject.dataComponents || {};
-      const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
-      const updatedExternalAgentLookup = fullProject.externalAgents || {};
-
-      // Recompute agent-specific lookups from the updated agent data
-      const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
-      const updatedSubAgentExternalAgentConfigLookup =
-        computeSubAgentExternalAgentConfigLookup(updatedAgent);
-
       // Update the store with all refreshed data
-      setInitial(
-        enrichNodes(nodesWithSelection),
-        edgesWithSelection,
-        metadata,
-        skills,
-        updatedDataComponentLookup as Record<string, DataComponent>,
-        updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
-        updatedToolLookup as unknown as Record<string, MCPTool>,
-        updatedAgentToolConfigLookup,
-        updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
-        updatedSubAgentExternalAgentConfigLookup
-      );
+      setInitial(enrichNodes(nodesWithSelection), edgesWithSelection, metadata);
 
       // Update project data in store so components using useProjectData get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);
@@ -662,7 +509,7 @@ export const Agent: FC<AgentProps> = ({
     const targetNode = nodes.find(
       (node) =>
         node.id === nodeId || // Direct match (no custom ID set)
-        (node.data as any)?.id === nodeId // Custom agent ID match
+        node.data?.id === nodeId // Custom agent ID match
     );
 
     if (targetNode) {
@@ -710,16 +557,7 @@ export const Agent: FC<AgentProps> = ({
   const onSubmit = async (): Promise<boolean> => {
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
-      serializedData = serializeAgentData(
-        nodes,
-        edges,
-        metadata,
-        dataComponentLookup,
-        artifactComponentLookup,
-        agentToolConfigLookup,
-        subAgentExternalAgentConfigLookup,
-        subAgentTeamAgentConfigLookup
-      );
+      serializedData = serializeAgentData(nodes, edges, metadata);
     } catch (error) {
       if (isContextConfigParseError(error)) {
         const errorObjects = [
@@ -953,7 +791,7 @@ export const Agent: FC<AgentProps> = ({
           <Controls className="text-foreground" showInteractive={false} />
           {!showEmptyState && canEdit && (
             <Panel position="top-left">
-              <NodeLibrary sandboxEnabled={sandboxEnabled} />
+              <NodeLibrary />
             </Panel>
           )}
 
@@ -1014,12 +852,6 @@ export const Agent: FC<AgentProps> = ({
                 selectedEdgeId={edgeId}
                 onClose={closeSidePane}
                 backToAgent={backToAgent}
-                dataComponentLookup={dataComponentLookup}
-                artifactComponentLookup={artifactComponentLookup}
-                agentToolConfigLookup={agentToolConfigLookup}
-                subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-                subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-                credentialLookup={credentialLookup}
                 disabled={isCopilotStreaming || !canEdit}
               />
             </ResizablePanel>
@@ -1042,7 +874,6 @@ export const Agent: FC<AgentProps> = ({
               tenantId={tenantId}
               setShowPlayground={setShowPlayground}
               closeSidePane={closeSidePane}
-              dataComponentLookup={dataComponentLookup}
               showTraces={showTraces}
               setShowTraces={setShowTraces}
             />

@@ -9,12 +9,20 @@ import type { MCPTool } from '@/lib/types/tools';
 
 const mcpToolQueryKeys = {
   all: ['mcp-tools'] as const,
-  list: (tenantId: string, projectId: string) => ['mcp-tools', tenantId, projectId] as const,
+  project: (tenantId: string, projectId: string) => ['mcp-tools', tenantId, projectId] as const,
+  list: (tenantId: string, projectId: string, skipDiscovery = false) =>
+    ['mcp-tools', tenantId, projectId, skipDiscovery ? 'skip-discovery' : 'full'] as const,
   status: (tenantId: string, projectId: string, toolId: string) =>
     ['mcp-tool-status', tenantId, projectId, toolId] as const,
 };
 
-export function useMcpToolsQuery({ enabled = true }: { enabled?: boolean } = {}) {
+export function useMcpToolsQuery({
+  enabled = true,
+  skipDiscovery = false,
+}: {
+  enabled?: boolean;
+  skipDiscovery?: boolean;
+} = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -23,8 +31,8 @@ export function useMcpToolsQuery({ enabled = true }: { enabled?: boolean } = {})
   }
 
   return useQuery<MCPTool[]>({
-    queryKey: mcpToolQueryKeys.list(tenantId, projectId),
-    queryFn: () => fetchMCPTools(tenantId, projectId),
+    queryKey: mcpToolQueryKeys.list(tenantId, projectId, skipDiscovery),
+    queryFn: () => fetchMCPTools(tenantId, projectId, { skipDiscovery }),
     enabled,
     staleTime: 30_000,
     initialData: [],
@@ -47,7 +55,7 @@ export function useMcpToolInvalidation(tenantId: string, projectId: string) {
     async (toolId?: string) => {
       // Invalidate the list query
       await queryClient.invalidateQueries({
-        queryKey: mcpToolQueryKeys.list(tenantId, projectId),
+        queryKey: mcpToolQueryKeys.project(tenantId, projectId),
       });
 
       // If a specific tool ID is provided, invalidate its status query too

@@ -1,5 +1,25 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- f0dd499: Move agent page data fetching to client-side React Query hooks, eliminating server-side waterfall fetches and enabling automatic request deduplication
+- 16e5e8d: Fix mid-generation context compression: accurate context slicing across multiple compression cycles, improved distillation quality, and richer compression telemetry
+- 7b811ec: Fix GenericKeyValueInput crash caused by FormLabel, FormDescription, and FormMessage used outside FormField context
+- 0e425da: Simplify agent editor state management by hydrating tool/agent config directly onto node data, eliminating server-side waterfalls and lookup indirection
+- Updated dependencies [a9c2857]
+- Updated dependencies [16e5e8d]
+  - @inkeep/agents-core@0.58.6
+
+## 0.58.5
+
+### Patch Changes
+
+- 5d3dba9: ui fix for webhooks and triggers
+  - @inkeep/agents-core@0.58.5
+
 ## 0.58.4
 
 ### Patch Changes
