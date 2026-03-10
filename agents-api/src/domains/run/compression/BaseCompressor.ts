@@ -531,10 +531,10 @@ export abstract class BaseCompressor {
 
       if (!artifacts.length) return this.cumulativeSummary;
 
-      const nameMap = new Map(
+      const nameMap = new Map<string, { name?: string; description?: string }>(
         artifacts
           .filter((a) => a.toolCallId && (a.name || a.description))
-          .map((a) => [a.toolCallId, { name: a.name, description: a.description }])
+          .map((a) => [a.toolCallId as string, { name: a.name, description: a.description }])
       );
 
       const refreshed = {
