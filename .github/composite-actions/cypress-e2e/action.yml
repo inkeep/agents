@@ -133,7 +133,7 @@ runs:
       shell: bash
       env:
         CYPRESS_E2E_PROJECT_ID: activities-planner
-        CYPRESS_E2E_AGENT_ID: activities-planner
+        CYPRESS_E2E_AGENT_ID: friendly-agent
       run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
 
     - name: Upload Cypress Screenshots
