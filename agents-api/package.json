@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.58.6",
+  "version": "0.58.10",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
@@ -51,15 +51,14 @@
   "dependencies": {
     "@ai-sdk/google": "3.0.4",
     "@aws-sdk/client-s3": "^3.985.0",
-    "@smithy/node-http-handler": "^4.4.0",
     "@hono/mcp": "^0.1.5",
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.1.5",
     "@inkeep/agents-core": "workspace:^",
+    "@inkeep/agents-email": "workspace:^",
     "@inkeep/agents-mcp": "workspace:^",
     "@inkeep/agents-work-apps": "workspace:^",
-    "@inkeep/agents-email": "workspace:^",
-    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@opentelemetry/api": "catalog:",
     "@opentelemetry/auto-instrumentations-node": "catalog:",
     "@opentelemetry/baggage-span-processor": "catalog:",
@@ -70,6 +69,7 @@
     "@opentelemetry/sdk-node": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",
+    "@smithy/node-http-handler": "^4.4.0",
     "@vercel/blob": "^2.3.0",
     "@vercel/functions": "^1.4.0",
     "@vercel/sandbox": "^0.0.24",
@@ -79,12 +79,13 @@
     "@workflow/world-vercel": "^4.1.0-beta.31",
     "ai": "6.0.14",
     "ajv": "^8.18.0",
+    "altcha-lib": "^1.4.1",
     "axios": "^1.13.5",
     "cron-parser": "^5.5.0",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
-    "file-type": "^21.3.0",
-    "hono": "^4.12.4",
+    "file-type": "^21.3.1",
+    "hono": "^4.12.7",
     "ipaddr.js": "^2.3.0",
     "hono-pino": "^0.10.1",
     "jmespath": "^0.16.0",
@@ -93,7 +94,7 @@
     "openid-client": "^6.8.1",
     "pg": "^8.16.3",
     "undici": "^7.22.0",
-    "workflow": "^4.1.0-beta.54"
+    "workflow": "^4.2.0-beta.64"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",

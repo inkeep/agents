@@ -362,6 +362,7 @@ export const setActiveAgentForConversation =
     subAgentId: string;
     agentId: string;
     ref: ResolvedRef;
+    userId?: string;
   }): Promise<void> => {
     await db
       .insert(conversations)
@@ -372,6 +373,7 @@ export const setActiveAgentForConversation =
         activeSubAgentId: params.subAgentId,
         agentId: params.agentId,
         ref: params.ref,
+        userId: params.userId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })

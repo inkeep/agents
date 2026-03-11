@@ -1,5 +1,30 @@
 # @inkeep/agents-core
 
+## 0.58.10
+
+### Patch Changes
+
+- fa64456: Security and bug fixes
+- 02bcd0e: Fix authorization bypass vulnerability in @hono/node-server (CVE-2026-29087)
+- f41500b: Security and bug fixes
+- 41af59e: utc bug for renable/disable schedule triggers
+
+## 0.58.9
+
+### Patch Changes
+
+- f150b28: Fix user-scoped credential references to upsert instead of failing on duplicate unique constraint
+- 49909bf: version packages changes
+- 4816f02: Fix CI workflows not triggering on Changesets Version Packages PR by using GitHub App token
+
+## 0.58.8
+
+### Patch Changes
+
+- e89948d: Add app credentials with anonymous JWT sessions, domain validation, and PoW challenge support
+
+## 0.58.7
+
 ## 0.58.6
 
 ### Patch Changes

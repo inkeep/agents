@@ -1,5 +1,59 @@
 # @inkeep/agents-api
 
+## 0.58.10
+
+### Patch Changes
+
+- fa64456: Security and bug fixes
+- 1e280e5: Security and bug fixes
+- 02bcd0e: Fix authorization bypass vulnerability in @hono/node-server (CVE-2026-29087)
+- b588ac4: Security and bug fixes
+- f41500b: Security and bug fixes
+- Updated dependencies [fa64456]
+- Updated dependencies [02bcd0e]
+- Updated dependencies [f41500b]
+- Updated dependencies [41af59e]
+  - @inkeep/agents-core@0.58.10
+  - @inkeep/agents-work-apps@0.58.10
+  - @inkeep/agents-email@0.58.10
+  - @inkeep/agents-mcp@0.58.10
+
+## 0.58.9
+
+### Patch Changes
+
+- f150b28: Fix user-scoped credential references to upsert instead of failing on duplicate unique constraint
+- 6144fc9: Fix app credential auth failing on internal A2A self-calls by always using service tokens
+- Updated dependencies [f150b28]
+- Updated dependencies [49909bf]
+- Updated dependencies [4816f02]
+  - @inkeep/agents-core@0.58.9
+  - @inkeep/agents-work-apps@0.58.9
+  - @inkeep/agents-email@0.58.9
+  - @inkeep/agents-mcp@0.58.9
+
+## 0.58.8
+
+### Patch Changes
+
+- e89948d: Add app credentials with anonymous JWT sessions, domain validation, and PoW challenge support
+- e89948d: Add anonymous user session conversation history endpoint
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+  - @inkeep/agents-work-apps@0.58.8
+  - @inkeep/agents-email@0.58.8
+  - @inkeep/agents-mcp@0.58.8
+
+## 0.58.7
+
+### Patch Changes
+
+- b1b440a: daisy chain trigger
+  - @inkeep/agents-core@0.58.7
+  - @inkeep/agents-email@0.58.7
+  - @inkeep/agents-mcp@0.58.7
+  - @inkeep/agents-work-apps@0.58.7
+
 ## 0.58.6
 
 ### Patch Changes
