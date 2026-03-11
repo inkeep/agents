@@ -2,28 +2,24 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerImageTools } from './tools/image';
 
 const SERVER_INSTRUCTIONS = `
-Use these tools for image processing operations. All tools accept base64-encoded image data.
+Use these tools to inspect and manipulate images. All tools require a base64-encoded image as input.
 
 ## Tools
-- **image_info**: Get image metadata (dimensions, format, channels, file size). Use this first to understand what you're working with.
-- **image_crop**: Extract a rectangular region from an image. Specify x, y (top-left corner), width, and height in pixels.
-- **image_resize**: Scale an image to new dimensions. Provide width, height, or both. Aspect ratio is maintained by default.
+- **image_info** — get image dimensions, format, channels, and file size. Use this before resizing or cropping to know the source dimensions.
+- **image_crop** — extract a rectangular region. Specify x, y (top-left corner), width, and height in pixels.
+- **image_resize** — scale an image to target dimensions. Provide width, height, or both. Aspect ratio is preserved by default.
 
 ## Input format
-All tools accept base64-encoded image data in the imageBase64 parameter. Data URI prefixes (e.g. "data:image/png;base64,") are handled automatically.
+All tools accept base64-encoded image data. If you have a URL, use fetch_url from dev-tools-http first, then pass the response body.
 
-## Chaining with dev-tools encoding tools
-- To convert a raw image buffer to base64 before passing here, use base64_encode from the dev-tools MCP.
-- To decode a base64 result back to binary, use base64_decode from the dev-tools MCP.
-- image_crop and image_resize return base64-encoded image data that can be passed directly to another image tool or decoded with base64_decode.
+If you need to encode or decode base64, use base64_encode / base64_decode from dev-tools.
 
-## Chaining tool results
-Reference syntax:
-  { "$tool": "<call_id>" }
+## Chaining example
+1. fetch_url({ "url": "https://example.com/photo.jpg" }) — get the raw image bytes
+2. image_info({ "imageBase64": { "$tool": "<call_id>" } }) — inspect dimensions
+3. image_crop({ "imageBase64": { "$tool": "<call_id>" }, "x": 0, "y": 0, "width": 200, "height": 200 }) — crop to 200x200
 
-Example:
-1. image_info({ "imageBase64": "..." })  (call_id: "call_a")
-2. image_crop({ "imageBase64": { "$tool": "call_a" }, "x": 0, "y": 0, "width": 100, "height": 100 })
+Always chain via tool references — never copy base64 strings inline.
 `.trim();
 
 export interface DevToolsMediaScope {
