@@ -271,6 +271,9 @@ app.openapi(
 
       return c.json({ data: project });
     } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes('not found')) {
         throw createApiError({
           code: 'not_found',
@@ -280,7 +283,7 @@ app.openapi(
 
       throw createApiError({
         code: 'internal_server_error',
-        message: error instanceof Error ? error.message : 'Failed to retrieve project',
+        message: 'Failed to retrieve project',
       });
     }
   }
@@ -329,6 +332,9 @@ app.openapi(
 
       return c.json({ data: project });
     } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes('not found')) {
         throw createApiError({
           code: 'not_found',
@@ -338,7 +344,7 @@ app.openapi(
 
       throw createApiError({
         code: 'internal_server_error',
-        message: error instanceof Error ? error.message : 'Failed to retrieve project',
+        message: 'Failed to retrieve project',
       });
     }
   }
@@ -655,6 +661,9 @@ app.openapi(
 
       return c.json({ data: updatedProject }, isCreate ? 201 : 200);
     } catch (error: any) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
       if (error instanceof z.ZodError) {
         throw createApiError({
           code: 'bad_request',
@@ -692,13 +701,9 @@ app.openapi(
         }
       }
 
-      if (error instanceof HTTPException) {
-        throw error;
-      }
-
       throw createApiError({
         code: 'internal_server_error',
-        message: error instanceof Error ? error.message : 'Failed to update project',
+        message: 'Failed to update project',
       });
     }
   }
@@ -793,6 +798,9 @@ app.openapi(
 
       return c.body(null, 204);
     } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes('not found')) {
         throw createApiError({
           code: 'not_found',
@@ -802,7 +810,7 @@ app.openapi(
 
       throw createApiError({
         code: 'internal_server_error',
-        message: error instanceof Error ? error.message : 'Failed to delete project',
+        message: 'Failed to delete project',
       });
     }
   }

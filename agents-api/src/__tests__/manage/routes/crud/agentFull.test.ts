@@ -2065,4 +2065,40 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       expect(tool).toHaveProperty('availableTools');
     });
   });
+
+  describe('Error Handling - static error messages', () => {
+    it('should return static message on 404 for non-existent agent', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-err');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const response = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent/non-existent-agent`,
+        {
+          method: 'GET',
+          expectError: true,
+        }
+      );
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+      expect(body.detail).toBe('Agent not found');
+    });
+
+    it('should return static message on 404 for delete of non-existent agent', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-err');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const response = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent/non-existent-agent`,
+        {
+          method: 'DELETE',
+          expectError: true,
+        }
+      );
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+      expect(body.detail).toBe('Agent not found');
+    });
+  });
 });
