@@ -604,6 +604,7 @@ export async function executeScheduledTriggerStep(params: {
         resolvedRef,
         runAsUserId: runAsUserId ?? undefined,
         forwardedHeaders: buildTimezoneHeaders(cronTimezone),
+        invocationType: 'scheduled_trigger',
       }),
       timeoutPromise,
     ]);
