@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.58.11
+
+### Patch Changes
+
+- c87dc3e: Remove unsupported syntax from credential reference upsert.
+
 ## 0.58.10
 
 ### Patch Changes
