@@ -41,6 +41,7 @@ export interface PullV3Options {
   all?: boolean;
   tag?: string;
   quiet?: boolean;
+  conflictStrategy?: 'ours' | 'theirs';
   /** Internal: used for batch operations to return results instead of calling process.exit() */
   _batchMode?: boolean;
 }

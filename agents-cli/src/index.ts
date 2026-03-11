@@ -139,6 +139,10 @@ program
     'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
   )
   .option('--quiet', 'Suppress profile/config logging')
+  .option(
+    '--conflict-strategy <strategy>',
+    'Auto-resolve merge conflicts: ours (keep local) or theirs (accept remote). Skips interactive prompts.'
+  )
   .action(async (options) => {
     await pullV4Command(options);
   });
