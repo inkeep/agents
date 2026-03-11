@@ -44,7 +44,9 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 **Field Notes:**
 
 - **`messages`** — Must include at least one `user` message
-- **`content`** — A string with the message text. For multi-part content (text + images), use the `parts` array instead
+- **`content`** — Optional string message text (legacy-compatible)
+- **`parts`** — Optional multi-part content array (text + images)
+- **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
 - **`conversationId`** — Optional; server generates one if omitted
 
 
@@ -56,6 +58,8 @@ There are two ways to include images:
 
 - **Inline data URIs** — Base64-encoded images with the format `data:image/{png|jpeg|jpg|webp};base64,{data}`
 - **External URLs** — HTTP/HTTPS URLs pointing to hosted images
+
+When both `content` and `parts` are provided, the server keeps all valid `parts` and also includes `content` as text input. If text in `content` and `parts` does not match, the server logs a warning to help identify payload-construction bugs.
 
 ```json
 {

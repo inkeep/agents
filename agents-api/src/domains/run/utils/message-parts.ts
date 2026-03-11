@@ -113,11 +113,6 @@ export const getMessagePartsFromOpenAIContent = (content: string | ContentItem[]
 };
 
 export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unknown[]): Part[] => {
-  // Backwards compatibility: if content is a string, return single text part
-  if (typeof content === 'string') {
-    return [buildTextPart(content)];
-  }
-
   const rawParts = parts ?? [];
   const parsedParts = rawParts
     .map((part) => vercelMessageContentPartSchema.safeParse(part))
@@ -135,7 +130,7 @@ export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unkn
     throw new Error(`Unexpected part type: ${JSON.stringify(x)}`);
   };
 
-  return parsedParts.map((part) => {
+  const partsFromPayload = parsedParts.map((part) => {
     if (part.type === 'text') {
       return buildTextPart(part.text);
     }
@@ -146,4 +141,33 @@ export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unkn
 
     return assertNever(part);
   });
+
+  if (typeof content !== 'string') {
+    return partsFromPayload;
+  }
+
+  const contentTextPart = buildTextPart(content);
+  const firstPartsText = partsFromPayload.find(
+    (part): part is TextPart => part.kind === 'text'
+  )?.text;
+  const hasMatchingTextPart = partsFromPayload.some(
+    (part): part is TextPart => part.kind === 'text' && part.text === content
+  );
+
+  if (firstPartsText != null && firstPartsText !== content) {
+    logger.warn(
+      {
+        contentText: content,
+        firstPartsText,
+        partsCount: partsFromPayload.length,
+      },
+      'Both content and parts text were provided and differ; prepending content text'
+    );
+  }
+
+  if (hasMatchingTextPart) {
+    return partsFromPayload;
+  }
+
+  return [contentTextPart, ...partsFromPayload];
 };
