@@ -1,8 +1,10 @@
+import { doltBranch } from '@inkeep/agents-core/dolt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   checkoutBranch,
   createBranch,
+  createTempBranchFromCommit,
   deleteBranch,
   getBranch,
   getTenantMainBranch,
@@ -567,6 +569,24 @@ describe('Branches API Module', () => {
       });
 
       expect(result).toEqual([]);
+    });
+  });
+  describe('createTempBranchFromCommit', () => {
+    it('calls doltBranch with commit hash as startPoint', async () => {
+      const mockBranchFn = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(doltBranch).mockReturnValue(mockBranchFn);
+
+      const db = {} as any;
+      await createTempBranchFromCommit(db)({
+        name: '_merge_preview_123',
+        commitHash: 'abc123def456',
+      });
+
+      expect(doltBranch).toHaveBeenCalledWith(db);
+      expect(mockBranchFn).toHaveBeenCalledWith({
+        name: '_merge_preview_123',
+        startPoint: 'abc123def456',
+      });
     });
   });
 });

@@ -1,13 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import type { ConflictResolution } from '../validation/dolt-schemas';
 import { isValidManageTable, managePkMap } from './pk-map';
-
-export type ConflictResolution = {
-  table: string;
-  primaryKey: Record<string, string>;
-  rowDefaultPick: 'ours' | 'theirs';
-  columns?: Record<string, 'ours' | 'theirs'>;
-};
 
 export const applyResolutions =
   (db: AgentsManageDatabaseClient) =>

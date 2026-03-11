@@ -1,8 +1,10 @@
-import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, type z } from '@hono/zod-openapi';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import {
   applyResolutions,
   areBranchesSchemaCompatible,
+  type ConflictItemSchema,
+  ConflictResolutionSchema,
   commonGetErrorResponses,
   createApiError,
   createTempBranchFromCommit,
@@ -12,12 +14,16 @@ import {
   doltConflicts,
   doltDeleteBranch,
   doltDiffSummary,
+  doltGetBranchNamespace,
   doltHashOf,
   doltMerge,
   doltTableConflicts,
   ErrorResponseSchema,
   getBranch,
-  getFullProject,
+  MergeExecuteRequestSchema,
+  MergeExecuteResponseSchema,
+  MergePreviewRequestSchema,
+  MergePreviewResponseSchema,
   managePkMap,
   releaseAdvisoryLock,
   syncSchemaFromMain,
@@ -46,86 +52,6 @@ function generateTempBranchName(purpose: string): string {
   const randomId = Math.random().toString(36).substring(2, 8);
   return `_merge_${purpose}_${timestamp}_${randomId}`;
 }
-
-const ConflictResolutionSchema = z.object({
-  table: z.string(),
-  primaryKey: z.record(z.string(), z.string()),
-  rowDefaultPick: z.enum(['ours', 'theirs']),
-  columns: z.record(z.string(), z.enum(['ours', 'theirs'])).optional(),
-});
-
-const DiffSummaryItemSchema = z
-  .object({
-    table: z.string(),
-    diffType: z.string(),
-    dataChange: z.boolean(),
-    schemaChange: z.boolean(),
-  })
-  .openapi('DiffSummaryItem');
-
-const ConflictItemSchema = z
-  .object({
-    table: z.string(),
-    primaryKey: z.record(z.string(), z.string()),
-    ourDiffType: z.string(),
-    theirDiffType: z.string(),
-    base: z.record(z.string(), z.unknown()).nullable(),
-    ours: z.record(z.string(), z.unknown()).nullable(),
-    theirs: z.record(z.string(), z.unknown()).nullable(),
-  })
-  .openapi('ConflictItem');
-
-const MergePreviewRequestSchema = z
-  .object({
-    sourceBranch: z.string(),
-    targetBranch: z.string(),
-    baseCommit: z.string().optional(),
-    localProjectDefinition: z.unknown().optional(),
-  })
-  .openapi('MergePreviewRequest');
-
-const MergePreviewResponseSchema = z
-  .object({
-    data: z.object({
-      hasConflicts: z.boolean(),
-      sourceHash: z.string(),
-      targetHash: z.string(),
-      canFastForward: z.boolean(),
-      diffSummary: z.array(DiffSummaryItemSchema),
-      conflicts: z.array(ConflictItemSchema),
-    }),
-  })
-  .openapi('MergePreviewResponse');
-
-const MergeExecuteRequestSchema = z
-  .object({
-    sourceBranch: z.string(),
-    targetBranch: z.string(),
-    sourceHash: z.string(),
-    targetHash: z.string(),
-    message: z.string().optional(),
-    author: z
-      .object({
-        name: z.string(),
-        email: z.string(),
-      })
-      .optional(),
-    resolutions: z.array(ConflictResolutionSchema).optional(),
-    baseCommit: z.string().optional(),
-    localProjectDefinition: z.unknown().optional(),
-  })
-  .openapi('MergeExecuteRequest');
-
-const MergeExecuteResponseSchema = z
-  .object({
-    data: z.object({
-      status: z.literal('success'),
-      mergeCommitHash: z.string(),
-      sourceBranch: z.string(),
-      targetBranch: z.string(),
-    }),
-  })
-  .openapi('MergeExecuteResponse');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -166,8 +92,16 @@ app.openapi(
     const body = c.req.valid('json');
     const { sourceBranch, targetBranch, baseCommit, localProjectDefinition } = body;
 
-    const sourceFullName = `${tenantId}_${projectId}_${sourceBranch}`;
-    const targetFullName = `${tenantId}_${projectId}_${targetBranch}`;
+    const sourceFullName = doltGetBranchNamespace({
+      tenantId,
+      projectId,
+      branchName: sourceBranch,
+    })();
+    const targetFullName = doltGetBranchNamespace({
+      tenantId,
+      projectId,
+      branchName: targetBranch,
+    })();
 
     const [sourceBranchInfo, targetBranchInfo] = await Promise.all([
       getBranch(db)({ tenantId, projectId, name: sourceBranch }),
@@ -215,13 +149,13 @@ app.openapi(
       effectiveSourceFullName = localTempBranchName;
     }
 
-    const schemaCompat = await areBranchesSchemaCompatible(db)(
+    const schemaCompatability = await areBranchesSchemaCompatible(db)(
       effectiveSourceFullName,
       targetFullName
     );
 
-    if (!schemaCompat.compatible) {
-      if (schemaCompat.branchADifferences.length > 0) {
+    if (!schemaCompatability.compatible) {
+      if (schemaCompatability.branchADifferences.length > 0) {
         await doltCheckout(db)({ branch: effectiveSourceFullName });
         const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
         if (syncResult.error && !syncResult.synced) {
@@ -232,7 +166,7 @@ app.openapi(
           });
         }
       }
-      if (schemaCompat.branchBDifferences.length > 0) {
+      if (schemaCompatability.branchBDifferences.length > 0) {
         await doltCheckout(db)({ branch: targetFullName });
         const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
         if (syncResult.error && !syncResult.synced) {
@@ -414,8 +348,16 @@ app.openapi(
       localProjectDefinition,
     } = body;
 
-    const sourceFullName = `${tenantId}_${projectId}_${sourceBranch}`;
-    const targetFullName = `${tenantId}_${projectId}_${targetBranch}`;
+    const sourceFullName = doltGetBranchNamespace({
+      tenantId,
+      projectId,
+      branchName: sourceBranch,
+    })();
+    const targetFullName = doltGetBranchNamespace({
+      tenantId,
+      projectId,
+      branchName: targetBranch,
+    })();
 
     const [sourceBranchInfo, targetBranchInfo] = await Promise.all([
       getBranch(db)({ tenantId, projectId, name: sourceBranch }),
@@ -486,17 +428,10 @@ app.openapi(
       });
     }
 
-    const executeTempBranch = generateTempBranchName('execute');
-
     try {
-      await createTempBranchFromCommit(db)({
-        name: executeTempBranch,
-        commitHash: targetHash,
-      });
-
       const mergeResult = await doltMerge(db)({
         fromBranch: effectiveSourceFullName,
-        toBranch: executeTempBranch,
+        toBranch: targetFullName,
         message: message ?? `Merge ${sourceBranch} into ${targetBranch}`,
         author,
       });
@@ -543,29 +478,6 @@ app.openapi(
         });
       }
 
-      const mergedProject = await getFullProject(db)({
-        scopes: { tenantId, projectId },
-      });
-
-      if (!mergedProject) {
-        throw createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to read merged project state from temp branch',
-        });
-      }
-
-      await doltCheckout(db)({ branch: targetFullName });
-
-      await updateFullProjectServerSide(db)({
-        scopes: { tenantId, projectId },
-        projectData: mergedProject as unknown as FullProjectDefinition,
-      });
-
-      await doltAddAndCommit(db)({
-        message: message ?? `Merge ${sourceBranch} into ${targetBranch}`,
-        author,
-      });
-
       const newTargetHash = await doltHashOf(db)({ revision: targetFullName });
 
       return c.json(
@@ -580,7 +492,6 @@ app.openapi(
         200
       );
     } finally {
-      await cleanupTempBranch(db, executeTempBranch);
       if (localTempBranchName) {
         await cleanupTempBranch(db, localTempBranchName);
       }

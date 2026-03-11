@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../pk-map', () => ({
+vi.mock('../../dolt/pk-map', () => ({
   isValidManageTable: vi.fn((name: string) => name === 'agent' || name === 'tools'),
   managePkMap: {
     agent: ['tenant_id', 'project_id', 'id'],
@@ -8,8 +8,8 @@ vi.mock('../pk-map', () => ({
   },
 }));
 
-import type { ConflictResolution } from '../resolve-conflicts';
-import { applyResolutions } from '../resolve-conflicts';
+import { applyResolutions } from '../../dolt/resolve-conflicts';
+import type { ConflictResolution } from '../../validation/dolt-schemas';
 
 function createMockDb() {
   const executedQueries: string[] = [];
