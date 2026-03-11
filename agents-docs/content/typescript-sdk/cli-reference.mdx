@@ -868,7 +868,7 @@ inkeep add [options]
 
 - `--project <name>` - Add a project template
 - `--mcp <name>` - Add a custom MCP server template for common use cases (adds server code to your project)
-- `--ui [component-id]` - Add a data or artifact UI component to your app (writes to `apps/agents-ui/src/ui` by default). Use the component id from the dashboard. Omit the id to see available components.
+- `--ui [component-id]` - Add a data or artifact UI component to your app. Use the component id from the dashboard. Omit the id to see available components. Use `--target-path` to specify the output directory.
 - `--ui --list` - List available data and artifact components that have render code (same ids as in the dashboard “Use in your app” flow).
 - `--target-path <path>` - Target path to add the template to
 - `--config <path>` - Path to configuration file
