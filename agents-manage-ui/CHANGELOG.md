@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.9
+
+### Patch Changes
+
+- 0645423: Fix ship it code examples
+- Updated dependencies [f150b28]
+- Updated dependencies [4816f02]
+  - @inkeep/agents-core@0.58.9
+
 ## 0.58.8
 
 ### Patch Changes
