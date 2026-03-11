@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.58.13
+
+### Patch Changes
+
+- 9ed6710: Fix user ID forwarding during agent delegation
+  - @inkeep/agents-core@0.58.13
+  - @inkeep/agents-email@0.58.13
+  - @inkeep/agents-mcp@0.58.13
+  - @inkeep/agents-work-apps@0.58.13
+
 ## 0.58.12
 
 ### Patch Changes
