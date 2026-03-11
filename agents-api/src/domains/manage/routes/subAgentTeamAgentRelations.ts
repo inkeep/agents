@@ -174,7 +174,7 @@ app.openapi(
       scopes: { tenantId, projectId, agentId, subAgentId },
       relationId: generateId(),
       data: {
-        targetAgentId: body.targetAgentId,
+        ...body,
         headers: body.headers || null,
       },
     });

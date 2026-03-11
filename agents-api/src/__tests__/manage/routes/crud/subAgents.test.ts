@@ -420,6 +420,86 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(400);
     });
+
+    it('should persist models field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('subagent-create-models');
+      await createTestProject(manageDbClient, tenantId, 'default');
+      const agentId = await createTestAgent(tenantId);
+
+      const models = {
+        base: { model: 'claude-sonnet-4-20250514' },
+      };
+      const agentData = { ...createTestSubAgentData({ agentId }), models };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents`,
+        { method: 'POST', body: JSON.stringify(agentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.models).toEqual(models);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.models).toEqual(models);
+    });
+
+    it('should persist stopWhen field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('subagent-create-stopwhen');
+      await createTestProject(manageDbClient, tenantId, 'default');
+      const agentId = await createTestAgent(tenantId);
+
+      const stopWhen = { stepCountIs: 10 };
+      const agentData = { ...createTestSubAgentData({ agentId }), stopWhen };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents`,
+        { method: 'POST', body: JSON.stringify(agentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.stopWhen).toEqual(stopWhen);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.stopWhen).toEqual(stopWhen);
+    });
+
+    it('should persist conversationHistoryConfig field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('subagent-create-convhistory');
+      await createTestProject(manageDbClient, tenantId, 'default');
+      const agentId = await createTestAgent(tenantId);
+
+      const conversationHistoryConfig = {
+        mode: 'scoped',
+        limit: 25,
+        maxOutputTokens: 2000,
+        includeInternal: true,
+        messageTypes: ['chat'],
+      };
+      const agentData = { ...createTestSubAgentData({ agentId }), conversationHistoryConfig };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents`,
+        { method: 'POST', body: JSON.stringify(agentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.conversationHistoryConfig).toEqual(conversationHistoryConfig);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.conversationHistoryConfig).toEqual(conversationHistoryConfig);
+    });
   });
 
   describe('PUT /{id}', () => {
@@ -453,6 +533,81 @@ describe('Agent CRUD Routes - Integration Tests', () => {
         prompt: updateData.prompt,
         tenantId,
       });
+    });
+
+    it('should update models field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('subagent-update-models');
+      await createTestProject(manageDbClient, tenantId, 'default');
+      const agentId = await createTestAgent(tenantId);
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
+
+      const models = { base: { model: 'gpt-4o' } };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
+        { method: 'PUT', body: JSON.stringify({ models }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.models).toEqual(models);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.models).toEqual(models);
+    });
+
+    it('should update stopWhen field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('subagent-update-stopwhen');
+      await createTestProject(manageDbClient, tenantId, 'default');
+      const agentId = await createTestAgent(tenantId);
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
+
+      const stopWhen = { stepCountIs: 20 };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
+        { method: 'PUT', body: JSON.stringify({ stopWhen }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.stopWhen).toEqual(stopWhen);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.stopWhen).toEqual(stopWhen);
+    });
+
+    it('should update conversationHistoryConfig field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('subagent-update-convhistory');
+      await createTestProject(manageDbClient, tenantId, 'default');
+      const agentId = await createTestAgent(tenantId);
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
+
+      const conversationHistoryConfig = {
+        mode: 'scoped',
+        limit: 50,
+        maxOutputTokens: 4000,
+        includeInternal: false,
+        messageTypes: ['chat', 'status'],
+      };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
+        { method: 'PUT', body: JSON.stringify({ conversationHistoryConfig }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.conversationHistoryConfig).toEqual(conversationHistoryConfig);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.conversationHistoryConfig).toEqual(conversationHistoryConfig);
     });
 
     it('should return 404 when updating non-existent agent', async () => {

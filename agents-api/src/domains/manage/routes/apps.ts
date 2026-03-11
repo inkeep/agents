@@ -156,16 +156,12 @@ app.openapi(
     const credential = generateAppCredential();
 
     const result = await createApp(runDbClient)({
+      ...body,
       tenantId,
       projectId,
       id: credential.id,
-      name: body.name,
-      description: body.description,
-      type: body.type,
-      defaultAgentId: body.defaultAgentId,
       defaultProjectId: body.defaultAgentId ? (body.defaultProjectId ?? projectId) : null,
       enabled: body.enabled ?? true,
-      config: body.config,
     });
 
     return c.json(
