@@ -205,6 +205,26 @@ export class ManagementApiClient extends BaseApiClient {
     return responseData.data;
   }
 
+  async getBranch(
+    projectId: string,
+    branchName: string
+  ): Promise<{ baseName: string; fullName: string; hash: string }> {
+    const tenantId = this.checkTenantId();
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}`
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to fetch branch "${branchName}": ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+
+    const responseData = await response.json();
+    return responseData.data;
+  }
+
   /**
    * List all projects for the current tenant
    * @param page - Page number (1-based)
