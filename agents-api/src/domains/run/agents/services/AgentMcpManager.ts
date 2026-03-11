@@ -3,7 +3,9 @@ import {
   type CredentialStuffer,
   configureComposioMCPServer,
   type FullExecutionContext,
+  isDevToolsHttpMcp,
   isDevToolsMcp,
+  isDevToolsMediaMcp,
   isDevToolsSearchMcp,
   isGithubWorkAppTool,
   isSlackWorkAppTool,
@@ -145,7 +147,12 @@ export class AgentMcpManager {
       };
     }
 
-    if (isDevToolsMcp(tool) || isDevToolsSearchMcp(tool)) {
+    if (
+      isDevToolsMcp(tool) ||
+      isDevToolsHttpMcp(tool) ||
+      isDevToolsMediaMcp(tool) ||
+      isDevToolsSearchMcp(tool)
+    ) {
       const jwt = await signMcpAccessToken({
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
