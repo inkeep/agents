@@ -27,7 +27,7 @@ const McpToolSchema = z.strictObject({
   credential: z.record(z.string(), z.unknown()).optional(),
 });
 
-type McpTooInput = z.input<typeof McpToolSchema>;
+type McpToolInput = z.input<typeof McpToolSchema>;
 
 export function generateMcpToolDefinition({
   tenantId,
@@ -37,7 +37,7 @@ export function generateMcpToolDefinition({
   updatedAt,
   lastError,
   ...data
-}: McpTooInput & Record<string, unknown>): SourceFile {
+}: McpToolInput & Record<string, unknown>): SourceFile {
   const result = McpToolSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for MCP tool:\n${z.prettifyError(result.error)}`);
