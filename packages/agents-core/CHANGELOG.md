@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.58.9
+
+### Patch Changes
+
+- f150b28: Fix user-scoped credential references to upsert instead of failing on duplicate unique constraint
+- 49909bf: version packages changes
+- 4816f02: Fix CI workflows not triggering on Changesets Version Packages PR by using GitHub App token
+
 ## 0.58.8
 
 ### Patch Changes
