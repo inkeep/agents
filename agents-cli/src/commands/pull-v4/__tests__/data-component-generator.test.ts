@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for data component generator
  */
@@ -112,32 +111,6 @@ describe('Data Component Generator', () => {
       expect(() => {
         generateDataComponentDefinition('test', dataWithSchema);
       }).toThrow("Missing required fields for data component 'test': props");
-    });
-
-    it('should prefer props over schema when both exist', async () => {
-      const componentId = 'test';
-      const dataWithBoth = {
-        name: 'Test',
-        description: 'Test component with both props and schema',
-        props: {
-          type: 'object',
-          properties: { prop: { type: 'string' } },
-        },
-        schema: {
-          type: 'object',
-          properties: { schema: { type: 'string' } },
-        },
-      };
-
-      const definition = generateDataComponentDefinition({
-        dataComponentId: componentId,
-        ...dataWithBoth,
-      });
-
-      expect(definition).toContain('prop');
-      expect(definition).not.toContain('"schema"'); // Should not contain schema property
-
-      await expectSnapshots(definition);
     });
 
     it('should handle multiline descriptions', async () => {

@@ -1,12 +1,17 @@
 import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
 import type {
+  ApiConfigSchema,
+  AppConfigSchema,
+  ChannelAccessModeSchema,
+  ChannelIdsSchema,
   EvaluationJobFilterCriteriaSchema,
   McpTransportConfigSchema,
   ModelSchema,
   ProjectModelSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
+  WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
 } from '../validation/schemas';
@@ -47,6 +52,7 @@ export type {
   AgentScopeConfig,
   ProjectScopeConfig,
   SubAgentScopeConfig,
+  TenantScopeConfig,
 } from '../db/manage/scope-definitions';
 export interface ConversationScopeOptions {
   taskId?: string;
@@ -309,6 +315,8 @@ export interface BaseExecutionContext {
       channelId?: string;
       teamId: string;
     };
+    endUserId?: string;
+    authMethod?: 'app_credential_web_client' | 'app_credential_api';
   };
 }
 
@@ -410,3 +418,19 @@ export type WorkAppGitHubInstallationStatus = z.infer<typeof WorkAppGitHubInstal
  * - 'User': Installed on a personal GitHub account
  */
 export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSchema>;
+
+/**
+ * Channel access mode for the slack MCP tool.
+ * - 'all': Tool has access to all channels
+ * - 'selected': Tool only has access to channels listed in work_app_slack_mcp_tool_access_config
+ */
+export type ChannelAccessMode = z.infer<typeof ChannelAccessModeSchema>;
+export type ChannelIds = z.infer<typeof ChannelIdsSchema>;
+
+export type AppType = 'web_client' | 'api';
+
+export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
+
+export type ApiConfig = z.infer<typeof ApiConfigSchema>;
+
+export type AppConfig = z.infer<typeof AppConfigSchema>;

@@ -24,6 +24,7 @@ import {
   resolveRef,
   type ScheduledTriggerInvocation,
   updateScheduledTriggerInvocationStatus,
+  updateScheduledWorkflowRunId,
   withRef,
 } from '@inkeep/agents-core';
 import { CronExpressionParser } from 'cron-parser';
@@ -156,6 +157,7 @@ export async function checkTriggerEnabledStep(params: {
   agentId: string;
   scheduledTriggerId: string;
   runnerId: string;
+  parentRunId?: string | null;
 }) {
   'use step';
 
@@ -202,11 +204,45 @@ export async function checkTriggerEnabledStep(params: {
 
   // If workflowRunId changed in the workflow record, this runner was superseded
   if (workflow?.workflowRunId && workflow.workflowRunId !== params.runnerId) {
-    logger.info(
-      { scheduledTriggerId: params.scheduledTriggerId, reason: 'superseded' },
-      'Scheduled trigger workflow stopping'
-    );
-    return { shouldContinue: false, reason: 'superseded', trigger: null };
+    // Adoption: parent called start() to create this child but crashed before updating
+    // the DB with the child's runId. DB still holds the parent's ID, so adopt it.
+    if (params.parentRunId && workflow.workflowRunId === params.parentRunId) {
+      try {
+        await withRef(manageDbPool, resolvedRef, async (db) => {
+          await updateScheduledWorkflowRunId(db)({
+            scopes,
+            scheduledWorkflowId: workflow.id,
+            workflowRunId: params.runnerId,
+            status: 'running',
+          });
+        });
+      } catch (err) {
+        logger.error(
+          {
+            scheduledTriggerId: params.scheduledTriggerId,
+            parentRunId: params.parentRunId,
+            runnerId: params.runnerId,
+            error: err instanceof Error ? err.message : String(err),
+          },
+          'Failed to adopt workflowRunId — step will be retried by workflow framework'
+        );
+        throw err;
+      }
+      logger.info(
+        {
+          scheduledTriggerId: params.scheduledTriggerId,
+          parentRunId: params.parentRunId,
+          newRunnerId: params.runnerId,
+        },
+        'Child workflow adopted workflowRunId from parent'
+      );
+    } else {
+      logger.info(
+        { scheduledTriggerId: params.scheduledTriggerId, reason: 'superseded' },
+        'Scheduled trigger workflow stopping'
+      );
+      return { shouldContinue: false, reason: 'superseded', trigger: null };
+    }
   }
 
   return {
@@ -568,6 +604,7 @@ export async function executeScheduledTriggerStep(params: {
         resolvedRef,
         runAsUserId: runAsUserId ?? undefined,
         forwardedHeaders: buildTimezoneHeaders(cronTimezone),
+        invocationType: 'scheduled_trigger',
       }),
       timeoutPromise,
     ]);

@@ -1,51 +1,32 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import {
-  addValueToObject,
-  convertNullToUndefined,
-  createFactoryDefinition,
-  toCamelCase,
-} from './utils';
+import { addValueToObject, createFactoryDefinition, toTriggerReferenceName } from './utils';
 
-type ScheduledTriggerDefinitionData = {
-  scheduledTriggerId: string;
-  name: string;
-  description?: string | null;
-  enabled?: boolean;
-  cronExpression?: string | null;
-  cronTimezone?: string | null;
-  runAt?: string | null;
-  payload?: Record<string, unknown> | null;
-  messageTemplate?: string | null;
-  maxRetries?: number;
-  retryDelaySeconds?: number;
-  timeoutSeconds?: number;
-  runAsUserId?: string | null;
-};
+const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.scheduledTriggers
+  .unwrap()
+  .valueType.omit({
+    id: true,
+    runAsUserId: true,
+    createdBy: true,
+  });
 
-const ScheduledTriggerSchema = z.looseObject({
+const ScheduledTriggerSchema = z.strictObject({
   scheduledTriggerId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().nullable().optional().transform(convertNullToUndefined),
-  enabled: z.boolean().optional(),
-  cronExpression: z.string().nullable().optional().transform(convertNullToUndefined),
-  cronTimezone: z.string().nullable().optional().transform(convertNullToUndefined),
-  runAt: z.string().nullable().optional().transform(convertNullToUndefined),
-  payload: z
-    .record(z.string(), z.unknown())
-    .nullable()
-    .optional()
-    .transform((v) => v ?? undefined),
-  messageTemplate: z.string().nullable().optional().transform(convertNullToUndefined),
-  maxRetries: z.number().optional(),
-  retryDelaySeconds: z.number().optional(),
-  timeoutSeconds: z.number().optional(),
-  runAsUserId: z.string().nullable().optional().transform(convertNullToUndefined),
+  ...MySchema.shape,
+  description: z.preprocess((v) => v ?? undefined, MySchema.shape.description),
+  runAt: z.preprocess((v) => v ?? undefined, MySchema.shape.runAt),
+  payload: z.preprocess((v) => v ?? undefined, MySchema.shape.payload),
 });
 
-export function generateScheduledTriggerDefinition(
-  data: ScheduledTriggerDefinitionData
-): SourceFile {
+type ScheduledTriggerInput = z.input<typeof ScheduledTriggerSchema>;
+
+export function generateScheduledTriggerDefinition({
+  id,
+  runAsUserId,
+  createdBy,
+  ...data
+}: ScheduledTriggerInput & Record<string, unknown>): SourceFile {
   const result = ScheduledTriggerSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for scheduled trigger:\n${z.prettifyError(result.error)}`);
@@ -54,7 +35,7 @@ export function generateScheduledTriggerDefinition(
   const parsed = result.data;
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'ScheduledTrigger',
-    variableName: toCamelCase(parsed.scheduledTriggerId),
+    variableName: toTriggerReferenceName(parsed.name),
     syntaxKind: SyntaxKind.NewExpression,
   });
 

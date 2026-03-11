@@ -63,7 +63,9 @@ describe('InvitationEmail', () => {
 
   it('includes preview text', async () => {
     const html = await render(React.createElement(InvitationEmail, { data: baseData }));
-    expect(html).toContain('Accept your invitation to join Acme Corp as Admin');
+    expect(html).toContain(
+      'Accept your invitation to the Acme Corp organization on Inkeep as Admin'
+    );
   });
 });
 

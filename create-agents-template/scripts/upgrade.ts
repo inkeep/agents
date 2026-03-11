@@ -28,10 +28,6 @@ runCommand('pnpm update @inkeep/agents-api --latest', 'Upgrading agents-api pack
   cwd: './apps/agents-api',
 });
 
-runCommand('pnpm update @inkeep/agents-ui --latest', 'Upgrading agents-ui package', {
-  cwd: './apps/agents-ui-demo',
-});
-
 if (!skipMigrate) {
   runCommand('pnpm db:migrate', 'Migrating database schema');
 } else {

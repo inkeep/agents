@@ -15,7 +15,11 @@ Insert the EmbeddedChat widget by using the \`Inkeep.EmbeddedChat()\` function.
 \`\`\`js
 const config = {
   baseSettings: {{BASE_SETTINGS}},
-  aiChatSettings: {{AI_CHAT_SETTINGS}}
+  aiChatSettings: {
+    appId: "{{APP_ID}}",
+    baseUrl: "{{BASE_URL}}",
+{{EXTRA_AI_CHAT_SETTINGS}}
+  }
 };
 
 const embeddedChat = Inkeep.EmbeddedChat("#ikp-embedded-chat-target", config);

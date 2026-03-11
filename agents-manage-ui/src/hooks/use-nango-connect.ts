@@ -79,7 +79,6 @@ export function useNangoConnect() {
 
       try {
         const authOptions: AuthOptions = {
-          detectClosedAuthWindow: true,
           params: {
             mcp_server_url: mcpServerUrl,
           },

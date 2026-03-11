@@ -23,6 +23,7 @@ import {
   isExpired,
 } from './view-mcp-server-details-shared';
 import { isGitHubWorkapp, WorkAppGitHubAccessSection } from './work-app-github-access-section';
+import { isSlackWorkapp, WorkAppSlackAccessSection } from './work-app-slack-access-section';
 
 export function ViewMCPServerDetailsProjectScope({
   tool,
@@ -167,7 +168,7 @@ export function ViewMCPServerDetailsProjectScope({
           )}
 
         {/* Credential Scope and Created By */}
-        {!isGitHubWorkapp(tool) && (
+        {!isGitHubWorkapp(tool) && !isSlackWorkapp(tool) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <ItemLabel>Credential Scope</ItemLabel>
@@ -221,6 +222,16 @@ export function ViewMCPServerDetailsProjectScope({
         {/* GitHub Access Section (for GitHub Work Apps only) */}
         {isGitHubWorkapp(tool) && (
           <WorkAppGitHubAccessSection
+            tool={tool}
+            tenantId={tenantId}
+            projectId={projectId}
+            canEdit={canEdit}
+          />
+        )}
+
+        {/* Slack Access Section (for Slack Work Apps only) */}
+        {isSlackWorkapp(tool) && (
+          <WorkAppSlackAccessSection
             tool={tool}
             tenantId={tenantId}
             projectId={projectId}

@@ -1,6 +1,6 @@
 import {
+  AppWindow,
   Hexagon,
-  Key,
   type LucideProps,
   MessagesSquare,
   RocketIcon,
@@ -10,6 +10,7 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import type { ComponentType, FC } from 'react';
+import { FlowButton } from '@/components/agent/flow-button';
 import { MCPIcon } from '@/components/icons/mcp-icon';
 import { VercelIcon } from '@/components/icons/vercel';
 import { Button } from '@/components/ui/button';
@@ -81,18 +82,21 @@ const shipModalTabItems: TabItem[] = [
   },
 ];
 
-export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) => {
-  const { tenantId, projectId } = useParams();
+export const ShipModal: FC = () => {
+  const { tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+  }>();
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className={buttonClassName}>
-          <RocketIcon className="size-4" />
+        <FlowButton>
+          <RocketIcon className="text-muted-foreground" />
           Ship
-        </Button>
+        </FlowButton>
       </DialogTrigger>
       <DialogContent
-        className="max-w-full! w-7xl"
+        className="sm:max-w-full w-7xl"
         position="top"
         showCloseButton={false}
         onWheel={(e) => e.stopPropagation()} // to make scroll work on the widgets
@@ -104,12 +108,12 @@ export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) 
             <div className="flex items-center gap-2">
               <Button asChild variant="outline" size="sm">
                 <Link
-                  href={`/${tenantId}/projects/${projectId}/api-keys`}
+                  href={`/${tenantId}/projects/${projectId}/apps`}
                   target="_blank"
                   rel="noreferrer noopener"
                 >
-                  <Key className="size-4" />
-                  Create API key
+                  <AppWindow className="size-4" />
+                  Create App
                 </Link>
               </Button>
               <DialogClose asChild>

@@ -3,29 +3,21 @@ import {
   type AgentApiInsert,
   type AgentApiSelect,
   apiFetch,
+  type FullProjectSelectResponse,
   OPENAI_MODELS,
 } from '@inkeep/agents-core';
+import type { z } from 'zod';
+
+type FullProjectResponse = z.infer<typeof FullProjectSelectResponse>;
 
 abstract class BaseApiClient {
-  protected apiUrl: string;
-  protected tenantId: string | undefined;
-  protected projectId: string;
-  protected apiKey: string | undefined;
-  protected isCI: boolean;
-
   protected constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    this.apiUrl = apiUrl;
-    this.tenantId = tenantId;
-    this.projectId = projectId;
-    this.apiKey = apiKey;
-    this.isCI = isCI;
-  }
+    protected apiUrl: string,
+    protected tenantId: string | undefined,
+    protected projectId: string,
+    protected apiKey?: string,
+    protected isCI = false
+  ) {}
 
   protected checkTenantId(): string {
     if (!this.tenantId) {
@@ -41,7 +33,7 @@ abstract class BaseApiClient {
   protected async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     // Build headers with auth if API key is present
     const headers: Record<string, string> = {
-      ...((options.headers as Record<string, string>) || {}),
+      ...(options.headers as Record<string, string>),
     };
 
     // Add auth header based on mode
@@ -78,15 +70,17 @@ abstract class BaseApiClient {
   }
 }
 
+type ConstructorParams = [
+  apiUrl: string,
+  tenantId: string | undefined,
+  projectId: string,
+  apiKey?: string,
+  isCI?: boolean,
+];
+
 export class ManagementApiClient extends BaseApiClient {
-  private constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    super(apiUrl, tenantId, projectId, apiKey, isCI);
+  private constructor(...args: ConstructorParams) {
+    super(...args);
   }
 
   static async create(
@@ -174,7 +168,7 @@ export class ManagementApiClient extends BaseApiClient {
     return data.data;
   }
 
-  async getFullProject(projectId: string): Promise<any> {
+  async getFullProject(projectId: string): Promise<FullProjectResponse['data']> {
     const tenantId = this.checkTenantId();
 
     const response = await this.authenticatedFetch(
@@ -391,14 +385,8 @@ export class ManagementApiClient extends BaseApiClient {
 }
 
 export class ExecutionApiClient extends BaseApiClient {
-  private constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    super(apiUrl, tenantId, projectId, apiKey, isCI);
+  private constructor(...args: ConstructorParams) {
+    super(...args);
   }
 
   static async create(

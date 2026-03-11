@@ -9,7 +9,7 @@ export const cursorTemplate = `
       "type": "mcp",
       "url": "{{MCP_SERVER_URL}}",
       "headers": {
-        "Authorization": "Bearer INKEEP_AGENT_API_KEY"
+        "Authorization": "Bearer INKEEP_APP_SECRET"
       }
     }
   }

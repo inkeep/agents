@@ -1,0 +1,16 @@
+import { functionTool } from '@inkeep/agents-sdk';
+
+export const testTool = functionTool({
+  inputSchema: {
+    type: 'object',
+    properties: {
+      input: {
+        type: 'string',
+        description: 'Input field',
+      },
+    },
+  },
+  name: 'test-tool',
+  description: 'Test tool',
+  execute: () => ({ success: true }),
+});

@@ -16,6 +16,10 @@ import {
 import { organization, user } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
+  AppConfig,
+  AppType,
+  ChannelAccessMode,
+  ChannelIds,
   ConversationMetadata,
   MessageContent,
   MessageMetadata,
@@ -154,6 +158,25 @@ export const apiKeys = pgTable(
     index('api_keys_prefix_idx').on(t.keyPrefix),
     index('api_keys_public_id_idx').on(t.publicId),
   ]
+);
+
+export const apps = pgTable(
+  'apps',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 }),
+    projectId: varchar('project_id', { length: 256 }),
+    name: varchar('name', { length: 256 }).notNull(),
+    description: text('description'),
+    type: varchar('type', { length: 64 }).$type<AppType>().notNull(),
+    defaultProjectId: varchar('default_project_id', { length: 256 }),
+    defaultAgentId: varchar('default_agent_id', { length: 256 }),
+    enabled: boolean('enabled').notNull().default(true),
+    config: jsonb('config').$type<AppConfig>().notNull(),
+    lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
+    ...timestamps,
+  },
+  (t) => [index('apps_tenant_project_idx').on(t.tenantId, t.projectId)]
 );
 
 /**
@@ -860,7 +883,7 @@ export const workAppGitHubMcpToolAccessMode = pgTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.toolId] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.toolId] }),
     index('work_app_github_mcp_tool_access_mode_tenant_idx').on(table.tenantId),
     index('work_app_github_mcp_tool_access_mode_project_idx').on(table.projectId),
     foreignKey({
@@ -912,4 +935,33 @@ export const workAppGitHubMcpToolRepositoryAccessRelations = relations(
       references: [workAppGitHubRepositories.id],
     }),
   })
+);
+
+// ============================================================================
+// SLACK WORK APP MCP ACCESS CONFIG
+// ============================================================================
+
+export const workAppSlackMcpToolAccessConfig = pgTable(
+  'work_app_slack_mcp_tool_access_config',
+  {
+    toolId: varchar('tool_id', { length: 256 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    channelAccessMode: varchar('channel_access_mode', { length: 20 })
+      .$type<ChannelAccessMode>()
+      .notNull(),
+    dmEnabled: boolean('dm_enabled').notNull().default(false),
+    channelIds: jsonb('channel_ids').$type<ChannelIds>().notNull().default([]),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.toolId] }),
+    index('work_app_slack_mcp_tool_access_config_tenant_idx').on(table.tenantId),
+    index('work_app_slack_mcp_tool_access_config_project_idx').on(table.projectId),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'work_app_slack_mcp_tool_access_config_tenant_fk',
+    }).onDelete('cascade'),
+  ]
 );

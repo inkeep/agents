@@ -4,6 +4,7 @@ import {
   configureComposioMCPServer,
   type FullExecutionContext,
   isGithubWorkAppTool,
+  isSlackWorkAppTool,
   JsonTransformer,
   MCPServerType,
   type MCPToolConfig,
@@ -11,8 +12,10 @@ import {
   McpClient,
   type McpServerConfig,
   type McpTool,
+  resolveSlackUserContext,
 } from '@inkeep/agents-core';
 import { jsonSchema, tool } from 'ai';
+import runDbClient from '../../../../data/db/runDbClient';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
@@ -123,7 +126,19 @@ export class AgentMcpManager {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': this.config.tenantId,
+        'x-inkeep-project-id': this.config.projectId,
         Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
+      };
+    }
+
+    if (isSlackWorkAppTool(tool)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': this.config.tenantId,
+        'x-inkeep-project-id': this.config.projectId,
+        Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
       };
     }
 
@@ -193,13 +208,26 @@ export class AgentMcpManager {
       this.reportEmptyToolSet(tool, conversationId);
     }
 
+    let serverInstructions = tool.config.mcp.prompt ?? client.getInstructions();
+
+    if (isSlackWorkAppTool(tool) && this.config.userId) {
+      try {
+        const slackUserContext = await resolveSlackUserContext(runDbClient)(this.config.userId);
+        if (slackUserContext) {
+          serverInstructions =
+            (serverInstructions ? `${serverInstructions}\n` : '') + slackUserContext;
+        }
+      } catch (error) {
+        logger.warn({ error, userId: this.config.userId }, 'Failed to resolve Slack user context');
+      }
+    }
+
     return {
       tools,
       toolPolicies,
       mcpServerId: tool.id,
       mcpServerName: tool.name,
-      // Config prompt overrides take precedence over values sent by the MCP server's initialize response
-      serverInstructions: tool.config.mcp.prompt ?? client.getInstructions(),
+      serverInstructions,
     };
   }
 

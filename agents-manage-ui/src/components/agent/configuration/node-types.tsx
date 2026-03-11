@@ -46,7 +46,9 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   name?: string;
   imageUrl?: string;
   provider?: string;
-  tempToolPolicies?: Record<string, { needsApproval?: boolean }>;
+  tempSelectedTools?: string[] | null;
+  tempHeaders?: Record<string, string> | null;
+  tempToolPolicies?: Record<string, { needsApproval?: boolean }> | null;
 }
 
 export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
@@ -69,6 +71,7 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
   baseUrl: string;
   relationshipId?: string | null;
   credentialReferenceId?: string | null;
+  tempHeaders?: Record<string, string> | null;
 }
 
 export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedNode {
@@ -89,6 +92,7 @@ export interface TeamAgentNodeData extends Record<string, unknown> {
   name: string;
   description?: string;
   relationshipId?: string | null;
+  tempHeaders?: Record<string, string> | null;
 }
 
 export const nodeTypes = {

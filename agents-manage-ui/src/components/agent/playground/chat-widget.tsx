@@ -8,7 +8,7 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
-import type { DataComponent } from '@/lib/api/data-components';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { css } from '@/lib/utils';
 import { FeedbackDialog } from './feedback-dialog';
 
@@ -22,7 +22,6 @@ interface ChatWidgetProps {
   stopPolling: () => void;
   customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
-  dataComponentLookup?: Record<string, DataComponent>;
   setShowTraces: Dispatch<boolean>;
   hasHeadersError: boolean;
 }
@@ -74,7 +73,6 @@ export function ChatWidget({
   stopPolling,
   customHeaders,
   chatActivities,
-  dataComponentLookup = {},
   setShowTraces,
   hasHeadersError,
 }: ChatWidgetProps) {
@@ -82,6 +80,7 @@ export function ChatWidget({
 
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { isCopilotConfigured } = useCopilotContext();
+  const { data: dataComponents } = useDataComponentsQuery();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
   const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
@@ -256,7 +255,7 @@ export function ChatWidget({
               {},
               {
                 get(_, componentName) {
-                  const matchingComponent = Object.values(dataComponentLookup).find(
+                  const matchingComponent = dataComponents.find(
                     (component) => component.name === componentName && !!component.render?.component
                   );
 

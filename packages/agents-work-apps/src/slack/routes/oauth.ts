@@ -160,6 +160,9 @@ app.openapi(
       'team:read',
       'users:read',
       'users:read.email',
+      'search:read.public',
+      'search:read.files',
+      'search:read.users',
     ].join(',');
 
     const state = createOAuthState(tenantId);

@@ -26,19 +26,20 @@
     "db:auth:init": "node node_modules/@inkeep/agents-core/dist/auth/init.js"
   },
   "dependencies": {
-    "@inkeep/agents-core": "^0.56.2",
-    "@inkeep/agents-manage-ui": "^0.56.2",
-    "@inkeep/agents-sdk": "^0.56.2",
+    "@inkeep/agents-core": "^0.58.5",
+    "@inkeep/agents-manage-ui": "^0.58.5",
+    "@inkeep/agents-sdk": "^0.58.5",
     "@tailwindcss/vite": "^4.1.14",
     "dotenv": "^17.2.3",
     "tailwindcss": "^4.1.14",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@inkeep/agents-cli": "^0.56.2",
+    "@inkeep/agents-cli": "^0.58.5",
     "@types/node": "^22.13.14",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.44.4",
     "mprocs": "^0.7.3",
     "pg": "^8.16.3",
     "tsx": "^4.19.0",
@@ -50,7 +51,17 @@
   "packageManager": "pnpm@10.10.0",
   "pnpm": {
     "overrides": {
-      "@modelcontextprotocol/sdk": "1.24.3"
+      "@hono/node-server": ">=1.19.10",
+      "@modelcontextprotocol/sdk": ">=1.26.0",
+      "@workflow/core": ">=4.2.0-beta.64",
+      "dompurify": ">=3.3.2",
+      "fast-xml-parser": ">=5.3.8",
+      "serialize-javascript": ">=7.0.3",
+      "svgo": ">=3.3.3",
+      "minimatch": ">=5.1.8",
+      "lodash": ">=4.17.23",
+      "lodash-es": ">=4.17.23",
+      "express-rate-limit": ">=8.2.2"
     }
   }
 }

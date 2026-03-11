@@ -2,7 +2,7 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
@@ -16,35 +16,25 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
-import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
+import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
-import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
+import { createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
-import {
-  findOrphanedTools,
-  getCurrentHeadersForNode,
-  getCurrentSelectedToolsForNode,
-  getCurrentToolPoliciesForNode,
-} from '@/lib/utils/orphaned-tools-detector';
+import { findOrphanedTools } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
 import { FieldLabel } from '../form-components/label';
 import { SchemaOverrideBadge } from './schema-override-badge';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
-  agentToolConfigLookup: AgentToolConfigLookup;
 }
 
-export function MCPServerNodeEditor({
-  selectedNode,
-  agentToolConfigLookup,
-}: MCPServerNodeEditorProps) {
+export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) {
+  'use memo';
   const { canEdit } = useProjectPermissions();
-  const { deleteNode } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-  });
+  const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
   const { updateNodeData } = useReactFlow();
 
   const { tenantId, projectId } = useParams<{
@@ -52,9 +42,8 @@ export function MCPServerNodeEditor({
     projectId: string;
   }>();
   const { markUnsaved } = useAgentActions();
-
-  // Get skeleton data from store
-  const toolLookup = useAgentStore((state) => state.toolLookup);
+  const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
+  const skeletonToolLookup = createLookup(mcpTools);
 
   // Lazy-load actual tool status
   const { data: liveToolData, isLoading: isLoadingToolStatus } = useMcpToolStatusQuery({
@@ -65,12 +54,8 @@ export function MCPServerNodeEditor({
   });
 
   // Use live data if available, fall back to skeleton from store
-  const skeletonToolData = toolLookup[selectedNode.data.toolId];
+  const skeletonToolData = skeletonToolLookup[selectedNode.data.toolId];
   const toolData = liveToolData ?? skeletonToolData;
-
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
-  }, [selectedNode, agentToolConfigLookup]);
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');
@@ -78,7 +63,7 @@ export function MCPServerNodeEditor({
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
-    const newHeaders = getCurrentHeaders();
+    const newHeaders = selectedNode.data.tempHeaders ?? {};
     setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
 
@@ -96,8 +81,8 @@ export function MCPServerNodeEditor({
         : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup);
-  const currentToolPolicies = getCurrentToolPoliciesForNode(selectedNode, agentToolConfigLookup);
+  const selectedTools = selectedNode.data.tempSelectedTools ?? null;
+  const currentToolPolicies = selectedNode.data.tempToolPolicies ?? {};
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
 
   // Track if we've already shown the warning for this node to avoid repeated toasts
@@ -233,24 +218,32 @@ export function MCPServerNodeEditor({
     setHeadersInputValue(value);
 
     // Only save to node data if the JSON is valid
+    const trimmed = value.trim();
+    if (trimmed === '') {
+      updateNodeData(selectedNode.id, {
+        ...selectedNode.data,
+        tempHeaders: {},
+      });
+      markUnsaved();
+      return;
+    }
+    let parsedHeaders: unknown;
     try {
-      const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
-
-      if (
-        typeof parsedHeaders === 'object' &&
-        parsedHeaders !== null &&
-        !Array.isArray(parsedHeaders)
-      ) {
-        // Valid format - save to node data
-        updateNodeData(selectedNode.id, {
-          ...selectedNode.data,
-          tempHeaders: parsedHeaders,
-        });
-        markUnsaved();
-      }
+      parsedHeaders = JSON.parse(value);
     } catch {
-      // Invalid JSON - don't save, but allow user to continue typing
-      // The ExpandableJsonEditor will show the validation error
+      return;
+    }
+
+    if (
+      typeof parsedHeaders === 'object' &&
+      parsedHeaders !== null &&
+      !Array.isArray(parsedHeaders)
+    ) {
+      updateNodeData(selectedNode.id, {
+        ...selectedNode.data,
+        tempHeaders: parsedHeaders,
+      });
+      markUnsaved();
     }
   };
 
