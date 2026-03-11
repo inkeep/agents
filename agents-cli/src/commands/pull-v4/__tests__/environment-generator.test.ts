@@ -2,10 +2,8 @@
  * Unit tests for environment settings generator
  */
 
-import {
-  generateEnvironmentIndexDefinition as originalGenerateEnvironmentIndexDefinition,
-  generateEnvironmentSettingsDefinition as originalGenerateEnvironmentSettingsDefinition,
-} from '../generators/environment-generator';
+import { generateEnvironmentIndexDefinition as originalGenerateEnvironmentIndexDefinition } from '../generators/environment-generator';
+import { generateEnvironmentSettingsDefinition as originalGenerateEnvironmentSettingsDefinition } from '../generators/environment-settings-generator';
 import { expectSnapshots } from '../utils';
 
 function generateEnvironmentSettingsDefinition(

@@ -1,11 +1,16 @@
+import { join } from 'node:path';
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
+import { collectReferencedSubAgentComponentIds } from '../collector-common';
+import type { GenerationTask } from '../generation-types';
+import { generateFactorySourceFile } from '../simple-factory-generator';
 import {
   addStringProperty,
   addValueToObject,
+  buildComponentFileName,
+  codeExpression,
   convertJsonSchemaToZodSafe,
-  createFactoryDefinition,
   toCamelCase,
 } from '../utils';
 
@@ -32,28 +37,24 @@ export function generateDataComponentDefinition({
   updatedAt,
   ...data
 }: DataComponentInput & Record<string, unknown>): SourceFile {
-  const result = DataComponentSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for data component:\n${z.prettifyError(result.error)}`);
-  }
+  return generateFactorySourceFile(data, {
+    schema: DataComponentSchema,
+    factory: {
+      importName: 'dataComponent',
+      variableName: (parsed) => toCamelCase(parsed.dataComponentId),
+    },
+    render({ parsed, sourceFile, configObject }) {
+      const props = parsed.props;
+      if (props !== undefined) {
+        sourceFile.addImportDeclaration({
+          namedImports: ['z'],
+          moduleSpecifier: 'zod',
+        });
+      }
 
-  const parsed = result.data;
-  const props = parsed.props;
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'dataComponent',
-    variableName: toCamelCase(parsed.dataComponentId),
+      writeDataComponentConfig(configObject, parsed, props);
+    },
   });
-
-  if (props !== undefined) {
-    sourceFile.addImportDeclaration({
-      namedImports: ['z'],
-      moduleSpecifier: 'zod',
-    });
-  }
-
-  writeDataComponentConfig(configObject, parsed, props);
-
-  return sourceFile;
 }
 
 function writeDataComponentConfig(
@@ -69,10 +70,7 @@ function writeDataComponentConfig(
   }
 
   if (props !== undefined) {
-    configObject.addPropertyAssignment({
-      name: 'props',
-      initializer: convertJsonSchemaToZodSafe(props),
-    });
+    addValueToObject(configObject, 'props', codeExpression(convertJsonSchemaToZodSafe(props)));
   }
 
   if (data.render) {
@@ -91,3 +89,61 @@ function addRenderProperty(
     });
   }
 }
+
+export const task = {
+  type: 'data-component',
+  collect(context) {
+    const recordsByDataComponentId = new Map<
+      string,
+      ReturnType<
+        GenerationTask<Parameters<typeof generateDataComponentDefinition>[0]>['collect']
+      >[number]
+    >();
+
+    for (const [dataComponentId, dataComponent] of Object.entries(
+      context.project.dataComponents ?? {}
+    )) {
+      recordsByDataComponentId.set(dataComponentId, {
+        id: dataComponentId,
+        filePath: context.resolver.resolveOutputFilePath(
+          'dataComponents',
+          dataComponentId,
+          join(
+            context.paths.dataComponentsDir,
+            buildComponentFileName(dataComponentId, dataComponent.name ?? undefined)
+          )
+        ),
+        payload: {
+          dataComponentId,
+          ...dataComponent,
+        } as Parameters<typeof generateDataComponentDefinition>[0],
+      });
+    }
+
+    for (const dataComponentId of collectReferencedSubAgentComponentIds(
+      context,
+      'dataComponents'
+    )) {
+      if (recordsByDataComponentId.has(dataComponentId)) {
+        continue;
+      }
+
+      recordsByDataComponentId.set(dataComponentId, {
+        id: dataComponentId,
+        filePath: context.resolver.resolveOutputFilePath(
+          'dataComponents',
+          dataComponentId,
+          join(context.paths.dataComponentsDir, `${dataComponentId}.ts`)
+        ),
+        payload: {
+          dataComponentId,
+          name: dataComponentId,
+          props: { type: 'object', properties: {} },
+        } as Parameters<typeof generateDataComponentDefinition>[0],
+      });
+    }
+
+    return [...recordsByDataComponentId.values()];
+  },
+  generate: generateDataComponentDefinition,
+} satisfies GenerationTask<Parameters<typeof generateDataComponentDefinition>[0]>;
