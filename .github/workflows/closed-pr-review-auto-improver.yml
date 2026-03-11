@@ -47,7 +47,7 @@ jobs:
 
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
@@ -225,7 +225,7 @@ jobs:
         id: analyze
         # Tracking: https://github.com/anthropics/claude-code-action/issues/892
         # Remove pin when issue is resolved and @v1 is stable again
-        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
+        uses: anthropics/claude-code-action@26ec041249acb0a944c0a47b6c0c13f05dbc5b44
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
@@ -280,7 +280,7 @@ jobs:
 
       - name: Upload Debug Artifacts
         if: always() && steps.analyze.outputs.execution_file
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: auto-improver-debug-pr-${{ steps.pr-meta.outputs.pr_number || inputs.pr_number || github.event.pull_request.number }}-${{ github.run_id }}
           path: ${{ steps.analyze.outputs.execution_file }}
