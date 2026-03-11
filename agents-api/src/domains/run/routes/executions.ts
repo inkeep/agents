@@ -188,6 +188,7 @@ const approveToolCallRoute = createProtectedRoute({
 });
 
 app.use('/executions', contextValidationMiddleware);
+app.use('/executions/*', contextValidationMiddleware);
 
 app.openapi(createExecutionRoute, async (c) => {
   const executionContext = c.get('executionContext');
@@ -264,6 +265,7 @@ app.openapi(createExecutionRoute, async (c) => {
       }
     } catch (error) {
       logger.error({ error, runId: run.runId }, 'Error streaming durable execution');
+      await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
     }
   });
 });
@@ -296,9 +298,20 @@ app.openapi(getExecutionRoute, async (c) => {
 });
 
 app.openapi(reconnectExecutionStreamRoute, async (c) => {
+  const executionContext = c.get('executionContext');
+  const { tenantId, projectId } = executionContext;
   const { executionId } = c.req.valid('param');
   const startIndexHeader = c.req.header('x-stream-start-index');
   const startIndex = startIndexHeader ? Number.parseInt(startIndexHeader, 10) : 0;
+
+  const execution = await getWorkflowExecution(runDbClient)({
+    tenantId,
+    projectId,
+    id: executionId,
+  });
+  if (!execution) {
+    throw createApiError({ code: 'not_found', message: 'Execution not found' });
+  }
 
   const run = getRun(executionId);
 
@@ -325,7 +338,7 @@ app.openapi(approveToolCallRoute, async (c) => {
   const executionContext = c.get('executionContext');
   const { tenantId, projectId } = executionContext;
   const { executionId, toolCallId } = c.req.valid('param');
-  const { approved, reason } = await c.req.json();
+  const { approved, reason } = c.req.valid('json');
 
   const execution = await getWorkflowExecution(runDbClient)({
     tenantId,

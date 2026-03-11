@@ -52,7 +52,7 @@ interface ExecutionHandlerParams {
   /** Pre-approved tool decisions keyed by toolName — accumulated across approval loops */
   approvedToolCalls?: Record<
     string,
-    { approved: boolean; reason?: string; originalToolCallId?: string }
+    Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
   >;
 }
 

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { workflowExecutions } from '../../db/runtime/runtime-schema';
 import type { WorkflowExecutionInsert, WorkflowExecutionSelect } from '../../types/index';
@@ -59,7 +59,7 @@ export const getWorkflowExecutionByConversation =
           eq(workflowExecutions.conversationId, params.conversationId)
         )
       )
-      .orderBy(workflowExecutions.createdAt)
+      .orderBy(desc(workflowExecutions.createdAt))
       .limit(1);
 
     return (result[0] as WorkflowExecutionSelect) ?? null;

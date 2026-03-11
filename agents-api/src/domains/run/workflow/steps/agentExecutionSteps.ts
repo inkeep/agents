@@ -34,7 +34,7 @@ export type AgentExecutionStepPayload = {
   outputFormat?: 'sse' | 'vercel';
   approvedToolCalls?: Record<
     string,
-    { approved: boolean; reason?: string; originalToolCallId?: string }
+    Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
   >;
 };
 

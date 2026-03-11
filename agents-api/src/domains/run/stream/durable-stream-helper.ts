@@ -1,4 +1,7 @@
+import { getLogger } from '../../../logger';
 import type { HonoSSEStream, VercelUIWriter } from './stream-helpers';
+
+const logger = getLogger('WritableBackedVercelWriter');
 
 const encoder = new TextEncoder();
 
@@ -53,7 +56,9 @@ export class WritableBackedVercelWriter implements VercelUIWriter {
 
   write(chunk: unknown): void {
     const bytes = encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`);
-    this.writer.write(bytes).catch(() => {});
+    this.writer.write(bytes).catch((err) => {
+      logger.warn({ err }, 'Failed to write to durable stream');
+    });
   }
 
   merge(_stream: unknown): void {
