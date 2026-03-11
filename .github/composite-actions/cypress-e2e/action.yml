@@ -16,7 +16,7 @@ runs:
   steps:
     # --- Phase 1: Cache + install (no dependencies) ---
     - name: Setup Cypress cache
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: ~/.cache/Cypress
         key: ${{ runner.os }}-cypress-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -149,7 +149,7 @@ runs:
 
     - name: Upload Cypress Screenshots
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: cypress-screenshots
         path: agents-manage-ui/cypress/screenshots
@@ -158,7 +158,7 @@ runs:
 
     - name: Upload Cypress Videos
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
@@ -167,7 +167,7 @@ runs:
 
     - name: Upload API Server Logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: api-server-logs
         path: /tmp/api-server.log

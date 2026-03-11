@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
@@ -33,7 +33,7 @@ jobs:
         uses: ./.github/composite-actions/install
 
       - name: Setup npm for OIDC publishing
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
@@ -42,7 +42,7 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Setup Turborepo cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
@@ -61,14 +61,14 @@ jobs:
       # cannot do this (GitHub security restriction).
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
 
       - name: Publish packages
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1
         with:
           publish: pnpm release
           createGithubReleases: false
