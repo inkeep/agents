@@ -625,6 +625,7 @@ export async function executeAgentAsync(params: {
   dispatchedAt?: number;
   runAsUserId?: string;
   forwardedHeaders?: Record<string, string>;
+  invocationType?: 'trigger' | 'scheduled_trigger';
 }): Promise<void> {
   const {
     tenantId,
@@ -639,6 +640,7 @@ export async function executeAgentAsync(params: {
     dispatchedAt,
     runAsUserId,
     forwardedHeaders,
+    invocationType = 'trigger',
   } = params;
 
   const execStartedAt = Date.now();
@@ -819,7 +821,7 @@ export async function executeAgentAsync(params: {
         'trigger.id': triggerId,
         'trigger.invocation.id': invocationId,
         'conversation.id': conversationId,
-        'invocation.type': 'trigger',
+        'invocation.type': invocationType,
         ...(runAsUserId && { 'user.id': runAsUserId, 'trigger.run_as_user_id': runAsUserId }),
       },
     },
@@ -838,7 +840,7 @@ export async function executeAgentAsync(params: {
             'trigger.id': triggerId,
             'trigger.invocation.id': invocationId,
             'conversation.id': conversationId,
-            'invocation.type': 'trigger',
+            'invocation.type': invocationType,
             'message.content': userMessage,
             'message.timestamp': new Date().toISOString(),
             'message.parts': JSON.stringify(messageParts),
