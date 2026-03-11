@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.58.12
+
+### Patch Changes
+
+- 19b1168: rerun scheduled triggers from traces
+- Updated dependencies [ad8a7cd]
+- Updated dependencies [ad8a7cd]
+  - @inkeep/agents-core@0.58.12
+  - @inkeep/agents-work-apps@0.58.12
+  - @inkeep/agents-email@0.58.12
+  - @inkeep/agents-mcp@0.58.12
+
 ## 0.58.11
 
 ### Patch Changes

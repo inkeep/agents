@@ -1,5 +1,14 @@
 # @inkeep/agents-sdk
 
+## 0.58.12
+
+### Patch Changes
+
+- ad8a7cd: Fix broken code generation and unresolved imports in `inkeep pull` command
+- Updated dependencies [ad8a7cd]
+- Updated dependencies [ad8a7cd]
+  - @inkeep/agents-core@0.58.12
+
 ## 0.58.11
 
 ### Patch Changes
