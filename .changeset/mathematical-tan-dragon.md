@@ -4,4 +4,4 @@
 "@inkeep/agents-work-apps": patch
 ---
 
-Security and bug fixes
+Fix authorization bypass vulnerability in @hono/node-server (CVE-2026-29087)
