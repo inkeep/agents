@@ -5,7 +5,9 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
+import devToolsHttpMcpRoutes from './dev-tools-http-mcp';
 import devToolsMcpRoutes from './dev-tools-mcp';
+import devToolsMediaMcpRoutes from './dev-tools-media-mcp';
 import devToolsSearchMcpRoutes from './dev-tools-search-mcp';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
@@ -299,8 +301,14 @@ function createAgentsHono(config: AppConfig) {
   // Mount MCP routes at top level
   app.route('/mcp', mcpRoutes);
 
-  // Dev tools MCP - utility tools for text, JSON, image, HTTP, and scratchpad
+  // Dev tools MCP - utility tools for text, JSON, encoding, HTML, and utility
   app.route('/dev-tools', devToolsMcpRoutes);
+
+  // Dev tools HTTP MCP - outbound HTTP request tools
+  app.route('/dev-tools-http', devToolsHttpMcpRoutes);
+
+  // Dev tools media MCP - image processing tools powered by Sharp
+  app.route('/dev-tools-media', devToolsMediaMcpRoutes);
 
   // Dev tools search MCP - web search tools powered by Exa
   app.route('/dev-tools-search', devToolsSearchMcpRoutes);
