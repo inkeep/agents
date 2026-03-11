@@ -222,16 +222,10 @@ app.openapi(
     const id = body.id || generateId();
 
     const tool = await createTool(db)({
+      ...body,
       tenantId,
       projectId,
       id,
-      name: body.name,
-      config: body.config,
-      credentialReferenceId: body.credentialReferenceId,
-      credentialScope: body.credentialScope,
-      imageUrl: body.imageUrl,
-      headers: body.headers,
-      isWorkApp: body.isWorkApp,
     });
 
     return c.json(
@@ -290,15 +284,7 @@ app.openapi(
     const updatedTool = await updateTool(db)({
       scopes: { tenantId, projectId },
       toolId: id,
-      data: {
-        name: body.name,
-        config: body.config,
-        credentialReferenceId: body.credentialReferenceId,
-        credentialScope: body.credentialScope,
-        imageUrl: body.imageUrl,
-        headers: body.headers,
-        isWorkApp: body.isWorkApp,
-      },
+      data: body,
     });
 
     if (!updatedTool) {
