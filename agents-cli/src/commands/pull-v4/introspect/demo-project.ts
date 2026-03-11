@@ -1623,11 +1623,8 @@ export const demoProject = {
       retrievalParams: {
         authMode: 'OAUTH2',
         provider: 'mcp-generic',
-        connectionId: 'ea2431ac-1520-454e-9f05-6286b2b85f44',
-        providerConfigKey: 'notion_svcl',
       },
       toolId: 'svclt7yv8fg0dgtku6wm2',
-      userId: 'Nwbx5F0GxmCD1nHtRcBRKpeW2w0dywbf',
     },
     '8samfrliooeknlbf7gn9z': {
       tenantId: 'default',
@@ -1639,11 +1636,8 @@ export const demoProject = {
       retrievalParams: {
         authMode: 'OAUTH2',
         provider: 'mcp-generic',
-        connectionId: '82f3e9a3-8b5a-4cfe-978e-14252f633723',
-        providerConfigKey: 'notion_svcl',
       },
       toolId: 'svclt7yv8fg0dgtku6wm2',
-      userId: '64SzZGDIo8poIeI0BJOPFAdNfG9OFRn7',
     },
     wve281sig4881brnyn63c: {
       tenantId: 'default',
@@ -1655,11 +1649,8 @@ export const demoProject = {
       retrievalParams: {
         authMode: 'OAUTH2',
         provider: 'mcp-generic',
-        connectionId: '858da7fa-52ea-4ab3-8046-80de655789f0',
-        providerConfigKey: 'notion_svcl',
       },
       toolId: 'svclt7yv8fg0dgtku6wm2',
-      userId: 'jdDroHFmaXZtD5kz8pGpGiRKYR5TsSFF',
     },
     rq6z45owo49eux0v8ms63: {
       tenantId: 'default',
@@ -1671,8 +1662,6 @@ export const demoProject = {
       retrievalParams: {
         authMode: 'OAUTH2',
         provider: 'mcp-generic',
-        connectionId: '31d32d69-cbb1-48ac-8796-00eb02e850d1',
-        providerConfigKey: 'notion_noti',
       },
       toolId: null,
       userId: null,
@@ -1687,8 +1676,6 @@ export const demoProject = {
       retrievalParams: {
         authMode: 'OAUTH2',
         provider: 'mcp-generic',
-        connectionId: 'e82678af-c1e3-4415-b0a7-96db77816450',
-        providerConfigKey: 'supabase-gaurav-varma_wtft',
       },
       toolId: null,
       userId: null,
@@ -1703,8 +1690,6 @@ export const demoProject = {
       retrievalParams: {
         authMode: 'OAUTH2',
         provider: 'mcp-generic',
-        connectionId: 'b65b99f7-5ccc-429f-be4d-b1137438bed6',
-        providerConfigKey: 'neon_tpr0',
       },
       toolId: null,
       userId: null,
@@ -1719,8 +1704,6 @@ export const demoProject = {
       retrievalParams: {
         authMode: 'OAUTH2',
         provider: 'mcp-generic',
-        connectionId: '78bb863e-9f29-4778-98e7-23060a2cd5f8',
-        providerConfigKey: 'notion_34nuouvv6heqtzhagmnns',
       },
       toolId: null,
       userId: null,
