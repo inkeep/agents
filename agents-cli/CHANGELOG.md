@@ -1,5 +1,18 @@
 # @inkeep/agents-cli
 
+## 0.58.12
+
+### Patch Changes
+
+- ad8a7cd: Fix broken code generation and unresolved imports in `inkeep pull` command
+- ad8a7cd: Use Zod schemas from `agents-core` in `inkeep pull` generators instead of hand-written schemas
+- Updated dependencies [ad8a7cd]
+- Updated dependencies [19b1168]
+- Updated dependencies [ad8a7cd]
+  - @inkeep/agents-core@0.58.12
+  - @inkeep/agents-sdk@0.58.12
+  - @inkeep/agents-manage-ui@0.58.12
+
 ## 0.58.11
 
 ### Patch Changes
