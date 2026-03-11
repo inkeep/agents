@@ -73,6 +73,7 @@ describe('pull-v4 introspect generator', () => {
             'tier-one': {
               id: 'tier-one',
               name: 'Tier One',
+              canUse: [],
             },
           },
         },
@@ -121,6 +122,7 @@ const _supportContext = contextConfig({
     const { default: mergedContextConfigFile } = await import(`${contextConfigFilePath}?raw`);
     expect(mergedContextConfigFile).toContain('headers: headersSchema,');
     expect(mergedContextConfigFile).not.toContain('supportContextHeaders');
+    expect(mergedContextConfigFile).not.toContain('const headersschema = headers({');
     expect(mergedContextConfigFile).toContain('const headersSchema = headers({');
     expect(mergedContextConfigFile).not.toContain('userInfo: userInfo');
 
@@ -167,6 +169,7 @@ const _supportContext = contextConfig({
             'tier-one': {
               id: 'tier-one',
               name: 'Tier One',
+              canUse: [],
             },
           },
         },
