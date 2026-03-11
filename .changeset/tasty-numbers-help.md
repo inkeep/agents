@@ -2,4 +2,4 @@
 "@inkeep/agents-api": patch
 ---
 
-update/create agent bug
+Fix agent create/update handlers to forward all schema fields (models, statusUpdates, prompt, stopWhen)
