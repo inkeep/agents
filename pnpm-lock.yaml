@@ -45,6 +45,7 @@ catalogs:
 
 overrides:
   '@hono/node-server': '>=1.19.10'
+  '@modelcontextprotocol/sdk': '>=1.26.0'
   '@workflow/core': '>=4.2.0-beta.64'
   dompurify: '>=3.3.2'
   fast-xml-parser: '>=5.3.8'
@@ -138,7 +139,7 @@ importers:
         specifier: workspace:^
         version: link:../packages/agents-work-apps
       '@modelcontextprotocol/sdk':
-        specifier: ^1.26.0
+        specifier: '>=1.26.0'
         version: 1.26.0(zod@4.3.6)
       '@opentelemetry/api':
         specifier: 'catalog:'
@@ -920,7 +921,7 @@ importers:
         specifier: ^1.1.5
         version: 1.2.0(hono@4.12.7)(zod@4.3.6)
       '@modelcontextprotocol/sdk':
-        specifier: ^1.26.0
+        specifier: '>=1.26.0'
         version: 1.26.0(zod@4.3.6)
       '@nangohq/node':
         specifier: ^0.69.41
@@ -1103,7 +1104,7 @@ importers:
   packages/agents-mcp:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.26.0
+        specifier: '>=1.26.0'
         version: 1.26.0(zod@4.3.6)
       '@stricli/core':
         specifier: ^1.1.2
@@ -1192,7 +1193,7 @@ importers:
         specifier: workspace:*
         version: link:../agents-core
       '@modelcontextprotocol/sdk':
-        specifier: ^1.26.0
+        specifier: '>=1.26.0'
         version: 1.26.0(zod@4.3.6)
       '@nangohq/node':
         specifier: ^0.69.41
@@ -3306,7 +3307,7 @@ packages:
   '@hono/mcp@0.1.5':
     resolution: {integrity: sha512-q6Yurx9VUwVEpqnwVXtzIYaq4kgQgWWq9lYLM7NFS2W0sg1RzL+RdKh6jO4/dGyvBLKrahPd2v+NC6rr0XWBvQ==}
     peerDependencies:
-      '@modelcontextprotocol/sdk': ^1.12.0
+      '@modelcontextprotocol/sdk': '>=1.26.0'
       hono: '>=4.0.0'
 
   '@hono/node-server@1.19.11':

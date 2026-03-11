@@ -126,6 +126,7 @@
   "pnpm": {
     "overrides": {
       "@hono/node-server": ">=1.19.10",
+      "@modelcontextprotocol/sdk": ">=1.26.0",
       "@workflow/core": ">=4.2.0-beta.64",
       "dompurify": ">=3.3.2",
       "fast-xml-parser": ">=5.3.8",
