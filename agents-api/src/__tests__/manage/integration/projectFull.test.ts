@@ -616,7 +616,6 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(response.status).toBe(404);
       const body = await response.json();
       expect(body.detail).toBe('Project not found');
-      expect(body.detail).not.toContain('ECONNREFUSED');
     });
 
     it('should return 404 with safe message for non-existent project (DELETE)', async () => {
@@ -634,7 +633,6 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(response.status).toBe(404);
       const body = await response.json();
       expect(body.detail).toBe('Project not found');
-      expect(body.detail).not.toContain('ECONNREFUSED');
     });
   });
 
