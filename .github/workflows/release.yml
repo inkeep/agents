@@ -56,6 +56,16 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
+      # Generate a GitHub App token so that PRs and releases created by this
+      # workflow trigger downstream CI workflows. The default GITHUB_TOKEN
+      # cannot do this (GitHub security restriction).
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+
       - name: Publish packages
         id: changesets
         uses: changesets/action@v1
@@ -63,7 +73,7 @@ jobs:
           publish: pnpm release
           createGithubReleases: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           HUSKY: 0
 
       - name: Release to snapshot tag
@@ -80,18 +90,8 @@ jobs:
           pnpm changeset version --snapshot $TAG_NAME
           pnpm changeset publish --tag $TAG_NAME
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           HUSKY: 0
-
-      # Generate a GitHub App token so the release event triggers downstream
-      # workflows (the default GITHUB_TOKEN cannot do this).
-      - name: Generate GitHub App Token
-        if: steps.changesets.outputs.published == 'true'
-        id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
-          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
 
       - name: Create GitHub Release
         if: steps.changesets.outputs.published == 'true'

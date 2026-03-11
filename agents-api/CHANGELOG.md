@@ -1,5 +1,40 @@
 # @inkeep/agents-api
 
+## 0.58.8
+
+### Patch Changes
+
+- e89948d: Add app credentials with anonymous JWT sessions, domain validation, and PoW challenge support
+- e89948d: Add anonymous user session conversation history endpoint
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+  - @inkeep/agents-work-apps@0.58.8
+  - @inkeep/agents-email@0.58.8
+  - @inkeep/agents-mcp@0.58.8
+
+## 0.58.7
+
+### Patch Changes
+
+- b1b440a: daisy chain trigger
+  - @inkeep/agents-core@0.58.7
+  - @inkeep/agents-email@0.58.7
+  - @inkeep/agents-mcp@0.58.7
+  - @inkeep/agents-work-apps@0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- 16e5e8d: Fix mid-generation context compression: accurate context slicing across multiple compression cycles, improved distillation quality, and richer compression telemetry
+- Updated dependencies [a9c2857]
+- Updated dependencies [16e5e8d]
+  - @inkeep/agents-work-apps@0.58.6
+  - @inkeep/agents-core@0.58.6
+  - @inkeep/agents-email@0.58.6
+  - @inkeep/agents-mcp@0.58.6
+
 ## 0.58.5
 
 ### Patch Changes

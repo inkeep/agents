@@ -8,7 +8,7 @@ curl -fsSL https://claude.ai/install.sh | bash
 2. Navigate to the folder where your project is located and run the following command to add the MCP server to your Claude Code settings.
 
 \`\`\`bash
-claude mcp add --transport http --scope local {{AGENT_NAME}} {{MCP_SERVER_URL}} --header "Authorization: Bearer INKEEP_AGENT_API_KEY"
+claude mcp add --transport http --scope local {{AGENT_NAME}} {{MCP_SERVER_URL}} --header "Authorization: Bearer INKEEP_APP_SECRET"
 \`\`\`
 
 3. You can verify the connection by entering the \`claude\` command and asking a question to Claude Code.

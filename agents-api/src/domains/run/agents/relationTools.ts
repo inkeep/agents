@@ -362,18 +362,17 @@ export function createDelegateToAgentTool({
           targetAgentId: delegateConfig.config.id,
         })}`;
       } else {
-        // For internal sub-agent calls, check if we're in a team delegation context.
-        // If so, the inherited metadata.apiKey has the wrong audience (targets the parent agent),
-        // so we need to generate a fresh JWT targeting this specific sub-agent.
-        let authToken = metadata.apiKey;
-        if (executionContext.metadata?.teamDelegation && authToken) {
-          authToken = await generateServiceToken({
-            tenantId,
-            projectId,
-            originAgentId: agentId,
-            targetAgentId: delegateConfig.config.id,
-          });
-        }
+        // Always generate a service token for internal A2A self-calls.
+        // The original apiKey may be any auth type (app credential, API key, etc.)
+        // but internal calls need a service token that the runApiKeyAuth middleware
+        // can verify via verifyServiceToken(). Since we use getInProcessFetch(),
+        // signing and verification happen in the same process with the same secret.
+        const authToken = await generateServiceToken({
+          tenantId,
+          projectId,
+          originAgentId: agentId,
+          targetAgentId: delegateConfig.config.id,
+        });
 
         resolvedHeaders = {
           Authorization: `Bearer ${authToken}`,

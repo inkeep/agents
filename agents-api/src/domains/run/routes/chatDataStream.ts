@@ -295,6 +295,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           subAgentId: defaultSubAgentId,
           ref: executionContext.resolvedRef,
           agentId: agentId,
+          userId: executionContext.metadata?.endUserId,
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
