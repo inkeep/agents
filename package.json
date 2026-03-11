@@ -126,7 +126,8 @@
   "pnpm": {
     "overrides": {
       "@hono/node-server": ">=1.19.10",
-      "@workflow/core": ">=4.2.0-beta.64"
+      "@workflow/core": ">=4.2.0-beta.64",
+      "dompurify": ">=3.3.2"
     }
   },
   "packageManager": "pnpm@10.10.0"
