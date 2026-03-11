@@ -382,7 +382,10 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-create-render');
       await createTestProject(manageDbClient, tenantId, projectId);
 
-      const render = { component: 'function MyComponent() { return <div>Test</div>; }', mockData: { title: 'Test' } };
+      const render = {
+        component: 'function MyComponent() { return <div>Test</div>; }',
+        mockData: { title: 'Test' },
+      };
       const artifactData = { ...createArtifactComponentData(), render };
 
       const createRes = await makeRequest(
@@ -408,7 +411,10 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
 
-      const render = { component: 'function UpdatedComponent() { return <span>Updated</span>; }', mockData: { value: 42 } };
+      const render = {
+        component: 'function UpdatedComponent() { return <span>Updated</span>; }',
+        mockData: { value: 42 },
+      };
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         { method: 'PUT', body: JSON.stringify({ render }) }

@@ -47,7 +47,8 @@ function findRouteFiles() {
  * variable name assigned to the validated body.
  */
 function findValidatedBodyUsages(content, lines) {
-  const validBodyPattern = /(?:const|let)\s+(\w+)\s*=\s*(?:await\s+)?c\.req\.valid\(\s*['"]json['"]\s*\)/g;
+  const validBodyPattern =
+    /(?:const|let)\s+(\w+)\s*=\s*(?:await\s+)?c\.req\.valid\(\s*['"]json['"]\s*\)/g;
   const usages = [];
   let match;
 
@@ -71,7 +72,9 @@ function checkHandlerForFieldPicking(content, lines, varName, startLineNum) {
   // Find all object literals that reference $varName.field without also spreading $varName
   // We scan from the variable declaration to the next handler or end of file
   const startIndex = content.indexOf('\n', nthIndexOf(content, '\n', startLineNum - 1));
-  const nextHandlerMatch = content.slice(startIndex + 1).search(/(?:const|let)\s+\w+\s*=\s*(?:await\s+)?c\.req\.valid\(/);
+  const nextHandlerMatch = content
+    .slice(startIndex + 1)
+    .search(/(?:const|let)\s+\w+\s*=\s*(?:await\s+)?c\.req\.valid\(/);
   const endIndex = nextHandlerMatch >= 0 ? startIndex + 1 + nextHandlerMatch : content.length;
   const handlerContent = content.slice(startIndex, endIndex);
   const handlerLines = handlerContent.split('\n');
@@ -109,9 +112,7 @@ function checkHandlerForFieldPicking(content, lines, varName, startLineNum) {
 
         // Check for allowlist comment
         const blockLines = currentBlockContent.split('\n');
-        const hasAllowComment = blockLines.some((line) =>
-          line.includes('// allow-field-picking')
-        );
+        const hasAllowComment = blockLines.some((line) => line.includes('// allow-field-picking'));
 
         if (hasFieldAccess && !hasSpread && !hasAllowComment) {
           // Count field accesses to filter out single-access cases (e.g., body.id for conditionals)
@@ -181,12 +182,7 @@ function main() {
     const fileViolations = [];
 
     for (const usage of usages) {
-      const violations = checkHandlerForFieldPicking(
-        content,
-        lines,
-        usage.varName,
-        usage.lineNum
-      );
+      const violations = checkHandlerForFieldPicking(content, lines, usage.varName, usage.lineNum);
       fileViolations.push(...violations);
     }
 
@@ -209,7 +205,9 @@ function main() {
     for (const v of violations) {
       console.log(`  ${file}:${v.line}`);
       console.log(`    Variable '${v.varName}' accessed via field-picking: ${v.fields.join(', ')}`);
-      console.log(`    Fix: Use { ...${v.varName}, <overrides> } instead of picking individual fields`);
+      console.log(
+        `    Fix: Use { ...${v.varName}, <overrides> } instead of picking individual fields`
+      );
       console.log('');
     }
   }

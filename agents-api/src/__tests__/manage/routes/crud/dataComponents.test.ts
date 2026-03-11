@@ -481,7 +481,10 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = await createTestTenantWithOrg('data-components-create-render');
       await createTestProject(manageDbClient, tenantId, projectId);
 
-      const render = { component: 'function DataRenderer() { return <ul><li>item</li></ul>; }', mockData: { items: ['a', 'b'] } };
+      const render = {
+        component: 'function DataRenderer() { return <ul><li>item</li></ul>; }',
+        mockData: { items: ['a', 'b'] },
+      };
       const componentData = { ...createDataComponentData(), render };
 
       const createRes = await makeRequest(
