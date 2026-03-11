@@ -990,6 +990,15 @@ export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.ref
 
 export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.extend({
   enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
+  cronTimezone: z
+    .string()
+    .max(64)
+    .nullable()
+    .optional()
+    .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
+  maxRetries: z.number().int().min(0).max(10).optional(),
+  retryDelaySeconds: z.number().int().min(10).max(3600).optional(),
+  timeoutSeconds: z.number().int().min(30).max(780).optional(),
 }).partial();
 
 export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(

@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Combobox } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -23,6 +24,7 @@ interface FriendlyScheduleBuilderProps {
   value: string;
   onChange: (cronExpression: string) => void;
   timezone?: string;
+  onTimezoneChange?: (timezone: string) => void;
   className?: string;
 }
 
@@ -76,10 +78,44 @@ function generateCronExpression(
   }
 }
 
+const TIMEZONE_OPTIONS = (() => {
+  try {
+    return Intl.supportedValuesOf('timeZone').map((tz) => ({
+      value: tz,
+      label: tz.replace(/_/g, ' '),
+    }));
+  } catch {
+    return [{ value: 'UTC', label: 'UTC' }];
+  }
+})();
+
+function TimezoneCombobox({ value, onChange }: { value: string; onChange: (tz: string) => void }) {
+  const options = useMemo(() => {
+    const hasValue = TIMEZONE_OPTIONS.some((o) => o.value === value);
+    if (!hasValue && value) {
+      return [{ value, label: value.replace(/_/g, ' ') }, ...TIMEZONE_OPTIONS];
+    }
+    return TIMEZONE_OPTIONS;
+  }, [value]);
+
+  return (
+    <Combobox
+      options={options}
+      defaultValue={value}
+      onSelect={onChange}
+      placeholder="Select timezone..."
+      searchPlaceholder="Search timezones..."
+      notFoundMessage="No timezone found."
+      triggerClassName="w-full justify-between font-normal"
+    />
+  );
+}
+
 export function FriendlyScheduleBuilder({
   value,
   onChange,
   timezone = 'UTC',
+  onTimezoneChange,
   className,
 }: FriendlyScheduleBuilderProps) {
   const parsed = parseCronExpression(value);
@@ -310,18 +346,18 @@ export function FriendlyScheduleBuilder({
         </div>
       )}
 
-      {/* Timezone Display (read-only) */}
-      {timezone && (
-        <div className="space-y-1">
-          <Label className="text-sm font-medium">Timezone</Label>
+      {/* Timezone Selector */}
+      <div className="space-y-1">
+        <Label className="text-sm font-medium">Timezone</Label>
+        {onTimezoneChange ? (
+          <TimezoneCombobox value={timezone} onChange={onTimezoneChange} />
+        ) : (
           <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
             {timezone}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Times will be interpreted in this timezone (auto-detected from your browser)
-          </p>
-        </div>
-      )}
+        )}
+        <p className="text-xs text-muted-foreground">Times will be interpreted in this timezone</p>
+      </div>
 
       {/* Schedule Preview */}
       <div className="rounded-lg border border-border bg-muted/50 p-3">
