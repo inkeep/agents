@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   ci:
-    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
+    if: ${{ (github.event_name != 'push' || github.actor != 'github-merge-queue[bot]') && github.head_ref != 'changeset-release/main' }}
     runs-on: ubuntu-32gb
     timeout-minutes: 30
     permissions:
@@ -193,7 +193,7 @@ jobs:
           fi
 
   create-agents-e2e:
-    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
+    if: ${{ (github.event_name != 'push' || github.actor != 'github-merge-queue[bot]') && github.head_ref != 'changeset-release/main' }}
     runs-on: ubuntu-32gb
     name: Create Agents E2E Tests
 
