@@ -477,7 +477,9 @@ export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
     updatedAt: true,
   })
   .openapi('AgentCreate');
-export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi('AgentUpdate');
+export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .openapi('AgentUpdate');
 
 // Trigger authentication schemas
 // Input schema: what users submit via API (plaintext header values)
