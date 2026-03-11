@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { signJwt } from '../jwt-helpers';
 import {
   generateServiceToken,
   validateTargetAgent,
@@ -15,7 +16,7 @@ describe('Service Token Auth', () => {
   };
 
   describe('generateServiceToken + verifyServiceToken round-trip', () => {
-    it('should round-trip basic claims', async () => {
+    it('should round-trip basic claims without initiatedBy', async () => {
       const token = await generateServiceToken(baseParams);
       const result = await verifyServiceToken(token);
 
@@ -26,6 +27,7 @@ describe('Service Token Auth', () => {
       expect(result.payload?.tenantId).toBe('tenant-1');
       expect(result.payload?.projectId).toBe('project-1');
       expect(result.payload?.iss).toBe('inkeep-agents');
+      expect(result.payload?.initiatedBy).toBeUndefined();
     });
 
     it('should round-trip initiatedBy with type "user"', async () => {
@@ -50,25 +52,6 @@ describe('Service Token Auth', () => {
 
       expect(result.valid).toBe(true);
       expect(result.payload?.initiatedBy).toEqual({ type: 'api_key', id: 'key_xyz789' });
-    });
-
-    it('should not include initiatedBy when not provided', async () => {
-      const token = await generateServiceToken(baseParams);
-      const result = await verifyServiceToken(token);
-
-      expect(result.valid).toBe(true);
-      expect(result.payload?.initiatedBy).toBeUndefined();
-    });
-
-    it('should not include initiatedBy when explicitly undefined', async () => {
-      const token = await generateServiceToken({
-        ...baseParams,
-        initiatedBy: undefined,
-      });
-      const result = await verifyServiceToken(token);
-
-      expect(result.valid).toBe(true);
-      expect(result.payload?.initiatedBy).toBeUndefined();
     });
   });
 
@@ -129,8 +112,21 @@ describe('Service Token Auth', () => {
   });
 
   describe('verifyServiceToken validation', () => {
-    it('should reject tokens with invalid issuer', async () => {
+    it('should reject malformed tokens', async () => {
       const result = await verifyServiceToken('not-a-valid-token');
+      expect(result.valid).toBe(false);
+    });
+
+    it('should reject tokens with wrong issuer', async () => {
+      const token = await signJwt({
+        issuer: 'wrong-issuer',
+        subject: 'agent-origin',
+        audience: 'agent-target',
+        expiresIn: '1h',
+        claims: { tenantId: 'tenant-1', projectId: 'project-1' },
+      });
+
+      const result = await verifyServiceToken(token);
       expect(result.valid).toBe(false);
     });
   });

@@ -887,7 +887,7 @@ describe('Relationship Tools', () => {
       });
     });
 
-    it('should pass initiatedBy in team delegation context to generateServiceToken', async () => {
+    it('should pass initiatedBy when metadata includes teamDelegation flag', async () => {
       mockExecutionContext = createMockExecutionContext();
       mockExecutionContext.metadata = {
         teamDelegation: true,
@@ -904,11 +904,13 @@ describe('Relationship Tools', () => {
 
       await tool.execute({ message: 'Team delegation with user test' }, mockToolCallOptions);
 
-      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith(
-        expect.objectContaining({
-          initiatedBy: { type: 'user', id: 'user_xyz789' },
-        })
-      );
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: { type: 'user', id: 'user_xyz789' },
+      });
     });
 
     it('should not include initiatedBy when metadata has no initiatedBy', async () => {

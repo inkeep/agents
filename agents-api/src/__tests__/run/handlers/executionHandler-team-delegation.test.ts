@@ -163,8 +163,8 @@ describe('ExecutionHandler - Team Delegation JWT Regeneration', () => {
     baseUrl: 'http://localhost:3000',
     resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
     metadata: teamDelegation
-      ? { teamDelegation: true, originAgentId: 'remote-origin-agent' }
-      : undefined,
+      ? ({ teamDelegation: true, originAgentId: 'remote-origin-agent' } as Record<string, unknown>)
+      : (undefined as Record<string, unknown> | undefined),
     project: {
       id: 'test-project',
       tenantId: 'test-tenant',

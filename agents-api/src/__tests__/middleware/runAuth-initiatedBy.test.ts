@@ -150,6 +150,27 @@ describe('runAuth middleware - initiatedBy propagation via service token', () =>
     expect(capturedContext?.metadata).not.toHaveProperty('initiatedBy');
   });
 
+  it('should reject with 403 when x-inkeep-sub-agent-id does not match token targetAgentId', async () => {
+    const token = await generateServiceToken({
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      originAgentId: 'origin-agent',
+      targetAgentId: 'target-agent',
+      initiatedBy: { type: 'user', id: 'user_abc123' },
+    });
+
+    const app = createTestApp();
+    const res = await app.request('/test', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'x-inkeep-agent-id': 'origin-agent',
+        'x-inkeep-sub-agent-id': 'wrong-agent',
+      },
+    });
+
+    expect(res.status).toBe(403);
+  });
+
   it('should preserve user identity through full generate → verify → auth chain', async () => {
     const userId = 'user_playground_session_12345';
     const token = await generateServiceToken({
