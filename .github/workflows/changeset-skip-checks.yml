@@ -8,12 +8,12 @@ permissions:
   statuses: write
 
 jobs:
-  skip-vercel-checks:
+  skip-required-checks:
     if: ${{ github.head_ref == 'changeset-release/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Post success statuses for Vercel checks
+      - name: Post success statuses for required checks
         uses: actions/github-script@v7
         with:
           script: |
@@ -21,6 +21,9 @@ jobs:
               'Vercel – agents-api',
               'Vercel – agents-docs',
               'Vercel – agents-manage-ui',
+              'ci',
+              'Create Agents E2E Tests',
+              'Cypress E2E Tests',
             ];
             for (const name of checks) {
               await github.rest.repos.createCommitStatus({
