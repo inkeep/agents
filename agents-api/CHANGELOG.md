@@ -1,5 +1,19 @@
 # @inkeep/agents-api
 
+## 0.58.9
+
+### Patch Changes
+
+- f150b28: Fix user-scoped credential references to upsert instead of failing on duplicate unique constraint
+- 6144fc9: Fix app credential auth failing on internal A2A self-calls by always using service tokens
+- Updated dependencies [f150b28]
+- Updated dependencies [49909bf]
+- Updated dependencies [4816f02]
+  - @inkeep/agents-core@0.58.9
+  - @inkeep/agents-work-apps@0.58.9
+  - @inkeep/agents-email@0.58.9
+  - @inkeep/agents-mcp@0.58.9
+
 ## 0.58.8
 
 ### Patch Changes
