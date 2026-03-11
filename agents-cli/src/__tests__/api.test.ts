@@ -483,6 +483,118 @@ describe('ApiClient', () => {
     });
   });
 
+  describe('mergePreview', () => {
+    it('should call merge preview endpoint and return data', async () => {
+      const mockPreviewResponse = {
+        hasConflicts: false,
+        sourceHash: 'abc123',
+        targetHash: 'def456',
+        canFastForward: true,
+        diffSummary: [
+          { table: 'agent', diffType: 'modified', dataChange: true, schemaChange: false },
+        ],
+        conflicts: [],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockPreviewResponse }),
+      });
+
+      const result = await apiClient.mergePreview('test-project-id', {
+        sourceBranch: 'main',
+        targetBranch: 'main',
+        baseCommit: 'old-hash',
+        localProjectDefinition: { id: 'test', name: 'Test' },
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/branches/merge/preview',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.any(String),
+        })
+      );
+      expect(result).toEqual(mockPreviewResponse);
+    });
+
+    it('should throw error when merge preview fails', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        text: async () => 'Schema incompatible',
+      });
+
+      await expect(
+        apiClient.mergePreview('test-project-id', {
+          sourceBranch: 'main',
+          targetBranch: 'main',
+        })
+      ).rejects.toThrow('Merge preview failed (500)');
+    });
+  });
+
+  describe('mergeExecute', () => {
+    it('should call merge execute endpoint and return data', async () => {
+      const mockExecuteResponse = {
+        status: 'success' as const,
+        mergeCommitHash: 'merged-hash-789',
+        sourceBranch: 'main',
+        targetBranch: 'main',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockExecuteResponse }),
+      });
+
+      const result = await apiClient.mergeExecute('test-project-id', {
+        sourceBranch: 'main',
+        targetBranch: 'main',
+        sourceHash: 'abc123',
+        targetHash: 'def456',
+        resolutions: [
+          {
+            table: 'agent',
+            primaryKey: { id: 'agent-1' },
+            rowDefaultPick: 'theirs',
+          },
+        ],
+        baseCommit: 'old-hash',
+        localProjectDefinition: { id: 'test', name: 'Test' },
+        message: 'CLI pull: merge with conflict resolutions',
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/branches/merge',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.any(String),
+        })
+      );
+      expect(result).toEqual(mockExecuteResponse);
+    });
+
+    it('should throw error on stale hash rejection', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+        text: async () => 'Branch hashes have changed',
+      });
+
+      await expect(
+        apiClient.mergeExecute('test-project-id', {
+          sourceBranch: 'main',
+          targetBranch: 'main',
+          sourceHash: 'stale-hash',
+          targetHash: 'stale-hash',
+        })
+      ).rejects.toThrow('Merge execute failed (409)');
+    });
+  });
+
   describe('checkTenantId', () => {
     it('should throw error for all methods when tenant ID is not configured', async () => {
       const { validateConfiguration } = await import('../utils/config.js');
