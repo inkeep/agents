@@ -993,6 +993,7 @@ export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.ext
   cronTimezone: z
     .string()
     .max(64)
+    .nullable()
     .optional()
     .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
   maxRetries: z.number().int().min(0).max(10).optional(),
