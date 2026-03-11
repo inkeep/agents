@@ -164,10 +164,9 @@ app.openapi(
 
     const { key, ...keyDataWithoutKey } = keyData;
     const insertData = {
+      ...body,
       tenantId,
       projectId,
-      name: body.name,
-      agentId: body.agentId,
       ...keyDataWithoutKey,
       expiresAt: body.expiresAt || undefined,
     };
@@ -243,10 +242,7 @@ app.openapi(
     const updatedApiKey = await updateApiKey(runDbClient)({
       scopes: { tenantId, projectId },
       id,
-      data: {
-        expiresAt: body.expiresAt,
-        name: body.name,
-      },
+      data: body,
     });
 
     if (!updatedApiKey) {
