@@ -267,6 +267,10 @@ Emitted when a tool execution completes (success or failure). Tool results can i
 }
 ```
 
+<Note>
+The `blob://` URI is an internal storage reference. When retrieved via the API or conversation history, these are automatically resolved to accessible media proxy URLs. See [Images in Memory](/typescript-sdk/memory#images-in-memory).
+</Note>
+
 ### Agent Interaction Events
 
 #### `transfer`

@@ -142,7 +142,7 @@ export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unkn
     return assertNever(part);
   });
 
-  if (typeof content !== 'string') {
+  if (typeof content !== 'string' || content === '') {
     return partsFromPayload;
   }
 
