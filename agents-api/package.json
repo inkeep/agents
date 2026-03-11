@@ -84,7 +84,7 @@
     "cron-parser": "^5.5.0",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
-    "file-type": "^21.3.0",
+    "file-type": "^21.3.1",
     "hono": "^4.12.7",
     "ipaddr.js": "^2.3.0",
     "hono-pino": "^0.10.1",
