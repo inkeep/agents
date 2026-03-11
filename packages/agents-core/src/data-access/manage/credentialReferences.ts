@@ -10,6 +10,7 @@ import type {
   ProjectScopeConfig,
   ToolSelect,
 } from '../../types/index';
+import { isUniqueConstraintError } from '../../utils/error';
 
 export type CredentialReferenceWithResources = CredentialReferenceSelect & {
   tools: ToolSelect[];
@@ -356,5 +357,32 @@ export const upsertCredentialReference =
       }
     }
 
-    return await createCredentialReference(db)(params.data);
+    try {
+      return await createCredentialReference(db)(params.data);
+    } catch (error) {
+      // TOCTOU race: a concurrent request inserted between our check and create.
+      // Retry as an update if this is a unique constraint violation on (toolId, userId).
+      if (isUniqueConstraintError(error) && params.data.toolId && params.data.userId) {
+        const raceWinner = await getUserScopedCredentialReference(db)({
+          scopes,
+          toolId: params.data.toolId,
+          userId: params.data.userId,
+        });
+
+        if (raceWinner) {
+          const updated = await updateCredentialReference(db)({
+            scopes,
+            id: raceWinner.id,
+            data: {
+              name: params.data.name,
+              type: params.data.type,
+              credentialStoreId: params.data.credentialStoreId,
+              retrievalParams: params.data.retrievalParams,
+            },
+          });
+          if (updated) return updated;
+        }
+      }
+      throw error;
+    }
   };
