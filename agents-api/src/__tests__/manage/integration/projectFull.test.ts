@@ -615,7 +615,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
       expect(response.status).toBe(404);
       const body = await response.json();
-      expect(body.detail).toContain('not found');
+      expect(body.detail).toBe('Project not found');
       expect(body.detail).not.toContain('ECONNREFUSED');
     });
 
@@ -633,7 +633,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
       expect(response.status).toBe(404);
       const body = await response.json();
-      expect(body.detail).toContain('not found');
+      expect(body.detail).toBe('Project not found');
       expect(body.detail).not.toContain('ECONNREFUSED');
     });
   });
