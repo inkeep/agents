@@ -135,6 +135,27 @@ export const tasks = pgTable(
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
 );
 
+export const workflowExecutions = pgTable(
+  'workflow_executions',
+  {
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    requestId: varchar('request_id', { length: 256 }),
+    status: varchar('status', { length: 50 }).notNull().default('running'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('workflow_executions_conversation_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId
+    ),
+  ]
+);
+
 export const apiKeys = pgTable(
   'api_keys',
   {

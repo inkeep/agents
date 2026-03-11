@@ -3,6 +3,7 @@ import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
 
 export type ExtendedFullAgentDefinition = FullAgentDefinition & {
+  executionMode?: 'classic' | 'durable';
   contextConfig?: Partial<Pick<ContextConfig, 'id'>> & {
     contextVariables?: Record<string, any>;
     headersSchema?: Record<string, any>;
@@ -45,6 +46,7 @@ export function extractAgentMetadata(
             : undefined,
         }
       : undefined,
+    executionMode: agent?.executionMode,
     stopWhen: agent?.stopWhen,
     statusUpdates: agent?.statusUpdates
       ? {
