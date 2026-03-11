@@ -49,8 +49,8 @@ pnpm add @inkeep/agents-ui
 
     const buttonProps: InkeepChatButtonProps = {
       aiChatSettings: {
-        agentUrl: 'https://your-api.example.com/run/api/chat',
-        apiKey: process.env.NEXT_PUBLIC_INKEEP_API_KEY,
+        baseUrl: "https://your-api.example.com",
+        appId: process.env.NEXT_PUBLIC_INKEEP_APP_ID, // Your app ID
       },
     };
 
@@ -84,12 +84,8 @@ pnpm add @inkeep/agents-ui
 
     const buttonProps: InkeepChatButtonProps = {
       aiChatSettings: {
-        agentUrl: 'http://localhost:3003/api/chat',
-        headers: {
-          'x-inkeep-tenant-id': 'your-tenant-id',
-          'x-inkeep-project-id': 'your-project-id',
-          'x-inkeep-agent-id': 'your-agent-id',
-        },
+        baseUrl: "http://localhost:3003",
+        appId: 'YOUR_APP_ID',
       },
     };
 
