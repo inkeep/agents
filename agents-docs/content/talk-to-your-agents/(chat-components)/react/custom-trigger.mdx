@@ -41,8 +41,8 @@ pnpm add @inkeep/agents-ui
 
       const modalProps: InkeepModalChatProps = {
         aiChatSettings: {
-          agentUrl: "https://your-api.example.com/api/chat",
-          apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+          baseUrl: "https://your-api.example.com",
+          appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
         },
         openSettings: {
           isOpen: isModalOpen,
@@ -86,12 +86,8 @@ pnpm add @inkeep/agents-ui
 
       const modalProps: InkeepModalChatProps = {
         aiChatSettings: {
-          agentUrl: "http://localhost:3003/api/chat",
-          headers: {
-            "x-inkeep-tenant-id": "your-tenant-id",
-            "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-agent-id": "your-agent-id",
-          },
+          baseUrl: "http://localhost:3003",
+          appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
         },
         openSettings: {
           isOpen: isModalOpen,
