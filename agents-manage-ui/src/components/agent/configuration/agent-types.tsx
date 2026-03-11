@@ -28,6 +28,7 @@ export type AgentMetadata = {
   stopWhen?: AgentStopWhen;
   prompt?: string;
   statusUpdates?: StatusUpdateSettings;
+  executionMode?: 'classic' | 'durable';
 };
 
 export type ContextConfig = {

@@ -263,9 +263,10 @@ export async function runGenerate(
 
         let rawResponse: Record<string, unknown> | ResolvedGenerationResponse;
         if (shouldStream) {
+          const streamResult = streamText(generationConfig as Parameters<typeof streamText>[0]);
           rawResponse = await handleStreamGeneration(
             ctx,
-            streamText(generationConfig as Parameters<typeof streamText>[0]),
+            streamResult,
             sessionId,
             contextId,
             !!dataComponentsSchema

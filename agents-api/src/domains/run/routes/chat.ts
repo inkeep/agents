@@ -13,7 +13,8 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
-import { streamSSE } from 'hono/streaming';
+import { stream, streamSSE } from 'hono/streaming';
+import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
@@ -26,6 +27,7 @@ import type { Message } from '../types/chat';
 import { ImageContentItemSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
+import { agentExecutionWorkflow } from '../workflow/functions/agentExecution';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -368,6 +370,82 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
+      const forwardedHeaders: Record<string, string> = {};
+      const xForwardedCookie = c.req.header('x-forwarded-cookie');
+      const cookie = c.req.header('cookie');
+      const clientTimezone = c.req.header('x-inkeep-client-timezone');
+      const clientTimestamp = c.req.header('x-inkeep-client-timestamp');
+
+      if (xForwardedCookie) {
+        forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+      } else if (cookie) {
+        forwardedHeaders['x-forwarded-cookie'] = cookie;
+      }
+
+      if (clientTimezone && clientTimestamp) {
+        const isValidTimezone =
+          clientTimezone.length < 100 && /^[A-Za-z0-9_/\-+]+$/.test(clientTimezone);
+        const isValidTimestamp =
+          clientTimestamp.length < 50 &&
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(clientTimestamp);
+
+        if (isValidTimezone && isValidTimestamp) {
+          forwardedHeaders['x-inkeep-client-timezone'] = clientTimezone;
+          forwardedHeaders['x-inkeep-client-timestamp'] = clientTimestamp;
+        } else {
+          logger.warn(
+            {
+              clientTimezone: isValidTimezone ? clientTimezone : clientTimezone.substring(0, 100),
+              clientTimestamp: isValidTimestamp
+                ? clientTimestamp
+                : clientTimestamp.substring(0, 50),
+              isValidTimezone,
+              isValidTimestamp,
+            },
+            'Invalid client timezone or timestamp format, ignoring both'
+          );
+        }
+      } else if (clientTimezone || clientTimestamp) {
+        logger.warn(
+          { hasTimezone: !!clientTimezone, hasTimestamp: !!clientTimestamp },
+          'Client timezone and timestamp must both be present, ignoring'
+        );
+      }
+
+      if (agent.executionMode === 'durable') {
+        const run = await start(agentExecutionWorkflow, [
+          {
+            tenantId,
+            projectId,
+            agentId,
+            conversationId,
+            userMessage,
+            messageParts: messageParts.length > 0 ? messageParts : undefined,
+            requestId,
+            resolvedRef: executionContext.resolvedRef,
+            forwardedHeaders:
+              Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
+          },
+        ]);
+
+        logger.info({ runId: run.runId, conversationId, agentId }, 'Durable execution started');
+
+        c.header('x-workflow-run-id', run.runId);
+
+        return stream(c, async (s) => {
+          try {
+            const reader = run.readable.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              await s.write(value);
+            }
+          } catch (error) {
+            logger.error({ error, runId: run.runId }, 'Error streaming durable execution');
+          }
+        });
+      }
+
       return streamSSE(c, async (stream) => {
         const chunkString = (s: string, size = 16) => {
           const out: string[] = [];
@@ -432,59 +510,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
           const emitOperationsHeader = c.req.header('x-emit-operations');
           const emitOperations = emitOperationsHeader === 'true';
-
-          // Extract headers to forward to MCP servers (for user session auth)
-          // Transform cookie -> x-forwarded-cookie since downstream services expect it
-          // Note: Do NOT forward the authorization header - it causes issues with internal A2A requests
-          // because the user's JWT token is not valid for those internal service-to-service calls
-          const forwardedHeaders: Record<string, string> = {};
-          const xForwardedCookie = c.req.header('x-forwarded-cookie');
-          const cookie = c.req.header('cookie');
-          const clientTimezone = c.req.header('x-inkeep-client-timezone');
-          const clientTimestamp = c.req.header('x-inkeep-client-timestamp');
-
-          // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
-          // Transform cookie to x-forwarded-cookie for downstream forwarding
-          if (xForwardedCookie) {
-            forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
-          } else if (cookie) {
-            forwardedHeaders['x-forwarded-cookie'] = cookie;
-          }
-
-          // Forward client timezone and timestamp together (both required, with validation)
-          if (clientTimezone && clientTimestamp) {
-            // Validate timezone format
-            const isValidTimezone =
-              clientTimezone.length < 100 && /^[A-Za-z0-9_/\-+]+$/.test(clientTimezone);
-            // Validate ISO 8601 timestamp format: "2026-01-16T19:45:30.123Z"
-            const isValidTimestamp =
-              clientTimestamp.length < 50 &&
-              /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(clientTimestamp);
-
-            if (isValidTimezone && isValidTimestamp) {
-              forwardedHeaders['x-inkeep-client-timezone'] = clientTimezone;
-              forwardedHeaders['x-inkeep-client-timestamp'] = clientTimestamp;
-            } else {
-              logger.warn(
-                {
-                  clientTimezone: isValidTimezone
-                    ? clientTimezone
-                    : clientTimezone.substring(0, 100),
-                  clientTimestamp: isValidTimestamp
-                    ? clientTimestamp
-                    : clientTimestamp.substring(0, 50),
-                  isValidTimezone,
-                  isValidTimestamp,
-                },
-                'Invalid client timezone or timestamp format, ignoring both'
-              );
-            }
-          } else if (clientTimezone || clientTimestamp) {
-            logger.warn(
-              { hasTimezone: !!clientTimezone, hasTimestamp: !!clientTimestamp },
-              'Client timezone and timestamp must both be present, ignoring'
-            );
-          }
 
           const executionHandler = new ExecutionHandler();
           const result = await executionHandler.execute({

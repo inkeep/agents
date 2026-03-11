@@ -584,6 +584,10 @@ export function serializeAgentData(
     };
   }
 
+  if (metadata?.executionMode) {
+    (result as any).executionMode = metadata.executionMode;
+  }
+
   if (metadata?.stopWhen) {
     (result as any).stopWhen = metadata.stopWhen;
   }

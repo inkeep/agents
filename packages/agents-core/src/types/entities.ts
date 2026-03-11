@@ -263,6 +263,9 @@ import type {
   WorkAppGitHubProjectRepositoryAccessSelectSchema,
   WorkAppGitHubRepositoryInsertSchema,
   WorkAppGitHubRepositorySelectSchema,
+  WorkflowExecutionInsertSchema,
+  WorkflowExecutionSelectSchema,
+  WorkflowExecutionUpdateSchema,
 } from '../validation/schemas';
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
@@ -679,3 +682,7 @@ export type UserProfileInsert = z.infer<typeof UserProfileInsertSchema>;
 export type UserProfileApiInsert = z.infer<typeof UserProfileApiInsertSchema>;
 export type UserProfileUpdate = z.infer<typeof UserProfileUpdateSchema>;
 export type UserProfileApiUpdate = z.infer<typeof UserProfileApiUpdateSchema>;
+
+export type WorkflowExecutionSelect = z.infer<typeof WorkflowExecutionSelectSchema>;
+export type WorkflowExecutionInsert = z.infer<typeof WorkflowExecutionInsertSchema>;
+export type WorkflowExecutionUpdate = z.infer<typeof WorkflowExecutionUpdateSchema>;
