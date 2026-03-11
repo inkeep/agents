@@ -476,6 +476,31 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('POST / - render field persistence', () => {
+    it('should persist render field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('data-components-create-render');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const render = { component: 'function DataRenderer() { return <ul><li>item</li></ul>; }', mockData: { items: ['a', 'b'] } };
+      const componentData = { ...createDataComponentData(), render };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components`,
+        { method: 'POST', body: JSON.stringify(componentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.render).toEqual(render);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.render).toEqual(render);
+    });
+  });
+
   describe('PUT /{id}', () => {
     it('should update an existing data component', async () => {
       const tenantId = await createTestTenantWithOrg('data-components-update-success');
