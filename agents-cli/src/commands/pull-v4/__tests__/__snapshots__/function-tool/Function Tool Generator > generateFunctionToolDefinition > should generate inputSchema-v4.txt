@@ -1,8 +1,6 @@
 import { functionTool } from '@inkeep/agents-sdk';
 
-export const test = functionTool({
-  name: 'test-tool',
-  description: 'Test tool',
+export const testTool = functionTool({
   inputSchema: {
     type: 'object',
     properties: {
@@ -12,5 +10,7 @@ export const test = functionTool({
       },
     },
   },
-  execute: return { success: true };,
+  name: 'test-tool',
+  description: 'Test tool',
+  execute: () => ({ success: true }),
 });

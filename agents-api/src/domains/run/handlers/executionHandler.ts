@@ -276,16 +276,17 @@ export class ExecutionHandler {
         // but internal calls need a service token that the runApiKeyAuth middleware
         // can verify via verifyServiceToken(). Since we use getInProcessFetch(),
         // signing and verification happen in the same process with the same secret.
+        const initiatedBy = executionContext.metadata?.initiatedBy as
+          | { type: 'user' | 'api_key'; id: string }
+          | undefined;
+
         const authToken = await generateServiceToken({
           tenantId,
           projectId,
           originAgentId: agentId,
           targetAgentId: currentAgentId,
+          initiatedBy,
         });
-
-        const initiatedBy = executionContext.metadata?.initiatedBy as
-          | { type: string; id: string }
-          | undefined;
 
         const runAsUserId =
           initiatedBy?.type === 'user' &&

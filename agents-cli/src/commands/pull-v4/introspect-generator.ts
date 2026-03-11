@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { Node, type SourceFile, SyntaxKind } from 'ts-morph';
 import { buildComponentRegistryFromParsing } from './component-parser';
@@ -9,10 +9,17 @@ import { generateArtifactComponentDefinition } from './generators/artifact-compo
 import { generateContextConfigDefinition } from './generators/context-config-generator';
 import { generateCredentialDefinition } from './generators/credential-generator';
 import { generateDataComponentDefinition } from './generators/data-component-generator';
+import {
+  generateEnvironmentIndexDefinition,
+  generateEnvironmentSettingsDefinition,
+} from './generators/environment-generator';
+import { generateExternalAgentDefinition } from './generators/external-agent-generator';
+import { generateFunctionToolDefinition } from './generators/function-tool-generator';
 import { generateMcpToolDefinition } from './generators/mcp-tool-generator';
 import { generateProjectDefinition } from './generators/project-generator';
 import { generateStatusComponentDefinition } from './generators/status-component-generator';
 import { generateSubAgentDefinition } from './generators/sub-agent-generator';
+import { resolveSubAgentVariableName } from './generators/sub-agent-generator.helpers';
 import { generateTriggerDefinition } from './generators/trigger-generator';
 import { mergeGeneratedModule } from './module-merge';
 import { generateScheduledTriggerDefinition } from './scheduled-trigger-generator';
@@ -20,8 +27,12 @@ import {
   buildComponentFileName,
   collectTemplateVariableNames,
   createInMemoryProject,
+  isHumanReadableId,
   isPlainObject,
   toCamelCase,
+  toCredentialReferenceName,
+  toKebabCase,
+  toToolReferenceName,
 } from './utils';
 
 export interface ProjectPaths {
@@ -42,8 +53,6 @@ export interface IntrospectOptions {
   paths: ProjectPaths;
   /** @default "merge" */
   writeMode?: 'merge' | 'overwrite';
-  /** @default false */
-  failOnUnsupportedComponents?: boolean;
   /** @default false */
   debug?: boolean;
 }
@@ -72,12 +81,6 @@ interface SkippedAgent {
   reason: string;
 }
 
-interface UnsupportedComponentCounts {
-  functionTools: number;
-  functions: number;
-  externalAgents: number;
-}
-
 type SubAgentReferenceOverrideType =
   | 'tools'
   | 'subAgents'
@@ -90,6 +93,15 @@ type SubAgentReferenceOverrides = Partial<
   Record<SubAgentReferenceOverrideType, Record<string, string>>
 >;
 
+type SubAgentReferencePathOverrides = Partial<
+  Record<'tools' | 'subAgents' | 'agents' | 'externalAgents', Record<string, string>>
+>;
+
+interface SubAgentDependencyReferences {
+  referenceOverrides?: SubAgentReferenceOverrides;
+  referencePathOverrides?: SubAgentReferencePathOverrides;
+}
+
 type ProjectReferenceOverrideType =
   | 'agents'
   | 'tools'
@@ -99,6 +111,10 @@ type ProjectReferenceOverrideType =
   | 'credentialReferences';
 
 type ProjectReferenceOverrides = Partial<
+  Record<ProjectReferenceOverrideType, Record<string, string>>
+>;
+
+type ProjectReferencePathOverrides = Partial<
   Record<ProjectReferenceOverrideType, Record<string, string>>
 >;
 
@@ -117,7 +133,6 @@ export async function introspectGenerate({
   project,
   paths,
   writeMode = 'merge',
-  failOnUnsupportedComponents = false,
   debug = false,
 }: IntrospectOptions): Promise<void> {
   validateProject(project);
@@ -133,7 +148,6 @@ export async function introspectGenerate({
     existingComponentRegistry,
   };
   const tasks = createGenerationTasks();
-  const failures: string[] = [];
   const generatedFiles: string[] = [];
 
   for (const task of tasks) {
@@ -145,26 +159,14 @@ export async function introspectGenerate({
     }
   }
 
-  const unsupportedCounts = collectUnsupportedComponentCounts(project);
-  if (failOnUnsupportedComponents && hasUnsupportedComponents(unsupportedCounts)) {
-    failures.push(formatUnsupportedComponentsError(unsupportedCounts));
-  }
-
-  if (failures.length > 0) {
-    throw new Error(`Inkeep Pull failed:\n${failures.join('\n')}`);
-  }
-
   if (debug) {
     console.log(`Generated ${generatedFiles.length} files`);
-    if (skippedAgents.length > 0) {
+    if (skippedAgents.length) {
       console.log(
         `Skipped ${skippedAgents.length} agent(s): ${skippedAgents
           .map((agent) => `${agent.id} (${agent.reason})`)
           .join(', ')}`
       );
-    }
-    if (hasUnsupportedComponents(unsupportedCounts)) {
-      console.log(formatUnsupportedComponentsWarning(unsupportedCounts));
     }
   }
 }
@@ -177,6 +179,16 @@ function createGenerationTasks(): Array<GenerationTask<any>> {
       generate: generateCredentialDefinition,
     },
     {
+      type: 'environment-settings',
+      collect: collectEnvironmentSettingsRecords,
+      generate: generateEnvironmentSettingsRecord,
+    },
+    {
+      type: 'environment-index',
+      collect: collectEnvironmentIndexRecords,
+      generate: generateEnvironmentIndexDefinition,
+    },
+    {
       type: 'artifact-component',
       collect: collectArtifactComponentRecords,
       generate: generateArtifactComponentDefinition,
@@ -187,9 +199,19 @@ function createGenerationTasks(): Array<GenerationTask<any>> {
       generate: generateDataComponentDefinition,
     },
     {
+      type: 'function-tool',
+      collect: collectFunctionToolRecords,
+      generate: generateFunctionToolDefinition,
+    },
+    {
       type: 'tool',
       collect: collectToolRecords,
       generate: generateMcpToolDefinition,
+    },
+    {
+      type: 'external-agent',
+      collect: collectExternalAgentRecords,
+      generate: generateExternalAgentDefinition,
     },
     {
       type: 'context-config',
@@ -236,24 +258,90 @@ function collectCredentialRecords(
     return [];
   }
 
-  return Object.entries(context.project.credentialReferences).map(
-    ([credentialId, credentialData]) => ({
-      id: credentialId,
+  const credentialEntries = Object.entries(context.project.credentialReferences);
+  const fileNamesByCredentialId = buildSequentialNameFileNames(credentialEntries);
+
+  return credentialEntries.map(([credentialId, credentialData]) => ({
+    id: credentialId,
+    filePath: resolveRecordFilePath(
+      context,
+      'credentials',
+      credentialId,
+      join(context.paths.credentialsDir, fileNamesByCredentialId[credentialId])
+    ),
+    payload: {
+      credentialId,
+      ...credentialData,
+    } as Parameters<typeof generateCredentialDefinition>[0],
+  }));
+}
+
+function collectEnvironmentSettingsRecords(
+  context: GenerationContext
+): Array<GenerationRecord<Parameters<typeof generateEnvironmentSettingsDefinition>[1]>> {
+  const credentialReferenceIds = collectEnvironmentCredentialReferenceIds(context.project);
+  if (credentialReferenceIds.length === 0) {
+    return [];
+  }
+
+  const credentialsById: Record<string, unknown> = {};
+  for (const credentialReferenceId of credentialReferenceIds) {
+    const credentialData = context.project.credentialReferences?.[credentialReferenceId];
+    if (isPlainObject(credentialData)) {
+      credentialsById[credentialReferenceId] = {
+        ...credentialData,
+        id: credentialReferenceId,
+      };
+      continue;
+    }
+
+    credentialsById[credentialReferenceId] = {
+      id: credentialReferenceId,
+    };
+  }
+
+  return [
+    {
+      id: 'development',
       filePath: resolveRecordFilePath(
         context,
-        'credentials',
-        credentialId,
-        join(
-          context.paths.credentialsDir,
-          buildComponentFileName(credentialId, credentialData.name ?? undefined)
-        )
+        'environments',
+        'development',
+        join(context.paths.environmentsDir, 'development.env.ts')
       ),
       payload: {
-        credentialId,
-        ...credentialData,
-      } as Parameters<typeof generateCredentialDefinition>[0],
-    })
-  );
+        credentials: credentialsById,
+      } as Parameters<typeof generateEnvironmentSettingsDefinition>[1],
+    },
+  ];
+}
+
+function collectEnvironmentIndexRecords(
+  context: GenerationContext
+): Array<GenerationRecord<Parameters<typeof generateEnvironmentIndexDefinition>[0]>> {
+  const credentialReferenceIds = collectEnvironmentCredentialReferenceIds(context.project);
+  if (credentialReferenceIds.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      id: 'index',
+      filePath: resolveRecordFilePath(
+        context,
+        'environments',
+        'index',
+        join(context.paths.environmentsDir, 'index.ts')
+      ),
+      payload: ['development'] as Parameters<typeof generateEnvironmentIndexDefinition>[0],
+    },
+  ];
+}
+
+function generateEnvironmentSettingsRecord(
+  payload: Parameters<typeof generateEnvironmentSettingsDefinition>[1]
+): SourceFile {
+  return generateEnvironmentSettingsDefinition('development', payload);
 }
 
 function collectArtifactComponentRecords(
@@ -286,26 +374,82 @@ function collectArtifactComponentRecords(
 function collectDataComponentRecords(
   context: GenerationContext
 ): Array<GenerationRecord<Parameters<typeof generateDataComponentDefinition>[0]>> {
-  if (!context.project.dataComponents) {
-    return [];
+  const recordsByDataComponentId = new Map<
+    string,
+    GenerationRecord<Parameters<typeof generateDataComponentDefinition>[0]>
+  >();
+
+  for (const [dataComponentId, dataComponent] of Object.entries(
+    context.project.dataComponents ?? {}
+  )) {
+    recordsByDataComponentId.set(dataComponentId, {
+      id: dataComponentId,
+      filePath: resolveRecordFilePath(
+        context,
+        'dataComponents',
+        dataComponentId,
+        join(
+          context.paths.dataComponentsDir,
+          buildComponentFileName(dataComponentId, dataComponent.name ?? undefined)
+        )
+      ),
+      payload: {
+        dataComponentId,
+        ...dataComponent,
+      } as Parameters<typeof generateDataComponentDefinition>[0],
+    });
   }
 
-  return Object.entries(context.project.dataComponents).map(([dataComponentId, dataComponent]) => ({
-    id: dataComponentId,
-    filePath: resolveRecordFilePath(
-      context,
-      'dataComponents',
-      dataComponentId,
-      join(
-        context.paths.dataComponentsDir,
-        buildComponentFileName(dataComponentId, dataComponent.name ?? undefined)
-      )
-    ),
-    payload: {
-      dataComponentId,
-      ...dataComponent,
-    } as Parameters<typeof generateDataComponentDefinition>[0],
-  }));
+  for (const dataComponentId of collectReferencedSubAgentComponentIds(context, 'dataComponents')) {
+    if (recordsByDataComponentId.has(dataComponentId)) {
+      continue;
+    }
+
+    recordsByDataComponentId.set(dataComponentId, {
+      id: dataComponentId,
+      filePath: resolveRecordFilePath(
+        context,
+        'dataComponents',
+        dataComponentId,
+        join(context.paths.dataComponentsDir, `${dataComponentId}.ts`)
+      ),
+      payload: {
+        dataComponentId,
+        name: dataComponentId,
+        props: { type: 'object', properties: {} },
+      } as Parameters<typeof generateDataComponentDefinition>[0],
+    });
+  }
+
+  return [...recordsByDataComponentId.values()];
+}
+
+function collectReferencedSubAgentComponentIds(
+  context: GenerationContext,
+  componentProperty: 'dataComponents' | 'artifactComponents'
+): string[] {
+  const componentIds = new Set<string>();
+
+  for (const agentId of context.completeAgentIds) {
+    const agentData = context.project.agents?.[agentId];
+    const subAgents = asRecord(agentData?.subAgents);
+    if (!subAgents) {
+      continue;
+    }
+
+    for (const subAgentData of Object.values(subAgents)) {
+      const subAgentRecord = asRecord(subAgentData);
+      if (!subAgentRecord) {
+        continue;
+      }
+
+      for (const componentId of extractReferenceIds(subAgentRecord[componentProperty])) {
+        componentIds.add(componentId);
+      }
+    }
+  }
+
+  return [...componentIds];
 }
 
 function collectContextConfigRecords(
@@ -349,6 +493,10 @@ function collectContextConfigRecords(
         context,
         normalizedContextConfig
       );
+      const credentialReferencePathOverrides = collectContextConfigCredentialReferencePathOverrides(
+        context,
+        normalizedContextConfig
+      );
       const headersReferenceOverride = collectContextConfigHeadersReferenceOverride(
         context,
         contextConfigId,
@@ -361,11 +509,16 @@ function collectContextConfigRecords(
           contextConfigId,
           ...normalizedContextConfig,
           ...(headersReferenceOverride && {
-            headers: headersReferenceOverride,
+            headersReference: headersReferenceOverride,
           }),
           ...(credentialReferenceOverrides && {
             referenceOverrides: {
               credentialReferences: credentialReferenceOverrides,
+            },
+          }),
+          ...(credentialReferencePathOverrides && {
+            referencePathOverrides: {
+              credentialReferences: credentialReferencePathOverrides,
             },
           }),
         } as Parameters<typeof generateContextConfigDefinition>[0],
@@ -376,16 +529,200 @@ function collectContextConfigRecords(
   return [...contextConfigRecordsById.values()];
 }
 
+interface FunctionToolEntry {
+  functionToolId: string;
+  functionId: string;
+  functionToolData: Record<string, unknown>;
+  functionData: Record<string, unknown>;
+  exportName: string;
+  fileName: string;
+}
+
+function collectFunctionToolRecords(
+  context: GenerationContext
+): Array<GenerationRecord<Parameters<typeof generateFunctionToolDefinition>[0]>> {
+  const functionToolEntries = collectFunctionToolEntries(context.project);
+  if (!functionToolEntries.length) {
+    return [];
+  }
+
+  const fileNamesByFunctionToolId = buildSequentialNameFileNames(
+    functionToolEntries.map(({ functionToolId, fileName }) => [functionToolId, { name: fileName }])
+  );
+
+  return functionToolEntries.map(
+    ({
+      functionToolId,
+      functionToolData,
+      functionData,
+    }): GenerationRecord<Parameters<typeof generateFunctionToolDefinition>[0]> => {
+      const modulePath = stripExtension(fileNamesByFunctionToolId[functionToolId]);
+      const functionToolName =
+        typeof functionToolData.name === 'string' && functionToolData.name.length > 0
+          ? functionToolData.name
+          : typeof functionData.name === 'string' && functionData.name.length > 0
+            ? functionData.name
+            : undefined;
+      const functionToolDescription =
+        typeof functionToolData.description === 'string'
+          ? functionToolData.description
+          : typeof functionData.description === 'string'
+            ? functionData.description
+            : undefined;
+
+      return {
+        id: functionToolId,
+        filePath: resolveRecordFilePath(
+          context,
+          'functionTools',
+          functionToolId,
+          join(context.paths.toolsDir, `${modulePath}.ts`)
+        ),
+        payload: {
+          functionToolId,
+          ...(functionToolName && { name: functionToolName }),
+          ...(functionToolDescription !== undefined && {
+            description: functionToolDescription,
+          }),
+          ...(functionData.inputSchema !== undefined && { inputSchema: functionData.inputSchema }),
+          ...(functionData.schema !== undefined && { schema: functionData.schema }),
+          ...(functionData.executeCode !== undefined && { executeCode: functionData.executeCode }),
+          ...(functionData.dependencies !== undefined && {
+            dependencies: functionData.dependencies,
+          }),
+        } as Parameters<typeof generateFunctionToolDefinition>[0],
+      };
+    }
+  );
+}
+
+function collectFunctionToolEntries(project: FullProjectDefinition): FunctionToolEntry[] {
+  const functionToolsById = collectFunctionToolsById(project);
+  const functionsById = collectFunctionsById(project);
+  const entries: FunctionToolEntry[] = [];
+
+  for (const [functionToolId, functionToolData] of Object.entries(functionToolsById)) {
+    const functionId =
+      typeof functionToolData.functionId === 'string' && functionToolData.functionId.length > 0
+        ? functionToolData.functionId
+        : functionToolId;
+    const functionData = functionsById[functionId] ?? {};
+    const functionToolName =
+      typeof functionToolData.name === 'string' && functionToolData.name.length > 0
+        ? functionToolData.name
+        : undefined;
+    const functionName =
+      typeof functionData.name === 'string' && functionData.name.length > 0
+        ? functionData.name
+        : undefined;
+    const fallbackName = functionToolName ?? functionName ?? functionToolId;
+
+    entries.push({
+      functionToolId,
+      functionId,
+      functionToolData,
+      functionData,
+      exportName: fallbackName,
+      fileName: fallbackName,
+    });
+  }
+
+  return entries;
+}
+
+function collectFunctionToolsById(
+  project: FullProjectDefinition
+): Record<string, Record<string, unknown>> {
+  const functionToolsById: Record<string, Record<string, unknown>> = {};
+
+  for (const [functionToolId, functionToolData] of Object.entries(project.functionTools ?? {})) {
+    const functionToolRecord = asRecord(functionToolData);
+    if (!functionToolRecord) {
+      continue;
+    }
+
+    functionToolsById[functionToolId] = {
+      ...functionToolRecord,
+    };
+  }
+
+  for (const agentData of Object.values(project.agents ?? {})) {
+    const agentRecord = asRecord(agentData);
+    const agentFunctionTools = asRecord(agentRecord?.functionTools);
+    if (!agentFunctionTools) {
+      continue;
+    }
+
+    for (const [functionToolId, functionToolData] of Object.entries(agentFunctionTools)) {
+      const functionToolRecord = asRecord(functionToolData);
+      if (!functionToolRecord) {
+        continue;
+      }
+
+      const existingFunctionTool = functionToolsById[functionToolId] ?? {};
+      functionToolsById[functionToolId] = {
+        ...functionToolRecord,
+        ...existingFunctionTool,
+      };
+    }
+  }
+
+  return functionToolsById;
+}
+
+function collectFunctionsById(
+  project: FullProjectDefinition
+): Record<string, Record<string, unknown>> {
+  const functionsById: Record<string, Record<string, unknown>> = {};
+
+  for (const [functionId, functionData] of Object.entries(project.functions ?? {})) {
+    const functionRecord = asRecord(functionData);
+    if (!functionRecord) {
+      continue;
+    }
+
+    functionsById[functionId] = {
+      ...functionRecord,
+    };
+  }
+
+  for (const agentData of Object.values(project.agents ?? {})) {
+    const agentRecord = asRecord(agentData);
+    const agentFunctions = asRecord(agentRecord?.functions);
+    if (!agentFunctions) {
+      continue;
+    }
+
+    for (const [functionId, functionData] of Object.entries(agentFunctions)) {
+      const functionRecord = asRecord(functionData);
+      if (!functionRecord) {
+        continue;
+      }
+
+      const existingFunction = functionsById[functionId] ?? {};
+      functionsById[functionId] = {
+        ...functionRecord,
+        ...existingFunction,
+      };
+    }
+  }
+
+  return functionsById;
+}
+
 function collectToolRecords(
   context: GenerationContext
 ): Array<GenerationRecord<Parameters<typeof generateMcpToolDefinition>[0]>> {
-  return Object.entries(context.project.tools ?? {}).map(([toolId, toolData]) => ({
+  const toolEntries = Object.entries(context.project.tools ?? {});
+  const fileNamesByToolId = buildSequentialNameFileNames(toolEntries);
+
+  return toolEntries.map(([toolId, toolData]) => ({
     id: toolId,
     filePath: resolveRecordFilePath(
       context,
       'tools',
       toolId,
-      join(context.paths.toolsDir, buildComponentFileName(toolId, toolData.name ?? undefined))
+      join(context.paths.toolsDir, fileNamesByToolId[toolId])
     ),
     payload: {
       mcpToolId: toolId,
@@ -394,20 +731,48 @@ function collectToolRecords(
   }));
 }
 
+function collectExternalAgentRecords(
+  context: GenerationContext
+): Array<GenerationRecord<Parameters<typeof generateExternalAgentDefinition>[0]>> {
+  const externalAgentEntries = Object.entries(context.project.externalAgents ?? {});
+  const fileNamesByExternalAgentId = buildSequentialNameFileNames(
+    externalAgentEntries.map(([externalAgentId, externalAgentData]) => [
+      externalAgentId,
+      { name: resolveExternalAgentNamingSeed(externalAgentId, externalAgentData) },
+    ])
+  );
+  const referenceNamesByExternalAgentId = buildExternalAgentReferenceNamesById(context.project);
+
+  return externalAgentEntries.map(([externalAgentId, externalAgentData]) => {
+    const externalAgentRecord = asRecord(externalAgentData) ?? {};
+    return {
+      id: externalAgentId,
+      filePath: resolveRecordFilePath(
+        context,
+        'externalAgents',
+        externalAgentId,
+        join(context.paths.externalAgentsDir, fileNamesByExternalAgentId[externalAgentId])
+      ),
+      payload: {
+        externalAgentId,
+        externalAgentReferenceName: referenceNamesByExternalAgentId[externalAgentId],
+        ...externalAgentRecord,
+      } as Parameters<typeof generateExternalAgentDefinition>[0],
+    };
+  });
+}
+
 function collectContextConfigCredentialReferenceOverrides(
   context: GenerationContext,
   contextConfigData: Record<string, unknown>
 ): Record<string, string> | undefined {
-  const registry = context.existingComponentRegistry;
-  if (!registry) {
-    return;
-  }
-
   const contextVariables = asRecord(contextConfigData.contextVariables);
   if (!contextVariables) {
     return;
   }
 
+  const credentialReferenceNamesById = buildCredentialReferenceNamesById(context.project);
+  const registry = context.existingComponentRegistry;
   const overrides: Record<string, string> = {};
   for (const contextVariable of Object.values(contextVariables)) {
     const contextVariableRecord = asRecord(contextVariable);
@@ -419,9 +784,50 @@ function collectContextConfigCredentialReferenceOverrides(
       continue;
     }
 
-    const existingCredential = registry.get(credentialReferenceId, 'credentials');
+    const credentialReferenceName = credentialReferenceNamesById[credentialReferenceId];
+    if (credentialReferenceName) {
+      overrides[credentialReferenceId] = credentialReferenceName;
+    }
+
+    const existingCredential = registry?.get(credentialReferenceId, 'credentials');
     if (existingCredential?.name) {
       overrides[credentialReferenceId] = existingCredential.name;
+    }
+  }
+
+  return Object.keys(overrides).length ? overrides : undefined;
+}
+
+function collectContextConfigCredentialReferencePathOverrides(
+  context: GenerationContext,
+  contextConfigData: Record<string, unknown>
+): Record<string, string> | undefined {
+  const contextVariables = asRecord(contextConfigData.contextVariables);
+  if (!contextVariables) {
+    return;
+  }
+
+  const credentialReferencePathById = buildCredentialReferencePathById(context.project);
+  const registry = context.existingComponentRegistry;
+  const overrides: Record<string, string> = {};
+  for (const contextVariable of Object.values(contextVariables)) {
+    const contextVariableRecord = asRecord(contextVariable);
+    const credentialReferenceId =
+      contextVariableRecord && typeof contextVariableRecord.credentialReferenceId === 'string'
+        ? contextVariableRecord.credentialReferenceId
+        : undefined;
+    if (!credentialReferenceId) {
+      continue;
+    }
+
+    const credentialReferencePath = credentialReferencePathById[credentialReferenceId];
+    if (credentialReferencePath) {
+      overrides[credentialReferenceId] = credentialReferencePath;
+    }
+
+    const existingCredential = registry?.get(credentialReferenceId, 'credentials');
+    if (existingCredential?.filePath) {
+      overrides[credentialReferenceId] = stripExtension(basename(existingCredential.filePath));
     }
   }
 
@@ -513,6 +919,8 @@ function collectTriggerRecords(
     return [];
   }
 
+  const credentialReferenceNamesById = buildCredentialReferenceNamesById(context.project);
+  const credentialReferencePathsById = buildCredentialReferencePathById(context.project);
   const records: Array<GenerationRecord<Parameters<typeof generateTriggerDefinition>[0]>> = [];
   for (const agentId of context.completeAgentIds) {
     const agentData = context.project.agents[agentId];
@@ -520,22 +928,54 @@ function collectTriggerRecords(
       continue;
     }
 
-    for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
+    const triggerEntries = Object.entries(agentData.triggers);
+    const fileNamesByTriggerId = buildSequentialNameFileNames(triggerEntries);
+
+    for (const [triggerId, triggerData] of triggerEntries) {
+      const triggerRecord = asRecord(triggerData);
+      const signingSecretCredentialReferenceId =
+        typeof triggerRecord?.signingSecretCredentialReferenceId === 'string'
+          ? triggerRecord.signingSecretCredentialReferenceId
+          : undefined;
+      let signingSecretCredentialReferenceName = signingSecretCredentialReferenceId
+        ? credentialReferenceNamesById[signingSecretCredentialReferenceId]
+        : undefined;
+      let signingSecretCredentialReferencePath = signingSecretCredentialReferenceId
+        ? credentialReferencePathsById[signingSecretCredentialReferenceId]
+        : undefined;
+
+      if (signingSecretCredentialReferenceId && context.existingComponentRegistry) {
+        const existingCredential = context.existingComponentRegistry.get(
+          signingSecretCredentialReferenceId,
+          'credentials'
+        );
+        if (existingCredential?.name) {
+          signingSecretCredentialReferenceName = existingCredential.name;
+        }
+        if (existingCredential?.filePath) {
+          signingSecretCredentialReferencePath = stripExtension(
+            basename(existingCredential.filePath)
+          );
+        }
+      }
+
       records.push({
         id: triggerId,
         filePath: resolveRecordFilePath(
           context,
           'triggers',
           triggerId,
-          join(
-            context.paths.agentsDir,
-            'triggers',
-            buildComponentFileName(triggerId, triggerData.name ?? undefined)
-          )
+          join(context.paths.agentsDir, 'triggers', fileNamesByTriggerId[triggerId])
         ),
         payload: {
           triggerId,
           ...triggerData,
+          ...(signingSecretCredentialReferenceName && {
+            signingSecretCredentialReferenceName,
+          }),
+          ...(signingSecretCredentialReferencePath && {
+            signingSecretCredentialReferencePath,
+          }),
         } as Parameters<typeof generateTriggerDefinition>[0],
       });
     }
@@ -559,6 +999,9 @@ function collectScheduledTriggerRecords(
       continue;
     }
 
+    const scheduledTriggerEntries = Object.entries(agentData.scheduledTriggers);
+    const fileNamesByScheduledTriggerId = buildSequentialNameFileNames(scheduledTriggerEntries);
+
     for (const [scheduledTriggerId, scheduledTriggerData] of Object.entries(
       agentData.scheduledTriggers
     )) {
@@ -571,7 +1014,7 @@ function collectScheduledTriggerRecords(
           join(
             context.paths.agentsDir,
             'scheduled-triggers',
-            buildComponentFileName(scheduledTriggerId, scheduledTriggerData.name ?? undefined)
+            fileNamesByScheduledTriggerId[scheduledTriggerId]
           )
         ),
         payload: {
@@ -608,6 +1051,10 @@ function collectAgentRecords(
     );
     const existingAgent = context.existingComponentRegistry?.get(agentId, 'agents');
     const subAgentReferences = collectSubAgentReferenceOverrides(context, agentData, agentFilePath);
+    const subAgentReferencePathOverrides = collectSubAgentReferencePathOverrides(
+      context,
+      agentData
+    );
     const statusUpdates = asRecord(agentData.statusUpdates);
     const contextTemplateReferences = collectContextTemplateReferences(
       context,
@@ -626,7 +1073,10 @@ function collectAgentRecords(
         agentId,
         ...agentData,
         ...(existingAgent?.name?.length && { agentVariableName: existingAgent.name }),
-        ...(Object.keys(subAgentReferences).length > 0 ? { subAgentReferences } : {}),
+        ...(Object.keys(subAgentReferences).length && { subAgentReferences }),
+        ...(Object.keys(subAgentReferencePathOverrides).length && {
+          subAgentReferencePathOverrides,
+        }),
         ...(contextTemplateReferences && {
           contextConfigReference: contextTemplateReferences.contextConfigReference,
         }),
@@ -639,6 +1089,48 @@ function collectAgentRecords(
   return records;
 }
 
+function collectSubAgentReferencePathOverrides(
+  context: GenerationContext,
+  agentData: Record<string, unknown>
+): Record<string, string> {
+  const generatedSubAgentReferencePathById = buildSubAgentReferencePathById(
+    context.project,
+    context.completeAgentIds
+  );
+  const subAgentIds = new Set<string>(extractReferenceIds(agentData.subAgents));
+  if (typeof agentData.defaultSubAgentId === 'string' && agentData.defaultSubAgentId.length > 0) {
+    subAgentIds.add(agentData.defaultSubAgentId);
+  }
+
+  if (!subAgentIds.size) {
+    return {};
+  }
+
+  const subAgents = asRecord(agentData.subAgents);
+  const overrides: Record<string, string> = {};
+
+  for (const subAgentId of subAgentIds) {
+    const fallbackReferencePath = generatedSubAgentReferencePathById[subAgentId];
+    const subAgentData = asRecord(subAgents?.[subAgentId]);
+    const subAgentName = typeof subAgentData?.name === 'string' ? subAgentData.name : undefined;
+    const subAgentFilePath = resolveRecordFilePath(
+      context,
+      'subAgents',
+      subAgentId,
+      join(
+        context.paths.agentsDir,
+        'sub-agents',
+        fallbackReferencePath
+          ? `${fallbackReferencePath}.ts`
+          : buildComponentFileName(subAgentId, subAgentName)
+      )
+    );
+    overrides[subAgentId] = stripExtension(basename(subAgentFilePath));
+  }
+
+  return overrides;
+}
+
 function collectSubAgentRecords(
   context: GenerationContext
 ): Array<GenerationRecord<Parameters<typeof generateSubAgentDefinition>[0]>> {
@@ -646,7 +1138,10 @@ function collectSubAgentRecords(
     return [];
   }
 
-  const records: Array<GenerationRecord<Parameters<typeof generateSubAgentDefinition>[0]>> = [];
+  const recordsBySubAgentId = new Map<
+    string,
+    GenerationRecord<Parameters<typeof generateSubAgentDefinition>[0]>
+  >();
   for (const agentId of context.completeAgentIds) {
     const agentData = context.project.agents[agentId];
     const subAgents = asRecord(agentData?.subAgents);
@@ -660,7 +1155,7 @@ function collectSubAgentRecords(
         continue;
       }
 
-      const referenceOverrides = collectSubAgentDependencyReferenceOverrides(context, payload);
+      const dependencyReferences = collectSubAgentDependencyReferenceOverrides(context, payload);
       const subAgentName = typeof payload.name === 'string' ? payload.name : undefined;
       const subAgentFilePath = resolveRecordFilePath(
         context,
@@ -679,13 +1174,18 @@ function collectSubAgentRecords(
         [typeof payload.prompt === 'string' ? payload.prompt : undefined]
       );
 
-      records.push({
+      recordsBySubAgentId.set(subAgentId, {
         id: subAgentId,
         filePath: subAgentFilePath, // @ts-expect-error -- fixme
         payload: {
           subAgentId,
           ...payload,
-          ...(referenceOverrides && { referenceOverrides }),
+          ...(dependencyReferences?.referenceOverrides && {
+            referenceOverrides: dependencyReferences.referenceOverrides,
+          }),
+          ...(dependencyReferences?.referencePathOverrides && {
+            referencePathOverrides: dependencyReferences.referencePathOverrides,
+          }),
           ...(contextTemplateReferences && {
             contextConfigId: contextTemplateReferences.contextConfigId,
             contextConfigReference: contextTemplateReferences.contextConfigReference,
@@ -698,7 +1198,7 @@ function collectSubAgentRecords(
     }
   }
 
-  return records;
+  return [...recordsBySubAgentId.values()];
 }
 
 function collectStatusComponentRecords(
@@ -758,6 +1258,7 @@ function collectProjectRecord(
   context: GenerationContext
 ): Array<GenerationRecord<Parameters<typeof generateProjectDefinition>[0]>> {
   const referenceOverrides = collectProjectReferenceOverrides(context);
+  const referencePathOverrides = collectProjectReferencePathOverrides(context);
 
   return [
     {
@@ -782,6 +1283,7 @@ function collectProjectRecord(
         artifactComponents: getObjectKeys(context.project.artifactComponents),
         credentialReferences: getObjectKeys(context.project.credentialReferences),
         ...(referenceOverrides && { referenceOverrides }),
+        ...(referencePathOverrides && { referencePathOverrides }),
       } as Parameters<typeof generateProjectDefinition>[0],
     },
   ];
@@ -838,33 +1340,24 @@ function isAgentComplete(
   return { complete: true };
 }
 
-function collectUnsupportedComponentCounts(
-  project: FullProjectDefinition
-): UnsupportedComponentCounts {
-  return {
-    functionTools: getObjectKeys(project.functionTools).length,
-    functions: getObjectKeys(project.functions).length,
-    externalAgents: getObjectKeys(project.externalAgents).length,
-  };
-}
+function collectEnvironmentCredentialReferenceIds(project: FullProjectDefinition): string[] {
+  const credentialReferenceIds = new Set<string>();
 
-function hasUnsupportedComponents(counts: UnsupportedComponentCounts): boolean {
-  return Object.values(counts).some((value) => value > 0);
-}
+  for (const toolData of Object.values(project.tools ?? {})) {
+    const toolRecord = asRecord(toolData);
+    const credentialReferenceId =
+      toolRecord && typeof toolRecord.credentialReferenceId === 'string'
+        ? toolRecord.credentialReferenceId
+        : undefined;
+    const hasInlineCredential =
+      toolRecord?.credential !== undefined && toolRecord?.credential !== null;
 
-function formatUnsupportedComponentsError(counts: UnsupportedComponentCounts): string {
-  return `Unsupported components for v4 introspect: ${formatUnsupportedCounts(counts)}`;
-}
+    if (credentialReferenceId && !hasInlineCredential) {
+      credentialReferenceIds.add(credentialReferenceId);
+    }
+  }
 
-function formatUnsupportedComponentsWarning(counts: UnsupportedComponentCounts): string {
-  return `Skipped unsupported components for v4 introspect: ${formatUnsupportedCounts(counts)}`;
-}
-
-function formatUnsupportedCounts(counts: UnsupportedComponentCounts): string {
-  return Object.entries(counts)
-    .filter(([, value]) => value > 0)
-    .map(([name, value]) => `${name}=${value}`)
-    .join(', ');
+  return [...credentialReferenceIds];
 }
 
 function getObjectKeys(value: unknown): string[] {
@@ -902,6 +1395,10 @@ function collectSubAgentReferenceOverrides(
   agentData: Record<string, unknown>,
   agentFilePath: string
 ): Record<string, { name: string; local?: boolean }> {
+  const generatedSubAgentReferenceNamesById = buildSubAgentReferenceNamesById(
+    context.project,
+    context.completeAgentIds
+  );
   const subAgentIds = new Set<string>(extractReferenceIds(agentData.subAgents));
   if (typeof agentData.defaultSubAgentId === 'string' && agentData.defaultSubAgentId.length > 0) {
     subAgentIds.add(agentData.defaultSubAgentId);
@@ -911,8 +1408,17 @@ function collectSubAgentReferenceOverrides(
     return {};
   }
 
+  const subAgents = asRecord(agentData.subAgents);
   const overrides: Record<string, { name: string; local?: boolean }> = {};
   for (const subAgentId of subAgentIds) {
+    const subAgentData = asRecord(subAgents?.[subAgentId]);
+    const subAgentName = typeof subAgentData?.name === 'string' ? subAgentData.name : undefined;
+    overrides[subAgentId] = {
+      name:
+        generatedSubAgentReferenceNamesById[subAgentId] ??
+        resolveSubAgentVariableName(subAgentId, subAgentName),
+    };
+
     const existingSubAgent = context.existingComponentRegistry?.get(subAgentId, 'subAgents');
     if (!existingSubAgent?.name) {
       continue;
@@ -1041,10 +1547,10 @@ function inferHeadersReferenceFromContextConfig(
 
   const headersRecord = asRecord(headers);
   if (headersRecord) {
-    if (typeof headersRecord.id === 'string' && headersRecord.id.length > 0) {
+    if (typeof headersRecord.id === 'string' && headersRecord.id) {
       return toCamelCase(headersRecord.id);
     }
-    if (typeof headersRecord.name === 'string' && headersRecord.name.length > 0) {
+    if (typeof headersRecord.name === 'string' && headersRecord.name) {
       return toCamelCase(headersRecord.name);
     }
   }
@@ -1150,115 +1656,304 @@ function applyPromptHeaderTemplateSchema(
 function collectSubAgentDependencyReferenceOverrides(
   context: GenerationContext,
   subAgentData: Record<string, unknown>
-): SubAgentReferenceOverrides | undefined {
+): SubAgentDependencyReferences | undefined {
   const registry = context.existingComponentRegistry;
-  if (!registry) {
-    return;
-  }
+  const referenceOverrides: SubAgentReferenceOverrides = {};
+  const referencePathOverrides: SubAgentReferencePathOverrides = {};
+  const toolReferenceNamesById = buildToolReferenceNamesById(context.project);
+  const toolReferencePathsById = buildToolReferencePathById(context.project);
+  const subAgentReferenceNamesById = buildSubAgentReferenceNamesById(
+    context.project,
+    context.completeAgentIds
+  );
+  const subAgentReferencePathsById = buildSubAgentReferencePathById(
+    context.project,
+    context.completeAgentIds
+  );
+  const agentReferenceNamesById = buildAgentReferenceNamesById(context.project);
+  const agentReferencePathsById = buildAgentReferencePathById(context.project);
+  const externalAgentReferenceNamesById = buildExternalAgentReferenceNamesById(context.project);
+  const externalAgentReferencePathsById = buildExternalAgentReferencePathById(context.project);
 
-  const overrides: SubAgentReferenceOverrides = {};
+  const assignSubAgentReferenceOverrides = (subAgentId: string): void => {
+    const subAgentReferenceName = subAgentReferenceNamesById[subAgentId];
+    if (subAgentReferenceName) {
+      assignReferenceOverride(referenceOverrides, 'subAgents', subAgentId, subAgentReferenceName);
+    }
+
+    const subAgentReferencePath = subAgentReferencePathsById[subAgentId];
+    if (subAgentReferencePath) {
+      assignReferencePathOverride(
+        referencePathOverrides,
+        'subAgents',
+        subAgentId,
+        subAgentReferencePath
+      );
+    }
+  };
+
+  const assignAgentReferenceOverrides = (agentId: string): void => {
+    const agentReferenceName = agentReferenceNamesById[agentId];
+    if (agentReferenceName) {
+      assignReferenceOverride(referenceOverrides, 'agents', agentId, agentReferenceName);
+    }
+
+    const agentReferencePath = agentReferencePathsById[agentId];
+    if (agentReferencePath) {
+      assignReferencePathOverride(referencePathOverrides, 'agents', agentId, agentReferencePath);
+    }
+  };
+
+  const assignExternalAgentReferenceOverrides = (externalAgentId: string): void => {
+    const externalAgentReferenceName = externalAgentReferenceNamesById[externalAgentId];
+    if (externalAgentReferenceName) {
+      assignReferenceOverride(
+        referenceOverrides,
+        'externalAgents',
+        externalAgentId,
+        externalAgentReferenceName
+      );
+    }
+
+    const externalAgentReferencePath = externalAgentReferencePathsById[externalAgentId];
+    if (externalAgentReferencePath) {
+      assignReferencePathOverride(
+        referencePathOverrides,
+        'externalAgents',
+        externalAgentId,
+        externalAgentReferencePath
+      );
+    }
+  };
+
   const canUse = Array.isArray(subAgentData.canUse) ? subAgentData.canUse : [];
   for (const item of canUse) {
-    if (typeof item === 'string') {
-      assignComponentReferenceOverride(registry, overrides, 'tools', item, 'tools');
-      assignComponentReferenceOverride(registry, overrides, 'tools', item, 'functionTools');
-      continue;
-    }
-
     const canUseRecord = asRecord(item);
-    if (!canUseRecord || typeof canUseRecord.toolId !== 'string') {
+    const toolId =
+      typeof item === 'string'
+        ? item
+        : canUseRecord && typeof canUseRecord.toolId === 'string'
+          ? canUseRecord.toolId
+          : undefined;
+    if (!toolId) {
       continue;
     }
 
-    assignComponentReferenceOverride(registry, overrides, 'tools', canUseRecord.toolId, 'tools');
-    assignComponentReferenceOverride(
-      registry,
-      overrides,
+    assignReferenceOverride(
+      referenceOverrides,
       'tools',
-      canUseRecord.toolId,
-      'functionTools'
+      toolId,
+      toolReferenceNamesById[toolId] ?? toToolReferenceName(toolId)
     );
+    assignReferencePathOverride(
+      referencePathOverrides,
+      'tools',
+      toolId,
+      toolReferencePathsById[toolId] ?? toKebabCase(toolId)
+    );
+
+    if (registry) {
+      assignComponentReferenceOverride(registry, referenceOverrides, 'tools', toolId, 'tools');
+      assignComponentReferenceOverride(
+        registry,
+        referenceOverrides,
+        'tools',
+        toolId,
+        'functionTools'
+      );
+      const toolComponent = registry.get(toolId, 'functionTools') ?? registry.get(toolId, 'tools');
+      if (toolComponent?.filePath) {
+        assignReferencePathOverride(
+          referencePathOverrides,
+          'tools',
+          toolId,
+          resolveToolModulePath(toolComponent.filePath)
+        );
+      }
+    }
   }
 
   const canDelegateTo = Array.isArray(subAgentData.canDelegateTo) ? subAgentData.canDelegateTo : [];
   for (const item of canDelegateTo) {
     if (typeof item === 'string') {
-      assignFirstMatchingComponentReferenceOverride(registry, overrides, item, [
-        ['subAgents', 'subAgents'],
-        ['agents', 'agents'],
-        ['externalAgents', 'externalAgents'],
-      ]);
+      assignSubAgentReferenceOverrides(item);
+      assignAgentReferenceOverrides(item);
+      assignExternalAgentReferenceOverrides(item);
       continue;
     }
 
     const canDelegateRecord = asRecord(item);
-    if (!canDelegateRecord) {
-      continue;
+    if (typeof canDelegateRecord?.subAgentId === 'string') {
+      assignSubAgentReferenceOverrides(canDelegateRecord.subAgentId);
     }
-
-    if (typeof canDelegateRecord.subAgentId === 'string') {
-      assignComponentReferenceOverride(
-        registry,
-        overrides,
-        'subAgents',
-        canDelegateRecord.subAgentId,
-        'subAgents'
-      );
-      continue;
+    if (typeof canDelegateRecord?.agentId === 'string') {
+      assignAgentReferenceOverrides(canDelegateRecord.agentId);
     }
-    if (typeof canDelegateRecord.agentId === 'string') {
-      assignComponentReferenceOverride(
-        registry,
-        overrides,
-        'agents',
-        canDelegateRecord.agentId,
-        'agents'
-      );
-      continue;
-    }
-    if (typeof canDelegateRecord.externalAgentId === 'string') {
-      assignComponentReferenceOverride(
-        registry,
-        overrides,
-        'externalAgents',
-        canDelegateRecord.externalAgentId,
-        'externalAgents'
-      );
+    if (typeof canDelegateRecord?.externalAgentId === 'string') {
+      assignExternalAgentReferenceOverrides(canDelegateRecord.externalAgentId);
     }
   }
 
   const canTransferTo = extractReferenceIds(subAgentData.canTransferTo);
   for (const transferTargetId of canTransferTo) {
-    assignFirstMatchingComponentReferenceOverride(registry, overrides, transferTargetId, [
-      ['subAgents', 'subAgents'],
-      ['agents', 'agents'],
-      ['externalAgents', 'externalAgents'],
-    ]);
+    assignSubAgentReferenceOverrides(transferTargetId);
+    assignAgentReferenceOverrides(transferTargetId);
+    assignExternalAgentReferenceOverrides(transferTargetId);
   }
 
-  const dataComponentIds = extractReferenceIds(subAgentData.dataComponents);
-  for (const dataComponentId of dataComponentIds) {
-    assignComponentReferenceOverride(
-      registry,
-      overrides,
-      'dataComponents',
-      dataComponentId,
-      'dataComponents'
-    );
+  if (registry) {
+    for (const item of canDelegateTo) {
+      if (typeof item === 'string') {
+        assignFirstMatchingComponentReferenceOverride(registry, referenceOverrides, item, [
+          ['subAgents', 'subAgents'],
+          ['agents', 'agents'],
+          ['externalAgents', 'externalAgents'],
+        ]);
+        assignComponentReferencePathOverride(
+          registry,
+          referencePathOverrides,
+          'subAgents',
+          item,
+          'subAgents'
+        );
+        assignComponentReferencePathOverride(
+          registry,
+          referencePathOverrides,
+          'agents',
+          item,
+          'agents'
+        );
+        assignComponentReferencePathOverride(
+          registry,
+          referencePathOverrides,
+          'externalAgents',
+          item,
+          'externalAgents'
+        );
+        continue;
+      }
+
+      const canDelegateRecord = asRecord(item);
+      if (!canDelegateRecord) {
+        continue;
+      }
+
+      if (typeof canDelegateRecord.subAgentId === 'string') {
+        assignComponentReferenceOverride(
+          registry,
+          referenceOverrides,
+          'subAgents',
+          canDelegateRecord.subAgentId,
+          'subAgents'
+        );
+        assignComponentReferencePathOverride(
+          registry,
+          referencePathOverrides,
+          'subAgents',
+          canDelegateRecord.subAgentId,
+          'subAgents'
+        );
+        continue;
+      }
+      if (typeof canDelegateRecord.agentId === 'string') {
+        assignComponentReferenceOverride(
+          registry,
+          referenceOverrides,
+          'agents',
+          canDelegateRecord.agentId,
+          'agents'
+        );
+        assignComponentReferencePathOverride(
+          registry,
+          referencePathOverrides,
+          'agents',
+          canDelegateRecord.agentId,
+          'agents'
+        );
+        continue;
+      }
+      if (typeof canDelegateRecord.externalAgentId === 'string') {
+        assignComponentReferenceOverride(
+          registry,
+          referenceOverrides,
+          'externalAgents',
+          canDelegateRecord.externalAgentId,
+          'externalAgents'
+        );
+        assignComponentReferencePathOverride(
+          registry,
+          referencePathOverrides,
+          'externalAgents',
+          canDelegateRecord.externalAgentId,
+          'externalAgents'
+        );
+      }
+    }
+
+    for (const transferTargetId of canTransferTo) {
+      assignFirstMatchingComponentReferenceOverride(
+        registry,
+        referenceOverrides,
+        transferTargetId,
+        [
+          ['subAgents', 'subAgents'],
+          ['agents', 'agents'],
+          ['externalAgents', 'externalAgents'],
+        ]
+      );
+      assignComponentReferencePathOverride(
+        registry,
+        referencePathOverrides,
+        'subAgents',
+        transferTargetId,
+        'subAgents'
+      );
+      assignComponentReferencePathOverride(
+        registry,
+        referencePathOverrides,
+        'agents',
+        transferTargetId,
+        'agents'
+      );
+      assignComponentReferencePathOverride(
+        registry,
+        referencePathOverrides,
+        'externalAgents',
+        transferTargetId,
+        'externalAgents'
+      );
+    }
+
+    const dataComponentIds = extractReferenceIds(subAgentData.dataComponents);
+    for (const dataComponentId of dataComponentIds) {
+      assignComponentReferenceOverride(
+        registry,
+        referenceOverrides,
+        'dataComponents',
+        dataComponentId,
+        'dataComponents'
+      );
+    }
+
+    const artifactComponentIds = extractReferenceIds(subAgentData.artifactComponents);
+    for (const artifactComponentId of artifactComponentIds) {
+      assignComponentReferenceOverride(
+        registry,
+        referenceOverrides,
+        'artifactComponents',
+        artifactComponentId,
+        'artifactComponents'
+      );
+    }
   }
 
-  const artifactComponentIds = extractReferenceIds(subAgentData.artifactComponents);
-  for (const artifactComponentId of artifactComponentIds) {
-    assignComponentReferenceOverride(
-      registry,
-      overrides,
-      'artifactComponents',
-      artifactComponentId,
-      'artifactComponents'
-    );
-  }
-
-  return Object.keys(overrides).length > 0 ? overrides : undefined;
+  return Object.keys(referenceOverrides).length > 0 ||
+    Object.keys(referencePathOverrides).length > 0
+    ? {
+        ...(Object.keys(referenceOverrides).length > 0 && { referenceOverrides }),
+        ...(Object.keys(referencePathOverrides).length > 0 && { referencePathOverrides }),
+      }
+    : undefined;
 }
 
 function assignFirstMatchingComponentReferenceOverride(
@@ -1293,6 +1988,25 @@ function assignComponentReferenceOverride(
   assignReferenceOverride(overrides, overrideType, componentId, component.name);
 }
 
+function assignComponentReferencePathOverride(
+  registry: ComponentRegistry,
+  overrides: SubAgentReferencePathOverrides,
+  overrideType: 'tools' | 'subAgents' | 'agents' | 'externalAgents',
+  componentId: string,
+  componentType: ComponentType
+): void {
+  const component = registry.get(componentId, componentType);
+  if (!component?.filePath) {
+    return;
+  }
+
+  const referencePath =
+    componentType === 'tools' || componentType === 'functionTools'
+      ? resolveToolModulePath(component.filePath)
+      : stripExtension(basename(component.filePath));
+  assignReferencePathOverride(overrides, overrideType, componentId, referencePath);
+}
+
 function assignReferenceOverride(
   overrides: SubAgentReferenceOverrides,
   overrideType: SubAgentReferenceOverrideType,
@@ -1304,15 +2018,217 @@ function assignReferenceOverride(
   overrides[overrideType] = overrideMap;
 }
 
+function assignReferencePathOverride(
+  overrides: SubAgentReferencePathOverrides,
+  overrideType: 'tools' | 'subAgents' | 'agents' | 'externalAgents',
+  componentId: string,
+  referencePath: string
+): void {
+  const overrideMap = overrides[overrideType] ?? {};
+  overrideMap[componentId] = referencePath;
+  overrides[overrideType] = overrideMap;
+}
+
+function buildToolReferenceNamesById(project: FullProjectDefinition): Record<string, string> {
+  const toolReferenceNamesById: Record<string, string> = {};
+
+  for (const [toolId, toolData] of Object.entries(project.tools ?? {})) {
+    const toolName = asRecord(toolData)?.name;
+    const referenceName =
+      typeof toolName === 'string' && toolName.length > 0
+        ? toToolReferenceName(toolName)
+        : toToolReferenceName(toolId);
+    toolReferenceNamesById[toolId] = referenceName;
+  }
+
+  for (const functionToolEntry of collectFunctionToolEntries(project)) {
+    toolReferenceNamesById[functionToolEntry.functionToolId] = toToolReferenceName(
+      functionToolEntry.exportName
+    );
+  }
+
+  return toolReferenceNamesById;
+}
+
+function buildToolReferencePathById(project: FullProjectDefinition): Record<string, string> {
+  const toolEntries = Object.entries(project.tools ?? {});
+  const toolFileNamesById = buildSequentialNameFileNames(toolEntries);
+  const toolReferencePathById: Record<string, string> = {};
+
+  for (const [toolId] of toolEntries) {
+    toolReferencePathById[toolId] = stripExtension(toolFileNamesById[toolId]);
+  }
+
+  const functionToolEntries = collectFunctionToolEntries(project);
+  const functionToolFileNamesById = buildSequentialNameFileNames(
+    functionToolEntries.map(({ functionToolId, fileName }) => [functionToolId, { name: fileName }])
+  );
+  for (const { functionToolId } of functionToolEntries) {
+    toolReferencePathById[functionToolId] = stripExtension(
+      functionToolFileNamesById[functionToolId]
+    );
+  }
+
+  return toolReferencePathById;
+}
+
+function buildCredentialReferenceNamesById(project: FullProjectDefinition): Record<string, string> {
+  const credentialReferenceNamesById: Record<string, string> = {};
+  const countsByReferenceName = new Map<string, number>();
+
+  for (const [credentialId, credentialData] of Object.entries(project.credentialReferences ?? {})) {
+    const credentialName = asRecord(credentialData)?.name;
+    const baseReferenceName =
+      typeof credentialName === 'string' && credentialName.length > 0
+        ? toCredentialReferenceName(credentialName)
+        : toCredentialReferenceName(credentialId);
+    const occurrence = countsByReferenceName.get(baseReferenceName) ?? 0;
+    countsByReferenceName.set(baseReferenceName, occurrence + 1);
+    credentialReferenceNamesById[credentialId] =
+      occurrence === 0 ? baseReferenceName : `${baseReferenceName}${occurrence}`;
+  }
+
+  return credentialReferenceNamesById;
+}
+
+function buildCredentialReferencePathById(project: FullProjectDefinition): Record<string, string> {
+  const credentialEntries = Object.entries(project.credentialReferences ?? {});
+  const credentialFileNamesById = buildSequentialNameFileNames(credentialEntries);
+  const credentialReferencePathById: Record<string, string> = {};
+
+  for (const [credentialId] of credentialEntries) {
+    credentialReferencePathById[credentialId] = stripExtension(
+      credentialFileNamesById[credentialId]
+    );
+  }
+
+  return credentialReferencePathById;
+}
+
+function buildExternalAgentReferenceNamesById(
+  project: FullProjectDefinition
+): Record<string, string> {
+  const externalAgentReferenceNamesById: Record<string, string> = {};
+  const countsByReferenceName = new Map<string, number>();
+
+  for (const [externalAgentId, externalAgentData] of Object.entries(project.externalAgents ?? {})) {
+    const baseReferenceName = toExternalAgentReferenceName(
+      resolveExternalAgentNamingSeed(externalAgentId, externalAgentData)
+    );
+    const occurrence = countsByReferenceName.get(baseReferenceName) ?? 0;
+    countsByReferenceName.set(baseReferenceName, occurrence + 1);
+    externalAgentReferenceNamesById[externalAgentId] =
+      occurrence === 0 ? baseReferenceName : `${baseReferenceName}${occurrence}`;
+  }
+
+  return externalAgentReferenceNamesById;
+}
+
+function buildExternalAgentReferencePathById(
+  project: FullProjectDefinition
+): Record<string, string> {
+  const externalAgentEntries = Object.entries(project.externalAgents ?? {}).map(
+    ([externalAgentId, externalAgentData]) =>
+      [
+        externalAgentId,
+        { name: resolveExternalAgentNamingSeed(externalAgentId, externalAgentData) },
+      ] as [string, { name: string }]
+  );
+  const externalAgentFileNamesById = buildSequentialNameFileNames(externalAgentEntries);
+  const externalAgentReferencePathById: Record<string, string> = {};
+
+  for (const [externalAgentId] of externalAgentEntries) {
+    externalAgentReferencePathById[externalAgentId] = stripExtension(
+      externalAgentFileNamesById[externalAgentId]
+    );
+  }
+
+  return externalAgentReferencePathById;
+}
+
+function buildSubAgentReferenceNamesById(
+  project: FullProjectDefinition,
+  agentIds?: Iterable<string>
+): Record<string, string> {
+  const subAgentReferenceNamesById: Record<string, string> = {};
+  const candidateAgentIds =
+    agentIds !== undefined ? [...agentIds] : Object.keys(project.agents ?? {});
+  for (const agentId of candidateAgentIds) {
+    const agentData = project.agents?.[agentId];
+    const subAgents = asRecord(agentData?.subAgents);
+    if (!subAgents) {
+      continue;
+    }
+
+    for (const [subAgentId, subAgentData] of Object.entries(subAgents)) {
+      const subAgentName = asRecord(subAgentData)?.name;
+      subAgentReferenceNamesById[subAgentId] = resolveSubAgentVariableName(
+        subAgentId,
+        typeof subAgentName === 'string' ? subAgentName : undefined
+      );
+    }
+  }
+
+  return subAgentReferenceNamesById;
+}
+
+function buildSubAgentReferencePathById(
+  project: FullProjectDefinition,
+  agentIds?: Iterable<string>
+): Record<string, string> {
+  const subAgentReferencePathById: Record<string, string> = {};
+  const candidateAgentIds =
+    agentIds !== undefined ? [...agentIds] : Object.keys(project.agents ?? {});
+  for (const agentId of candidateAgentIds) {
+    const agentData = project.agents?.[agentId];
+    const subAgents = asRecord(agentData?.subAgents);
+    if (!subAgents) {
+      continue;
+    }
+
+    for (const [subAgentId, subAgentData] of Object.entries(subAgents)) {
+      const subAgentName = asRecord(subAgentData)?.name;
+      subAgentReferencePathById[subAgentId] = stripExtension(
+        buildComponentFileName(
+          subAgentId,
+          typeof subAgentName === 'string' ? subAgentName : undefined
+        )
+      );
+    }
+  }
+
+  return subAgentReferencePathById;
+}
+
+function buildAgentReferenceNamesById(project: FullProjectDefinition): Record<string, string> {
+  const agentReferenceNamesById: Record<string, string> = {};
+  for (const agentId of Object.keys(project.agents ?? {})) {
+    agentReferenceNamesById[agentId] = toCamelCase(agentId);
+  }
+  return agentReferenceNamesById;
+}
+
+function buildAgentReferencePathById(project: FullProjectDefinition): Record<string, string> {
+  const agentReferencePathById: Record<string, string> = {};
+  for (const [agentId, agentData] of Object.entries(project.agents ?? {})) {
+    const agentName = asRecord(agentData)?.name;
+    agentReferencePathById[agentId] = stripExtension(
+      buildComponentFileName(agentId, typeof agentName === 'string' ? agentName : undefined)
+    );
+  }
+  return agentReferencePathById;
+}
+
 function collectProjectReferenceOverrides(
   context: GenerationContext
 ): ProjectReferenceOverrides | undefined {
+  const overrides: ProjectReferenceOverrides = {};
+  addProjectNameBasedReferenceOverrides(context.project, overrides);
+
   const registry = context.existingComponentRegistry;
   if (!registry) {
-    return;
+    return Object.keys(overrides).length > 0 ? overrides : undefined;
   }
-
-  const overrides: ProjectReferenceOverrides = {};
 
   for (const agentId of context.completeAgentIds) {
     assignComponentReferenceOverrideForProject(registry, overrides, 'agents', agentId, 'agents');
@@ -1380,6 +2296,221 @@ function collectProjectReferenceOverrides(
   }
 
   return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+function addProjectNameBasedReferenceOverrides(
+  project: FullProjectDefinition,
+  overrides: ProjectReferenceOverrides
+): void {
+  for (const [toolId, toolData] of Object.entries(project.tools ?? {})) {
+    const toolName = asRecord(toolData)?.name;
+    const referenceName =
+      typeof toolName === 'string' && toolName.length > 0
+        ? toToolReferenceName(toolName)
+        : toToolReferenceName(toolId);
+    assignProjectReferenceOverride(overrides, 'tools', toolId, referenceName);
+  }
+
+  for (const [credentialId, credentialData] of Object.entries(project.credentialReferences ?? {})) {
+    const credentialName = asRecord(credentialData)?.name;
+    const referenceName =
+      typeof credentialName === 'string' && credentialName.length > 0
+        ? toCredentialReferenceName(credentialName)
+        : toCredentialReferenceName(credentialId);
+    assignProjectReferenceOverride(overrides, 'credentialReferences', credentialId, referenceName);
+  }
+
+  const externalAgentReferenceNamesById = buildExternalAgentReferenceNamesById(project);
+  for (const [externalAgentId, referenceName] of Object.entries(externalAgentReferenceNamesById)) {
+    assignProjectReferenceOverride(overrides, 'externalAgents', externalAgentId, referenceName);
+  }
+}
+
+function collectProjectReferencePathOverrides(
+  context: GenerationContext
+): ProjectReferencePathOverrides | undefined {
+  const overrides: ProjectReferencePathOverrides = {};
+
+  if (context.project.agents) {
+    for (const agentId of context.completeAgentIds) {
+      const agentData = asRecord(context.project.agents[agentId]);
+      const agentName = typeof agentData?.name === 'string' ? agentData.name : undefined;
+      assignProjectReferenceOverride(
+        overrides,
+        'agents',
+        agentId,
+        stripExtension(buildComponentFileName(agentId, agentName))
+      );
+    }
+  }
+
+  const toolEntries = Object.entries(context.project.tools ?? {});
+  const toolFileNamesById = buildSequentialNameFileNames(toolEntries);
+  for (const [toolId] of toolEntries) {
+    assignProjectReferenceOverride(
+      overrides,
+      'tools',
+      toolId,
+      stripExtension(toolFileNamesById[toolId])
+    );
+  }
+
+  const credentialEntries = Object.entries(context.project.credentialReferences ?? {});
+  const credentialFileNamesById = buildSequentialNameFileNames(credentialEntries);
+  for (const [credentialId] of credentialEntries) {
+    assignProjectReferenceOverride(
+      overrides,
+      'credentialReferences',
+      credentialId,
+      stripExtension(credentialFileNamesById[credentialId])
+    );
+  }
+
+  const externalAgentReferencePathsById = buildExternalAgentReferencePathById(context.project);
+  for (const [externalAgentId, referencePath] of Object.entries(externalAgentReferencePathsById)) {
+    assignProjectReferenceOverride(overrides, 'externalAgents', externalAgentId, referencePath);
+  }
+
+  const registry = context.existingComponentRegistry;
+  if (registry) {
+    for (const agentId of context.completeAgentIds) {
+      const agentComponent = registry.get(agentId, 'agents');
+      if (agentComponent?.filePath) {
+        assignProjectReferenceOverride(
+          overrides,
+          'agents',
+          agentId,
+          stripExtension(basename(agentComponent.filePath))
+        );
+      }
+    }
+
+    for (const toolId of getObjectKeys(context.project.tools)) {
+      const toolComponent = registry.get(toolId, 'functionTools') ?? registry.get(toolId, 'tools');
+      if (toolComponent?.filePath) {
+        assignProjectReferenceOverride(
+          overrides,
+          'tools',
+          toolId,
+          resolveToolModulePath(toolComponent.filePath)
+        );
+      }
+    }
+
+    for (const credentialId of getObjectKeys(context.project.credentialReferences)) {
+      const credentialComponent = registry.get(credentialId, 'credentials');
+      if (credentialComponent?.filePath) {
+        assignProjectReferenceOverride(
+          overrides,
+          'credentialReferences',
+          credentialId,
+          stripExtension(basename(credentialComponent.filePath))
+        );
+      }
+    }
+
+    for (const externalAgentId of getObjectKeys(context.project.externalAgents)) {
+      const externalAgentComponent = registry.get(externalAgentId, 'externalAgents');
+      if (externalAgentComponent?.filePath) {
+        assignProjectReferenceOverride(
+          overrides,
+          'externalAgents',
+          externalAgentId,
+          stripExtension(basename(externalAgentComponent.filePath))
+        );
+      }
+    }
+  }
+
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+function assignProjectReferenceOverride(
+  overrides: ProjectReferenceOverrides | ProjectReferencePathOverrides,
+  overrideType: ProjectReferenceOverrideType,
+  componentId: string,
+  referenceName: string
+): void {
+  const overrideMap = overrides[overrideType] ?? {};
+  overrideMap[componentId] = referenceName;
+  overrides[overrideType] = overrideMap;
+}
+
+function stripExtension(fileName: string): string {
+  return fileName.replace(/\.[^.]+$/, '');
+}
+
+function resolveToolModulePath(filePath: string): string {
+  const normalizedFilePath = normalizeFilePath(filePath);
+  const toolsSegment = '/tools/';
+  const toolsIndex = normalizedFilePath.lastIndexOf(toolsSegment);
+  if (toolsIndex >= 0) {
+    let modulePath = stripExtension(normalizedFilePath.slice(toolsIndex + toolsSegment.length));
+    if (modulePath.endsWith('/index')) {
+      modulePath = modulePath.slice(0, -'/index'.length);
+    }
+    if (modulePath.length > 0) {
+      return modulePath;
+    }
+  }
+
+  const baseModulePath = stripExtension(basename(normalizedFilePath));
+  if (baseModulePath === 'index') {
+    return stripExtension(basename(dirname(normalizedFilePath)));
+  }
+  return baseModulePath;
+}
+
+function resolveExternalAgentNamingSeed(
+  externalAgentId: string,
+  externalAgentData: unknown
+): string {
+  if (isHumanReadableId(externalAgentId)) {
+    return externalAgentId;
+  }
+
+  const externalAgentName = asRecord(externalAgentData)?.name;
+  if (typeof externalAgentName === 'string' && externalAgentName.length > 0) {
+    return externalAgentName;
+  }
+
+  return externalAgentId;
+}
+
+function toExternalAgentReferenceName(input: string): string {
+  const base = toCamelCase(input);
+  return base.endsWith('Agent') ? base : `${base}Agent`;
+}
+
+function buildSequentialNameFileNames(entries: Array<[string, unknown]>): Record<string, string> {
+  const countsByStem = new Map<string, number>();
+  const fileNamesById: Record<string, string> = {};
+
+  for (const [componentId, componentData] of entries) {
+    const name = asRecord(componentData)?.name;
+    const baseStem = resolveNameFileStem(componentId, typeof name === 'string' ? name : undefined);
+    const occurrence = countsByStem.get(baseStem) ?? 0;
+    countsByStem.set(baseStem, occurrence + 1);
+
+    const stem = occurrence === 0 ? baseStem : `${baseStem}-${occurrence}`;
+    fileNamesById[componentId] = `${stem}.ts`;
+  }
+
+  return fileNamesById;
+}
+
+function resolveNameFileStem(componentId: string, name: string | undefined): string {
+  const nameStem = name ? toKebabCase(name) : '';
+  if (nameStem.length > 0) {
+    return nameStem;
+  }
+
+  const idStem = toKebabCase(componentId);
+  if (idStem.length > 0) {
+    return idStem;
+  }
+
+  return componentId;
 }
 
 function assignComponentReferenceOverrideForProject(

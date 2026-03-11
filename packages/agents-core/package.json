@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.58.9",
+  "version": "0.58.13",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -157,7 +157,7 @@
     "@better-auth/sso": "catalog:",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
-    "@modelcontextprotocol/sdk": "^1.17.2",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@nangohq/node": "^0.69.41",
     "@nangohq/types": "^0.69.41",
     "@napi-rs/keyring": "^1.2.0",

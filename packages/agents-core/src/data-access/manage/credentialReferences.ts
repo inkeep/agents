@@ -10,6 +10,7 @@ import type {
   ProjectScopeConfig,
   ToolSelect,
 } from '../../types/index';
+import { isUniqueConstraintError } from '../../utils/error';
 
 export type CredentialReferenceWithResources = CredentialReferenceSelect & {
   tools: ToolSelect[];
@@ -299,15 +300,15 @@ export const countCredentialReferences =
 
 /**
  * Upsert a credential reference (create if it doesn't exist, update if it does).
- * For user-scoped credentials (toolId + userId set), uses an atomic INSERT ... ON CONFLICT
- * on the (toolId, userId) unique constraint to avoid TOCTOU races.
+ * For user-scoped credentials (toolId + userId set), also checks the unique constraint pair.
+ * Uses application-level find-then-update since Doltgres does not support ON CONFLICT DO UPDATE.
  */
 export const upsertCredentialReference =
   (db: AgentsManageDatabaseClient) =>
   async (params: { data: CredentialReferenceInsert }): Promise<CredentialReferenceSelect> => {
     const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
-    const now = new Date().toISOString();
 
+    // Check by ID first
     const existingById = await getCredentialReference(db)({
       scopes,
       id: params.data.id,
@@ -330,28 +331,58 @@ export const upsertCredentialReference =
       return updated;
     }
 
+    // For user-scoped credentials, check by (toolId, userId) unique constraint
     if (params.data.toolId && params.data.userId) {
-      const [result] = await db
-        .insert(credentialReferences)
-        .values({
-          ...params.data,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .onConflictDoUpdate({
-          target: [credentialReferences.toolId, credentialReferences.userId],
-          set: {
+      const existingByToolUser = await getUserScopedCredentialReference(db)({
+        scopes,
+        toolId: params.data.toolId,
+        userId: params.data.userId,
+      });
+
+      if (existingByToolUser) {
+        const updated = await updateCredentialReference(db)({
+          scopes,
+          id: existingByToolUser.id,
+          data: {
             name: params.data.name,
             type: params.data.type,
             credentialStoreId: params.data.credentialStoreId,
             retrievalParams: params.data.retrievalParams,
-            updatedAt: now,
           },
-        })
-        .returning();
-
-      return result;
+        });
+        if (!updated) {
+          throw new Error('Failed to update credential reference - no rows affected');
+        }
+        return updated;
+      }
     }
 
-    return await createCredentialReference(db)(params.data);
+    try {
+      return await createCredentialReference(db)(params.data);
+    } catch (error) {
+      // TOCTOU race: a concurrent request inserted between our check and create.
+      // Retry as an update if this is a unique constraint violation on (toolId, userId).
+      if (isUniqueConstraintError(error) && params.data.toolId && params.data.userId) {
+        const raceWinner = await getUserScopedCredentialReference(db)({
+          scopes,
+          toolId: params.data.toolId,
+          userId: params.data.userId,
+        });
+
+        if (raceWinner) {
+          const updated = await updateCredentialReference(db)({
+            scopes,
+            id: raceWinner.id,
+            data: {
+              name: params.data.name,
+              type: params.data.type,
+              credentialStoreId: params.data.credentialStoreId,
+              retrievalParams: params.data.retrievalParams,
+            },
+          });
+          if (updated) return updated;
+        }
+      }
+      throw error;
+    }
   };

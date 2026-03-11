@@ -39,3 +39,8 @@ export const ArtifactComponentExtendSchema = {
   description: DescriptionSchema,
   props: JsonSchemaForLlmSchema.nullable(),
 } satisfies ExtendSchema<typeof artifactComponents>;
+
+export type WithTimestamps<T> = T & {
+  createdAt?: string;
+  updatedAt?: string;
+};

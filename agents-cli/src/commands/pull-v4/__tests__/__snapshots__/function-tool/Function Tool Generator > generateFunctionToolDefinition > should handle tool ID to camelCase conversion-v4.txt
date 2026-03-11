@@ -1,11 +1,11 @@
 import { functionTool } from '@inkeep/agents-sdk';
 
 export const emailSenderTool = functionTool({
-  name: 'email-sender',
-  description: 'Send emails',
   inputSchema: {
     type: 'object',
     properties: {},
   },
-  execute: return { sent: true };,
+  name: 'email-sender',
+  description: 'Send emails',
+  execute: () => ({ sent: true }),
 });
