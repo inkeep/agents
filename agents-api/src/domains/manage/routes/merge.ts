@@ -469,13 +469,22 @@ app.openapi(
           });
         }
 
-        await applyResolutions(db)(resolutions);
+        try {
+          await applyResolutions(db)(resolutions);
 
-        await doltAddAndCommit(db)({
-          message:
-            message ?? `Merge ${sourceBranch} into ${targetBranch} (with conflict resolution)`,
-          author,
-        });
+          await doltAddAndCommit(db)({
+            message:
+              message ?? `Merge ${sourceBranch} into ${targetBranch} (with conflict resolution)`,
+            author,
+          });
+        } catch (resolutionError) {
+          try {
+            await doltAbortMerge(db)();
+          } catch {
+            // best-effort abort
+          }
+          throw resolutionError;
+        }
       }
 
       const newTargetHash = await doltHashOf(db)({ revision: targetFullName });
