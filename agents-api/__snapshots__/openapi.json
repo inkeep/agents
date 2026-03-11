@@ -1673,6 +1673,56 @@
         ],
         "type": "object"
       },
+      "ConflictItem": {
+        "properties": {
+          "base": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "ourDiffType": {
+            "type": "string"
+          },
+          "ours": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "primaryKey": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "table": {
+            "type": "string"
+          },
+          "theirDiffType": {
+            "type": "string"
+          },
+          "theirs": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "table",
+          "primaryKey",
+          "ourDiffType",
+          "theirDiffType",
+          "base",
+          "ours",
+          "theirs"
+        ],
+        "type": "object"
+      },
       "ContextConfig": {
         "properties": {
           "contextVariables": {
@@ -3174,6 +3224,29 @@
       "DescriptionSchema": {
         "nullable": true,
         "type": "string"
+      },
+      "DiffSummaryItem": {
+        "properties": {
+          "dataChange": {
+            "type": "boolean"
+          },
+          "diffType": {
+            "type": "string"
+          },
+          "schemaChange": {
+            "type": "boolean"
+          },
+          "table": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "table",
+          "diffType",
+          "dataChange",
+          "schemaChange"
+        ],
+        "type": "object"
       },
       "EndUserConversationDetailResponse": {
         "properties": {
@@ -5979,6 +6052,192 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/McpTool"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "MergeExecuteRequest": {
+        "properties": {
+          "author": {
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "email"
+            ],
+            "type": "object"
+          },
+          "baseCommit": {
+            "type": "string"
+          },
+          "localProjectDefinition": {
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "resolutions": {
+            "items": {
+              "properties": {
+                "columns": {
+                  "additionalProperties": {
+                    "enum": [
+                      "ours",
+                      "theirs"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "primaryKey": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "rowDefaultPick": {
+                  "enum": [
+                    "ours",
+                    "theirs"
+                  ],
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "table",
+                "primaryKey",
+                "rowDefaultPick"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "sourceBranch": {
+            "type": "string"
+          },
+          "sourceHash": {
+            "type": "string"
+          },
+          "targetBranch": {
+            "type": "string"
+          },
+          "targetHash": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceBranch",
+          "targetBranch",
+          "sourceHash",
+          "targetHash"
+        ],
+        "type": "object"
+      },
+      "MergeExecuteResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "mergeCommitHash": {
+                "type": "string"
+              },
+              "sourceBranch": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "success"
+                ],
+                "type": "string"
+              },
+              "targetBranch": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "mergeCommitHash",
+              "sourceBranch",
+              "targetBranch"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "MergePreviewRequest": {
+        "properties": {
+          "baseCommit": {
+            "type": "string"
+          },
+          "localProjectDefinition": {
+            "nullable": true
+          },
+          "sourceBranch": {
+            "type": "string"
+          },
+          "targetBranch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceBranch",
+          "targetBranch"
+        ],
+        "type": "object"
+      },
+      "MergePreviewResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "canFastForward": {
+                "type": "boolean"
+              },
+              "conflicts": {
+                "items": {
+                  "$ref": "#/components/schemas/ConflictItem"
+                },
+                "type": "array"
+              },
+              "diffSummary": {
+                "items": {
+                  "$ref": "#/components/schemas/DiffSummaryItem"
+                },
+                "type": "array"
+              },
+              "hasConflicts": {
+                "type": "boolean"
+              },
+              "sourceHash": {
+                "type": "string"
+              },
+              "targetHash": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hasConflicts",
+              "sourceHash",
+              "targetHash",
+              "canFastForward",
+              "diffSummary",
+              "conflicts"
+            ],
+            "type": "object"
           }
         },
         "required": [
@@ -26803,6 +27062,248 @@
         "x-authz": {
           "description": "Requires project view permission (project_viewer+, or org admin/owner)",
           "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/branches/merge": {
+      "post": {
+        "description": "Execute a merge between two branches with optional conflict resolutions.",
+        "operationId": "merge-execute",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeExecuteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeExecuteResponse"
+                }
+              }
+            },
+            "description": "Merge executed successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict — stale hashes, concurrent merge, or unresolved conflicts"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Execute Merge",
+        "tags": [
+          "Branches"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/branches/merge/preview": {
+      "post": {
+        "description": "Preview a merge between two branches, returning diff summary and any conflicts.",
+        "operationId": "merge-preview",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergePreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergePreviewResponse"
+                }
+              }
+            },
+            "description": "Merge preview completed"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Preview Merge",
+        "tags": [
+          "Branches"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
           "resource": "project"
         }
       }
