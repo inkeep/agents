@@ -4,7 +4,7 @@ export const DEV_TOOLS_MCP = {
   id: 'dev-tools',
   name: 'inkeep-dev-tools',
   version: '1.0.0',
-  description: 'Core dev tools: text, encoding, JSON, HTML, images, HTTP, scratchpad',
+  description: 'Core dev tools: text, encoding, JSON, HTML, and utility',
   urlPath: '/dev-tools/mcp',
   tools: [
     'text_search',
@@ -12,6 +12,8 @@ export const DEV_TOOLS_MCP = {
     'text_extract',
     'text_truncate',
     'text_diff',
+    'patch_apply',
+    'regex_match',
     'json_format',
     'json_query',
     'json_merge',
@@ -22,15 +24,28 @@ export const DEV_TOOLS_MCP = {
     'url_encode',
     'url_decode',
     'html_to_markdown',
-    'image_resize',
-    'image_metadata',
-    'fetch_url',
-    'http_request',
-    'scratchpad_write',
-    'scratchpad_read',
-    'scratchpad_list',
-    'get_current_time',
+    'calculate',
+    'uuid',
+    'timestamp',
   ],
+} as const;
+
+export const DEV_TOOLS_HTTP_MCP = {
+  id: 'dev-tools-http',
+  name: 'inkeep-dev-tools-http',
+  version: '1.0.0',
+  description: 'Outbound HTTP request tools',
+  urlPath: '/dev-tools-http/mcp',
+  tools: ['fetch_url'],
+} as const;
+
+export const DEV_TOOLS_MEDIA_MCP = {
+  id: 'dev-tools-media',
+  name: 'inkeep-dev-tools-media',
+  version: '1.0.0',
+  description: 'Image processing tools powered by Sharp',
+  urlPath: '/dev-tools-media/mcp',
+  tools: ['image_info', 'image_crop', 'image_resize'],
 } as const;
 
 export const DEV_TOOLS_SEARCH_MCP = {
@@ -42,10 +57,20 @@ export const DEV_TOOLS_SEARCH_MCP = {
   tools: ['web_search', 'find_similar'],
 } as const;
 
-export type BuiltInMcpId = (typeof DEV_TOOLS_MCP)['id'] | (typeof DEV_TOOLS_SEARCH_MCP)['id'];
+export type BuiltInMcpId =
+  | (typeof DEV_TOOLS_MCP)['id']
+  | (typeof DEV_TOOLS_HTTP_MCP)['id']
+  | (typeof DEV_TOOLS_MEDIA_MCP)['id']
+  | (typeof DEV_TOOLS_SEARCH_MCP)['id'];
 
 export const isDevToolsMcp = (tool: ToolSelect | McpTool) =>
   tool.config.type === 'mcp' && tool.config.mcp.server.url.includes(DEV_TOOLS_MCP.urlPath);
+
+export const isDevToolsHttpMcp = (tool: ToolSelect | McpTool) =>
+  tool.config.type === 'mcp' && tool.config.mcp.server.url.includes(DEV_TOOLS_HTTP_MCP.urlPath);
+
+export const isDevToolsMediaMcp = (tool: ToolSelect | McpTool) =>
+  tool.config.type === 'mcp' && tool.config.mcp.server.url.includes(DEV_TOOLS_MEDIA_MCP.urlPath);
 
 export const isDevToolsSearchMcp = (tool: ToolSelect | McpTool) =>
   tool.config.type === 'mcp' && tool.config.mcp.server.url.includes(DEV_TOOLS_SEARCH_MCP.urlPath);
