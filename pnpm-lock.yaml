@@ -51,6 +51,8 @@ overrides:
   serialize-javascript: '>=7.0.3'
   svgo: '>=3.3.3'
   minimatch: '>=5.1.8'
+  lodash: '>=4.17.23'
+  lodash-es: '>=4.17.23'
 
 patchedDependencies:
   '@changesets/assemble-release-plan@6.0.9':
@@ -12458,11 +12460,8 @@ packages:
     resolution: {integrity: sha512-gvVijfZvn7R+2qyPX8mAuKcFGDf6Nc61GdvGafQsHL0sBIxfKzA+usWn4GFC/bk+QdwPUD4kWFJLhElipq+0VA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  lodash-es@4.17.21:
-    resolution: {integrity: sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==}
-
-  lodash-es@4.17.22:
-    resolution: {integrity: sha512-XEawp1t0gxSi9x01glktRZ5HDy0HXqrM0x5pXQM98EaI0NxO6jVM7omDOxsuEo5UIASAnm2bRp1Jt/e0a2XU8Q==}
+  lodash-es@4.17.23:
+    resolution: {integrity: sha512-kVI48u3PZr38HdYz98UmfPnXl2DXrpdctLrFLCd3kOx1xUkOmpFPx7gCWWM5MPkL/fD8zb+Ph0QzjGFs4+hHWg==}
 
   lodash.camelcase@4.3.0:
     resolution: {integrity: sha512-TwuEnCnxbc3rAvhf/LbG7tJUDzhqXyFnv3dtzLOPgCG/hODL7WFnsbwktkD7yUV0RrreP/l1PALq/YSg6VvjlA==}
@@ -12478,9 +12477,6 @@ packages:
 
   lodash.startcase@4.4.0:
     resolution: {integrity: sha512-+WKqsK294HMSc2jEbNgpHpd0JfIBhp7rEV4aqXWqFr6AlXov+SlcgB1Fv01y2kGe3Gc8nMW7VA0SrGuSkRfIEg==}
-
-  lodash@4.17.21:
-    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
 
   lodash@4.17.23:
     resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
@@ -17798,12 +17794,12 @@ snapshots:
     dependencies:
       '@chevrotain/gast': 11.0.3
       '@chevrotain/types': 11.0.3
-      lodash-es: 4.17.21
+      lodash-es: 4.17.23
 
   '@chevrotain/gast@11.0.3':
     dependencies:
       '@chevrotain/types': 11.0.3
-      lodash-es: 4.17.21
+      lodash-es: 4.17.23
 
   '@chevrotain/regexp-to-ast@11.0.3': {}
 
@@ -28526,7 +28522,7 @@ snapshots:
   chevrotain-allstar@0.3.1(chevrotain@11.0.3):
     dependencies:
       chevrotain: 11.0.3
-      lodash-es: 4.17.22
+      lodash-es: 4.17.23
 
   chevrotain@11.0.3:
     dependencies:
@@ -28535,7 +28531,7 @@ snapshots:
       '@chevrotain/regexp-to-ast': 11.0.3
       '@chevrotain/types': 11.0.3
       '@chevrotain/utils': 11.0.3
-      lodash-es: 4.17.21
+      lodash-es: 4.17.23
 
   chokidar@3.6.0:
     dependencies:
@@ -29044,12 +29040,12 @@ snapshots:
   dagre-d3-es@7.0.13:
     dependencies:
       d3: 7.9.0
-      lodash-es: 4.17.22
+      lodash-es: 4.17.23
 
   dagre@0.8.5:
     dependencies:
       graphlib: 2.1.8
-      lodash: 4.17.21
+      lodash: 4.17.23
 
   dash-video-element@0.3.1(@svta/cml-cta@1.0.1(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1))(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1):
     dependencies:
@@ -30559,7 +30555,7 @@ snapshots:
 
   graphlib@2.1.8:
     dependencies:
-      lodash: 4.17.21
+      lodash: 4.17.23
 
   gray-matter@4.0.3:
     dependencies:
@@ -31523,9 +31519,7 @@ snapshots:
     dependencies:
       p-locate: 6.0.0
 
-  lodash-es@4.17.21: {}
-
-  lodash-es@4.17.22: {}
+  lodash-es@4.17.23: {}
 
   lodash.camelcase@4.3.0: {}
 
@@ -31536,8 +31530,6 @@ snapshots:
   lodash.once@4.1.1: {}
 
   lodash.startcase@4.4.0: {}
-
-  lodash@4.17.21: {}
 
   lodash@4.17.23: {}
 
@@ -31904,7 +31896,7 @@ snapshots:
       dompurify: 3.3.2
       katex: 0.16.27
       khroma: 2.1.0
-      lodash-es: 4.17.22
+      lodash-es: 4.17.23
       marked: 16.4.2
       roughjs: 4.6.6
       stylis: 4.3.6
@@ -33636,7 +33628,7 @@ snapshots:
     dependencies:
       clsx: 2.1.1
       eventemitter3: 4.0.7
-      lodash: 4.17.21
+      lodash: 4.17.23
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
       react-is: 18.3.1
@@ -33649,7 +33641,7 @@ snapshots:
     dependencies:
       clsx: 2.1.1
       eventemitter3: 4.0.7
-      lodash: 4.17.21
+      lodash: 4.17.23
       react: 19.3.0-canary-87ae75b3-20260128
       react-dom: 19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128)
       react-is: 18.3.1
@@ -35916,7 +35908,7 @@ snapshots:
     dependencies:
       axios: 1.13.5(debug@4.4.3)
       joi: 18.0.2
-      lodash: 4.17.21
+      lodash: 4.17.23
       minimist: 1.2.8
       rxjs: 7.8.2
     transitivePeerDependencies:
