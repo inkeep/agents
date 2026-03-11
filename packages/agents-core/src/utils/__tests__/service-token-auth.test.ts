@@ -21,11 +21,11 @@ describe('Service Token Auth', () => {
 
       expect(result.valid).toBe(true);
       expect(result.payload).toBeDefined();
-      expect(result.payload!.sub).toBe('agent-origin');
-      expect(result.payload!.aud).toBe('agent-target');
-      expect(result.payload!.tenantId).toBe('tenant-1');
-      expect(result.payload!.projectId).toBe('project-1');
-      expect(result.payload!.iss).toBe('inkeep-agents');
+      expect(result.payload?.sub).toBe('agent-origin');
+      expect(result.payload?.aud).toBe('agent-target');
+      expect(result.payload?.tenantId).toBe('tenant-1');
+      expect(result.payload?.projectId).toBe('project-1');
+      expect(result.payload?.iss).toBe('inkeep-agents');
     });
 
     it('should round-trip initiatedBy with type "user"', async () => {
@@ -37,7 +37,7 @@ describe('Service Token Auth', () => {
       const result = await verifyServiceToken(token);
 
       expect(result.valid).toBe(true);
-      expect(result.payload!.initiatedBy).toEqual({ type: 'user', id: 'user_abc123' });
+      expect(result.payload?.initiatedBy).toEqual({ type: 'user', id: 'user_abc123' });
     });
 
     it('should round-trip initiatedBy with type "api_key"', async () => {
@@ -49,7 +49,7 @@ describe('Service Token Auth', () => {
       const result = await verifyServiceToken(token);
 
       expect(result.valid).toBe(true);
-      expect(result.payload!.initiatedBy).toEqual({ type: 'api_key', id: 'key_xyz789' });
+      expect(result.payload?.initiatedBy).toEqual({ type: 'api_key', id: 'key_xyz789' });
     });
 
     it('should not include initiatedBy when not provided', async () => {
@@ -57,7 +57,7 @@ describe('Service Token Auth', () => {
       const result = await verifyServiceToken(token);
 
       expect(result.valid).toBe(true);
-      expect(result.payload!.initiatedBy).toBeUndefined();
+      expect(result.payload?.initiatedBy).toBeUndefined();
     });
 
     it('should not include initiatedBy when explicitly undefined', async () => {
@@ -68,7 +68,7 @@ describe('Service Token Auth', () => {
       const result = await verifyServiceToken(token);
 
       expect(result.valid).toBe(true);
-      expect(result.payload!.initiatedBy).toBeUndefined();
+      expect(result.payload?.initiatedBy).toBeUndefined();
     });
   });
 

@@ -87,7 +87,7 @@ describe('runAuth middleware - initiatedBy propagation via service token', () =>
 
     expect(res.status).toBe(200);
     expect(capturedContext).toBeDefined();
-    expect(capturedContext!.metadata).toEqual(
+    expect(capturedContext?.metadata).toEqual(
       expect.objectContaining({
         teamDelegation: true,
         originAgentId: 'origin-agent',
@@ -115,7 +115,7 @@ describe('runAuth middleware - initiatedBy propagation via service token', () =>
     });
 
     expect(res.status).toBe(200);
-    expect(capturedContext!.metadata).toEqual(
+    expect(capturedContext?.metadata).toEqual(
       expect.objectContaining({
         teamDelegation: true,
         initiatedBy: { type: 'api_key', id: 'key_xyz789' },
@@ -141,13 +141,13 @@ describe('runAuth middleware - initiatedBy propagation via service token', () =>
     });
 
     expect(res.status).toBe(200);
-    expect(capturedContext!.metadata).toEqual(
+    expect(capturedContext?.metadata).toEqual(
       expect.objectContaining({
         teamDelegation: true,
         originAgentId: 'origin-agent',
       })
     );
-    expect(capturedContext!.metadata).not.toHaveProperty('initiatedBy');
+    expect(capturedContext?.metadata).not.toHaveProperty('initiatedBy');
   });
 
   it('should preserve user identity through full generate → verify → auth chain', async () => {
@@ -162,7 +162,7 @@ describe('runAuth middleware - initiatedBy propagation via service token', () =>
 
     const verified = await verifyServiceToken(token);
     expect(verified.valid).toBe(true);
-    expect(verified.payload!.initiatedBy).toEqual({ type: 'user', id: userId });
+    expect(verified.payload?.initiatedBy).toEqual({ type: 'user', id: userId });
 
     const app = createTestApp();
     const res = await app.request('/test', {
@@ -174,9 +174,9 @@ describe('runAuth middleware - initiatedBy propagation via service token', () =>
     });
 
     expect(res.status).toBe(200);
-    expect(capturedContext!.tenantId).toBe('tenant-acme');
-    expect(capturedContext!.projectId).toBe('proj-support');
-    expect(capturedContext!.metadata).toEqual(
+    expect(capturedContext?.tenantId).toBe('tenant-acme');
+    expect(capturedContext?.projectId).toBe('proj-support');
+    expect(capturedContext?.metadata).toEqual(
       expect.objectContaining({
         initiatedBy: { type: 'user', id: userId },
       })
