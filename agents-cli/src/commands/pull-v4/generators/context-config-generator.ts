@@ -1,8 +1,4 @@
-import {
-  ContextConfigApiInsertSchema,
-  FetchDefinitionSchema,
-  FullProjectDefinitionSchema,
-} from '@inkeep/agents-core';
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -16,11 +12,7 @@ import {
   toCamelCase,
 } from '../utils';
 
-const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.contextConfig
-  .unwrap()
-  .omit({
-    id: true,
-  });
+const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.contextConfig.unwrap();
 
 const ReferenceNameByIdSchema = z.record(z.string(), z.string().nonempty());
 
@@ -28,20 +20,31 @@ const ReferenceOverridesSchema = z.object({
   credentialReferences: ReferenceNameByIdSchema.optional(),
 });
 
+const ReferencePathOverridesSchema = z.object({
+  credentialReferences: ReferenceNameByIdSchema.optional(),
+});
+
 const ContextConfigSchema = z.strictObject({
   contextConfigId: z.string().nonempty(),
   ...MySchema.shape,
   referenceOverrides: ReferenceOverridesSchema.optional(),
+  referencePathOverrides: ReferencePathOverridesSchema.optional(),
+
+  // TODO check these fields
+  headers: z.string().optional(),
+  headersReference: z.string().optional(),
+  schema: z.unknown(),
+  name: z.string().nullish(),
+  trigger: z.unknown(),
+  fetchConfig: z.record(z.string(), z.unknown()).optional(),
+  defaultValue: z.unknown(),
+  responseSchema: z.unknown(),
 });
 
 type ContextConfigInput = z.input<typeof ContextConfigSchema>;
 type ContextConfigOutput = z.output<typeof ContextConfigSchema>;
 
-export function generateContextConfigDefinition({
-  // @ts-expect-error
-  id,
-  ...data
-}: ContextConfigInput): SourceFile {
+export function generateContextConfigDefinition(data: ContextConfigInput): SourceFile {
   const result = ContextConfigSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for context config:\n${z.prettifyError(result.error)}`);
@@ -62,7 +65,10 @@ export function generateContextConfigDefinition({
     return generateStandaloneFetchDefinition(sourceFile, parsed);
   }
 
-  const explicitHeadersReference = extractHeadersReference(parsed.headers);
+  const explicitHeadersReference =
+    (typeof parsed.headersReference === 'string' && parsed.headersReference.length > 0
+      ? parsed.headersReference
+      : undefined) ?? extractHeadersReference(parsed.headers);
   const templateHeaderVariables = collectTemplateHeaderVariables(parsed.contextVariables);
   const inferredHeadersSchema =
     !isPlainObject(parsed.headersSchema) && !explicitHeadersReference
@@ -103,14 +109,17 @@ export function generateContextConfigDefinition({
   }
 
   for (const [credentialId, credentialReferenceName] of credentialReferenceNames) {
+    const credentialReferencePath =
+      parsed.referencePathOverrides?.credentialReferences?.[credentialId] ?? credentialId;
     sourceFile.addImportDeclaration({
       namedImports: [credentialReferenceName],
-      moduleSpecifier: `../credentials/${credentialId}`,
+      moduleSpecifier: `../credentials/${credentialReferencePath}`,
     });
   }
   if (shouldDefineHeadersInFile && headersReference && headersSchema) {
     const { configObject: headersObject } = addFactoryConfigVariable({
       sourceFile,
+      isExported: true,
       importName: 'headers',
       variableName: headersReference,
     });
@@ -206,6 +215,10 @@ function resolveHeadersReference(
   data: ContextConfigOutput,
   hasHeadersSchema: boolean
 ): string | undefined {
+  if (typeof data.headersReference === 'string' && data.headersReference) {
+    return data.headersReference;
+  }
+
   const headersRef = extractHeadersReference(data.headers);
   if (headersRef) {
     return toReferenceIdentifier(headersRef);
@@ -218,7 +231,7 @@ function resolveHeadersReference(
   return undefined;
 }
 
-function isFetchDefinitionData(value: unknown): value is Record<string, unknown> {
+function isFetchDefinitionData(value: unknown): boolean {
   if (!isPlainObject(value)) {
     return false;
   }
@@ -330,7 +343,7 @@ function rewriteHeaderTemplates<T>(value: T, headersReference?: string): T {
 
 function generateStandaloneHeadersDefinition(
   sourceFile: SourceFile,
-  data: ContextConfigOutput
+  data: ContextConfigOutput & { schema: Record<string, unknown> }
 ): SourceFile {
   const importName = 'headers';
   sourceFile.addImportDeclaration({
@@ -385,10 +398,13 @@ function generateStandaloneFetchDefinition(
     const credentialReferenceName =
       data.referenceOverrides?.credentialReferences?.[credentialReferenceId] ??
       toReferenceIdentifier(credentialReferenceId);
+    const credentialReferencePath =
+      data.referencePathOverrides?.credentialReferences?.[credentialReferenceId] ??
+      credentialReferenceId;
     credentialReferenceNames.set(credentialReferenceId, credentialReferenceName);
     sourceFile.addImportDeclaration({
       namedImports: [credentialReferenceName],
-      moduleSpecifier: `../credentials/${credentialReferenceId}`,
+      moduleSpecifier: `../credentials/${credentialReferencePath}`,
     });
   }
 

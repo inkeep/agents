@@ -6,12 +6,16 @@ export const complexModelsProject = project({
   models: {
     base: {
       model: 'gpt-4o',
-      temperature: 0.7,
-      maxTokens: 4096,
+      providerOptions: {
+        temperature: 0.7,
+        maxTokens: 4096,
+      },
     },
     structuredOutput: {
       model: 'gpt-4o',
-      temperature: 0.3,
+      providerOptions: {
+        temperature: 0.3,
+      },
     },
     summarizer: {
       model: 'gpt-4o-mini',

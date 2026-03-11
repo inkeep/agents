@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for trigger generator
  */
@@ -88,7 +87,7 @@ describe('Trigger Generator', () => {
       const triggerId = 'github-webhook';
       const definition = generateTriggerDefinition({ triggerId, ...basicTriggerData });
 
-      expect(definition).toContain('export const githubWebhook = new Trigger({');
+      expect(definition).toContain('export const githubWebhookTrigger = new Trigger({');
       expect(definition).toContain("id: 'github-webhook',");
       expect(definition).toContain("name: 'GitHub Webhook',");
       expect(definition).toContain("messageTemplate: 'New event from GitHub: {{body.action}}'");
@@ -105,7 +104,9 @@ describe('Trigger Generator', () => {
         ...triggerWithSignatureVerification,
       });
 
-      expect(definition).toContain('export const githubWebhook = new Trigger({');
+      expect(definition).toContain(
+        'export const githubWebhookWithSignatureTrigger = new Trigger({'
+      );
       expect(definition).toContain('signatureVerification: {');
       expect(definition).toContain("algorithm: 'sha256',");
       expect(definition).toContain("encoding: 'hex',");
@@ -260,7 +261,6 @@ describe('Trigger Generator', () => {
         authentication: null,
         signatureVerification: null,
         signingSecretCredentialReferenceId: null,
-        signingSecretCredentialReference: null,
       });
 
       expect(definition).toContain("id: 'nullable-fields',");
@@ -270,7 +270,6 @@ describe('Trigger Generator', () => {
       expect(definition).not.toContain('outputTransform:');
       expect(definition).not.toContain('authentication:');
       expect(definition).not.toContain('signatureVerification:');
-      expect(definition).not.toContain('signingSecretCredentialReference:');
       await expectSnapshots(definition);
     });
 

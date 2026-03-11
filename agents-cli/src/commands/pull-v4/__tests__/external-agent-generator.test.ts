@@ -23,11 +23,7 @@ describe('External Agent Generator', () => {
     name: 'Complex External Agent',
     description: 'A complex external agent with credential references and advanced configuration',
     baseUrl: 'https://external-system.example.com/agents/complex',
-    credentialReference: {
-      id: 'weather-api-credentials',
-      name: 'Weather API Credentials',
-      description: 'API credentials for weather service',
-    },
+    credentialReferenceId: 'weather-api-credentials',
   };
 
   describe('generateExternalAgentDefinition', () => {
@@ -59,11 +55,7 @@ describe('External Agent Generator', () => {
       });
 
       expect(definition).toContain('export const complexAgent = externalAgent({');
-      expect(definition).toContain('credentialReference: {');
-      expect(definition).toContain("id: 'weather-api-credentials',");
-      expect(definition).toContain("name: 'Weather API Credentials',");
-      expect(definition).toContain("description: 'API credentials for weather service',");
-      expect(definition).toContain('}');
+      expect(definition).toContain('credentialReference: weatherApiCredentials,');
 
       await expectSnapshots(definition);
     });
@@ -71,7 +63,7 @@ describe('External Agent Generator', () => {
     it('should generate external agent with credential reference variable', async () => {
       const dataWithCredRef = {
         ...basicExternalAgentData,
-        credentialReference: 'myCredentials',
+        credentialReferenceId: 'myCredentials',
       };
       const externalAgentId = 'cred-ref-agent';
 
@@ -81,7 +73,7 @@ describe('External Agent Generator', () => {
       });
 
       expect(definition).toContain('export const credRefAgent = externalAgent({');
-      expect(definition).toContain('credentialReference: myCredentials');
+      expect(definition).toContain('credentialReference: mycredentials');
       expect(definition).not.toContain('credentialReference: {');
 
       await expectSnapshots(definition);
@@ -155,10 +147,7 @@ describe('External Agent Generator', () => {
         name: 'Partial Cred Agent',
         description: 'Agent with partial credential reference',
         baseUrl: 'https://api.example.com/partial',
-        credentialReference: {
-          id: 'partial-cred',
-          // Missing name and description
-        },
+        credentialReferenceId: 'partial-cred',
       };
 
       const definition = generateExternalAgentDefinition({
@@ -166,10 +155,7 @@ describe('External Agent Generator', () => {
         ...partialCredData,
       });
 
-      expect(definition).toContain('credentialReference: {');
-      expect(definition).toContain("id: 'partial-cred',");
-      expect(definition).not.toContain("name: 'Full API Credentials'"); // Should not contain credential name
-      expect(definition).not.toContain("description: 'Complete API credentials'"); // Should not contain credential description
+      expect(definition).toContain('credentialReference: partialCred,');
 
       await expectSnapshots(definition);
     });
@@ -204,8 +190,7 @@ describe('External Agent Generator', () => {
 
       expect(file).toContain("import { externalAgent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const complexAgent = externalAgent({');
-      expect(file).toContain('credentialReference: {');
-      expect(file).toContain("id: 'weather-api-credentials',");
+      expect(file).toContain('credentialReference: weatherApiCredentials,');
 
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
@@ -286,11 +271,7 @@ describe('External Agent Generator', () => {
         name: 'Full Cred Agent',
         description: 'Agent with full credential reference',
         baseUrl: 'https://api.example.com/full',
-        credentialReference: {
-          id: 'full-credentials',
-          name: 'Full API Credentials',
-          description: 'Complete API credentials with all properties',
-        },
+        credentialReferenceId: 'full-credentials',
       };
 
       const definition = generateExternalAgentDefinition({
@@ -298,12 +279,7 @@ describe('External Agent Generator', () => {
         ...complexCredData,
       });
 
-      expect(definition).toContain('credentialReference: {');
-      expect(definition).toContain("id: 'full-credentials',");
-      expect(definition).toContain("name: 'Full API Credentials',");
-      expect(definition).toContain("description: 'Complete API credentials with all properties',");
-      expect(definition).toContain('}');
-
+      expect(definition).toContain('credentialReference: fullCredentials,');
       await expectSnapshots(definition);
     });
 

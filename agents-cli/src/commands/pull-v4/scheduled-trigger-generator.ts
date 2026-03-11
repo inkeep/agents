@@ -1,7 +1,7 @@
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from './utils';
+import { addValueToObject, createFactoryDefinition, toTriggerReferenceName } from './utils';
 
 const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.scheduledTriggers
   .unwrap()
@@ -22,14 +22,11 @@ const ScheduledTriggerSchema = z.strictObject({
 type ScheduledTriggerInput = z.input<typeof ScheduledTriggerSchema>;
 
 export function generateScheduledTriggerDefinition({
-  // @ts-expect-error
   id,
-  // @ts-expect-error
   runAsUserId,
-  // @ts-expect-error
   createdBy,
   ...data
-}: ScheduledTriggerInput): SourceFile {
+}: ScheduledTriggerInput & Record<string, unknown>): SourceFile {
   const result = ScheduledTriggerSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for scheduled trigger:\n${z.prettifyError(result.error)}`);
@@ -38,7 +35,7 @@ export function generateScheduledTriggerDefinition({
   const parsed = result.data;
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'ScheduledTrigger',
-    variableName: toCamelCase(parsed.scheduledTriggerId),
+    variableName: toTriggerReferenceName(parsed.name),
     syntaxKind: SyntaxKind.NewExpression,
   });
 

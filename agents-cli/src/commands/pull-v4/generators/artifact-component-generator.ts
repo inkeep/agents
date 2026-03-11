@@ -25,28 +25,22 @@ const ArtifactComponentSchema = z.strictObject({
 });
 
 type ArtifactComponentInput = z.input<typeof ArtifactComponentSchema>;
-type ArtifactComponentOutput = z.output<typeof ArtifactComponentSchema>;
 
 export function generateArtifactComponentDefinition({
-  // @ts-expect-error
   tenantId,
-  // @ts-expect-error
   id,
-  // @ts-expect-error
   projectId,
-  // @ts-expect-error -- TODO: remove it after new deploy
   createdAt,
-  // @ts-expect-error -- TODO: remove it after new deploy
   updatedAt,
   ...data
-}: ArtifactComponentInput): SourceFile {
+}: ArtifactComponentInput & Record<string, unknown>): SourceFile {
   const result = ArtifactComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for artifact component:\n${z.prettifyError(result.error)}`);
   }
 
   const parsed = result.data;
-  const schema = parsed.props ?? parsed.schema;
+  const schema = parsed.props;
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'artifactComponent',
     variableName: toCamelCase(parsed.artifactComponentId),
@@ -62,7 +56,7 @@ export function generateArtifactComponentDefinition({
     sourceFile.addImportDeclaration({ namedImports: ['z'], moduleSpecifier: 'zod' });
   }
 
-  const { artifactComponentId, schema: _, props: _2, ...rest } = parsed;
+  const { artifactComponentId, props: _, ...rest } = parsed;
 
   for (const [key, value] of Object.entries({
     id: artifactComponentId,
