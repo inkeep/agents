@@ -23,6 +23,9 @@ import { ManagementApiClient } from '../../../api';
 import { performBackgroundVersionCheck } from '../../../utils/background-version-check';
 import { initializeCommand } from '../../../utils/cli-pipeline';
 import { loadProject } from '../../../utils/project-loader';
+
+import { readProjectState, writeProjectState } from '../../../utils/state';
+
 import { introspectGenerate } from '../introspect-generator';
 
 export interface PullV3Options {
@@ -274,6 +277,13 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       }
     }
 
+    const existingState = readProjectState(projectDir, projectId);
+    const lastPulledHash = existingState?.lastPulledHash;
+
+    if (options.debug && lastPulledHash) {
+      console.log(styleText('gray', `   Last pulled hash: ${lastPulledHash}`));
+    }
+
     // Step 4: Fetch project data from API
     s.start(`Fetching project: ${projectId}`);
 
@@ -392,6 +402,13 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       debug: options.debug,
     });
     s.stop('All files generated');
+
+    try {
+      const mainBranch = await apiClient.getBranch(projectId, 'main');
+      writeProjectState(paths.projectRoot, projectId, mainBranch.hash);
+    } catch {
+      // Non-fatal: hash tracking is best-effort
+    }
 
     console.log(styleText('green', '\nProject synced successfully!'));
     console.log(styleText('gray', `   Location: ${paths.projectRoot}`));
