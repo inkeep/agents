@@ -28,7 +28,7 @@ describe('pull-v4 introspect generator', () => {
       'inkeep-api-key': {
         id: 'inkeep-api-key',
         name: 'Inkeep API Key',
-        type: 'bearer',
+        type: 'memory',
         credentialStoreId: 'main-store',
       },
     };
@@ -114,5 +114,44 @@ export const inkeepApiKey = credential({
       mergedContextConfigFile
     );
     await expect(contextConfigDiff).toMatchFileSnapshot(`${getTestPath()}.diff`);
+  });
+
+  it('uses generated credential name/path for context-config credential references in overwrite mode', async () => {
+    const project = createProjectFixture();
+    project.credentialReferences = {
+      '0jib1dmkxp6xf74o8cfjt': {
+        id: '0jib1dmkxp6xf74o8cfjt',
+        name: 'Inkeep Facts',
+        type: 'nango',
+        credentialStoreId: 'nango-default',
+      },
+    };
+
+    const supportAgent = project.agents?.['support-agent'];
+    const supportContext = supportAgent?.contextConfig;
+    const contextVariables =
+      supportContext && typeof supportContext === 'object'
+        ? supportContext.contextVariables
+        : undefined;
+    const userInfo =
+      contextVariables && typeof contextVariables === 'object'
+        ? (contextVariables.userInfo as Record<string, unknown>)
+        : undefined;
+    if (userInfo) {
+      userInfo.credentialReferenceId = '0jib1dmkxp6xf74o8cfjt';
+    }
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'overwrite' });
+
+    const contextConfigFilePath = join(testDir, 'context-configs', 'support-context.ts');
+    const { default: generatedContextConfigFile } = await import(`${contextConfigFilePath}?raw`);
+
+    expect(generatedContextConfigFile).toContain(
+      "import { inkeepFactsCredential } from '../credentials/inkeep-facts';"
+    );
+    expect(generatedContextConfigFile).toContain('credentialReference: inkeepFactsCredential');
+    expect(generatedContextConfigFile).not.toContain(
+      "import { _0jib1dmkxp6xf74o8cfjt } from '../credentials/0jib1dmkxp6xf74o8cfjt';"
+    );
   });
 });

@@ -49,7 +49,8 @@ describe('pull-v4 introspect generator', () => {
     supportAgent.subAgents = {
       'support-agent': {
         id: 'support-agent',
-        name: 'Support Router',
+        name: '',
+        canUse: [],
       },
       ...supportAgent.subAgents,
     };

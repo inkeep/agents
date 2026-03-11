@@ -1,7 +1,12 @@
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
+import {
+  addValueToObject,
+  createFactoryDefinition,
+  toCamelCase,
+  toTriggerReferenceName,
+} from '../utils';
 
 const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.triggers
   .unwrap()
@@ -23,15 +28,18 @@ const TriggerSchema = z.strictObject({
     z.unknown()
   ),
   signatureVerification: z.preprocess((v) => v || undefined, MySchema.shape.signatureVerification),
+  signingSecretCredentialReferenceName: z.string().nonempty().optional(),
+  signingSecretCredentialReferencePath: z.string().nonempty().optional(),
 });
 
 type TriggerInput = z.input<typeof TriggerSchema>;
 
 export function generateTriggerDefinition({
-  // @ts-expect-error
   id,
+  runAsUserId,
+  createdBy,
   ...data
-}: TriggerInput): SourceFile {
+}: TriggerInput & Record<string, unknown>): SourceFile {
   const result = TriggerSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for trigger:\n${z.prettifyError(result.error)}`);
@@ -40,11 +48,17 @@ export function generateTriggerDefinition({
   const parsed = result.data;
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'Trigger',
-    variableName: toCamelCase(parsed.triggerId),
+    variableName: toTriggerReferenceName(parsed.name),
     syntaxKind: SyntaxKind.NewExpression,
   });
 
-  const { triggerId, signingSecretCredentialReferenceId, ...rest } = parsed;
+  const {
+    triggerId,
+    signingSecretCredentialReferenceId,
+    signingSecretCredentialReferenceName,
+    signingSecretCredentialReferencePath,
+    ...rest
+  } = parsed;
 
   for (const [key, value] of Object.entries({
     id: triggerId,
@@ -54,10 +68,14 @@ export function generateTriggerDefinition({
   }
 
   if (signingSecretCredentialReferenceId) {
-    const varName = toCamelCase(signingSecretCredentialReferenceId as string);
+    const varName =
+      signingSecretCredentialReferenceName ??
+      toCamelCase(signingSecretCredentialReferenceId as string);
+    const modulePath =
+      signingSecretCredentialReferencePath ?? (signingSecretCredentialReferenceId as string);
     sourceFile.addImportDeclaration({
       namedImports: [varName],
-      moduleSpecifier: `../../credentials/${signingSecretCredentialReferenceId}`,
+      moduleSpecifier: `../../credentials/${modulePath}`,
     });
     configObject.addPropertyAssignment({
       name: 'signingSecretCredentialReference',

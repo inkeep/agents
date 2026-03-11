@@ -1,9 +1,10 @@
 import { Trigger } from '@inkeep/agents-sdk';
 import { slackSigningSecret } from '../../credentials/slack-signing-secret';
 
-export const slackWebhook = new Trigger({
+export const slackWebhookTrigger = new Trigger({
   id: 'slack-webhook',
   name: 'Slack Webhook',
+  enabled: true,
   messageTemplate: 'New Slack event: {{body.event.type}}',
   signatureVerification: {
     algorithm: 'sha256',

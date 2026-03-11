@@ -49,18 +49,22 @@ describe('pull-v4 introspect generator', () => {
                 { subAgentId: 'weather' },
                 { subAgentId: 'coordinates' },
               ],
+              canUse: [],
             },
             weather: {
               id: 'weather',
               name: 'Weather',
+              canUse: [],
             },
             coordinates: {
               id: 'coordinates',
               name: 'Coordinates',
+              canUse: [],
             },
             websearch: {
               id: 'websearch',
               name: 'Websearch',
+              canUse: [],
             },
           },
         },
@@ -193,14 +197,17 @@ export const supportAgent = agent({
             'weather-forecaster': {
               id: 'weather-forecaster',
               name: 'Weather forecaster',
+              canUse: [],
             },
             'geocoder-agent': {
               id: 'geocoder-agent',
               name: 'Geocoder agent',
+              canUse: [],
             },
             'weather-assistant': {
               id: 'weather-assistant',
               name: 'Weather assistant',
+              canUse: [],
               description: 'Main weather assistant',
               canDelegateTo: [
                 { subAgentId: 'weather-forecaster' },

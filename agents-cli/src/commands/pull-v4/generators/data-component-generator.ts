@@ -25,25 +25,20 @@ type DataComponentInput = z.input<typeof DataComponentSchema>;
 type DataComponentOutput = z.output<typeof DataComponentSchema>;
 
 export function generateDataComponentDefinition({
-  // @ts-expect-error
   tenantId,
-  // @ts-expect-error
   id,
-  // @ts-expect-error
   projectId,
-  // @ts-expect-error -- TODO: remove it after new deploy
   createdAt,
-  // @ts-expect-error -- TODO: remove it after new deploy
   updatedAt,
   ...data
-}: DataComponentInput): SourceFile {
+}: DataComponentInput & Record<string, unknown>): SourceFile {
   const result = DataComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for data component:\n${z.prettifyError(result.error)}`);
   }
 
   const parsed = result.data;
-  const props = parsed.props !== undefined ? parsed.props : parsed.schema;
+  const props = parsed.props;
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'dataComponent',
     variableName: toCamelCase(parsed.dataComponentId),

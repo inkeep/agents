@@ -1,7 +1,7 @@
 import { headers, fetchDefinition, contextConfig } from '@inkeep/agents-core';
 import { z } from 'zod';
 
-const activitiesPlannerContextHeaders = headers({
+export const activitiesPlannerContextHeaders = headers({
   schema: z.object({ "tz": z.string().optional() }),
 });
 const time = fetchDefinition({

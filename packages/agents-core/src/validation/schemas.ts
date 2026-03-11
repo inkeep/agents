@@ -2187,12 +2187,12 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
     const { body } = ast.program;
     for (const node of body) {
       if (node.type === 'ExportDefaultDeclaration') {
-        throw SyntaxError(
+        throw new SyntaxError(
           'Export default declarations are not supported. Provide a single function instead.'
         );
       }
       if (node.type === 'ExportNamedDeclaration') {
-        throw SyntaxError(
+        throw new SyntaxError(
           'Export declarations are not supported. Provide a single function instead.'
         );
       }

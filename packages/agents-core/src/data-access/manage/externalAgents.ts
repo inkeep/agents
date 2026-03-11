@@ -8,6 +8,7 @@ import type {
   PaginationConfig,
   ProjectScopeConfig,
 } from '../../types/index';
+import type { WithTimestamps } from '../../validation/extend-schemas';
 
 /**
  * Create a new external agent
@@ -137,7 +138,7 @@ export const updateExternalAgent =
     externalAgentId: string;
     data: Partial<ExternalAgentUpdate>;
   }): Promise<ExternalAgentSelect | null> => {
-    const updateData: Partial<ExternalAgentUpdate> = {
+    const updateData: Partial<WithTimestamps<ExternalAgentUpdate>> = {
       ...params.data,
       updatedAt: new Date().toISOString(),
     };

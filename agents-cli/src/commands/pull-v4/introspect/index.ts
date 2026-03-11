@@ -23,7 +23,6 @@ import { ManagementApiClient } from '../../../api';
 import { performBackgroundVersionCheck } from '../../../utils/background-version-check';
 import { initializeCommand } from '../../../utils/cli-pipeline';
 import { loadProject } from '../../../utils/project-loader';
-import { extractSubAgents } from '../component-registry';
 import { introspectGenerate } from '../introspect-generator';
 
 export interface PullV3Options {
@@ -96,9 +95,12 @@ export function createProjectStructure(projectRoot: string): ProjectPaths {
  * Enrich canDelegateTo references with component type information
  */
 export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): void {
+  const { agents } = project;
   // Get all available component IDs by type
-  const agentsIdSet = new Set(project.agents ? Object.keys(project.agents) : []);
-  const subAgentsIdSet = new Set(Object.keys(extractSubAgents(project)));
+  const agentsIdSet = new Set(Object.keys(agents));
+  const subAgentsIdSet = new Set(
+    Object.values(agents).flatMap((agentData) => Object.keys(agentData.subAgents))
+  );
   const externalAgentsIdSet = new Set(
     project.externalAgents ? Object.keys(project.externalAgents) : []
   );
@@ -117,16 +119,12 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): vo
   }
 
   // Process all agents
-  if (project.agents) {
-    for (const agentData of Object.values(project.agents)) {
-      // Process subAgents within agents
-      if (agentData.subAgents) {
-        for (const subAgentData of Object.values(agentData.subAgents)) {
-          if (subAgentData.canDelegateTo) {
-            // @ts-expect-error
-            subAgentData.canDelegateTo = enrichCanDelegateToArray(subAgentData.canDelegateTo);
-          }
-        }
+  for (const { subAgents } of Object.values(project.agents)) {
+    // Process subAgents within agents
+    for (const subAgentData of Object.values(subAgents)) {
+      if (Array.isArray(subAgentData.canDelegateTo)) {
+        // @ts-expect-error
+        subAgentData.canDelegateTo = enrichCanDelegateToArray(subAgentData.canDelegateTo);
       }
     }
   }
@@ -321,18 +319,19 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
           }
         }
         if (agentData.functions) {
-          remoteProject.functions = remoteProject.functions || {};
+          remoteProject.functions ||= {};
+          const { functions } = remoteProject;
           // Only hoist agent functions if project-level functions don't already exist (clean function data)
           Object.entries(agentData.functions).forEach(([funcId, funcData]: [string, any]) => {
-            if (!remoteProject.functions[funcId]) {
-              // Clean function data - remove functionTool metadata that shouldn't be in functions collection
-              remoteProject.functions[funcId] = {
-                id: funcData.id,
-                inputSchema: funcData.inputSchema,
-                executeCode: funcData.executeCode,
-                dependencies: funcData.dependencies,
-              };
-            }
+            // Clean function data - remove functionTool metadata that shouldn't be in functions collection
+            functions[funcId] ||= {
+              id: funcData.id,
+              inputSchema: funcData.inputSchema,
+              executeCode: funcData.executeCode,
+              dependencies: funcData.dependencies,
+              createdAt: '',
+              updatedAt: '',
+            };
           });
         }
       }
@@ -363,6 +362,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     }
 
     // Enrich canDelegateTo references with component type information
+    // @ts-expect-error -- fixme Types of property `models` are incompatible.
     enrichCanDelegateToWithTypes(remoteProject);
 
     s.message('Project data fetched');
@@ -376,13 +376,17 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     // Step 5: Set up project structure
     const paths = createProjectStructure(projectDir);
 
-    if (remoteProject.skills && Object.keys(remoteProject.skills).length) {
+    // @ts-expect-error -- fix types
+    const skills = remoteProject.skills;
+
+    if (skills && Object.keys(skills).length) {
       const { generateSkills } = await import('../generators/skill-generator');
-      await generateSkills(remoteProject.skills, paths.skillsDir);
+      await generateSkills(skills, paths.skillsDir);
     }
 
     s.start('Starting generating files...');
     await introspectGenerate({
+      // @ts-expect-error -- ignore Types of property 'models' are incompatible.
       project: remoteProject,
       paths,
       debug: options.debug,
@@ -639,6 +643,7 @@ async function pullSingleProject(
 
     // Generate all files using introspect mode for new projects
     await introspectGenerate({
+      // @ts-expect-error -- ignore Types of property 'models' are incompatible.
       project: remoteProject,
       paths,
     });
