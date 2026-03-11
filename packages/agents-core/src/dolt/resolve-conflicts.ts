@@ -174,6 +174,23 @@ async function applyMixedResolution(
   rowDefaultPick: 'ours' | 'theirs',
   columnOverrides: Record<string, 'ours' | 'theirs'>
 ): Promise<void> {
+  const ourDiffType = conflictRow.our_diff_type as string;
+  const theirDiffType = conflictRow.their_diff_type as string;
+
+  // If one side deleted the row, column overrides don't make sense — delegate to theirs/ours resolution
+  if (theirDiffType === 'removed' || ourDiffType === 'removed') {
+    await applyTheirsResolution(
+      db,
+      table,
+      primaryKey,
+      pkColumns,
+      conflictRow,
+      ourDiffType,
+      theirDiffType
+    );
+    return;
+  }
+
   const columns = getColumnNames(conflictRow, pkColumns);
 
   const pkWhere = pkColumns

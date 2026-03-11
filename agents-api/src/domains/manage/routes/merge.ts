@@ -80,7 +80,7 @@ const MergePreviewRequestSchema = z
     sourceBranch: z.string(),
     targetBranch: z.string(),
     baseCommit: z.string().optional(),
-    localProjectDefinition: z.any().optional(),
+    localProjectDefinition: z.unknown().optional(),
   })
   .openapi('MergePreviewRequest');
 
@@ -112,7 +112,7 @@ const MergeExecuteRequestSchema = z
       .optional(),
     resolutions: z.array(ConflictResolutionSchema).optional(),
     baseCommit: z.string().optional(),
-    localProjectDefinition: z.any().optional(),
+    localProjectDefinition: z.unknown().optional(),
   })
   .openapi('MergeExecuteRequest');
 
@@ -222,6 +222,7 @@ app.openapi(
 
     if (!schemaCompat.compatible) {
       if (schemaCompat.branchADifferences.length > 0) {
+        await doltCheckout(db)({ branch: effectiveSourceFullName });
         const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
         if (syncResult.error && !syncResult.synced) {
           if (localTempBranchName) await cleanupTempBranch(db, localTempBranchName);
@@ -232,6 +233,7 @@ app.openapi(
         }
       }
       if (schemaCompat.branchBDifferences.length > 0) {
+        await doltCheckout(db)({ branch: targetFullName });
         const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
         if (syncResult.error && !syncResult.synced) {
           if (localTempBranchName) await cleanupTempBranch(db, localTempBranchName);
@@ -279,7 +281,7 @@ app.openapi(
             hasConflicts: false,
             sourceHash,
             targetHash,
-            canFastForward: sourceHash === targetHash,
+            canFastForward: false,
             diffSummary: formattedDiff,
             conflicts: [],
           },
