@@ -7083,7 +7083,6 @@
             "$ref": "#/components/schemas/CronExpression"
           },
           "cronTimezone": {
-            "default": "UTC",
             "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
             "maxLength": 64,
             "nullable": true,
@@ -7102,7 +7101,6 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "maxRetries": {
-            "default": 1,
             "maximum": 10,
             "minimum": 0,
             "type": "integer"
@@ -7131,7 +7129,6 @@
             "type": "string"
           },
           "retryDelaySeconds": {
-            "default": 60,
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
@@ -7152,7 +7149,6 @@
             "type": "string"
           },
           "timeoutSeconds": {
-            "default": 780,
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
