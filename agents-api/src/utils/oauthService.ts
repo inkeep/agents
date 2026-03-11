@@ -18,6 +18,7 @@ const pkceStore = new Map<
     toolId: string;
     tenantId: string;
     projectId: string;
+    userId?: string;
     clientInformation: any;
     metadata: any;
     resourceUrl?: string;
@@ -33,6 +34,7 @@ function storePKCEVerifier(
   toolId: string,
   tenantId: string,
   projectId: string,
+  userId: string | undefined,
   clientInformation: any,
   metadata: any,
   resourceUrl?: string
@@ -42,6 +44,7 @@ function storePKCEVerifier(
     toolId,
     tenantId,
     projectId,
+    userId,
     clientInformation,
     metadata,
     resourceUrl,
@@ -64,6 +67,7 @@ export function retrievePKCEVerifier(state: string): {
   toolId: string;
   tenantId: string;
   projectId: string;
+  userId?: string;
   clientInformation: any;
   metadata: any;
   resourceUrl?: string;
@@ -129,10 +133,11 @@ class OAuthService {
     tenantId: string;
     projectId: string;
     toolId: string;
+    userId?: string;
     mcpServerUrl: string;
     baseUrl?: string; // Optional override for the base URL
   }): Promise<OAuthInitiationResult> {
-    const { tenantId, projectId, toolId, mcpServerUrl, baseUrl } = params;
+    const { tenantId, projectId, toolId, userId, mcpServerUrl, baseUrl } = params;
 
     const redirectBaseUrl = baseUrl || this.defaultConfig.redirectBaseUrl;
     const redirectUri = `${redirectBaseUrl}/manage/oauth/callback`;
@@ -155,6 +160,7 @@ class OAuthService {
       toolId,
       tenantId,
       projectId,
+      userId,
       authResult.clientInformation,
       authResult.metadata,
       authResult.resourceUrl

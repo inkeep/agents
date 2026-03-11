@@ -41,6 +41,7 @@ import {
 // Runtime DB imports (Postgres - not versioned)
 import {
   apiKeys,
+  apps,
   contextCache,
   conversations,
   datasetRun,
@@ -60,6 +61,7 @@ import {
   workAppGitHubProjectRepositoryAccess,
   workAppGitHubRepositories,
   workAppSlackChannelAgentConfigs,
+  workAppSlackMcpToolAccessConfig,
   workAppSlackWorkspaces,
 } from '../db/runtime/runtime-schema';
 import {
@@ -999,6 +1001,15 @@ export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.ref
 
 export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.extend({
   enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
+  cronTimezone: z
+    .string()
+    .max(64)
+    .nullable()
+    .optional()
+    .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
+  maxRetries: z.number().int().min(0).max(10).optional(),
+  retryDelaySeconds: z.number().int().min(10).max(3600).optional(),
+  timeoutSeconds: z.number().int().min(30).max(780).optional(),
 }).partial();
 
 export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(
@@ -1869,6 +1880,89 @@ export const ApiKeyApiInsertSchema = ApiKeyInsertSchema.omit({
 
 export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
+// ── App Credential Schemas ──────────────────────────────────────────────────
+
+export const ALLOWED_DOMAIN_PATTERN =
+  /^(\*|\*\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?)$/;
+
+const AllowedDomainSchema = z
+  .string()
+  .min(1)
+  .regex(
+    ALLOWED_DOMAIN_PATTERN,
+    'Invalid domain pattern. Use a hostname (e.g. "example.com"), wildcard ("*.example.com"), or bare "*" to allow all origins.'
+  );
+
+export const WebClientConfigSchema = z
+  .object({
+    type: z.literal('web_client'),
+    webClient: z.object({
+      allowedDomains: z.array(AllowedDomainSchema).min(1),
+    }),
+  })
+  .openapi('WebClientConfig');
+
+export const ApiConfigSchema = z
+  .object({
+    type: z.literal('api'),
+    api: z.object({}).default({}),
+  })
+  .openapi('ApiConfig');
+
+export const AppConfigSchema = z
+  .discriminatedUnion('type', [WebClientConfigSchema, ApiConfigSchema])
+  .openapi('AppConfig');
+
+export const WebClientConfigResponseSchema = z
+  .object({
+    type: z.literal('web_client'),
+    webClient: z.object({
+      allowedDomains: z.array(AllowedDomainSchema).min(1),
+    }),
+  })
+  .openapi('WebClientConfigResponse');
+
+export const AppConfigResponseSchema = z
+  .discriminatedUnion('type', [WebClientConfigResponseSchema, ApiConfigSchema])
+  .openapi('AppConfigResponse');
+
+export const AppSelectSchema = createSelectSchema(apps);
+
+export const AppInsertSchema = createInsertSchema(apps).extend({
+  id: ResourceIdSchema,
+  name: z.string().trim().nonempty('Please enter a name.').max(256),
+  type: z.enum(['web_client', 'api']),
+  defaultAgentId: z.string().min(1).nullish(),
+  config: AppConfigSchema,
+});
+
+export const AppUpdateSchema = AppInsertSchema.partial().omit({
+  id: true,
+  type: true,
+  createdAt: true,
+});
+
+export const AppApiSelectSchema = AppSelectSchema.openapi('App');
+
+export const AppApiResponseSelectSchema = AppApiSelectSchema.omit({ config: true })
+  .extend({
+    config: AppConfigResponseSchema,
+  })
+  .openapi('AppResponseItem');
+
+export const AppApiInsertSchema = AppInsertSchema.omit({
+  id: true,
+  lastUsedAt: true,
+}).openapi('AppCreate');
+
+export const AppApiUpdateSchema = AppUpdateSchema.openapi('AppUpdate');
+
+export const AppApiCreationResponseSchema = z.object({
+  data: z.object({
+    app: AppApiResponseSelectSchema,
+  }),
+});
+
 export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
 export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences)
@@ -2704,6 +2798,13 @@ export const ApiKeyListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('ApiKeyListResponse');
+export const AppResponse = z.object({ data: AppApiResponseSelectSchema }).openapi('AppResponse');
+export const AppListResponse = z
+  .object({
+    data: z.array(AppApiResponseSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('AppListResponse');
 export const CredentialReferenceListResponse = z
   .object({
     data: z.array(CredentialReferenceApiSelectSchema),
@@ -2973,8 +3074,17 @@ const SubAgentId = z.string().openapi('SubAgentIdPathParam', {
   example: 'sub_agent_123',
 });
 
+const UserIdPathParam = z.string().openapi('UserIdPathParam', {
+  param: {
+    name: 'userId',
+    in: 'path',
+  },
+  description: 'User identifier',
+  example: 'user_123',
+});
+
 export const UserIdParamsSchema = z.object({
-  userId: UserIdSchema,
+  userId: UserIdPathParam,
 });
 
 export const TenantParamsSchema = z.object({
@@ -3003,6 +3113,10 @@ export const TenantProjectAgentIdParamsSchema = TenantProjectAgentParamsSchema.e
 
 export const TenantProjectAgentSubAgentParamsSchema = TenantProjectAgentParamsSchema.extend({
   subAgentId: SubAgentId,
+});
+
+export const TenantProjectToolParamsSchema = TenantProjectParamsSchema.extend({
+  toolId: z.string().min(1).describe('The tool ID'),
 });
 
 export const TenantProjectAgentSubAgentIdParamsSchema =
@@ -3158,6 +3272,39 @@ export const WorkAppSlackAgentConfigResponseSchema = WorkAppSlackAgentConfigRequ
 export type WorkAppSlackAgentConfigRequest = z.infer<typeof WorkAppSlackAgentConfigRequestSchema>;
 export type WorkAppSlackAgentConfigResponse = z.infer<typeof WorkAppSlackAgentConfigResponseSchema>;
 
+export const ChannelIdsSchema = z
+  .array(z.string())
+  .describe('List of allowed channel IDs (only used when channelAccessMode is "selected")');
+
+const DmEnabledSchema = z.boolean().describe('Whether DM access is enabled for this tool');
+
+export const ChannelAccessModeSchema = z
+  .enum(['all', 'selected'])
+  .describe(
+    'Channel access mode: "all" means the MCP tool can post to any channel, ' +
+      '"selected" means the tool is scoped to specific channels'
+  );
+
+export const WorkAppSlackMcpToolAccessConfigInsertSchema = omitTimestamps(
+  createInsertSchema(workAppSlackMcpToolAccessConfig)
+).extend({
+  channelAccessMode: ChannelAccessModeSchema,
+  dmEnabled: DmEnabledSchema,
+  channelIds: ChannelIdsSchema,
+});
+
+export const WorkAppSlackMcpToolAccessConfigApiInsertSchema = createApiInsertSchema(
+  WorkAppSlackMcpToolAccessConfigInsertSchema
+)
+  .omit({
+    toolId: true,
+  })
+  .extend({
+    channelAccessMode: ChannelAccessModeSchema,
+    dmEnabled: DmEnabledSchema,
+    channelIds: ChannelIdsSchema.default([]),
+  });
+
 const timezoneSchema = z
   .string()
   .refine((tz) => VALID_TIMEZONES.has(tz), {
@@ -3184,3 +3331,10 @@ export const UserProfileApiUpdateSchema = UserProfileUpdateSchema.omit({
   id: true,
   userId: true,
 });
+
+export const AnonymousSessionResponseSchema = z
+  .object({
+    token: z.string().describe('Anonymous session JWT'),
+    expiresAt: z.string().describe('Token expiration time (ISO 8601)'),
+  })
+  .openapi('AnonymousSessionResponse');

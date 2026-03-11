@@ -1,5 +1,54 @@
 # @inkeep/agents-core
 
+## 0.58.9
+
+### Patch Changes
+
+- f150b28: Fix user-scoped credential references to upsert instead of failing on duplicate unique constraint
+- 49909bf: version packages changes
+- 4816f02: Fix CI workflows not triggering on Changesets Version Packages PR by using GitHub App token
+
+## 0.58.8
+
+### Patch Changes
+
+- e89948d: Add app credentials with anonymous JWT sessions, domain validation, and PoW challenge support
+
+## 0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- 16e5e8d: Fix mid-generation context compression: accurate context slicing across multiple compression cycles, improved distillation quality, and richer compression telemetry
+
+## 0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- 0451e1d: Add new models: anthropic/claude-opus-4, anthropic/claude-sonnet-4, anthropic/claude-3-7-sonnet, anthropic/claude-3-5-sonnet, anthropic/claude-3-5-sonnet-20240620, anthropic/claude-3-5-haiku, anthropic/claude-3-opus, anthropic/claude-3-haiku, google/gemini-3-flash, google/gemini-3.1-flash-lite-preview, google/gemini-2.5-flash-preview-09-2025, google/gemini-2.5-flash-lite-preview-09-2025, google/gemini-2.0-flash, google/gemini-2.0-flash-lite, openai/gpt-5.2-codex, openai/gpt-5.1-thinking, openai/gpt-5.1-codex, openai/gpt-5.1-codex-max, openai/gpt-5.1-codex-mini, openai/gpt-5-pro, openai/gpt-5-codex, openai/o3-pro, openai/o3, openai/o3-mini, openai/o4-mini, openai/o1, openai/gpt-4o, openai/gpt-4o-mini, openai/gpt-4-turbo, openai/gpt-3.5-turbo, openai/codex-mini. Remove from UI: Claude Haiku 3.5 (deprecated), Gemini 3 Flash Preview (replaced by stable Gemini 3 Flash), Claude Opus 4.1 (consolidated to Claude Opus 4).
+- d7c1001: Add GPT-5.2 Pro and GPT-5.3 Codex to model constants and UI picker
+- f475d74: Fix GitHub MCP tool access to be project-scoped instead of globally scoped by toolId
+
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+
+## 0.58.2
+
+### Patch Changes
+
+- 31c0f68: Add new models: openai/gpt-5.4, openai/gpt-5.4-pro
+- ee5b4c9: Add image persistence to conversation history
+- eb5b16f: timeout recorded in spans
+
+## 0.58.1
+
 ## 0.58.0
 
 ### Patch Changes

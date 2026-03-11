@@ -16,7 +16,7 @@ vi.mock('../../../logger', () => ({
   getLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
-vi.mock('../../../domains/run/services/ConversationCompressor', () => ({
+vi.mock('../../../domains/run/compression/ConversationCompressor', () => ({
   ConversationCompressor: vi.fn(),
 }));
 

@@ -347,6 +347,16 @@ async function generateSecrets() {
       placeholders: ['adminADMIN!@12'],
       generate: () => randomBytes(6).toString('base64url'),
     },
+    {
+      varName: 'INKEEP_ANON_JWT_SECRET',
+      placeholders: [],
+      generate: () => randomBytes(32).toString('hex'),
+    },
+    {
+      varName: 'INKEEP_POW_HMAC_SECRET',
+      placeholders: [],
+      generate: () => randomBytes(32).toString('hex'),
+    },
   ];
 
   for (const { varName, placeholders, generate } of secretDefs) {
@@ -490,9 +500,10 @@ async function runMigrations(config: SetupConfig) {
     isFirstRun ? 'Fresh install detected - running migrations only' : 'Running migrations...'
   );
 
+  const execOpts = { cwd: process.cwd(), env: process.env };
   const [manageResult, runResult] = await Promise.allSettled([
-    execAsync(config.manageMigrateCommand),
-    execAsync(config.runMigrateCommand),
+    execAsync(config.manageMigrateCommand, execOpts),
+    execAsync(config.runMigrateCommand, execOpts),
   ]);
 
   if (manageResult.status === 'fulfilled') logSuccess('Manage database migrations completed');
@@ -615,6 +626,7 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
         stdio: 'ignore',
         detached: true,
         cwd: process.cwd(),
+        env: process.env,
       });
       proc.unref();
       result.startedUi = true;
@@ -693,12 +705,19 @@ async function pushProject(pushConfig: SetupPushConfig) {
 
   try {
     const pushCmd = `pnpm inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`;
-    const { stdout } = await execAsync(pushCmd, { env: pushEnv });
+    const { stdout } = await execAsync(pushCmd, { env: pushEnv, cwd: process.cwd() });
     if (stdout) console.log(`${colors.dim}${stdout.trim()}${colors.reset}`);
     logSuccess('Project pushed successfully');
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     logError('Project push failed', error);
+    const err = error as { stdout?: string; stderr?: string; message?: string };
+    if (err.stdout?.trim()) {
+      console.error(`${colors.dim}  stdout:\n${err.stdout.trim()}${colors.reset}`);
+    }
+    if (err.stderr?.trim()) {
+      console.error(`${colors.dim}  stderr:\n${err.stderr.trim()}${colors.reset}`);
+    }
     logWarning('The project may not have been seeded. You can manually run:');
     logInfo(
       `  pnpm inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`

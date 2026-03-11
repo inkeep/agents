@@ -19,7 +19,9 @@ import {
   getSlackChannels,
   getSlackClient,
   getSlackTeamInfo,
+  getSlackUserByEmail,
   getSlackUserInfo,
+  getSlackUsers,
   postMessage,
   postMessageInThread,
 } from '../../slack/services/client';
@@ -28,6 +30,8 @@ const { mockWebClient } = vi.hoisted(() => {
   const mockWebClient = vi.fn().mockImplementation(() => ({
     users: {
       info: vi.fn(),
+      lookupByEmail: vi.fn(),
+      list: vi.fn(),
       conversations: vi.fn(),
     },
     team: {
@@ -149,6 +153,259 @@ describe('Slack Client', () => {
       const result = await getSlackUserInfo(mockClient, 'U123');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getSlackUserByEmail', () => {
+    it('should return user info when email matches', async () => {
+      const mockClient = {
+        users: {
+          lookupByEmail: vi.fn().mockResolvedValue({
+            ok: true,
+            user: {
+              id: 'U123',
+              name: 'testuser',
+              real_name: 'Test User',
+              profile: {
+                display_name: 'Test Display',
+                email: 'test@example.com',
+                image_72: 'https://example.com/avatar.png',
+              },
+              is_admin: false,
+              is_owner: false,
+              tz: 'America/Chicago',
+              tz_offset: -21600,
+            },
+          }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackUserByEmail(mockClient, 'test@example.com');
+
+      expect(mockClient.users.lookupByEmail).toHaveBeenCalledWith({ email: 'test@example.com' });
+      expect(result).toEqual({
+        id: 'U123',
+        name: 'testuser',
+        realName: 'Test User',
+        displayName: 'Test Display',
+        email: 'test@example.com',
+        isAdmin: false,
+        isOwner: false,
+        avatar: 'https://example.com/avatar.png',
+        tz: 'America/Chicago',
+        tzOffset: -21600,
+      });
+    });
+
+    it('should return null when email not found', async () => {
+      const mockClient = {
+        users: {
+          lookupByEmail: vi.fn().mockResolvedValue({ ok: false }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackUserByEmail(mockClient, 'nobody@example.com');
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw on API error', async () => {
+      const mockClient = {
+        users: {
+          lookupByEmail: vi.fn().mockRejectedValue(new Error('users_not_found')),
+        },
+      } as unknown as WebClient;
+
+      await expect(getSlackUserByEmail(mockClient, 'bad@example.com')).rejects.toThrow(
+        'users_not_found'
+      );
+    });
+  });
+
+  describe('getSlackUsers', () => {
+    const slackMembers = [
+      {
+        id: 'U001',
+        name: 'alice',
+        real_name: 'Alice Smith',
+        profile: { display_name: 'alice', email: 'alice@co.com', image_72: 'https://img/a.png' },
+        is_admin: true,
+        is_owner: false,
+        deleted: false,
+        is_bot: false,
+        tz: 'UTC',
+        tz_offset: 0,
+      },
+      {
+        id: 'U002',
+        name: 'bob',
+        real_name: 'Bob Jones',
+        profile: { display_name: 'bob', email: 'bob@co.com', image_72: 'https://img/b.png' },
+        is_admin: false,
+        is_owner: false,
+        deleted: false,
+        is_bot: false,
+        tz: 'US/Eastern',
+        tz_offset: -18000,
+      },
+      {
+        id: 'U003',
+        name: 'deactivated',
+        real_name: 'Old User',
+        profile: { display_name: '', email: 'old@co.com', image_72: '' },
+        is_admin: false,
+        is_owner: false,
+        deleted: true,
+        is_bot: false,
+        tz: 'UTC',
+        tz_offset: 0,
+      },
+      {
+        id: 'U004',
+        name: 'botuser',
+        real_name: 'Bot',
+        profile: { display_name: 'bot', image_72: '' },
+        is_admin: false,
+        is_owner: false,
+        deleted: false,
+        is_bot: true,
+        tz: 'UTC',
+        tz_offset: 0,
+      },
+      {
+        id: 'USLACKBOT',
+        name: 'slackbot',
+        real_name: 'Slackbot',
+        profile: { display_name: 'Slackbot', image_72: '' },
+        is_admin: false,
+        is_owner: false,
+        deleted: false,
+        is_bot: false,
+        tz: 'UTC',
+        tz_offset: 0,
+      },
+    ];
+
+    function mockClientWithMembers(members: typeof slackMembers) {
+      return {
+        users: {
+          list: vi.fn().mockResolvedValue({
+            ok: true,
+            members,
+            response_metadata: { next_cursor: '' },
+          }),
+        },
+      } as unknown as WebClient;
+    }
+
+    it('should return mapped user objects', async () => {
+      const mockClient = mockClientWithMembers(slackMembers);
+
+      const result = await getSlackUsers(mockClient);
+
+      expect(result[0]).toEqual({
+        id: 'U001',
+        name: 'alice',
+        realName: 'Alice Smith',
+        displayName: 'alice',
+        email: 'alice@co.com',
+        isAdmin: true,
+        isOwner: false,
+        avatar: 'https://img/a.png',
+        tz: 'UTC',
+        tzOffset: 0,
+      });
+    });
+
+    it('should exclude deleted users by default', async () => {
+      const mockClient = mockClientWithMembers(slackMembers);
+
+      const result = await getSlackUsers(mockClient);
+      const ids = result.map((u) => u.id);
+
+      expect(ids).not.toContain('U003');
+    });
+
+    it('should include deleted users when option is set', async () => {
+      const mockClient = mockClientWithMembers(slackMembers);
+
+      const result = await getSlackUsers(mockClient, { includeDeleted: true });
+      const ids = result.map((u) => u.id);
+
+      expect(ids).toContain('U003');
+    });
+
+    it('should exclude bots by default', async () => {
+      const mockClient = mockClientWithMembers(slackMembers);
+
+      const result = await getSlackUsers(mockClient);
+      const ids = result.map((u) => u.id);
+
+      expect(ids).not.toContain('U004');
+    });
+
+    it('should exclude USLACKBOT by default', async () => {
+      const mockClient = mockClientWithMembers(slackMembers);
+
+      const result = await getSlackUsers(mockClient);
+      const ids = result.map((u) => u.id);
+
+      expect(ids).not.toContain('USLACKBOT');
+    });
+
+    it('should include bots when option is set', async () => {
+      const mockClient = mockClientWithMembers(slackMembers);
+
+      const result = await getSlackUsers(mockClient, { includeBots: true });
+      const ids = result.map((u) => u.id);
+
+      expect(ids).toContain('U004');
+      expect(ids).toContain('USLACKBOT');
+    });
+
+    it('should paginate through multiple pages', async () => {
+      const mockClient = {
+        users: {
+          list: vi
+            .fn()
+            .mockResolvedValueOnce({
+              ok: true,
+              members: [slackMembers[0]],
+              response_metadata: { next_cursor: 'page2' },
+            })
+            .mockResolvedValueOnce({
+              ok: true,
+              members: [slackMembers[1]],
+              response_metadata: { next_cursor: '' },
+            }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackUsers(mockClient);
+
+      expect(mockClient.users.list).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(2);
+      expect(result.map((u) => u.id)).toEqual(['U001', 'U002']);
+    });
+
+    it('should respect limit option', async () => {
+      const mockClient = mockClientWithMembers(slackMembers);
+
+      const result = await getSlackUsers(mockClient, { limit: 1 });
+
+      expect(result).toHaveLength(1);
+    });
+
+    it('should throw when API returns ok: false', async () => {
+      const mockClient = {
+        users: {
+          list: vi.fn().mockResolvedValue({ ok: false, error: 'invalid_auth' }),
+        },
+      } as unknown as WebClient;
+
+      await expect(getSlackUsers(mockClient)).rejects.toThrow(
+        'Slack API error during user listing: invalid_auth'
+      );
     });
   });
 

@@ -123,5 +123,11 @@
       "bash -c 'cp scripts/generate-jwt-keys.sh create-agents-template/scripts/generate-jwt-keys.sh && git add create-agents-template/scripts/generate-jwt-keys.sh'"
     ]
   },
+  "pnpm": {
+    "overrides": {
+      "@hono/node-server": ">=1.19.10",
+      "@workflow/core": ">=4.2.0-beta.64"
+    }
+  },
   "packageManager": "pnpm@10.10.0"
 }

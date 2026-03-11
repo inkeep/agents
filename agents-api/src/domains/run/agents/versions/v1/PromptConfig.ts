@@ -7,9 +7,8 @@ import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml
 import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 import dataComponentTemplate from '../../../../../../templates/v1/shared/data-component.xml?raw';
 import dataComponentsTemplate from '../../../../../../templates/v1/shared/data-components.xml?raw';
+import { ArtifactCreateSchema } from '../../../artifacts/artifact-component-schema';
 import { ARTIFACT_TAG, ARTIFACT_TOOL, SENTINEL_KEY } from '../../../constants/artifact-syntax';
-
-import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
 import {
   buildSchemaShape,
   type ExtendedJsonSchema,
@@ -816,8 +815,13 @@ extraction step on it. An extraction applied to a plain string or number returns
   }
 
   private generateMcpToolXml(tool: ToolData): string {
-    const schema = tool.inputSchema as any;
-    const properties: Record<string, any> = schema?.properties || {};
+    const schema = tool.inputSchema as
+      | {
+          properties?: Record<string, { type?: string; description?: string }>;
+          required?: string[];
+        }
+      | undefined;
+    const properties = schema?.properties || {};
     const required: string[] = Array.isArray(schema?.required) ? schema.required : [];
     const propertyEntries = Object.entries(properties);
 
@@ -828,9 +832,7 @@ extraction step on it. An extraction applied to a plain string or number returns
     let parametersXml = '';
     if (propertyEntries.length > 0) {
       const propsXml = propertyEntries
-        .map(([name, prop]: [string, any]) =>
-          this.renderPropertyXml(name, prop, required, '      ')
-        )
+        .map(([name, prop]) => this.renderPropertyXml(name, prop, required, '      '))
         .join('\n');
       parametersXml = `\n    <parameters>\n${propsXml}\n    </parameters>`;
     }
@@ -929,8 +931,8 @@ ${this.getToolChainingGuidance()}">
     const propertiesXml = Object.entries(properties)
       .map(([key, value]) => {
         const isRequired = required.includes(key);
-        const propType = (value as any)?.type || 'string';
-        const propDescription = (value as any)?.description || 'No description';
+        const propType = value?.type || 'string';
+        const propDescription = value?.description || 'No description';
 
         return `        ${key}: {\n          "type": "${propType}",\n          "description": "${propDescription}",\n          "required": ${isRequired}\n        }`;
       })

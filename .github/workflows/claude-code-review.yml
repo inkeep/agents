@@ -10,7 +10,7 @@ jobs:
   pr-review:
     if: |
       (github.event_name == 'pull_request' &&
-        (github.event.sender.type != 'Bot' || github.event.sender.login == 'inkeep-internal-ci[bot]') &&
+        (github.event.sender.type != 'Bot' || github.event.sender.login == 'inkeep-internal-ci[bot]' || github.event.sender.login == 'github-actions[bot]') &&
         !startsWith(github.event.pull_request.head.ref, 'changeset-release/')
       ) ||
       (
@@ -101,7 +101,7 @@ jobs:
 
       - name: Checkout
         if: steps.pr.outputs.draft != 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0  # Full history for merge-base
           ref: refs/pull/${{ steps.pr.outputs.number }}/head
@@ -705,7 +705,7 @@ jobs:
       - name: Generate GitHub App token for team-skills
         if: steps.pr.outputs.draft != 'true'
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
@@ -753,7 +753,7 @@ jobs:
 
       - name: Upload Debug Artifacts
         if: always() && steps.pr.outputs.draft != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: claude-debug-pr-${{ steps.pr.outputs.number }}-${{ github.run_id }}
           path: |

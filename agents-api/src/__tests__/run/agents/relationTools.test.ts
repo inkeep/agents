@@ -231,12 +231,12 @@ vi.mock('../../../domains/run/utils/agent-operations.js', () => ({
 }));
 
 // Mock stream registry
-vi.mock('../../../domains/run/utils/stream-registry.js', () => ({
+vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn(),
 }));
 
 // Mock the session managers to prevent loading heavy dependencies
-vi.mock('../../../domains/run/services/AgentSession.js', () => ({
+vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     getSession: vi.fn(),
     createSession: vi.fn(),
@@ -802,7 +802,7 @@ describe('Relationship Tools', () => {
       );
     });
 
-    it('should use inherited apiKey for internal delegation when NOT in team delegation context', async () => {
+    it('should generate service token for internal A2A calls even without team delegation', async () => {
       mockExecutionContext = createMockExecutionContext();
       // No teamDelegation metadata
 
@@ -816,15 +816,20 @@ describe('Relationship Tools', () => {
 
       await tool.execute({ message: 'Normal delegation test' }, mockToolCallOptions);
 
-      // generateServiceToken should NOT be called for non-team delegation
-      expect(vi.mocked(generateServiceToken)).not.toHaveBeenCalled();
+      // generateServiceToken should always be called for internal A2A calls
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+      });
 
-      // A2AClient should use the original metadata.apiKey
+      // A2AClient should use the generated service token
       expect(vi.mocked(A2AClient)).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
-            Authorization: 'Bearer test-api-key',
+            Authorization: 'Bearer test-service-token',
           }),
         })
       );

@@ -214,7 +214,7 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
   },
 }));
 
-vi.mock('../../../domains/run/utils/stream-registry.js', () => ({
+vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn().mockReturnValue(undefined),
 }));
 

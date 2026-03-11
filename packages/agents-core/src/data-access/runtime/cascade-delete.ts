@@ -11,6 +11,8 @@ import {
   workAppGitHubProjectRepositoryAccess,
 } from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
+import { clearAppDefaultsByAgent, clearAppDefaultsByProject, deleteAppsByProject } from './apps';
+import { deleteSlackMcpToolAccessConfig } from './slack-work-app-mcp';
 import {
   clearDevConfigWorkspaceDefaultsByAgent,
   clearDevConfigWorkspaceDefaultsByProject,
@@ -30,6 +32,8 @@ export type CascadeDeleteResult = {
   apiKeysDeleted: number;
   slackChannelConfigsDeleted: number;
   slackWorkspaceDefaultsCleared: number;
+  appsDeleted: number;
+  appDefaultsCleared: number;
 };
 
 /**
@@ -88,9 +92,11 @@ export const cascadeDeleteByBranch =
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
       contextCacheDeleted: contextCacheResult.length,
-      apiKeysDeleted: 0, // API keys are branch-agnostic
-      slackChannelConfigsDeleted: 0, // Slack configs are branch-agnostic
+      apiKeysDeleted: 0,
+      slackChannelConfigsDeleted: 0,
       slackWorkspaceDefaultsCleared: 0,
+      appsDeleted: 0,
+      appDefaultsCleared: 0,
     };
   };
 
@@ -158,6 +164,12 @@ export const cascadeDeleteByProject =
       projectId: scopes.projectId,
     });
 
+    const appsDeleted = await deleteAppsByProject(db)(scopes.tenantId, scopes.projectId);
+    const appDefaultsCleared = await clearAppDefaultsByProject(db)(
+      scopes.tenantId,
+      scopes.projectId
+    );
+
     const slackChannelConfigsDeleted = await deleteWorkAppSlackChannelAgentConfigsByProject(db)(
       scopes.tenantId,
       scopes.projectId
@@ -177,6 +189,8 @@ export const cascadeDeleteByProject =
       apiKeysDeleted: apiKeysResult.length,
       slackChannelConfigsDeleted,
       slackWorkspaceDefaultsCleared,
+      appsDeleted,
+      appDefaultsCleared,
     };
   };
 
@@ -274,6 +288,8 @@ export const cascadeDeleteByAgent =
       .returning();
     apiKeysDeleted = apiKeysResult.length;
 
+    const appDefaultsCleared = await clearAppDefaultsByAgent(db)(scopes.tenantId, scopes.agentId);
+
     const slackChannelConfigsDeleted = await deleteWorkAppSlackChannelAgentConfigsByAgent(db)(
       scopes.tenantId,
       scopes.projectId,
@@ -295,6 +311,8 @@ export const cascadeDeleteByAgent =
       apiKeysDeleted,
       slackChannelConfigsDeleted,
       slackWorkspaceDefaultsCleared,
+      appsDeleted: 0,
+      appDefaultsCleared,
     };
   };
 
@@ -376,9 +394,11 @@ export const cascadeDeleteBySubAgent =
       conversationsDeleted,
       tasksDeleted: tasksResult.length,
       contextCacheDeleted,
-      apiKeysDeleted: 0, // API keys are agent-level, not subAgent-level
-      slackChannelConfigsDeleted: 0, // Slack configs are agent-level, not subAgent-level
+      apiKeysDeleted: 0,
+      slackChannelConfigsDeleted: 0,
       slackWorkspaceDefaultsCleared: 0,
+      appsDeleted: 0,
+      appDefaultsCleared: 0,
     };
   };
 
@@ -428,6 +448,7 @@ export const cascadeDeleteByContextConfig =
 export type ToolCascadeDeleteResult = {
   mcpToolRepositoryAccessDeleted: number;
   mcpToolAccessModeDeleted: boolean;
+  slackMcpToolAccessConfigDeleted: boolean;
 };
 
 /**
@@ -443,24 +464,48 @@ export type ToolCascadeDeleteResult = {
  */
 export const cascadeDeleteByTool =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { toolId: string }): Promise<ToolCascadeDeleteResult> => {
-    const { toolId } = params;
+  async (params: {
+    toolId: string;
+    tenantId: string;
+    projectId: string;
+  }): Promise<ToolCascadeDeleteResult> => {
+    const { toolId, tenantId, projectId } = params;
 
     // Delete MCP tool repository access entries
     const repositoryAccessResult = await db
       .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId))
+      .where(
+        and(
+          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, tenantId),
+          eq(workAppGitHubMcpToolRepositoryAccess.projectId, projectId),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId)
+        )
+      )
       .returning();
 
     // Delete MCP tool access mode entry
     const accessModeResult = await db
       .delete(workAppGitHubMcpToolAccessMode)
-      .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId))
+      .where(
+        and(
+          eq(workAppGitHubMcpToolAccessMode.tenantId, tenantId),
+          eq(workAppGitHubMcpToolAccessMode.projectId, projectId),
+          eq(workAppGitHubMcpToolAccessMode.toolId, toolId)
+        )
+      )
       .returning();
+
+    // Delete Slack MCP tool access config entry
+    const slackMcpDeleted = await deleteSlackMcpToolAccessConfig(db)({
+      tenantId,
+      projectId,
+      toolId,
+    });
 
     return {
       mcpToolRepositoryAccessDeleted: repositoryAccessResult.length,
       mcpToolAccessModeDeleted: accessModeResult.length > 0,
+      slackMcpToolAccessConfigDeleted: slackMcpDeleted,
     };
   };
 

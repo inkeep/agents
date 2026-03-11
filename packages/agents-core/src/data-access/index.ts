@@ -29,6 +29,7 @@ export * from './manage/triggers';
 
 // Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';
+export * from './runtime/apps';
 export * from './runtime/cascade-delete';
 export * from './runtime/contextCache';
 export * from './runtime/conversations';
@@ -39,6 +40,7 @@ export * from './runtime/messages';
 export * from './runtime/organizations';
 export * from './runtime/projects';
 export * from './runtime/scheduledTriggerInvocations';
+export * from './runtime/slack-work-app-mcp';
 export * from './runtime/tasks';
 export * from './runtime/triggerInvocations';
 export * from './runtime/userProfiles';

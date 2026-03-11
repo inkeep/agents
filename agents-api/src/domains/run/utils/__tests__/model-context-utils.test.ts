@@ -63,7 +63,7 @@ vi.mock('llm-info', () => ({
 }));
 
 // Mock the logger
-vi.mock('../../../logger', () => ({
+vi.mock('../../../../logger', () => ({
   getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),

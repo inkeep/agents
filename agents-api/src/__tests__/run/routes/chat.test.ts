@@ -70,7 +70,7 @@ vi.mock('../../data/db/dbClient.js', () => {
   };
 });
 
-vi.mock('../../../domains/run/utils/stream-helpers.js', () => ({
+vi.mock('../../../domains/run/stream/stream-helpers.js', () => ({
   createSSEStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn().mockResolvedValue(undefined),
     writeContent: vi.fn().mockResolvedValue(undefined),
@@ -84,7 +84,7 @@ vi.mock('../../../domains/run/utils/stream-helpers.js', () => ({
   }),
 }));
 
-vi.mock('../../../domains/run/utils/stream-helpers', () => ({
+vi.mock('../../../domains/run/stream/stream-helpers', () => ({
   createSSEStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn().mockResolvedValue(undefined),
     writeContent: vi.fn().mockResolvedValue(undefined),
@@ -277,6 +277,23 @@ describe('Chat Routes', () => {
           tenantId: 'test-tenant',
         })
       );
+    });
+
+    it('should not set userId on conversation when no endUserId in auth metadata (backward compat)', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Legacy API key request' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+
+      const { createOrGetConversation } = await import('@inkeep/agents-core');
+      const innerFn = vi.mocked(createOrGetConversation).mock.results[0].value;
+      const callArgs = vi.mocked(innerFn).mock.calls[0][0];
+      expect(callArgs.userId).toBeUndefined();
     });
 
     it('should validate required fields', async () => {

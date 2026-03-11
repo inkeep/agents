@@ -19,12 +19,13 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
+import { buildPersistedMessageContent } from '../services/blob-storage/image-upload-helpers';
+import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
+import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
 import { ImageContentItemSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
-import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -249,6 +250,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         agentId: agentId,
         activeSubAgentId: defaultSubAgentId,
         ref: executionContext.resolvedRef,
+        userId: executionContext.metadata?.endUserId,
       });
 
       const activeAgent = await getActiveAgentForConversation(runDbClient)({
@@ -339,15 +341,22 @@ app.openapi(chatCompletionsRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
+      const userMessageId = generateId();
+
+      const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
+        tenantId,
+        projectId,
+        conversationId,
+        messageId: userMessageId,
+      });
+
       await createMessage(runDbClient)({
-        id: generateId(),
+        id: userMessageId,
         tenantId,
         projectId,
         conversationId,
         role: 'user',
-        content: {
-          text: userMessage,
-        },
+        content: messageContent,
         visibility: 'user-facing',
         messageType: 'chat',
       });

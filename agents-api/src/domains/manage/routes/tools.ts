@@ -463,6 +463,7 @@ app.openapi(
         tenantId,
         projectId,
         toolId,
+        userId: c.get('userId'),
         mcpServerUrl: tool.config.mcp.server.url,
         baseUrl,
       });

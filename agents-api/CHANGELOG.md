@@ -1,5 +1,117 @@
 # @inkeep/agents-api
 
+## 0.58.9
+
+### Patch Changes
+
+- f150b28: Fix user-scoped credential references to upsert instead of failing on duplicate unique constraint
+- 6144fc9: Fix app credential auth failing on internal A2A self-calls by always using service tokens
+- Updated dependencies [f150b28]
+- Updated dependencies [49909bf]
+- Updated dependencies [4816f02]
+  - @inkeep/agents-core@0.58.9
+  - @inkeep/agents-work-apps@0.58.9
+  - @inkeep/agents-email@0.58.9
+  - @inkeep/agents-mcp@0.58.9
+
+## 0.58.8
+
+### Patch Changes
+
+- e89948d: Add app credentials with anonymous JWT sessions, domain validation, and PoW challenge support
+- e89948d: Add anonymous user session conversation history endpoint
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+  - @inkeep/agents-work-apps@0.58.8
+  - @inkeep/agents-email@0.58.8
+  - @inkeep/agents-mcp@0.58.8
+
+## 0.58.7
+
+### Patch Changes
+
+- b1b440a: daisy chain trigger
+  - @inkeep/agents-core@0.58.7
+  - @inkeep/agents-email@0.58.7
+  - @inkeep/agents-mcp@0.58.7
+  - @inkeep/agents-work-apps@0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- 16e5e8d: Fix mid-generation context compression: accurate context slicing across multiple compression cycles, improved distillation quality, and richer compression telemetry
+- Updated dependencies [a9c2857]
+- Updated dependencies [16e5e8d]
+  - @inkeep/agents-work-apps@0.58.6
+  - @inkeep/agents-core@0.58.6
+  - @inkeep/agents-email@0.58.6
+  - @inkeep/agents-mcp@0.58.6
+
+## 0.58.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.5
+- @inkeep/agents-email@0.58.5
+- @inkeep/agents-mcp@0.58.5
+- @inkeep/agents-work-apps@0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- f475d74: Fix GitHub MCP tool access to be project-scoped instead of globally scoped by toolId
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [87ac81f]
+- Updated dependencies [b6a126f]
+- Updated dependencies [f475d74]
+- Updated dependencies [2d6ec44]
+  - @inkeep/agents-core@0.58.4
+  - @inkeep/agents-work-apps@0.58.4
+  - @inkeep/agents-email@0.58.4
+  - @inkeep/agents-mcp@0.58.4
+
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+- 676d18b: Fix optional data component fields accepting null values in structured output validation
+- Updated dependencies [0714ac6]
+  - @inkeep/agents-work-apps@0.58.3
+  - @inkeep/agents-core@0.58.3
+  - @inkeep/agents-email@0.58.3
+  - @inkeep/agents-mcp@0.58.3
+
+## 0.58.2
+
+### Patch Changes
+
+- ee5b4c9: Add image persistence to conversation history
+- eb5b16f: timeout recorded in spans
+- 558e723: Refactor Agent.ts into focused domain modules (generation, streaming, tools, services) and reorganize run-domain utilities into artifacts, compression, session, and stream subdirectories
+- ee5b4c9: Image security for chat API: URL validation, byte sniffing, format allowlist
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+  - @inkeep/agents-work-apps@0.58.2
+  - @inkeep/agents-email@0.58.2
+  - @inkeep/agents-mcp@0.58.2
+
+## 0.58.1
+
+### Patch Changes
+
+- 9876f88: Add Sentry capability configuration to agents-api and modify create-agents template
+  - @inkeep/agents-core@0.58.1
+  - @inkeep/agents-email@0.58.1
+  - @inkeep/agents-mcp@0.58.1
+  - @inkeep/agents-work-apps@0.58.1
+
 ## 0.58.0
 
 ### Minor Changes

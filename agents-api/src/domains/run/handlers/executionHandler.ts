@@ -24,12 +24,12 @@ import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
-import { agentSessionManager } from '../services/AgentSession.js';
+import { agentSessionManager } from '../session/AgentSession.js';
+import type { StreamHelper } from '../stream/stream-helpers.js';
+import { BufferingStreamHelper } from '../stream/stream-helpers.js';
+import { registerStreamHelper, unregisterStreamHelper } from '../stream/stream-registry.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import { resolveModelConfig } from '../utils/model-resolver.js';
-import type { StreamHelper } from '../utils/stream-helpers.js';
-import { BufferingStreamHelper } from '../utils/stream-helpers.js';
-import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
 import { tracer } from '../utils/tracer.js';
 
 const logger = getLogger('ExecutionHandler');
@@ -86,8 +86,7 @@ export class ExecutionHandler {
       forwardedHeaders,
     } = params;
 
-    const { tenantId, projectId, project, agentId, apiKey, baseUrl, resolvedRef } =
-      executionContext;
+    const { tenantId, projectId, project, agentId, baseUrl, resolvedRef } = executionContext;
 
     registerStreamHelper(requestId, sseHelper);
 
@@ -264,18 +263,17 @@ export class ExecutionHandler {
 
         const agentBaseUrl = `${baseUrl}/run/agents`;
 
-        // For team delegation contexts, generate a fresh JWT for the target sub-agent.
-        // The inherited apiKey has aud=<parent agent>, but we need aud=<current sub-agent>.
-        // This ensures proper auth chain for each hop in agent-to-agent communication.
-        let authToken = apiKey;
-        if (executionContext.metadata?.teamDelegation) {
-          authToken = await generateServiceToken({
-            tenantId,
-            projectId,
-            originAgentId: agentId,
-            targetAgentId: currentAgentId,
-          });
-        }
+        // Always generate a service token for internal A2A self-calls.
+        // The original apiKey may be any auth type (app credential, API key, etc.)
+        // but internal calls need a service token that the runApiKeyAuth middleware
+        // can verify via verifyServiceToken(). Since we use getInProcessFetch(),
+        // signing and verification happen in the same process with the same secret.
+        const authToken = await generateServiceToken({
+          tenantId,
+          projectId,
+          originAgentId: agentId,
+          targetAgentId: currentAgentId,
+        });
 
         const initiatedBy = executionContext.metadata?.initiatedBy as
           | { type: string; id: string }

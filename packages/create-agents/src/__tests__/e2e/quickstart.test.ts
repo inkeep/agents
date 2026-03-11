@@ -118,7 +118,7 @@ describe('create-agents quickstart e2e', () => {
 
     console.log('Setting up project in database');
     // Pass bypass secret so setup-dev:cloud's internal push can authenticate
-    await runCommand({
+    const setupResult = await runCommand({
       command: 'pnpm',
       args: ['setup-dev:cloud'],
       cwd: projectDir,
@@ -131,6 +131,11 @@ describe('create-agents quickstart e2e', () => {
       },
       stream: true,
     });
+
+    expect(
+      setupResult.exitCode,
+      `setup-dev:cloud failed. exitCode: ${setupResult.exitCode}\nstdout: ${setupResult.stdout}\nstderr: ${setupResult.stderr}`
+    ).toBe(0);
 
     // Run auth init separately to create the "default" organization and admin user.
     // setup-dev:cloud may exit early if its internal migrations fail (e.g. when CI

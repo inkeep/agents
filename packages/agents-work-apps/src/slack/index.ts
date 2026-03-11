@@ -10,12 +10,14 @@
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi';
+import mcpRoutes from './mcp/index';
 import slackRouter from './routes/index';
 import type { WorkAppsVariables } from './types';
 
 export function createSlackRoutes() {
   const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
   app.route('/', slackRouter);
+  app.route('/mcp', mcpRoutes);
   return app;
 }
 
@@ -23,7 +25,9 @@ export const slackRoutes = createSlackRoutes();
 
 export type { DispatchOptions, SlackEventDispatchResult } from './dispatcher';
 export { dispatchSlackEvent } from './dispatcher';
+export { resolveWorkspaceToken } from './mcp/utils';
 export { getBotTokenForTeam, setBotTokenForTeam } from './routes/oauth';
+export { getSlackClient, validateBotChannelMembership } from './services/client';
 export { getChannelAgentConfig } from './services/events';
 export * from './services/nango';
 export { startSocketMode } from './socket-mode';

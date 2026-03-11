@@ -53,7 +53,7 @@ vi.mock('../../../domains/run/a2a/types.js', () => ({
 vi.mock('../../../domains/run/constants/execution-limits', () => ({
   AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS: 3,
 }));
-vi.mock('../../../domains/run/services/AgentSession.js', () => ({
+vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     createSession: vi.fn(),
     enableEmitOperations: vi.fn(),
@@ -70,8 +70,10 @@ vi.mock('../../../domains/run/utils/agent-operations.js', () => ({
 vi.mock('../../../domains/run/utils/model-resolver.js', () => ({
   resolveModelConfig: vi.fn().mockResolvedValue({}),
 }));
-vi.mock('../../../domains/run/utils/stream-helpers.js', () => ({ BufferingStreamHelper: vi.fn() }));
-vi.mock('../../../domains/run/utils/stream-registry.js', () => ({
+vi.mock('../../../domains/run/stream/stream-helpers.js', () => ({
+  BufferingStreamHelper: vi.fn(),
+}));
+vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   registerStreamHelper: vi.fn(),
   unregisterStreamHelper: vi.fn(),
 }));

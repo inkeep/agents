@@ -21,7 +21,7 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { createMCPStreamHelper } from '../utils/stream-helpers';
+import { createMCPStreamHelper } from '../stream/stream-helpers';
 
 const logger = getLogger('mcp');
 

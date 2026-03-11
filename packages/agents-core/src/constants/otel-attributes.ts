@@ -139,9 +139,36 @@ export const SPAN_KEYS = {
   CONTEXT_BREAKDOWN_THINKING_PREPARATION: 'context.breakdown.thinking_preparation_tokens',
   CONTEXT_BREAKDOWN_CONVERSATION_HISTORY: 'context.breakdown.conversation_history_tokens',
   CONTEXT_BREAKDOWN_TOTAL: 'context.breakdown.total_tokens',
+
+  // Compression telemetry
+  COMPRESSION_TYPE: 'compression.type',
+  COMPRESSION_SESSION_ID: 'compression.session_id',
+  COMPRESSION_MESSAGE_COUNT: 'compression.message_count',
+  COMPRESSION_BASE_CONTEXT_TOKENS: 'compression.base_context_tokens',
+  COMPRESSION_GENERATED_TOKENS: 'compression.generated_tokens',
+  COMPRESSION_TOTAL_CONTEXT_TOKENS: 'compression.total_context_tokens',
+  COMPRESSION_HARD_LIMIT: 'compression.hard_limit',
+  COMPRESSION_TRIGGER_AT: 'compression.trigger_at',
+  COMPRESSION_SAFETY_BUFFER: 'compression.safety_buffer',
+  COMPRESSION_OVERAGE: 'compression.overage',
+  COMPRESSION_SUCCESS: 'compression.success',
+  COMPRESSION_ERROR: 'compression.error',
+  COMPRESSION_RESULT_ARTIFACT_COUNT: 'compression.result.artifact_count',
+  COMPRESSION_RESULT_ARTIFACT_IDS: 'compression.result.artifact_ids',
+  COMPRESSION_RESULT_OUTPUT_TOKENS: 'compression.result.output_tokens',
+  COMPRESSION_RESULT_COMPRESSION_RATIO: 'compression.result.compression_ratio',
+  COMPRESSION_RESULT_HIGH_LEVEL: 'compression.result.high_level',
+  COMPRESSION_RESULT_USER_INTENT: 'compression.result.user_intent',
+  COMPRESSION_RESULT_DECISIONS_COUNT: 'compression.result.decisions_count',
+  COMPRESSION_RESULT_NEXT_STEPS_FOR_AGENT_COUNT: 'compression.result.next_steps_for_agent_count',
+  COMPRESSION_RESULT_OPEN_QUESTIONS_COUNT: 'compression.result.open_questions_count',
+  COMPRESSION_RESULT_RELATED_ARTIFACT_COUNT: 'compression.result.related_artifact_count',
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
   AGENT_STEPS_COMPLETED: 'agent.steps_completed',
   AGENT_MAX_STEPS: 'agent.max_steps',
+
+  // Generation timeout attributes
+  GENERATION_TIMEOUT_MS: 'generation.timeout_ms',
 
   // Stream lifetime attributes
   STREAM_CLEANUP_REASON: 'stream.cleanup.reason',

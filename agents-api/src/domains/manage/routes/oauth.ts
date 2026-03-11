@@ -15,13 +15,13 @@ import {
   type CredentialReferenceApiInsert,
   CredentialReferenceApiSelectSchema,
   CredentialStoreType,
-  createCredentialReference,
   generateId,
   getCredentialReferenceWithResources,
   getProjectMainResolvedRef,
   getToolById,
   OAuthCallbackQuerySchema,
   updateTool,
+  upsertCredentialReference,
   withRef,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
@@ -32,7 +32,9 @@ import type { ManageAppVariables } from '../../../types/app';
 import { oauthService, retrievePKCEVerifier } from '../../../utils/oauthService';
 
 /**
- * Find existing credential or create a new one (idempotent operation)
+ * Find existing credential or create/update one (idempotent operation).
+ * Uses upsert to handle reconnection for user-scoped credentials
+ * where the (toolId, userId) unique constraint may already be satisfied.
  */
 async function findOrCreateCredential(
   db: AgentsManageDatabaseClient,
@@ -40,26 +42,24 @@ async function findOrCreateCredential(
   projectId: string,
   credentialData: CredentialReferenceApiInsert
 ) {
-  try {
-    // Try to find existing credential first
-    const existingCredential = await getCredentialReferenceWithResources(db)({
-      scopes: { tenantId, projectId },
-      id: credentialData.id,
-    });
+  // Try to find existing credential by ID first
+  const existingCredential = await getCredentialReferenceWithResources(db)({
+    scopes: { tenantId, projectId },
+    id: credentialData.id,
+  });
 
-    if (existingCredential) {
-      const validatedCredential = CredentialReferenceApiSelectSchema.parse(existingCredential);
-      return validatedCredential;
-    }
-  } catch {
-    // Credential not found, continue with creation
+  if (existingCredential) {
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(existingCredential);
+    return validatedCredential;
   }
 
   try {
-    const credential = await createCredentialReference(db)({
-      ...credentialData,
-      tenantId,
-      projectId,
+    const credential = await upsertCredentialReference(db)({
+      data: {
+        ...credentialData,
+        tenantId,
+        projectId,
+      },
     });
 
     const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
@@ -244,6 +244,7 @@ app.openapi(
         toolId,
         tenantId,
         projectId,
+        userId,
         clientInformation,
         metadata,
         resourceUrl,
@@ -295,6 +296,8 @@ app.openapi(
           await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
           newCredentialData = {
             id: generateId(),
+            toolId,
+            userId,
             name: tool.name,
             type: CredentialStoreType.keychain,
             credentialStoreId: 'keychain-default',
