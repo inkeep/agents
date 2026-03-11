@@ -1,9 +1,9 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
   addValueToObject,
   convertJsonSchemaToZodSafe,
-  convertNullToUndefined,
   createFactoryDefinition,
   formatPropertyName,
   formatStringLiteral,
@@ -11,49 +11,36 @@ import {
   toCamelCase,
 } from '../utils';
 
-interface ArtifactComponentDefinitionData {
-  artifactComponentId: string;
-  name: string;
-  description?: string;
-  props: Record<string, unknown>;
-  schema?: Record<string, unknown>;
-  template?: string;
-  contentType?: string;
-  render?: {
-    component?: string;
-    mockData?: Record<string, unknown>;
-  };
-}
-
-const ArtifactComponentSchema = z.object({
-  artifactComponentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().optional(),
-  props: z.looseObject({}),
-  schema: z.looseObject({}).optional(),
-  template: z.string().optional(),
-  contentType: z.string().optional(),
-  render: z.preprocess(
-    convertNullToUndefined,
-    z
-      .looseObject({
-        component: z.string().optional(),
-        mockData: z.looseObject({}).optional(),
-      })
-      .optional()
-  ),
+const MySchema = FullProjectDefinitionSchema.shape.artifactComponents.unwrap().valueType.omit({
+  id: true,
 });
 
-export function generateArtifactComponentDefinition(
-  data: ArtifactComponentDefinitionData
-): SourceFile {
+const ArtifactComponentSchema = z.strictObject({
+  artifactComponentId: z.string().nonempty(),
+  ...MySchema.shape,
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  render: z.preprocess((v) => v ?? undefined, MySchema.shape.render),
+  // Invalid input
+  props: z.unknown(),
+});
+
+type ArtifactComponentInput = z.input<typeof ArtifactComponentSchema>;
+
+export function generateArtifactComponentDefinition({
+  tenantId,
+  id,
+  projectId,
+  createdAt,
+  updatedAt,
+  ...data
+}: ArtifactComponentInput & Record<string, unknown>): SourceFile {
   const result = ArtifactComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for artifact component:\n${z.prettifyError(result.error)}`);
   }
 
   const parsed = result.data;
-  const schema = parsed.props ?? parsed.schema;
+  const schema = parsed.props;
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'artifactComponent',
     variableName: toCamelCase(parsed.artifactComponentId),
@@ -66,13 +53,10 @@ export function generateArtifactComponentDefinition(
     });
   }
   if (schema) {
-    sourceFile.addImportDeclaration({
-      namedImports: ['z'],
-      moduleSpecifier: 'zod',
-    });
+    sourceFile.addImportDeclaration({ namedImports: ['z'], moduleSpecifier: 'zod' });
   }
 
-  const { artifactComponentId, schema: _, props: _2, ...rest } = parsed;
+  const { artifactComponentId, props: _, ...rest } = parsed;
 
   for (const [key, value] of Object.entries({
     id: artifactComponentId,

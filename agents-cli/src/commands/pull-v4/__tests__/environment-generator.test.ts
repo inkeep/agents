@@ -1,16 +1,10 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
-
 /**
  * Unit tests for environment settings generator
  */
 
 import {
-  generateEnvironmentIndexImports,
-  generateEnvironmentSettingsImports,
   generateEnvironmentIndexDefinition as originalGenerateEnvironmentIndexDefinition,
-  generateEnvironmentIndexFile as originalGenerateEnvironmentIndexFile,
   generateEnvironmentSettingsDefinition as originalGenerateEnvironmentSettingsDefinition,
-  generateEnvironmentSettingsFile as originalGenerateEnvironmentSettingsFile,
 } from '../generators/environment-generator';
 import { expectSnapshots } from '../utils';
 
@@ -24,18 +18,6 @@ function generateEnvironmentIndexDefinition(
   ...args: Parameters<typeof originalGenerateEnvironmentIndexDefinition>
 ): string {
   return originalGenerateEnvironmentIndexDefinition(...args).getFullText();
-}
-
-function generateEnvironmentSettingsFile(
-  ...args: Parameters<typeof originalGenerateEnvironmentSettingsFile>
-): string {
-  return originalGenerateEnvironmentSettingsFile(...args).getFullText();
-}
-
-function generateEnvironmentIndexFile(
-  ...args: Parameters<typeof originalGenerateEnvironmentIndexFile>
-): string {
-  return originalGenerateEnvironmentIndexFile(...args).getFullText();
 }
 
 describe('Environment Settings Generator', () => {
@@ -53,9 +35,8 @@ describe('Environment Settings Generator', () => {
       database_url: {
         id: 'database-url',
         name: 'Database URL',
-        type: 'env',
+        type: 'keychain',
         credentialStoreId: 'env-default',
-        description: 'Database connection string',
         retrievalParams: {
           key: 'DATABASE_URL',
           fallback: 'postgresql://localhost:5432/dev',
@@ -79,24 +60,6 @@ describe('Environment Settings Generator', () => {
     },
   };
 
-  describe('generateEnvironmentSettingsImports', () => {
-    it('should generate basic imports', () => {
-      const imports = generateEnvironmentSettingsImports(developmentData);
-
-      expect(imports).toHaveLength(2);
-      expect(imports[0]).toBe("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
-      expect(imports[1]).toBe("import { CredentialStoreType } from '@inkeep/agents-core';");
-    });
-
-    it('should not include CredentialStoreType when not needed', () => {
-      const emptyData = { credentials: {} };
-      const imports = generateEnvironmentSettingsImports(emptyData);
-
-      expect(imports).toHaveLength(1);
-      expect(imports[0]).toBe("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
-    });
-  });
-
   describe('generateEnvironmentSettingsDefinition', () => {
     it('should generate correct definition with credentials', async () => {
       const environmentName = 'development';
@@ -107,7 +70,7 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('stripe_api_key: {');
       expect(definition).toContain("id: 'stripe-api-key',");
       expect(definition).toContain("name: 'Stripe API Key',");
-      expect(definition).toContain('type: CredentialStoreType.memory,');
+      expect(definition).toContain("type: 'memory',");
       expect(definition).toContain("credentialStoreId: 'memory-default',");
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("key: 'STRIPE_API_KEY_DEV'");
@@ -121,9 +84,8 @@ describe('Environment Settings Generator', () => {
 
       expect(definition).toContain('stripe_api_key: {');
       expect(definition).toContain('database_url: {');
-      expect(definition).toContain('type: CredentialStoreType.memory,');
-      expect(definition).toContain('type: CredentialStoreType.env,');
-      expect(definition).toContain("description: 'Database connection string',");
+      expect(definition).toContain("type: 'memory',");
+      expect(definition).toContain("type: 'keychain',");
       expect(definition).toContain("fallback: 'postgresql://localhost:5432/dev'");
       await expectSnapshots(definition);
     });
@@ -133,7 +95,7 @@ describe('Environment Settings Generator', () => {
       const definition = generateEnvironmentSettingsDefinition(environmentName, productionData);
 
       expect(definition).toContain('export const production = registerEnvironmentSettings({');
-      expect(definition).toContain('type: CredentialStoreType.keychain,');
+      expect(definition).toContain("type: 'keychain',");
       expect(definition).toContain("credentialStoreId: 'keychain-main',");
       expect(definition).toContain("service: 'stripe-api',");
       expect(definition).toContain("account: 'production'");
@@ -169,6 +131,7 @@ describe('Environment Settings Generator', () => {
           api_key: {
             id: 'api-key',
             type: 'memory',
+            name: '',
             credentialStoreId: 'memory-default',
             retrievalParams: {
               key: 'API_KEY',
@@ -181,9 +144,7 @@ describe('Environment Settings Generator', () => {
 
       expect(definition).toContain('api_key: {');
       expect(definition).toContain("id: 'api-key',");
-      expect(definition).toContain('type: CredentialStoreType.memory,');
-      expect(definition).not.toContain('name:');
-      expect(definition).not.toContain('description:');
+      expect(definition).toContain("type: 'memory',");
       await expectSnapshots(definition);
     });
 
@@ -194,6 +155,7 @@ describe('Environment Settings Generator', () => {
           complex_cred: {
             id: 'complex-cred',
             type: 'keychain',
+            name: '',
             credentialStoreId: 'keychain-main',
             retrievalParams: {
               service: 'oauth-service',
@@ -214,25 +176,6 @@ describe('Environment Settings Generator', () => {
       expect(definition).toContain('retries: 3,');
       expect(definition).toContain('enabled: true');
       await expectSnapshots(definition);
-    });
-  });
-
-  describe('generateEnvironmentIndexImports', () => {
-    it('should generate imports for multiple environments', () => {
-      const imports = generateEnvironmentIndexImports(['development', 'production']);
-
-      expect(imports).toHaveLength(3);
-      expect(imports[0]).toBe("import { createEnvironmentSettings } from '@inkeep/agents-sdk';");
-      expect(imports[1]).toBe("import { development } from './development.env';");
-      expect(imports[2]).toBe("import { production } from './production.env';");
-    });
-
-    it('should handle single environment', () => {
-      const imports = generateEnvironmentIndexImports(['development']);
-
-      expect(imports).toHaveLength(2);
-      expect(imports[0]).toBe("import { createEnvironmentSettings } from '@inkeep/agents-sdk';");
-      expect(imports[1]).toBe("import { development } from './development.env';");
     });
   });
 
@@ -270,10 +213,9 @@ describe('Environment Settings Generator', () => {
   describe('generateEnvironmentSettingsFile', () => {
     it('should generate complete environment settings file', async () => {
       const environmentName = 'development';
-      const file = generateEnvironmentSettingsFile(environmentName, developmentData);
+      const file = generateEnvironmentSettingsDefinition(environmentName, developmentData);
 
       expect(file).toContain("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
-      expect(file).toContain("import { CredentialStoreType } from '@inkeep/agents-core';");
       expect(file).toContain('export const development = registerEnvironmentSettings({');
       expect(file).toContain('credentials: {');
 
@@ -287,7 +229,7 @@ describe('Environment Settings Generator', () => {
   describe('generateEnvironmentIndexFile', () => {
     it('should generate complete environment index file', async () => {
       const environments = ['development', 'production'];
-      const file = generateEnvironmentIndexFile(environments);
+      const file = generateEnvironmentIndexDefinition(environments);
 
       expect(file).toContain("import { createEnvironmentSettings } from '@inkeep/agents-sdk';");
       expect(file).toContain("import { development } from './development.env';");
@@ -340,10 +282,9 @@ describe('Environment Settings Generator', () => {
         credentials: {
           test_key: {
             id: 'test-key',
-            name: null,
+            name: '',
             type: 'memory',
             credentialStoreId: 'memory-default',
-            description: undefined,
             retrievalParams: {
               key: 'TEST_KEY',
               fallback: null,
@@ -355,11 +296,8 @@ describe('Environment Settings Generator', () => {
       const definition = generateEnvironmentSettingsDefinition(environmentName, dataWithNulls);
 
       expect(definition).toContain("id: 'test-key',");
-      expect(definition).toContain('type: CredentialStoreType.memory,');
+      expect(definition).toContain("type: 'memory',");
       expect(definition).toContain("key: 'TEST_KEY'");
-      expect(definition).not.toContain('name:');
-      expect(definition).not.toContain('description:');
-      expect(definition).not.toContain('fallback:');
       await expectSnapshots(definition);
     });
 
@@ -369,7 +307,8 @@ describe('Environment Settings Generator', () => {
         credentials: {
           'api-key_v2': {
             id: 'api-key-v2',
-            type: 'env',
+            type: 'memory',
+            name: '',
             credentialStoreId: 'env-default',
             retrievalParams: {
               key: 'API_KEY_V2',
@@ -387,7 +326,7 @@ describe('Environment Settings Generator', () => {
 
     it('should handle empty environments array for index', async () => {
       const environments: string[] = [];
-      const file = generateEnvironmentIndexFile(environments);
+      const file = generateEnvironmentIndexDefinition(environments);
 
       expect(file).toContain("import { createEnvironmentSettings } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const envSettings = createEnvironmentSettings({');

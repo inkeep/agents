@@ -439,8 +439,6 @@ export class Agent implements AgentInterface {
       stopWhen: this.stopWhen,
       statusUpdates: processedStatusUpdates,
       prompt: this.prompt,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
   }
 
