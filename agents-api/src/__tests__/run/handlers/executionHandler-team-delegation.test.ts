@@ -163,8 +163,8 @@ describe('ExecutionHandler - Team Delegation JWT Regeneration', () => {
     baseUrl: 'http://localhost:3000',
     resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
     metadata: teamDelegation
-      ? { teamDelegation: true, originAgentId: 'remote-origin-agent' }
-      : undefined,
+      ? ({ teamDelegation: true, originAgentId: 'remote-origin-agent' } as Record<string, unknown>)
+      : (undefined as Record<string, unknown> | undefined),
     project: {
       id: 'test-project',
       tenantId: 'test-tenant',
@@ -317,5 +317,79 @@ describe('ExecutionHandler - Team Delegation JWT Regeneration', () => {
         }),
       })
     );
+  });
+
+  it('should pass initiatedBy to generateServiceToken when present in metadata', async () => {
+    const executionContext = createMockExecutionContext(true);
+    executionContext.metadata = {
+      ...executionContext.metadata,
+      initiatedBy: { type: 'user', id: 'user_abc123' },
+    };
+    const mockStreamHelper = createMockStreamHelper();
+
+    await executionHandler.execute({
+      executionContext: executionContext as any,
+      conversationId: 'conv-123',
+      userMessage: 'Test message',
+      initialAgentId: 'sub-agent-1',
+      requestId: 'req-123',
+      sseHelper: mockStreamHelper as any,
+    });
+
+    expect(generateServiceTokenMock).toHaveBeenCalledWith({
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      originAgentId: 'parent-agent',
+      targetAgentId: 'sub-agent-1',
+      initiatedBy: { type: 'user', id: 'user_abc123' },
+    });
+  });
+
+  it('should pass initiatedBy with api_key type to generateServiceToken', async () => {
+    const executionContext = createMockExecutionContext(false);
+    executionContext.metadata = {
+      initiatedBy: { type: 'api_key', id: 'key_xyz789' },
+    };
+    const mockStreamHelper = createMockStreamHelper();
+
+    await executionHandler.execute({
+      executionContext: executionContext as any,
+      conversationId: 'conv-123',
+      userMessage: 'Test message',
+      initialAgentId: 'sub-agent-1',
+      requestId: 'req-123',
+      sseHelper: mockStreamHelper as any,
+    });
+
+    expect(generateServiceTokenMock).toHaveBeenCalledWith({
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      originAgentId: 'parent-agent',
+      targetAgentId: 'sub-agent-1',
+      initiatedBy: { type: 'api_key', id: 'key_xyz789' },
+    });
+  });
+
+  it('should call generateServiceToken without initiatedBy when metadata is undefined', async () => {
+    const executionContext = createMockExecutionContext(false);
+    executionContext.metadata = undefined;
+    const mockStreamHelper = createMockStreamHelper();
+
+    await executionHandler.execute({
+      executionContext: executionContext as any,
+      conversationId: 'conv-123',
+      userMessage: 'Test message',
+      initialAgentId: 'sub-agent-1',
+      requestId: 'req-123',
+      sseHelper: mockStreamHelper as any,
+    });
+
+    expect(generateServiceTokenMock).toHaveBeenCalledWith({
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      originAgentId: 'parent-agent',
+      targetAgentId: 'sub-agent-1',
+      initiatedBy: undefined,
+    });
   });
 });
