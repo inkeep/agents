@@ -296,7 +296,79 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       config.agentsApiKey
     );
 
-    const remoteProject = await apiClient.getFullProject(projectId);
+    let currentMainHash: string | undefined;
+    try {
+      const mainBranch = await apiClient.getBranch(projectId, 'main');
+      currentMainHash = mainBranch.hash;
+    } catch {
+      // Non-fatal: if we can't get the hash, fall through to direct pull
+    }
+
+    const hasDiverged = lastPulledHash && currentMainHash && lastPulledHash !== currentMainHash;
+
+    if (options.debug && currentMainHash) {
+      console.log(styleText('gray', `   Current main hash: ${currentMainHash}`));
+      console.log(
+        styleText(
+          'gray',
+          hasDiverged ? '   Divergence detected — using merge flow' : '   No divergence'
+        )
+      );
+    }
+
+    let remoteProject: any;
+
+    if (hasDiverged && localProjectForId) {
+      s.message('Divergence detected — previewing merge...');
+
+      const localProjectDefinition = await localProjectForId.getFullDefinition();
+
+      const preview = await apiClient.mergePreview(projectId, {
+        sourceBranch: 'main',
+        targetBranch: 'main',
+        baseCommit: lastPulledHash,
+        localProjectDefinition,
+      });
+
+      if (preview.hasConflicts) {
+        s.stop('Conflicts detected');
+        // Delegate to interactive conflict resolution (US-010)
+        // For now, import the resolver dynamically
+        const { resolveConflictsInteractive } = await import('../merge-conflicts');
+        const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
+
+        s.start('Executing merge with resolutions...');
+        await apiClient.mergeExecute(projectId, {
+          sourceBranch: 'main',
+          targetBranch: 'main',
+          sourceHash: preview.sourceHash,
+          targetHash: preview.targetHash,
+          resolutions,
+          baseCommit: lastPulledHash,
+          localProjectDefinition,
+          message: 'CLI pull: merge with conflict resolutions',
+        });
+        s.stop('Merge completed');
+      } else {
+        s.stop('Clean merge — no conflicts');
+
+        await apiClient.mergeExecute(projectId, {
+          sourceBranch: 'main',
+          targetBranch: 'main',
+          sourceHash: preview.sourceHash,
+          targetHash: preview.targetHash,
+          baseCommit: lastPulledHash,
+          localProjectDefinition,
+          message: 'CLI pull: clean merge',
+        });
+      }
+
+      // After merge, fetch the updated project state
+      s.start('Fetching merged project state...');
+      remoteProject = await apiClient.getFullProject(projectId);
+    } else {
+      remoteProject = await apiClient.getFullProject(projectId);
+    }
 
     if (options.debug && remoteProject.functions) {
       console.log(
@@ -348,23 +420,18 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     }
 
     // Filter out project-level tools from individual agents
-    // The API includes project-level tools in each agent's tools field, but our generated
-    // code structure keeps tools separate and imports them via canUse relationships
     if (remoteProject.agents && remoteProject.tools) {
       const projectToolIds = Object.keys(remoteProject.tools);
 
       for (const agentData of Object.values(remoteProject.agents) as any[]) {
         if (agentData.tools) {
-          // Filter out any tools that are defined at project level
           const agentSpecificTools = Object.fromEntries(
             Object.entries(agentData.tools).filter(([toolId]) => !projectToolIds.includes(toolId))
           );
 
-          // Only keep tools field if there are agent-specific tools remaining
           if (Object.keys(agentSpecificTools).length > 0) {
             agentData.tools = agentSpecificTools;
           } else {
-            // Remove the tools field entirely if all tools were project-level
             delete agentData.tools;
           }
         }

@@ -225,6 +225,103 @@ export class ManagementApiClient extends BaseApiClient {
     return responseData.data;
   }
 
+  async mergePreview(
+    projectId: string,
+    request: {
+      sourceBranch: string;
+      targetBranch: string;
+      baseCommit?: string;
+      localProjectDefinition?: unknown;
+    }
+  ): Promise<{
+    hasConflicts: boolean;
+    sourceHash: string;
+    targetHash: string;
+    canFastForward: boolean;
+    diffSummary: Array<{
+      table: string;
+      diffType: string;
+      dataChange: boolean;
+      schemaChange: boolean;
+    }>;
+    conflicts: Array<{
+      table: string;
+      primaryKey: Record<string, string>;
+      ourDiffType: string;
+      theirDiffType: string;
+      base: Record<string, unknown> | null;
+      ours: Record<string, unknown> | null;
+      theirs: Record<string, unknown> | null;
+    }>;
+  }> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/merge/preview`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Merge preview failed (${response.status}): ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+
+    const responseData = await response.json();
+    return responseData.data;
+  }
+
+  async mergeExecute(
+    projectId: string,
+    request: {
+      sourceBranch: string;
+      targetBranch: string;
+      sourceHash: string;
+      targetHash: string;
+      message?: string;
+      author?: { name: string; email: string };
+      resolutions?: Array<{
+        table: string;
+        primaryKey: Record<string, string>;
+        rowDefaultPick: 'ours' | 'theirs';
+        columns?: Record<string, 'ours' | 'theirs'>;
+      }>;
+      baseCommit?: string;
+      localProjectDefinition?: unknown;
+    }
+  ): Promise<{
+    status: 'success';
+    mergeCommitHash: string;
+    sourceBranch: string;
+    targetBranch: string;
+  }> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/merge`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Merge execute failed (${response.status}): ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+
+    const responseData = await response.json();
+    return responseData.data;
+  }
+
   /**
    * List all projects for the current tenant
    * @param page - Page number (1-based)
