@@ -245,7 +245,7 @@ export interface AgentRunContext {
   durableWorkflowRunId?: string;
   approvedToolCalls?: Record<
     string,
-    { approved: boolean; reason?: string; originalToolCallId?: string }
+    Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
   >;
   pendingDurableApproval?: { toolCallId: string; toolName: string; args: unknown };
 }
