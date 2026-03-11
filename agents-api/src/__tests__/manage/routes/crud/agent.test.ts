@@ -464,6 +464,13 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
       expect(updated.data.models).toEqual(models);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.models).toEqual(models);
     });
 
     it('should update statusUpdates field individually', async () => {
@@ -479,6 +486,13 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
       expect(updated.data.statusUpdates).toEqual(statusUpdates);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.statusUpdates).toEqual(statusUpdates);
     });
 
     it('should update prompt field individually', async () => {
@@ -493,6 +507,13 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
       expect(updated.data.prompt).toBe('Updated prompt');
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.prompt).toBe('Updated prompt');
     });
 
     it('should update stopWhen field individually', async () => {
@@ -508,6 +529,13 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
       expect(updated.data.stopWhen).toEqual(stopWhen);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.stopWhen).toEqual(stopWhen);
     });
   });
 

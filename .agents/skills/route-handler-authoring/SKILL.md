@@ -1,6 +1,6 @@
 ---
 name: route-handler-authoring
-description: "Conventions for writing Hono route handlers that forward validated bodies to DAL functions, and CRUD test requirements for round-trip field persistence. Triggers on: creating new routes, modifying handlers, adding CRUD tests, route handler patterns, field-picking, spread pattern, DAL forwarding."
+description: "Conventions for writing Hono route handlers that forward validated bodies to DAL functions, and CRUD test requirements for round-trip field persistence. Triggers on: creating new routes, modifying handlers, adding CRUD tests, route handler patterns, field-picking, spread pattern, DAL forwarding, check:route-handler-patterns, CI check failure."
 ---
 
 # Route Handler Authoring Guide
@@ -82,7 +82,7 @@ If a handler legitimately needs explicit field-picking (rare), add the comment:
 // allow-field-picking
 ```
 
-on or before the line where the body variable is assigned. Use this sparingly — most handlers should use the spread pattern.
+within the object literal block that requires the exception. Use this sparingly — most handlers should use the spread pattern.
 
 ### Running Locally
 

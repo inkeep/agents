@@ -581,6 +581,35 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       expect(fetched.data.stopWhen).toEqual(stopWhen);
     });
 
+    it('should update conversationHistoryConfig field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('subagent-update-convhistory');
+      await createTestProject(manageDbClient, tenantId, 'default');
+      const agentId = await createTestAgent(tenantId);
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
+
+      const conversationHistoryConfig = {
+        mode: 'scoped',
+        limit: 50,
+        maxOutputTokens: 4000,
+        includeInternal: false,
+        messageTypes: ['chat', 'status'],
+      };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
+        { method: 'PUT', body: JSON.stringify({ conversationHistoryConfig }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.conversationHistoryConfig).toEqual(conversationHistoryConfig);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.conversationHistoryConfig).toEqual(conversationHistoryConfig);
+    });
+
     it('should return 404 when updating non-existent agent', async () => {
       const tenantId = await createTestTenantWithOrg('agents-update-not-found');
       await createTestProject(manageDbClient, tenantId, 'default');

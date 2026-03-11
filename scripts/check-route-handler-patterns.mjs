@@ -13,6 +13,12 @@
  *
  * Handlers can opt out with a `// allow-field-picking` comment on the line
  * containing the DAL call or the field access.
+ *
+ * Known limitations:
+ * - Does not detect destructuring patterns (`const { name } = c.req.valid('json')`)
+ * - Depth-0 brace tracking means a spread in one call can mask field-picking
+ *   in another within the same handler scope
+ * - Brace tracking doesn't skip string/template literals or comments
  */
 
 import fs from 'fs';

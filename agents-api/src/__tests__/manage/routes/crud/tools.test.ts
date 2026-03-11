@@ -218,6 +218,13 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
       expect(updated.data.imageUrl).toBe('https://example.com/new-icon.png');
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.imageUrl).toBe('https://example.com/new-icon.png');
     });
 
     it('should update credentialScope field individually', async () => {
@@ -232,6 +239,13 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
       expect(updated.data.credentialScope).toBe('user');
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.credentialScope).toBe('user');
     });
 
     it('should update isWorkApp field individually', async () => {
@@ -246,6 +260,13 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
       expect(updated.data.isWorkApp).toBe(true);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.isWorkApp).toBe(true);
     });
   });
 
