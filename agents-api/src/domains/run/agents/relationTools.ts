@@ -360,6 +360,7 @@ export function createDelegateToAgentTool({
           projectId,
           originAgentId: agentId,
           targetAgentId: delegateConfig.config.id,
+          initiatedBy: executionContext.metadata?.initiatedBy,
         })}`;
       } else {
         // Always generate a service token for internal A2A self-calls.
@@ -372,6 +373,7 @@ export function createDelegateToAgentTool({
           projectId,
           originAgentId: agentId,
           targetAgentId: delegateConfig.config.id,
+          initiatedBy: executionContext.metadata?.initiatedBy,
         });
 
         resolvedHeaders = {

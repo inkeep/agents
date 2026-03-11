@@ -435,6 +435,7 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
       metadata: {
         teamDelegation: true,
         originAgentId: payload.sub,
+        ...(payload.initiatedBy ? { initiatedBy: payload.initiatedBy } : {}),
       },
     },
   };
