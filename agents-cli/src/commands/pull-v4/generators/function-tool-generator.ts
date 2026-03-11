@@ -14,6 +14,7 @@ const MySchema2 = FullProjectDefinitionSchema.shape.functionTools.unwrap().value
 const FunctionToolSchema = z.strictObject({
   ...MySchema.shape,
   ...MySchema2.shape,
+  name: z.preprocess((v) => v ?? '', MySchema2.shape.name),
   // Even empty description should exist, otherwise agent-sdk show type error
   // dependencies: z.preprocess(
   //   (v) => (v && Object.keys(v).length && v) || undefined,
