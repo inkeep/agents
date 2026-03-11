@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidManageTable, managePkMap } from '../pk-map';
+import { isValidManageTable, managePkMap } from '../../dolt/pk-map';
 
 describe('managePkMap', () => {
   it('contains all expected manage schema tables', () => {
@@ -8,15 +8,15 @@ describe('managePkMap', () => {
   });
 
   it('has correct composite PK for agent table (project-scoped)', () => {
-    expect(managePkMap['agent']).toEqual(['tenant_id', 'project_id', 'id']);
+    expect(managePkMap.agent).toEqual(['tenant_id', 'project_id', 'id']);
   });
 
   it('has correct PK for projects table (tenant-scoped)', () => {
-    expect(managePkMap['projects']).toEqual(['tenant_id', 'id']);
+    expect(managePkMap.projects).toEqual(['tenant_id', 'id']);
   });
 
   it('has correct composite PK for junction table (sub_agent_tool_relations)', () => {
-    expect(managePkMap['sub_agent_tool_relations']).toEqual([
+    expect(managePkMap.sub_agent_tool_relations).toEqual([
       'tenant_id',
       'project_id',
       'agent_id',
@@ -25,7 +25,7 @@ describe('managePkMap', () => {
   });
 
   it('has correct composite PK for triggers (agent-scoped)', () => {
-    expect(managePkMap['triggers']).toEqual(['tenant_id', 'project_id', 'agent_id', 'id']);
+    expect(managePkMap.triggers).toEqual(['tenant_id', 'project_id', 'agent_id', 'id']);
   });
 });
 

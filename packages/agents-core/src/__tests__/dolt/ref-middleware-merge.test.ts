@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMergeRoute } from '../ref-middleware';
+import { isMergeRoute } from '../../dolt/ref-middleware';
 
 describe('isMergeRoute', () => {
   it('matches merge preview path', () => {

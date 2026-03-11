@@ -10,4 +10,3 @@ export * from './ref-middleware';
 export * from './ref-scope';
 export * from './resolve-conflicts';
 export * from './schema-sync';
-export * from './temp-branch';
