@@ -600,6 +600,42 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
       expect(response.status).toBe(400);
     });
+
+    it('should return 404 with safe message for non-existent project (GET)', async () => {
+      const tenantId = await createTrackedTenant();
+      const nonExistentId = `project-${generateId()}`;
+
+      const response = await makeRequest(
+        `/manage/tenants/${tenantId}/project-full/${nonExistentId}`,
+        {
+          method: 'GET',
+          expectError: true,
+        }
+      );
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+      expect(body.detail).toContain('not found');
+      expect(body.detail).not.toContain('ECONNREFUSED');
+    });
+
+    it('should return 404 with safe message for non-existent project (DELETE)', async () => {
+      const tenantId = await createTrackedTenant();
+      const nonExistentId = `project-${generateId()}`;
+
+      const response = await makeRequest(
+        `/manage/tenants/${tenantId}/project-full/${nonExistentId}`,
+        {
+          method: 'DELETE',
+          expectError: true,
+        }
+      );
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+      expect(body.detail).toContain('not found');
+      expect(body.detail).not.toContain('ECONNREFUSED');
+    });
   });
 
   describe('PUT /project-full with scheduled triggers', () => {

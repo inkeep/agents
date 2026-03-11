@@ -17,6 +17,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
+import { HTTPException } from 'hono/http-exception';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -150,6 +151,9 @@ app.openapi(
 
       return c.json({ data: agent });
     } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes('not found')) {
         throw createApiError({
           code: 'not_found',
@@ -159,7 +163,7 @@ app.openapi(
 
       throw createApiError({
         code: 'internal_server_error',
-        message: error instanceof Error ? error.message : 'Failed to retrieve agent',
+        message: 'Failed to retrieve agent',
       });
     }
   }
@@ -296,6 +300,9 @@ app.openapi(
 
       return c.json({ data: updatedAgent }, isCreate ? 201 : 200);
     } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
       if (error instanceof z.ZodError) {
         throw createApiError({
           code: 'bad_request',
@@ -312,7 +319,7 @@ app.openapi(
 
       throw createApiError({
         code: 'internal_server_error',
-        message: error instanceof Error ? error.message : 'Failed to update agent',
+        message: 'Failed to update agent',
       });
     }
   }
@@ -361,6 +368,9 @@ app.openapi(
 
       return c.body(null, 204);
     } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes('not found')) {
         throw createApiError({
           code: 'not_found',
@@ -370,7 +380,7 @@ app.openapi(
 
       throw createApiError({
         code: 'internal_server_error',
-        message: error instanceof Error ? error.message : 'Failed to delete agent',
+        message: 'Failed to delete agent',
       });
     }
   }
