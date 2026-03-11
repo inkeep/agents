@@ -139,18 +139,6 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
     );
   }
 
-  // Propagate initiatedBy from x-inkeep-run-as-user-id header when present.
-  // During team delegation the service token doesn't carry the original user identity,
-  // but the delegating agent forwards it via this header so user-scoped credentials
-  // (e.g. OAuth tokens) can be resolved by the receiving agent.
-  const metadata =
-    reqData.runAsUserId && !authResult.metadata?.initiatedBy
-      ? {
-          ...authResult.metadata,
-          initiatedBy: { type: 'user' as const, id: reqData.runAsUserId },
-        }
-      : authResult.metadata;
-
   return createBaseExecutionContext({
     apiKey: authResult.apiKey,
     tenantId: authResult.tenantId,
@@ -160,7 +148,7 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
     baseUrl: reqData.baseUrl,
     subAgentId: reqData.subAgentId,
     ref: reqData.ref,
-    metadata,
+    metadata: authResult.metadata,
   });
 }
 
@@ -447,6 +435,7 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
       metadata: {
         teamDelegation: true,
         originAgentId: payload.sub,
+        ...(payload.initiatedBy ? { initiatedBy: payload.initiatedBy } : {}),
       },
     },
   };
