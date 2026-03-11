@@ -102,8 +102,8 @@ pnpm add @inkeep/agents-ui
 
       const modalProps: InkeepModalChatProps = {
         aiChatSettings: {
-        baseUrl: 'http://localhost:3003',
-        appId: 'YOUR_APP_ID',
+          baseUrl: "http://localhost:3003",
+          appId: process.env.NEXT_PUBLIC_INKEEP_APP_ID, // Your app ID
         },
         openSettings: {
           isOpen: isModalOpen,
