@@ -18,7 +18,7 @@ This is a consolidated inventory of internal “surface areas”: subsystems, in
 | Category | Count |
 |---|---|
 | Build & Package Graph | 5 |
-| Developer Workflow & Quality Gates | 6 |
+| Developer Workflow & Quality Gates | 7 |
 | CI/CD Pipelines | 14 |
 | Test Infrastructure | 4 |
 | Environment & Configuration | 5 |
@@ -32,7 +32,7 @@ This is a consolidated inventory of internal “surface areas”: subsystems, in
 | Tool Execution Sandboxes | 4 |
 | AI Development Tooling | 7 |
 | Package Publishing & Versioning | 3 |
-| **Total** | **94** |
+| **Total** | **95** |
 
 ## Surface Catalog
 
@@ -57,6 +57,7 @@ Developer/operator goal: enforce consistent style and catch regressions early du
 | **lint-staged checks** | Staged-file pipeline that runs Biome fixes, targeted tests, and AI artifact validation for fast feedback. | Biome lint/format configs, AI artifact validation script, Package-level Vitest configs & setup | `package.json` (lint-staged), `scripts/validate-ai-artifacts.ts` |
 | **License sync automation** | Keeps `LICENSE` and supplemental terms consistent across packages and fails CI when drift is detected. | Root monorepo scripts, Turborepo task graph | `scripts/sync-licenses.mjs`, `turbo.json` |
 | **Knip dependency/exports analysis** | Static analysis to detect unused dependencies/exports/files as part of the main check suite. | pnpm workspace & dependency catalog, TypeScript project configs, Root monorepo scripts | `agents-api/knip.config.ts`, `agents-manage-ui/knip.config.ts`, `agents-docs/knip.config.ts`, `agents-cookbook/knip.config.ts`, `packages/agents-sdk/knip.config.ts` |
+| **Route handler pattern enforcement** | Checks that route handlers use the spread pattern when forwarding validated request bodies to DAL functions, rather than explicit field-picking. | Root monorepo scripts, Turborepo task graph | `scripts/check-route-handler-patterns.mjs` |
 | **Contributor guide (`CONTRIBUTING.md`)** | Human contributor guide that defers canonical code/AI rules to `AGENTS.md` and links to docs. | Repo agent instructions (`AGENTS.md`) | `CONTRIBUTING.md` |
 
 ### CI/CD Pipelines

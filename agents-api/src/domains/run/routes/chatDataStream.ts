@@ -18,6 +18,7 @@ import {
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
+import { HTTPException } from 'hono/http-exception';
 import { stream } from 'hono/streaming';
 import { getRun, start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
@@ -644,6 +645,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
       );
     });
   } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
     logger.error(
       {
         error,
