@@ -391,6 +391,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
           VERCEL_MANAGE_UI_PROJECT_ID: ${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PR_BRANCH: ${{ needs.compute-context.outputs.pr_branch }}
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
@@ -407,7 +408,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          for required in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_API_PROJECT_ID VERCEL_MANAGE_UI_PROJECT_ID; do
+          for required in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_API_PROJECT_ID VERCEL_MANAGE_UI_PROJECT_ID ANTHROPIC_API_KEY; do
             if [ -z "${!required:-}" ]; then
               echo "Missing required secret: ${required}"
               exit 1
@@ -523,6 +524,7 @@ jobs:
           # agents-api project
           upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_API_URL" "${API_URL}"
           upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_MANAGE_UI_URL" "${UI_URL}"
+          upsert_env "${VERCEL_API_PROJECT_ID}" "ANTHROPIC_API_KEY" "${ANTHROPIC_API_KEY}"
 
           # Tier 1 outputs from Railway provisioning
           if [ -n "${MANAGE_DB_URL}" ]; then
