@@ -16,6 +16,10 @@ name: Preview Environments
 # - RAILWAY_MANAGE_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_MANAGE_DATABASE_URL>
 # - RAILWAY_RUN_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_RUN_DATABASE_URL>
 # - RAILWAY_SPICEDB_ENDPOINT_KEY=<runtime var key, default: SPICEDB_ENDPOINT>
+# - Optional explicit runtime templates (used when PR env is missing vars):
+#   - RAILWAY_MANAGE_DB_URL_TEMPLATE (example: ${{doltgres.DATABASE_URL}})
+#   - RAILWAY_RUN_DB_URL_TEMPLATE (example: ${{postgres.DATABASE_URL}})
+#   - RAILWAY_SPICEDB_ENDPOINT_TEMPLATE (example: ${{spicedb.SERVICE_PRIVATE_URL}})
 
 on:
   pull_request:
@@ -185,6 +189,9 @@ jobs:
           RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
           RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
           RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
+          RAILWAY_MANAGE_DB_URL_TEMPLATE: ${{ vars.RAILWAY_MANAGE_DB_URL_TEMPLATE || '' }}
+          RAILWAY_RUN_DB_URL_TEMPLATE: ${{ vars.RAILWAY_RUN_DB_URL_TEMPLATE || '' }}
+          RAILWAY_SPICEDB_ENDPOINT_TEMPLATE: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_TEMPLATE || '' }}
         run: |
           set -euo pipefail
           PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
@@ -246,33 +253,106 @@ jobs:
             echo "Railway environment ${RAILWAY_ENV_NAME} already exists"
           fi
 
-          SERVICE_ENV_DUMP="$(
+          TEMPLATE_SERVICE_ENV_JSON="$(
+            railway variable list \
+              --service "${RAILWAY_OUTPUT_SERVICE}" \
+              --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
+              --json
+          )"
+
+          SERVICE_ENV_JSON="$(
             railway variable list \
               --service "${RAILWAY_OUTPUT_SERVICE}" \
               --environment "${RAILWAY_ENV_NAME}" \
-              --json |
-              jq -r 'to_entries[] | "\(.key)=\(.value)"'
+              --json
           )"
+
+          json_get_var() {
+            local json="$1"
+            local key="$2"
+
+            jq -r --arg key "$key" '.[$key] // empty' <<< "${json}"
+          }
+
+          refresh_service_env_dump() {
+            SERVICE_ENV_JSON="$(
+              railway variable list \
+                --service "${RAILWAY_OUTPUT_SERVICE}" \
+                --environment "${RAILWAY_ENV_NAME}" \
+                --json
+            )"
+            SERVICE_ENV_DUMP="$(jq -r 'to_entries[] | "\(.key)=\(.value)"' <<< "${SERVICE_ENV_JSON}")"
+          }
+
+          ensure_runtime_var_seeded() {
+            local key="$1"
+            local explicit_template="$2"
+            local existing seed_value source
+
+            existing="$(json_get_var "${SERVICE_ENV_JSON}" "${key}")"
+            if [ -n "${existing}" ]; then
+              return
+            fi
+
+            if [ -n "${explicit_template}" ]; then
+              seed_value="${explicit_template}"
+              source="repository template variable"
+            else
+              seed_value="$(json_get_var "${TEMPLATE_SERVICE_ENV_JSON}" "${key}")"
+              source="template environment ${RAILWAY_TEMPLATE_ENVIRONMENT}"
+            fi
+
+            if [ -z "${seed_value}" ]; then
+              echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
+              echo "Set ${key} in ${RAILWAY_TEMPLATE_ENVIRONMENT} or provide an explicit template repo var override for this key." >&2
+              exit 1
+            fi
+
+            railway variable set \
+              --service "${RAILWAY_OUTPUT_SERVICE}" \
+              --environment "${RAILWAY_ENV_NAME}" \
+              --skip-deploys \
+              "${key}=${seed_value}" >/dev/null
+
+            echo "Seeded ${key} in ${RAILWAY_ENV_NAME} from ${source}."
+            refresh_service_env_dump
+          }
 
           extract_runtime_var() {
             local key="$1"
-            local line value
+            local max_attempts="${2:-30}"
+            local sleep_seconds="${3:-2}"
+            local attempt line value
 
-            line="$(printf '%s\n' "${SERVICE_ENV_DUMP}" | grep -m1 "^${key}=" || true)"
+            for attempt in $(seq 1 "${max_attempts}"); do
+              line="$(printf '%s\n' "${SERVICE_ENV_DUMP}" | grep -m1 "^${key}=" || true)"
+              if [ -n "${line}" ]; then
+                value="${line#*=}"
+                if ! printf '%s' "${value}" | grep -q '\$[{][{]'; then
+                  printf '%s' "${value}"
+                  return 0
+                fi
+              fi
+
+              if [ "${attempt}" -lt "${max_attempts}" ]; then
+                sleep "${sleep_seconds}"
+                refresh_service_env_dump
+                continue
+              fi
+            done
+
             if [ -z "${line}" ]; then
               echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
-              echo "If this variable is sealed, Railway CLI will not return it; use a non-sealed runtime mapping for preview wiring." >&2
-              exit 1
+            else
+              echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
             fi
-
-            value="${line#*=}"
-            if printf '%s' "${value}" | grep -q '\$[{][{]'; then
-              echo "Runtime variable ${key} is unresolved (${value}). Ensure it resolves to a concrete runtime value." >&2
-              exit 1
-            fi
-
-            printf '%s' "${value}"
+            exit 1
           }
+
+          refresh_service_env_dump
+          ensure_runtime_var_seeded "${RAILWAY_MANAGE_DB_URL_KEY}" "${RAILWAY_MANAGE_DB_URL_TEMPLATE}"
+          ensure_runtime_var_seeded "${RAILWAY_RUN_DB_URL_KEY}" "${RAILWAY_RUN_DB_URL_TEMPLATE}"
+          ensure_runtime_var_seeded "${RAILWAY_SPICEDB_ENDPOINT_KEY}" "${RAILWAY_SPICEDB_ENDPOINT_TEMPLATE}"
 
           MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
           RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
@@ -390,7 +470,7 @@ jobs:
           for project in "${VERCEL_API_PROJECT_ID}" "${VERCEL_MANAGE_UI_PROJECT_ID}"; do
             export VERCEL_PROJECT_ID="${project}"
             vercel pull --yes --environment=preview --git-branch="${PR_BRANCH}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}"
-            vercel deploy --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" >/dev/null
+            vercel deploy --yes --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" >/dev/null
           done
 
   smoke-preview:
