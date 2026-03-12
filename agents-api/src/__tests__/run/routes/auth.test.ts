@@ -1,5 +1,5 @@
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { SignJWT, jwtVerify } from 'jose';
+import { jwtVerify, SignJWT } from 'jose';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import manageDbClient from '../../../data/db/manageDbClient';
 import { getAnonJwtSecret } from '../../../domains/run/routes/auth';

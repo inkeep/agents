@@ -10,7 +10,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import { createChallenge } from 'altcha-lib';
-import { SignJWT, errors, jwtVerify } from 'jose';
+import { errors, jwtVerify, SignJWT } from 'jose';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
@@ -199,7 +199,10 @@ app.openapi(
         }
       } catch (err) {
         if (err instanceof errors.JWTExpired) {
-          logger.debug({ appId }, 'Anonymous session refresh: token expired, creating new identity');
+          logger.debug(
+            { appId },
+            'Anonymous session refresh: token expired, creating new identity'
+          );
         } else {
           logger.debug(
             { appId, error: err instanceof Error ? err.message : String(err) },
