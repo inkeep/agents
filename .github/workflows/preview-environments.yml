@@ -358,6 +358,10 @@ jobs:
           RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
           SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
 
+          echo "::add-mask::${MANAGE_DB_URL}"
+          echo "::add-mask::${RUN_DB_URL}"
+          echo "::add-mask::${SPICEDB_ENDPOINT}"
+
           echo "manage_db_url=${MANAGE_DB_URL}" >> "$GITHUB_OUTPUT"
           echo "run_db_url=${RUN_DB_URL}" >> "$GITHUB_OUTPUT"
           echo "spicedb_endpoint=${SPICEDB_ENDPOINT}" >> "$GITHUB_OUTPUT"
@@ -393,6 +397,13 @@ jobs:
           MANAGE_DB_URL: ${{ needs.provision-tier1.outputs.manage_db_url }}
           RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
           SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          CI: true
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+          RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
+          RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
+          RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
         run: |
           set -euo pipefail
 
@@ -406,6 +417,83 @@ jobs:
             echo "Invalid PR branch value: ${PR_BRANCH}"
             exit 1
           fi
+
+          if [ -z "${MANAGE_DB_URL}" ] || [ -z "${RUN_DB_URL}" ] || [ -z "${SPICEDB_ENDPOINT}" ]; then
+            PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
+            RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
+            RAILWAY_HOME_DIR="${RUNNER_TEMP:-/tmp}/railway-home"
+            mkdir -p "${RAILWAY_HOME_DIR}"
+
+            railway() {
+              docker run --rm \
+                -e CI \
+                -e RAILWAY_API_TOKEN \
+                -v "${RAILWAY_HOME_DIR}:/root/.railway" \
+                -v "$PWD:/workspace" \
+                -w /workspace \
+                ghcr.io/railwayapp/cli:latest railway "$@"
+            }
+
+            railway link \
+              --project "${RAILWAY_PROJECT_ID}" \
+              --service "${RAILWAY_OUTPUT_SERVICE}" \
+              --environment "${RAILWAY_ENV_NAME}" \
+              >/dev/null
+
+            extract_runtime_var() {
+              local key="$1"
+              local max_attempts="${2:-20}"
+              local sleep_seconds="${3:-2}"
+              local attempt value
+
+              for attempt in $(seq 1 "${max_attempts}"); do
+                value="$(
+                  railway variable list \
+                    --service "${RAILWAY_OUTPUT_SERVICE}" \
+                    --environment "${RAILWAY_ENV_NAME}" \
+                    --json |
+                  jq -r --arg key "${key}" '.[$key] // empty'
+                )"
+
+                if [ -n "${value}" ] && ! printf '%s' "${value}" | grep -q '\$[{][{]'; then
+                  printf '%s' "${value}"
+                  return 0
+                fi
+
+                if [ "${attempt}" -lt "${max_attempts}" ]; then
+                  sleep "${sleep_seconds}"
+                fi
+              done
+
+              if [ -z "${value:-}" ]; then
+                echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
+              else
+                echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
+              fi
+              exit 1
+            }
+
+            if [ -z "${MANAGE_DB_URL}" ]; then
+              MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
+            fi
+            if [ -z "${RUN_DB_URL}" ]; then
+              RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
+            fi
+            if [ -z "${SPICEDB_ENDPOINT}" ]; then
+              SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
+            fi
+          fi
+
+          echo "::add-mask::${MANAGE_DB_URL}"
+          echo "::add-mask::${RUN_DB_URL}"
+          echo "::add-mask::${SPICEDB_ENDPOINT}"
+
+          for required in MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT; do
+            if [ -z "${!required:-}" ]; then
+              echo "Missing required runtime value: ${required}"
+              exit 1
+            fi
+          done
 
           upsert_env() {
             local project_id="$1"
