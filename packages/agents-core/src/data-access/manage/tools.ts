@@ -429,14 +429,14 @@ export const dbResultToMcpTool = async (
   }
 
   // Check third-party service status
-  const isThirdPartyMCPServer =
-    getMcpServerUrl(dbResult.config.mcp.server)?.includes('composio.dev') ?? false;
+  const rawServerUrl = dbResult.config.mcp.server.url;
+  const isThirdPartyMCPServer = rawServerUrl.includes('composio.dev');
   if (isThirdPartyMCPServer) {
     const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
     const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
       dbResult.tenantId,
       dbResult.projectId,
-      mcpServerUrl!,
+      rawServerUrl,
       credentialScope,
       userId
     );

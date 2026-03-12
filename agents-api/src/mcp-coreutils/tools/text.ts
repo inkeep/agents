@@ -315,8 +315,8 @@ export function registerTextTools(server: McpServer): void {
             }
           } else {
             rangeLines.push(line);
-            const matched = endRe!.test(line);
-            endRe!.lastIndex = 0;
+            const matched = endRe?.test(line) ?? false;
+            if (endRe) endRe.lastIndex = 0;
             if (matched) {
               segments.push(rangeLines.join('\n'));
               rangeLines = [];
