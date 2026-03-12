@@ -22,6 +22,8 @@ export async function audit(
       const result = await handlers.check(ctx);
       report.entries.push({ table, result });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      ctx.logger.warn({ table, error: errorMessage }, `Audit check failed for entity: ${table}`);
       report.entries.push({
         table,
         result: null,

@@ -25,6 +25,7 @@ export const agentHandlers = defineHandlers('agent', {
         agentId: before.id,
       },
       fullBranchName: ctx.fullBranchName,
+      // sub agents cascade is handled separately by the sub_agents handler
       subAgentIds: [],
     });
   },

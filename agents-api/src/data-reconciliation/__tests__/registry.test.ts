@@ -273,6 +273,17 @@ describe('createEntityEffectRegistry', () => {
         fullBranchName: 'tenant-1_project-1_main',
       });
     });
+
+    it('onDeleted propagates cascadeDeleteBySubAgent errors', async () => {
+      vi.mocked(cascadeDeleteBySubAgent).mockReturnValue(
+        vi.fn().mockRejectedValue(new Error('Database timeout')) as any
+      );
+
+      const h = getHandlers(registry, 'sub_agents');
+      const subAgent = { id: 'sub-1' } as any;
+
+      await expect(h.onDeleted?.(subAgent, mockCtx)).rejects.toThrow('Database timeout');
+    });
   });
 
   describe('check functions', () => {
