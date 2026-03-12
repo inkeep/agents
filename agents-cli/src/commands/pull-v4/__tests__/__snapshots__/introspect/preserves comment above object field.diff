@@ -2,7 +2,7 @@ Index: index.ts
 ===================================================================
 --- index.ts	before
 +++ index.ts	after
-@@ -1,9 +1,12 @@
+@@ -1,16 +1,23 @@
  import { project } from '@inkeep/agents-sdk';
  import { supportAgent } from './agents/support-agent';
 +import { customerProfile } from './data-components/customer-profile';
@@ -15,8 +15,11 @@ Index: index.ts
 +  name: 'Support Project',
    models: {
      /**
-      * Keep this comment above the base model field.
-@@ -12,5 +15,9 @@
+-     * Keep this comment above the base model field.
+-     */
++         * Keep this comment above the base model field.
++         */
+     base: {
        model: 'gpt-4o-mini'
      }
    },

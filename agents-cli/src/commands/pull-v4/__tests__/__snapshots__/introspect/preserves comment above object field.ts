@@ -9,8 +9,8 @@ export const supportProject = project({
   name: 'Support Project',
   models: {
     /**
-     * Keep this comment above the base model field.
-     */
+         * Keep this comment above the base model field.
+         */
     base: {
       model: 'gpt-4o-mini'
     }
