@@ -157,6 +157,7 @@ app.openapi(
 
     const finalId = body.id ? String(body.id) : generateId();
     const componentData = {
+      ...body,
       tenantId,
       projectId,
       id: finalId,
@@ -229,21 +230,13 @@ app.openapi(
       }
     }
 
-    const updateData: any = {};
-
-    // Only include fields that are actually provided in the request
-    if (body.name !== undefined) {
-      updateData.name = String(body.name);
-    }
-    if (body.description !== undefined) {
-      updateData.description = String(body.description);
-    }
-    if (body.props !== undefined) {
-      updateData.props = body.props ?? null;
-    }
-    if (body.render !== undefined) {
-      updateData.render = body.render ?? null;
-    }
+    const updateData: any = {
+      ...body,
+      ...(body.name !== undefined && { name: String(body.name) }),
+      ...(body.description !== undefined && { description: String(body.description) }),
+      ...(body.props !== undefined && { props: body.props ?? null }),
+      ...(body.render !== undefined && { render: body.render ?? null }),
+    };
 
     const updatedArtifactComponent = await updateArtifactComponent(db)({
       scopes: { tenantId, projectId },

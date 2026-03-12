@@ -1,4 +1,5 @@
 import {
+  createCredentialReference,
   createFullAgentServerSide,
   createTrigger,
   createTriggerInvocation,
@@ -506,6 +507,44 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data.authentication).toBeNull();
     });
+
+    it('should persist signingSecretCredentialReferenceId through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('triggers-create-signingsecret');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const credRefId = `cred-ref-${generateId(6)}`;
+      await createCredentialReference(manageDbClient)({
+        id: credRefId,
+        tenantId,
+        projectId,
+        name: 'Test Signing Secret',
+        type: 'signing_secret',
+        credentialStoreId: 'mock-store',
+      });
+
+      const createData = {
+        name: 'Trigger with Signing Secret',
+        enabled: true,
+        inputSchema: { type: 'object' },
+        messageTemplate: 'Test',
+        signingSecretCredentialReferenceId: credRefId,
+      };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+        { method: 'POST', body: JSON.stringify(createData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.signingSecretCredentialReferenceId).toBe(credRefId);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.signingSecretCredentialReferenceId).toBe(credRefId);
+    });
   });
 
   describe('PATCH /{id}', () => {
@@ -565,6 +604,40 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       expect(body.data.authentication.headers[0].name).toBe('X-New-Key');
       expect(body.data.authentication.headers[0].valueHash).toBeDefined();
       expect(body.data.authentication.headers[0].valuePrefix).toBe('new-secr');
+    });
+
+    it('should update signingSecretCredentialReferenceId field', async () => {
+      const tenantId = await createTestTenantWithOrg('triggers-update-signingsecret');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      const credRefId = `cred-ref-${generateId(6)}`;
+      await createCredentialReference(manageDbClient)({
+        id: credRefId,
+        tenantId,
+        projectId,
+        name: 'Test Signing Secret for Update',
+        type: 'signing_secret',
+        credentialStoreId: 'mock-store',
+      });
+
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ signingSecretCredentialReferenceId: credRefId }),
+        }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.signingSecretCredentialReferenceId).toBe(credRefId);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.signingSecretCredentialReferenceId).toBe(credRefId);
     });
 
     it('should return 400 for empty update body', async () => {

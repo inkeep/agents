@@ -237,13 +237,10 @@ app.openapi(
 
     try {
       const agent = await createAgent(db)({
+        ...validatedBody,
+        id: validatedBody.id || generateId(),
         tenantId,
         projectId,
-        id: validatedBody.id || generateId(),
-        name: validatedBody.name,
-        description: validatedBody.description,
-        defaultSubAgentId: validatedBody.defaultSubAgentId,
-        contextConfigId: validatedBody.contextConfigId ?? undefined,
       });
 
       return c.json({ data: agent }, 201);
@@ -296,12 +293,7 @@ app.openapi(
 
     const updatedAgent = await updateAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
-      data: {
-        name: validatedBody.name,
-        description: validatedBody.description,
-        defaultSubAgentId: validatedBody.defaultSubAgentId,
-        contextConfigId: validatedBody.contextConfigId ?? undefined,
-      },
+      data: validatedBody,
     });
 
     if (!updatedAgent) {

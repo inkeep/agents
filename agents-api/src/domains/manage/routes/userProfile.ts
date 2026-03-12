@@ -121,7 +121,7 @@ app.openapi(
     const body = c.req.valid('json');
 
     const updated = await upsertUserProfile(runDbClient)(userId, {
-      timezone: body.timezone,
+      ...body,
       attributes: body.attributes ?? {},
     });
 

@@ -319,6 +319,224 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(400);
     });
+
+    it('should persist models field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-create-models');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const models = {
+        base: { model: 'claude-sonnet-4-20250514' },
+      };
+      const agentData = { ...createAgentData(), models };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+        { method: 'POST', body: JSON.stringify(agentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.models).toEqual(models);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentData.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.models).toEqual(models);
+    });
+
+    it('should persist statusUpdates field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-create-statusupdates');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const statusUpdates = { enabled: true, prompt: 'Provide status' };
+      const agentData = { ...createAgentData(), statusUpdates };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+        { method: 'POST', body: JSON.stringify(agentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.statusUpdates).toEqual(statusUpdates);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentData.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.statusUpdates).toEqual(statusUpdates);
+    });
+
+    it('should persist prompt field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-create-prompt');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const agentData = { ...createAgentData(), prompt: 'You are a helpful agent' };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+        { method: 'POST', body: JSON.stringify(agentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.prompt).toBe('You are a helpful agent');
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentData.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.prompt).toBe('You are a helpful agent');
+    });
+
+    it('should persist stopWhen field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-create-stopwhen');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const stopWhen = { transferCountIs: 5 };
+      const agentData = { ...createAgentData(), stopWhen };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+        { method: 'POST', body: JSON.stringify(agentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.stopWhen).toEqual(stopWhen);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentData.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.stopWhen).toEqual(stopWhen);
+    });
+
+    it('should persist ALL optional fields simultaneously through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-create-all-fields');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const agentData = {
+        ...createAgentData(),
+        prompt: 'System prompt',
+        models: {
+          base: { model: 'claude-sonnet-4-20250514' },
+        },
+        stopWhen: { transferCountIs: 3 },
+        statusUpdates: { enabled: true, prompt: 'Status prompt' },
+      };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+        { method: 'POST', body: JSON.stringify(agentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.prompt).toBe('System prompt');
+      expect(created.data.models).toEqual(agentData.models);
+      expect(created.data.stopWhen).toEqual(agentData.stopWhen);
+      expect(created.data.statusUpdates).toEqual(agentData.statusUpdates);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentData.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.prompt).toBe('System prompt');
+      expect(fetched.data.models).toEqual(agentData.models);
+      expect(fetched.data.stopWhen).toEqual(agentData.stopWhen);
+      expect(fetched.data.statusUpdates).toEqual(agentData.statusUpdates);
+    });
+  });
+
+  describe('PUT /{id} - field persistence', () => {
+    it('should update models field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-update-models');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const models = { base: { model: 'gpt-4o' } };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
+        { method: 'PUT', body: JSON.stringify({ models }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.models).toEqual(models);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.models).toEqual(models);
+    });
+
+    it('should update statusUpdates field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-update-statusupdates');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const statusUpdates = { enabled: false };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
+        { method: 'PUT', body: JSON.stringify({ statusUpdates }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.statusUpdates).toEqual(statusUpdates);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.statusUpdates).toEqual(statusUpdates);
+    });
+
+    it('should update prompt field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-update-prompt');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
+        { method: 'PUT', body: JSON.stringify({ prompt: 'Updated prompt' }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.prompt).toBe('Updated prompt');
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.prompt).toBe('Updated prompt');
+    });
+
+    it('should update stopWhen field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-update-stopwhen');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const stopWhen = { transferCountIs: 10 };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
+        { method: 'PUT', body: JSON.stringify({ stopWhen }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.stopWhen).toEqual(stopWhen);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.stopWhen).toEqual(stopWhen);
+    });
   });
 
   describe('PUT /{id}', () => {

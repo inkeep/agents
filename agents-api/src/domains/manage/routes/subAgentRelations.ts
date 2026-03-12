@@ -207,13 +207,11 @@ app.openapi(
     }
 
     const relationData = {
+      ...body,
       agentId,
       tenantId,
       id: generateId(),
       projectId,
-      sourceSubAgentId: body.sourceSubAgentId,
-      targetSubAgentId: body.targetSubAgentId,
-      relationType: body.relationType,
     };
 
     const agentRelation = await createSubAgentRelation(db)({

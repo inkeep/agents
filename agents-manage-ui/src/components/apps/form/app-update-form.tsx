@@ -3,9 +3,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { GenericComboBox } from '@/components/form/generic-combo-box';
 import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
-import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
@@ -120,12 +120,14 @@ export function AppUpdateForm({
           )}
         />
 
-        <GenericSelect
+        <GenericComboBox
           control={form.control}
           name="defaultAgentId"
           label="Default Agent"
-          options={[...agentOptions]}
-          selectTriggerClassName="w-full"
+          options={agentOptions}
+          placeholder="Select a default agent"
+          searchPlaceholder="Search agents..."
+          clearable
         />
 
         {app.type === 'web_client' && (
