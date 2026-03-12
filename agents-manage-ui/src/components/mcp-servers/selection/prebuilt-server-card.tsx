@@ -7,16 +7,9 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { URLDisplay } from '@/components/url-display';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
-
-// URL Display Component with ellipsis
-function URLDisplay({ url }: { url: string }) {
-  return (
-    <div className="rounded py-1 min-w-0">
-      <code className="text-sm text-muted-foreground block truncate">{url}</code>
-    </div>
-  );
-}
+import { cn } from '@/lib/utils';
 
 interface PrebuiltServerCardProps {
   server: PrebuiltMCPServer;
@@ -39,11 +32,12 @@ export function PrebuiltServerCard({
 
   return (
     <ItemCardRoot
-      className={`h-full min-w-0 transition-shadow ${
+      className={cn(
+        'h-full min-w-0 transition-shadow',
         disabled
           ? 'opacity-50 cursor-not-allowed'
           : 'cursor-pointer hover:shadow-md hover:bg-accent/50'
-      }`}
+      )}
       onClick={handleClick}
     >
       <ItemCardHeader>
@@ -54,14 +48,11 @@ export function PrebuiltServerCard({
             size={24}
             className="mt-0.5 flex-shrink-0"
           />
-          <span className="flex-1 min-w-0 text-base font-medium truncate">{server.name}</span>
+          <span className="font-medium break-all">{server.name}</span>
         </ItemCardTitle>
       </ItemCardHeader>
-
       <ItemCardContent>
-        <div className="space-y-3 min-w-0">
-          <URLDisplay url={server.url} />
-        </div>
+        <URLDisplay>{server.url}</URLDisplay>
       </ItemCardContent>
     </ItemCardRoot>
   );
