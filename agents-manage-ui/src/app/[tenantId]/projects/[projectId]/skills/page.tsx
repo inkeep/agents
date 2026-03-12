@@ -1,6 +1,7 @@
-import { ChevronRight, File, Folder, FolderTree, Plus } from 'lucide-react';
+import { ChevronRight, File, Folder, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import NextLink from 'next/link';
+import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarMenuAction,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -21,6 +23,7 @@ import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import { PromptEditor } from '@/components/editors/prompt-editor';
 
 export const metadata = {
   title: STATIC_LABELS.skills,
@@ -147,14 +150,8 @@ function renderTreeNode(
 ) {
   const isCollapsed = collapsedPaths.has(node.path);
   const isActive = node.kind === 'file' && node.path === selectedPath;
-  const icon = node.kind === 'file' ? <File /> : nested ? <Folder /> : <FolderTree />;
+  const icon = node.kind === 'file' ? <File /> : <Folder />;
   const href = node.kind === 'file' ? buildFileHref(node.path) : buildFolderHref(node.path);
-  const arrow =
-    node.kind === 'folder' ? (
-      <ChevronRight
-        className={cn('ml-auto size-4 shrink-0 transition-transform', !isCollapsed && 'rotate-90')}
-      />
-    ) : null;
 
   if (!nested) {
     return (
@@ -163,9 +160,15 @@ function renderTreeNode(
           <NextLink href={href}>
             {icon}
             <span className="min-w-0 flex-1 truncate">{node.name}</span>
-            {arrow}
           </NextLink>
         </SidebarMenuButton>
+        {node.kind === 'folder' && (
+          <SidebarMenuAction asChild className={cn(!isCollapsed && 'rotate-90')}>
+            <NextLink href={href}>
+              <ChevronRight className="size-4" />
+            </NextLink>
+          </SidebarMenuAction>
+        )}
         {node.children.length && !isCollapsed ? (
           <SidebarMenuSub>
             {node.children.map((child) =>
@@ -186,13 +189,21 @@ function renderTreeNode(
 
   return (
     <SidebarMenuSubItem key={node.path}>
-      <SidebarMenuSubButton asChild isActive={isActive}>
+      <SidebarMenuSubButton
+        asChild
+        isActive={isActive}
+        className={cn(node.kind === 'folder' && 'pr-8')}
+      >
         <NextLink href={href}>
           {icon}
           <span className="min-w-0 flex-1 truncate">{node.name}</span>
-          {arrow}
         </NextLink>
       </SidebarMenuSubButton>
+      {node.kind === 'folder' && (
+        <SidebarMenuAction className={cn('top-1 right-1', !isCollapsed && 'rotate-90')}>
+          <ChevronRight className="size-4" />
+        </SidebarMenuAction>
+      )}
       {node.children.length && !isCollapsed ? (
         <SidebarMenuSub>
           {node.children.map((child) =>
@@ -224,18 +235,17 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
     const permissions = await fetchProjectPermissions(tenantId, projectId);
     const requestedPath =
       typeof rawSearchParams.path === 'string' ? rawSearchParams.path : defaultSelectedPath;
-    const collapsedPaths = new Set(
-      Array.isArray(rawSearchParams.collapsed)
-        ? rawSearchParams.collapsed
-        : typeof rawSearchParams.collapsed === 'string'
-          ? [rawSearchParams.collapsed]
-          : []
-    );
+    const collapsedValues: string[] = Array.isArray(rawSearchParams.collapsed)
+      ? rawSearchParams.collapsed.filter((value): value is string => typeof value === 'string')
+      : typeof rawSearchParams.collapsed === 'string'
+        ? [rawSearchParams.collapsed]
+        : [];
+    const collapsedPaths = new Set<string>(collapsedValues);
     const fallbackNode = findFirstFile(treeNodes) ?? treeNodes[0] ?? null;
     const selectedNode = findNodeByPath(treeNodes, requestedPath) ?? fallbackNode;
     const selectedPath = selectedNode?.path ?? defaultSelectedPath;
 
-    const buildSearch = (nextPath: string, nextCollapsedPaths: ReadonlySet<string>) => {
+    function buildSearch(nextPath: string, nextCollapsedPaths: ReadonlySet<string>) {
       const nextSearchParams = new URLSearchParams();
       if (nextPath) {
         nextSearchParams.set('path', nextPath);
@@ -244,11 +254,12 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
         nextSearchParams.append('collapsed', collapsedPath);
       }
       return nextSearchParams.toString();
-    };
+    }
 
-    const buildFileHref = (targetPath: string) =>
-      `/${tenantId}/projects/${projectId}/skills?${buildSearch(targetPath, collapsedPaths)}`;
-    const buildFolderHref = (targetPath: string) => {
+    function buildFileHref(targetPath: string) {
+      return `/${tenantId}/projects/${projectId}/skills?${buildSearch(targetPath, collapsedPaths)}`;
+    }
+    function buildFolderHref(targetPath: string) {
       const nextCollapsedPaths = new Set(collapsedPaths);
       if (nextCollapsedPaths.has(targetPath)) {
         nextCollapsedPaths.delete(targetPath);
@@ -256,7 +267,7 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
         nextCollapsedPaths.add(targetPath);
       }
       return `/${tenantId}/projects/${projectId}/skills?${buildSearch(selectedPath, nextCollapsedPaths)}`;
-    };
+    }
 
     const action = permissions.canEdit ? (
       <Button asChild className="flex items-center gap-2">
@@ -310,21 +321,9 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
                     <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                       Preview
                     </p>
-                    <div>
-                      <h2 className="text-xl font-semibold">{selectedNode.name}</h2>
-                      <p className="text-sm text-muted-foreground">
-                        Showing <code>{selectedNode.path}</code>
-                      </p>
-                    </div>
+                    <h2 className="text-xl font-semibold">{selectedNode.name}</h2>
                   </div>
-                  <div className="overflow-hidden rounded-lg border bg-muted/10">
-                    <div className="border-b px-4 py-3 text-sm font-medium">
-                      {selectedNode.path}
-                    </div>
-                    <pre className="overflow-x-auto p-4 text-sm leading-6">
-                      {selectedNode.content}
-                    </pre>
-                  </div>
+                  <PromptEditor value={selectedNode.content} uri="test.md" />
                 </div>
               ) : (
                 <div className="min-h-80" />

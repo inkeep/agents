@@ -7297,6 +7297,26 @@
             "minLength": 1,
             "type": "string"
           },
+          "files": {
+            "items": {
+              "properties": {
+                "content": {
+                  "type": "string"
+                },
+                "filePath": {
+                  "maxLength": 1024,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "filePath",
+                "content"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "metadata": {
             "allOf": [
               {
@@ -7321,6 +7341,39 @@
         ],
         "type": "object"
       },
+      "SkillFile": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "filePath": {
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "skillId": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "skillId",
+          "filePath",
+          "content",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "SkillListResponse": {
         "properties": {
           "data": {
@@ -7339,17 +7392,6 @@
         ],
         "type": "object"
       },
-      "SkillResponse": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/Skill"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "type": "object"
-      },
       "SkillUpdate": {
         "properties": {
           "content": {
@@ -7360,6 +7402,26 @@
             "maxLength": 1024,
             "minLength": 1,
             "type": "string"
+          },
+          "files": {
+            "items": {
+              "properties": {
+                "content": {
+                  "type": "string"
+                },
+                "filePath": {
+                  "maxLength": 1024,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "filePath",
+                "content"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "metadata": {
             "allOf": [
@@ -7372,6 +7434,38 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "SkillWithFiles": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Skill"
+          },
+          {
+            "properties": {
+              "files": {
+                "items": {
+                  "$ref": "#/components/schemas/SkillFile"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "files"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "SkillWithFilesResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SkillWithFiles"
+          }
+        },
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "StatusComponent": {
@@ -36669,7 +36763,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SkillResponse"
+                  "$ref": "#/components/schemas/SkillWithFilesResponse"
                 }
               }
             },
@@ -36890,7 +36984,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SkillResponse"
+                  "$ref": "#/components/schemas/SkillWithFilesResponse"
                 }
               }
             },
@@ -37012,7 +37106,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SkillResponse"
+                  "$ref": "#/components/schemas/SkillWithFilesResponse"
                 }
               }
             },
