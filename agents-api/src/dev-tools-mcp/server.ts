@@ -16,11 +16,7 @@ These are YOUR tools. You must use them actively for any task involving text pro
 - **Utility**: calculate arithmetic, generate UUID, get current timestamp
 
 ## Tool result chaining — YOU MUST DO THIS
-Every tool result has a \`_toolCallId\`. Instead of copying large values between tool calls, pass a reference object. This is mandatory when chaining tools — never copy raw content inline.
-
-Reference syntax:
-  { "$tool": "toolu_01..." }                           ← previous tool result (use the _toolCallId value)
-  { "$artifact": "art_01...", "$tool": "toolu_01..." } ← artifact reference (BOTH fields required)
+Never copy raw content inline between tool calls — always chain via \`{"$tool": "<_toolCallId>"}\` references. For artifacts, use \`{"$artifact": "<id>", "$tool": "<_toolCallId>"}\`.
 
 **Chain tool calls like this — always:**
 - \`html_to_markdown\` result → pass \`{"$tool": "<id>"}\` to \`text_search\`, \`text_extract\`, or \`json_query\`
@@ -36,21 +32,30 @@ If a tool from another server returned a complex object and you need a specific 
 
 Never extract a value by reading it and copying it inline — always chain through \`json_query\`.
 
-**When working with artifacts — ALWAYS extract before processing:**
-Artifacts are structured objects. Never pass a raw artifact reference directly to \`text_search\`, \`regex_match\`, or \`text_extract\`. Always use \`json_query\` first to isolate the field you need.
-Pipeline: artifact → \`json_query\` (extract field) → \`text_search\` / \`regex_match\` / \`text_extract\` (process string)
+## MANDATORY GATE — before calling any text tool (text_search, text_extract, regex_match, text_replace)
 
-**Decision tree — which tool to use when extracting content:**
-1. Data is in a structured artifact or JSON object? → \`json_query\` to isolate the field FIRST
-2. Need to find a specific pattern in a string? → \`regex_match\` (returns exact match only)
-3. Need lines of context around a keyword? → \`text_search\` (returns matching lines + context)
-4. Need a character or line range? → \`text_extract\`
-Never skip step 1 when the source is structured data.
+This is not guidance. Skipping this gate is a violation.
+
+Step 1 — Is the source a structured object (artifact, JSON response, object from any tool)?
+  → MUST call \`json_query\` first to extract the specific string field.
+  → For artifacts: pass \`{"$artifact": "<id>", "$tool": "<toolCallId>"}\` as the \`data\` argument to \`json_query\` directly — do NOT call \`get_reference_artifact\` first.
+  → VIOLATION: passing an object or artifact reference directly to a text tool without \`json_query\` first.
+
+Step 2 — Did \`json_query\` return a non-empty string?
+  → Only then call the text tool with \`{"$tool": "<_toolCallId from json_query>"}\`.
+  → If \`json_query\` returned null or empty: the path is wrong. Do not call the text tool. Re-examine the source structure and retry with a corrected path.
+  → If \`json_query\` returned an array (e.g. \`content\` is \`[{text: "...", type: "text"}, ...]\`): run a second \`json_query\` to flatten it to a string first — e.g. \`json_query({ query: "content[*].text | join(' ', @)" })\` — then pass that result to the text tool.
+
+Step 3 — Is the source already a plain string from a prior step?
+  → Pass it directly as \`{"$tool": "<_toolCallId>"}\`. No intermediate step needed.
 
 **After \`json_query\` returns a primitive — do NOT run another \`json_query\` on it:**
-Once \`json_query\` has extracted a string or number, that result IS the value. Running \`json_query\` on a primitive returns null. Pipe the primitive directly to the text tool using \`{"$tool": "call_q"}\`.
+Once \`json_query\` has extracted a string or number, that result IS the value. Running \`json_query\` on a primitive returns null. Pipe the primitive directly to the text tool.
 
-The framework resolves references before invoking the tool — the tool always receives the real content. Never inline large strings when a reference is available.
+**Tool selection once you have a string:**
+- Find a specific pattern? → \`regex_match\` (returns exact match only)
+- Need lines of context around a keyword? → \`text_search\` (returns matching lines + context)
+- Need a character or line range? → \`text_extract\`
 `.trim();
 
 export interface DevToolsScope {

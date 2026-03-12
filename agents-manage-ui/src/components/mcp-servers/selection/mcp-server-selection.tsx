@@ -1,11 +1,5 @@
 'use client';
 
-import {
-  DEV_TOOLS_HTTP_MCP,
-  DEV_TOOLS_MCP,
-  DEV_TOOLS_MEDIA_MCP,
-  DEV_TOOLS_SEARCH_MCP,
-} from '@inkeep/agents-core';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -23,6 +17,7 @@ import { useScopeSelection } from '@/hooks/use-scope-selection';
 import type { Credential } from '@/lib/api/credentials';
 import { getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { createMCPTool } from '@/lib/api/tools';
+import { BUILT_IN_MCPS } from '@/lib/data/built-in-mcps';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
 import { BuiltInMcpCard } from './built-in-mcp-card';
@@ -31,13 +26,6 @@ import { WorkAppGitHubCard } from './work-app-github-card';
 import { WorkAppGitHubRepositoryConfigDialog } from './work-app-github-repository-config-dialog';
 import { WorkAppSlackCard } from './work-app-slack-card';
 import { WorkAppSlackChannelConfigDialog } from './work-app-slack-channel-config-dialog';
-
-const BUILT_IN_MCPS = [
-  DEV_TOOLS_MCP,
-  DEV_TOOLS_HTTP_MCP,
-  DEV_TOOLS_MEDIA_MCP,
-  DEV_TOOLS_SEARCH_MCP,
-];
 
 /**
  * Remove user_id from Composio URLs before storing in DB.
@@ -187,6 +175,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
         },
         credentialReferenceId: null,
         credentialScope: CredentialScopeEnum.project,
+        imageUrl: mcp.imageUrl,
       });
       toast.success(`${mcp.name} added successfully`);
       router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);

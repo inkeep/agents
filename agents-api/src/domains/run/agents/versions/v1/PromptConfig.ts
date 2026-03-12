@@ -481,12 +481,24 @@ STEP 4: VALIDATE YOUR SELECTORS AGAINST THE DATA
 - Use compound conditions when needed: [?title=='Inkeep' && record_type=='site']
 
 EXAMPLE PATTERNS FOR BASE SELECTORS:
-❌ WRONG: items[?contains(title, "guide")] (assumes field values + wrong quotes)
-❌ WRONG: data[?type=="document"] (double quotes invalid in JMESPath)
-✅ CORRECT: structuredContent.content[0] (select first item)
-✅ CORRECT: items[?type=='document'][0] (filter by type, single quotes!)
-✅ CORRECT: data[?category=='api'][0] (filter by category)
-✅ CORRECT: documents[?status=='published'][0] (filter by status)
+❌ WRONG: items[?contains(title, "guide")] (bare root path + wrong quotes)
+❌ WRONG: data[?type=="document"] (bare root path + double quotes invalid in JMESPath)
+❌ WRONG: structuredContent.content[0] (index-only — grabs first item regardless of relevance)
+❌ WRONG: response.items[0] (same — never select by position alone)
+❌ WRONG: response.results[?type=='article'] | [0] (too shallow — if title/url/content require dot paths like item.source.title to reach, go deeper: response.results[?type=='article'] | [0].source)
+✅ CORRECT: structuredContent.content[?title=='My Title' && type=='article'] | [0]
+✅ CORRECT: structuredContent.content[?type=='document'] | [0]
+✅ CORRECT: response.items[?category=='api'] | [0]
+✅ CORRECT: hits.documents[?status=='published'] | [0]
+
+🚨 STRUCTURE HINTS ARE AUTHORITATIVE — READ THEM BEFORE WRITING ANY SELECTOR:
+- Before writing base_selector or details_selector, read _structureHints.exampleSelectors and _structureHints.terminalPaths from the tool result
+- Copy the closest matching exampleSelector as your literal starting point — do not construct paths from memory or infer from field names
+- If exampleSelectors show a path like "hits.documents[?type=='doc'] | [0]", use that exact prefix, not a guessed alternative
+
+🚨 DEPTH CONTRACT — your base_selector is only correct if schema fields (title, url, record_type, content) are DIRECT keys of the selected item:
+- After selecting an item, check: can you write details="title":"title" (no dots)? If not — if the field requires a path like "source.title" — your selector stopped too shallow
+- Navigate deeper until schema fields are direct children of the selected node
 
 EXAMPLE TEXT RESPONSE:
 "I found the authentication documentation. <${ARTIFACT_TAG.CREATE} id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.

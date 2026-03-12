@@ -8,6 +8,12 @@ import { subAgentToolRelations, tools } from '../../db/manage/manage-schema';
 import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import { env } from '../../env';
+import {
+  isDevToolsHttpMcp,
+  isDevToolsMcp,
+  isDevToolsMediaMcp,
+  isDevToolsSearchMcp,
+} from '../../mcp/built-in-mcps';
 import type { CredentialReferenceSelect } from '../../types/index';
 import {
   type AgentScopeConfig,
@@ -32,6 +38,7 @@ import {
 } from '../../utils';
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
+import { signMcpAccessToken } from '../../utils/mcp-access-token';
 import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
 import { cascadeDeleteByTool } from '../runtime/cascade-delete';
 import { isGithubWorkAppTool } from '../runtime/github-work-app-installations';
@@ -241,6 +248,24 @@ const discoverToolsFromServer = async (
         'x-inkeep-tenant-id': tool.tenantId,
         'x-inkeep-project-id': tool.projectId,
         Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
+      };
+    }
+
+    if (
+      isDevToolsMcp(tool) ||
+      isDevToolsHttpMcp(tool) ||
+      isDevToolsMediaMcp(tool) ||
+      isDevToolsSearchMcp(tool)
+    ) {
+      const jwt = await signMcpAccessToken({
+        tenantId: tool.tenantId,
+        projectId: tool.projectId,
+      });
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tenant-id': tool.tenantId,
+        'x-inkeep-project-id': tool.projectId,
+        Authorization: `Bearer ${jwt}`,
       };
     }
 

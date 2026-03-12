@@ -13,21 +13,8 @@ Use these tools to search the web and find related content. Results include titl
 - \`keyword\` — exact term matching. Best for specific names, error messages, code identifiers.
 - \`auto\` — let Exa decide based on the query (default and recommended for most cases).
 
-## Chaining results into dev-tools
-After searching, pipe result content to dev-tools for further processing:
-- HTML page content → pass to \`html_to_markdown\` to convert to readable text
-- JSON API response → pass to \`json_query\` to extract specific fields
-- Text content → pass to \`text_search\` to find specific patterns
-
-Reference syntax for chaining:
-  { "$tool": "<call_id>" }
-
-Example pipeline:
-1. web_search({ "query": "Hono middleware auth pattern", "searchType": "neural" })  (call_id: "call_a")
-2. html_to_markdown({ "html": { "$tool": "call_a" } })  — convert page content to readable markdown
-3. text_search({ "content": { "$tool": "call_b" }, "pattern": "createMiddleware" })
-
-Never copy search result content inline — always chain via references.
+## Chaining results further
+Pass search results to other tools using \`{"$tool": "<_toolCallId>"}\` — the system resolves the full result automatically. Use whatever processing tools are available in your session to extract fields, convert content, or find patterns.
 `.trim();
 
 export interface DevToolsSearchScope {

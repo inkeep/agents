@@ -16,7 +16,7 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { detectOversizedArtifact } from './artifact-utils';
+import { detectOversizedArtifact, unwrapToolResult } from './artifact-utils';
 
 const logger = getLogger('ArtifactService');
 
@@ -117,25 +117,7 @@ export class ArtifactService {
 
     const result = record.result;
 
-    let payload: unknown = result;
-
-    const first = result?.content?.[0];
-    if (first?.type === 'text') payload = first.text;
-    else if (first?.type === 'image') {
-      payload = {
-        data: first.data,
-        encoding: 'base64',
-        mimeType: first.mimeType,
-      };
-    } else if (
-      result &&
-      typeof result === 'object' &&
-      !Array.isArray(result) &&
-      (result as { type?: string }).type === 'text' &&
-      typeof (result as { value?: unknown }).value === 'string'
-    ) {
-      payload = (result as { value: string }).value;
-    }
+    const payload: unknown = unwrapToolResult(result);
 
     if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
       const { _toolCallId, _structureHints, isError, ...rest } = payload as Record<string, unknown>;
@@ -218,12 +200,23 @@ export class ArtifactService {
     const toolResult = toolResultRecord.result;
 
     try {
+      const unwrapped = unwrapToolResult(toolResult);
+      let parsed: unknown = unwrapped;
+      if (typeof unwrapped === 'string') {
+        try {
+          parsed = JSON.parse(unwrapped);
+        } catch {
+          parsed = unwrapped;
+        }
+      }
       const toolResultData =
-        toolResult && typeof toolResult === 'object' && !Array.isArray(toolResult)
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed)
           ? Object.fromEntries(
-              Object.entries(toolResult).filter(([key]) => key !== '_structureHints')
+              Object.entries(parsed as Record<string, unknown>).filter(
+                ([key]) => key !== '_structureHints'
+              )
             )
-          : toolResult;
+          : parsed;
 
       const sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
 

@@ -9,20 +9,8 @@ Use fetch_url to make outbound HTTP requests. Supports GET, POST, PUT, PATCH, an
 - Submit data to external APIs (POST/PUT with JSON or form body)
 - Call webhooks or external services
 
-## Chaining results into dev-tools
-After fetching, pipe the response body to the appropriate dev-tools processing tool:
-- HTML response → pass result to html_to_markdown to convert to readable text
-- JSON response → pass result to json_query to extract specific fields
-- Plain text response → pass result to text_search to find patterns
-
-Reference syntax for chaining:
-  { "$tool": "<call_id>" }
-
-Example pipeline:
-1. fetch_url({ "url": "https://example.com/api/data" })  (call_id: "call_a")
-2. json_query({ "data": { "$tool": "call_a" }, "query": "results[0].title" })
-
-Never copy response bodies inline between tool calls — always chain via references.
+## Chaining results further
+Pass the response body to other tools using \`{"$tool": "<_toolCallId>"}\` — the system resolves the full result automatically. Use whatever processing tools are available in your session to extract fields, convert content, or find patterns.
 `.trim();
 
 export interface DevToolsHttpScope {
