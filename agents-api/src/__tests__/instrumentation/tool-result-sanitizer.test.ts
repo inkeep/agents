@@ -1,17 +1,32 @@
-vi.mock('@opentelemetry/auto-instrumentations-node', () => ({ getNodeAutoInstrumentations: () => [] }));
+vi.mock('@opentelemetry/auto-instrumentations-node', () => ({
+  getNodeAutoInstrumentations: () => [],
+}));
 vi.mock('@opentelemetry/baggage-span-processor', () => ({
   BaggageSpanProcessor: class {
     onStart() {}
     onEnd() {}
-    shutdown() { return Promise.resolve(); }
-    forceFlush() { return Promise.resolve(); }
+    shutdown() {
+      return Promise.resolve();
+    }
+    forceFlush() {
+      return Promise.resolve();
+    }
   },
   ALLOW_ALL_BAGGAGE_KEYS: '*',
 }));
-vi.mock('@opentelemetry/sdk-node', () => ({ NodeSDK: class { start() {} stop() { return Promise.resolve(); } } }));
+vi.mock('@opentelemetry/sdk-node', () => ({
+  NodeSDK: class {
+    start() {}
+    stop() {
+      return Promise.resolve();
+    }
+  },
+}));
 vi.mock('@opentelemetry/exporter-trace-otlp-http', () => ({ OTLPTraceExporter: class {} }));
 vi.mock('@opentelemetry/resources', () => ({ resourceFromAttributes: () => ({}) }));
-vi.mock('@opentelemetry/context-async-hooks', () => ({ AsyncLocalStorageContextManager: class {} }));
+vi.mock('@opentelemetry/context-async-hooks', () => ({
+  AsyncLocalStorageContextManager: class {},
+}));
 vi.mock('@opentelemetry/core', () => ({
   CompositePropagator: class {},
   W3CBaggagePropagator: class {},
@@ -19,12 +34,20 @@ vi.mock('@opentelemetry/core', () => ({
 }));
 vi.mock('@opentelemetry/semantic-conventions', () => ({ ATTR_SERVICE_NAME: 'service.name' }));
 vi.mock('@opentelemetry/sdk-trace-base', () => ({
-  BatchSpanProcessor: class { forceFlush() { return Promise.resolve(); } },
+  BatchSpanProcessor: class {
+    forceFlush() {
+      return Promise.resolve();
+    }
+  },
   NoopSpanProcessor: class {
     onStart() {}
     onEnd() {}
-    shutdown() { return Promise.resolve(); }
-    forceFlush() { return Promise.resolve(); }
+    shutdown() {
+      return Promise.resolve();
+    }
+    forceFlush() {
+      return Promise.resolve();
+    }
   },
 }));
 vi.mock('../../env.js', () => ({

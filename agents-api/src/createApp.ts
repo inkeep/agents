@@ -5,10 +5,6 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
-import inkeepCoreutilsMcpRoutes from './mcp-coreutils';
-import inkeepHttpMcpRoutes from './mcp-http';
-import inkeepMediaMcpRoutes from './mcp-media';
-import inkeepSearchMcpRoutes from './mcp-search';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
@@ -18,6 +14,10 @@ import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
+import inkeepCoreutilsMcpRoutes from './mcp-coreutils';
+import inkeepHttpMcpRoutes from './mcp-http';
+import inkeepMediaMcpRoutes from './mcp-media';
+import inkeepSearchMcpRoutes from './mcp-search';
 import {
   authCorsConfig,
   defaultCorsConfig,

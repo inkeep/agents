@@ -12,7 +12,11 @@ import { setSpanWithError, tracer } from '../utils/tracer';
 
 export function cleanArtifactForStream(artifact: any): any {
   if (!artifact?.artifactSummary) return artifact;
-  const { _structureHints: _sh, _structureInfo: _si, ...cleanedSummaryData } = artifact.artifactSummary;
+  const {
+    _structureHints: _sh,
+    _structureInfo: _si,
+    ...cleanedSummaryData
+  } = artifact.artifactSummary;
   return { ...artifact, artifactSummary: cleanedSummaryData };
 }
 

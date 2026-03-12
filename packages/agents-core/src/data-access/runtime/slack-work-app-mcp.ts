@@ -128,7 +128,9 @@ export const deleteAllSlackMcpToolAccessConfigsByTenant =
   };
 
 export const isSlackWorkAppTool = (tool: ToolSelect | McpTool) => {
-  return tool.isWorkApp && (getMcpServerUrl(tool.config.mcp.server)?.includes('/slack/mcp') ?? false);
+  return (
+    tool.isWorkApp && (getMcpServerUrl(tool.config.mcp.server)?.includes('/slack/mcp') ?? false)
+  );
 };
 
 export const resolveSlackUserContext =

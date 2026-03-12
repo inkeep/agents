@@ -11,7 +11,11 @@ import { registerJsonTools } from '../../../mcp-coreutils/tools/json-tools';
 function createToolRegistry() {
   const tools = new Map<string, (args: any) => Promise<CallToolResult>>();
   const server = {
-    registerTool: (_name: string, _schema: any, handler: (args: any) => Promise<CallToolResult>) => {
+    registerTool: (
+      _name: string,
+      _schema: any,
+      handler: (args: any) => Promise<CallToolResult>
+    ) => {
       tools.set(_name, handler);
     },
   } as unknown as McpServer;
@@ -50,7 +54,13 @@ describe('json_format', () => {
 });
 
 describe('json_query', () => {
-  const data = { user: { name: 'Alice', age: 30 }, items: [{ type: 'doc', text: 'hello' }, { type: 'img', url: 'x.png' }] };
+  const data = {
+    user: { name: 'Alice', age: 30 },
+    items: [
+      { type: 'doc', text: 'hello' },
+      { type: 'img', url: 'x.png' },
+    ],
+  };
 
   it('extracts top-level field', async () => {
     const result = await registry.call('json_query', { data, query: 'user' });
@@ -63,7 +73,10 @@ describe('json_query', () => {
   });
 
   it('filters array with JMESPath', async () => {
-    const result = await registry.call('json_query', { data, query: "items[?type=='doc'] | [0].text" });
+    const result = await registry.call('json_query', {
+      data,
+      query: "items[?type=='doc'] | [0].text",
+    });
     expect(JSON.parse(text(result))).toBe('hello');
   });
 

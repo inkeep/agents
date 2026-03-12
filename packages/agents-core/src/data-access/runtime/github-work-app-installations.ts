@@ -1018,7 +1018,9 @@ export const clearMcpToolRepositoryAccess =
   };
 
 export const isGithubWorkAppTool = (tool: ToolSelect | McpTool) => {
-  return tool.isWorkApp && (getMcpServerUrl(tool.config.mcp.server)?.includes('/github/mcp') ?? false);
+  return (
+    tool.isWorkApp && (getMcpServerUrl(tool.config.mcp.server)?.includes('/github/mcp') ?? false)
+  );
 };
 // ============================================================================
 // Project Access Mode Functions

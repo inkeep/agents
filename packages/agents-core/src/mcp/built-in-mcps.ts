@@ -9,7 +9,8 @@ export const INKEEP_COREUTILS_MCP = {
   id: 'inkeep-coreutils',
   name: 'inkeep-coreutils',
   version: '1.0.0',
-  description: 'Core text and data tools: grep, sed, diff, patch, head, JSON, encoding, HTML, and utility',
+  description:
+    'Core text and data tools: grep, sed, diff, patch, head, JSON, encoding, HTML, and utility',
   urlPath: '/inkeep-coreutils/mcp',
   imageUrl: INKEEP_ICON_IMAGE_URL,
   tools: [
@@ -98,7 +99,10 @@ export const isInkeepMediaMcp = (tool: ToolSelect | McpTool) =>
 export const isInkeepSearchMcp = (tool: ToolSelect | McpTool) =>
   getBuiltInMcpConfigId(tool) === INKEEP_SEARCH_MCP.id;
 
-export const resolveBuiltInMcpUrl = (tool: ToolSelect | McpTool, baseUrl: string): string | null => {
+export const resolveBuiltInMcpUrl = (
+  tool: ToolSelect | McpTool,
+  baseUrl: string
+): string | null => {
   const configId = getBuiltInMcpConfigId(tool);
   if (!configId) return null;
   const builtInConfig = BUILT_IN_MCP_CONFIGS.find((config) => config.id === configId);

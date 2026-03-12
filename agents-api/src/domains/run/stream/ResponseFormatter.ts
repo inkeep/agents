@@ -2,8 +2,8 @@ import type { FullExecutionContext, MessageContent } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { ArtifactParser, type StreamPart } from '../artifacts/ArtifactParser';
 import { agentSessionManager } from '../session/AgentSession';
-import { cleanArtifactForStream } from './stream-helpers';
 import { setSpanWithError, tracer } from '../utils/tracer';
+import { cleanArtifactForStream } from './stream-helpers';
 
 const logger = getLogger('ResponseFormatter');
 

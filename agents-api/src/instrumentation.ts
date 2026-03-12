@@ -1,3 +1,4 @@
+import type { Context } from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import {
   ALLOW_ALL_BAGGAGE_KEYS,
@@ -13,7 +14,6 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import type { Context } from '@opentelemetry/api';
 import {
   BatchSpanProcessor,
   NoopSpanProcessor,
@@ -57,8 +57,7 @@ class ToolResultSanitizingProcessor implements SpanProcessor {
         for (const key of INTERNAL_TOOL_RESULT_KEYS) {
           delete parsed[key];
         }
-        (span.attributes as Record<string, unknown>)['ai.toolCall.result'] =
-          JSON.stringify(parsed);
+        (span.attributes as Record<string, unknown>)['ai.toolCall.result'] = JSON.stringify(parsed);
       }
     } catch {}
   }

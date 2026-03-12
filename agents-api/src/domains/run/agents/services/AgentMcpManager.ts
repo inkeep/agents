@@ -5,7 +5,6 @@ import {
   type FullExecutionContext,
   getMcpServerUrl,
   isBuiltInMcp,
-  resolveBuiltInMcpUrl,
   isGithubWorkAppTool,
   isSlackWorkAppTool,
   JsonTransformer,
@@ -15,6 +14,7 @@ import {
   McpClient,
   type McpServerConfig,
   type McpTool,
+  resolveBuiltInMcpUrl,
   resolveSlackUserContext,
   signMcpAccessToken,
 } from '@inkeep/agents-core';
@@ -254,7 +254,10 @@ export class AgentMcpManager {
     const streamRequestId = this.getStreamRequestId();
     if (!streamRequestId) return;
 
-    const serverUrl = mcpTool.config.type === 'mcp' ? (getMcpServerUrl(mcpTool.config.mcp.server) ?? 'built-in') : 'unknown';
+    const serverUrl =
+      mcpTool.config.type === 'mcp'
+        ? (getMcpServerUrl(mcpTool.config.mcp.server) ?? 'built-in')
+        : 'unknown';
 
     tracer.startActiveSpan(
       'ai.toolCall',

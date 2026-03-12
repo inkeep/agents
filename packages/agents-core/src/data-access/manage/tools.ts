@@ -9,7 +9,6 @@ import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import { env } from '../../env';
 import { isBuiltInMcp, resolveBuiltInMcpUrl } from '../../mcp/built-in-mcps';
-import { getMcpServerUrl } from '../../types/utility';
 import type { CredentialReferenceSelect } from '../../types/index';
 import {
   type AgentScopeConfig,
@@ -25,6 +24,7 @@ import {
   type ToolSelect,
   type ToolUpdate,
 } from '../../types/index';
+import { getMcpServerUrl } from '../../types/utility';
 import {
   configureComposioMCPServer,
   detectAuthenticationRequired,
@@ -205,7 +205,9 @@ const discoverToolsFromServer = async (
     } else {
       const resolvedUrl: string = (() => {
         if (isBuiltInMcp(tool) && baseUrl) {
-          return resolveBuiltInMcpUrl(tool, baseUrl) ?? getMcpServerUrl(tool.config.mcp.server) ?? '';
+          return (
+            resolveBuiltInMcpUrl(tool, baseUrl) ?? getMcpServerUrl(tool.config.mcp.server) ?? ''
+          );
         }
         return getMcpServerUrl(tool.config.mcp.server) ?? '';
       })();
@@ -426,7 +428,8 @@ export const dbResultToMcpTool = async (
   }
 
   // Check third-party service status
-  const isThirdPartyMCPServer = getMcpServerUrl(dbResult.config.mcp.server)?.includes('composio.dev') ?? false;
+  const isThirdPartyMCPServer =
+    getMcpServerUrl(dbResult.config.mcp.server)?.includes('composio.dev') ?? false;
   if (isThirdPartyMCPServer) {
     const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
     const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
@@ -627,7 +630,8 @@ export const deleteTool =
     // If a github workapp tool is being deleted from the main branch, delete the runtime entities for the tool
     // In the future, when we allow rolling back a project to a previous version, the user will need to reset the tool-repo permissions
     const isWorkApp = deleted.isWorkApp;
-    const isGithub = isWorkApp && getMcpServerUrl(deleted.config.mcp.server)?.includes('/github/mcp') === true;
+    const isGithub =
+      isWorkApp && getMcpServerUrl(deleted.config.mcp.server)?.includes('/github/mcp') === true;
 
     if (isGithub || isSlackWorkAppTool(deleted)) {
       try {

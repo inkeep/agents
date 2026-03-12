@@ -6,7 +6,11 @@ import { registerEncodingTools } from '../../../mcp-coreutils/tools/encoding';
 function createToolRegistry() {
   const tools = new Map<string, (args: any) => Promise<CallToolResult>>();
   const server = {
-    registerTool: (_name: string, _schema: any, handler: (args: any) => Promise<CallToolResult>) => {
+    registerTool: (
+      _name: string,
+      _schema: any,
+      handler: (args: any) => Promise<CallToolResult>
+    ) => {
       tools.set(_name, handler);
     },
   } as unknown as McpServer;
@@ -49,7 +53,10 @@ describe('url_encode', () => {
   });
 
   it('uses encodeURI when encodeComponent is false', async () => {
-    const result = await registry.call('url_encode', { input: 'https://example.com/path?q=1&r=2', encodeComponent: false });
+    const result = await registry.call('url_encode', {
+      input: 'https://example.com/path?q=1&r=2',
+      encodeComponent: false,
+    });
     expect(text(result)).toBe(encodeURI('https://example.com/path?q=1&r=2'));
   });
 });
@@ -78,7 +85,11 @@ describe('hash', () => {
   it('base64 encoding works', async () => {
     const { createHash } = await import('node:crypto');
     const expected = createHash('sha256').update('test', 'utf-8').digest('base64');
-    const result = await registry.call('hash', { input: 'test', algorithm: 'sha256', encoding: 'base64' });
+    const result = await registry.call('hash', {
+      input: 'test',
+      algorithm: 'sha256',
+      encoding: 'base64',
+    });
     expect(text(result)).toBe(expected);
   });
 });

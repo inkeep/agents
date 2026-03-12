@@ -6,7 +6,11 @@ import { registerUtilityTools } from '../../../mcp-coreutils/tools/utility';
 function createToolRegistry() {
   const tools = new Map<string, (args: any) => Promise<CallToolResult>>();
   const server = {
-    registerTool: (_name: string, _schema: any, handler: (args: any) => Promise<CallToolResult>) => {
+    registerTool: (
+      _name: string,
+      _schema: any,
+      handler: (args: any) => Promise<CallToolResult>
+    ) => {
       tools.set(_name, handler);
     },
   } as unknown as McpServer;

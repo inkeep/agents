@@ -55,9 +55,7 @@ export function registerTextTools(server: McpServer): void {
         onlyMatching: z
           .boolean()
           .optional()
-          .describe(
-            'Return only the matched portion of each line, like grep -o (default: false)'
-          ),
+          .describe('Return only the matched portion of each line, like grep -o (default: false)'),
         countOnly: z
           .boolean()
           .optional()
@@ -212,10 +210,7 @@ export function registerTextTools(server: McpServer): void {
           .boolean()
           .optional()
           .describe('Treat find/startPattern/endPattern as regular expressions (default: false)'),
-        caseSensitive: z
-          .boolean()
-          .optional()
-          .describe('Case-sensitive matching (default: true)'),
+        caseSensitive: z.boolean().optional().describe('Case-sensitive matching (default: true)'),
       }),
     },
     async (args): Promise<CallToolResult> => {
@@ -416,12 +411,15 @@ export function registerTextTools(server: McpServer): void {
         'Return the last N lines of text from the bottom, like Unix tail. Use a negative n to return all but the first N lines (e.g. n=-5 skips the first 5 lines).',
       inputSchema: z.object({
         content: z.unknown().describe('Input text (string or object)'),
-        n: z.number().describe('Lines to return from the bottom. Negative: all but first |n| lines.'),
+        n: z
+          .number()
+          .describe('Lines to return from the bottom. Negative: all but first |n| lines.'),
       }),
     },
     async (args): Promise<CallToolResult> => {
       const lines = coerceToString(args.content).split('\n');
-      const start = args.n >= 0 ? Math.max(0, lines.length - args.n) : Math.min(lines.length, -args.n);
+      const start =
+        args.n >= 0 ? Math.max(0, lines.length - args.n) : Math.min(lines.length, -args.n);
       return { content: [{ type: 'text', text: lines.slice(start).join('\n') }] };
     }
   );

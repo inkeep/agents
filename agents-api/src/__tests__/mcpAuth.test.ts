@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { signMcpAccessToken } from '@inkeep/agents-core';
 import { Hono } from 'hono';
+import { describe, expect, it } from 'vitest';
 import { mcpAuth } from '../middleware/mcpAuth';
 
 type TestVariables = { Variables: { tenantId: string; projectId: string } };

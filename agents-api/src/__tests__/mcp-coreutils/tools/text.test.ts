@@ -6,7 +6,11 @@ import { registerTextTools } from '../../../mcp-coreutils/tools/text';
 function createToolRegistry() {
   const tools = new Map<string, (args: any) => Promise<CallToolResult>>();
   const server = {
-    registerTool: (_name: string, _schema: any, handler: (args: any) => Promise<CallToolResult>) => {
+    registerTool: (
+      _name: string,
+      _schema: any,
+      handler: (args: any) => Promise<CallToolResult>
+    ) => {
       tools.set(_name, handler);
     },
   } as unknown as McpServer;
@@ -36,7 +40,11 @@ describe('grep', () => {
   });
 
   it('case insensitive when caseSensitive is false', async () => {
-    const result = await registry.call('grep', { pattern: 'banana', content, caseSensitive: false });
+    const result = await registry.call('grep', {
+      pattern: 'banana',
+      content,
+      caseSensitive: false,
+    });
     expect(text(result)).toContain('Banana');
   });
 
@@ -62,7 +70,11 @@ describe('grep', () => {
 
   it('beforeContext includes lines before match with -- separator', async () => {
     const multiline = 'line1\nline2\nline3\nline4\nline5';
-    const result = await registry.call('grep', { pattern: 'line3', content: multiline, beforeContext: 1 });
+    const result = await registry.call('grep', {
+      pattern: 'line3',
+      content: multiline,
+      beforeContext: 1,
+    });
     const output = text(result);
     expect(output).toContain('line2');
     expect(output).toContain('line3');
@@ -70,7 +82,11 @@ describe('grep', () => {
 
   it('afterContext includes lines after match with -- separator', async () => {
     const multiline = 'one\ntwo\nthree\nfour\nfive';
-    const result = await registry.call('grep', { pattern: 'one', content: multiline, afterContext: 1 });
+    const result = await registry.call('grep', {
+      pattern: 'one',
+      content: multiline,
+      afterContext: 1,
+    });
     const output = text(result);
     expect(output).toContain('one');
     expect(output).toContain('two');
@@ -78,7 +94,12 @@ describe('grep', () => {
 
   it('context adds separator -- between non-adjacent match groups', async () => {
     const multiline = 'a\nb\nc\nd\ne\nf\ng';
-    const result = await registry.call('grep', { pattern: '[ag]', content: multiline, isRegex: true, afterContext: 1 });
+    const result = await registry.call('grep', {
+      pattern: '[ag]',
+      content: multiline,
+      isRegex: true,
+      afterContext: 1,
+    });
     expect(text(result)).toContain('--');
   });
 
