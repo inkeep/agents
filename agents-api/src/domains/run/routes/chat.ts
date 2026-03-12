@@ -446,6 +446,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             }
           } catch (error) {
             logger.error({ error, runId: run.runId }, 'Error streaming durable execution');
+            await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
           }
         });
       }

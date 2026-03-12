@@ -215,12 +215,20 @@ app.openapi(chatDataStreamRoute, async (c) => {
         c.header('Connection', 'keep-alive');
 
         return stream(c, async (s) => {
-          const readable = run.getReadable({ namespace });
-          const reader = readable.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            await s.write(value);
+          try {
+            const readable = run.getReadable({ namespace });
+            const reader = readable.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              await s.write(value);
+            }
+          } catch (error) {
+            logger.error(
+              { error, executionId: durableExecution.id },
+              'Error streaming approval continuation'
+            );
+            await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
           }
         });
       }
@@ -476,6 +484,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               { error, runId: run.runId },
               'Error streaming durable execution via /chat'
             );
+            await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
           }
         });
       }
