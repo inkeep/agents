@@ -5763,8 +5763,36 @@
                   "server": {
                     "properties": {
                       "url": {
-                        "format": "uri",
-                        "type": "string"
+                        "anyOf": [
+                          {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-coreutils"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-http"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-media"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-search"
+                            ],
+                            "type": "string"
+                          }
+                        ]
                       }
                     },
                     "required": [
@@ -9116,8 +9144,36 @@
                   "server": {
                     "properties": {
                       "url": {
-                        "format": "uri",
-                        "type": "string"
+                        "anyOf": [
+                          {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-coreutils"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-http"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-media"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-search"
+                            ],
+                            "type": "string"
+                          }
+                        ]
                       }
                     },
                     "required": [
@@ -9326,8 +9382,36 @@
                   "server": {
                     "properties": {
                       "url": {
-                        "format": "uri",
-                        "type": "string"
+                        "anyOf": [
+                          {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-coreutils"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-http"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-media"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "inkeepBuiltIn:inkeep-search"
+                            ],
+                            "type": "string"
+                          }
+                        ]
                       }
                     },
                     "required": [
