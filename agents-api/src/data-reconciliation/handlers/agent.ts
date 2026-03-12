@@ -9,12 +9,6 @@ import {
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 
 export const agentHandlers = defineHandlers('agent', {
-  onCreated: async () => {
-    clearWorkspaceConnectionCache();
-  },
-  onUpdated: async () => {
-    clearWorkspaceConnectionCache();
-  },
   onDeleted: async (before, ctx) => {
     clearWorkspaceConnectionCache();
 

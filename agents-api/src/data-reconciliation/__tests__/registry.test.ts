@@ -250,18 +250,6 @@ describe('createEntityEffectRegistry', () => {
   });
 
   describe('agent', () => {
-    it('onCreated calls clearWorkspaceConnectionCache', async () => {
-      const h = getHandlers(registry, 'agent');
-      await h.onCreated?.({ id: 'agent-1' } as any, mockCtx);
-      expect(clearWorkspaceConnectionCache).toHaveBeenCalled();
-    });
-
-    it('onUpdated calls clearWorkspaceConnectionCache', async () => {
-      const h = getHandlers(registry, 'agent');
-      await h.onUpdated?.({ id: 'agent-1' } as any, { id: 'agent-1' } as any, mockCtx);
-      expect(clearWorkspaceConnectionCache).toHaveBeenCalled();
-    });
-
     it('onDeleted calls clearWorkspaceConnectionCache and cascadeDeleteByAgent', async () => {
       const h = getHandlers(registry, 'agent');
       const agent = { id: 'agent-1' } as any;
