@@ -1,4 +1,4 @@
-import { ChevronRight, File, Folder, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import NextLink from 'next/link';
 import type { FC } from 'react';
@@ -13,17 +13,11 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchProjectPermissions } from '@/lib/api/projects';
-import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import { renderTreeNode } from '@/components/skills/tree-node';
 
 export const metadata = {
   title: STATIC_LABELS.skills,
@@ -41,14 +35,6 @@ const description = (
 type DemoSkillFile = {
   filePath: string;
   content: string;
-};
-
-type DemoTreeNode = {
-  name: string;
-  path: string;
-  kind: 'folder' | 'file';
-  content?: string;
-  children: DemoTreeNode[];
 };
 
 const demoSkillTree: DemoSkillFile[] = [
@@ -125,54 +111,6 @@ function findFirstFile(nodes: readonly DemoTreeNode[]): DemoTreeNode | null {
   return null;
 }
 
-function renderTreeNode(
-  node: DemoTreeNode,
-  selectedPath: string,
-  collapsedPaths: ReadonlySet<string>,
-  buildFileHref: (path: string) => string,
-  buildFolderHref: (path: string) => string,
-  nested = false
-) {
-  const isCollapsed = collapsedPaths.has(node.path);
-  const isActive = node.kind === 'file' && node.path === selectedPath;
-  const IconToUse = node.kind === 'file' ? File : Folder;
-  const href = node.kind === 'file' ? buildFileHref(node.path) : buildFolderHref(node.path);
-  const ComponentToUse = nested ? SidebarMenuSubItem : SidebarMenuItem;
-  const ButtonToUse = nested ? SidebarMenuSubButton : SidebarMenuButton;
-
-  return (
-    <ComponentToUse key={node.path}>
-      <ButtonToUse asChild isActive={isActive}>
-        <NextLink href={href}>
-          <IconToUse />
-          <span className="min-w-0 flex-1 truncate">{node.name}</span>
-        </NextLink>
-      </ButtonToUse>
-      {node.kind === 'folder' && (
-        <SidebarMenuAction asChild className={cn(!isCollapsed && 'rotate-90')}>
-          <NextLink href={href}>
-            <ChevronRight className="size-4" />
-          </NextLink>
-        </SidebarMenuAction>
-      )}
-      {node.children.length > 0 && !isCollapsed && (
-        <SidebarMenuSub>
-          {node.children.map((child) =>
-            renderTreeNode(
-              child,
-              selectedPath,
-              collapsedPaths,
-              buildFileHref,
-              buildFolderHref,
-              true
-            )
-          )}
-        </SidebarMenuSub>
-      )}
-    </ComponentToUse>
-  );
-}
-
 const treeNodes = buildTree(demoSkillTree);
 
 const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({
@@ -191,7 +129,7 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
       : typeof rawSearchParams.collapsed === 'string'
         ? [rawSearchParams.collapsed]
         : [];
-    const collapsedPaths = new Set<string>(collapsedValues);
+    const collapsedPaths = new Set(collapsedValues);
     const fallbackNode = findFirstFile(treeNodes) ?? treeNodes[0] ?? null;
     const selectedNode = findNodeByPath(treeNodes, requestedPath) ?? fallbackNode;
     const selectedPath = selectedNode?.path ?? defaultSelectedPath;
