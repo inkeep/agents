@@ -155,6 +155,26 @@ export function formatDateTimeInTimezone(dateString: string, timezone: string): 
 }
 
 /**
+ * Formats a date string in the browser's local timezone.
+ * Returns a compact datetime string (no timezone abbreviation since the header indicates it).
+ */
+export function formatDateTimeLocal(dateString: string): string {
+  const normalized = normalizeDateString(dateString);
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(date);
+}
+
+/**
  * Returns the short timezone abbreviation (e.g., "EST", "PDT") for a given IANA timezone.
  */
 export function getTimezoneAbbreviation(timezone: string): string {
@@ -167,6 +187,16 @@ export function getTimezoneAbbreviation(timezone: string): string {
   } catch {
     return timezone;
   }
+}
+
+/**
+ * Returns the short abbreviation for the browser's local timezone (e.g., "PST", "EST").
+ */
+export function getLocalTimezoneAbbreviation(): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZoneName: 'short',
+  }).formatToParts(new Date());
+  return parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
 }
 
 export function formatDuration(durationMs: number): string {
