@@ -2,6 +2,7 @@ import { ChevronRight, File, Folder, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import NextLink from 'next/link';
 import type { FC } from 'react';
+import { PromptEditor } from '@/components/editors/prompt-editor';
 import FullPageError from '@/components/errors/full-page-error';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -11,8 +12,8 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarMenuAction,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -23,7 +24,6 @@ import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { PromptEditor } from '@/components/editors/prompt-editor';
 
 export const metadata = {
   title: STATIC_LABELS.skills,
@@ -52,26 +52,11 @@ type DemoTreeNode = {
 };
 
 const demoSkillTree: DemoSkillFile[] = [
-  {
-    filePath: 'foo/SKILL.md',
-    content: '1',
-  },
-  {
-    filePath: 'foo/LICENCE.txt',
-    content: '2',
-  },
-  {
-    filePath: 'bar/baz/hello.txt',
-    content: '3',
-  },
-  {
-    filePath: 'bar/baz/index.html',
-    content: '4',
-  },
-  {
-    filePath: 'bar/SKILL.md',
-    content: '5',
-  },
+  { filePath: 'foo/SKILL.md', content: '1' },
+  { filePath: 'foo/LICENCE.txt', content: '2' },
+  { filePath: 'bar/baz/hello.txt', content: '3' },
+  { filePath: 'bar/baz/index.html', content: '4' },
+  { filePath: 'bar/SKILL.md', content: '5' },
 ] as const;
 
 const defaultSelectedPath = demoSkillTree[0]?.filePath ?? '';
