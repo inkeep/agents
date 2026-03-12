@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Generate SDK
-        uses: speakeasy-api/sdk-generation-action@b823adc6be7d30b25198529f99f46303bc083534 # v15
+        uses: speakeasy-api/sdk-generation-action@c134c5aa6db912aa0fbd225c6ca3a61dd78343be # v15
         with:
           speakeasy_api_key: ${{ secrets.SPEAKEASY_API_KEY }}
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
