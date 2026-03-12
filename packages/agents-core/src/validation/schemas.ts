@@ -48,6 +48,7 @@ import {
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
+  feedback,
   ledgerArtifacts,
   messages,
   projectMetadata,
@@ -1289,6 +1290,22 @@ export const MessageApiInsertSchema =
   createApiInsertSchema(MessageInsertSchema).openapi('MessageCreate');
 export const MessageApiUpdateSchema =
   createApiUpdateSchema(MessageUpdateSchema).openapi('MessageUpdate');
+
+export const FeedbackSelectSchema = createSelectSchema(feedback);
+export const FeedbackInsertSchema = createInsertSchema(feedback).extend({
+  id: ResourceIdSchema,
+  conversationId: ResourceIdSchema,
+  messageId: ResourceIdSchema.optional(),
+  type: z.enum(['positive', 'negative']),
+  userType: z.enum(['user', 'api_key']).optional(),
+});
+export const FeedbackUpdateSchema = FeedbackInsertSchema.partial();
+
+export const FeedbackApiSelectSchema = createApiSchema(FeedbackSelectSchema).openapi('Feedback');
+export const FeedbackApiInsertSchema =
+  createApiInsertSchema(FeedbackInsertSchema).openapi('FeedbackCreate');
+export const FeedbackApiUpdateSchema =
+  createApiUpdateSchema(FeedbackUpdateSchema).openapi('FeedbackUpdate');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache);
 export const ContextCacheInsertSchema = createInsertSchema(contextCache).extend({
@@ -2763,6 +2780,9 @@ export const TriggerResponse = z
 export const TriggerInvocationResponse = z
   .object({ data: TriggerInvocationApiSelectSchema })
   .openapi('TriggerInvocationResponse');
+export const FeedbackResponse = z
+  .object({ data: FeedbackApiSelectSchema })
+  .openapi('FeedbackResponse');
 
 export const ProjectListResponse = z
   .object({
@@ -2874,6 +2894,12 @@ export const TriggerInvocationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('TriggerInvocationListResponse');
+export const FeedbackListResponse = z
+  .object({
+    data: z.array(FeedbackApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('FeedbackListResponse');
 export const TriggerWithWebhookUrlResponse = z
   .object({
     data: TriggerWithWebhookUrlSchema,
