@@ -184,16 +184,23 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const isDurable = durableExecution?.status === 'suspended';
 
       if (isDurable && durableExecution) {
-        await Promise.all(
+        await Promise.allSettled(
           approvalParts.map(async (approvalPart: any) => {
             const toolCallId = approvalPart.toolCallId as string;
             const approved = !!approvalPart.approval?.approved;
             const reason = approvalPart.approval?.reason as string | undefined;
             const token = `tool-approval:${conversationId}:${durableExecution.id}:${toolCallId}`;
-            await toolApprovalHook.resume(token, {
-              approved,
-              reason: approved ? undefined : reason,
-            });
+            try {
+              await toolApprovalHook.resume(token, {
+                approved,
+                reason: approved ? undefined : reason,
+              });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              if (!message.includes('not found') && !message.includes('already')) {
+                throw error;
+              }
+            }
           })
         );
 

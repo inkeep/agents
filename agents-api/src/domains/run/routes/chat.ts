@@ -430,6 +430,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
         logger.info({ runId: run.runId, conversationId, agentId }, 'Durable execution started');
 
+        c.header('Content-Type', 'text/event-stream');
+        c.header('Cache-Control', 'no-cache');
+        c.header('Connection', 'keep-alive');
         c.header('x-workflow-run-id', run.runId);
 
         return stream(c, async (s) => {
