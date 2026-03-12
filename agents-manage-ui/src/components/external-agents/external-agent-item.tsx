@@ -23,24 +23,8 @@ import type { ExternalAgent } from '@/lib/types/external-agents';
 import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';
 import { Badge } from '../ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { DeleteExternalAgentConfirmation } from './delete-external-agent-confirmation';
-
-// URL Display Component with ellipsis and tooltip
-function URLDisplay({ url }: { url: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="rounded py-1 min-w-0">
-          <code className="text-sm text-muted-foreground block truncate">{url}</code>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="max-w-md">
-        <code className="text-xs break-all">{url}</code>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
+import { URLDisplay } from '@/components/url-display';
 
 interface ExternalAgentDialogMenuProps {
   externalAgentId: string;
@@ -130,7 +114,7 @@ export function ExternalAgentItem({
             </p>
           )}
 
-          <URLDisplay url={externalAgent.baseUrl} />
+          <URLDisplay>{externalAgent.baseUrl}</URLDisplay>
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">
