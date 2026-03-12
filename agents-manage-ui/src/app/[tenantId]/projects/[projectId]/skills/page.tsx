@@ -1,4 +1,4 @@
-import { File, Folder, FolderTree, Plus } from 'lucide-react';
+import { ChevronRight, File, Folder, FolderTree, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import NextLink from 'next/link';
 import type { FC } from 'react';
@@ -145,6 +145,8 @@ function renderTreeNode(
 ) {
   const isActive = node.path === selectedPath;
   const icon = node.kind === 'file' ? <File /> : nested ? <Folder /> : <FolderTree />;
+  const arrow =
+    node.kind === 'folder' ? <ChevronRight className="ml-auto size-4 shrink-0 rotate-90" /> : null;
 
   if (!nested) {
     return (
@@ -152,7 +154,8 @@ function renderTreeNode(
         <SidebarMenuButton asChild isActive={isActive}>
           <NextLink href={buildHref(node.path)}>
             {icon}
-            <span>{node.name}</span>
+            <span className="min-w-0 flex-1 truncate">{node.name}</span>
+            {arrow}
           </NextLink>
         </SidebarMenuButton>
         {node.children.length ? (
@@ -169,7 +172,8 @@ function renderTreeNode(
       <SidebarMenuSubButton asChild isActive={isActive}>
         <NextLink href={buildHref(node.path)}>
           {icon}
-          <span>{node.name}</span>
+          <span className="min-w-0 flex-1 truncate">{node.name}</span>
+          {arrow}
         </NextLink>
       </SidebarMenuSubButton>
       {node.children.length ? (
@@ -238,51 +242,31 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
               </SidebarContent>
             </aside>
             <section className="min-w-0 overflow-auto p-6">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                    Preview
-                  </p>
-                  <div>
-                    <h2 className="text-xl font-semibold">{selectedNode.name}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Showing <code>{selectedNode.path}</code>
+              {selectedNode.kind === 'file' ? (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                      Preview
                     </p>
+                    <div>
+                      <h2 className="text-xl font-semibold">{selectedNode.name}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Showing <code>{selectedNode.path}</code>
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="overflow-hidden rounded-lg border bg-muted/10">
-                  <div className="border-b px-4 py-3 text-sm font-medium">{selectedNode.path}</div>
-                  {selectedNode.kind === 'file' ? (
+                  <div className="overflow-hidden rounded-lg border bg-muted/10">
+                    <div className="border-b px-4 py-3 text-sm font-medium">
+                      {selectedNode.path}
+                    </div>
                     <pre className="overflow-x-auto p-4 text-sm leading-6">
                       {selectedNode.content}
                     </pre>
-                  ) : (
-                    <div className="space-y-3 p-4 text-sm">
-                      <p className="text-muted-foreground">
-                        This folder contains {selectedNode.children.length} direct item
-                        {selectedNode.children.length === 1 ? '' : 's'}.
-                      </p>
-                      <ul className="space-y-2">
-                        {selectedNode.children.map((child) => (
-                          <li key={child.path}>
-                            <NextLink
-                              href={buildHref(child.path)}
-                              className="flex items-center gap-2 rounded-md border px-3 py-2 hover:bg-accent hover:text-accent-foreground"
-                            >
-                              {child.kind === 'file' ? (
-                                <File className="size-4" />
-                              ) : (
-                                <Folder className="size-4" />
-                              )}
-                              <span>{child.name}</span>
-                            </NextLink>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="min-h-80" />
+              )}
             </section>
           </div>
         </div>
