@@ -26,7 +26,7 @@
     "db:auth:init": "node node_modules/@inkeep/agents-core/dist/auth/init.js"
   },
   "dependencies": {
-    "@inkeep/agents-core": "^0.58.5",
+    "@inkeep/agents-core": "^0.58.13",
     "@inkeep/agents-manage-ui": "^0.58.5",
     "@inkeep/agents-sdk": "^0.58.5",
     "@tailwindcss/vite": "^4.1.14",
