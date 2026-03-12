@@ -19,10 +19,16 @@ permissions:
   packages: write
   id-token: write
 
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      tag: ${{ steps.release-tag.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -106,12 +112,163 @@ jobs:
           # Extract everything from "# Releases" onward and replace with "# Changelog"
           CHANGELOG=$(echo "$PR_BODY" | sed -n '/^# Releases/,$p' | sed '1s/^# Releases/# Changelog/')
 
-          # Pin the release tag to the exact commit that was built and published.
-          # The app token ensures the release:published event triggers the
-          # downstream Vercel production deploy workflow.
           gh release create "v${VERSION}" \
             --target "${{ github.sha }}" \
             --title "${RELEASE_DATE}" \
             --notes "$CHANGELOG"
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Set release tag output
+        id: release-tag
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          VERSION=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[0].version')
+          echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+
+  # ---------------------------------------------------------------------------
+  # Production deployment jobs (run only when packages are actually published)
+  # ---------------------------------------------------------------------------
+
+  migrate-databases:
+    name: Migrate databases
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Install
+        uses: ./.github/composite-actions/install
+
+      - name: Validate migration history
+        run: pnpm db:check
+
+      - name: Migrate runtime database (Postgres)
+        run: pnpm db:run:migrate
+        env:
+          INKEEP_AGENTS_RUN_DATABASE_URL: ${{ secrets.INKEEP_AGENTS_RUN_DATABASE_URL }}
+
+      - name: Migrate manage database (Doltgres)
+        id: manage-migrate
+        run: pnpm db:manage:migrate
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: ${{ secrets.INKEEP_AGENTS_MANAGE_DATABASE_URL }}
+
+      - name: Sync Doltgres schema to all branches
+        if: steps.manage-migrate.outputs.migrations_applied == 'true'
+        run: pnpm --filter @inkeep/agents-core db:manage:sync-all-branches
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: ${{ secrets.INKEEP_AGENTS_MANAGE_DATABASE_URL }}
+
+  deploy-agents-api:
+    name: Deploy agents-api
+    needs: [release, migrate-databases]
+    if: needs.release.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Set Project ID
+        run: echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }}" >> $GITHUB_ENV
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Production
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }})
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: Failed to capture deployment URL"
+            exit 1
+          fi
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOYMENT_URL"
+
+      - name: Wait for Deployment Checks
+        run: |
+          echo "Waiting for Vercel deployment checks to complete..."
+          vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --wait
+
+  deploy-agents-manage-ui:
+    name: Deploy agents-manage-ui
+    needs: [release, migrate-databases]
+    if: needs.release.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Set Project ID
+        run: echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}" >> $GITHUB_ENV
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Production
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }})
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: Failed to capture deployment URL"
+            exit 1
+          fi
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOYMENT_URL"
+
+      - name: Wait for Deployment Checks
+        run: |
+          echo "Waiting for Vercel deployment checks to complete..."
+          vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --wait
+
+  promote:
+    name: Promote all to production
+    needs: [release, deploy-agents-api, deploy-agents-manage-ui]
+    if: needs.release.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Promote agents-api
+        run: |
+          echo "Promoting agents-api to production..."
+          if ! OUTPUT=$(vercel promote ${{ needs.deploy-agents-api.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} 2>&1); then
+            if echo "$OUTPUT" | grep -q "already the current production deployment"; then
+              echo "::warning::agents-api deployment is already the current production deployment, skipping promote"
+            else
+              echo "$OUTPUT"
+              exit 1
+            fi
+          fi
+
+      - name: Promote agents-manage-ui
+        run: |
+          echo "Promoting agents-manage-ui to production..."
+          if ! OUTPUT=$(vercel promote ${{ needs.deploy-agents-manage-ui.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} 2>&1); then
+            if echo "$OUTPUT" | grep -q "already the current production deployment"; then
+              echo "::warning::agents-manage-ui deployment is already the current production deployment, skipping promote"
+            else
+              echo "$OUTPUT"
+              exit 1
+            fi
+          fi

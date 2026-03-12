@@ -1,10 +1,8 @@
 name: Deploy to Vercel Production
 
-# This workflow deploys to Vercel production when a GitHub release is published,
-# or manually via workflow_dispatch (deploys latest main).
-# 1. Deploy both projects with --prod (builds with production env vars, may auto-promote)
-# 2. Wait for Vercel deployment checks to pass (configured in Vercel dashboard)
-# 3. Explicitly promote both to current production (tolerates already-promoted deployments)
+# Manual re-deploy / rollback workflow.
+# The primary production deploy is handled by release.yml after a successful
+# changesets publish. Use this workflow only for manual re-deploys or rollbacks.
 #
 # Required secrets (configure in GitHub Repository Settings > Secrets):
 # - VERCEL_TOKEN: API token from Vercel Dashboard > Settings > Tokens
@@ -15,9 +13,12 @@ name: Deploy to Vercel Production
 # - INKEEP_AGENTS_MANAGE_DATABASE_URL: Production Doltgres connection string (manage DB)
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to deploy (tag, branch, or SHA). Defaults to main."
+        required: false
+        default: "main"
 
 permissions:
   contents: read
@@ -33,7 +34,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          ref: ${{ github.event.release.tag_name || 'main' }}
+          ref: ${{ inputs.ref }}
 
       - name: Install
         uses: ./.github/composite-actions/install
@@ -68,7 +69,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          ref: ${{ github.event.release.tag_name || 'main' }}
+          ref: ${{ inputs.ref }}
 
       - name: Set Project ID
         run: echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }}" >> $GITHUB_ENV
@@ -105,7 +106,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          ref: ${{ github.event.release.tag_name || 'main' }}
+          ref: ${{ inputs.ref }}
 
       - name: Set Project ID
         run: echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}" >> $GITHUB_ENV
