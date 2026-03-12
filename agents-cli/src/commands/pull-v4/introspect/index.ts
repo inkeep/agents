@@ -330,10 +330,13 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         const localProjectDefinition = await localProjectForId.getFullDefinition();
         await apiClient.pushFullProject(projectId, tempBranchName, localProjectDefinition);
 
+        // Merge main INTO temp branch so the temp branch gets a reconciled result
+        // (main's changes + user's local changes). We then pull from the temp branch.
+        // We must NOT merge temp into main — that would push local edits to main.
         s.message('Detecting conflicts...');
         const preview = await apiClient.mergePreview(projectId, {
-          sourceBranch: tempBranchName,
-          targetBranch: 'main',
+          sourceBranch: 'main',
+          targetBranch: tempBranchName,
         });
 
         if (preview.hasConflicts) {
@@ -343,25 +346,28 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
 
           s.start('Executing merge with resolutions...');
           await apiClient.mergeExecute(projectId, {
-            sourceBranch: tempBranchName,
-            targetBranch: 'main',
+            sourceBranch: 'main',
+            targetBranch: tempBranchName,
             sourceHash: preview.sourceHash,
             targetHash: preview.targetHash,
             resolutions,
-            message: 'CLI pull: merge with conflict resolutions',
+            message: 'CLI pull: merge main into local state',
           });
           s.stop('Merge completed');
         } else {
           s.message('Clean merge — no conflicts');
 
           await apiClient.mergeExecute(projectId, {
-            sourceBranch: tempBranchName,
-            targetBranch: 'main',
+            sourceBranch: 'main',
+            targetBranch: tempBranchName,
             sourceHash: preview.sourceHash,
             targetHash: preview.targetHash,
-            message: 'CLI pull: clean merge',
+            message: 'CLI pull: merge main into local state',
           });
         }
+        // Fetch the reconciled project from the temp branch before cleanup
+        s.start('Fetching merged project state...');
+        remoteProject = await apiClient.getFullProject(projectId, tempBranchName);
       } finally {
         try {
           await apiClient.deleteBranch(projectId, tempBranchName);
@@ -369,9 +375,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
           // best-effort cleanup
         }
       }
-
-      s.start('Fetching merged project state...');
-      remoteProject = await apiClient.getFullProject(projectId);
     } else {
       // Todo: we can probably just exit here because there is nothing new to pull
       remoteProject = await apiClient.getFullProject(projectId);
