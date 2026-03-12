@@ -5,7 +5,6 @@ import {
   listAgentIdsByProject,
   listApiKeysByProject,
   listSlackChannelAgentConfigsByProject,
-  listSubAgents,
 } from '@inkeep/agents-core';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 
@@ -19,15 +18,6 @@ export const agentHandlers = defineHandlers('agent', {
   onDeleted: async (before, ctx) => {
     clearWorkspaceConnectionCache();
 
-    const subAgentsList = await listSubAgents(ctx.manageDb)({
-      scopes: {
-        tenantId: ctx.scopes.tenantId,
-        projectId: ctx.scopes.projectId,
-        agentId: before.id,
-      },
-    });
-    const subAgentIds = subAgentsList.map((sa) => sa.id);
-
     await cascadeDeleteByAgent(ctx.runDb)({
       scopes: {
         tenantId: ctx.scopes.tenantId,
@@ -35,7 +25,7 @@ export const agentHandlers = defineHandlers('agent', {
         agentId: before.id,
       },
       fullBranchName: ctx.fullBranchName,
-      subAgentIds,
+      subAgentIds: [],
     });
   },
   check: async (ctx): Promise<OrphanedRuntimeRowsResult> => {

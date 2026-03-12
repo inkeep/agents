@@ -1,6 +1,11 @@
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
-import type { AgentSelect, ContextConfigSelect, ToolSelect } from '../types/entities';
+import type {
+  AgentSelect,
+  ContextConfigSelect,
+  SubAgentSelect,
+  ToolSelect,
+} from '../types/entities';
 import type { PinoLogger } from '../utils/logger';
 import type { ScheduledTrigger } from '../validation/schemas';
 
@@ -9,6 +14,7 @@ export type EntityRowByTable = {
   tools: ToolSelect;
   context_configs: ContextConfigSelect;
   agent: AgentSelect;
+  sub_agents: SubAgentSelect;
 };
 
 export type EntityOperation = 'insert' | 'update' | 'delete';

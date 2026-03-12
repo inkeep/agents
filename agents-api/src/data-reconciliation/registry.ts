@@ -2,6 +2,7 @@ import type { EntityEffectRegistry } from '@inkeep/agents-core';
 import { agentHandlers } from './handlers/agent';
 import { contextConfigsHandlers } from './handlers/context-configs';
 import { scheduledTriggersHandlers } from './handlers/scheduled-triggers';
+import { subAgentsHandlers } from './handlers/sub-agents';
 import { toolsHandlers } from './handlers/tools';
 
 export function createEntityEffectRegistry(): EntityEffectRegistry {
@@ -10,5 +11,6 @@ export function createEntityEffectRegistry(): EntityEffectRegistry {
     tools: toolsHandlers,
     context_configs: contextConfigsHandlers,
     agent: agentHandlers,
+    sub_agents: subAgentsHandlers,
   };
 }

@@ -27,9 +27,9 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     cascadeDeleteByTool: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     cascadeDeleteByContextConfig: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     cascadeDeleteByAgent: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
+    cascadeDeleteBySubAgent: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     isGithubWorkAppTool: vi.fn((tool) => tool.config?.mcp?.server?.url?.includes('/github/mcp')),
     isSlackWorkAppTool: vi.fn((tool) => tool.config?.mcp?.server?.url?.includes('/slack/mcp')),
-    listSubAgents: vi.fn(() => vi.fn().mockResolvedValue([])),
     listEnabledScheduledTriggers: vi.fn(() => vi.fn().mockResolvedValue([])),
     listScheduledWorkflowsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listToolIdsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
@@ -47,6 +47,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 import {
   cascadeDeleteByAgent,
   cascadeDeleteByContextConfig,
+  cascadeDeleteBySubAgent,
   cascadeDeleteByTool,
   listAgentIdsByProject,
   listApiKeysByProject,
@@ -58,7 +59,6 @@ import {
   listScheduledWorkflowsByProject,
   listSlackChannelAgentConfigsByProject,
   listSlackToolAccessConfigByProject,
-  listSubAgents,
   listToolIdsByProject,
 } from '@inkeep/agents-core';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
@@ -239,22 +239,11 @@ describe('createEntityEffectRegistry', () => {
     });
 
     it('onDeleted calls clearWorkspaceConnectionCache and cascadeDeleteByAgent', async () => {
-      const subAgentsMock = vi.fn().mockResolvedValue([{ id: 'sub-1' }, { id: 'sub-2' }]);
-      vi.mocked(listSubAgents).mockReturnValue(subAgentsMock as any);
-
       const h = getHandlers(registry, 'agent');
       const agent = { id: 'agent-1' } as any;
       await h.onDeleted?.(agent, mockCtx);
 
       expect(clearWorkspaceConnectionCache).toHaveBeenCalled();
-      expect(listSubAgents).toHaveBeenCalledWith(mockCtx.manageDb);
-      expect(subAgentsMock).toHaveBeenCalledWith({
-        scopes: {
-          tenantId: 'tenant-1',
-          projectId: 'project-1',
-          agentId: 'agent-1',
-        },
-      });
       expect(cascadeDeleteByAgent).toHaveBeenCalledWith(mockCtx.runDb);
       expect(vi.mocked(cascadeDeleteByAgent).mock.results[0]?.value).toHaveBeenCalledWith({
         scopes: {
@@ -263,7 +252,25 @@ describe('createEntityEffectRegistry', () => {
           agentId: 'agent-1',
         },
         fullBranchName: 'tenant-1_project-1_main',
-        subAgentIds: ['sub-1', 'sub-2'],
+        subAgentIds: [],
+      });
+    });
+  });
+
+  describe('sub_agents', () => {
+    it('onDeleted calls cascadeDeleteBySubAgent', async () => {
+      const h = getHandlers(registry, 'sub_agents');
+      const subAgent = { id: 'sub-1' } as any;
+      await h.onDeleted?.(subAgent, mockCtx);
+
+      expect(cascadeDeleteBySubAgent).toHaveBeenCalledWith(mockCtx.runDb);
+      expect(vi.mocked(cascadeDeleteBySubAgent).mock.results[0]?.value).toHaveBeenCalledWith({
+        scopes: {
+          tenantId: 'tenant-1',
+          projectId: 'project-1',
+        },
+        subAgentId: 'sub-1',
+        fullBranchName: 'tenant-1_project-1_main',
       });
     });
   });

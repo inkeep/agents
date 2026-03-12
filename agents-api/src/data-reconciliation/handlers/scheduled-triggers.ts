@@ -57,6 +57,7 @@ export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
       .map((t) => ({
         triggerId: t.id,
         triggerName: t.name,
+        // biome-ignore lint/style/noNonNullAssertion: gauranteed by the filter above
         workflowId: workflowsByTriggerId.get(t.id)!.id,
       }));
 
@@ -69,6 +70,7 @@ export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
 
     const verificationResults = await Promise.allSettled(
       workflowsToVerify.map(async (w) => {
+        // biome-ignore lint/style/noNonNullAssertion: gauranteed by the filter above
         const run = await world.runs.get(w.workflowRunId!);
         return { workflow: w, run };
       })
@@ -81,6 +83,7 @@ export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
 
       if (result.status === 'rejected') {
         verificationFailures.push({
+          // biome-ignore lint/style/noNonNullAssertion: gauranteed by the filter above
           workflowRunId: wf.workflowRunId!,
           error: result.reason instanceof Error ? result.reason.message : String(result.reason),
         });
@@ -97,6 +100,7 @@ export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
         deadWorkflows.push({
           triggerId: wf.scheduledTriggerId,
           triggerName: trigger?.name ?? wf.scheduledTriggerId,
+          // biome-ignore lint/style/noNonNullAssertion: gauranteed by the filter above
           workflowRunId: wf.workflowRunId!,
           runStatus: run?.status ?? 'not_found',
         });
