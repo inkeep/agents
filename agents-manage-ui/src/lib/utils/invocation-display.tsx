@@ -1,5 +1,6 @@
 import { Ban, CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { formatDateTimeInTimezone } from '@/lib/utils/format-date';
 
 export type InvocationStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
@@ -60,17 +61,7 @@ export function formatInvocationDateTime(
 ): string {
   if (!dateString) return '—';
   if (timezone) {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-      timeZone: timezone,
-      timeZoneName: 'short',
-    }).format(new Date(dateString));
+    return formatDateTimeInTimezone(dateString, timezone);
   }
   return new Date(dateString).toLocaleString();
 }
