@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-UX improvements for the app id form
+Improve app creation flow with searchable agent selection and streamlined type picker
