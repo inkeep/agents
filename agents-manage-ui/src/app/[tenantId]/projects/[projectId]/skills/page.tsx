@@ -135,61 +135,27 @@ function renderTreeNode(
 ) {
   const isCollapsed = collapsedPaths.has(node.path);
   const isActive = node.kind === 'file' && node.path === selectedPath;
-  const icon = node.kind === 'file' ? <File /> : <Folder />;
+  const IconToUse = node.kind === 'file' ? File : Folder;
   const href = node.kind === 'file' ? buildFileHref(node.path) : buildFolderHref(node.path);
-
-  if (!nested) {
-    return (
-      <SidebarMenuItem key={node.path}>
-        <SidebarMenuButton asChild isActive={isActive}>
-          <NextLink href={href}>
-            {icon}
-            <span className="min-w-0 flex-1 truncate">{node.name}</span>
-          </NextLink>
-        </SidebarMenuButton>
-        {node.kind === 'folder' && (
-          <SidebarMenuAction asChild className={cn(!isCollapsed && 'rotate-90')}>
-            <NextLink href={href}>
-              <ChevronRight className="size-4" />
-            </NextLink>
-          </SidebarMenuAction>
-        )}
-        {node.children.length && !isCollapsed ? (
-          <SidebarMenuSub>
-            {node.children.map((child) =>
-              renderTreeNode(
-                child,
-                selectedPath,
-                collapsedPaths,
-                buildFileHref,
-                buildFolderHref,
-                true
-              )
-            )}
-          </SidebarMenuSub>
-        ) : null}
-      </SidebarMenuItem>
-    );
-  }
+  const ComponentToUse = nested ? SidebarMenuSubItem : SidebarMenuItem;
+  const ButtonToUse = nested ? SidebarMenuSubButton : SidebarMenuButton;
 
   return (
-    <SidebarMenuSubItem key={node.path}>
-      <SidebarMenuSubButton
-        asChild
-        isActive={isActive}
-        className={cn(node.kind === 'folder' && 'pr-8')}
-      >
+    <ComponentToUse key={node.path}>
+      <ButtonToUse asChild isActive={isActive}>
         <NextLink href={href}>
-          {icon}
+          <IconToUse />
           <span className="min-w-0 flex-1 truncate">{node.name}</span>
         </NextLink>
-      </SidebarMenuSubButton>
+      </ButtonToUse>
       {node.kind === 'folder' && (
-        <SidebarMenuAction className={cn('top-1 right-1', !isCollapsed && 'rotate-90')}>
-          <ChevronRight className="size-4" />
+        <SidebarMenuAction asChild className={cn(!isCollapsed && 'rotate-90')}>
+          <NextLink href={href}>
+            <ChevronRight className="size-4" />
+          </NextLink>
         </SidebarMenuAction>
       )}
-      {node.children.length && !isCollapsed ? (
+      {node.children.length > 0 && !isCollapsed && (
         <SidebarMenuSub>
           {node.children.map((child) =>
             renderTreeNode(
@@ -202,8 +168,8 @@ function renderTreeNode(
             )
           )}
         </SidebarMenuSub>
-      ) : null}
-    </SidebarMenuSubItem>
+      )}
+    </ComponentToUse>
   );
 }
 
