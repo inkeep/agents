@@ -124,7 +124,7 @@ export function AppUpdateForm({
           control={form.control}
           name="defaultAgentId"
           label="Default Agent"
-          options={[...agentOptions]}
+          options={agentOptions}
           placeholder="Select a default agent"
           searchPlaceholder="Search agents..."
           clearable

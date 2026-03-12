@@ -74,7 +74,9 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>New App</DialogTitle>
+            <DialogTitle>
+              New {APP_TYPE_OPTIONS.find((o) => o.value === selectedType)?.label}
+            </DialogTitle>
             <DialogDescription className="sr-only">Configure your new app.</DialogDescription>
           </DialogHeader>
           <div className="pt-4">
