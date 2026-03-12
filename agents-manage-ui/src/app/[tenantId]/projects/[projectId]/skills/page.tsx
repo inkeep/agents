@@ -1,7 +1,6 @@
 import { ChevronRight, File, Folder, FolderTree, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import NextLink from 'next/link';
-import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -20,6 +19,7 @@ import {
 } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchProjectPermissions } from '@/lib/api/projects';
+import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const metadata = {
@@ -128,9 +128,9 @@ function findFirstFile(nodes: readonly DemoTreeNode[]): DemoTreeNode | null {
       return node;
     }
 
-    const childFile = findFirstFile(node.children);
-    if (childFile) {
-      return childFile;
+    const childMatch = findFirstFile(node.children);
+    if (childMatch) {
+      return childMatch;
     }
   }
 
@@ -140,27 +140,44 @@ function findFirstFile(nodes: readonly DemoTreeNode[]): DemoTreeNode | null {
 function renderTreeNode(
   node: DemoTreeNode,
   selectedPath: string,
-  buildHref: (path: string) => string,
+  collapsedPaths: ReadonlySet<string>,
+  buildFileHref: (path: string) => string,
+  buildFolderHref: (path: string) => string,
   nested = false
 ) {
-  const isActive = node.path === selectedPath;
+  const isCollapsed = collapsedPaths.has(node.path);
+  const isActive = node.kind === 'file' && node.path === selectedPath;
   const icon = node.kind === 'file' ? <File /> : nested ? <Folder /> : <FolderTree />;
+  const href = node.kind === 'file' ? buildFileHref(node.path) : buildFolderHref(node.path);
   const arrow =
-    node.kind === 'folder' ? <ChevronRight className="ml-auto size-4 shrink-0 rotate-90" /> : null;
+    node.kind === 'folder' ? (
+      <ChevronRight
+        className={cn('ml-auto size-4 shrink-0 transition-transform', !isCollapsed && 'rotate-90')}
+      />
+    ) : null;
 
   if (!nested) {
     return (
       <SidebarMenuItem key={node.path}>
         <SidebarMenuButton asChild isActive={isActive}>
-          <NextLink href={buildHref(node.path)}>
+          <NextLink href={href}>
             {icon}
             <span className="min-w-0 flex-1 truncate">{node.name}</span>
             {arrow}
           </NextLink>
         </SidebarMenuButton>
-        {node.children.length ? (
+        {node.children.length && !isCollapsed ? (
           <SidebarMenuSub>
-            {node.children.map((child) => renderTreeNode(child, selectedPath, buildHref, true))}
+            {node.children.map((child) =>
+              renderTreeNode(
+                child,
+                selectedPath,
+                collapsedPaths,
+                buildFileHref,
+                buildFolderHref,
+                true
+              )
+            )}
           </SidebarMenuSub>
         ) : null}
       </SidebarMenuItem>
@@ -170,15 +187,24 @@ function renderTreeNode(
   return (
     <SidebarMenuSubItem key={node.path}>
       <SidebarMenuSubButton asChild isActive={isActive}>
-        <NextLink href={buildHref(node.path)}>
+        <NextLink href={href}>
           {icon}
           <span className="min-w-0 flex-1 truncate">{node.name}</span>
           {arrow}
         </NextLink>
       </SidebarMenuSubButton>
-      {node.children.length ? (
+      {node.children.length && !isCollapsed ? (
         <SidebarMenuSub>
-          {node.children.map((child) => renderTreeNode(child, selectedPath, buildHref, true))}
+          {node.children.map((child) =>
+            renderTreeNode(
+              child,
+              selectedPath,
+              collapsedPaths,
+              buildFileHref,
+              buildFolderHref,
+              true
+            )
+          )}
         </SidebarMenuSub>
       ) : null}
     </SidebarMenuSubItem>
@@ -198,11 +224,39 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
     const permissions = await fetchProjectPermissions(tenantId, projectId);
     const requestedPath =
       typeof rawSearchParams.path === 'string' ? rawSearchParams.path : defaultSelectedPath;
+    const collapsedPaths = new Set(
+      Array.isArray(rawSearchParams.collapsed)
+        ? rawSearchParams.collapsed
+        : typeof rawSearchParams.collapsed === 'string'
+          ? [rawSearchParams.collapsed]
+          : []
+    );
     const fallbackNode = findFirstFile(treeNodes) ?? treeNodes[0] ?? null;
     const selectedNode = findNodeByPath(treeNodes, requestedPath) ?? fallbackNode;
     const selectedPath = selectedNode?.path ?? defaultSelectedPath;
-    const buildHref = (targetPath: string) =>
-      `/${tenantId}/projects/${projectId}/skills?path=${encodeURIComponent(targetPath)}`;
+
+    const buildSearch = (nextPath: string, nextCollapsedPaths: ReadonlySet<string>) => {
+      const nextSearchParams = new URLSearchParams();
+      if (nextPath) {
+        nextSearchParams.set('path', nextPath);
+      }
+      for (const collapsedPath of [...nextCollapsedPaths].sort()) {
+        nextSearchParams.append('collapsed', collapsedPath);
+      }
+      return nextSearchParams.toString();
+    };
+
+    const buildFileHref = (targetPath: string) =>
+      `/${tenantId}/projects/${projectId}/skills?${buildSearch(targetPath, collapsedPaths)}`;
+    const buildFolderHref = (targetPath: string) => {
+      const nextCollapsedPaths = new Set(collapsedPaths);
+      if (nextCollapsedPaths.has(targetPath)) {
+        nextCollapsedPaths.delete(targetPath);
+      } else {
+        nextCollapsedPaths.add(targetPath);
+      }
+      return `/${tenantId}/projects/${projectId}/skills?${buildSearch(selectedPath, nextCollapsedPaths)}`;
+    };
 
     const action = permissions.canEdit ? (
       <Button asChild className="flex items-center gap-2">
@@ -235,7 +289,15 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
                   <SidebarGroupLabel>Library</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {treeNodes.map((node) => renderTreeNode(node, selectedPath, buildHref))}
+                      {treeNodes.map((node) =>
+                        renderTreeNode(
+                          node,
+                          selectedPath,
+                          collapsedPaths,
+                          buildFileHref,
+                          buildFolderHref
+                        )
+                      )}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
