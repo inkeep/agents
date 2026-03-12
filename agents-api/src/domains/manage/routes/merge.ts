@@ -125,14 +125,16 @@ app.openapi(
     let effectiveSourceFullName = sourceFullName;
     let localTempBranchName: string | null = null;
 
-    if (baseCommit && localProjectDefinition) {
-      localTempBranchName = generateTempBranchName('cli_source');
-      await createTempBranchFromCommit(db)({
-        name: localTempBranchName,
-        commitHash: baseCommit,
-      });
+    const previewTempBranch = generateTempBranchName('preview');
 
-      try {
+    try {
+      if (baseCommit && localProjectDefinition) {
+        localTempBranchName = generateTempBranchName('cli_source');
+        await createTempBranchFromCommit(db)({
+          name: localTempBranchName,
+          commitHash: baseCommit,
+        });
+
         await doltCheckout(db)({ branch: localTempBranchName });
         await updateFullProjectServerSide(db)({
           scopes: { tenantId, projectId },
@@ -141,52 +143,28 @@ app.openapi(
         await doltAddAndCommit(db)({
           message: 'Apply local project definition for merge preview',
         });
-      } catch (error) {
-        await cleanupTempBranch(db, localTempBranchName);
-        throw error;
+
+        effectiveSourceFullName = localTempBranchName;
       }
 
-      effectiveSourceFullName = localTempBranchName;
-    }
+      const schemaCompatability = await areBranchesSchemaCompatible(db)(
+        effectiveSourceFullName,
+        targetFullName
+      );
 
-    const schemaCompatability = await areBranchesSchemaCompatible(db)(
-      effectiveSourceFullName,
-      targetFullName
-    );
-
-    if (!schemaCompatability.compatible) {
-      if (schemaCompatability.branchADifferences.length > 0) {
-        await doltCheckout(db)({ branch: effectiveSourceFullName });
-        const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
-        if (syncResult.error && !syncResult.synced) {
-          if (localTempBranchName) await cleanupTempBranch(db, localTempBranchName);
-          throw createApiError({
-            code: 'internal_server_error',
-            message: `Schema sync failed on source branch: ${syncResult.error}`,
-          });
+      if (!schemaCompatability.compatible) {
+        if (schemaCompatability.branchADifferences.length > 0) {
+          await syncBranchSchema(db, effectiveSourceFullName, 'source');
+        }
+        if (schemaCompatability.branchBDifferences.length > 0) {
+          await syncBranchSchema(db, targetFullName, 'target');
         }
       }
-      if (schemaCompatability.branchBDifferences.length > 0) {
-        await doltCheckout(db)({ branch: targetFullName });
-        const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
-        if (syncResult.error && !syncResult.synced) {
-          if (localTempBranchName) await cleanupTempBranch(db, localTempBranchName);
-          throw createApiError({
-            code: 'internal_server_error',
-            message: `Schema sync failed on target branch: ${syncResult.error}`,
-          });
-        }
-      }
-    }
 
-    const [sourceHash, targetHash] = await Promise.all([
-      doltHashOf(db)({ revision: effectiveSourceFullName }),
-      doltHashOf(db)({ revision: targetFullName }),
-    ]);
-
-    const previewTempBranch = generateTempBranchName('preview');
-
-    try {
+      const [sourceHash, targetHash] = await Promise.all([
+        doltHashOf(db)({ revision: effectiveSourceFullName }),
+        doltHashOf(db)({ revision: targetFullName }),
+      ]);
       await createTempBranchFromCommit(db)({
         name: previewTempBranch,
         commitHash: targetHash,
@@ -380,15 +358,16 @@ app.openapi(
 
     let effectiveSourceFullName = sourceFullName;
     let localTempBranchName: string | null = null;
+    let lockAcquired = false;
 
-    if (baseCommit && localProjectDefinition) {
-      localTempBranchName = generateTempBranchName('cli_source');
-      await createTempBranchFromCommit(db)({
-        name: localTempBranchName,
-        commitHash: baseCommit,
-      });
+    try {
+      if (baseCommit && localProjectDefinition) {
+        localTempBranchName = generateTempBranchName('cli_source');
+        await createTempBranchFromCommit(db)({
+          name: localTempBranchName,
+          commitHash: baseCommit,
+        });
 
-      try {
         await doltCheckout(db)({ branch: localTempBranchName });
         await updateFullProjectServerSide(db)({
           scopes: { tenantId, projectId },
@@ -397,38 +376,30 @@ app.openapi(
         await doltAddAndCommit(db)({
           message: 'Apply local project definition for merge execute',
         });
-      } catch (error) {
-        await cleanupTempBranch(db, localTempBranchName);
-        throw error;
+
+        effectiveSourceFullName = localTempBranchName;
       }
 
-      effectiveSourceFullName = localTempBranchName;
-    }
+      const [currentSourceHash, currentTargetHash] = await Promise.all([
+        doltHashOf(db)({ revision: effectiveSourceFullName }),
+        doltHashOf(db)({ revision: targetFullName }),
+      ]);
 
-    const [currentSourceHash, currentTargetHash] = await Promise.all([
-      doltHashOf(db)({ revision: effectiveSourceFullName }),
-      doltHashOf(db)({ revision: targetFullName }),
-    ]);
+      if (currentSourceHash !== sourceHash || currentTargetHash !== targetHash) {
+        throw createApiError({
+          code: 'conflict',
+          message: 'Branch state has changed since preview. Please re-preview the merge.',
+        });
+      }
 
-    if (currentSourceHash !== sourceHash || currentTargetHash !== targetHash) {
-      if (localTempBranchName) await cleanupTempBranch(db, localTempBranchName);
-      throw createApiError({
-        code: 'conflict',
-        message: 'Branch state has changed since preview. Please re-preview the merge.',
-      });
-    }
+      lockAcquired = await tryAdvisoryLock(db)(MERGE_LOCK_PREFIX, targetFullName);
 
-    const lockAcquired = await tryAdvisoryLock(db)(MERGE_LOCK_PREFIX, targetFullName);
-
-    if (!lockAcquired) {
-      if (localTempBranchName) await cleanupTempBranch(db, localTempBranchName);
-      throw createApiError({
-        code: 'conflict',
-        message: 'Another merge is in progress on the target branch. Please try again.',
-      });
-    }
-
-    try {
+      if (!lockAcquired) {
+        throw createApiError({
+          code: 'conflict',
+          message: 'Another merge is in progress on the target branch. Please try again.',
+        });
+      }
       const mergeResult = await doltMerge(db)({
         fromBranch: effectiveSourceFullName,
         toBranch: targetFullName,
@@ -504,10 +475,12 @@ app.openapi(
       if (localTempBranchName) {
         await cleanupTempBranch(db, localTempBranchName);
       }
-      try {
-        await releaseAdvisoryLock(db)(MERGE_LOCK_PREFIX, targetFullName);
-      } catch {
-        // lock released when connection closes
+      if (lockAcquired) {
+        try {
+          await releaseAdvisoryLock(db)(MERGE_LOCK_PREFIX, targetFullName);
+        } catch {
+          // lock released when connection closes
+        }
       }
     }
   }
@@ -531,11 +504,31 @@ function extractPrefixedValues(
   return result;
 }
 
+async function syncBranchSchema(
+  db: Parameters<typeof doltCheckout>[0],
+  branchName: string,
+  label: string
+): Promise<void> {
+  await doltCheckout(db)({ branch: branchName });
+  const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
+  if (syncResult.error && !syncResult.synced) {
+    throw createApiError({
+      code: 'internal_server_error',
+      message: `Schema sync failed on ${label} branch: ${syncResult.error}`,
+    });
+  }
+}
+
 async function cleanupTempBranch(
   db: Parameters<typeof doltDeleteBranch>[0],
   branchName: string
 ): Promise<void> {
   try {
+    try {
+      await doltAbortMerge(db)();
+    } catch {
+      // may not be in a merge state
+    }
     await doltDeleteBranch(db)({ name: branchName, force: true });
   } catch {
     // best-effort cleanup
