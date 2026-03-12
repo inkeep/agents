@@ -53,6 +53,7 @@ jobs:
     steps:
       - name: Check if changeset PR
         id: changeset-check
+        run: |
           if [ "$HEAD_REF" = "changeset-release/main" ]; then
             echo "is_changeset=true" >> $GITHUB_OUTPUT
             echo "Changeset PR detected — skipping Cypress tests"
