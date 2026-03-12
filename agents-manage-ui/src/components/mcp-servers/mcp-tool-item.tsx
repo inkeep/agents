@@ -20,17 +20,16 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { URLDisplay } from '@/components/url-display';
 import { useProjectPermissions } from '@/contexts/project';
 import { deleteToolAction } from '@/lib/actions/tools';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { formatDate } from '@/lib/utils/format-date';
-
 import { Badge } from '../ui/badge';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
 import { MCPToolImage } from './mcp-tool-image';
-import { URLDisplay } from '@/components/url-display';
 
 interface MCPToolDialogMenuProps {
   toolId: string;
