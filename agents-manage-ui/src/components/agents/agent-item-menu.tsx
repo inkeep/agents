@@ -41,11 +41,8 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
             <Pencil className="size-4" />
             Edit
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
-            onClick={() => setIsDeleteOpen(true)}
-          >
-            <Trash2 className="size-4 text-destructive" />
+          <DropdownMenuItem variant="destructive" onClick={() => setIsDeleteOpen(true)}>
+            <Trash2 />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

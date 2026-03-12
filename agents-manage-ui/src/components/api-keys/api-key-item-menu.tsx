@@ -40,11 +40,8 @@ export function ApiKeyItemMenu({ apiKey }: ApiKeyItemMenuProps) {
             <Pencil className="size-4" />
             Edit
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
-            onClick={() => setOpenDialog('delete')}
-          >
-            <Trash2 className="size-4 text-destructive" />
+          <DropdownMenuItem variant="destructive" onClick={() => setOpenDialog('delete')}>
+            <Trash2 />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

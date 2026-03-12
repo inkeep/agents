@@ -20,31 +20,16 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { URLDisplay } from '@/components/url-display';
 import { useProjectPermissions } from '@/contexts/project';
 import { deleteToolAction } from '@/lib/actions/tools';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { formatDate } from '@/lib/utils/format-date';
-
 import { Badge } from '../ui/badge';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MCPToolImage } from './mcp-tool-image';
-
-// URL Display Component with ellipsis and tooltip
-function URLDisplay({ url }: { url: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <code className="block text-xs text-muted-foreground break-all">{url}</code>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="max-w-md">
-        <code className="text-xs break-all">{url}</code>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 interface MCPToolDialogMenuProps {
   toolId: string;
@@ -52,10 +37,7 @@ interface MCPToolDialogMenuProps {
 }
 
 function MCPToolDialogMenu({ toolId, toolName }: MCPToolDialogMenuProps) {
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -157,7 +139,7 @@ export function MCPToolItem({
       </ItemCardHeader>
       <ItemCardContent>
         <div className="space-y-3 min-w-0">
-          <URLDisplay url={tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''} />
+          <URLDisplay>{tool.config.type === 'mcp' && tool.config.mcp.server.url}</URLDisplay>
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">
