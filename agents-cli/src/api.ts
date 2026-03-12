@@ -168,15 +168,16 @@ export class ManagementApiClient extends BaseApiClient {
     return data.data;
   }
 
-  async getFullProject(projectId: string): Promise<FullProjectResponse['data']> {
+  async getFullProject(projectId: string, ref?: string): Promise<FullProjectResponse['data']> {
     const tenantId = this.checkTenantId();
+    const url = new URL(`${this.apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`);
+    if (ref) {
+      url.searchParams.set('ref', ref);
+    }
 
-    const response = await this.authenticatedFetch(
-      `${this.apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`,
-      {
-        method: 'GET',
-      }
-    );
+    const response = await this.authenticatedFetch(url.toString(), {
+      method: 'GET',
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
