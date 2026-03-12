@@ -1,5 +1,4 @@
 import { OpenAPIHono, type z } from '@hono/zod-openapi';
-import type { FullProjectDefinition } from '@inkeep/agents-core';
 import {
   applyResolutions,
   areBranchesSchemaCompatible,
@@ -7,16 +6,16 @@ import {
   ConflictResolutionSchema,
   commonGetErrorResponses,
   createApiError,
-  createTempBranchFromCommit,
   doltAbortMerge,
   doltAddAndCommit,
   doltCheckout,
   doltConflicts,
-  doltDeleteBranch,
   doltDiffSummary,
   doltGetBranchNamespace,
   doltHashOf,
   doltMerge,
+  doltPreviewMergeConflicts,
+  doltPreviewMergeConflictsSummary,
   doltTableConflicts,
   ErrorResponseSchema,
   getBranch,
@@ -29,7 +28,6 @@ import {
   syncSchemaFromMain,
   TenantProjectParamsSchema,
   tryAdvisoryLock,
-  updateFullProjectServerSide,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -45,12 +43,6 @@ function stripScopePks(pk: Record<string, string>): Record<string, string> {
     }
   }
   return result;
-}
-
-function generateTempBranchName(purpose: string): string {
-  const timestamp = Date.now();
-  const randomId = Math.random().toString(36).substring(2, 8);
-  return `_merge_${purpose}_${timestamp}_${randomId}`;
 }
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -90,7 +82,7 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const { sourceBranch, targetBranch, baseCommit, localProjectDefinition } = body;
+    const { sourceBranch, targetBranch } = body;
 
     const sourceFullName = doltGetBranchNamespace({
       tenantId,
@@ -122,150 +114,109 @@ app.openapi(
       });
     }
 
-    let effectiveSourceFullName = sourceFullName;
-    let localTempBranchName: string | null = null;
+    const schemaCompatability = await areBranchesSchemaCompatible(db)(
+      sourceFullName,
+      targetFullName
+    );
 
-    const previewTempBranch = generateTempBranchName('preview');
-
-    try {
-      if (baseCommit && localProjectDefinition) {
-        localTempBranchName = generateTempBranchName('cli_source');
-        await createTempBranchFromCommit(db)({
-          name: localTempBranchName,
-          commitHash: baseCommit,
-        });
-
-        await doltCheckout(db)({ branch: localTempBranchName });
-        await updateFullProjectServerSide(db)({
-          scopes: { tenantId, projectId },
-          projectData: localProjectDefinition as FullProjectDefinition,
-        });
-        await doltAddAndCommit(db)({
-          message: 'Apply local project definition for merge preview',
-        });
-
-        effectiveSourceFullName = localTempBranchName;
+    if (!schemaCompatability.compatible) {
+      if (schemaCompatability.branchADifferences.length > 0) {
+        await syncBranchSchema(db, sourceFullName, 'source');
       }
-
-      const schemaCompatability = await areBranchesSchemaCompatible(db)(
-        effectiveSourceFullName,
-        targetFullName
-      );
-
-      if (!schemaCompatability.compatible) {
-        if (schemaCompatability.branchADifferences.length > 0) {
-          await syncBranchSchema(db, effectiveSourceFullName, 'source');
-        }
-        if (schemaCompatability.branchBDifferences.length > 0) {
-          await syncBranchSchema(db, targetFullName, 'target');
-        }
+      if (schemaCompatability.branchBDifferences.length > 0) {
+        await syncBranchSchema(db, targetFullName, 'target');
       }
+    }
 
-      const [sourceHash, targetHash] = await Promise.all([
-        doltHashOf(db)({ revision: effectiveSourceFullName }),
-        doltHashOf(db)({ revision: targetFullName }),
-      ]);
-      await createTempBranchFromCommit(db)({
-        name: previewTempBranch,
-        commitHash: targetHash,
+    const [sourceHash, targetHash, conflictSummary, diffSummary] = await Promise.all([
+      doltHashOf(db)({ revision: sourceFullName }),
+      doltHashOf(db)({ revision: targetFullName }),
+      doltPreviewMergeConflictsSummary(db)({
+        baseBranch: targetFullName,
+        mergeBranch: sourceFullName,
+      }),
+      doltDiffSummary(db)({
+        fromRevision: targetFullName,
+        toRevision: sourceFullName,
+      }),
+    ]);
+
+    const formattedDiff = diffSummary.map((row) => ({
+      table: row.table_name,
+      diffType: row.diff_type,
+      dataChange: row.data_change,
+      schemaChange: row.schema_change,
+    }));
+
+    const tablesWithConflicts = conflictSummary.filter((t) => t.numDataConflicts > 0);
+    const hasSchemaConflicts = conflictSummary.some((t) => t.numSchemaConflicts > 0);
+
+    if (hasSchemaConflicts) {
+      throw createApiError({
+        code: 'internal_server_error',
+        message:
+          'Schema conflicts detected — this indicates a system error. Please contact support.',
       });
+    }
 
-      const mergeResult = await doltMerge(db)({
-        fromBranch: effectiveSourceFullName,
-        toBranch: previewTempBranch,
-      });
-
-      if (!mergeResult.hasConflicts) {
-        const diffSummary = await doltDiffSummary(db)({
-          fromRevision: targetHash,
-          toRevision: effectiveSourceFullName,
-        });
-
-        const formattedDiff = diffSummary.map((row) => ({
-          table: row.table_name,
-          diffType: row.diff_type,
-          dataChange: row.data_change,
-          schemaChange: row.schema_change,
-        }));
-
-        return c.json({
-          data: {
-            hasConflicts: false,
-            sourceHash,
-            targetHash,
-            canFastForward: false,
-            diffSummary: formattedDiff,
-            conflicts: [],
-          },
-        });
-      }
-
-      const conflictTables = await doltConflicts(db)();
-      const conflicts: z.infer<typeof ConflictItemSchema>[] = [];
-
-      for (const ct of conflictTables) {
-        const tableName = ct.table;
-        const tableConflicts = await doltTableConflicts(db)({ tableName });
-        const pkColumns = managePkMap[tableName] ?? [];
-
-        for (const row of tableConflicts) {
-          const fullPk: Record<string, string> = {};
-          for (const col of pkColumns) {
-            fullPk[col] = String(row[`base_${col}`] ?? row[`our_${col}`] ?? row[`their_${col}`]);
-          }
-
-          const strippedPk = stripScopePks(fullPk);
-
-          const base = extractPrefixedValues(row, 'base_', pkColumns);
-          const ours = extractPrefixedValues(row, 'our_', pkColumns);
-          const theirs = extractPrefixedValues(row, 'their_', pkColumns);
-
-          conflicts.push({
-            table: tableName,
-            primaryKey: strippedPk,
-            ourDiffType: String(row.our_diff_type ?? 'modified'),
-            theirDiffType: String(row.their_diff_type ?? 'modified'),
-            base: row.base_diff_type === 'added' ? null : base,
-            ours: row.our_diff_type === 'removed' ? null : ours,
-            theirs: row.their_diff_type === 'removed' ? null : theirs,
-          });
-        }
-      }
-
-      const diffSummary = await doltDiffSummary(db)({
-        fromRevision: targetHash,
-        toRevision: effectiveSourceFullName,
-      });
-
-      const formattedDiff = diffSummary.map((row) => ({
-        table: row.table_name,
-        diffType: row.diff_type,
-        dataChange: row.data_change,
-        schemaChange: row.schema_change,
-      }));
-
-      try {
-        await doltAbortMerge(db)();
-      } catch {
-        // may not be in a merge state
-      }
-
+    if (tablesWithConflicts.length === 0) {
       return c.json({
         data: {
-          hasConflicts: true,
+          hasConflicts: false,
           sourceHash,
           targetHash,
           canFastForward: false,
           diffSummary: formattedDiff,
-          conflicts,
+          conflicts: [],
         },
       });
-    } finally {
-      await cleanupTempBranch(db, previewTempBranch);
-      if (localTempBranchName) {
-        await cleanupTempBranch(db, localTempBranchName);
+    }
+
+    const conflicts: z.infer<typeof ConflictItemSchema>[] = [];
+
+    for (const ct of tablesWithConflicts) {
+      const tableName = ct.table;
+      const tableConflicts = await doltPreviewMergeConflicts(db)({
+        baseBranch: targetFullName,
+        mergeBranch: sourceFullName,
+        tableName,
+      });
+      const pkColumns = managePkMap[tableName] ?? [];
+
+      for (const row of tableConflicts) {
+        const fullPk: Record<string, string> = {};
+        for (const col of pkColumns) {
+          fullPk[col] = String(row[`base_${col}`] ?? row[`our_${col}`] ?? row[`their_${col}`]);
+        }
+
+        const strippedPk = stripScopePks(fullPk);
+
+        const base = extractPrefixedValues(row, 'base_', pkColumns);
+        const ours = extractPrefixedValues(row, 'our_', pkColumns);
+        const theirs = extractPrefixedValues(row, 'their_', pkColumns);
+
+        conflicts.push({
+          table: tableName,
+          primaryKey: strippedPk,
+          ourDiffType: String(row.our_diff_type ?? 'modified'),
+          theirDiffType: String(row.their_diff_type ?? 'modified'),
+          base: row.base_diff_type === 'added' ? null : base,
+          ours: row.our_diff_type === 'removed' ? null : ours,
+          theirs: row.their_diff_type === 'removed' ? null : theirs,
+        });
       }
     }
+
+    return c.json({
+      data: {
+        hasConflicts: true,
+        sourceHash,
+        targetHash,
+        canFastForward: false,
+        diffSummary: formattedDiff,
+        conflicts,
+      },
+    });
   }
 );
 
@@ -314,17 +265,8 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const {
-      sourceBranch,
-      targetBranch,
-      sourceHash,
-      targetHash,
-      message,
-      author,
-      resolutions,
-      baseCommit,
-      localProjectDefinition,
-    } = body;
+    const { sourceBranch, targetBranch, sourceHash, targetHash, message, author, resolutions } =
+      body;
 
     const sourceFullName = doltGetBranchNamespace({
       tenantId,
@@ -356,32 +298,11 @@ app.openapi(
       });
     }
 
-    let effectiveSourceFullName = sourceFullName;
-    let localTempBranchName: string | null = null;
     let lockAcquired = false;
 
     try {
-      if (baseCommit && localProjectDefinition) {
-        localTempBranchName = generateTempBranchName('cli_source');
-        await createTempBranchFromCommit(db)({
-          name: localTempBranchName,
-          commitHash: baseCommit,
-        });
-
-        await doltCheckout(db)({ branch: localTempBranchName });
-        await updateFullProjectServerSide(db)({
-          scopes: { tenantId, projectId },
-          projectData: localProjectDefinition as FullProjectDefinition,
-        });
-        await doltAddAndCommit(db)({
-          message: 'Apply local project definition for merge execute',
-        });
-
-        effectiveSourceFullName = localTempBranchName;
-      }
-
       const [currentSourceHash, currentTargetHash] = await Promise.all([
-        doltHashOf(db)({ revision: effectiveSourceFullName }),
+        doltHashOf(db)({ revision: sourceFullName }),
         doltHashOf(db)({ revision: targetFullName }),
       ]);
 
@@ -401,7 +322,7 @@ app.openapi(
         });
       }
       const mergeResult = await doltMerge(db)({
-        fromBranch: effectiveSourceFullName,
+        fromBranch: sourceFullName,
         toBranch: targetFullName,
         message: message ?? `Merge ${sourceBranch} into ${targetBranch}`,
         author,
@@ -472,9 +393,6 @@ app.openapi(
         200
       );
     } finally {
-      if (localTempBranchName) {
-        await cleanupTempBranch(db, localTempBranchName);
-      }
       if (lockAcquired) {
         try {
           await releaseAdvisoryLock(db)(MERGE_LOCK_PREFIX, targetFullName);
@@ -516,22 +434,6 @@ async function syncBranchSchema(
       code: 'internal_server_error',
       message: `Schema sync failed on ${label} branch: ${syncResult.error}`,
     });
-  }
-}
-
-async function cleanupTempBranch(
-  db: Parameters<typeof doltDeleteBranch>[0],
-  branchName: string
-): Promise<void> {
-  try {
-    try {
-      await doltAbortMerge(db)();
-    } catch {
-      // may not be in a merge state
-    }
-    await doltDeleteBranch(db)({ name: branchName, force: true });
-  } catch {
-    // best-effort cleanup
   }
 }
 

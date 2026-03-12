@@ -225,13 +225,77 @@ export class ManagementApiClient extends BaseApiClient {
     return responseData.data;
   }
 
+  async createBranch(
+    projectId: string,
+    request: { name: string; from?: string }
+  ): Promise<{ baseName: string; fullName: string; hash: string }> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to create branch "${request.name}": ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+
+    const responseData = await response.json();
+    return responseData.data;
+  }
+
+  async deleteBranch(projectId: string, branchName: string): Promise<void> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}`,
+      { method: 'DELETE' }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to delete branch "${branchName}": ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+  }
+
+  async pushFullProject(
+    projectId: string,
+    branchName: string,
+    projectData: unknown
+  ): Promise<void> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}?ref=${branchName}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projectData),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to push project to branch "${branchName}": ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+  }
+
   async mergePreview(
     projectId: string,
     request: {
       sourceBranch: string;
       targetBranch: string;
-      baseCommit?: string;
-      localProjectDefinition?: unknown;
     }
   ): Promise<{
     hasConflicts: boolean;
@@ -291,8 +355,6 @@ export class ManagementApiClient extends BaseApiClient {
         rowDefaultPick: 'ours' | 'theirs';
         columns?: Record<string, 'ours' | 'theirs'>;
       }>;
-      baseCommit?: string;
-      localProjectDefinition?: unknown;
     }
   ): Promise<{
     status: 'success';

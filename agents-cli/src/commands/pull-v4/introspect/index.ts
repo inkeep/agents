@@ -13,7 +13,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
 import * as p from '@clack/prompts';
-import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { type FullProjectDefinition, getTempBranchName } from '@inkeep/agents-core';
 
 // Increase max listeners to prevent warnings during complex CLI flows
 // This is needed because @clack/prompts + multiple interactive prompts + spinners all add listeners
@@ -320,54 +320,60 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     let remoteProject: any;
 
     if (hasDiverged && localProjectForId) {
-      s.message('Divergence detected — previewing merge...');
+      s.message('Divergence detected — creating temp branch...');
 
-      const localProjectDefinition = await localProjectForId.getFullDefinition();
+      const tempBranchName = getTempBranchName('cli-pull');
 
-      const preview = await apiClient.mergePreview(projectId, {
-        sourceBranch: 'main',
-        targetBranch: 'main',
-        baseCommit: lastPulledHash,
-        localProjectDefinition,
-      });
+      try {
+        await apiClient.createBranch(projectId, { name: tempBranchName, from: lastPulledHash });
 
-      if (preview.hasConflicts) {
-        s.stop('Conflicts detected');
-        // Delegate to interactive conflict resolution (US-010)
-        // For now, import the resolver dynamically
-        const { resolveConflictsInteractive } = await import('../merge-conflicts');
-        const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
+        const localProjectDefinition = await localProjectForId.getFullDefinition();
+        await apiClient.pushFullProject(projectId, tempBranchName, localProjectDefinition);
 
-        s.start('Executing merge with resolutions...');
-        await apiClient.mergeExecute(projectId, {
-          sourceBranch: 'main',
+        s.message('Detecting conflicts...');
+        const preview = await apiClient.mergePreview(projectId, {
+          sourceBranch: tempBranchName,
           targetBranch: 'main',
-          sourceHash: preview.sourceHash,
-          targetHash: preview.targetHash,
-          resolutions,
-          baseCommit: lastPulledHash,
-          localProjectDefinition,
-          message: 'CLI pull: merge with conflict resolutions',
         });
-        s.stop('Merge completed');
-      } else {
-        s.stop('Clean merge — no conflicts');
 
-        await apiClient.mergeExecute(projectId, {
-          sourceBranch: 'main',
-          targetBranch: 'main',
-          sourceHash: preview.sourceHash,
-          targetHash: preview.targetHash,
-          baseCommit: lastPulledHash,
-          localProjectDefinition,
-          message: 'CLI pull: clean merge',
-        });
+        if (preview.hasConflicts) {
+          s.stop('Conflicts detected');
+          const { resolveConflictsInteractive } = await import('../merge-conflicts');
+          const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
+
+          s.start('Executing merge with resolutions...');
+          await apiClient.mergeExecute(projectId, {
+            sourceBranch: tempBranchName,
+            targetBranch: 'main',
+            sourceHash: preview.sourceHash,
+            targetHash: preview.targetHash,
+            resolutions,
+            message: 'CLI pull: merge with conflict resolutions',
+          });
+          s.stop('Merge completed');
+        } else {
+          s.message('Clean merge — no conflicts');
+
+          await apiClient.mergeExecute(projectId, {
+            sourceBranch: tempBranchName,
+            targetBranch: 'main',
+            sourceHash: preview.sourceHash,
+            targetHash: preview.targetHash,
+            message: 'CLI pull: clean merge',
+          });
+        }
+      } finally {
+        try {
+          await apiClient.deleteBranch(projectId, tempBranchName);
+        } catch {
+          // best-effort cleanup
+        }
       }
 
-      // After merge, fetch the updated project state
       s.start('Fetching merged project state...');
       remoteProject = await apiClient.getFullProject(projectId);
     } else {
+      // Todo: we can probably just exit here because there is nothing new to pull
       remoteProject = await apiClient.getFullProject(projectId);
     }
 
@@ -440,7 +446,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     }
 
     // Enrich canDelegateTo references with component type information
-    // @ts-expect-error -- fixme Types of property `models` are incompatible.
     enrichCanDelegateToWithTypes(remoteProject);
 
     s.message('Project data fetched');
@@ -454,7 +459,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     // Step 5: Set up project structure
     const paths = createProjectStructure(projectDir);
 
-    // @ts-expect-error -- fix types
     const skills = remoteProject.skills;
 
     if (skills && Object.keys(skills).length) {
@@ -464,7 +468,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
 
     s.start('Starting generating files...');
     await introspectGenerate({
-      // @ts-expect-error -- ignore Types of property 'models' are incompatible.
       project: remoteProject,
       paths,
       debug: options.debug,
