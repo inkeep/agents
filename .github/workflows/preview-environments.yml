@@ -617,6 +617,8 @@ jobs:
       needs.compute-context.outputs.is_internal_pr == 'true'
     steps:
       - name: Basic URL checks
+        id: smoke
+        continue-on-error: true
         env:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
@@ -645,6 +647,45 @@ jobs:
 
           wait_for_url "${API_URL}/health" 30 5
           wait_for_url "${UI_URL}" 30 5
+
+      - name: Capture preview failure diagnostics
+        if: ${{ always() && steps.smoke.outcome == 'failure' }}
+        env:
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+        run: |
+          set -euo pipefail
+
+          echo "## Smoke Failure Diagnostics" >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo "### API /health response"
+            curl -i -sS "${API_URL}/health" || true
+            echo
+            echo "### API / response"
+            curl -i -sS "${API_URL}/" || true
+            echo
+            echo "### UI response"
+            curl -I -sS "${UI_URL}" || true
+          } | tee /tmp/preview-smoke-diagnostics.txt
+
+      - name: Fetch Vercel runtime logs for API deployment
+        if: ${{ always() && steps.smoke.outcome == 'failure' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+        run: |
+          set +e
+          npm install -g vercel
+          echo "## Vercel Runtime Logs (API)" >> "$GITHUB_STEP_SUMMARY"
+          vercel logs "${API_URL}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" --since=1h 2>&1 | tail -n 200
+
+      - name: Fail job when smoke checks fail
+        if: ${{ steps.smoke.outcome == 'failure' }}
+        run: |
+          echo "Smoke checks failed"
+          exit 1
 
   teardown-tier1:
     name: Teardown Tier 1 (Railway)
