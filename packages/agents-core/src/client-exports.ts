@@ -23,6 +23,8 @@ import type {
   AgentApiInsertSchema,
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiSelectSchema,
+  AppApiCreationResponseSchema,
+  AppApiSelectSchema,
   CredentialReferenceApiInsertSchema,
   ExternalAgentApiInsertSchema,
   FunctionApiInsertSchema,
@@ -130,6 +132,8 @@ export type ScheduledTriggerInvocationApiSelect = z.infer<
 export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
+export type AppApiSelect = z.infer<typeof AppApiSelectSchema>;
+export type AppApiCreationResponse = z.infer<typeof AppApiCreationResponseSchema>;
 export type CredentialReferenceApiInsert = z.infer<typeof CredentialReferenceApiInsertSchema>;
 export type ExternalAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type FullAgentDefinition = z.infer<typeof FullAgentDefinitionSchema>;
@@ -158,4 +162,4 @@ export {
 } from './mcp/built-in-mcps';
 export { CredentialStoreType, MCPTransportType } from './types';
 export { detectAuthenticationRequired } from './utils/auth-detection';
-export { transformToJson } from './validation/extend-schemas';
+export * from './validation/extend-schemas';

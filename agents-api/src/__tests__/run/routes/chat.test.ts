@@ -1,3 +1,4 @@
+import { HTTPException } from 'hono/http-exception';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as execModule from '../../../domains/run/handlers/executionHandler';
 import { makeRequest } from '../../utils/testRequest';
@@ -279,6 +280,23 @@ describe('Chat Routes', () => {
       );
     });
 
+    it('should not set userId on conversation when no endUserId in auth metadata (backward compat)', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Legacy API key request' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+
+      const { createOrGetConversation } = await import('@inkeep/agents-core');
+      const innerFn = vi.mocked(createOrGetConversation).mock.results[0].value;
+      const callArgs = vi.mocked(innerFn).mock.calls[0][0];
+      expect(callArgs.userId).toBeUndefined();
+    });
+
     it('should validate required fields', async () => {
       const response = await makeRequest('/run/v1/chat/completions', {
         method: 'POST',
@@ -343,6 +361,45 @@ describe('Chat Routes', () => {
       // The error handling should be in the stream content, not the status code
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should pass through HTTPException without wrapping (e.g. 401 from auth)', async () => {
+      const { createOrGetConversation } = await import('@inkeep/agents-core');
+      vi.mocked(createOrGetConversation).mockReturnValueOnce(
+        vi.fn().mockRejectedValue(new HTTPException(401, { message: 'Unauthorized' }))
+      );
+
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
+        expectError: true,
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return static message for unexpected errors (no error.message leak)', async () => {
+      const { createOrGetConversation } = await import('@inkeep/agents-core');
+      vi.mocked(createOrGetConversation).mockReturnValueOnce(
+        vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED 10.0.0.5:5432'))
+      );
+
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
+        expectError: true,
+      });
+
+      expect(response.status).toBe(500);
+      const body = await response.json();
+      expect(body.detail).toBe('Failed to process chat completion');
+      expect(body.detail).not.toContain('ECONNREFUSED');
     });
   });
 });

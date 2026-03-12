@@ -7,9 +7,10 @@ Index: credentials/api-credentials.ts
  export const apiCredentials = credential({
    id: 'api-credentials',
 -  name: 'Old API Credentials',
-+  name: 'API Credentials',
-   type: 'bearer',
+-  type: 'bearer',
 -  credentialStoreId: 'main-store'
++  name: 'API Credentials',
++  type: 'memory',
 +  credentialStoreId: 'main-store',
 +  retrievalParams: {
 +    key: 'token',

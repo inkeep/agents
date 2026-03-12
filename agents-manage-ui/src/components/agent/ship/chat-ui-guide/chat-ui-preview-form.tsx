@@ -3,7 +3,8 @@ import { Controller, type UseFormReturn } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { ColorPickerInput } from '@/components/ui/color-picker';
-import { Form, FormItem, FormLabel } from '@/components/ui/form';
+import { Form, FormItem } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -31,7 +32,7 @@ export const ChatUIPreviewForm = ({ form }: ChatUIPreviewFormProps) => {
           selectTriggerClassName="w-full"
         />
         <FormItem className="relative">
-          <FormLabel>Primary brand color</FormLabel>
+          <Label>Primary brand color</Label>
           <ColorPickerInput
             color={form.watch('baseSettings.primaryBrandColor')}
             setColor={(color) => form.setValue('baseSettings.primaryBrandColor', color)}
@@ -59,7 +60,7 @@ export const ChatUIPreviewForm = ({ form }: ChatUIPreviewFormProps) => {
         />
         <FormItem className="relative flex flex-row gap-2 items-center w-full justify-between">
           <div className="flex flex-row gap-2 items-center">
-            <FormLabel>Show data operations</FormLabel>
+            <Label>Show data operations</Label>
             <Tooltip>
               <TooltipTrigger>
                 <Info className="w-3 h-3 text-muted-foreground" />

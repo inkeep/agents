@@ -1630,7 +1630,8 @@ export async function GET(
       const triggerInvocationId = getString(span, SPAN_KEYS.TRIGGER_INVOCATION_ID, '');
 
       // Determine description based on invocation type
-      const isTriggerInvocation = invocationType === 'trigger';
+      const isTriggerInvocation =
+        invocationType === 'trigger' || invocationType === 'scheduled_trigger';
       const isSlackMessage = invocationType === 'slack';
       const entryPointLabel = spanEntryPoint ? ` (${spanEntryPoint.replace(/_/g, ' ')})` : '';
       const description = isTriggerInvocation

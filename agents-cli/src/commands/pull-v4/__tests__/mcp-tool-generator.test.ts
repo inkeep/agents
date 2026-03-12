@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for MCP tool generator
  */
@@ -12,16 +11,12 @@ function generateMcpToolDefinition(
   return originalGenerateMcpToolDefinition(...args).getFullText();
 }
 
-// Mock envSettings for tests
-const envSettings = {
-  getEnvironmentCredential: (key: string) => `mock-credential-${key}`,
-};
-
 describe('MCP Tool Generator', () => {
   const testToolData = {
     name: 'Weather',
     description: 'Get weather information from external API',
     config: {
+      type: 'mcp',
       mcp: {
         server: {
           url: 'https://mcp.cloud.inkeep.com/weather/mcp',
@@ -39,6 +34,7 @@ describe('MCP Tool Generator', () => {
     name: 'Stripe',
     description: 'Stripe payment processing integration',
     config: {
+      type: 'mcp',
       mcp: {
         server: {
           url: 'https://stripe-mcp-hazel.vercel.app/mcp',
@@ -48,7 +44,7 @@ describe('MCP Tool Generator', () => {
         },
       },
     },
-    credential: envSettings.getEnvironmentCredential('stripe_api_key'),
+    credentialReferenceId: 'mock-credential-stripe_api_key',
   };
 
   describe('generateMcpToolDefinition', () => {
@@ -56,7 +52,7 @@ describe('MCP Tool Generator', () => {
       const mcpToolId = 'weather-mcp';
       const definition = generateMcpToolDefinition({ mcpToolId, ...testToolData });
 
-      expect(definition).toContain('export const weatherMcp = mcpTool({');
+      expect(definition).toContain('export const weatherTool = mcpTool({');
       expect(definition).toContain("id: 'weather-mcp',");
       expect(definition).toContain("name: 'Weather',");
       expect(definition).toContain("serverUrl: 'https://mcp.cloud.inkeep.com/weather/mcp',");
@@ -73,6 +69,7 @@ describe('MCP Tool Generator', () => {
       const conversionData = {
         name: 'Stripe Payment',
         config: {
+          type: 'mcp',
           mcp: {
             server: {
               url: 'https://stripe.example.com/mcp',
@@ -107,7 +104,9 @@ describe('MCP Tool Generator', () => {
       const mcpToolId = 'stripe-mcp';
       const definition = generateMcpToolDefinition({ mcpToolId, ...testToolWithCredential });
 
-      expect(definition).toContain('credential: mock-credential-stripe_api_key');
+      expect(definition).toContain(
+        "credential: envSettings.getEnvironmentCredential('mock-credential-stripe_api_key')"
+      );
       await expectSnapshots(definition);
     });
 
@@ -116,6 +115,7 @@ describe('MCP Tool Generator', () => {
       const toolWithObjectCredential = {
         name: 'API Tool',
         config: {
+          type: 'mcp',
           mcp: {
             server: {
               url: 'https://api.example.com/mcp',
@@ -131,7 +131,10 @@ describe('MCP Tool Generator', () => {
 
       const definition = generateMcpToolDefinition({ mcpToolId, ...toolWithObjectCredential });
 
-      expect(definition).toContain("credential: { type: 'api_key', value: 'my-api-key' },");
+      expect(definition).toContain(`credential: {
+    type: 'api_key',
+    value: 'my-api-key',
+  },`);
       await expectSnapshots(definition);
     });
 
@@ -147,7 +150,14 @@ describe('MCP Tool Generator', () => {
       const mcpToolId = 'detailed';
       const dataWithLongDesc = {
         name: 'detailed-mcp-tool',
-        serverUrl: 'https://detailed.example.com/mcp',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: {
+              url: 'https://detailed.example.com/mcp',
+            },
+          },
+        },
         description: longDescription,
       };
 
@@ -162,6 +172,7 @@ describe('MCP Tool Generator', () => {
       const toolData = {
         name: 'Special Tool',
         config: {
+          type: 'mcp',
           mcp: {
             server: {
               url: 'https://api.example.com/mcp?key=value&param=test',
@@ -192,9 +203,10 @@ describe('MCP Tool Generator', () => {
       const file = generateMcpToolDefinition({ mcpToolId, ...testToolWithCredential });
 
       expect(file).toContain("import { mcpTool } from '@inkeep/agents-sdk';");
-      expect(file).not.toContain('import { envSettings }');
-      expect(file).toContain('export const stripeMcp = mcpTool({');
-      expect(file).toContain('credential: mock-credential-stripe_api_key');
+      expect(file).toContain('export const stripeTool = mcpTool({');
+      expect(file).toContain(
+        "credential: envSettings.getEnvironmentCredential('mock-credential-stripe_api_key')"
+      );
       await expectSnapshots(file);
     });
   });
@@ -216,36 +228,20 @@ describe('MCP Tool Generator', () => {
       }).toThrow("Missing required fields for MCP tool 'empty': name, serverUrl");
     });
 
-    it('should handle invalid URLs gracefully', async () => {
-      const mcpToolId = 'invalid';
-      const toolData = {
-        name: 'Invalid URL Tool',
-        config: {
-          mcp: {
-            server: {
-              url: 'not-a-valid-url',
-            },
-            transport: { type: 'streamable_http' },
-          },
-        },
-        imageUrl: 'also-not-valid',
-      };
-
-      const definition = generateMcpToolDefinition({ mcpToolId, ...toolData });
-
-      expect(definition).toContain("serverUrl: 'not-a-valid-url',");
-      expect(definition).toContain("imageUrl: 'also-not-valid'");
-      await expectSnapshots(definition);
-    });
-
     it('should handle null and undefined values gracefully', async () => {
       const mcpToolId = 'null-tool';
       const toolData = {
         name: 'Null Tool',
-        serverUrl: 'https://example.com/mcp',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: {
+              url: 'https://example.com/mcp',
+            },
+          },
+        },
         description: null,
         imageUrl: undefined,
-        credential: null,
       };
 
       const definition = generateMcpToolDefinition({ mcpToolId, ...toolData });

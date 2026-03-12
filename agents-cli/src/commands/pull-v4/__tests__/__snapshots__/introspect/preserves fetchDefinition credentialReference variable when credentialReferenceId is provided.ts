@@ -1,7 +1,7 @@
 import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { inkeepApiKey } from '../credentials/inkeep-api-key';
-const supportContextHeaders = headers({
+export const supportContextHeaders = headers({
   schema: z.object({ "user_id": z.string().optional() }),
 });
 

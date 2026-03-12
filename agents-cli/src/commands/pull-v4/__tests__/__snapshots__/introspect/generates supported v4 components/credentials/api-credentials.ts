@@ -1,9 +1,9 @@
 import { credential } from '@inkeep/agents-sdk';
 
-export const apiCredentials = credential({
+export const apiCredentialsCredential = credential({
   id: 'api-credentials',
   name: 'API Credentials',
-  type: 'bearer',
+  type: 'memory',
   credentialStoreId: 'main-store',
   retrievalParams: {
     key: 'token',

@@ -5,8 +5,8 @@ Index: credentials/api-credentials.ts
 @@ -1,13 +1,22 @@
  import { agent, subAgent } from '@inkeep/agents-sdk';
 +import { supportContext } from '../context-configs/support-context';
-+import { githubWebhook } from './triggers/github-webhook';
-+import { toolSummary } from '../status-components/tool-summary';
++import { githubWebhookTrigger } from './triggers/git-hub-webhook';
++import { toolSummary } from '../status-components/tool_summary';
  
  const tierOneCustom = subAgent({
    id: 'tier-one',
@@ -22,7 +22,7 @@ Index: credentials/api-credentials.ts
 -  subAgents: () => [tierOneCustom]
 +  subAgents: () => [tierOneCustom],
 +  contextConfig: supportContext,
-+  triggers: () => [githubWebhook],
++  triggers: () => [githubWebhookTrigger],
 +  statusUpdates: {
 +    numEvents: 1,
 +    statusComponents: [toolSummary.config],

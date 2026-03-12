@@ -1,6 +1,8 @@
 import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
 import type {
+  ApiConfigSchema,
+  AppConfigSchema,
   ChannelAccessModeSchema,
   ChannelIdsSchema,
   EvaluationJobFilterCriteriaSchema,
@@ -9,6 +11,7 @@ import type {
   ProjectModelSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
+  WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
 } from '../validation/schemas';
@@ -49,6 +52,7 @@ export type {
   AgentScopeConfig,
   ProjectScopeConfig,
   SubAgentScopeConfig,
+  TenantScopeConfig,
 } from '../db/manage/scope-definitions';
 export interface ConversationScopeOptions {
   taskId?: string;
@@ -316,6 +320,8 @@ export interface BaseExecutionContext {
       channelId?: string;
       teamId: string;
     };
+    endUserId?: string;
+    authMethod?: 'app_credential_web_client' | 'app_credential_api';
   };
 }
 
@@ -425,3 +431,11 @@ export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSc
  */
 export type ChannelAccessMode = z.infer<typeof ChannelAccessModeSchema>;
 export type ChannelIds = z.infer<typeof ChannelIdsSchema>;
+
+export type AppType = 'web_client' | 'api';
+
+export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
+
+export type ApiConfig = z.infer<typeof ApiConfigSchema>;
+
+export type AppConfig = z.infer<typeof AppConfigSchema>;

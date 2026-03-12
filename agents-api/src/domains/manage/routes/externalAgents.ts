@@ -156,12 +156,10 @@ app.openapi(
     const body = c.req.valid('json');
 
     const externalAgentData = {
+      ...body,
       tenantId,
       projectId,
       id: body.id ? String(body.id) : generateId(),
-      name: body.name,
-      description: body.description,
-      baseUrl: body.baseUrl,
       credentialReferenceId: body.credentialReferenceId || undefined,
     };
 

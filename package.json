@@ -33,7 +33,7 @@
     "typecheck": "turbo typecheck --filter='!agents-cookbook-templates'",
     "typecheck:watch": "turbo typecheck:watch",
     "precheck": "pnpm install --frozen-lockfile",
-    "check": "turbo check --filter='!agents-cookbook-templates' && pnpm format:check && pnpm check:env-descriptions && pnpm knip",
+    "check": "turbo check --filter='!agents-cookbook-templates' && pnpm format:check && pnpm check:env-descriptions && pnpm check:route-handler-patterns && pnpm knip",
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:prepush": "turbo check:prepush --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:fix": "biome check --write",
@@ -80,6 +80,7 @@
     "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply",
     "db:auth:init": "pnpm --filter @inkeep/agents-core db:auth:init",
     "check:env-descriptions": "node scripts/check-env-descriptions.mjs",
+    "check:route-handler-patterns": "node scripts/check-route-handler-patterns.mjs",
     "setup-slack-dev": "tsx scripts/setup-slack-dev.ts"
   },
   "version": "0.1.0",
@@ -122,6 +123,21 @@
     "scripts/generate-jwt-keys.sh": [
       "bash -c 'cp scripts/generate-jwt-keys.sh create-agents-template/scripts/generate-jwt-keys.sh && git add create-agents-template/scripts/generate-jwt-keys.sh'"
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "@hono/node-server": ">=1.19.10",
+      "@modelcontextprotocol/sdk": ">=1.26.0",
+      "@workflow/core": ">=4.2.0-beta.64",
+      "dompurify": ">=3.3.2",
+      "fast-xml-parser": ">=5.3.8",
+      "serialize-javascript": ">=7.0.3",
+      "svgo": ">=3.3.3",
+      "minimatch": ">=5.1.8",
+      "lodash": ">=4.17.23",
+      "lodash-es": ">=4.17.23",
+      "express-rate-limit": ">=8.2.2"
+    }
   },
   "packageManager": "pnpm@10.10.0"
 }

@@ -140,6 +140,134 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     });
 
     // Note: Comprehensive credential-tool integration tests are in tool-credential-integration.test.ts
+
+    it('should persist imageUrl field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-create-imageurl');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const toolData = { ...createToolData(), imageUrl: 'https://example.com/icon.png' };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools`,
+        { method: 'POST', body: JSON.stringify(toolData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.imageUrl).toBe('https://example.com/icon.png');
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.imageUrl).toBe('https://example.com/icon.png');
+    });
+
+    it('should persist credentialScope field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-create-credscope');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const toolData = { ...createToolData(), credentialScope: 'user' };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools`,
+        { method: 'POST', body: JSON.stringify(toolData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.credentialScope).toBe('user');
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.credentialScope).toBe('user');
+    });
+
+    it('should persist isWorkApp field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-create-isworkapp');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const toolData = { ...createToolData(), isWorkApp: true };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools`,
+        { method: 'POST', body: JSON.stringify(toolData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.isWorkApp).toBe(true);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.isWorkApp).toBe(true);
+    });
+  });
+
+  describe('PUT /{id} - field persistence', () => {
+    it('should update imageUrl field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-update-imageurl');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { toolId } = await createTestTool({ tenantId });
+
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
+        { method: 'PUT', body: JSON.stringify({ imageUrl: 'https://example.com/new-icon.png' }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.imageUrl).toBe('https://example.com/new-icon.png');
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.imageUrl).toBe('https://example.com/new-icon.png');
+    });
+
+    it('should update credentialScope field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-update-credscope');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { toolId } = await createTestTool({ tenantId });
+
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
+        { method: 'PUT', body: JSON.stringify({ credentialScope: 'user' }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.credentialScope).toBe('user');
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.credentialScope).toBe('user');
+    });
+
+    it('should update isWorkApp field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-update-isworkapp');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { toolId } = await createTestTool({ tenantId });
+
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
+        { method: 'PUT', body: JSON.stringify({ isWorkApp: true }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.isWorkApp).toBe(true);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.isWorkApp).toBe(true);
+    });
   });
 
   describe('PUT /{id}', () => {

@@ -60,6 +60,7 @@ describe('pull-v4 introspect generator', () => {
               id: 'activities-planner',
               name: 'Activities Planner',
               prompt: 'Use {{time}} in timezone {{headers.tz}}',
+              canUse: [],
             },
           },
         },

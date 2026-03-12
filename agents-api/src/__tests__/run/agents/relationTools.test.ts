@@ -802,7 +802,7 @@ describe('Relationship Tools', () => {
       );
     });
 
-    it('should use inherited apiKey for internal delegation when NOT in team delegation context', async () => {
+    it('should generate service token for internal A2A calls even without team delegation', async () => {
       mockExecutionContext = createMockExecutionContext();
       // No teamDelegation metadata
 
@@ -816,15 +816,20 @@ describe('Relationship Tools', () => {
 
       await tool.execute({ message: 'Normal delegation test' }, mockToolCallOptions);
 
-      // generateServiceToken should NOT be called for non-team delegation
-      expect(vi.mocked(generateServiceToken)).not.toHaveBeenCalled();
+      // generateServiceToken should always be called for internal A2A calls
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+      });
 
-      // A2AClient should use the original metadata.apiKey
+      // A2AClient should use the generated service token
       expect(vi.mocked(A2AClient)).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
-            Authorization: 'Bearer test-api-key',
+            Authorization: 'Bearer test-service-token',
           }),
         })
       );
@@ -855,6 +860,79 @@ describe('Relationship Tools', () => {
           }),
         })
       );
+    });
+
+    it('should pass initiatedBy to generateServiceToken for internal delegation', async () => {
+      mockExecutionContext = createMockExecutionContext();
+      mockExecutionContext.metadata = {
+        initiatedBy: { type: 'user', id: 'user_abc123' },
+      };
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'User delegation test' }, mockToolCallOptions);
+
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: { type: 'user', id: 'user_abc123' },
+      });
+    });
+
+    it('should pass initiatedBy when metadata includes teamDelegation flag', async () => {
+      mockExecutionContext = createMockExecutionContext();
+      mockExecutionContext.metadata = {
+        teamDelegation: true,
+        initiatedBy: { type: 'user', id: 'user_xyz789' },
+      };
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Team delegation with user test' }, mockToolCallOptions);
+
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: { type: 'user', id: 'user_xyz789' },
+      });
+    });
+
+    it('should not include initiatedBy when metadata has no initiatedBy', async () => {
+      mockExecutionContext = createMockExecutionContext();
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'No user test' }, mockToolCallOptions);
+
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: undefined,
+      });
     });
   });
 });
