@@ -97,8 +97,6 @@ export const MergePreviewRequestSchema = z
   .object({
     sourceBranch: z.string(),
     targetBranch: z.string(),
-    baseCommit: z.string().optional(),
-    localProjectDefinition: z.unknown().optional(),
   })
   .openapi('MergePreviewRequest');
 
@@ -129,8 +127,6 @@ export const MergeExecuteRequestSchema = z
       })
       .optional(),
     resolutions: z.array(ConflictResolutionSchema).optional(),
-    baseCommit: z.string().optional(),
-    localProjectDefinition: z.unknown().optional(),
   })
   .openapi('MergeExecuteRequest');
 

@@ -6076,12 +6076,6 @@
             ],
             "type": "object"
           },
-          "baseCommit": {
-            "type": "string"
-          },
-          "localProjectDefinition": {
-            "nullable": true
-          },
           "message": {
             "type": "string"
           },
@@ -6181,12 +6175,6 @@
       },
       "MergePreviewRequest": {
         "properties": {
-          "baseCommit": {
-            "type": "string"
-          },
-          "localProjectDefinition": {
-            "nullable": true
-          },
           "sourceBranch": {
             "type": "string"
           },

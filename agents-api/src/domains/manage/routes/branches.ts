@@ -8,9 +8,13 @@ import {
   commonGetErrorResponses,
   createApiError,
   createBranch,
+  createTempBranchFromCommit,
   deleteBranch,
+  doltHashOf,
   ErrorResponseSchema,
   getBranch,
+  isTempBranchName,
+  isValidCommitHash,
   listBranches,
   listBranchesForAgent,
   TenantProjectAgentParamsSchema,
@@ -180,6 +184,12 @@ app.openapi(
     const { name, from } = c.req.valid('json');
 
     try {
+      if (isTempBranchName(name) && from && isValidCommitHash(from)) {
+        await createTempBranchFromCommit(db)({ name, commitHash: from });
+        const hash = await doltHashOf(db)({ revision: name });
+        return c.json({ data: { baseName: name, fullName: name, hash } }, 201);
+      }
+
       const branch = await createBranch(db)({
         tenantId,
         projectId,

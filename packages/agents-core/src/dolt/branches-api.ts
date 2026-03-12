@@ -32,6 +32,14 @@ export const isProtectedBranchName = (branchName: string): boolean => {
   return branchName === MAIN_BRANCH_SUFFIX;
 };
 
+export const getTempBranchName = (prefix: string): string => {
+  return `_${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+};
+
+export const isTempBranchName = (name: string): boolean => {
+  return /^_[a-z-]+_\d+_[a-z0-9]+$/.test(name);
+};
+
 export type CreateBranchParams = {
   tenantId: string;
   projectId: string;

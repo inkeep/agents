@@ -138,6 +138,47 @@ export const doltSchemaConflicts = (db: AgentsManageDatabaseClient) => async ():
 };
 
 /**
+ * Preview merge conflicts without modifying the database (dry-run).
+ * Returns a summary of which tables have conflicts.
+ */
+export const doltPreviewMergeConflictsSummary =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    baseBranch: string;
+    mergeBranch: string;
+  }): Promise<{ table: string; numDataConflicts: number; numSchemaConflicts: number }[]> => {
+    const result = await db.execute(
+      sql.raw(
+        `SELECT * FROM DOLT_PREVIEW_MERGE_CONFLICTS_SUMMARY('${params.baseBranch}', '${params.mergeBranch}')`
+      )
+    );
+    return (result.rows as any[]).map((row) => ({
+      table: row.table,
+      numDataConflicts: Number(row.num_data_conflicts ?? 0),
+      numSchemaConflicts: Number(row.num_schema_conflicts ?? 0),
+    }));
+  };
+
+/**
+ * Preview detailed merge conflicts for a specific table without modifying the database (dry-run).
+ * Returns the same column shape as dolt_conflicts_$table.
+ */
+export const doltPreviewMergeConflicts =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    baseBranch: string;
+    mergeBranch: string;
+    tableName: string;
+  }): Promise<Record<string, unknown>[]> => {
+    const result = await db.execute(
+      sql.raw(
+        `SELECT * FROM DOLT_PREVIEW_MERGE_CONFLICTS('${params.baseBranch}', '${params.mergeBranch}', '${params.tableName}')`
+      )
+    );
+    return result.rows as Record<string, unknown>[];
+  };
+
+/**
  * Resolve conflicts for a table using a strategy
  */
 export const doltResolveConflicts =
