@@ -119,7 +119,7 @@ describe('Artifact Component Generator', () => {
       expect(() => {
         generateArtifactComponentDefinition({ artifactComponentId });
       }).toThrow(
-        new Error(`Validation failed for artifact component:
+        new Error(`Validation failed for artifactComponent:
 ✖ Invalid input: expected string, received undefined
   → at name`)
       );

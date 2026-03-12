@@ -805,12 +805,7 @@ function formatCollectionLiteralText(
   closeToken: '}' | ']'
 ): string {
   if (originalText.includes('\n')) {
-    return `${openToken}\n${itemTexts
-      .map((line) => {
-        const trimmedLine = line.replaceAll(/^\s+\*/gm, ' *');
-        return trimmedLine;
-      })
-      .join(',\n')}${closeToken}`;
+    return `${openToken}\n${itemTexts.join(',\n')}${closeToken}`;
   }
 
   const openingWithSpacing = originalText.startsWith(`${openToken} `) ? `${openToken} ` : openToken;

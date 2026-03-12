@@ -1,78 +1,57 @@
-import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
+import { join } from 'node:path';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition } from '../utils';
-
-const EnvironmentCredentialSchema = FullProjectDefinitionSchema.shape.credentialReferences
-  .unwrap()
-  .valueType.omit({
-    createdBy: true,
-    toolId: true,
-    userId: true,
-  });
-
-const EnvironmentSettingsSchema = z.looseObject({
-  credentials: z.record(z.string(), EnvironmentCredentialSchema).nullable().optional(),
-});
+import { collectEnvironmentCredentialReferenceIds } from '../collector-common';
+import type { GenerationTask } from '../generation-types';
+import { generateFactorySourceFile } from '../simple-factory-generator';
 
 const EnvironmentIndexSchema = z.array(z.string());
 
-type EnvironmentSettingsInput = z.input<typeof EnvironmentSettingsSchema>;
 type EnvironmentIndexInput = z.input<typeof EnvironmentIndexSchema>;
-
-export function generateEnvironmentSettingsDefinition(
-  environmentName: string,
-  environmentData: EnvironmentSettingsInput
-): SourceFile {
-  const environmentNameSchema = z.string().nonempty();
-  const environmentNameResult = environmentNameSchema.safeParse(environmentName);
-  if (!environmentNameResult.success) {
-    throw new Error(
-      `Validation failed for environment name:\n${z.prettifyError(environmentNameResult.error)}`
-    );
-  }
-
-  const result = EnvironmentSettingsSchema.safeParse(environmentData);
-  if (!result.success) {
-    throw new Error(
-      `Validation failed for environment settings:\n${z.prettifyError(result.error)}`
-    );
-  }
-
-  const parsed = result.data;
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'registerEnvironmentSettings',
-    variableName: environmentNameResult.data,
-  });
-
-  addValueToObject(configObject, 'credentials', parsed.credentials ?? {});
-
-  return sourceFile;
-}
 
 export function generateEnvironmentIndexDefinition(
   environments: EnvironmentIndexInput
 ): SourceFile {
-  const result = EnvironmentIndexSchema.safeParse(environments);
-  if (!result.success) {
-    throw new Error(`Validation failed for environments index:\n${z.prettifyError(result.error)}`);
-  }
+  return generateFactorySourceFile(environments, {
+    schema: EnvironmentIndexSchema,
+    factory: {
+      importName: 'createEnvironmentSettings',
+      variableName: () => 'envSettings',
+    },
+    render({ parsed, sourceFile, configObject }) {
+      for (const environmentName of parsed) {
+        sourceFile.addImportDeclaration({
+          namedImports: [environmentName],
+          moduleSpecifier: `./${environmentName}.env`,
+        });
+      }
 
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'createEnvironmentSettings',
-    variableName: 'envSettings',
+      for (const environmentName of parsed) {
+        configObject.addShorthandPropertyAssignment({ name: environmentName });
+      }
+    },
   });
-
-  for (const environmentName of result.data) {
-    sourceFile.addImportDeclaration({
-      namedImports: [environmentName],
-      moduleSpecifier: `./${environmentName}.env`,
-    });
-  }
-
-  for (const environmentName of result.data) {
-    configObject.addShorthandPropertyAssignment({ name: environmentName });
-  }
-
-  return sourceFile;
 }
+
+export const task = {
+  type: 'environment-index',
+  collect(context) {
+    const credentialReferenceIds = collectEnvironmentCredentialReferenceIds(context.project);
+    if (credentialReferenceIds.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        id: 'index',
+        filePath: context.resolver.resolveOutputFilePath(
+          'environments',
+          'index',
+          join(context.paths.environmentsDir, 'index.ts')
+        ),
+        payload: ['development'] as Parameters<typeof generateEnvironmentIndexDefinition>[0],
+      },
+    ];
+  },
+  generate: generateEnvironmentIndexDefinition,
+} satisfies GenerationTask<Parameters<typeof generateEnvironmentIndexDefinition>[0]>;

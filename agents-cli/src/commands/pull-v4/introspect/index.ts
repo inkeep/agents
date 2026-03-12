@@ -376,13 +376,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     // Step 5: Set up project structure
     const paths = createProjectStructure(projectDir);
 
-    // @ts-expect-error -- fix types
-    const skills = remoteProject.skills;
-
-    if (skills && Object.keys(skills).length) {
-      const { generateSkills } = await import('../generators/skill-generator');
-      await generateSkills(skills, paths.skillsDir);
-    }
+    await generateProjectSkillsIfPresent(remoteProject, paths.skillsDir);
 
     s.start('Starting generating files...');
     await introspectGenerate({
@@ -560,7 +554,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
  * Pull a single project (used by batch operations)
  * Uses smart comparison flow for existing projects, introspect for new projects
  */
-async function pullSingleProject(
+export async function pullSingleProject(
   projectId: string,
   projectName: string | undefined,
   options: PullV3Options,
@@ -640,6 +634,7 @@ async function pullSingleProject(
     const remoteProject = await apiClient.getFullProject(projectId);
     // Create project structure
     const paths = createProjectStructure(targetDir);
+    await generateProjectSkillsIfPresent(remoteProject, paths.skillsDir);
 
     // Generate all files using introspect mode for new projects
     await introspectGenerate({
@@ -665,4 +660,17 @@ async function pullSingleProject(
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+async function generateProjectSkillsIfPresent(
+  remoteProject: FullProjectDefinition,
+  skillsDir: string
+): Promise<void> {
+  const skills = remoteProject.skills ?? {};
+  if (!Object.keys(skills).length) {
+    return;
+  }
+
+  const { generateSkills } = await import('../skill');
+  await generateSkills(skills, skillsDir);
 }
