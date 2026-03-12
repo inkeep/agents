@@ -191,12 +191,20 @@ app.openapi(
         });
         if (payload.app === appId && payload.type === 'anonymous' && payload.sub) {
           anonUserId = payload.sub;
+        } else {
+          logger.debug(
+            { appId, tokenApp: payload.app, tokenType: payload.type },
+            'Anonymous session refresh: token claims mismatch, creating new identity'
+          );
         }
       } catch (err) {
         if (err instanceof errors.JWTExpired) {
           logger.debug({ appId }, 'Anonymous session refresh: token expired, creating new identity');
         } else {
-          logger.debug({ appId }, 'Anonymous session refresh: invalid token, creating new identity');
+          logger.debug(
+            { appId, error: err instanceof Error ? err.message : String(err) },
+            'Anonymous session refresh: invalid token, creating new identity'
+          );
         }
       }
     }

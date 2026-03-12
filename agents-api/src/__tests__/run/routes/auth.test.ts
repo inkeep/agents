@@ -361,7 +361,11 @@ describe('Anonymous Session Rolling Refresh', () => {
     expect(refreshPayload.tid).toBe(tenantId);
     expect(refreshPayload.pid).toBe(projectId);
     expect(refreshPayload.app).toBe(appId);
+    expect(typeof refreshPayload.iat).toBe('number');
     expect(refreshPayload.iat).toBeGreaterThanOrEqual(firstPayload.iat as number);
+    expect((refreshPayload.exp as number) - (refreshPayload.iat as number)).toBe(
+      env.INKEEP_ANON_SESSION_LIFETIME_SECONDS
+    );
   });
 
   it('should create new identity when no Bearer token is provided', async () => {
