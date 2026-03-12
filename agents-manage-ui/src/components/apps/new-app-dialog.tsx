@@ -1,18 +1,17 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { SelectOption } from '@/components/form/generic-select';
 import type { AppCreateResponse } from '@/lib/api/apps';
 import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../ui/dialog';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { AppCredentialDisplay } from './app-credential-display';
 import { AppCreateForm } from './form/app-create-form';
 import { APP_TYPE_OPTIONS } from './form/validation';
@@ -45,54 +44,46 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
     }
   };
 
+  const handleSelectType = (type: AppType) => {
+    setSelectedType(type);
+    setIsOpen(true);
+  };
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogTrigger asChild>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button>
-            <Plus className="size-4" /> New App
+            <Plus className="size-4" /> New App <ChevronDown className="size-4" />
           </Button>
-        </DialogTrigger>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          {APP_TYPE_OPTIONS.map((opt) => (
+            <DropdownMenuItem
+              key={opt.value}
+              className="flex flex-col items-start gap-0.5 py-2"
+              onClick={() => handleSelectType(opt.value)}
+            >
+              <span className="font-medium">{opt.label}</span>
+              <span className="text-xs text-muted-foreground">{opt.description}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{selectedType ? 'New App' : 'Select App Type'}</DialogTitle>
-            <DialogDescription className="sr-only">
-              {selectedType ? 'Configure your new app.' : 'Choose the type of app to create.'}
-            </DialogDescription>
+            <DialogTitle>New App</DialogTitle>
+            <DialogDescription className="sr-only">Configure your new app.</DialogDescription>
           </DialogHeader>
           <div className="pt-4">
-            {!selectedType ? (
-              <div className="grid gap-3">
-                {APP_TYPE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className="flex flex-col items-start rounded-lg border p-4 text-left hover:bg-accent transition-colors"
-                    onClick={() => setSelectedType(opt.value)}
-                  >
-                    <span className="font-medium">{opt.label}</span>
-                    <span className="text-sm text-muted-foreground">{opt.description}</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <>
-                <div className="mb-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedType(null)}
-                    className="text-muted-foreground"
-                  >
-                    &larr; Back
-                  </Button>
-                </div>
-                <AppCreateForm
-                  appType={selectedType}
-                  agentOptions={agentOptions}
-                  onAppCreated={handleAppCreated}
-                />
-              </>
+            {selectedType && (
+              <AppCreateForm
+                appType={selectedType}
+                agentOptions={agentOptions}
+                onAppCreated={handleAppCreated}
+              />
             )}
           </div>
         </DialogContent>
