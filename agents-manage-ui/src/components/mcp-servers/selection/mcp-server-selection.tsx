@@ -11,13 +11,12 @@ import {
 } from '@/components/mcp-servers/form/validation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useScopeSelection } from '@/hooks/use-scope-selection';
 import type { Credential } from '@/lib/api/credentials';
 import { getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { createMCPTool } from '@/lib/api/tools';
-import { BUILT_IN_MCPS } from '@/lib/data/built-in-mcps';
+import { BUILT_IN_MCP_URL_PREFIX, BUILT_IN_MCPS } from '@/lib/data/built-in-mcps';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
 import { BuiltInMcpCard } from './built-in-mcp-card';
@@ -59,8 +58,6 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const [gitHubDialogOpen, setGitHubDialogOpen] = useState(false);
   const [slackDialogOpen, setSlackDialogOpen] = useState(false);
   const router = useRouter();
-  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
@@ -164,12 +161,12 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
     setLoadingBuiltInId(id);
     try {
       const newTool = await createMCPTool(tenantId, projectId, {
-        id: generateId(),
+        id: mcp.id,
         name: mcp.name,
         config: {
           type: 'mcp' as const,
           mcp: {
-            server: { url: `${PUBLIC_INKEEP_AGENTS_API_URL}${mcp.urlPath}` },
+            server: { url: `${BUILT_IN_MCP_URL_PREFIX}${mcp.id}` },
             transport: { type: 'streamable_http' },
           },
         },
@@ -280,6 +277,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
               id={mcp.id}
               name={mcp.name}
               description={mcp.description}
+              imageUrl={mcp.imageUrl}
               tools={mcp.tools}
               onSelect={handleSelectBuiltIn}
               isLoading={loadingBuiltInId === mcp.id}

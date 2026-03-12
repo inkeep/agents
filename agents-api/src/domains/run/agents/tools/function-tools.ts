@@ -125,19 +125,26 @@ export async function getFunctionTools(
               }
             );
 
+            const r = result as { type?: string; value?: string } | null | undefined;
+            const resultForEnhancement =
+              r?.type === 'text' && typeof r?.value === 'string' ? { text: r.value } : result;
+
+            const enhancedResult = enhanceToolResultWithStructureHints(
+              ctx,
+              resultForEnhancement,
+              toolCallId
+            );
+
             toolSessionManager.recordToolResult(sessionId || '', {
               toolCallId,
               toolName: functionToolDef.name,
               args: finalArgs,
               result,
+              structureHints: enhancedResult._structureHints,
               timestamp: Date.now(),
             });
 
-            const r = result as { type?: string; value?: string } | null | undefined;
-            const resultForEnhancement =
-              r?.type === 'text' && typeof r?.value === 'string' ? { text: r.value } : result;
-
-            return enhanceToolResultWithStructureHints(ctx, resultForEnhancement, toolCallId);
+            return enhancedResult;
           } catch (error) {
             logger.error(
               {

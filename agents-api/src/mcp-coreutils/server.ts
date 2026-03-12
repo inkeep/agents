@@ -9,7 +9,7 @@ const SERVER_INSTRUCTIONS = `
 These are YOUR tools. You must use them actively for any task involving text processing, data manipulation, encoding, or utility operations. Do not attempt these tasks manually or inline — call the appropriate tool.
 
 ## Available capabilities (use these, do not work around them)
-- **Text**: search, replace, extract, truncate, diff, patch, regex match
+- **Text**: grep, sed, diff, patch, head (first N lines), tail (last N lines)
 - **JSON**: format, query (JMESPath), merge, diff
 - **Encoding**: base64 encode/decode, hash (md5/sha256/sha512), URL encode/decode
 - **HTML**: convert HTML to Markdown
@@ -19,8 +19,8 @@ These are YOUR tools. You must use them actively for any task involving text pro
 Never copy raw content inline between tool calls — always chain via \`{"$tool": "<_toolCallId>"}\` references. For artifacts, use \`{"$artifact": "<id>", "$tool": "<_toolCallId>"}\`.
 
 **Chain tool calls like this — always:**
-- \`html_to_markdown\` result → pass \`{"$tool": "<id>"}\` to \`text_search\`, \`text_extract\`, or \`json_query\`
-- \`text_search\` → pass \`{"$tool": "<id>"}\` to \`text_extract\` or \`text_replace\`
+- \`html_to_markdown\` result → pass \`{"$tool": "<id>"}\` to \`grep\`, \`sed\`, or \`json_query\`
+- \`grep\` result → pass \`{"$tool": "<id>"}\` to \`sed\` or another \`grep\`
 - \`json_query\` → pass \`{"$tool": "<id>"}\` to \`json_format\` or another \`json_query\`
 - Artifact in ledger → pass \`{"$artifact": "<id>", "$tool": "<id>"}\` to any tool that accepts data/content/input
 
@@ -28,11 +28,11 @@ Never copy raw content inline between tool calls — always chain via \`{"$tool"
 If a tool from another server returned a complex object and you need a specific field, use \`json_query\` to extract it first, then pipe that result:
 - \`other_tool\` returns \`{ "results": [{"title": "...", "url": "..."}, ...], "total": 5 }\`  (call_id: "call_a")
 - \`json_query({ "data": {"$tool": "call_a"}, "query": "results[0].title" })\`  (call_id: "call_b")
-- \`text_search({ "content": {"$tool": "call_b"}, "pattern": "..." })\`  ← receives just the extracted string
+- \`grep({ "content": {"$tool": "call_b"}, "pattern": "..." })\`  ← receives just the extracted string
 
 Never extract a value by reading it and copying it inline — always chain through \`json_query\`.
 
-## MANDATORY GATE — before calling any text tool (text_search, text_extract, regex_match, text_replace)
+## MANDATORY GATE — before calling any text tool (grep, sed)
 
 This is not guidance. Skipping this gate is a violation.
 
@@ -53,9 +53,12 @@ Step 3 — Is the source already a plain string from a prior step?
 Once \`json_query\` has extracted a string or number, that result IS the value. Running \`json_query\` on a primitive returns null. Pipe the primitive directly to the text tool.
 
 **Tool selection once you have a string:**
-- Find a specific pattern? → \`regex_match\` (returns exact match only)
-- Need lines of context around a keyword? → \`text_search\` (returns matching lines + context)
-- Need a character or line range? → \`text_extract\`
+- Search for a pattern with context? → \`grep\` (supports -v, -w, -o, -c, -A, -B, -C)
+- Extract a line range, character range, or pattern-delimited section? → \`sed\` (extraction mode)
+- Find and replace? → \`sed\` (substitution mode with \`find\`/\`replace\`)
+- Delete lines matching a pattern? → \`sed\` with \`startPattern\` + \`invertMatch: true\`
+- First N lines from the top? → \`head\` (negative n = all but last N)
+- Last N lines from the bottom? → \`tail\` (negative n = all but first N)
 `.trim();
 
 export interface DevToolsScope {
@@ -65,7 +68,7 @@ export interface DevToolsScope {
 
 export function createDevToolsServer(_scope?: DevToolsScope): McpServer {
   const server = new McpServer(
-    { name: 'inkeep-dev-tools', version: '1.0.0' },
+    { name: 'inkeep-coreutils', version: '1.0.0' },
     { instructions: SERVER_INSTRUCTIONS }
   );
 

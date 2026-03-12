@@ -8,12 +8,8 @@ import { subAgentToolRelations, tools } from '../../db/manage/manage-schema';
 import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import { env } from '../../env';
-import {
-  isDevToolsHttpMcp,
-  isDevToolsMcp,
-  isDevToolsMediaMcp,
-  isDevToolsSearchMcp,
-} from '../../mcp/built-in-mcps';
+import { isBuiltInMcp, resolveBuiltInMcpUrl } from '../../mcp/built-in-mcps';
+import { getMcpServerUrl } from '../../types/utility';
 import type { CredentialReferenceSelect } from '../../types/index';
 import {
   type AgentScopeConfig,
@@ -155,17 +151,20 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
     throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
   }
 
-  return {
+  const baseConfig = {
     id: tool.id,
     name: tool.name,
-    description: tool.name, // Use name as description fallback
-    serverUrl: tool.config.mcp.server.url,
-    mcpType: tool.config.mcp.server.url.includes('api.nango.dev')
-      ? MCPServerType.nango
-      : MCPServerType.generic,
+    description: tool.name,
     transport: tool.config.mcp.transport,
     headers: tool.headers,
     toolOverrides: tool.config.mcp.toolOverrides,
+  };
+
+  const serverUrl = getMcpServerUrl(tool.config.mcp.server) ?? tool.config.mcp.server.url;
+  return {
+    ...baseConfig,
+    serverUrl,
+    mcpType: serverUrl.includes('api.nango.dev') ? MCPServerType.nango : MCPServerType.generic,
   };
 };
 
@@ -178,7 +177,8 @@ const discoverToolsFromServer = async (
   tool: ToolSelect,
   credentialReference?: CredentialReferenceSelect,
   credentialStoreRegistry?: CredentialStoreRegistry,
-  userId?: string
+  userId?: string,
+  baseUrl?: string
 ): Promise<DiscoveryResult> => {
   if (tool.config.type !== 'mcp') {
     throw new Error(`Cannot discover tools from non-MCP tool: ${tool.id}`);
@@ -203,18 +203,39 @@ const discoverToolsFromServer = async (
         storeReference
       );
     } else {
+      const resolvedUrl: string = (() => {
+        if (isBuiltInMcp(tool) && baseUrl) {
+          return resolveBuiltInMcpUrl(tool, baseUrl) ?? getMcpServerUrl(tool.config.mcp.server) ?? '';
+        }
+        return getMcpServerUrl(tool.config.mcp.server) ?? '';
+      })();
+
+      const builtInHeaders = isBuiltInMcp(tool)
+        ? await signMcpAccessToken({ tenantId: tool.tenantId, projectId: tool.projectId }).then(
+            (jwt) => ({
+              'x-inkeep-tenant-id': tool.tenantId,
+              'x-inkeep-project-id': tool.projectId,
+              Authorization: `Bearer ${jwt}`,
+            })
+          )
+        : undefined;
+
       const transportType = tool.config.mcp.transport?.type || MCPTransportType.streamableHttp;
       if (transportType === MCPTransportType.sse) {
         serverConfig = {
           type: MCPTransportType.sse,
-          url: tool.config.mcp.server.url,
+          url: resolvedUrl,
           eventSourceInit: tool.config.mcp.transport?.eventSourceInit,
+          ...(builtInHeaders && { requestInit: { headers: builtInHeaders } }),
         };
       } else {
         serverConfig = {
           type: MCPTransportType.streamableHttp,
-          url: tool.config.mcp.server.url,
-          requestInit: tool.config.mcp.transport?.requestInit,
+          url: resolvedUrl,
+          requestInit: {
+            ...tool.config.mcp.transport?.requestInit,
+            ...(builtInHeaders && { headers: builtInHeaders }),
+          },
           eventSourceInit: tool.config.mcp.transport?.eventSourceInit,
           reconnectionOptions: tool.config.mcp.transport?.reconnectionOptions,
           sessionId: tool.config.mcp.transport?.sessionId,
@@ -248,24 +269,6 @@ const discoverToolsFromServer = async (
         'x-inkeep-tenant-id': tool.tenantId,
         'x-inkeep-project-id': tool.projectId,
         Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
-      };
-    }
-
-    if (
-      isDevToolsMcp(tool) ||
-      isDevToolsHttpMcp(tool) ||
-      isDevToolsMediaMcp(tool) ||
-      isDevToolsSearchMcp(tool)
-    ) {
-      const jwt = await signMcpAccessToken({
-        tenantId: tool.tenantId,
-        projectId: tool.projectId,
-      });
-      serverConfig.headers = {
-        ...serverConfig.headers,
-        'x-inkeep-tenant-id': tool.tenantId,
-        'x-inkeep-project-id': tool.projectId,
-        Authorization: `Bearer ${jwt}`,
       };
     }
 
@@ -334,7 +337,8 @@ export const dbResultToMcpTool = async (
   dbClient: AgentsManageDatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry,
   relationshipId?: string,
-  userId?: string
+  userId?: string,
+  options?: { baseUrl?: string }
 ): Promise<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
@@ -381,14 +385,15 @@ export const dbResultToMcpTool = async (
     expiresAt = await getCredentialExpiresAt(credentialReference, credentialStoreRegistry);
   }
 
-  const mcpServerUrl = dbResult.config.mcp.server.url;
+  const mcpServerUrl = getMcpServerUrl(dbResult.config.mcp.server);
 
   try {
     const discoveryResult = await discoverToolsFromServer(
       dbResult,
       credentialReference,
       credentialStoreRegistry,
-      userId
+      userId,
+      options?.baseUrl
     );
     availableTools = discoveryResult.tools;
     serverInstructions = discoveryResult.serverInstructions;
@@ -405,11 +410,13 @@ export const dbResultToMcpTool = async (
       lastErrorComputed = `Connection failed - the MCP server may be slow or temporarily unreachable.${errorCode} ${errorMessage}`;
     } else {
       // Only check for auth requirement if it's not a timeout/connection error
-      const toolNeedsAuth = await detectAuthenticationRequired({
-        serverUrl: mcpServerUrl,
-        error: error instanceof Error ? error : undefined,
-        logger,
-      });
+      const toolNeedsAuth = mcpServerUrl
+        ? await detectAuthenticationRequired({
+            serverUrl: mcpServerUrl,
+            error: error instanceof Error ? error : undefined,
+            logger,
+          })
+        : false;
 
       status = toolNeedsAuth ? 'needs_auth' : 'unhealthy';
       lastErrorComputed = toolNeedsAuth
@@ -419,13 +426,13 @@ export const dbResultToMcpTool = async (
   }
 
   // Check third-party service status
-  const isThirdPartyMCPServer = dbResult.config.mcp.server.url.includes('composio.dev');
+  const isThirdPartyMCPServer = getMcpServerUrl(dbResult.config.mcp.server)?.includes('composio.dev') ?? false;
   if (isThirdPartyMCPServer) {
     const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
     const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
       dbResult.tenantId,
       dbResult.projectId,
-      mcpServerUrl,
+      mcpServerUrl!,
       credentialScope,
       userId
     );
@@ -620,7 +627,7 @@ export const deleteTool =
     // If a github workapp tool is being deleted from the main branch, delete the runtime entities for the tool
     // In the future, when we allow rolling back a project to a previous version, the user will need to reset the tool-repo permissions
     const isWorkApp = deleted.isWorkApp;
-    const isGithub = isWorkApp && deleted.config.mcp.server.url.includes('/github/mcp');
+    const isGithub = isWorkApp && getMcpServerUrl(deleted.config.mcp.server)?.includes('/github/mcp') === true;
 
     if (isGithub || isSlackWorkAppTool(deleted)) {
       try {

@@ -3,10 +3,9 @@ import {
   type CredentialStuffer,
   configureComposioMCPServer,
   type FullExecutionContext,
-  isDevToolsHttpMcp,
-  isDevToolsMcp,
-  isDevToolsMediaMcp,
-  isDevToolsSearchMcp,
+  getMcpServerUrl,
+  isBuiltInMcp,
+  resolveBuiltInMcpUrl,
   isGithubWorkAppTool,
   isSlackWorkAppTool,
   JsonTransformer,
@@ -120,7 +119,7 @@ export class AgentMcpManager {
       }
       serverConfig = {
         type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
-        url: tool.config.mcp.server.url,
+        url: getMcpServerUrl(tool.config.mcp.server) ?? '',
         activeTools: tool.config.mcp.activeTools,
         selectedTools,
         headers: agentToolRelationHeaders,
@@ -147,12 +146,9 @@ export class AgentMcpManager {
       };
     }
 
-    if (
-      isDevToolsMcp(tool) ||
-      isDevToolsHttpMcp(tool) ||
-      isDevToolsMediaMcp(tool) ||
-      isDevToolsSearchMcp(tool)
-    ) {
+    if (isBuiltInMcp(tool)) {
+      const resolvedUrl = resolveBuiltInMcpUrl(tool, env.INKEEP_AGENTS_API_URL);
+      if (resolvedUrl) serverConfig.url = resolvedUrl;
       const jwt = await signMcpAccessToken({
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
@@ -258,7 +254,7 @@ export class AgentMcpManager {
     const streamRequestId = this.getStreamRequestId();
     if (!streamRequestId) return;
 
-    const serverUrl = mcpTool.config.type === 'mcp' ? mcpTool.config.mcp.server.url : 'unknown';
+    const serverUrl = mcpTool.config.type === 'mcp' ? (getMcpServerUrl(mcpTool.config.mcp.server) ?? 'built-in') : 'unknown';
 
     tracer.startActiveSpan(
       'ai.toolCall',
@@ -304,21 +300,21 @@ export class AgentMcpManager {
       throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
     }
 
-    return {
+    const baseConfig = {
       id: tool.id,
       name: tool.name,
       description: tool.name,
-      serverUrl: tool.config.mcp.server.url,
       activeTools: tool.config.mcp.activeTools,
-      mcpType: tool.config.mcp.server.url.includes('api.nango.dev')
-        ? MCPServerType.nango
-        : MCPServerType.generic,
       transport: tool.config.mcp.transport,
-      headers: {
-        ...tool.headers,
-        ...agentToolRelationHeaders,
-      },
+      headers: { ...tool.headers, ...agentToolRelationHeaders },
       toolOverrides: tool.config.mcp.toolOverrides,
+    };
+
+    const serverUrl = getMcpServerUrl(tool.config.mcp.server) ?? tool.config.mcp.server.url;
+    return {
+      ...baseConfig,
+      serverUrl,
+      mcpType: serverUrl.includes('api.nango.dev') ? MCPServerType.nango : MCPServerType.generic,
     };
   }
 

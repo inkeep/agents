@@ -26,6 +26,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { z } from 'zod';
+import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -111,7 +112,7 @@ app.openapi(
         data: (
           await Promise.all(
             dbResult.data.map(
-              async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId)
+              async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId, { baseUrl: env.INKEEP_AGENTS_API_URL })
             )
           )
         ).filter((tool: McpTool) => tool.status === status),
@@ -126,7 +127,7 @@ app.openapi(
       result = {
         data: await Promise.all(
           dbResult.data.map(
-            async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId)
+            async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId, { baseUrl: env.INKEEP_AGENTS_API_URL })
           )
         ),
         pagination: dbResult.pagination,
@@ -175,7 +176,7 @@ app.openapi(
     const userId = c.get('userId');
 
     return c.json({
-      data: await dbResultToMcpTool(tool, db, credentialStores, undefined, userId),
+      data: await dbResultToMcpTool(tool, db, credentialStores, undefined, userId, { baseUrl: env.INKEEP_AGENTS_API_URL }),
     });
   }
 );
@@ -236,7 +237,7 @@ app.openapi(
 
     return c.json(
       {
-        data: await dbResultToMcpTool(tool, db, credentialStores, undefined, userId),
+        data: await dbResultToMcpTool(tool, db, credentialStores, undefined, userId, { baseUrl: env.INKEEP_AGENTS_API_URL }),
       },
       201
     );
@@ -309,7 +310,7 @@ app.openapi(
     }
 
     return c.json({
-      data: await dbResultToMcpTool(updatedTool, db, credentialStores, undefined, userId),
+      data: await dbResultToMcpTool(updatedTool, db, credentialStores, undefined, userId, { baseUrl: env.INKEEP_AGENTS_API_URL }),
     });
   }
 );

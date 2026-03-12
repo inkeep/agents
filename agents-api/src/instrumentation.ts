@@ -13,9 +13,11 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import type { Context } from '@opentelemetry/api';
 import {
   BatchSpanProcessor,
   NoopSpanProcessor,
+  type ReadableSpan,
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
@@ -40,6 +42,35 @@ function createSafeBatchProcessor(): SpanProcessor {
 }
 
 export const defaultBatchProcessor = createSafeBatchProcessor();
+
+const INTERNAL_TOOL_RESULT_KEYS = ['_structureHints', '_toolCallId'];
+
+class ToolResultSanitizingProcessor implements SpanProcessor {
+  onStart(_span: any, _parentContext: Context): void {}
+
+  onEnd(span: ReadableSpan): void {
+    const raw = span.attributes['ai.toolCall.result'];
+    if (typeof raw !== 'string') return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        for (const key of INTERNAL_TOOL_RESULT_KEYS) {
+          delete parsed[key];
+        }
+        (span.attributes as Record<string, unknown>)['ai.toolCall.result'] =
+          JSON.stringify(parsed);
+      }
+    } catch {}
+  }
+
+  shutdown(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  forceFlush(): Promise<void> {
+    return Promise.resolve();
+  }
+}
 
 export const defaultResource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-run-api',
@@ -73,6 +104,7 @@ export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrume
 
 export const defaultSpanProcessors: SpanProcessor[] = [
   new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
+  new ToolResultSanitizingProcessor(),
   defaultBatchProcessor,
 ];
 

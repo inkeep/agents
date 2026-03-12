@@ -6,6 +6,7 @@ import {
   workAppSlackUserMappings,
 } from '../../db/runtime/runtime-schema';
 import type { McpTool, ToolSelect } from '../../types/entities';
+import { getMcpServerUrl } from '../../types/utility';
 
 export type SlackMcpToolAccessConfig = {
   channelAccessMode: 'all' | 'selected';
@@ -127,7 +128,7 @@ export const deleteAllSlackMcpToolAccessConfigsByTenant =
   };
 
 export const isSlackWorkAppTool = (tool: ToolSelect | McpTool) => {
-  return tool.isWorkApp && tool.config.mcp.server.url.includes('/slack/mcp');
+  return tool.isWorkApp && (getMcpServerUrl(tool.config.mcp.server)?.includes('/slack/mcp') ?? false);
 };
 
 export const resolveSlackUserContext =

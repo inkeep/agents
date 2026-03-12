@@ -3,6 +3,7 @@
   "icon": "LuHammer",
   "pages": [
     "mcp-servers",
+    "built-in-mcp-servers",
     "user-vs-project-mcp",
     "credentials",
     "function-tools",

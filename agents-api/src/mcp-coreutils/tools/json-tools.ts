@@ -59,7 +59,7 @@ export function registerJsonTools(server: McpServer): void {
     },
     async ({ input, indent = 2 }): Promise<CallToolResult> => {
       try {
-        const parsed = parseJsonArg(input);
+        const parsed = typeof input === 'string' ? JSON.parse(input) : input;
         return { content: [{ type: 'text', text: JSON.stringify(parsed, null, indent) }] };
       } catch (err) {
         return {

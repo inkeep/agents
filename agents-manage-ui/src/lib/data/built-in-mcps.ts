@@ -1,58 +1,12 @@
-const INKEEP_ICON_DATA_URI =
-  'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUyIiBoZWlnaHQ9IjI1MiIgdmlld0JveD0iMCAwIDI1MiAyNTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik01My4xMjk2IDU0LjgzMTVDNDkuOTE0MyA1NC44MzE1IDQ2Ljk0MzEgNTYuNTQ2OSA0NS4zMzU0IDU5LjMzMTVMOS40Mzc3NiAxMjEuNTA4QzcuODMwMDcgMTI0LjI5MyA3LjgzMDA3IDEyNy43MjQgOS40Mzc3NyAxMzAuNTA4TDQ1LjMzNTQgMTkyLjY4NUM0Ni45NDMxIDE5NS40NjkgNDkuOTE0MyAxOTcuMTg1IDUzLjEyOTYgMTk3LjE4NUgxMjQuOTI1QzEyOC4xNCAxOTcuMTg1IDEzMS4xMTIgMTk1LjQ2OSAxMzIuNzE5IDE5Mi42ODVMMTY4LjYxNyAxMzAuNTA4QzE3MC4yMjUgMTI3LjcyNCAxNzAuMjI1IDEyNC4yOTMgMTY4LjYxNyAxMjEuNTA4TDEzMi43MTkgNTkuMzMxNUMxMzEuMTEyIDU2LjU0NjkgMTI4LjE0IDU0LjgzMTUgMTI0LjkyNSA1NC44MzE1SDUzLjEyOTZaIiBzdHJva2U9IiMzNzg0RkYiIHN0cm9rZS13aWR0aD0iMTAiLz4KPHBhdGggZD0iTTE5OS41NzEgNTMuNDgxMkMyMjEuMDkgNTkuMDE4NyAyMTguNjM4IDcxLjIzMDggMjI3LjU2MiA5Ni4wNzA4QzIzMy4yODggMTEyLjAwNyAyNjAuOTY5IDEzMS43NjggMjM1LjY3MyAxNzAuMTgxQzIyOC4xMjQgMTgxLjY0NCAyMDMuODQ5IDE5NS4yNDUgMTg2LjI4NSAxOTkuMDE4QzE0Ny41ODkgMjA3LjIwMSAxMjQuNzg4IDE4OC42MyAxMDQuNTYxIDE1OC4wMTFDODkuMzg1OCAxMzQuODUxIDk0Ljc0OCAxMDEuNTA4IDExNy43NjUgODUuMTM1M0MxMzkuNTc4IDY5LjY2MTQgMTcxLjI4MyA0NS42NTAzIDE5OS41NzEgNTMuNDgxMloiIHN0cm9rZT0iIzM3ODRGRiIgc3Ryb2tlLXdpZHRoPSI5LjgiLz4KPC9zdmc+Cg==';
+import {
+  BUILT_IN_MCP_CONFIGS,
+  BUILT_IN_MCP_URL_PREFIX,
+  INKEEP_COREUTILS_MCP,
+  INKEEP_HTTP_MCP,
+  INKEEP_MEDIA_MCP,
+  INKEEP_SEARCH_MCP,
+} from '@inkeep/agents-core/client-exports';
 
-export const BUILT_IN_MCPS = [
-  {
-    id: 'dev-tools',
-    name: 'inkeep-dev-tools',
-    description: 'Core dev tools: text, encoding, JSON, HTML, and utility',
-    urlPath: '/dev-tools/mcp',
-    imageUrl: INKEEP_ICON_DATA_URI,
-    tools: [
-      'text_search',
-      'text_replace',
-      'text_extract',
-      'text_truncate',
-      'text_diff',
-      'patch_apply',
-      'regex_match',
-      'json_format',
-      'json_query',
-      'json_merge',
-      'json_diff',
-      'base64_encode',
-      'base64_decode',
-      'hash',
-      'url_encode',
-      'url_decode',
-      'html_to_markdown',
-      'calculate',
-      'uuid',
-      'timestamp',
-    ],
-  },
-  {
-    id: 'dev-tools-http',
-    name: 'inkeep-dev-tools-http',
-    description: 'Outbound HTTP request tools',
-    urlPath: '/dev-tools-http/mcp',
-    imageUrl: INKEEP_ICON_DATA_URI,
-    tools: ['fetch_url'],
-  },
-  {
-    id: 'dev-tools-media',
-    name: 'inkeep-dev-tools-media',
-    description: 'Image processing tools powered by Sharp',
-    urlPath: '/dev-tools-media/mcp',
-    imageUrl: INKEEP_ICON_DATA_URI,
-    tools: ['image_info', 'image_crop', 'image_resize'],
-  },
-  {
-    id: 'dev-tools-search',
-    name: 'inkeep-dev-tools-search',
-    description: 'Web search tools powered by Exa (requires EXA_API_KEY)',
-    urlPath: '/dev-tools-search/mcp',
-    imageUrl: INKEEP_ICON_DATA_URI,
-    tools: ['web_search', 'find_similar'],
-  },
-] as const;
+export { BUILT_IN_MCP_CONFIGS, BUILT_IN_MCP_URL_PREFIX, INKEEP_COREUTILS_MCP, INKEEP_HTTP_MCP, INKEEP_MEDIA_MCP, INKEEP_SEARCH_MCP };
+
+export const BUILT_IN_MCPS = [...BUILT_IN_MCP_CONFIGS];

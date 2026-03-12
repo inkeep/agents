@@ -4,9 +4,9 @@ import { z } from 'zod';
 
 export function registerHttpTools(server: McpServer): void {
   server.registerTool(
-    'fetch_url',
+    'curl',
     {
-      description: 'Make an HTTP request and return the response status and body.',
+      description: 'Make an HTTP request and return the response status and body, like Unix curl.',
       inputSchema: z.object({
         url: z.string().describe('URL to fetch'),
         method: z

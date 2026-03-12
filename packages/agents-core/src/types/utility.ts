@@ -186,13 +186,18 @@ export type ToolSimplifyConfig = {
   transformation?: Record<string, string> | string; // object mapping or JMESPath expression
 };
 
+export type ToolMcpServerConfig = {
+  url: string;
+  timeout?: number;
+  headers?: Record<string, string>;
+};
+
+export const getMcpServerUrl = (server: ToolMcpServerConfig): string | undefined =>
+  !server.url.startsWith('inkeepBuiltIn:') ? server.url : undefined;
+
 export type ToolMcpConfig = {
   // Server connection details
-  server: {
-    url: string;
-    timeout?: number;
-    headers?: Record<string, string>;
-  };
+  server: ToolMcpServerConfig;
   // Transport configuration
   transport?: McpTransportConfig;
   // Active tools to enable from this MCP server

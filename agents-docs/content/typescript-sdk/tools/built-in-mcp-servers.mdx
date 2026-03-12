@@ -1,0 +1,95 @@
+---
+title: Built-in MCP Servers
+sidebarTitle: Built-in MCP Servers
+description: Pre-built MCP servers you can add to agents without hosting or configuring a server URL.
+icon: LuPackage
+---
+
+Built-in MCP servers are pre-built tool collections hosted and maintained for you. Import them directly from `@inkeep/agents-sdk` and add them to any agent — no server URL or credential required.
+
+## Available servers
+
+| Export | Server | Description |
+|--------|--------|-------------|
+| `INKEEP_COREUTILS` | `inkeep-coreutils` | Core text and data tools: grep, sed, diff, patch, head, tail, JSON, encoding, hash, HTML, and utilities |
+| `INKEEP_HTTP` | `inkeep-http` | Outbound HTTP requests via curl |
+| `INKEEP_MEDIA` | `inkeep-media` | Image processing: info, resize, crop |
+| `INKEEP_SEARCH` | `inkeep-search` | Web search tools |
+
+## Usage
+
+```typescript
+import { subAgent } from "@inkeep/agents-sdk";
+import { INKEEP_COREUTILS, INKEEP_SEARCH } from "@inkeep/agents-sdk";
+
+const myAgent = subAgent({
+  id: "my-agent",
+  name: "My Agent",
+  description: "An agent with access to built-in tools",
+  prompt: "You are a helpful assistant.",
+  canUse: () => [INKEEP_COREUTILS, INKEEP_SEARCH],
+});
+```
+
+### Selecting specific tools
+
+Use `.with()` to enable only a subset of tools:
+
+```typescript
+import { INKEEP_COREUTILS } from "@inkeep/agents-sdk";
+
+canUse: () => [
+  INKEEP_COREUTILS.with({ selectedTools: ["grep", "sed", "json_query"] }),
+]
+```
+
+## Tool reference
+
+### INKEEP_COREUTILS
+
+| Tool | Description |
+|------|-------------|
+| `grep` | Search for a pattern in text. Supports regex, case control, context lines, invert match, and count mode. |
+| `sed` | Transform text with substitutions or extract line/character/pattern ranges. |
+| `diff` | Generate a unified diff between two strings. |
+| `patch` | Apply a unified diff patch to a string. |
+| `head` | Return the first N lines of text. |
+| `tail` | Return the last N lines of text. |
+| `json_format` | Pretty-print a JSON string or object. |
+| `json_query` | Extract a value from a JSON object using a JMESPath expression. |
+| `json_merge` | Deep or shallow merge two JSON objects. |
+| `json_diff` | Show structural differences between two JSON values. |
+| `base64_encode` | Encode a string to base64. |
+| `base64_decode` | Decode a base64 string to UTF-8 text. |
+| `url_encode` | Percent-encode a string for use in a URL. |
+| `url_decode` | Decode a percent-encoded URL string. |
+| `hash` | Compute a cryptographic hash (MD5, SHA-1, SHA-256, SHA-512). |
+| `html_to_markdown` | Convert HTML to Markdown. |
+| `calculate` | Evaluate a numeric arithmetic expression. |
+| `uuid` | Generate a random UUID (v4). |
+| `timestamp` | Get the current date/time in ISO, Unix, UTC, or locale format. |
+
+### INKEEP_HTTP
+
+| Tool | Description |
+|------|-------------|
+| `curl` | Make an outbound HTTP request and return the response. |
+
+### INKEEP_MEDIA
+
+| Tool | Description |
+|------|-------------|
+| `image_info` | Get metadata about an image (dimensions, format, size). |
+| `image_resize` | Resize an image to specified dimensions. |
+| `image_crop` | Crop an image to a specified region. |
+
+### INKEEP_SEARCH
+
+| Tool | Description |
+|------|-------------|
+| `web_search` | Search the web and return relevant results. |
+| `find_similar` | Find web pages similar to a given URL. |
+
+<Note>
+  Built-in servers can also be added from the **Visual Builder** under **Tools → Built-in Servers**, without writing any code.
+</Note>

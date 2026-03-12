@@ -374,8 +374,9 @@ export abstract class BaseCompressor {
   ): Promise<CompressedArtifactInfo | null> {
     const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
     const toolInput = block.input ?? this.toolCallInputMap.get(block.toolCallId) ?? null;
-    const cachedResult = toolSessionManager.getToolResult(this.sessionId, block.toolCallId)?.result;
-    const toolResult = cachedResult ?? stripStructureHints(block.output);
+    const cachedRecord = toolSessionManager.getToolResult(this.sessionId, block.toolCallId);
+    const toolResult = cachedRecord?.result ?? stripStructureHints(block.output);
+    const cachedStructureHints = cachedRecord?.structureHints;
     const toolResultData = {
       toolName: block.toolName,
       toolInput,
@@ -386,6 +387,10 @@ export abstract class BaseCompressor {
     if (this.isEmpty(toolResultData)) return null;
 
     const artifactData = this.buildArtifactData(artifactId, block, toolResultData);
+
+    if (cachedStructureHints) {
+      artifactData.summaryData._structureHints = cachedStructureHints;
+    }
 
     session.recordEvent('artifact_saved', this.sessionId, artifactData);
     this.processedToolCalls.add(block.toolCallId);

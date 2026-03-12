@@ -12,6 +12,7 @@ export interface ToolResultRecord {
   toolName: string;
   args?: any;
   result: any;
+  structureHints?: any;
   timestamp: number;
 }
 

@@ -1,7 +1,7 @@
 import { createApiError, extractBearerToken, verifyMcpAccessToken } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 
-export const devToolsHttpMcpAuth = () =>
+export const mcpAuth = () =>
   createMiddleware<{
     Variables: {
       tenantId: string;

@@ -1,0 +1,72 @@
+---
+title: Built-in MCP Servers
+sidebarTitle: Built-in MCP Servers
+description: Pre-built MCP servers that are ready to add to your agents without any configuration.
+icon: LuPackage
+---
+
+Built-in MCP servers are pre-built tool collections that are hosted and maintained for you. They are ready to add to your agents without registering a URL or managing a server.
+
+## Available servers
+
+### inkeep-coreutils
+
+Core text and data processing tools.
+
+| Tool | Description |
+|------|-------------|
+| `grep` | Search for a pattern in text. Supports regex, case control, context lines, invert match, and count mode. |
+| `sed` | Transform text with substitutions or extract line/character/pattern ranges. |
+| `diff` | Generate a unified diff between two strings. |
+| `patch` | Apply a unified diff patch to a string. |
+| `head` | Return the first N lines of text. |
+| `tail` | Return the last N lines of text. |
+| `json_format` | Pretty-print a JSON string or object. |
+| `json_query` | Extract a value from a JSON object using a JMESPath expression. |
+| `json_merge` | Deep or shallow merge two JSON objects. |
+| `json_diff` | Show structural differences between two JSON values. |
+| `base64_encode` | Encode a string to base64. |
+| `base64_decode` | Decode a base64 string to UTF-8 text. |
+| `url_encode` | Percent-encode a string for use in a URL. |
+| `url_decode` | Decode a percent-encoded URL string. |
+| `hash` | Compute a cryptographic hash (MD5, SHA-1, SHA-256, SHA-512). |
+| `html_to_markdown` | Convert HTML to Markdown. |
+| `calculate` | Evaluate a numeric arithmetic expression. |
+| `uuid` | Generate a random UUID (v4). |
+| `timestamp` | Get the current date/time in ISO, Unix, UTC, or locale format. |
+
+### inkeep-http
+
+Outbound HTTP request tools.
+
+| Tool | Description |
+|------|-------------|
+| `curl` | Make an outbound HTTP request and return the response. |
+
+### inkeep-media
+
+Image processing tools.
+
+| Tool | Description |
+|------|-------------|
+| `image_info` | Get metadata about an image (dimensions, format, size). |
+| `image_resize` | Resize an image to specified dimensions. |
+| `image_crop` | Crop an image to a specified region. |
+
+### inkeep-search
+
+Web search tools.
+
+| Tool | Description |
+|------|-------------|
+| `web_search` | Search the web and return relevant results. |
+| `find_similar` | Find web pages similar to a given URL. |
+
+## Adding built-in servers to an agent
+
+1. Go to the **Tools** tab in the Visual Builder.
+2. Select **Built-in Servers**.
+3. Click **Add** on the server you want to use.
+4. The server will appear in your tool list and can be connected to any agent.
+
+You can enable or disable individual tools from the server the same way as any other MCP server — see [Editing server settings](/visual-builder/tools/mcp-servers#editing-server-settings).

@@ -2,6 +2,7 @@ import type { FullExecutionContext, MessageContent } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { ArtifactParser, type StreamPart } from '../artifacts/ArtifactParser';
 import { agentSessionManager } from '../session/AgentSession';
+import { cleanArtifactForStream } from './stream-helpers';
 import { setSpanWithError, tracer } from '../utils/tracer';
 
 const logger = getLogger('ResponseFormatter');
@@ -90,7 +91,7 @@ export class ResponseFormatter {
           final_parts_array: JSON.stringify(parts, null, 2),
         });
 
-        return { parts };
+        return { parts: this.cleanParts(parts) };
       } catch (error) {
         setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
         logger.error({ error, responseObject }, 'Error formatting object response');
@@ -157,7 +158,7 @@ export class ResponseFormatter {
           final_parts_array: JSON.stringify(parts, null, 2),
         });
 
-        return { parts };
+        return { parts: this.cleanParts(parts) };
       } catch (error) {
         setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
         logger.error({ error, responseText }, 'Error formatting response');
@@ -165,6 +166,18 @@ export class ResponseFormatter {
       } finally {
         span.end();
       }
+    });
+  }
+
+  /**
+   * Clean internal fields from artifact parts before returning to client
+   */
+  private cleanParts(parts: StreamPart[]): StreamPart[] {
+    return parts.map((part) => {
+      if (part.kind === 'data' && part.data?.artifactId && part.data?.toolCallId) {
+        return { ...part, data: cleanArtifactForStream(part.data) };
+      }
+      return part;
     });
   }
 

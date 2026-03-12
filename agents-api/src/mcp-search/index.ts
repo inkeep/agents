@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
 import { env } from '../env';
-import { devToolsSearchMcpAuth } from './auth';
+import { mcpAuth } from '../middleware/mcpAuth';
 import { createDevToolsSearchServer } from './server';
 
 type DevToolsSearchVariables = {
@@ -14,7 +14,7 @@ type DevToolsSearchVariables = {
 
 const app = new Hono<DevToolsSearchVariables>();
 
-app.use('/mcp', devToolsSearchMcpAuth());
+app.use('/mcp', mcpAuth());
 
 app.all('/mcp', async (c) => {
   if (!env.EXA_API_KEY) {

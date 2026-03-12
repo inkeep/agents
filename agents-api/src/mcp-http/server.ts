@@ -2,9 +2,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerHttpTools } from './tools/http';
 
 const SERVER_INSTRUCTIONS = `
-Use fetch_url to make outbound HTTP requests. Supports GET, POST, PUT, PATCH, and DELETE with custom headers and body.
+Use curl to make outbound HTTP requests. Supports GET, POST, PUT, PATCH, and DELETE with custom headers and body.
 
-## When to use fetch_url
+## When to use curl
 - Retrieve content from any URL (web pages, APIs, files)
 - Submit data to external APIs (POST/PUT with JSON or form body)
 - Call webhooks or external services
@@ -23,7 +23,7 @@ export function createDevToolsHttpServer(
   _scope?: DevToolsHttpScope
 ): McpServer {
   const server = new McpServer(
-    { name: 'inkeep-dev-tools-http', version: '1.0.0' },
+    { name: 'inkeep-http', version: '1.0.0' },
     { instructions: SERVER_INSTRUCTIONS }
   );
 

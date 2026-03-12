@@ -1,6 +1,6 @@
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
-import { devToolsMcpAuth } from './auth';
+import { mcpAuth } from '../middleware/mcpAuth';
 import { createDevToolsServer } from './server';
 
 type DevToolsVariables = {
@@ -12,7 +12,7 @@ type DevToolsVariables = {
 
 const app = new Hono<DevToolsVariables>();
 
-app.use('/mcp', devToolsMcpAuth());
+app.use('/mcp', mcpAuth());
 
 app.all('/mcp', async (c) => {
   const transport = new StreamableHTTPTransport();

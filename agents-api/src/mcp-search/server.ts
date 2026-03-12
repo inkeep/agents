@@ -28,7 +28,7 @@ export function createDevToolsSearchServer(
   _scope?: DevToolsSearchScope
 ): McpServer {
   const server = new McpServer(
-    { name: 'inkeep-dev-tools-search', version: '1.0.0' },
+    { name: 'inkeep-search', version: '1.0.0' },
     { instructions: SERVER_INSTRUCTIONS }
   );
 

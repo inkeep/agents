@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
-import { devToolsHttpMcpAuth } from './auth';
+import { mcpAuth } from '../middleware/mcpAuth';
 import { createDevToolsHttpServer } from './server';
 
 type DevToolsHttpVariables = {
@@ -13,7 +13,7 @@ type DevToolsHttpVariables = {
 
 const app = new Hono<DevToolsHttpVariables>();
 
-app.use('/mcp', devToolsHttpMcpAuth());
+app.use('/mcp', mcpAuth());
 
 app.all('/mcp', async (c) => {
   const sessionId = c.req.header('mcp-session-id') ?? randomUUID();

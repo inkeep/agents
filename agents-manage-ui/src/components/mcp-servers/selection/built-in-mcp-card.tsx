@@ -12,6 +12,7 @@ interface BuiltInMcpCardProps {
   id: string;
   name: string;
   description: string;
+  imageUrl?: string;
   tools: readonly string[];
   onSelect: (id: string) => void;
   isLoading?: boolean;
@@ -22,6 +23,7 @@ export function BuiltInMcpCard({
   id,
   name,
   description,
+  imageUrl,
   tools,
   onSelect,
   isLoading = false,
@@ -45,7 +47,7 @@ export function BuiltInMcpCard({
       <ItemCardHeader>
         <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
           <MCPToolImage
-            imageUrl="/assets/inkeep-icons/icon-blue.svg"
+            imageUrl={imageUrl}
             name={name}
             size={24}
             className="mt-0.5 flex-shrink-0"

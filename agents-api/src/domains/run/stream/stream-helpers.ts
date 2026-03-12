@@ -10,6 +10,12 @@ import {
 import type { ErrorEvent, OperationEvent } from '../utils/agent-operations';
 import { setSpanWithError, tracer } from '../utils/tracer';
 
+export function cleanArtifactForStream(artifact: any): any {
+  if (!artifact?.artifactSummary) return artifact;
+  const { _structureHints: _sh, _structureInfo: _si, ...cleanedSummaryData } = artifact.artifactSummary;
+  return { ...artifact, artifactSummary: cleanedSummaryData };
+}
+
 export interface StreamHelper {
   writeRole(role?: string): Promise<void>;
   writeContent(content: string): Promise<void>;

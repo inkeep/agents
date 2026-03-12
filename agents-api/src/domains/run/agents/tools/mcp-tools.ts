@@ -161,6 +161,7 @@ export async function getMcpTools(
               toolName,
               args: finalArgs,
               result: parsedResult,
+              structureHints: enhancedResult._structureHints,
               timestamp: Date.now(),
             });
 

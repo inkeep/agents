@@ -17,7 +17,7 @@ import type {
   WorkAppGitHubRepositoryInput,
   WorkAppGitHubRepositorySelect,
 } from '../../types/entities';
-import type { WorkAppGitHubInstallationStatus } from '../../types/utility';
+import { getMcpServerUrl, type WorkAppGitHubInstallationStatus } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
 
 // ============================================================================
@@ -1018,7 +1018,7 @@ export const clearMcpToolRepositoryAccess =
   };
 
 export const isGithubWorkAppTool = (tool: ToolSelect | McpTool) => {
-  return tool.isWorkApp && tool.config.mcp.server.url.includes('/github/mcp');
+  return tool.isWorkApp && (getMcpServerUrl(tool.config.mcp.server)?.includes('/github/mcp') ?? false);
 };
 // ============================================================================
 // Project Access Mode Functions
