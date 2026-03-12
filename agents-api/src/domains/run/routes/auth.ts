@@ -189,7 +189,12 @@ app.openapi(
           issuer: 'inkeep',
           algorithms: ['HS256'],
         });
-        if (payload.app === appId && payload.type === 'anonymous' && payload.sub) {
+        if (
+          payload.app === appId &&
+          payload.type === 'anonymous' &&
+          typeof payload.sub === 'string' &&
+          payload.sub.startsWith('anon_')
+        ) {
           anonUserId = payload.sub;
         } else {
           logger.debug(
@@ -200,7 +205,7 @@ app.openapi(
       } catch (err) {
         if (err instanceof errors.JWTExpired) {
           logger.debug(
-            { appId },
+            { appId, error: err.message },
             'Anonymous session refresh: token expired, creating new identity'
           );
         } else {

@@ -485,6 +485,87 @@ describe('Anonymous Session Rolling Refresh', () => {
     expect(payload.sub).toMatch(/^anon_/);
   });
 
+  it('should create new identity when Bearer token type is not anonymous', async () => {
+    const tenantId = await createTestTenantWithOrg('anon-refresh-non-anon-type');
+    const projectId = 'default-project';
+    await createTestProject(manageDbClient, tenantId, projectId);
+    const appRecord = await createTestWebClientApp({ tenantId, projectId });
+    const appId = appRecord.id;
+    const secret = getAnonJwtSecret();
+
+    const serviceToken = await new SignJWT({
+      tid: tenantId,
+      pid: projectId,
+      app: appId,
+      type: 'service',
+    })
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setSubject('anon_should-not-be-reused')
+      .setIssuer('inkeep')
+      .setIssuedAt()
+      .setExpirationTime('30d')
+      .sign(secret);
+
+    const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://help.customer.com',
+        Authorization: `Bearer ${serviceToken}`,
+      },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    const { payload } = await jwtVerify(body.token, secret, {
+      issuer: 'inkeep',
+      algorithms: ['HS256'],
+    });
+    expect(payload.sub).not.toBe('anon_should-not-be-reused');
+    expect(payload.sub).toMatch(/^anon_/);
+    expect(payload.type).toBe('anonymous');
+  });
+
+  it('should create new identity when Bearer token sub does not have anon_ prefix', async () => {
+    const tenantId = await createTestTenantWithOrg('anon-refresh-bad-sub');
+    const projectId = 'default-project';
+    await createTestProject(manageDbClient, tenantId, projectId);
+    const appRecord = await createTestWebClientApp({ tenantId, projectId });
+    const appId = appRecord.id;
+    const secret = getAnonJwtSecret();
+
+    const badSubToken = await new SignJWT({
+      tid: tenantId,
+      pid: projectId,
+      app: appId,
+      type: 'anonymous',
+    })
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setSubject('user_not-anonymous')
+      .setIssuer('inkeep')
+      .setIssuedAt()
+      .setExpirationTime('30d')
+      .sign(secret);
+
+    const res = await app.request(`/run/auth/apps/${appId}/anonymous-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://help.customer.com',
+        Authorization: `Bearer ${badSubToken}`,
+      },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    const { payload } = await jwtVerify(body.token, secret, {
+      issuer: 'inkeep',
+      algorithms: ['HS256'],
+    });
+    expect(payload.sub).not.toBe('user_not-anonymous');
+    expect(payload.sub).toMatch(/^anon_/);
+  });
+
   it('should create new identity when Bearer token has invalid signature', async () => {
     const tenantId = await createTestTenantWithOrg('anon-refresh-bad-sig');
     const projectId = 'default-project';
