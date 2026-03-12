@@ -7,6 +7,7 @@ import { MCPNode } from '@/components/agent/nodes/mcp-node';
 import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
 import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
+import { ProjectProvider } from '@/contexts/project';
 import '@/lib/utils/test-utils/styles.css';
 
 vi.mock('next/navigation', () => {
@@ -83,7 +84,20 @@ function Nodes() {
       {divider}
       <PlaceholderNode {...baseProps} data={{ ...data, type: NodeType.MCPPlaceholder }} />
       {divider}
-      <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', isDefault: true, skills: [] }} />
+      <ProjectProvider
+        value={{
+          // @ts-expect-error
+          project: {
+            models: {
+              base: {
+                model: `openai/${'demo-'.repeat(5)}`,
+              },
+            },
+          },
+        }}
+      >
+        <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', isDefault: true, skills: [] }} />
+      </ProjectProvider>
       {divider}
       <TeamAgentNode {...baseProps} data={{ ...data, id: 'foo' }} />
     </ReactFlowProvider>
