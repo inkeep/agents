@@ -51,136 +51,30 @@ const description = (
 );
 
 type DemoTreeNode = {
-  name: string;
-  kind: 'folder' | 'file';
-  path: string;
-  content?: string;
-  children?: DemoTreeNode[];
+  filePath: string;
+  content: string;
 };
 
 const demoSkillTree: DemoTreeNode[] = [
   {
-    name: 'skill-creator',
-    kind: 'folder',
-    path: 'skill-creator',
-    children: [
-      {
-        name: 'SKILL.md',
-        kind: 'file',
-        path: 'skill-creator/SKILL.md',
-        content: `---
-name: skill-creator
-description: Generate clear, reusable skills for internal teams.
----
-
-## Output requirements
-
-- Include a short overview.
-- Add one implementation example.
-- Keep operational steps explicit.
-`,
-      },
-      {
-        name: 'examples',
-        kind: 'folder',
-        path: 'skill-creator/examples',
-        children: [
-          {
-            name: 'prompts',
-            kind: 'folder',
-            path: 'skill-creator/examples/prompts',
-            children: [
-              {
-                name: 'default-prompt.md',
-                kind: 'file',
-                path: 'skill-creator/examples/prompts/default-prompt.md',
-                content: `Draft a new skill that solves one repetitive workflow.
-
-Include:
-- when to use it
-- required inputs
-- expected output format`,
-              },
-            ],
-          },
-        ],
-      },
-    ],
+    filePath: 'foo/SKILL.md',
+    content: '1',
   },
   {
-    name: 'algorithmic-art',
-    kind: 'folder',
-    path: 'algorithmic-art',
-    children: [
-      {
-        name: 'SKILL.md',
-        kind: 'file',
-        path: 'algorithmic-art/SKILL.md',
-        content: `---
-name: algorithmic-art
-description: Produce visual directions for generative artwork experiments.
----
-
-Focus on composition, palette, and repeatable parameter ranges.`,
-      },
-    ],
+    filePath: 'foo/LICENCE.txt',
+    content: '2',
   },
   {
-    name: 'brand-guidelines',
-    kind: 'folder',
-    path: 'brand-guidelines',
-    children: [
-      {
-        name: 'SKILL.md',
-        kind: 'file',
-        path: 'brand-guidelines/SKILL.md',
-        content: `---
-name: brand-guidelines
-description: Keep responses aligned with the Acme voice and style guide.
----
-
-## Primary rules
-
-- Lead with direct, useful answers.
-- Prefer concise sentences over marketing phrasing.
-- Mirror the product's established terminology.
-
-## Avoid
-
-- Over-explaining simple concepts.
-- Introducing new naming without product approval.
-- Mixing internal guidance into user-facing copy.
-`,
-      },
-      {
-        name: 'LICENSE.md',
-        kind: 'file',
-        path: 'brand-guidelines/LICENSE.md',
-        content: `Internal reference only. Do not distribute outside the organization.`,
-      },
-      {
-        name: 'references',
-        kind: 'folder',
-        path: 'brand-guidelines/references',
-        children: [
-          {
-            name: 'personality',
-            kind: 'folder',
-            path: 'brand-guidelines/references/personality',
-            children: [
-              {
-                name: 'voice-and-tone.md',
-                kind: 'file',
-                path: 'brand-guidelines/references/personality/voice-and-tone.md',
-                content: `Tone should stay practical, calm, and specific.
-
-Prefer product language over campaign language.`,
-              },
-            ],
-          },
-        ],
-      },
-    ],
+    filePath: 'bar/baz/hello.txt',
+    content: '3',
+  },
+  {
+    filePath: 'bar/baz/index.html',
+    content: '4',
+  },
+  {
+    filePath: 'bar/SKILL.md',
+    content: '5',
   },
 ] as const;
 
