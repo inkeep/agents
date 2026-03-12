@@ -3,9 +3,7 @@ import type { Metadata } from 'next';
 import NextLink from 'next/link';
 import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
-import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import {
@@ -20,22 +18,9 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchProjectPermissions } from '@/lib/api/projects';
-import { fetchSkills } from '@/lib/api/skills';
-import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { formatDateAgo } from '@/lib/utils/format-date';
-
-const colClass = 'align-top whitespace-pre-wrap';
 
 export const metadata = {
   title: STATIC_LABELS.skills,
@@ -50,12 +35,20 @@ const description = (
   </>
 );
 
-type DemoTreeNode = {
+type DemoSkillFile = {
   filePath: string;
   content: string;
 };
 
-const demoSkillTree: DemoTreeNode[] = [
+type DemoTreeNode = {
+  name: string;
+  path: string;
+  kind: 'folder' | 'file';
+  content?: string;
+  children: DemoTreeNode[];
+};
+
+const demoSkillTree: DemoSkillFile[] = [
   {
     filePath: 'foo/SKILL.md',
     content: '1',
@@ -78,7 +71,41 @@ const demoSkillTree: DemoTreeNode[] = [
   },
 ] as const;
 
-const defaultSelectedPath = 'brand-guidelines/SKILL.md';
+const defaultSelectedPath = demoSkillTree[0]?.filePath ?? '';
+
+function buildTree(files: readonly DemoSkillFile[]): DemoTreeNode[] {
+  const root: DemoTreeNode[] = [];
+
+  for (const file of files) {
+    const segments = file.filePath.split('/').filter(Boolean);
+    let children = root;
+
+    for (const [index, segment] of segments.entries()) {
+      const path = segments.slice(0, index + 1).join('/');
+      const isFile = index === segments.length - 1;
+      let node = children.find((child) => child.path === path);
+
+      if (!node) {
+        node = {
+          name: segment,
+          path,
+          kind: isFile ? 'file' : 'folder',
+          content: isFile ? file.content : undefined,
+          children: [],
+        };
+        children.push(node);
+      }
+
+      if (isFile) {
+        node.content = file.content;
+      }
+
+      children = node.children;
+    }
+  }
+
+  return root;
+}
 
 function findNodeByPath(nodes: readonly DemoTreeNode[], targetPath: string): DemoTreeNode | null {
   for (const node of nodes) {
@@ -86,31 +113,28 @@ function findNodeByPath(nodes: readonly DemoTreeNode[], targetPath: string): Dem
       return node;
     }
 
-    if (node.children?.length) {
-      const childMatch = findNodeByPath(node.children, targetPath);
-      if (childMatch) {
-        return childMatch;
-      }
+    const childMatch = findNodeByPath(node.children, targetPath);
+    if (childMatch) {
+      return childMatch;
     }
   }
 
   return null;
 }
 
-function countFiles(node: DemoTreeNode): number {
-  if (node.kind === 'file') {
-    return 1;
+function findFirstFile(nodes: readonly DemoTreeNode[]): DemoTreeNode | null {
+  for (const node of nodes) {
+    if (node.kind === 'file') {
+      return node;
+    }
+
+    const childFile = findFirstFile(node.children);
+    if (childFile) {
+      return childFile;
+    }
   }
 
-  return (node.children ?? []).reduce((total, child) => total + countFiles(child), 0);
-}
-
-function countFolders(node: DemoTreeNode): number {
-  if (node.kind === 'file') {
-    return 0;
-  }
-
-  return (node.children ?? []).reduce((total, child) => total + countFolders(child), 1);
+  return null;
 }
 
 function renderTreeNode(
@@ -120,18 +144,18 @@ function renderTreeNode(
   nested = false
 ) {
   const isActive = node.path === selectedPath;
-  const itemIcon = node.kind === 'file' ? <File /> : nested ? <Folder /> : <FolderTree />;
+  const icon = node.kind === 'file' ? <File /> : nested ? <Folder /> : <FolderTree />;
 
   if (!nested) {
     return (
       <SidebarMenuItem key={node.path}>
         <SidebarMenuButton asChild isActive={isActive}>
           <NextLink href={buildHref(node.path)}>
-            {itemIcon}
+            {icon}
             <span>{node.name}</span>
           </NextLink>
         </SidebarMenuButton>
-        {node.children?.length ? (
+        {node.children.length ? (
           <SidebarMenuSub>
             {node.children.map((child) => renderTreeNode(child, selectedPath, buildHref, true))}
           </SidebarMenuSub>
@@ -144,11 +168,11 @@ function renderTreeNode(
     <SidebarMenuSubItem key={node.path}>
       <SidebarMenuSubButton asChild isActive={isActive}>
         <NextLink href={buildHref(node.path)}>
-          {itemIcon}
+          {icon}
           <span>{node.name}</span>
         </NextLink>
       </SidebarMenuSubButton>
-      {node.children?.length ? (
+      {node.children.length ? (
         <SidebarMenuSub>
           {node.children.map((child) => renderTreeNode(child, selectedPath, buildHref, true))}
         </SidebarMenuSub>
@@ -157,21 +181,22 @@ function renderTreeNode(
   );
 }
 
+const treeNodes = buildTree(demoSkillTree);
+
 const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({
   params,
   searchParams,
 }) => {
   const { tenantId, projectId } = await params;
-  const { path } = await searchParams;
+  const rawSearchParams = await searchParams;
 
   try {
-    const [skills, permissions] = await Promise.all([
-      fetchSkills(tenantId, projectId),
-      fetchProjectPermissions(tenantId, projectId),
-    ]);
-    const selectedPath =
-      typeof path === 'string' && findNodeByPath(demoSkillTree, path) ? path : defaultSelectedPath;
-    const selectedNode = findNodeByPath(demoSkillTree, selectedPath) ?? demoSkillTree[0];
+    const permissions = await fetchProjectPermissions(tenantId, projectId);
+    const requestedPath =
+      typeof rawSearchParams.path === 'string' ? rawSearchParams.path : defaultSelectedPath;
+    const fallbackNode = findFirstFile(treeNodes) ?? treeNodes[0] ?? null;
+    const selectedNode = findNodeByPath(treeNodes, requestedPath) ?? fallbackNode;
+    const selectedPath = selectedNode?.path ?? defaultSelectedPath;
     const buildHref = (targetPath: string) =>
       `/${tenantId}/projects/${projectId}/skills?path=${encodeURIComponent(targetPath)}`;
 
@@ -184,28 +209,33 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
       </Button>
     ) : undefined;
 
+    if (!selectedNode) {
+      return (
+        <>
+          <PageHeader title={metadata.title} description={description} action={action} />
+          <div className="rounded-lg border bg-background p-8 text-sm text-muted-foreground">
+            No demo skill files configured.
+          </div>
+        </>
+      );
+    }
+
     return (
       <>
         <PageHeader title={metadata.title} description={description} action={action} />
         <div className="overflow-hidden rounded-lg border bg-background">
-          <div className="grid min-h-[32rem] lg:grid-cols-[18rem_minmax(0,1fr)]">
+          <div className="grid lg:grid-cols-[18rem_minmax(0,1fr)]">
             <aside className="border-b bg-muted/20 lg:border-r lg:border-b-0">
-              <div className="flex h-full min-h-0 flex-col">
-                <div className="border-b px-4 py-3">
-                  <p className="text-sm font-medium">Skill files</p>
-                  <p className="text-xs text-muted-foreground">Static mock data for layout work</p>
-                </div>
-                <SidebarContent className="p-2">
-                  <SidebarGroup className="p-0">
-                    <SidebarGroupLabel>Library</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {demoSkillTree.map((node) => renderTreeNode(node, selectedPath, buildHref))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
-                </SidebarContent>
-              </div>
+              <SidebarContent>
+                <SidebarGroup>
+                  <SidebarGroupLabel>Library</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {treeNodes.map((node) => renderTreeNode(node, selectedPath, buildHref))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </SidebarContent>
             </aside>
             <section className="min-w-0 overflow-auto p-6">
               <div className="space-y-6">
@@ -220,89 +250,20 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
                     </p>
                   </div>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="rounded-lg border bg-muted/10 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                      Type
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold capitalize">{selectedNode.kind}</p>
-                  </div>
-                  <div className="rounded-lg border bg-muted/10 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                      Files
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold">{countFiles(selectedNode)}</p>
-                  </div>
-                  <div className="rounded-lg border bg-muted/10 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                      Folders
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold">{countFolders(selectedNode)}</p>
-                  </div>
-                </div>
                 <div className="overflow-hidden rounded-lg border bg-muted/10">
                   <div className="border-b px-4 py-3 text-sm font-medium">{selectedNode.path}</div>
                   {selectedNode.kind === 'file' ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow noHover>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead>Content</TableHead>
-                          <TableHead>Metadata</TableHead>
-                          <TableHead>Updated</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {skills.data.map((skill) => (
-                          // transform is needed to fix an issue in Safari where table rows cannot be relative.
-                          <TableRow
-                            key={skill.id}
-                            style={{ transform: 'translate(0)' }}
-                            className="relative"
-                          >
-                            <TableCell className="align-top">
-                              <NextLink
-                                // <tr> cannot contain a nested <a>.
-                                href={`/${tenantId}/projects/${projectId}/skills/${skill.id}/edit`}
-                                className="absolute inset-0"
-                              />
-                              {skill.name}
-                            </TableCell>
-                            <TableCell className={colClass}>
-                              <div className="h-14 line-clamp-3">{skill.description}</div>
-                            </TableCell>
-                            <TableCell className={colClass}>
-                              <Badge
-                                variant="code"
-                                className={cn('line-clamp-3 whitespace-normal')}
-                              >
-                                {skill.content}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className={colClass}>
-                              <Badge
-                                variant="code"
-                                className={cn('line-clamp-3 whitespace-normal')}
-                              >
-                                {JSON.stringify(skill.metadata)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="align-top">
-                              {formatDateAgo(skill.updatedAt)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <pre className="overflow-x-auto p-4 text-sm leading-6">
+                      {selectedNode.content}
+                    </pre>
                   ) : (
                     <div className="space-y-3 p-4 text-sm">
                       <p className="text-muted-foreground">
-                        This folder contains {(selectedNode.children ?? []).length} direct item
-                        {(selectedNode.children ?? []).length === 1 ? '' : 's'}.
+                        This folder contains {selectedNode.children.length} direct item
+                        {selectedNode.children.length === 1 ? '' : 's'}.
                       </p>
                       <ul className="space-y-2">
-                        {(selectedNode.children ?? []).map((child) => (
+                        {selectedNode.children.map((child) => (
                           <li key={child.path}>
                             <NextLink
                               href={buildHref(child.path)}
