@@ -51,11 +51,21 @@ export async function reconcile(
         primaryKey: diff.primaryKey,
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      ctx.logger.error(
+        {
+          table: diff.table,
+          operation: diff.operation,
+          primaryKey: diff.primaryKey,
+          error: errorMessage,
+        },
+        `Reconcile effect failed for ${diff.table}.${diff.operation}`
+      );
       result.failed.push({
         table: diff.table,
         operation: diff.operation,
         primaryKey: diff.primaryKey,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
       });
     }
   });

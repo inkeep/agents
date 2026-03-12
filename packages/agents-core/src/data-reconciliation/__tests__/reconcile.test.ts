@@ -140,6 +140,14 @@ describe('reconcile', () => {
     expect(result.failed).toHaveLength(1);
     expect(result.failed[0].error).toBe('workflow start failed');
     expect(result.applied).toHaveLength(0);
+    expect(mockCtx.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        table: 'scheduled_triggers',
+        operation: 'insert',
+        error: 'workflow start failed',
+      }),
+      expect.stringContaining('Reconcile effect failed')
+    );
   });
 
   it('returns empty result for empty diffs array', async () => {

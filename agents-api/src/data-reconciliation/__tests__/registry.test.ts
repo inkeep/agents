@@ -126,6 +126,30 @@ describe('createEntityEffectRegistry', () => {
       });
     });
 
+    it('onUpdated detects runAt timestamp change as schedule change', async () => {
+      const h = getHandlers(registry, 'scheduled_triggers');
+      const before = {
+        id: 'trigger-1',
+        enabled: true,
+        cronExpression: null,
+        runAt: '2026-03-12T10:00:00Z',
+      } as any;
+      const after = {
+        id: 'trigger-1',
+        enabled: true,
+        cronExpression: null,
+        runAt: '2026-03-13T10:00:00Z',
+      } as any;
+
+      await h.onUpdated?.(before, after, mockCtx);
+
+      expect(onTriggerUpdated).toHaveBeenCalledWith({
+        trigger: after,
+        previousEnabled: true,
+        scheduleChanged: true,
+      });
+    });
+
     it('onUpdated detects no schedule change', async () => {
       const h = getHandlers(registry, 'scheduled_triggers');
       const before = {
@@ -366,6 +390,64 @@ describe('createEntityEffectRegistry', () => {
       });
     });
 
+    it('scheduled_triggers check detects cancelled workflows as dead', async () => {
+      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
+        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Cancelled trigger' }]) as any
+      );
+      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'wf-1', workflowRunId: 'run-cancelled', scheduledTriggerId: 'trigger-1' },
+          ]) as any
+      );
+      mockWorldRunsGet.mockResolvedValue({ status: 'cancelled' });
+
+      const h = getHandlers(registry, 'scheduled_triggers');
+      const result = await h.check?.(mockCtx);
+
+      expect(result).toMatchObject({
+        deadWorkflows: [
+          {
+            triggerId: 'trigger-1',
+            triggerName: 'Cancelled trigger',
+            workflowRunId: 'run-cancelled',
+            runStatus: 'cancelled',
+          },
+        ],
+        verificationFailures: [],
+      });
+    });
+
+    it('scheduled_triggers check detects completed workflows as dead', async () => {
+      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
+        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Completed trigger' }]) as any
+      );
+      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'wf-1', workflowRunId: 'run-completed', scheduledTriggerId: 'trigger-1' },
+          ]) as any
+      );
+      mockWorldRunsGet.mockResolvedValue({ status: 'completed' });
+
+      const h = getHandlers(registry, 'scheduled_triggers');
+      const result = await h.check?.(mockCtx);
+
+      expect(result).toMatchObject({
+        deadWorkflows: [
+          {
+            triggerId: 'trigger-1',
+            triggerName: 'Completed trigger',
+            workflowRunId: 'run-completed',
+            runStatus: 'completed',
+          },
+        ],
+        verificationFailures: [],
+      });
+    });
+
     it('scheduled_triggers check handles Workflow SDK errors gracefully', async () => {
       vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
         vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Trigger' }]) as any
@@ -439,6 +521,58 @@ describe('createEntityEffectRegistry', () => {
           {
             table: 'work_app_github_mcp_tool_repository_access',
             id: 'access-2',
+            referencedEntityId: 'tool-deleted',
+          },
+        ],
+      });
+    });
+
+    it('tools check detects orphaned GitHub access mode rows', async () => {
+      vi.mocked(listToolIdsByProject).mockReturnValue(vi.fn().mockResolvedValue(['tool-1']) as any);
+      vi.mocked(listGitHubToolAccessByProject).mockReturnValue(
+        vi.fn().mockResolvedValue([]) as any
+      );
+      vi.mocked(listGitHubToolAccessModeByProject).mockReturnValue(
+        vi.fn().mockResolvedValue([{ toolId: 'tool-1' }, { toolId: 'tool-deleted' }]) as any
+      );
+      vi.mocked(listSlackToolAccessConfigByProject).mockReturnValue(
+        vi.fn().mockResolvedValue([]) as any
+      );
+
+      const h = getHandlers(registry, 'tools');
+      const result = await h.check?.(mockCtx);
+
+      expect(result).toEqual({
+        orphanedRows: [
+          {
+            table: 'work_app_github_mcp_tool_access_mode',
+            id: 'tool-deleted',
+            referencedEntityId: 'tool-deleted',
+          },
+        ],
+      });
+    });
+
+    it('tools check detects orphaned Slack access config rows', async () => {
+      vi.mocked(listToolIdsByProject).mockReturnValue(vi.fn().mockResolvedValue(['tool-1']) as any);
+      vi.mocked(listGitHubToolAccessByProject).mockReturnValue(
+        vi.fn().mockResolvedValue([]) as any
+      );
+      vi.mocked(listGitHubToolAccessModeByProject).mockReturnValue(
+        vi.fn().mockResolvedValue([]) as any
+      );
+      vi.mocked(listSlackToolAccessConfigByProject).mockReturnValue(
+        vi.fn().mockResolvedValue([{ toolId: 'tool-1' }, { toolId: 'tool-deleted' }]) as any
+      );
+
+      const h = getHandlers(registry, 'tools');
+      const result = await h.check?.(mockCtx);
+
+      expect(result).toEqual({
+        orphanedRows: [
+          {
+            table: 'work_app_slack_mcp_tool_access_config',
+            id: 'tool-deleted',
             referencedEntityId: 'tool-deleted',
           },
         ],
