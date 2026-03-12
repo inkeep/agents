@@ -1,19 +1,5 @@
-import {
-  BUILT_IN_MCP_CONFIGS,
-  BUILT_IN_MCP_URL_PREFIX,
-  INKEEP_COREUTILS_MCP,
-  INKEEP_HTTP_MCP,
-  INKEEP_MEDIA_MCP,
-  INKEEP_SEARCH_MCP,
-} from '@inkeep/agents-core/client-exports';
+import { BUILT_IN_MCP_CONFIGS, BUILT_IN_MCP_URL_PREFIX } from '@inkeep/agents-core/client-exports';
 
-export {
-  BUILT_IN_MCP_CONFIGS,
-  BUILT_IN_MCP_URL_PREFIX,
-  INKEEP_COREUTILS_MCP,
-  INKEEP_HTTP_MCP,
-  INKEEP_MEDIA_MCP,
-  INKEEP_SEARCH_MCP,
-};
+export { BUILT_IN_MCP_URL_PREFIX };
 
 export const BUILT_IN_MCPS = [...BUILT_IN_MCP_CONFIGS];
