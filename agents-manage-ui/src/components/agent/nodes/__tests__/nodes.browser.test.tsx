@@ -89,9 +89,7 @@ function Nodes() {
           // @ts-expect-error
           project: {
             models: {
-              base: {
-                model: `openai/${'demo-'.repeat(5)}`,
-              },
+              base: { model: `openai/${data.name}` },
             },
           },
         }}
