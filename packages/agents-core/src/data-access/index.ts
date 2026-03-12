@@ -7,6 +7,7 @@ export * from '../db/runtime/runtime-client';
 export * from './manage/agentFull';
 export * from './manage/agents';
 export * from './manage/artifactComponents';
+export * from './manage/audit-queries';
 export * from './manage/contextConfigs';
 export * from './manage/credentialReferences';
 export * from './manage/dataComponents';
@@ -30,6 +31,7 @@ export * from './manage/triggers';
 // Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';
 export * from './runtime/apps';
+export * from './runtime/audit-queries';
 export * from './runtime/cascade-delete';
 export * from './runtime/contextCache';
 export * from './runtime/conversations';
