@@ -2,6 +2,9 @@ import { createApiError } from '@inkeep/agents-core';
 import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
+import { getLogger } from '../logger';
+
+const logger = getLogger('session-context');
 
 /**
  * Middleware to enforce session-based authentication.
@@ -62,7 +65,17 @@ export const sessionContext = () =>
       headers.set('cookie', forwardedCookie);
     }
 
-    const session = await auth.api.getSession({ headers });
+    let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
+    try {
+      session = await auth.api.getSession({ headers });
+    } catch (error) {
+      // Session lookup should never crash the whole request path (including /health).
+      logger.warn({ error }, 'Failed to resolve auth session from request context');
+      c.set('user', null);
+      c.set('session', null);
+      await next();
+      return;
+    }
 
     if (!session) {
       c.set('user', null);
