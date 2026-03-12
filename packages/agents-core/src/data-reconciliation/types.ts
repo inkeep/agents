@@ -13,13 +13,28 @@ export type EntityRowByTable = {
 
 export type EntityOperation = 'insert' | 'update' | 'delete';
 
-export type EntityDiff<TTable extends keyof EntityRowByTable = keyof EntityRowByTable> = {
-  table: TTable;
-  operation: EntityOperation;
-  primaryKey: Record<string, string>;
-  before: EntityRowByTable[TTable] | null;
-  after: EntityRowByTable[TTable] | null;
-};
+export type EntityDiff<TTable extends keyof EntityRowByTable = keyof EntityRowByTable> =
+  | {
+      table: TTable;
+      operation: 'insert';
+      primaryKey: Record<string, string>;
+      before: null;
+      after: EntityRowByTable[TTable];
+    }
+  | {
+      table: TTable;
+      operation: 'update';
+      primaryKey: Record<string, string>;
+      before: EntityRowByTable[TTable];
+      after: EntityRowByTable[TTable];
+    }
+  | {
+      table: TTable;
+      operation: 'delete';
+      primaryKey: Record<string, string>;
+      before: EntityRowByTable[TTable];
+      after: null;
+    };
 
 export type EntityEffectHandlers<TTable extends keyof EntityRowByTable> = {
   onCreated?: (after: EntityRowByTable[TTable], ctx: ReconcileContext) => Promise<void>;
@@ -47,6 +62,7 @@ export type ReconcileContext = {
   manageDb: AgentsManageDatabaseClient;
   runDb: AgentsRunDatabaseClient;
   scopes: { tenantId: string; projectId: string };
+  fullBranchName: string;
   logger: PinoLogger;
 };
 
@@ -90,6 +106,14 @@ export type AuditReport = {
 export type ScheduledTriggerAuditResult = {
   missingWorkflows: Array<{ triggerId: string; triggerName: string }>;
   orphanedWorkflows: Array<{ workflowRunId: string; scheduledTriggerId: string }>;
+  staleWorkflows: Array<{ triggerId: string; triggerName: string; workflowId: string }>;
+  deadWorkflows: Array<{
+    triggerId: string;
+    triggerName: string;
+    workflowRunId: string;
+    runStatus: string;
+  }>;
+  verificationFailures: Array<{ workflowRunId: string; error: string }>;
 };
 
 export type OrphanedRuntimeRowsResult = {

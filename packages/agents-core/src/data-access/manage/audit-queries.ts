@@ -7,11 +7,10 @@ import {
   scheduledWorkflows,
   tools as toolsTable,
 } from '../../db/manage/manage-schema';
-
-type ProjectScopes = { tenantId: string; projectId: string };
+import type { ProjectScopeConfig } from '../../types/utility';
 
 export const listEnabledScheduledTriggers =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return db
       .select({ id: scheduledTriggers.id, name: scheduledTriggers.name })
       .from(scheduledTriggers)
@@ -25,7 +24,7 @@ export const listEnabledScheduledTriggers =
   };
 
 export const listScheduledWorkflowsByProject =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return db
       .select({
         id: scheduledWorkflows.id,
@@ -42,7 +41,7 @@ export const listScheduledWorkflowsByProject =
   };
 
 export const listToolIdsByProject =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     const rows = await db
       .select({ id: toolsTable.id })
       .from(toolsTable)
@@ -56,7 +55,7 @@ export const listToolIdsByProject =
   };
 
 export const listContextConfigIdsByProject =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     const rows = await db
       .select({ id: contextConfigsTable.id })
       .from(contextConfigsTable)
@@ -70,7 +69,7 @@ export const listContextConfigIdsByProject =
   };
 
 export const listAgentIdsByProject =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     const rows = await db
       .select({ id: agentsTable.id })
       .from(agentsTable)

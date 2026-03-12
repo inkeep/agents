@@ -8,11 +8,10 @@ import {
   workAppSlackChannelAgentConfigs,
   workAppSlackMcpToolAccessConfig,
 } from '../../db/runtime/runtime-schema';
-
-type ProjectScopes = { tenantId: string; projectId: string };
+import type { ProjectScopeConfig } from '../../types/utility';
 
 export const listGitHubToolAccessByProject =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return db
       .select({
         id: workAppGitHubMcpToolRepositoryAccess.id,
@@ -28,7 +27,7 @@ export const listGitHubToolAccessByProject =
   };
 
 export const listGitHubToolAccessModeByProject =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return db
       .select({
         toolId: workAppGitHubMcpToolAccessMode.toolId,
@@ -43,7 +42,7 @@ export const listGitHubToolAccessModeByProject =
   };
 
 export const listSlackToolAccessConfigByProject =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return db
       .select({
         toolId: workAppSlackMcpToolAccessConfig.toolId,
@@ -58,7 +57,7 @@ export const listSlackToolAccessConfigByProject =
   };
 
 export const listContextCacheByProject =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return db
       .select({
         id: contextCache.id,
@@ -74,7 +73,7 @@ export const listContextCacheByProject =
   };
 
 export const listApiKeysByProject =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return db
       .select({
         id: apiKeys.id,
@@ -90,7 +89,7 @@ export const listApiKeysByProject =
   };
 
 export const listSlackChannelAgentConfigsByProject =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopes }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return db
       .select({
         id: workAppSlackChannelAgentConfigs.id,

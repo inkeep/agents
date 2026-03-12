@@ -6,6 +6,7 @@ const mockCtx = {
   manageDb: {} as any,
   runDb: {} as any,
   scopes: { tenantId: 'tenant-1', projectId: 'project-1' },
+  fullBranchName: 'tenant-1_project-1_main',
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() } as any,
 } satisfies AuditContext;
 

@@ -11,6 +11,15 @@ vi.mock('@inkeep/agents-work-apps/slack', () => ({
   clearWorkspaceConnectionCache: vi.fn(),
 }));
 
+const mockWorldRunsGet = vi.fn();
+vi.mock('../../workflow/world', () => ({
+  world: {
+    runs: {
+      get: (...args: unknown[]) => mockWorldRunsGet(...args),
+    },
+  },
+}));
+
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
@@ -64,6 +73,7 @@ const mockCtx = {
   manageDb: {} as any,
   runDb: {} as any,
   scopes: { tenantId: 'tenant-1', projectId: 'project-1' },
+  fullBranchName: 'tenant-1_project-1_main',
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() } as any,
 } satisfies ReconcileContext;
 
@@ -272,13 +282,119 @@ describe('createEntityEffectRegistry', () => {
           { id: 'wf-2', workflowRunId: 'run-2', scheduledTriggerId: 'trigger-deleted' },
         ]) as any
       );
+      mockWorldRunsGet.mockResolvedValue({ status: 'running' });
 
       const h = getHandlers(registry, 'scheduled_triggers');
       const result = await h.check?.(mockCtx);
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         missingWorkflows: [{ triggerId: 'trigger-2', triggerName: 'Missing trigger' }],
         orphanedWorkflows: [{ workflowRunId: 'run-2', scheduledTriggerId: 'trigger-deleted' }],
+        staleWorkflows: [],
+        deadWorkflows: [],
+        verificationFailures: [],
+      });
+    });
+
+    it('scheduled_triggers check detects stale workflows (null workflowRunId)', async () => {
+      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
+        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Stale trigger' }]) as any
+      );
+      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'wf-1', workflowRunId: null, scheduledTriggerId: 'trigger-1' },
+          ]) as any
+      );
+
+      const h = getHandlers(registry, 'scheduled_triggers');
+      const result = await h.check?.(mockCtx);
+
+      expect(result).toMatchObject({
+        missingWorkflows: [],
+        staleWorkflows: [
+          { triggerId: 'trigger-1', triggerName: 'Stale trigger', workflowId: 'wf-1' },
+        ],
+      });
+    });
+
+    it('scheduled_triggers check detects dead workflows via Workflow SDK', async () => {
+      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
+        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Dead trigger' }]) as any
+      );
+      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'wf-1', workflowRunId: 'run-dead', scheduledTriggerId: 'trigger-1' },
+          ]) as any
+      );
+      mockWorldRunsGet.mockResolvedValue({ status: 'failed' });
+
+      const h = getHandlers(registry, 'scheduled_triggers');
+      const result = await h.check?.(mockCtx);
+
+      expect(result).toMatchObject({
+        deadWorkflows: [
+          {
+            triggerId: 'trigger-1',
+            triggerName: 'Dead trigger',
+            workflowRunId: 'run-dead',
+            runStatus: 'failed',
+          },
+        ],
+        verificationFailures: [],
+      });
+    });
+
+    it('scheduled_triggers check handles Workflow SDK errors gracefully', async () => {
+      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
+        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Trigger' }]) as any
+      );
+      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'wf-1', workflowRunId: 'run-1', scheduledTriggerId: 'trigger-1' },
+          ]) as any
+      );
+      mockWorldRunsGet.mockRejectedValue(new Error('Workflow service unavailable'));
+
+      const h = getHandlers(registry, 'scheduled_triggers');
+      const result = await h.check?.(mockCtx);
+
+      expect(result).toMatchObject({
+        deadWorkflows: [],
+        verificationFailures: [{ workflowRunId: 'run-1', error: 'Workflow service unavailable' }],
+      });
+    });
+
+    it('scheduled_triggers check treats not-found runs as dead', async () => {
+      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
+        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Ghost trigger' }]) as any
+      );
+      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'wf-1', workflowRunId: 'run-gone', scheduledTriggerId: 'trigger-1' },
+          ]) as any
+      );
+      mockWorldRunsGet.mockResolvedValue(null);
+
+      const h = getHandlers(registry, 'scheduled_triggers');
+      const result = await h.check?.(mockCtx);
+
+      expect(result).toMatchObject({
+        deadWorkflows: [
+          {
+            triggerId: 'trigger-1',
+            triggerName: 'Ghost trigger',
+            workflowRunId: 'run-gone',
+            runStatus: 'not_found',
+          },
+        ],
       });
     });
 
