@@ -1,9 +1,10 @@
 'use client';
 
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { useState } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
   Command,
   CommandEmpty,
@@ -27,6 +28,7 @@ interface GenericComboBoxProps<FV extends FieldValues, TV = FieldValues> {
   placeholder?: string;
   disabled?: boolean;
   isRequired?: boolean;
+  clearable?: boolean;
 }
 
 export function GenericComboBox<
@@ -41,6 +43,7 @@ export function GenericComboBox<
   placeholder,
   disabled = false,
   isRequired = false,
+  clearable = false,
 }: GenericComboBoxProps<TFieldValues, TTransformedValues>) {
   const [open, setOpen] = useState(false);
 
@@ -48,24 +51,37 @@ export function GenericComboBox<
     <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
       {(field) => (
         <Popover open={open} onOpenChange={setOpen}>
-          <FormControl>
-            <PopoverTrigger asChild>
+          <ButtonGroup className="w-full">
+            <FormControl>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="flex-1 justify-between font-normal"
+                  disabled={disabled}
+                >
+                  {field.value ? (
+                    options.find((option) => option.value === field.value)?.label
+                  ) : (
+                    <div className="text-muted-foreground">{placeholder}</div>
+                  )}
+                  <ChevronsUpDown className="opacity-50 text-muted-foreground" />
+                </Button>
+              </PopoverTrigger>
+            </FormControl>
+            {clearable && field.value && (
               <Button
                 variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-full justify-between font-normal"
-                disabled={disabled}
+                size="icon"
+                type="button"
+                aria-label="Clear selection"
+                onClick={() => field.onChange('')}
               >
-                {field.value ? (
-                  options.find((option) => option.value === field.value)?.label
-                ) : (
-                  <div className="text-muted-foreground">{placeholder}</div>
-                )}
-                <ChevronsUpDown className="opacity-50 text-muted-foreground" />
+                <X />
               </Button>
-            </PopoverTrigger>
-          </FormControl>
+            )}
+          </ButtonGroup>
           <PopoverContent className="p-0 w-(--radix-popover-trigger-width) ">
             <Command>
               <CommandInput placeholder={searchPlaceholder} className="h-9" />
