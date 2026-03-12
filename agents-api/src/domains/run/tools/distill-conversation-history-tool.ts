@@ -7,8 +7,8 @@ const logger = getLogger('distill-conversation-history-tool');
 
 export const ConversationHistorySummarySchema = z.object({
   type: z.literal('conversation_history_summary_v1'),
-  session_id: z.string().nullable().optional(),
-  _fallback: z.boolean().optional(),
+  session_id: z.string().nullable(),
+  _fallback: z.boolean().nullable(),
   conversation_overview: z
     .string()
     .describe('2-4 sentences capturing the full conversation context and what was accomplished'),
@@ -54,7 +54,7 @@ export const ConversationHistorySummarySchema = z.object({
           .describe('Importance of this artifact to the overall conversation'),
       })
     )
-    .optional()
+    .nullable()
     .describe('All artifacts referenced in this conversation with their significance'),
   conversation_flow: z.object({
     major_phases: z

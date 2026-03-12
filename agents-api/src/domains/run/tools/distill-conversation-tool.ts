@@ -4,8 +4,8 @@ import { distillWithTruncation } from './distill-utils';
 
 export const ConversationSummarySchema = z.object({
   type: z.literal('conversation_summary_v1'),
-  session_id: z.string().nullable().optional(),
-  _fallback: z.boolean().optional(),
+  session_id: z.string().nullable(),
+  _fallback: z.boolean().nullable(),
   high_level: z.string().describe('1-3 sentences capturing what was discovered and learned'),
   user_intent: z.string().describe('Current main goal or what the user wants to accomplish'),
   decisions: z
@@ -39,7 +39,7 @@ export const ConversationSummarySchema = z.object({
           .describe('2-3 most important findings from this specific artifact'),
       })
     )
-    .optional()
+    .nullable()
     .describe('Artifacts containing detailed findings with citation info'),
 });
 
