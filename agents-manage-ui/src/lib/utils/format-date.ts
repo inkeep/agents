@@ -132,6 +132,43 @@ export function formatDateAgo(dateString: string, options?: FormatDateOptions) {
   }
 }
 
+/**
+ * Formats a date string in a specific IANA timezone (e.g., "America/New_York").
+ * Returns a compact datetime string with timezone abbreviation.
+ */
+export function formatDateTimeInTimezone(dateString: string, timezone: string): string {
+  const normalized = normalizeDateString(dateString);
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+    timeZone: timezone,
+    timeZoneName: 'short',
+  }).format(date);
+}
+
+/**
+ * Returns the short timezone abbreviation (e.g., "EST", "PDT") for a given IANA timezone.
+ */
+export function getTimezoneAbbreviation(timezone: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'short',
+    }).formatToParts(new Date());
+    return parts.find((p) => p.type === 'timeZoneName')?.value ?? timezone;
+  } catch {
+    return timezone;
+  }
+}
+
 export function formatDuration(durationMs: number): string {
   const totalSeconds = Math.round(durationMs / 1000);
   const hours = Math.floor(totalSeconds / 3600);

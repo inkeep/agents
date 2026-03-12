@@ -54,8 +54,24 @@ export function getInvocationStatusBadge(status: InvocationStatus) {
   }
 }
 
-export function formatInvocationDateTime(dateString: string | null): string {
+export function formatInvocationDateTime(
+  dateString: string | null,
+  timezone?: string | null
+): string {
   if (!dateString) return '—';
+  if (timezone) {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+      timeZone: timezone,
+      timeZoneName: 'short',
+    }).format(new Date(dateString));
+  }
   return new Date(dateString).toLocaleString();
 }
 
