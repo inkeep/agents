@@ -27,6 +27,7 @@ import { createGenerator } from 'fumadocs-typescript';
 import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
+import NextImage from 'next/image';
 import { ComparisonTable } from '@/components/comparisons-table';
 import { AutoTypeTable, type TypeLinksInput } from '@/components/mdx/auto-type-table';
 import { BigVideo } from '@/components/mdx/big-video';
@@ -82,16 +83,21 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
       />
     ),
     ...components,
-    img: (props) => (
-      <img
-        alt={props.alt ?? 'Image'}
-        {...props}
-        height={props.height ?? 1200}
-        width={props.width ?? 1200}
-        sizes="100vw"
-        style={{ ...props.style, borderRadius: '10px', width: '100%' }}
-      />
-    ),
+    img(props) {
+      const ComponentToUse = typeof props.src === 'object' ? NextImage : 'img';
+      const img = (
+        <ComponentToUse {...props} className="rounded-lg border border-border w-auto mx-auto" />
+      );
+      if (!props.alt) {
+        return img;
+      }
+      return (
+        <figure>
+          {img}
+          <figcaption className="mt-2 text-center text-sm">{props.alt}</figcaption>
+        </figure>
+      );
+    },
     Accordions,
     Accordion,
     BigVideo,
