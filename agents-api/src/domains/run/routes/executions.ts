@@ -3,6 +3,7 @@ import {
   type CredentialStoreRegistry,
   createApiError,
   createMessage,
+  createOrGetConversation,
   type FullExecutionContext,
   generateId,
   getConversationId,
@@ -194,7 +195,7 @@ app.openapi(createExecutionRoute, async (c) => {
   const executionContext = c.get('executionContext');
   const { tenantId, projectId, agentId, resolvedRef } = executionContext;
 
-  const body = c.get('requestBody') || (await c.req.json());
+  const body = c.req.valid('json');
   const conversationId = body.conversationId || getConversationId();
 
   const credentialStores = c.get('credentialStores');
@@ -221,6 +222,19 @@ app.openapi(createExecutionRoute, async (c) => {
     projectId,
     conversationId,
     messageId,
+  });
+
+  const fullAgent = executionContext.project.agents[agentId];
+  const agentKeys = Object.keys((fullAgent?.subAgents as Record<string, unknown>) || {});
+  const activeSubAgentId = (fullAgent?.defaultSubAgentId as string) || agentKeys[0] || '';
+
+  await createOrGetConversation(runDbClient)({
+    tenantId,
+    projectId,
+    id: conversationId,
+    agentId,
+    activeSubAgentId,
+    ref: resolvedRef,
   });
 
   await createMessage(runDbClient)({
@@ -252,6 +266,9 @@ app.openapi(createExecutionRoute, async (c) => {
 
   logger.info({ runId: run.runId, conversationId, agentId }, 'Durable execution started');
 
+  c.header('Content-Type', 'text/event-stream');
+  c.header('Cache-Control', 'no-cache');
+  c.header('Connection', 'keep-alive');
   c.header('x-workflow-run-id', run.runId);
 
   return stream(c, async (s) => {
@@ -330,6 +347,7 @@ app.openapi(reconnectExecutionStreamRoute, async (c) => {
       }
     } catch (error) {
       logger.error({ error, executionId }, 'Error reconnecting to execution stream');
+      await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
     }
   });
 });
@@ -351,10 +369,21 @@ app.openapi(approveToolCallRoute, async (c) => {
 
   const token = `tool-approval:${execution.conversationId}:${executionId}:${toolCallId}`;
 
-  await toolApprovalHook.resume(token, {
-    approved,
-    reason: approved ? undefined : reason,
-  });
+  try {
+    await toolApprovalHook.resume(token, {
+      approved,
+      reason: approved ? undefined : reason,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes('not found') && !message.includes('already')) {
+      throw error;
+    }
+    logger.warn(
+      { executionId, toolCallId, message },
+      'Tool approval already processed (idempotent)'
+    );
+  }
 
   return c.json({ success: true as boolean }, 200);
 });
