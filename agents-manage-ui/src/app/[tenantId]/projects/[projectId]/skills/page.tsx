@@ -5,6 +5,7 @@ import type { FC } from 'react';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import FullPageError from '@/components/errors/full-page-error';
 import { PageHeader } from '@/components/layout/page-header';
+import { TreeNode, type DemoTreeNode } from '@/components/skills/tree-node';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import {
@@ -17,7 +18,6 @@ import {
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { renderTreeNode } from '@/components/skills/tree-node';
 
 export const metadata = {
   title: STATIC_LABELS.skills,
@@ -124,48 +124,18 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
     const permissions = await fetchProjectPermissions(tenantId, projectId);
     const requestedPath =
       typeof rawSearchParams.path === 'string' ? rawSearchParams.path : defaultSelectedPath;
-    const collapsedValues: string[] = Array.isArray(rawSearchParams.collapsed)
-      ? rawSearchParams.collapsed.filter((value): value is string => typeof value === 'string')
-      : typeof rawSearchParams.collapsed === 'string'
-        ? [rawSearchParams.collapsed]
-        : [];
-    const collapsedPaths = new Set(collapsedValues);
     const fallbackNode = findFirstFile(treeNodes) ?? treeNodes[0] ?? null;
     const selectedNode = findNodeByPath(treeNodes, requestedPath) ?? fallbackNode;
     const selectedPath = selectedNode?.path ?? defaultSelectedPath;
 
-    function buildSearch(nextPath: string, nextCollapsedPaths: ReadonlySet<string>) {
-      const nextSearchParams = new URLSearchParams();
-      if (nextPath) {
-        nextSearchParams.set('path', nextPath);
-      }
-      for (const collapsedPath of [...nextCollapsedPaths].sort()) {
-        nextSearchParams.append('collapsed', collapsedPath);
-      }
-      return nextSearchParams.toString();
-    }
-
-    function buildFileHref(targetPath: string) {
-      return `/${tenantId}/projects/${projectId}/skills?${buildSearch(targetPath, collapsedPaths)}`;
-    }
-    function buildFolderHref(targetPath: string) {
-      const nextCollapsedPaths = new Set(collapsedPaths);
-      if (nextCollapsedPaths.has(targetPath)) {
-        nextCollapsedPaths.delete(targetPath);
-      } else {
-        nextCollapsedPaths.add(targetPath);
-      }
-      return `/${tenantId}/projects/${projectId}/skills?${buildSearch(selectedPath, nextCollapsedPaths)}`;
-    }
-
-    const action = permissions.canEdit ? (
+    const action = permissions.canEdit && (
       <Button asChild className="flex items-center gap-2">
         <NextLink href={`/${tenantId}/projects/${projectId}/skills/new`}>
           <Plus />
           Create skill
         </NextLink>
       </Button>
-    ) : undefined;
+    );
 
     if (!selectedNode) {
       return (
@@ -189,15 +159,9 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
                   <SidebarGroupLabel>Library</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {treeNodes.map((node) =>
-                        renderTreeNode(
-                          node,
-                          selectedPath,
-                          collapsedPaths,
-                          buildFileHref,
-                          buildFolderHref
-                        )
-                      )}
+                      {treeNodes.map((node) => (
+                        <TreeNode key={node.path} node={node} selectedPath={selectedPath} />
+                      ))}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>

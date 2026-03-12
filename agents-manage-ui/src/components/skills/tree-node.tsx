@@ -2,7 +2,7 @@
 
 import { ChevronRight, File, Folder, FolderOpenIcon } from 'lucide-react';
 import NextLink from 'next/link';
-import { useState } from 'react';
+import { type FC, useState } from 'react';
 import {
   SidebarMenuAction,
   SidebarMenuButton,
@@ -12,6 +12,7 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import { useParams } from 'next/navigation';
 
 export interface DemoTreeNode {
   name: string;
@@ -21,22 +22,40 @@ export interface DemoTreeNode {
   children: DemoTreeNode[];
 }
 
-export function renderTreeNode(
-  node: DemoTreeNode,
-  selectedPath: string,
-  collapsedPaths: ReadonlySet<string>,
-  buildFileHref: (path: string) => string,
-  buildFolderHref: (path: string) => string,
-  nested = false
-) {
+export const TreeNode: FC<{
+  node: DemoTreeNode;
+  selectedPath: string;
+  nested?: boolean;
+}> = ({ node, nested = false, selectedPath }) => {
   'use memo';
+
+  const { tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+  }>();
+
+  function buildSearch(nextPath: string) {
+    const nextSearchParams = new URLSearchParams();
+    if (nextPath) {
+      nextSearchParams.set('path', nextPath);
+    }
+    return nextSearchParams.toString();
+  }
+
+  function buildFileHref(targetPath: string) {
+    return `/${tenantId}/projects/${projectId}/skills?${buildSearch(targetPath)}`;
+  }
+  function buildFolderHref() {
+    return `/${tenantId}/projects/${projectId}/skills?${buildSearch(selectedPath)}`;
+  }
+
   const [isCollapsed, setCollapsed] = useState(false);
   const isActive = node.kind === 'file' && node.path === selectedPath;
   const IconToUse = node.kind === 'file' ? File : isCollapsed ? Folder : FolderOpenIcon;
-  const href = node.kind === 'file' ? buildFileHref(node.path) : buildFolderHref(node.path);
+  const href = node.kind === 'file' ? buildFileHref(node.path) : buildFolderHref();
   const ComponentToUse = nested ? SidebarMenuSubItem : SidebarMenuItem;
   const ButtonToUse = nested ? SidebarMenuSubButton : SidebarMenuButton;
-
+  console.log(node.children);
   return (
     <ComponentToUse key={node.path}>
       <ButtonToUse asChild isActive={isActive}>
@@ -55,18 +74,11 @@ export function renderTreeNode(
       )}
       {node.children.length > 0 && !isCollapsed && (
         <SidebarMenuSub>
-          {node.children.map((child) =>
-            renderTreeNode(
-              child,
-              selectedPath,
-              collapsedPaths,
-              buildFileHref,
-              buildFolderHref,
-              true
-            )
-          )}
+          {node.children.map((child) => (
+            <TreeNode key={child.path} node={child} selectedPath={selectedPath} nested />
+          ))}
         </SidebarMenuSub>
       )}
     </ComponentToUse>
   );
-}
+};
