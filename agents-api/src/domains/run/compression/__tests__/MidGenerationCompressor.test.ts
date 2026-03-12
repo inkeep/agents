@@ -54,6 +54,8 @@ function makeToolResultMessages(count: number, prefix = 'call'): any[] {
 
 const mockSummary = {
   type: 'conversation_summary_v1' as const,
+  session_id: null,
+  _fallback: null,
   high_level: 'Summary of research',
   user_intent: 'Find information',
   decisions: [],

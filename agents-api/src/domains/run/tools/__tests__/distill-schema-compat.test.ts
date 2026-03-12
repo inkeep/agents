@@ -27,6 +27,9 @@ function collectMissingRequired(schema: any, path = ''): string[] {
       missing.push(...collectMissingRequired(schema.properties[key], fullPath));
     }
   }
+  if (schema?.items) {
+    missing.push(...collectMissingRequired(schema.items, path ? `${path}[]` : '[]'));
+  }
   return missing;
 }
 
