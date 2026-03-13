@@ -249,6 +249,7 @@ app.openapi(createExecutionRoute, async (c) => {
   });
 
   const requestId = `exec-${generateId()}`;
+  const emitOperations = c.req.header('x-emit-operations') === 'true';
 
   const run = await start(agentExecutionWorkflow, [
     {
@@ -261,6 +262,7 @@ app.openapi(createExecutionRoute, async (c) => {
       requestId,
       resolvedRef,
       forwardedHeaders: body.forwardedHeaders,
+      emitOperations: emitOperations || undefined,
     },
   ]);
 
@@ -280,6 +282,7 @@ app.openapi(createExecutionRoute, async (c) => {
         if (done) break;
         await s.write(value);
       }
+      await s.write('data: [DONE]\n\n');
     } catch (error) {
       logger.error({ error, runId: run.runId }, 'Error streaming durable execution');
       await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
@@ -345,6 +348,7 @@ app.openapi(reconnectExecutionStreamRoute, async (c) => {
         if (done) break;
         await s.write(value);
       }
+      await s.write('data: [DONE]\n\n');
     } catch (error) {
       logger.error({ error, executionId }, 'Error reconnecting to execution stream');
       await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);

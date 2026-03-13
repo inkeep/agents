@@ -20,6 +20,7 @@ export type AgentExecutionPayload = {
   resolvedRef: ResolvedRef;
   forwardedHeaders?: Record<string, string>;
   outputFormat?: 'sse' | 'vercel';
+  emitOperations?: boolean;
 };
 
 /**
