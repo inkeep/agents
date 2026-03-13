@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.14
+
+### Patch Changes
+
+- ed39b41: Improve app creation flow with searchable agent selection and streamlined type picker
+- 14e415c: Fix unable to clear agent settings description, show inherited model on sub-agent nodes, and extract shared URLDisplay component
+- 09e270a: Fix inconsistent timezone display on triggers page by showing all run times in browser local timezone with timezone labels in column headers
+- e10649a: Fix MCP server name and URL truncation in card view
+  - @inkeep/agents-core@0.58.14
+
 ## 0.58.13
 
 ### Patch Changes
