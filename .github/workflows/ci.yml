@@ -18,7 +18,83 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  ci:
+  fast-checks:
+    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check if changeset PR
+        id: changeset-check
+        run: |
+          if [ "$HEAD_REF" = "changeset-release/main" ]; then
+            echo "is_changeset=true" >> $GITHUB_OUTPUT
+            echo "Changeset PR detected — skipping fast checks"
+          else
+            echo "is_changeset=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+
+      - name: Checkout code
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x
+
+      - name: Setup pnpm
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
+        with:
+          version: 10.10.0
+          run_install: false
+
+      - name: Get pnpm store directory
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Prepare directories
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: |
+          mkdir -p agents-docs/.source
+          touch agents-docs/.source/index.ts
+
+      - name: Setup pnpm cache
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
+
+      - name: Biome Format
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: pnpm format:check
+
+      - name: Check env.ts descriptions
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: pnpm check:env-descriptions
+
+      - name: Check route handler patterns
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: pnpm check:route-handler-patterns
+
+      - name: Check for unused dependencies, exports, and types
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: pnpm knip
+
+  turbo-check:
     if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
     runs-on: ubuntu-32gb
     timeout-minutes: 30
@@ -38,7 +114,7 @@ jobs:
         run: |
           if [ "$HEAD_REF" = "changeset-release/main" ]; then
             echo "is_changeset=true" >> $GITHUB_OUTPUT
-            echo "Changeset PR detected — skipping CI checks"
+            echo "Changeset PR detected — skipping turbo checks"
           else
             echo "is_changeset=false" >> $GITHUB_OUTPUT
           fi
@@ -190,18 +266,6 @@ jobs:
           retention-days: 3
           include-hidden-files: true
 
-      - name: Biome Format
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        run: pnpm format:check
-
-      - name: Check env.ts descriptions
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        run: pnpm check:env-descriptions
-
-      - name: Check for unused dependencies, exports, and types
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        run: pnpm knip
-
       # Create summary report
       - name: Create CI Summary
         if: always() && steps.changeset-check.outputs.is_changeset != 'true'
@@ -220,6 +284,24 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Run \`pnpm check\` locally to reproduce the CI checks." >> $GITHUB_STEP_SUMMARY
           fi
+
+  # Gate job — this is the required status check ("ci").
+  # Sub-jobs handle changeset early-exit internally (they succeed with skipped steps).
+  ci:
+    needs: [fast-checks, turbo-check]
+    if: ${{ always() && (github.event_name != 'push' || github.actor != 'github-merge-queue[bot]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all checks passed
+        run: |
+          if [ "$FAST_RESULT" != "success" ] || [ "$TURBO_RESULT" != "success" ]; then
+            echo "::error::One or more CI jobs failed (fast-checks: $FAST_RESULT, turbo-check: $TURBO_RESULT)"
+            exit 1
+          fi
+          echo "All CI checks passed!"
+        env:
+          FAST_RESULT: ${{ needs.fast-checks.result }}
+          TURBO_RESULT: ${{ needs.turbo-check.result }}
 
   create-agents-e2e:
     if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
