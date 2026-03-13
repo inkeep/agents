@@ -344,11 +344,19 @@ const envSchema = z
     }
   });
 
+const logEnvIssues = (scope: string, error: z.ZodError) => {
+  for (const issue of error.issues) {
+    const key = issue.path.length > 0 ? issue.path.join('.') : '<root>';
+    console.error(`[${scope}] ${key}: ${issue.message}`);
+  }
+};
+
 const parseEnv = () => {
   try {
     return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      logEnvIssues('agents-api env', error);
       const missingVars = error.issues.map((issue) => issue.path.join('.'));
       throw new Error(
         `❌ Invalid environment variables: ${missingVars.join(', ')}\n${error.message}`

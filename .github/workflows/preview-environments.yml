@@ -528,6 +528,9 @@ jobs:
           upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_API_URL" "${API_URL}"
           upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_MANAGE_UI_URL" "${UI_URL}"
           upsert_env "${VERCEL_API_PROJECT_ID}" "ANTHROPIC_API_KEY" "${ANTHROPIC_API_KEY}"
+          upsert_env "${VERCEL_API_PROJECT_ID}" "NODE_ENV" "production"
+          upsert_env "${VERCEL_API_PROJECT_ID}" "ENVIRONMENT" "production"
+          upsert_env "${VERCEL_API_PROJECT_ID}" "LOG_LEVEL" "info"
 
           # Tier 1 outputs from Railway provisioning
           if [ -n "${MANAGE_DB_URL}" ]; then
@@ -622,6 +625,12 @@ jobs:
                   debug_key "LOG_LEVEL"
                   debug_key "INKEEP_AGENTS_MANAGE_DATABASE_URL"
                   debug_key "INKEEP_AGENTS_RUN_DATABASE_URL"
+                  debug_key "INKEEP_AGENTS_MANAGE_UI_USERNAME"
+                  debug_key "INKEEP_AGENTS_MANAGE_UI_PASSWORD"
+                  debug_key "INKEEP_ANON_JWT_SECRET"
+                  debug_key "INKEEP_ANON_SESSION_LIFETIME_SECONDS"
+                  debug_key "INKEEP_POW_HMAC_SECRET"
+                  debug_key "INKEEP_POW_DIFFICULTY"
                   debug_key "SPICEDB_ENDPOINT"
                   debug_key "SPICEDB_PRESHARED_KEY"
                   debug_key "SPICEDB_TLS_ENABLED"
@@ -640,59 +649,7 @@ jobs:
                 } | tee -a "$GITHUB_STEP_SUMMARY"
               }
 
-              probe_api_env_schema() {
-                local env_file=".vercel/.env.preview.local"
-                local backup_env=""
-                local probe_status=0
-
-                if [ ! -f "${env_file}" ]; then
-                  {
-                    echo "## API Env Schema Probe"
-                    echo "- Missing \`${env_file}\`; skipping probe"
-                  } | tee -a "$GITHUB_STEP_SUMMARY"
-                  return
-                fi
-
-                if [ -f ".env" ]; then
-                  backup_env="$(mktemp)"
-                  cp ".env" "${backup_env}"
-                fi
-
-                cleanup_probe_env() {
-                  if [ -n "${backup_env}" ] && [ -f "${backup_env}" ]; then
-                    mv "${backup_env}" ".env"
-                  else
-                    rm -f ".env"
-                  fi
-                }
-
-                cp "${env_file}" ".env"
-
-                {
-                  echo "## API Env Schema Probe"
-                  if node --import tsx/esm -e '
-                    try {
-                      await import("./packages/agents-core/src/env.ts");
-                      await import("./packages/agents-work-apps/src/env.ts");
-                      await import("./agents-api/src/env.ts");
-                      console.log("probe_ok");
-                    } catch (error) {
-                      console.error(error?.stack ?? error?.message ?? String(error));
-                      process.exit(1);
-                    }
-                  ' 2>&1; then
-                    echo "- Result: ok"
-                  else
-                    probe_status=$?
-                    echo "- Result: failed (${probe_status})"
-                  fi
-                } | tee -a "$GITHUB_STEP_SUMMARY"
-
-                cleanup_probe_env
-              }
-
               emit_preview_env_debug
-              probe_api_env_schema
             fi
 
             log_file="$(mktemp)"
