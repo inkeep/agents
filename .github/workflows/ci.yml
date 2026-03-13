@@ -18,6 +18,36 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      docs: ${{ steps.filter.outputs.docs }}
+      lockfile: ${{ steps.filter.outputs.lockfile }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # For push/merge_group events, compare against parent commit
+          base: ${{ (github.event_name == 'push' || github.event_name == 'merge_group') && github.event.before || '' }}
+          filters: |
+            backend:
+              - 'agents-api/**'
+              - 'packages/**'
+              - 'agents-cli/**'
+              - 'agents-work-apps/**'
+            frontend:
+              - 'agents-manage-ui/**'
+            docs:
+              - 'agents-docs/**'
+            lockfile:
+              - 'pnpm-lock.yaml'
+
   ci:
     if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
     runs-on: ubuntu-32gb
@@ -222,6 +252,7 @@ jobs:
           fi
 
   create-agents-e2e:
+    needs: [changes]
     if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
     runs-on: ubuntu-32gb
     name: Create Agents E2E Tests
@@ -257,49 +288,54 @@ jobs:
           - 5433:5432
 
     steps:
-      - name: Check if changeset PR
-        id: changeset-check
+      - name: Check if should run
+        id: should-run
         run: |
           if [ "$HEAD_REF" = "changeset-release/main" ]; then
-            echo "is_changeset=true" >> $GITHUB_OUTPUT
+            echo "should_run=false" >> $GITHUB_OUTPUT
             echo "Changeset PR detected — skipping E2E tests"
+          elif [ "$BACKEND_CHANGED" != "true" ] && [ "$LOCKFILE_CHANGED" != "true" ]; then
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "No backend or lockfile changes — skipping E2E tests"
           else
-            echo "is_changeset=false" >> $GITHUB_OUTPUT
+            echo "should_run=true" >> $GITHUB_OUTPUT
           fi
         env:
           HEAD_REF: ${{ github.head_ref }}
+          BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
+          LOCKFILE_CHANGED: ${{ needs.changes.outputs.lockfile }}
 
       - name: Checkout code
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Node.js
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.x
 
       - name: Setup pnpm
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
         with:
           version: 10.10.0
           run_install: false
 
       - name: Get pnpm store directory
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Prepare directories
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         run: |
           mkdir -p agents-docs/.source
           touch agents-docs/.source/index.ts
 
       - name: Setup pnpm cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ env.STORE_PATH }}
@@ -308,7 +344,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Setup Turborepo cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .turbo
@@ -317,13 +353,13 @@ jobs:
             ${{ runner.os }}-turbo-create-agents-e2e-
 
       - name: Install dependencies
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
       - name: Cache Playwright browsers
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
@@ -331,11 +367,11 @@ jobs:
           restore-keys: ${{ runner.os }}-playwright-
 
       - name: Install Playwright
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         run: pnpx playwright install chromium --with-deps
 
       - name: Build create-agents and dependencies
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         run: |
           # Build all packages that the e2e test links to local versions
           # These need dist/ directories for subpath exports like ./factory
@@ -348,7 +384,7 @@ jobs:
 
       # Start SpiceDB (needs explicit `serve` subcommand, so can't use service container)
       - name: Start SpiceDB
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         run: |
           docker run -d --name spicedb \
             --network host \
@@ -367,14 +403,14 @@ jobs:
           done
 
       - name: Run database migrations
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         run: pnpm db:migrate
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
 
       - name: Run create-agents E2E tests
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         run: pnpm test:e2e --filter @inkeep/create-agents
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
@@ -386,7 +422,7 @@ jobs:
           SPICEDB_PRESHARED_KEY: dev-secret-key
 
       - name: Run agents-api integration tests
-        if: steps.changeset-check.outputs.is_changeset != 'true'
+        if: steps.should-run.outputs.should_run == 'true'
         run: pnpm --filter @inkeep/agents-api test:integration
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
