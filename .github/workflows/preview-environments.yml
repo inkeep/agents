@@ -384,6 +384,9 @@ jobs:
       needs.compute-context.outputs.preview_enabled == 'true' &&
       github.event.action != 'closed' &&
       needs.compute-context.outputs.is_internal_pr == 'true'
+    outputs:
+      api_deployment_url: ${{ steps.deploy.outputs.api_deployment_url }}
+      ui_deployment_url: ${{ steps.deploy.outputs.ui_deployment_url }}
     steps:
       - name: Upsert Vercel env vars for API + UI projects
         env:
@@ -543,6 +546,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Trigger Vercel preview deploys
+        id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -570,6 +574,7 @@ jobs:
           deploy_and_alias() {
             local project_id="$1"
             local alias_domain="$2"
+            local output_key="$3"
             local deployment_url log_file
 
             export VERCEL_PROJECT_ID="${project_id}"
@@ -595,6 +600,7 @@ jobs:
             fi
 
             vercel alias set "${deployment_url}" "${alias_domain}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}"
+            echo "${output_key}=${deployment_url}" >> "$GITHUB_OUTPUT"
 
             {
               echo "## Vercel Preview Alias"
@@ -604,8 +610,8 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           }
 
-          deploy_and_alias "${VERCEL_API_PROJECT_ID}" "${API_DOMAIN}"
-          deploy_and_alias "${VERCEL_MANAGE_UI_PROJECT_ID}" "${UI_DOMAIN}"
+          deploy_and_alias "${VERCEL_API_PROJECT_ID}" "${API_DOMAIN}" "api_deployment_url"
+          deploy_and_alias "${VERCEL_MANAGE_UI_PROJECT_ID}" "${UI_DOMAIN}" "ui_deployment_url"
 
   smoke-preview:
     name: Smoke Test Preview URLs
@@ -625,7 +631,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          wait_for_url() {
+          wait_for_success_url() {
             local url="$1"
             local attempts="${2:-30}"
             local sleep_seconds="${3:-5}"
@@ -645,8 +651,33 @@ jobs:
             return 1
           }
 
-          wait_for_url "${API_URL}/health" 30 5
-          wait_for_url "${UI_URL}" 30 5
+          wait_for_ui_url() {
+            local url="$1"
+            local attempts="${2:-30}"
+            local sleep_seconds="${3:-5}"
+            local attempt status_code
+
+            for attempt in $(seq 1 "${attempts}"); do
+              status_code="$(
+                curl -sS -o /dev/null -w '%{http_code}' "${url}" || true
+              )"
+              case "${status_code}" in
+                200|204|301|302|307|308|401|403)
+                  return 0
+                  ;;
+              esac
+
+              if [ "${attempt}" -lt "${attempts}" ]; then
+                sleep "${sleep_seconds}"
+              fi
+            done
+
+            echo "Timed out waiting for UI preview at ${url}; last status=${status_code:-unknown}" >&2
+            return 1
+          }
+
+          wait_for_success_url "${API_URL}/health" 30 5
+          wait_for_ui_url "${UI_URL}" 30 5
 
       - name: Capture preview failure diagnostics
         if: ${{ always() && steps.smoke.outcome == 'failure' }}
@@ -675,11 +706,15 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           API_URL: ${{ needs.compute-context.outputs.api_url }}
+          API_DEPLOYMENT_URL: ${{ needs.configure-vercel-preview.outputs.api_deployment_url }}
         run: |
           set +e
           npm install -g vercel
+          TARGET_DEPLOYMENT="${API_DEPLOYMENT_URL:-${API_URL}}"
+          echo "## Vercel Deployment Inspect (API)" >> "$GITHUB_STEP_SUMMARY"
+          vercel inspect "${TARGET_DEPLOYMENT}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" 2>&1 | tee /tmp/vercel-inspect.txt
           echo "## Vercel Runtime Logs (API)" >> "$GITHUB_STEP_SUMMARY"
-          vercel logs "${API_URL}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" --since=1h 2>&1 | tail -n 200
+          vercel logs "${TARGET_DEPLOYMENT}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" --since=1h --no-follow 2>&1 | tail -n 200
 
       - name: Fail job when smoke checks fail
         if: ${{ steps.smoke.outcome == 'failure' }}
