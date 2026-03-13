@@ -2,6 +2,7 @@ import { createApiError } from '@inkeep/agents-core';
 import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
+import type { AppVariables } from '../types/app';
 
 /**
  * Middleware to enforce session-based authentication.
@@ -46,7 +47,7 @@ export const sessionAuth = () => {
  * Used for all routes that require an active user session.
  */
 export const sessionContext = () =>
-  createMiddleware(async (c, next) => {
+  createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
     const auth = c.get('auth');
     if (!auth) {
       c.set('user', null);

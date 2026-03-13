@@ -188,8 +188,6 @@ export function InviteMemberDialog({
   const successCount = invitationResults.filter((r) => r.status === 'success').length;
   const errorCount = invitationResults.filter((r) => r.status === 'error').length;
 
-  console.log('invitationResults', invitationResults);
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[600px]">

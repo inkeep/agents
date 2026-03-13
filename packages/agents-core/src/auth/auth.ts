@@ -75,13 +75,13 @@ function _inferAuthType() {
   });
 }
 
-export type AuthInstance = ReturnType<typeof _inferAuthType>;
+type AuthInstance = ReturnType<typeof _inferAuthType>;
 
 export function createAuth(config: BetterAuthConfig): AuthInstance {
   const cookieDomain = extractCookieDomain(config.baseURL, config.cookieDomain);
   const isSecure = config.baseURL.startsWith('https://');
 
-  return betterAuth({
+  const instance = betterAuth({
     appName: 'Inkeep Agents',
     baseURL: config.baseURL,
     secret: config.secret,
@@ -222,7 +222,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             return;
           }
 
-          await auth.api.addMember({
+          await instance.api.addMember({
             body: {
               userId: user.id,
               organizationId: provider.organizationId,
@@ -423,6 +423,8 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       }),
     ],
   }) as unknown as AuthInstance;
+
+  return instance;
 }
 
 // Type placeholder for type inference in consuming code (e.g., app.ts AppVariables)

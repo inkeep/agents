@@ -4,7 +4,9 @@ import type {
   ResolvedRef,
   ServerConfig,
 } from '@inkeep/agents-core';
-import type { AuthInstance } from '@inkeep/agents-core/auth';
+import type { createAuth } from '@inkeep/agents-core/auth';
+
+type AuthInstance = ReturnType<typeof createAuth>;
 
 interface CommonSandboxConfig {
   runtime: 'node22' | 'typescript';

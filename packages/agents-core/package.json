@@ -79,8 +79,8 @@
       "import": "./dist/utils/signature-validation.js"
     },
     "./auth": {
-      "types": "./src/auth/auth.ts",
-      "import": "./dist/auth.js"
+      "types": "./dist/auth/auth.d.ts",
+      "import": "./dist/auth/auth.js"
     },
     "./auth/schema": {
       "types": "./dist/auth/auth-schema.d.ts",
