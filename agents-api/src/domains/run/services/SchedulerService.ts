@@ -22,7 +22,7 @@ export async function startSchedulerWorkflow(): Promise<{
 
   logger.info(
     { runId: run.runId, previousRunId: previous?.currentRunId ?? null },
-    'Scheduler workflow started',
+    'Scheduler workflow started'
   );
 
   return {

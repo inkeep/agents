@@ -16,7 +16,10 @@ export const getSchedulerState =
 
 export const upsertSchedulerState =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { currentRunId: string; deploymentId?: string | null }): Promise<SchedulerStateRow> => {
+  async (params: {
+    currentRunId: string;
+    deploymentId?: string | null;
+  }): Promise<SchedulerStateRow> => {
     const [row] = await db
       .insert(schedulerState)
       .values({
