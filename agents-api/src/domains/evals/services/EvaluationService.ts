@@ -655,6 +655,7 @@ Generate the next user message:`;
       tenantId,
       projectId,
       evaluationJobConfigId,
+      ref: resolvedRef,
     });
 
     const results: Array<EvaluationResultSelect> = [];

@@ -140,6 +140,7 @@ export const triggerConversationEvaluation = async (params: {
           tenantId,
           projectId,
           evaluationRunConfigId: runConfig.id,
+          ref: resolvedRef,
         });
 
         logger.info(
