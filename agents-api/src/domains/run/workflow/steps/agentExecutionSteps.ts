@@ -32,6 +32,7 @@ export type AgentExecutionStepPayload = {
   resolvedRef: ResolvedRef;
   forwardedHeaders?: Record<string, string>;
   outputFormat?: 'sse' | 'vercel';
+  emitOperations?: boolean;
   approvedToolCalls?: Record<
     string,
     Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
@@ -83,6 +84,7 @@ export async function runAgentExecutionStep(params: {
     requestId,
     resolvedRef,
     forwardedHeaders,
+    emitOperations,
     approvedToolCalls,
   } = payload;
 
@@ -146,7 +148,7 @@ export async function runAgentExecutionStep(params: {
       initialAgentId: defaultSubAgentId,
       requestId,
       sseHelper,
-      emitOperations: false,
+      emitOperations: emitOperations ?? false,
       forwardedHeaders,
       durableWorkflowRunId: workflowRunId,
       approvedToolCalls,

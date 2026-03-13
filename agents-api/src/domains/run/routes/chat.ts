@@ -414,6 +414,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
       }
 
       if (agent.executionMode === 'durable') {
+        const emitOperationsHeader = c.req.header('x-emit-operations');
+        const emitOperations = emitOperationsHeader === 'true';
+
         const run = await start(agentExecutionWorkflow, [
           {
             tenantId,
@@ -426,6 +429,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             resolvedRef: executionContext.resolvedRef,
             forwardedHeaders:
               Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
+            emitOperations: emitOperations || undefined,
           },
         ]);
 
@@ -444,6 +448,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
               if (done) break;
               await s.write(value);
             }
+            await s.write('data: [DONE]\n\n');
           } catch (error) {
             logger.error({ error, runId: run.runId }, 'Error streaming durable execution');
             await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
