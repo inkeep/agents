@@ -174,7 +174,7 @@ export async function checkTriggerEnabledStep(params: {
   if (!resolvedRef) {
     logger.warn(
       { tenantId: params.tenantId, projectId: params.projectId },
-      'Failed to resolve ref for project, treating trigger as deleted'
+      'Failed to resolve ref for project, run will not be'
     );
     return { shouldContinue: false, reason: 'deleted', trigger: null };
   }
@@ -281,6 +281,13 @@ export async function createInvocationIdempotentStep(params: {
 
   const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
   const resolvedRef = await resolveRef(manageDbClient)(ref);
+
+  if (!resolvedRef) {
+    logger.warn(
+      { tenantId: params.tenantId, projectId: params.projectId },
+      'Failed to resolve ref for project, run will not be associated with a branch'
+    );
+  }
 
   const invocationId = generateId();
 
