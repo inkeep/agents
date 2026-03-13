@@ -10,6 +10,7 @@ import jmespath from 'jmespath';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/services/ToolSessionManager';
+import { sanitizeArtifactBinaryData } from '../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager } from '../session/AgentSession';
 import {
   type ExtendedJsonSchema,
@@ -884,10 +885,24 @@ export class ArtifactService {
     metadata?: Record<string, any>;
     toolCallId?: string;
   }): Promise<void> {
-    // Use provided summaryData if available, otherwise default to artifact.data
-    let summaryData = artifact.summaryData || artifact.data;
-    let fullData = artifact.data;
     const { tenantId, projectId } = this.context.executionContext;
+
+    const sanitizedData = (await sanitizeArtifactBinaryData(artifact.data, {
+      tenantId,
+      projectId,
+      artifactId: artifact.artifactId,
+    })) as Record<string, any>;
+    const sanitizedSummaryData = artifact.summaryData
+      ? ((await sanitizeArtifactBinaryData(artifact.summaryData, {
+          tenantId,
+          projectId,
+          artifactId: artifact.artifactId,
+        })) as Record<string, any>)
+      : undefined;
+
+    // Use provided summaryData if available, otherwise default to sanitized data
+    let summaryData = sanitizedSummaryData || sanitizedData;
+    let fullData = sanitizedData;
 
     if (this.context.artifactComponents) {
       const artifactComponent = this.context.artifactComponents.find(
@@ -899,8 +914,8 @@ export class ArtifactService {
           const previewSchema = extractPreviewFields(schema);
           const fullSchema = extractFullFields(schema);
 
-          summaryData = this.filterBySchema(artifact.data, previewSchema);
-          fullData = this.filterBySchema(artifact.data, fullSchema);
+          summaryData = this.filterBySchema(sanitizedData, previewSchema);
+          fullData = this.filterBySchema(sanitizedData, fullSchema);
         } catch (error) {
           logger.warn(
             {

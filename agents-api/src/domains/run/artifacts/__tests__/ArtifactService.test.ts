@@ -14,6 +14,7 @@ const {
   upsertLedgerArtifactMock,
   toolSessionManagerMock,
   agentSessionManagerMock,
+  sanitizeArtifactBinaryDataMock,
 } = vi.hoisted(() => ({
   listTaskIdsByContextIdMock: vi.fn(),
   getTaskMock: vi.fn(),
@@ -33,6 +34,20 @@ const {
     setArtifactCache: vi.fn(),
     getArtifactCache: vi.fn(),
   },
+  sanitizeArtifactBinaryDataMock: vi.fn(async (value: unknown) => {
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      const part = value as Record<string, unknown>;
+      if (
+        (part.type === 'image' || part.type === 'file') &&
+        typeof part.data === 'string' &&
+        part.data.length > 0 &&
+        !part.data.startsWith('blob://')
+      ) {
+        return { ...part, data: 'blob://mock-key' };
+      }
+    }
+    return value;
+  }),
 }));
 
 // Mock @inkeep/agents-core WITHOUT importOriginal to avoid loading the heavy module
@@ -76,6 +91,11 @@ vi.mock('../../../../logger', () => ({
     debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
   })),
+}));
+
+vi.mock('../../services/blob-storage/artifact-binary-sanitizer', () => ({
+  sanitizeArtifactBinaryData: sanitizeArtifactBinaryDataMock,
+  stripBinaryDataForObservability: vi.fn((value: unknown) => value),
 }));
 
 // Mock schema-validation to prevent @inkeep/agents-core/utils imports
@@ -741,6 +761,42 @@ describe('ArtifactService', () => {
         title: 'Test Title',
         summary: 'Test Summary',
       });
+    });
+  });
+
+  describe('saveArtifact', () => {
+    it('sanitizes both data and summaryData before persistence', async () => {
+      const upsertInvokerMock = vi.fn().mockResolvedValue({ created: true, existing: null });
+      upsertLedgerArtifactMock.mockReturnValue(upsertInvokerMock);
+
+      await artifactService.saveArtifact({
+        artifactId: 'art-save-1',
+        name: 'Artifact Name',
+        description: 'Artifact Description',
+        type: 'UnknownType',
+        data: { type: 'image', data: 'base64rawdata', mimeType: 'image/png' } as any,
+        summaryData: { type: 'image', data: 'base64summary', mimeType: 'image/png' } as any,
+        metadata: {},
+        toolCallId: 'tool-call-1',
+      });
+
+      expect(sanitizeArtifactBinaryDataMock).toHaveBeenCalledTimes(2);
+      expect(upsertLedgerArtifactMock).toHaveBeenCalledWith('mock-run-db-client');
+      expect(upsertInvokerMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          artifact: expect.objectContaining({
+            parts: [
+              {
+                kind: 'data',
+                data: {
+                  summary: expect.objectContaining({ data: 'blob://mock-key' }),
+                  full: expect.objectContaining({ data: 'blob://mock-key' }),
+                },
+              },
+            ],
+          }),
+        })
+      );
     });
   });
 
