@@ -451,10 +451,30 @@ jobs:
               local attempt value
 
               for attempt in $(seq 1 "${max_attempts}"); do
-                value="$((
-                  0
-                ))"
+                value="$(
+                  railway variable list \
+                    --service "${RAILWAY_OUTPUT_SERVICE}" \
+                    --environment "${RAILWAY_ENV_NAME}" \
+                    --json |
+                  jq -r --arg key "${key}" '.[$key] // empty'
+                )"
+
+                if [ -n "${value}" ] && ! printf '%s' "${value}" | grep -q '\$[{][{]'; then
+                  printf '%s' "${value}"
+                  return 0
+                fi
+
+                if [ "${attempt}" -lt "${max_attempts}" ]; then
+                  sleep "${sleep_seconds}"
+                fi
               done
+
+              if [ -z "${value:-}" ]; then
+                echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
+              else
+                echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
+              fi
+              exit 1
             }
 
             if [ -z "${MANAGE_DB_URL}" ]; then
@@ -753,10 +773,22 @@ jobs:
             local attempt status_code
 
             for attempt in $(seq 1 "${attempts}"); do
-              status_code="$((
-                200
-              ))"
+              status_code="$(
+                curl -sS -o /dev/null -w '%{http_code}' "${url}" || true
+              )"
+              case "${status_code}" in
+                200|204|301|302|307|308|401|403)
+                  return 0
+                  ;;
+              esac
+
+              if [ "${attempt}" -lt "${attempts}" ]; then
+                sleep "${sleep_seconds}"
+              fi
             done
+
+            echo "Timed out waiting for UI preview at ${url}; last status=${status_code:-unknown}" >&2
+            return 1
           }
 
           wait_for_success_url "${API_URL}/health" 30 5
