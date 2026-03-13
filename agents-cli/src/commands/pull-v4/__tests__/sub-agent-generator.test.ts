@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for sub-agent generator
  */
@@ -52,12 +51,12 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain("description: 'A personalized AI assistant.',");
       expect(definition).toContain(`prompt: "Hello! I'm your personal assistant.",`);
       expect(definition).toContain('canUse: () => [');
-      expect(definition).toContain('calculateBMI,');
-      expect(definition).toContain('weatherTool');
+      expect(definition).toContain('calculatebmi,');
+      expect(definition).toContain('weathertool');
       expect(definition).toContain('canDelegateTo: () => [');
-      expect(definition).toContain('coordinatesAgent,');
-      expect(definition).toContain('teamAgent');
-      expect(definition).toContain('dataComponents: () => [taskList]');
+      expect(definition).toContain('coordinatesagent,');
+      expect(definition).toContain('teamagent');
+      expect(definition).toContain('dataComponents: () => [tasklist]');
       expect(definition).toContain('artifactComponents: () => [citation]');
       expect(definition).toContain('});');
       await expectSnapshots(definition);
@@ -92,8 +91,8 @@ describe('Sub-Agent Generator', () => {
         ...singleItemData,
       });
 
-      expect(definition).toContain('canUse: () => [onlyTool]');
-      expect(definition).toContain('dataComponents: () => [onlyComponent]');
+      expect(definition).toContain('canUse: () => [onlytool]');
+      expect(definition).toContain('dataComponents: () => [onlycomponent]');
       expect(definition).not.toContain('canUse: () => [\n'); // Single line format
       await expectSnapshots(definition);
     });
@@ -119,21 +118,23 @@ describe('Sub-Agent Generator', () => {
       }).not.toThrow();
     });
 
-    it('should generate name from ID when name is missing', async () => {
-      const subAgentId = 'fallback-agent';
-
-      const definition = generateSubAgentDefinition({ id: subAgentId });
-
-      // Should generate a human-readable name from the ID
-      expect(definition).toContain("name: 'Fallback Agent',");
-      await expectSnapshots(definition);
-    });
-
-    it('should handle camelCase conversion for variable names', async () => {
+    it('should prefer sub-agent name when generating variable names', async () => {
       const subAgentId = 'my-complex-sub-agent_v2';
       const definition = generateSubAgentDefinition({
         id: subAgentId,
         ...basicSubAgentData,
+      });
+
+      expect(definition).toContain('export const personalAssistant = subAgent({');
+      await expectSnapshots(definition);
+    });
+
+    it('should fall back to sub-agent id when name is missing', async () => {
+      const subAgentId = 'my-complex-sub-agent_v2';
+      const definition = generateSubAgentDefinition({
+        id: subAgentId,
+        ...basicSubAgentData,
+        name: '',
       });
 
       expect(definition).toContain('export const myComplexSubAgentV2 = subAgent({');
@@ -201,8 +202,8 @@ describe('Sub-Agent Generator', () => {
       });
 
       expect(definition).toContain('canTransferTo: () => [');
-      expect(definition).toContain('legacyAgent1,');
-      expect(definition).toContain('legacyAgent2');
+      expect(definition).toContain('legacyagent1,');
+      expect(definition).toContain('legacyagent2');
       await expectSnapshots(definition);
     });
 
@@ -262,8 +263,8 @@ describe('Sub-Agent Generator', () => {
       expect(file).toContain("import { subAgent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const personalAssistant = subAgent({');
       expect(file).toContain('canUse: () => [');
-      expect(file).toContain('calculateBMI,');
-      expect(file).toContain('weatherTool');
+      expect(file).toContain('calculatebmi,');
+      expect(file).toContain('weathertool');
 
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
@@ -352,22 +353,8 @@ describe('Sub-Agent Generator', () => {
         ...mixedData,
       });
 
-      expect(definition).toContain('canUse: () => [stringTool]');
-      expect(definition).toContain('dataComponents: () => [stringComponent]');
-      await expectSnapshots(definition);
-    });
-
-    it('should generate name from ID when name is missing', async () => {
-      const subAgentId = 'missing-name';
-      const data = {
-        description: 'Test description',
-        prompt: 'Test prompt',
-      };
-      const definition = generateSubAgentDefinition({ id: subAgentId, ...data });
-
-      // Should generate name from ID
-      expect(definition).toContain("name: 'Missing Name',");
-      expect(definition).toContain("description: 'Test description',");
+      expect(definition).toContain('canUse: () => [stringtool]');
+      expect(definition).toContain('dataComponents: () => [stringcomponent]');
       await expectSnapshots(definition);
     });
 

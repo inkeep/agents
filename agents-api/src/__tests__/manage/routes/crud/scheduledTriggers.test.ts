@@ -521,7 +521,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       expect(body.data.timeoutSeconds).toBe(600);
     });
 
-    it('should accept empty update body (schema applies defaults for retry fields)', async () => {
+    it('should reject empty update body with no fields to update', async () => {
       const tenantId = await createTestTenantWithOrg('sched-update-empty');
       const { agentId, projectId } = await createTestAgent(tenantId);
       const { trigger } = await createTestScheduledTrigger({ tenantId, projectId, agentId });
@@ -531,8 +531,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
         body: JSON.stringify({}),
       });
 
-      // Schema applies defaults for retry fields, so this is treated as valid
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(400);
     });
 
     it('should return 404 for non-existent scheduled trigger', async () => {

@@ -9,6 +9,7 @@ export default defineConfig({
   outDir: 'dist',
   shims: true,
   unbundle: true,
+  sourcemap: true,
   // Keep .js extension (tsdown 0.18+ defaults to .mjs)
   outExtensions() {
     return { js: '.js', dts: '.d.ts' };

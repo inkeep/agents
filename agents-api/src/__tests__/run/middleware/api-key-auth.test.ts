@@ -43,12 +43,23 @@ vi.mock('@inkeep/agents-core', () => ({
   verifyTempToken: verifyTempTokenMock,
   canUseProjectStrict: canUseProjectStrictMock,
   createAgentsRunDatabaseClient: createAgentsRunDatabaseClientMock,
+  getAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
+  validateOrigin: vi.fn().mockReturnValue(false),
+  updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
   }),
+}));
+
+vi.mock('jose', () => ({
+  jwtVerify: vi.fn().mockRejectedValue(new Error('not mocked')),
+}));
+
+vi.mock('../../../domains/run/routes/auth', () => ({
+  getAnonJwtSecret: vi.fn().mockReturnValue(new TextEncoder().encode('test-secret')),
 }));
 
 import { type ApiKeySelect, validateAndGetApiKey } from '@inkeep/agents-core';
@@ -66,6 +77,7 @@ vi.mock('../../../data/db/runDbClient', () => ({
 vi.mock('../../../env.js', () => ({
   env: {
     INKEEP_AGENTS_RUN_API_BYPASS_SECRET: undefined as string | undefined,
+    INKEEP_AGENTS_API_URL: 'http://localhost:3002',
   },
 }));
 

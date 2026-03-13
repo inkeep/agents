@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for artifact component generator
  */
@@ -122,99 +121,7 @@ describe('Artifact Component Generator', () => {
       }).toThrow(
         new Error(`Validation failed for artifact component:
 ✖ Invalid input: expected string, received undefined
-  → at name
-✖ Invalid input: expected object, received undefined
-  → at props`)
-      );
-    });
-
-    it('should handle template property', async () => {
-      const dataWithTemplate = {
-        name: 'Test',
-        description: 'Template component',
-        props: { type: 'object', properties: { title: { type: 'string' } } },
-        template: '<div>{{title}}</div>',
-      };
-
-      const artifactComponentId = 'test';
-      const definition = generateArtifactComponentDefinition({
-        artifactComponentId,
-        ...dataWithTemplate,
-      });
-
-      expect(definition).toContain("template: '<div>{{title}}</div>'");
-      await expectSnapshots(definition);
-    });
-
-    it('should handle contentType property', async () => {
-      const dataWithContentType = {
-        name: 'Test',
-        description: 'Component with content type',
-        props: { type: 'object', properties: { content: { type: 'string' } } },
-        contentType: 'text/html',
-      };
-
-      const artifactComponentId = 'test';
-      const definition = generateArtifactComponentDefinition({
-        artifactComponentId,
-        ...dataWithContentType,
-      });
-
-      expect(definition).toContain("contentType: 'text/html'");
-      await expectSnapshots(definition);
-    });
-
-    it('should handle multiline template with template literals', async () => {
-      const longTemplate = `<div class="citation">
-  <h3>{{title}}</h3>
-  <a href="{{url}}">{{url}}</a>
-  <div>{{content}}</div>
-</div>`;
-
-      const dataWithLongTemplate = {
-        name: 'Test',
-        description: 'Component with multiline template',
-        props: {
-          type: 'object',
-          properties: {
-            title: { type: 'string' },
-            url: { type: 'string' },
-            content: { type: 'string' },
-          },
-        },
-        template: longTemplate,
-      };
-
-      const artifactComponentId = 'test';
-      const definition = generateArtifactComponentDefinition({
-        artifactComponentId,
-        ...dataWithLongTemplate,
-      });
-
-      expect(definition).toContain(`template: \`${longTemplate}\``);
-      await expectSnapshots(definition);
-    });
-
-    it('should throw error when only schema provided (needs props)', () => {
-      const dataWithSchema = {
-        name: 'Test',
-        schema: {
-          type: 'object',
-          properties: {
-            value: {
-              type: 'string',
-              inPreview: true,
-            },
-          },
-        },
-      };
-      const artifactComponentId = 'test';
-      expect(() => {
-        generateArtifactComponentDefinition({ artifactComponentId, ...dataWithSchema });
-      }).toThrow(
-        new Error(`Validation failed for artifact component:
-✖ Invalid input: expected object, received undefined
-  → at props`)
+  → at name`)
       );
     });
 
@@ -228,15 +135,6 @@ describe('Artifact Component Generator', () => {
             prop: {
               type: 'string',
               inPreview: true,
-            },
-          },
-        },
-        schema: {
-          type: 'object',
-          properties: {
-            schema: {
-              type: 'string',
-              inPreview: false,
             },
           },
         },

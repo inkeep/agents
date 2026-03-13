@@ -16,7 +16,7 @@ runs:
   steps:
     # --- Phase 1: Cache + install (no dependencies) ---
     - name: Setup Cypress cache
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: ~/.cache/Cypress
         key: ${{ runner.os }}-cypress-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -77,6 +77,17 @@ runs:
         ENVIRONMENT: test
       run: pnpm exec turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-sdk'
 
+    - name: Write AI provider keys to .env
+      shell: bash
+      run: |
+        # Append AI provider API keys from the workflow env into .env so the API
+        # server picks them up via loadEnvironmentFiles(). We cannot export them
+        # to $GITHUB_ENV because that leaks into the Next.js build step.
+        if [ -n "$ANTHROPIC_API_KEY" ]; then
+          sed -i "s|^ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}|" .env
+          echo "Wrote ANTHROPIC_API_KEY to .env"
+        fi
+
     - name: Start backend API server
       shell: bash
       env:
@@ -131,11 +142,14 @@ runs:
 
     - name: Run Cypress E2E Tests
       shell: bash
+      env:
+        CYPRESS_E2E_PROJECT_ID: activities-planner
+        CYPRESS_E2E_AGENT_ID: friendly-agent
       run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
 
     - name: Upload Cypress Screenshots
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: cypress-screenshots
         path: agents-manage-ui/cypress/screenshots
@@ -144,7 +158,7 @@ runs:
 
     - name: Upload Cypress Videos
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
@@ -153,7 +167,7 @@ runs:
 
     - name: Upload API Server Logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: api-server-logs
         path: /tmp/api-server.log

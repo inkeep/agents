@@ -13,10 +13,12 @@ concurrency:
 
 jobs:
   auto-format:
-    # On PRs: skip forks (can't push back). On push to main: always run.
+    # On PRs: skip forks (can't push back) and changeset release PRs (machine-generated).
+    # On push to main: always run.
     if: >-
       github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref != 'changeset-release/main')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -41,7 +43,7 @@ jobs:
       - name: Checkout code
         if: steps.pr-check.outputs.skip != 'true'
         id: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         continue-on-error: true
         with:
           # On PRs, check out the PR branch so we push back to it.
@@ -56,13 +58,13 @@ jobs:
 
       - name: Setup Node.js
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.x
 
       - name: Setup pnpm
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
         with:
           version: 10.10.0
           run_install: false
@@ -80,7 +82,7 @@ jobs:
 
       - name: Setup pnpm cache
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}

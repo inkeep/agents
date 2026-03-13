@@ -86,13 +86,20 @@ export function createFactoryDefinition({
     overwrite: true,
   });
   sourceFile.addImportDeclaration({ namedImports: [importName], moduleSpecifier });
+  const localVariableName = resolveNonCollidingName(name, collectTakenNames(sourceFile));
+  const shouldAliasExport = localVariableName !== name;
   const { configObject } = addFactoryConfigVariable({
     sourceFile,
     importName,
-    variableName: name,
-    isExported: true,
+    variableName: localVariableName,
+    isExported: !shouldAliasExport,
     syntaxKind,
   });
+  if (shouldAliasExport) {
+    sourceFile.addExportDeclaration({
+      namedExports: [{ name: localVariableName, alias: name }],
+    });
+  }
 
   return {
     sourceFile,
@@ -100,12 +107,77 @@ export function createFactoryDefinition({
   };
 }
 
+function collectTakenNames(sourceFile: SourceFile): Set<string> {
+  const takenNames = new Set<string>();
+
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const defaultImport = importDeclaration.getDefaultImport()?.getText();
+    if (defaultImport) {
+      takenNames.add(defaultImport);
+    }
+
+    const namespaceImport = importDeclaration.getNamespaceImport()?.getText();
+    if (namespaceImport) {
+      takenNames.add(namespaceImport);
+    }
+
+    for (const namedImport of importDeclaration.getNamedImports()) {
+      const localName = namedImport.getAliasNode()?.getText() ?? namedImport.getName();
+      takenNames.add(localName);
+    }
+  }
+
+  for (const variableDeclaration of sourceFile.getVariableDeclarations()) {
+    takenNames.add(variableDeclaration.getName());
+  }
+
+  return takenNames;
+}
+
+export function resolveNonCollidingName(
+  baseName: string,
+  reservedNames: Set<string>,
+  startIndex = 1
+): string {
+  if (!reservedNames.has(baseName)) {
+    reservedNames.add(baseName);
+    return baseName;
+  }
+
+  let index = startIndex;
+  while (reservedNames.has(`${baseName}${index}`)) {
+    index += 1;
+  }
+
+  const uniqueName = `${baseName}${index}`;
+  reservedNames.add(uniqueName);
+  return uniqueName;
+}
+
 export function toCamelCase(input: string): string {
   const result = input
-    .replace(/[^a-zA-Z0-9](.)/g, (_, char: string) => char.toUpperCase())
+    .toLowerCase()
+    .replaceAll(/\W/g, ' ')
+    .trim()
+    .replaceAll(/[\s_]+(.)/g, (_, char: string) => char.toUpperCase())
     .replace(/^[0-9]/, '_$&');
 
   return result.charAt(0).toLowerCase() + result.slice(1);
+}
+
+export function toToolReferenceName(input: string): string {
+  const base = toCamelCase(input);
+  return base.endsWith('Tool') ? base : `${base}Tool`;
+}
+
+export function toCredentialReferenceName(input: string): string {
+  const base = toCamelCase(input);
+  return base.endsWith('Credential') ? base : `${base}Credential`;
+}
+
+export function toTriggerReferenceName(input: string): string {
+  const base = toCamelCase(input);
+  return base.endsWith('Trigger') ? base : `${base}Trigger`;
 }
 
 export function toKebabCase(input: string): string {
@@ -171,14 +243,92 @@ export function createUniqueReferenceName(
     return baseCandidate;
   }
 
-  let index = 2;
-  while (reservedNames.has(`${baseCandidate}${index}`)) {
-    index += 1;
+  return resolveNonCollidingName(baseCandidate, reservedNames, 2);
+}
+
+export function resolveImportedReference(
+  importName: string,
+  reservedNames: Set<string>,
+  conflictSuffix: string,
+  isLocal = false
+): {
+  referenceName: string;
+  namedImport?: string | { name: string; alias: string };
+} {
+  if (isLocal) {
+    reservedNames.add(importName);
+    return { referenceName: importName };
   }
 
-  const uniqueName = `${baseCandidate}${index}`;
-  reservedNames.add(uniqueName);
-  return uniqueName;
+  const referenceName = createUniqueReferenceName(importName, reservedNames, conflictSuffix);
+  return {
+    referenceName,
+    namedImport:
+      importName === referenceName ? importName : { name: importName, alias: referenceName },
+  };
+}
+
+interface NamedTemplateReference {
+  name: string;
+  local?: boolean;
+}
+
+export function resolveContextTemplateImports(options: {
+  reservedNames: Set<string>;
+  shouldResolveContextReference: boolean;
+  shouldResolveHeadersReference: boolean;
+  contextConfigReference?: NamedTemplateReference;
+  contextConfigHeadersReference?: NamedTemplateReference;
+  defaultContextImportName?: string;
+  defaultHeadersImportName?: string;
+}): {
+  contextReferenceName?: string;
+  headersReferenceName?: string;
+  namedImports: Array<string | { name: string; alias: string }>;
+} {
+  const namedImports: Array<string | { name: string; alias: string }> = [];
+  let contextReferenceName: string | undefined;
+  let headersReferenceName: string | undefined;
+
+  if (options.shouldResolveContextReference) {
+    const contextImportName =
+      options.contextConfigReference?.name ?? options.defaultContextImportName;
+    if (contextImportName) {
+      const contextImportRef = resolveImportedReference(
+        contextImportName,
+        options.reservedNames,
+        'ContextConfig',
+        options.contextConfigReference?.local === true
+      );
+      contextReferenceName = contextImportRef.referenceName;
+      if (contextImportRef.namedImport) {
+        namedImports.push(contextImportRef.namedImport);
+      }
+    }
+  }
+
+  if (options.shouldResolveHeadersReference) {
+    const headersImportName =
+      options.contextConfigHeadersReference?.name ?? options.defaultHeadersImportName;
+    if (headersImportName) {
+      const headersImportRef = resolveImportedReference(
+        headersImportName,
+        options.reservedNames,
+        'Headers',
+        options.contextConfigHeadersReference?.local === true
+      );
+      headersReferenceName = headersImportRef.referenceName;
+      if (headersImportRef.namedImport) {
+        namedImports.push(headersImportRef.namedImport);
+      }
+    }
+  }
+
+  return {
+    contextReferenceName,
+    headersReferenceName,
+    namedImports,
+  };
 }
 
 type ReferenceOverrideMap = Record<string, string>;
@@ -354,32 +504,6 @@ export function addReferenceGetterProperty(
   body.addElements(refs);
 }
 
-export function addObjectEntries(
-  target: ObjectLiteralExpression,
-  value: Record<string, unknown>
-): void {
-  for (const [key, entryValue] of Object.entries(value)) {
-    if (entryValue === undefined) {
-      continue;
-    }
-
-    if (isPlainObject(entryValue)) {
-      const property = target.addPropertyAssignment({
-        name: formatPropertyName(key),
-        initializer: '{}',
-      });
-      const nestedObject = property.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-      addObjectEntries(nestedObject, entryValue);
-      continue;
-    }
-
-    target.addPropertyAssignment({
-      name: formatPropertyName(key),
-      initializer: formatInlineLiteral(entryValue),
-    });
-  }
-}
-
 export function addStringProperty(
   configObject: ObjectLiteralExpression,
   key: string,
@@ -445,10 +569,6 @@ export async function expectSnapshots(definitionV4: string): Promise<void> {
   await expect(definitionV4).toMatchFileSnapshot(
     `__snapshots__/${snapshotDir}/${currentTestName}-v4.txt`
   );
-}
-
-export function convertNullToUndefined(v: unknown) {
-  return v == null ? undefined : v;
 }
 
 export function hasReferences<T>(references?: T[]): references is T[] {

@@ -26,8 +26,8 @@ The chat button component is a simple way to trigger the Inkeep chat bubble in y
     ```ts
     const config: InkeepChatButtonProps = {
       aiChatSettings: {
-        agentUrl: "https://your-api.example.com/run/api/chat",
-        apiKey: process.env.INKEEP_API_KEY, // Your API key
+        baseUrl: "https://your-api.example.com",
+        appId: process.env.INKEEP_APP_ID, // Your app ID
       },
     };
 

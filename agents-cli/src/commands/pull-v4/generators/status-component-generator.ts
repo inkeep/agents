@@ -1,3 +1,4 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -7,48 +8,41 @@ import {
   toCamelCase,
 } from '../utils';
 
-interface StatusComponentDefinitionData {
-  statusComponentId: string;
-  type: string;
-  description?: string;
-  detailsSchema?: unknown;
-  schema?: unknown;
-}
+const MySchema = FullProjectDefinitionSchema.shape.statusUpdates
+  .unwrap()
+  .shape.statusComponents.unwrap().element;
 
-const StatusComponentSchema = z.looseObject({
+const StatusComponentSchema = z.strictObject({
   statusComponentId: z.string().nonempty(),
-  type: z.string().nonempty(),
-  description: z.string().optional(),
-  detailsSchema: z.unknown().optional(),
-  schema: z.unknown().optional(),
+  ...MySchema.shape,
 });
 
-export function generateStatusComponentDefinition(data: StatusComponentDefinitionData): SourceFile {
+type StatusComponentInput = z.input<typeof StatusComponentSchema>;
+
+export function generateStatusComponentDefinition({
+  id,
+  ...data
+}: StatusComponentInput & Record<string, unknown>): SourceFile {
   const result = StatusComponentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for status component:\n${z.prettifyError(result.error)}`);
   }
 
-  const parsed = result.data;
-  const detailsSchema = parsed.detailsSchema !== undefined ? parsed.detailsSchema : parsed.schema;
+  const { statusComponentId, detailsSchema, ...rest } = result.data;
+
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'statusComponent',
-    variableName: toCamelCase(parsed.statusComponentId),
+    variableName: toCamelCase(statusComponentId),
   });
-
-  if (detailsSchema !== undefined) {
-    sourceFile.addImportDeclaration({
-      namedImports: ['z'],
-      moduleSpecifier: 'zod',
-    });
-  }
-
-  const { statusComponentId, id, detailsSchema: _, schema: _2, ...rest } = parsed;
 
   for (const [k, v] of Object.entries(rest)) {
     addValueToObject(configObject, k, v);
   }
   if (detailsSchema) {
+    sourceFile.addImportDeclaration({
+      namedImports: ['z'],
+      moduleSpecifier: 'zod',
+    });
     configObject.addPropertyAssignment({
       name: 'detailsSchema',
       initializer: convertJsonSchemaToZodSafe(detailsSchema),

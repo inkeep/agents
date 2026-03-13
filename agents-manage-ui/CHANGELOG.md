@@ -1,5 +1,84 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.14
+
+### Patch Changes
+
+- ed39b41: Improve app creation flow with searchable agent selection and streamlined type picker
+- 14e415c: Fix unable to clear agent settings description, show inherited model on sub-agent nodes, and extract shared URLDisplay component
+- 09e270a: Fix inconsistent timezone display on triggers page by showing all run times in browser local timezone with timezone labels in column headers
+- e10649a: Fix MCP server name and URL truncation in card view
+  - @inkeep/agents-core@0.58.14
+
+## 0.58.13
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.13
+
+## 0.58.12
+
+### Patch Changes
+
+- 19b1168: rerun scheduled triggers from traces
+- Updated dependencies [ad8a7cd]
+- Updated dependencies [ad8a7cd]
+  - @inkeep/agents-core@0.58.12
+
+## 0.58.11
+
+### Patch Changes
+
+- Updated dependencies [c87dc3e]
+  - @inkeep/agents-core@0.58.11
+
+## 0.58.10
+
+### Patch Changes
+
+- 41af59e: utc bug for renable/disable schedule triggers
+- Updated dependencies [fa64456]
+- Updated dependencies [02bcd0e]
+- Updated dependencies [f41500b]
+- Updated dependencies [41af59e]
+  - @inkeep/agents-core@0.58.10
+
+## 0.58.9
+
+### Patch Changes
+
+- 0645423: Fix ship it code examples
+- Updated dependencies [f150b28]
+- Updated dependencies [49909bf]
+- Updated dependencies [4816f02]
+  - @inkeep/agents-core@0.58.9
+
+## 0.58.8
+
+### Patch Changes
+
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+
+## 0.58.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- f0dd499: Move agent page data fetching to client-side React Query hooks, eliminating server-side waterfall fetches and enabling automatic request deduplication
+- 16e5e8d: Fix mid-generation context compression: accurate context slicing across multiple compression cycles, improved distillation quality, and richer compression telemetry
+- 7b811ec: Fix GenericKeyValueInput crash caused by FormLabel, FormDescription, and FormMessage used outside FormField context
+- 0e425da: Simplify agent editor state management by hydrating tool/agent config directly onto node data, eliminating server-side waterfalls and lookup indirection
+- Updated dependencies [a9c2857]
+- Updated dependencies [16e5e8d]
+  - @inkeep/agents-core@0.58.6
+
 ## 0.58.5
 
 ### Patch Changes

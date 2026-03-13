@@ -133,13 +133,11 @@ export interface ActivityItem {
   contextBreakdown?: ContextBreakdown;
   // Compression fields
   compressionType?: string;
-  compressionInputTokens?: number;
+  compressionGeneratedTokens?: number;
+  compressionTotalContextTokens?: number;
+  compressionTriggerAt?: number;
   compressionOutputTokens?: number;
   compressionRatio?: number;
-  compressionArtifactCount?: number;
-  compressionMessageCount?: number;
-  compressionHardLimit?: number;
-  compressionSafetyBuffer?: number;
   compressionError?: string;
   compressionSummary?: string;
   // Trigger invocation fields

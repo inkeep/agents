@@ -51,57 +51,79 @@ jobs:
           - 5433:5432
 
     steps:
+      - name: Check if changeset PR
+        id: changeset-check
+        run: |
+          if [ "$HEAD_REF" = "changeset-release/main" ]; then
+            echo "is_changeset=true" >> $GITHUB_OUTPUT
+            echo "Changeset PR detected — skipping Cypress tests"
+          else
+            echo "is_changeset=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+
       - name: Checkout code
-        uses: actions/checkout@v6
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.x
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
         with:
           version: 10.10.0
           run_install: false
 
       - name: Get pnpm store directory
+        if: steps.changeset-check.outputs.is_changeset != 'true'
         shell: bash
         run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       # Create necessary directories for postinstall scripts
       - name: Prepare directories
+        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           mkdir -p agents-docs/.source
           touch agents-docs/.source/index.ts
 
       - name: Setup pnpm cache
-        uses: actions/cache@v4
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Setup Turborepo cache
-        uses: actions/cache@v4
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-
 
       - name: Install dependencies
+        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
       # Clean database files before running tests
       - name: Clean database files
+        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
       # Start SpiceDB (needs explicit `serve` subcommand, so can't use service container)
       - name: Start SpiceDB
+        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           docker run -d --name spicedb \
             --network host \
@@ -121,6 +143,7 @@ jobs:
 
       # Run Cypress E2E tests using composite action
       - name: Run Cypress E2E Tests
+        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: ./.github/composite-actions/cypress-e2e
         env:
           NODE_OPTIONS: --max-old-space-size=8192
@@ -141,3 +164,4 @@ jobs:
           SPICEDB_PRESHARED_KEY: dev-secret-key
           OTEL_SDK_DISABLED: true
           CYPRESS_NO_COMMAND_LOG: 1
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

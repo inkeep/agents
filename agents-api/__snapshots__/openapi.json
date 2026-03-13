@@ -152,9 +152,6 @@
             "nullable": true,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "defaultSubAgentId": {
             "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
             "example": "my-default-subagent",
@@ -269,9 +266,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -332,9 +326,6 @@
             "nullable": true,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "defaultSubAgentId": {
             "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
             "example": "my-default-subagent",
@@ -346,9 +337,6 @@
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
-          },
-          "id": {
-            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "anyOf": [
@@ -449,9 +437,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -480,20 +465,7 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/FunctionCreate"
-                    },
-                    {
-                      "properties": {
-                        "executeCode": {
-                          "minLength": 1,
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FunctionCreate"
                 },
                 "type": "object"
               },
@@ -687,6 +659,42 @@
           }
         ]
       },
+      "AnonymousSessionResponse": {
+        "properties": {
+          "expiresAt": {
+            "description": "Token expiration time (ISO 8601)",
+            "type": "string"
+          },
+          "token": {
+            "description": "Anonymous session JWT",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "ApiConfig": {
+        "properties": {
+          "api": {
+            "default": {},
+            "properties": {},
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "api"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
       "ApiKey": {
         "properties": {
           "agentId": {
@@ -806,6 +814,246 @@
           "name": {
             "maxLength": 256,
             "minLength": 1,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AppConfig": {
+        "discriminator": {
+          "mapping": {
+            "api": "#/components/schemas/ApiConfig",
+            "web_client": "#/components/schemas/WebClientConfig"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/WebClientConfig"
+          },
+          {
+            "$ref": "#/components/schemas/ApiConfig"
+          }
+        ]
+      },
+      "AppConfigResponse": {
+        "discriminator": {
+          "mapping": {
+            "api": "#/components/schemas/ApiConfig",
+            "web_client": "#/components/schemas/WebClientConfigResponse"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/WebClientConfigResponse"
+          },
+          {
+            "$ref": "#/components/schemas/ApiConfig"
+          }
+        ]
+      },
+      "AppCreate": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/AppConfig"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "defaultAgentId": {
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "defaultProjectId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "projectId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "web_client",
+              "api"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "config"
+        ],
+        "type": "object"
+      },
+      "AppListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AppResponseItem"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "AppResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AppResponseItem"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "AppResponseItem": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/AppConfigResponse"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "defaultAgentId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "defaultProjectId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "projectId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "name",
+          "description",
+          "type",
+          "defaultProjectId",
+          "defaultAgentId",
+          "enabled",
+          "lastUsedAt",
+          "createdAt",
+          "updatedAt",
+          "config"
+        ],
+        "type": "object"
+      },
+      "AppUpdate": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/AppConfig"
+          },
+          "defaultAgentId": {
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "defaultProjectId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "lastUsedAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "projectId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           },
           "updatedAt": {
@@ -1980,9 +2228,6 @@
       },
       "CredentialReferenceCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "maxLength": 256,
             "nullable": true,
@@ -2016,9 +2261,6 @@
               "keychain",
               "nango"
             ],
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           },
           "userId": {
@@ -2066,9 +2308,6 @@
       },
       "CredentialReferenceUpdate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "maxLength": 256,
             "nullable": true,
@@ -2102,9 +2341,6 @@
               "keychain",
               "nango"
             ],
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           },
           "userId": {
@@ -2278,9 +2514,6 @@
       },
       "DataComponentCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
           },
@@ -2323,9 +2556,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -2366,9 +2596,6 @@
       },
       "DataComponentUpdate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
           },
@@ -2411,9 +2638,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -2950,6 +3174,152 @@
       "DescriptionSchema": {
         "nullable": true,
         "type": "string"
+      },
+      "EndUserConversationDetailResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "agentId": {
+                "maxLength": 256,
+                "nullable": true,
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "id": {
+                "maxLength": 256,
+                "type": "string"
+              },
+              "messages": {
+                "items": {
+                  "properties": {
+                    "content": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "parts": {
+                      "items": {
+                        "additionalProperties": {
+                          "nullable": true
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "role": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "role",
+                    "content",
+                    "parts",
+                    "createdAt"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "title": {
+                "nullable": true,
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "agentId",
+              "title",
+              "createdAt",
+              "updatedAt",
+              "messages"
+            ],
+            "type": "object"
+          },
+          "pagination": {
+            "properties": {
+              "limit": {
+                "type": "number"
+              },
+              "page": {
+                "type": "number"
+              },
+              "pages": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "page",
+              "limit",
+              "total",
+              "pages"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "EndUserConversationListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "properties": {
+                "agentId": {
+                  "maxLength": 256,
+                  "nullable": true,
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "id": {
+                  "maxLength": 256,
+                  "type": "string"
+                },
+                "title": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "agentId",
+                "title",
+                "createdAt",
+                "updatedAt"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
       },
       "ErrorResponse": {
         "properties": {
@@ -3987,9 +4357,6 @@
             "format": "uri",
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "minLength": 1,
@@ -4004,9 +4371,6 @@
           },
           "name": {
             "$ref": "#/components/schemas/NameSchema"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -4051,9 +4415,6 @@
             "format": "uri",
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "minLength": 1,
@@ -4068,9 +4429,6 @@
           },
           "name": {
             "$ref": "#/components/schemas/NameSchema"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -4442,20 +4800,7 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/FunctionCreate"
-                    },
-                    {
-                      "properties": {
-                        "executeCode": {
-                          "minLength": 1,
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FunctionCreate"
                 },
                 "type": "object"
               },
@@ -4703,9 +5048,6 @@
       },
       "FunctionCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "dependencies": {
             "anyOf": [
               {
@@ -4738,6 +5080,7 @@
             ]
           },
           "executeCode": {
+            "minLength": 1,
             "type": "string"
           },
           "id": {
@@ -4773,9 +5116,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -4858,9 +5198,6 @@
       },
       "FunctionToolCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -4874,9 +5211,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -4922,9 +5256,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -4938,9 +5269,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -5286,6 +5614,83 @@
         ],
         "type": "object"
       },
+      "ManageConversationListResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "conversations": {
+                "items": {
+                  "properties": {
+                    "agentId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "agentId",
+                    "userId",
+                    "title",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "pagination": {
+                "properties": {
+                  "hasMore": {
+                    "type": "boolean"
+                  },
+                  "limit": {
+                    "type": "number"
+                  },
+                  "page": {
+                    "type": "number"
+                  },
+                  "total": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "page",
+                  "limit",
+                  "total",
+                  "hasMore"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "conversations",
+              "pagination"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "McpTool": {
         "properties": {
           "availableTools": {
@@ -5450,9 +5855,6 @@
             ],
             "type": "object"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "$ref": "#/components/schemas/UserId"
           },
@@ -5540,9 +5942,6 @@
           },
           "tenantId": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           },
           "version": {
@@ -5730,6 +6129,59 @@
             "$ref": "#/components/schemas/DataPart"
           }
         ]
+      },
+      "PowChallengeResponse": {
+        "properties": {
+          "algorithm": {
+            "example": "SHA-256",
+            "type": "string"
+          },
+          "challenge": {
+            "type": "string"
+          },
+          "maxnumber": {
+            "type": "number"
+          },
+          "salt": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "algorithm",
+          "challenge",
+          "salt",
+          "signature"
+        ],
+        "type": "object"
+      },
+      "PowDisabledError": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "not_found"
+                ],
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
       },
       "ProblemDetails": {
         "properties": {
@@ -6196,9 +6648,6 @@
       },
       "ScheduledTriggerCreate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -6275,9 +6724,6 @@
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -6287,9 +6733,6 @@
       },
       "ScheduledTriggerInsertBase": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -6366,9 +6809,6 @@
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "required": [
@@ -6518,9 +6958,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -6531,7 +6968,6 @@
             "$ref": "#/components/schemas/CronExpression"
           },
           "cronTimezone": {
-            "default": "UTC",
             "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
             "maxLength": 64,
             "nullable": true,
@@ -6550,7 +6986,6 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "maxRetries": {
-            "default": 1,
             "maximum": 10,
             "minimum": 0,
             "type": "integer"
@@ -6579,7 +7014,6 @@
             "type": "string"
           },
           "retryDelaySeconds": {
-            "default": 60,
             "maximum": 3600,
             "minimum": 10,
             "type": "integer"
@@ -6600,13 +7034,9 @@
             "type": "string"
           },
           "timeoutSeconds": {
-            "default": 780,
             "maximum": 780,
             "minimum": 30,
             "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -8781,9 +9211,6 @@
             ],
             "type": "object"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "nullable": true,
@@ -8843,9 +9270,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -8997,9 +9421,6 @@
             ],
             "type": "object"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "credentialReferenceId": {
             "maxLength": 256,
             "nullable": true,
@@ -9059,9 +9480,6 @@
           },
           "name": {
             "maxLength": 256,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -9255,9 +9673,6 @@
           "authentication": {
             "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -9358,9 +9773,6 @@
           "signingSecretCredentialReferenceId": {
             "description": "Reference to credential containing signing secret",
             "nullable": true,
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -9942,6 +10354,75 @@
         "description": "User identifier",
         "example": "user_123",
         "type": "string"
+      },
+      "UserIdPathParam": {
+        "description": "User identifier",
+        "example": "user_123",
+        "type": "string"
+      },
+      "WebClientConfig": {
+        "properties": {
+          "type": {
+            "enum": [
+              "web_client"
+            ],
+            "type": "string"
+          },
+          "webClient": {
+            "properties": {
+              "allowedDomains": {
+                "items": {
+                  "minLength": 1,
+                  "pattern": "^(\\*|\\*\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\\d{1,5})?)$",
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "allowedDomains"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "type",
+          "webClient"
+        ],
+        "type": "object"
+      },
+      "WebClientConfigResponse": {
+        "properties": {
+          "type": {
+            "enum": [
+              "web_client"
+            ],
+            "type": "string"
+          },
+          "webClient": {
+            "properties": {
+              "allowedDomains": {
+                "items": {
+                  "minLength": 1,
+                  "pattern": "^(\\*|\\*\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\\d{1,5})?)$",
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "allowedDomains"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "type",
+          "webClient"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -10539,7 +11020,7 @@
             "name": "userId",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/UserId"
+              "$ref": "#/components/schemas/UserIdPathParam"
             }
           }
         ],
@@ -10682,7 +11163,7 @@
           "resource": "organization"
         }
       },
-      "put": {
+      "patch": {
         "description": "Create or update the profile for a specific user. Users can only update their own profile.",
         "operationId": "upsert-user-profile",
         "parameters": [
@@ -10692,7 +11173,7 @@
             "name": "userId",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/UserId"
+              "$ref": "#/components/schemas/UserIdPathParam"
             }
           }
         ],
@@ -10880,6 +11361,206 @@
           "permission": "member",
           "resource": "organization"
         }
+      },
+      "put": {
+        "description": "Create or update the profile for a specific user. Users can only update their own profile.",
+        "operationId": "upsert-user-profile-put",
+        "parameters": [
+          {
+            "description": "User identifier",
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "attributes": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "nullable": true
+                      },
+                      {
+                        "additionalProperties": {
+                          "nullable": true
+                        },
+                        "type": "object"
+                      },
+                      {
+                        "items": {
+                          "nullable": true
+                        },
+                        "type": "array"
+                      },
+                      {
+                        "nullable": true
+                      }
+                    ]
+                  },
+                  "timezone": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "attributes": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "nullable": true
+                        },
+                        {
+                          "additionalProperties": {
+                            "nullable": true
+                          },
+                          "type": "object"
+                        },
+                        {
+                          "items": {
+                            "nullable": true
+                          },
+                          "type": "array"
+                        },
+                        {
+                          "nullable": true
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "userId",
+                    "timezone",
+                    "attributes",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Updated user profile"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Upsert User Profile",
+        "tags": [
+          "User Profile"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/available-agents": {
@@ -12584,6 +13265,129 @@
           "resource": "project"
         }
       },
+      "patch": {
+        "description": "Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition",
+        "operationId": "update-full-project-patch",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FullProjectDefinition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullProjectSelectResponse"
+                }
+              }
+            },
+            "description": "Full project updated successfully"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullProjectSelectResponse"
+                }
+              }
+            },
+            "description": "Full project created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Full Project",
+        "tags": [
+          "Projects"
+        ],
+        "x-authz": {
+          "description": "Dynamic: requires organization admin for new projects, or project edit permission for existing projects."
+        },
+        "x-speakeasy-ignore": true
+      },
       "put": {
         "description": "Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition",
         "operationId": "update-full-project",
@@ -13738,6 +14542,140 @@
           "resource": "project"
         }
       },
+      "patch": {
+        "description": "Update or create a complete agent with all agents, tools, and relationships from JSON definition",
+        "operationId": "update-full-agent-patch",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentWithinContextOfProject"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentWithinContextOfProjectResponse"
+                }
+              }
+            },
+            "description": "Full agent updated successfully"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentWithinContextOfProjectResponse"
+                }
+              }
+            },
+            "description": "Full agent created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Full Agent",
+        "tags": [
+          "Agents"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
+      },
       "put": {
         "description": "Update or create a complete agent with all agents, tools, and relationships from JSON definition",
         "operationId": "update-full-agent",
@@ -14634,7 +15572,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-context-config",
         "parameters": [
           {
@@ -14764,6 +15702,138 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-context-config-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContextConfigUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextConfigResponse"
+                }
+              }
+            },
+            "description": "Context configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Context Configuration",
+        "tags": [
+          "Context Configs"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/full": {
@@ -15390,7 +16460,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-function-tool",
         "parameters": [
           {
@@ -15520,6 +16590,138 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-function-tool-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FunctionToolUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunctionToolResponse"
+                }
+              }
+            },
+            "description": "Function tool updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Function Tool",
+        "tags": [
+          "Function Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers": {
@@ -19577,7 +20779,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-relation",
         "parameters": [
           {
@@ -19707,6 +20909,138 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-sub-agent-relation-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubAgentRelationUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubAgentRelationResponse"
+                }
+              }
+            },
+            "description": "Sub Agent relation updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Sub Agent Relation",
+        "tags": [
+          "SubAgents"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-skills": {
@@ -20700,7 +22034,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-subagent-tool-relation",
         "parameters": [
           {
@@ -20831,6 +22165,139 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-subagent-tool-relation-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubAgentToolRelationUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubAgentToolRelationResponse"
+                }
+              }
+            },
+            "description": "SubAgent tool relation updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update SubAgent Tool Relation",
+        "tags": [
+          "SubAgents",
+          "Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents": {
@@ -21302,7 +22769,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-subagent",
         "parameters": [
           {
@@ -21432,6 +22899,138 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-subagent-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubAgentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubAgentResponse"
+                }
+              }
+            },
+            "description": "SubAgent updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update SubAgent",
+        "tags": [
+          "SubAgents"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations": {
@@ -21933,7 +23532,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-external-agent-relation",
         "parameters": [
           {
@@ -22073,6 +23672,148 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-sub-agent-external-agent-relation-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Sub-agent identifier",
+            "in": "path",
+            "name": "subAgentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SubAgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubAgentExternalAgentRelationUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubAgentExternalAgentRelationResponse"
+                }
+              }
+            },
+            "description": "Sub Agent external agent relation updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Sub Agent External Agent Relation",
+        "tags": [
+          "SubAgents",
+          "External Agents"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/related": {
@@ -22694,7 +24435,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-team-agent-relation",
         "parameters": [
           {
@@ -22833,6 +24574,147 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-sub-agent-team-agent-relation-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Sub-agent identifier",
+            "in": "path",
+            "name": "subAgentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SubAgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubAgentTeamAgentRelationUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubAgentTeamAgentRelationResponse"
+                }
+              }
+            },
+            "description": "Sub Agent team agent relation updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Sub Agent Team Agent Relation",
+        "tags": [
+          "SubAgents"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers": {
@@ -24150,7 +26032,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-agent",
         "parameters": [
           {
@@ -24271,6 +26153,129 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-agent-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentResponse"
+                }
+              }
+            },
+            "description": "Agent updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Agent",
+        "tags": [
+          "Agents"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/api-keys": {
@@ -24731,7 +26736,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Update an API key (currently only expiration date can be changed)",
         "operationId": "update-api-key",
         "parameters": [
@@ -24853,6 +26858,835 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "description": "Update an API key (currently only expiration date can be changed)",
+        "operationId": "update-api-key-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyResponse"
+                }
+              }
+            },
+            "description": "API key updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update API Key",
+        "tags": [
+          "API Keys"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/apps": {
+      "get": {
+        "description": "List all app credentials for a project",
+        "operationId": "list-apps",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Filter by app type",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "description": "Filter by app type",
+              "enum": [
+                "web_client",
+                "api"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppListResponse"
+                }
+              }
+            },
+            "description": "List of apps retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Apps",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        },
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      },
+      "post": {
+        "description": "Create a new app credential.",
+        "operationId": "create-app",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "app": {
+                          "$ref": "#/components/schemas/AppResponseItem"
+                        }
+                      },
+                      "required": [
+                        "app"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "App created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Create App",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/apps/{id}": {
+      "delete": {
+        "description": "Delete an app credential permanently",
+        "operationId": "delete-app",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "App deleted successfully"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "App not found"
+          }
+        },
+        "summary": "Delete App",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      },
+      "get": {
+        "description": "Get a specific app credential by ID",
+        "operationId": "get-app-by-id",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppResponse"
+                }
+              }
+            },
+            "description": "App found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get App",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      },
+      "patch": {
+        "description": "Update an app credential configuration",
+        "operationId": "update-app",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppResponse"
+                }
+              }
+            },
+            "description": "App updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update App",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      },
+      "put": {
+        "description": "Update an app credential configuration",
+        "operationId": "update-app-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppResponse"
+                }
+              }
+            },
+            "description": "App updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update App",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/artifact-components": {
@@ -25278,7 +28112,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-artifact-component",
         "parameters": [
           {
@@ -25399,6 +28233,129 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-artifact-component-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactComponentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactComponentResponse"
+                }
+              }
+            },
+            "description": "Artifact component updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Artifact Component",
+        "tags": [
+          "Artifact Components"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/branches": {
@@ -25957,6 +28914,142 @@
         "summary": "Get Branch",
         "tags": [
           "Branches"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/conversations": {
+      "get": {
+        "description": "List conversations in a project. Supports optional userId filter for viewing a specific end-user's conversations.",
+        "operationId": "list-conversations",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManageConversationListResponse"
+                }
+              }
+            },
+            "description": "List of conversations"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Conversations",
+        "tags": [
+          "Conversations"
         ],
         "x-authz": {
           "description": "Requires project view permission (project_viewer+, or org admin/owner)",
@@ -26752,6 +29845,16 @@
           }
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialReferenceResponse"
+                }
+              }
+            },
+            "description": "Credential updated successfully (user-scoped upsert)"
+          },
           "201": {
             "content": {
               "application/json": {
@@ -27004,7 +30107,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-credential",
         "parameters": [
           {
@@ -27125,6 +30228,129 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-credential-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredentialReferenceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialReferenceResponse"
+                }
+              }
+            },
+            "description": "Credential updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Credential",
+        "tags": [
+          "Credentials"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/data-components": {
@@ -27550,7 +30776,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-data-component",
         "parameters": [
           {
@@ -27671,6 +30897,129 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-data-component-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataComponentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataComponentResponse"
+                }
+              }
+            },
+            "description": "Data component updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Data Component",
+        "tags": [
+          "Data Components"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}": {
@@ -33317,7 +36666,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-external-agent",
         "parameters": [
           {
@@ -33438,6 +36787,129 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-external-agent-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalAgentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalAgentResponse"
+                }
+              }
+            },
+            "description": "External agent updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update External Agent",
+        "tags": [
+          "External Agents"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/functions": {
@@ -33605,20 +37077,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/FunctionCreate"
-                  },
-                  {
-                    "properties": {
-                      "executeCode": {
-                        "minLength": 1,
-                        "type": "string"
-                      }
-                    },
-                    "type": "object"
-                  }
-                ]
+                "$ref": "#/components/schemas/FunctionCreate"
               }
             }
           }
@@ -33926,7 +37385,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-function",
         "parameters": [
           {
@@ -34047,6 +37506,129 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-function-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FunctionUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunctionResponse"
+                }
+              }
+            },
+            "description": "Function updated"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Function",
+        "tags": [
+          "Functions"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/github-access": {
@@ -34215,6 +37797,159 @@
           "permission": "view",
           "resource": "project"
         }
+      },
+      "patch": {
+        "description": "Configures which GitHub repositories a project can access. When mode is \"all\", the project has access to all repositories from tenant GitHub installations. When mode is \"selected\", the project is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration.",
+        "operationId": "set-project-github-access-patch",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mode": {
+                    "description": "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "repositoryIds": {
+                    "description": "Internal repository IDs (required when mode=\"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositoryCount": {
+                      "description": "Number of repositories the project now has access to (0 when mode=\"all\")",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositoryCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set project GitHub repository access",
+        "tags": [
+          "Projects"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       },
       "put": {
         "description": "Configures which GitHub repositories a project can access. When mode is \"all\", the project has access to all repositories from tenant GitHub installations. When mode is \"selected\", the project is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration.",
@@ -35766,7 +39501,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-skill",
         "parameters": [
           {
@@ -35887,6 +39622,129 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-skill-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillResponse"
+                }
+              }
+            },
+            "description": "Skill updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Skill",
+        "tags": [
+          "Skills"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers": {
@@ -36677,7 +40535,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-tool",
         "parameters": [
           {
@@ -36798,6 +40656,129 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-tool-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToolUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolResponse"
+                }
+              }
+            },
+            "description": "Tool updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Tool",
+        "tags": [
+          "Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/tools/{id}/oauth/login": {
@@ -37177,6 +41158,170 @@
           "resource": "project"
         }
       },
+      "patch": {
+        "description": "Configures which GitHub repositories an MCP tool can access. When mode is \"all\", the tool has access to all repositories the project can access. When mode is \"selected\", the tool is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration. This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).",
+        "operationId": "set-mcp-tool-github-access-patch",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mode": {
+                    "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "repositoryIds": {
+                    "description": "Internal repository IDs (required when mode=\"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositoryCount": {
+                      "description": "Number of repositories the MCP tool now has access to (0 when mode=\"all\")",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositoryCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set MCP tool GitHub repository access",
+        "tags": [
+          "Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
+      },
       "put": {
         "description": "Configures which GitHub repositories an MCP tool can access. When mode is \"all\", the tool has access to all repositories the project can access. When mode is \"selected\", the tool is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration. This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).",
         "operationId": "set-mcp-tool-github-access",
@@ -37483,6 +41628,184 @@
           "permission": "view",
           "resource": "project"
         }
+      },
+      "patch": {
+        "description": "Configures which Slack channels an MCP tool can post to. When channelAccessMode is \"all\", the tool can post to any channel. When channelAccessMode is \"selected\", the tool is scoped to specific channels (channelIds required).",
+        "operationId": "set-mcp-tool-slack-access-patch",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channelAccessMode": {
+                    "description": "Channel access mode: \"all\" means the MCP tool can post to any channel, \"selected\" means the tool is scoped to specific channels",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "channelIds": {
+                    "default": [],
+                    "description": "List of allowed channel IDs (only used when channelAccessMode is \"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "dmEnabled": {
+                    "description": "Whether DM access is enabled for this tool",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "channelAccessMode",
+                  "dmEnabled"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "channelAccessMode": {
+                      "description": "Channel access mode: \"all\" means the MCP tool can post to any channel, \"selected\" means the tool is scoped to specific channels",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "channelIds": {
+                      "default": [],
+                      "description": "List of allowed channel IDs (only used when channelAccessMode is \"selected\")",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dmEnabled": {
+                      "description": "Whether DM access is enabled for this tool",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "channelAccessMode",
+                    "dmEnabled"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Slack access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set MCP tool Slack channel access",
+        "tags": [
+          "Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       },
       "put": {
         "description": "Configures which Slack channels an MCP tool can post to. When channelAccessMode is \"all\", the tool can post to any channel. When channelAccessMode is \"selected\", the tool is scoped to specific channels (channelIds required).",
@@ -38236,6 +42559,134 @@
         }
       }
     },
+    "/run/auth/apps/{appId}/anonymous-session": {
+      "post": {
+        "description": "Issue an anonymous session JWT for a web_client app. If a valid Bearer token for the same app is provided, the existing anonymous identity is preserved with a fresh expiry (rolling refresh). Otherwise a new identity is created.",
+        "operationId": "create-anonymous-session",
+        "parameters": [
+          {
+            "description": "App ID (e.g., app_a1b2c3d4e5f6)",
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "description": "App ID (e.g., app_a1b2c3d4e5f6)",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnonymousSessionResponse"
+                }
+              }
+            },
+            "description": "Anonymous session created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [],
+        "summary": "Create Anonymous Session",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/run/auth/pow/challenge": {
+      "get": {
+        "description": "Fetch an ALTCHA Proof-of-Work challenge. Returns 404 when PoW is not enabled on the server.",
+        "operationId": "get-pow-challenge",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PowChallengeResponse"
+                }
+              }
+            },
+            "description": "PoW challenge generated successfully"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PowDisabledError"
+                }
+              }
+            },
+            "description": "PoW is not enabled"
+          }
+        },
+        "security": [],
+        "summary": "Get PoW Challenge",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/run/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}": {
       "post": {
         "description": "Webhook endpoint for third-party services to invoke an agent via a configured trigger",
@@ -38756,6 +43207,253 @@
         "summary": "Create chat completion",
         "tags": [
           "Chat"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/v1/conversations": {
+      "get": {
+        "description": "List conversations for the authenticated end-user. Automatically scoped by the JWT sub claim — end-users can only see their own conversations.",
+        "operationId": "list-end-user-conversations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EndUserConversationListResponse"
+                }
+              }
+            },
+            "description": "List of conversations for the authenticated end-user"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List End-User Conversations",
+        "tags": [
+          "Conversations"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/v1/conversations/{conversationId}": {
+      "get": {
+        "description": "Get a conversation and its messages. Returns messages in Vercel AI SDK UIMessage format. The conversation must belong to the authenticated end-user.",
+        "operationId": "get-end-user-conversation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "vercel",
+              "enum": [
+                "vercel",
+                "openai"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EndUserConversationDetailResponse"
+                }
+              }
+            },
+            "description": "Conversation with messages"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Conversation",
+        "tags": [
+          "Conversations"
         ],
         "x-authz": {
           "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
@@ -40555,6 +45253,14 @@
     {
       "description": "Operations for managing agents",
       "name": "Agents"
+    },
+    {
+      "description": "Operations for managing app credentials",
+      "name": "Apps"
+    },
+    {
+      "description": "Authentication endpoints for app credentials",
+      "name": "Auth"
     },
     {
       "description": "Operations for managing artifact components",

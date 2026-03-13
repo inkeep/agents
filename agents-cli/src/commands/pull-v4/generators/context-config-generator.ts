@@ -1,3 +1,4 @@
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
 import {
@@ -5,24 +6,13 @@ import {
   addStringProperty,
   addValueToObject,
   convertJsonSchemaToZodSafe,
-  convertNullToUndefined,
   createInMemoryProject,
   formatPropertyName,
   isPlainObject,
   toCamelCase,
 } from '../utils';
 
-interface ContextConfigDefinitionData {
-  contextConfigId: string;
-  id?: string;
-  schema?: Record<string, unknown>;
-  headers?: string | { id?: string; name?: string };
-  headersSchema?: Record<string, unknown>;
-  contextVariables?: Record<string, unknown>;
-  referenceOverrides?: {
-    credentialReferences?: Record<string, string>;
-  };
-}
+const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.contextConfig.unwrap();
 
 const ReferenceNameByIdSchema = z.record(z.string(), z.string().nonempty());
 
@@ -30,19 +20,31 @@ const ReferenceOverridesSchema = z.object({
   credentialReferences: ReferenceNameByIdSchema.optional(),
 });
 
-const ContextConfigSchema = z.looseObject({
-  contextConfigId: z.string().nonempty(),
-  id: z.string().optional(),
-  schema: z.looseObject({}).optional(),
-  headers: z.union([z.string(), z.looseObject({ id: z.string().optional() })]).optional(),
-  headersSchema: z.preprocess(convertNullToUndefined, z.looseObject({}).optional()),
-  contextVariables: z.record(z.string(), z.unknown()).optional(),
-  referenceOverrides: ReferenceOverridesSchema.optional(),
+const ReferencePathOverridesSchema = z.object({
+  credentialReferences: ReferenceNameByIdSchema.optional(),
 });
 
-type ParsedContextConfigDefinitionData = z.infer<typeof ContextConfigSchema>;
+const ContextConfigSchema = z.strictObject({
+  contextConfigId: z.string().nonempty(),
+  ...MySchema.shape,
+  referenceOverrides: ReferenceOverridesSchema.optional(),
+  referencePathOverrides: ReferencePathOverridesSchema.optional(),
 
-export function generateContextConfigDefinition(data: ContextConfigDefinitionData): SourceFile {
+  // TODO check these fields
+  headers: z.string().optional(),
+  headersReference: z.string().optional(),
+  schema: z.unknown(),
+  name: z.string().nullish(),
+  trigger: z.unknown(),
+  fetchConfig: z.record(z.string(), z.unknown()).optional(),
+  defaultValue: z.unknown(),
+  responseSchema: z.unknown(),
+});
+
+type ContextConfigInput = z.input<typeof ContextConfigSchema>;
+type ContextConfigOutput = z.output<typeof ContextConfigSchema>;
+
+export function generateContextConfigDefinition(data: ContextConfigInput): SourceFile {
   const result = ContextConfigSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for context config:\n${z.prettifyError(result.error)}`);
@@ -50,7 +52,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
 
   const project = createInMemoryProject();
 
-  const parsed = result.data as ParsedContextConfigDefinitionData;
+  const parsed = result.data;
   const sourceFile = project.createSourceFile('context-config-definition.ts', '', {
     overwrite: true,
   });
@@ -63,24 +65,24 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
     return generateStandaloneFetchDefinition(sourceFile, parsed);
   }
 
-  const parsedContextConfig = result.data as ParsedContextConfigDefinitionData;
-  const explicitHeadersReference = extractHeadersReference(parsedContextConfig.headers);
-  const templateHeaderVariables = collectTemplateHeaderVariables(
-    parsedContextConfig.contextVariables
-  );
+  const explicitHeadersReference =
+    (typeof parsed.headersReference === 'string' && parsed.headersReference.length > 0
+      ? parsed.headersReference
+      : undefined) ?? extractHeadersReference(parsed.headers);
+  const templateHeaderVariables = collectTemplateHeaderVariables(parsed.contextVariables);
   const inferredHeadersSchema =
-    !isPlainObject(parsedContextConfig.headersSchema) && !explicitHeadersReference
+    !isPlainObject(parsed.headersSchema) && !explicitHeadersReference
       ? inferHeadersSchemaFromTemplateHeaderVariables(templateHeaderVariables)
       : undefined;
-  const headersSchema = isPlainObject(parsedContextConfig.headersSchema)
-    ? parsedContextConfig.headersSchema
+  const headersSchema = isPlainObject(parsed.headersSchema)
+    ? parsed.headersSchema
     : inferredHeadersSchema;
-  const headersReference = resolveHeadersReference(parsedContextConfig, Boolean(headersSchema));
+  const headersReference = resolveHeadersReference(parsed, Boolean(headersSchema));
   const shouldDefineHeadersInFile = Boolean(headersReference) && isPlainObject(headersSchema);
-  const fetchDefinitions = collectFetchDefinitionEntries(parsedContextConfig.contextVariables);
+  const fetchDefinitions = collectFetchDefinitionEntries(parsed.contextVariables);
   const credentialReferenceNames = collectCredentialReferenceNames(
     fetchDefinitions,
-    parsedContextConfig.referenceOverrides?.credentialReferences
+    parsed.referenceOverrides?.credentialReferences
   );
   const coreImports = ['contextConfig'];
   if (shouldDefineHeadersInFile) {
@@ -107,14 +109,17 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
   }
 
   for (const [credentialId, credentialReferenceName] of credentialReferenceNames) {
+    const credentialReferencePath =
+      parsed.referencePathOverrides?.credentialReferences?.[credentialId] ?? credentialId;
     sourceFile.addImportDeclaration({
       namedImports: [credentialReferenceName],
-      moduleSpecifier: `../credentials/${credentialId}`,
+      moduleSpecifier: `../credentials/${credentialReferencePath}`,
     });
   }
   if (shouldDefineHeadersInFile && headersReference && headersSchema) {
     const { configObject: headersObject } = addFactoryConfigVariable({
       sourceFile,
+      isExported: true,
       importName: 'headers',
       variableName: headersReference,
     });
@@ -138,7 +143,7 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
       headersReference
     );
   }
-  const contextConfigVarName = toContextConfigVariableName(parsedContextConfig.contextConfigId);
+  const contextConfigVarName = toContextConfigVariableName(parsed.contextConfigId);
   const { configObject } = addFactoryConfigVariable({
     sourceFile,
     importName: 'contextConfig',
@@ -146,14 +151,14 @@ export function generateContextConfigDefinition(data: ContextConfigDefinitionDat
     isExported: true,
   });
 
-  writeContextConfig(configObject, parsedContextConfig, headersReference);
+  writeContextConfig(configObject, parsed, headersReference);
 
   return sourceFile;
 }
 
 function writeContextConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedContextConfigDefinitionData,
+  data: ContextConfigOutput,
   headersReference?: string
 ) {
   if (data.id !== undefined) {
@@ -207,9 +212,13 @@ function extractHeadersReference(headers?: string | { id?: string; name?: string
 }
 
 function resolveHeadersReference(
-  data: ParsedContextConfigDefinitionData,
+  data: ContextConfigOutput,
   hasHeadersSchema: boolean
 ): string | undefined {
+  if (typeof data.headersReference === 'string' && data.headersReference) {
+    return data.headersReference;
+  }
+
   const headersRef = extractHeadersReference(data.headers);
   if (headersRef) {
     return toReferenceIdentifier(headersRef);
@@ -222,7 +231,7 @@ function resolveHeadersReference(
   return undefined;
 }
 
-function isFetchDefinitionData(value: unknown): value is Record<string, unknown> {
+function isFetchDefinitionData(value: unknown): boolean {
   if (!isPlainObject(value)) {
     return false;
   }
@@ -334,7 +343,7 @@ function rewriteHeaderTemplates<T>(value: T, headersReference?: string): T {
 
 function generateStandaloneHeadersDefinition(
   sourceFile: SourceFile,
-  data: ParsedContextConfigDefinitionData
+  data: ContextConfigOutput & { schema: Record<string, unknown> }
 ): SourceFile {
   const importName = 'headers';
   sourceFile.addImportDeclaration({
@@ -355,21 +364,20 @@ function generateStandaloneHeadersDefinition(
 
   configObject.addPropertyAssignment({
     name: 'schema',
-    // @ts-expect-error -- fixme
     initializer: convertJsonSchemaToZod(data.schema),
   });
   return sourceFile;
 }
 
 function isHeadersDefinitionData(
-  value: ParsedContextConfigDefinitionData
-): value is ParsedContextConfigDefinitionData & { schema: Record<string, unknown> } {
+  value: ContextConfigOutput
+): value is ContextConfigOutput & { schema: Record<string, unknown> } {
   return isPlainObject(value.schema);
 }
 
 function generateStandaloneFetchDefinition(
   sourceFile: SourceFile,
-  data: ParsedContextConfigDefinitionData
+  data: ContextConfigOutput
 ): SourceFile {
   const importName = 'fetchDefinition';
   sourceFile.addImportDeclaration({
@@ -390,10 +398,13 @@ function generateStandaloneFetchDefinition(
     const credentialReferenceName =
       data.referenceOverrides?.credentialReferences?.[credentialReferenceId] ??
       toReferenceIdentifier(credentialReferenceId);
+    const credentialReferencePath =
+      data.referencePathOverrides?.credentialReferences?.[credentialReferenceId] ??
+      credentialReferenceId;
     credentialReferenceNames.set(credentialReferenceId, credentialReferenceName);
     sourceFile.addImportDeclaration({
       namedImports: [credentialReferenceName],
-      moduleSpecifier: `../credentials/${credentialReferenceId}`,
+      moduleSpecifier: `../credentials/${credentialReferencePath}`,
     });
   }
 

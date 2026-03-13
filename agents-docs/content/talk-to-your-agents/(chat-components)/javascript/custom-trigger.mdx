@@ -29,10 +29,9 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 
     ```js
     const config = {
-      baseSettings: {
-        apiKey: "YOUR_API_KEY",
-      },
       aiChatSettings: {
+        baseUrl: "https://your-api.example.com",
+        appId: process.env.INKEEP_APP_ID, // Your app ID
         aiAssistantName: "Keepie",
       },
       openSettings: {

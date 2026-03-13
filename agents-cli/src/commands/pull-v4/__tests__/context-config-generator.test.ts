@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: allow in test
 /**
  * Unit tests for context config generator
@@ -61,7 +60,7 @@ describe('Context Config Generator', () => {
         ...headersData,
       });
 
-      expect(definition).toContain('const personalAgentHeaders = headers({');
+      expect(definition).toContain('const personalagentheaders = headers({');
       expect(definition).toContain('schema: z.object({');
       expect(definition).toContain('"user_id": z.string()');
       expect(definition).toContain('"api_key": z.string()');
@@ -77,7 +76,7 @@ describe('Context Config Generator', () => {
         ...fetchData,
       });
 
-      expect(definition).toContain('const userFetcher = fetchDefinition({');
+      expect(definition).toContain('const userfetcher = fetchDefinition({');
       expect(definition).toContain("id: 'user-info',");
       expect(definition).toContain("name: 'User Information',");
       expect(definition).toContain("trigger: 'initialization',");
@@ -106,7 +105,7 @@ describe('Context Config Generator', () => {
         ...minimalData,
       });
 
-      expect(definition).toContain('const simpleFetch = fetchDefinition({');
+      expect(definition).toContain('const simplefetch = fetchDefinition({');
       expect(definition).toContain("id: 'simple-fetch',");
       expect(definition).toContain('fetchConfig: {');
       expect(definition).toContain("url: 'https://api.example.com/data',");
@@ -156,10 +155,10 @@ describe('Context Config Generator', () => {
         ...contextData,
       });
 
-      expect(definition).toContain('const personalAgentContext = contextConfig({');
-      expect(definition).toContain('headers: personalAgentHeaders,');
+      expect(definition).toContain('const personalagentcontext = contextConfig({');
+      expect(definition).toContain('headers: personalagentheaders,');
       expect(definition).toContain('contextVariables: {');
-      expect(definition).toContain('user: userFetcher');
+      expect(definition).toContain('user: userfetcher');
       expect(definition).toContain('});');
       await expectSnapshots(definition);
     });
@@ -178,11 +177,11 @@ describe('Context Config Generator', () => {
         ...dataWithoutHeaders,
       });
 
-      expect(definition).toContain('const simpleContext = contextConfig({');
+      expect(definition).toContain('const simplecontext = contextConfig({');
       expect(definition).not.toContain('headers:');
       expect(definition).toContain('contextVariables: {');
-      expect(definition).toContain('config: someConfig,');
-      expect(definition).toContain('data: someData');
+      expect(definition).toContain('config: someconfig,');
+      expect(definition).toContain('data: somedata');
       await expectSnapshots(definition);
     });
 
@@ -197,8 +196,8 @@ describe('Context Config Generator', () => {
         ...dataWithoutVariables,
       });
 
-      expect(definition).toContain('const headerOnlyContext = contextConfig({');
-      expect(definition).toContain('headers: myHeaders');
+      expect(definition).toContain('const headeronlycontext = contextConfig({');
+      expect(definition).toContain('headers: myheaders');
       expect(definition).not.toContain('contextVariables:');
       await expectSnapshots(definition);
     });
@@ -207,7 +206,7 @@ describe('Context Config Generator', () => {
       const contextConfigId = 'emptyContext';
       const definition = generateContextConfigDefinition({ contextConfigId });
 
-      expect(definition).toContain('const emptyContext = contextConfig({');
+      expect(definition).toContain('const emptycontext = contextConfig({');
       expect(definition).toContain('});');
       expect(definition).not.toContain('headers:');
       expect(definition).not.toContain('contextVariables:');
@@ -235,9 +234,9 @@ describe('Context Config Generator', () => {
         "import { headers, fetchDefinition, contextConfig } from '@inkeep/agents-core';"
       );
       expect(file).toContain("import { z } from 'zod';");
-      expect(file).toContain('const personalAgentHeaders = headers({');
+      expect(file).toContain('const personalagentheaders = headers({');
       expect(file).toContain('const userInfo = fetchDefinition({');
-      expect(file).toContain('export const personalAgentContext = contextConfig({');
+      expect(file).toContain('export const personalagentcontext = contextConfig({');
 
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*const/s);
@@ -256,7 +255,7 @@ describe('Context Config Generator', () => {
       const file = generateContextConfigDefinition({ contextConfigId, ...simpleData });
 
       expect(file).toContain("import { contextConfig } from '@inkeep/agents-core';");
-      expect(file).toContain('export const simpleContext = contextConfig({');
+      expect(file).toContain('export const simplecontext = contextConfig({');
       expect(file).not.toContain('headers');
       expect(file).not.toContain('fetchDefinition');
       await expectSnapshots(file);
@@ -271,7 +270,7 @@ describe('Context Config Generator', () => {
       const contextConfigId = 'emptyHeaders';
       const definition = generateContextConfigDefinition({ contextConfigId, ...emptySchemaData });
 
-      expect(definition).toContain('const emptyHeaders = headers({');
+      expect(definition).toContain('const emptyheaders = headers({');
       expect(definition).toContain('schema: z.any()');
       await expectSnapshots(definition);
     });

@@ -41,6 +41,7 @@ import {
 // Runtime DB imports (Postgres - not versioned)
 import {
   apiKeys,
+  apps,
   contextCache,
   conversations,
   datasetRun,
@@ -472,8 +473,14 @@ export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
   .extend({
     id: ResourceIdSchema,
   })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
   .openapi('AgentCreate');
-export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi('AgentUpdate');
+export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .openapi('AgentUpdate');
 
 // Trigger authentication schemas
 // Input schema: what users submit via API (plaintext header values)
@@ -897,6 +904,10 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
   .extend({
     id: ResourceIdSchema.optional(),
   })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
   .openapi('TriggerCreate');
 export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
 
@@ -981,6 +992,9 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
   createdBy: () =>
     UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
+}).omit({
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
@@ -992,6 +1006,15 @@ export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.ref
 
 export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.extend({
   enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
+  cronTimezone: z
+    .string()
+    .max(64)
+    .nullable()
+    .optional()
+    .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
+  maxRetries: z.number().int().min(0).max(10).optional(),
+  retryDelaySeconds: z.number().int().min(10).max(3600).optional(),
+  timeoutSeconds: z.number().int().min(30).max(780).optional(),
 }).partial();
 
 export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(
@@ -1193,48 +1216,53 @@ export const McpToolDefinitionSchema = z.object({
 
 export const ToolSelectSchema = createSelectSchema(tools);
 
-export const ToolInsertSchema = createInsertSchema(tools).extend({
-  id: ResourceIdSchema,
-  imageUrl: imageUrlSchema,
-  config: z.object({
-    type: z.literal('mcp'),
-    mcp: z.object({
-      server: z.object({
-        url: z.url(),
-      }),
-      transport: z
-        .object({
-          type: z.enum(MCPTransportType),
-          requestInit: z.record(z.string(), z.unknown()).optional(),
-          eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-          reconnectionOptions: z.any().optional().openapi({
-            type: 'object',
-            description: 'Reconnection options for streamable HTTP transport',
-          }),
-          sessionId: z.string().optional(),
-        })
-        .optional(),
-      activeTools: z.array(z.string()).optional(),
-      toolOverrides: z
-        .record(
-          z.string(),
-          z.object({
-            displayName: z.string().optional(),
-            description: z.string().optional(),
-            schema: z.any().optional(),
-            transformation: z
-              .union([
-                z.string(), // JMESPath expression
-                z.record(z.string(), z.string()), // object mapping
-              ])
-              .optional(),
+export const ToolInsertSchema = createInsertSchema(tools)
+  .extend({
+    id: ResourceIdSchema,
+    imageUrl: imageUrlSchema,
+    config: z.object({
+      type: z.literal('mcp'),
+      mcp: z.object({
+        server: z.object({
+          url: z.url(),
+        }),
+        transport: z
+          .object({
+            type: z.enum(MCPTransportType),
+            requestInit: z.record(z.string(), z.unknown()).optional(),
+            eventSourceInit: z.record(z.string(), z.unknown()).optional(),
+            reconnectionOptions: z.any().optional().openapi({
+              type: 'object',
+              description: 'Reconnection options for streamable HTTP transport',
+            }),
+            sessionId: z.string().optional(),
           })
-        )
-        .optional(),
-      prompt: z.string().optional(),
+          .optional(),
+        activeTools: z.array(z.string()).optional(),
+        toolOverrides: z
+          .record(
+            z.string(),
+            z.object({
+              displayName: z.string().optional(),
+              description: z.string().optional(),
+              schema: z.any().optional(),
+              transformation: z
+                .union([
+                  z.string(), // JMESPath expression
+                  z.record(z.string(), z.string()), // object mapping
+                ])
+                .optional(),
+            })
+          )
+          .optional(),
+        prompt: z.string().optional(),
+      }),
     }),
-  }),
-});
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const ConversationSelectSchema = createSelectSchema(conversations);
 export const ConversationInsertSchema = createInsertSchema(conversations).extend({
@@ -1671,9 +1699,14 @@ export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertSchema).ope
 export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
-export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
-  id: ResourceIdSchema,
-});
+export const DataComponentInsertSchema = createInsertSchema(dataComponents)
+  .extend({
+    id: ResourceIdSchema,
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
@@ -1781,13 +1814,18 @@ export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),
 });
-export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).extend({
-  id: ResourceIdSchema,
-  name: NameSchema,
-  description: DescriptionSchema,
-  baseUrl: z.url(),
-  credentialReferenceId: z.string().trim().nonempty().max(256).nullish(),
-});
+export const ExternalAgentInsertSchema = createInsertSchema(externalAgents)
+  .extend({
+    id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
+    baseUrl: z.url(),
+    credentialReferenceId: z.string().trim().nonempty().max(256).nullish(),
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
 export const ExternalAgentApiSelectSchema =
@@ -1846,14 +1884,102 @@ export const ApiKeyApiInsertSchema = ApiKeyInsertSchema.omit({
 
 export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
+// ── App Credential Schemas ──────────────────────────────────────────────────
+
+export const ALLOWED_DOMAIN_PATTERN =
+  /^(\*|\*\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?)$/;
+
+const AllowedDomainSchema = z
+  .string()
+  .min(1)
+  .regex(
+    ALLOWED_DOMAIN_PATTERN,
+    'Invalid domain pattern. Use a hostname (e.g. "example.com"), wildcard ("*.example.com"), or bare "*" to allow all origins.'
+  );
+
+export const WebClientConfigSchema = z
+  .object({
+    type: z.literal('web_client'),
+    webClient: z.object({
+      allowedDomains: z.array(AllowedDomainSchema).min(1),
+    }),
+  })
+  .openapi('WebClientConfig');
+
+export const ApiConfigSchema = z
+  .object({
+    type: z.literal('api'),
+    api: z.object({}).default({}),
+  })
+  .openapi('ApiConfig');
+
+export const AppConfigSchema = z
+  .discriminatedUnion('type', [WebClientConfigSchema, ApiConfigSchema])
+  .openapi('AppConfig');
+
+export const WebClientConfigResponseSchema = z
+  .object({
+    type: z.literal('web_client'),
+    webClient: z.object({
+      allowedDomains: z.array(AllowedDomainSchema).min(1),
+    }),
+  })
+  .openapi('WebClientConfigResponse');
+
+export const AppConfigResponseSchema = z
+  .discriminatedUnion('type', [WebClientConfigResponseSchema, ApiConfigSchema])
+  .openapi('AppConfigResponse');
+
+export const AppSelectSchema = createSelectSchema(apps);
+
+export const AppInsertSchema = createInsertSchema(apps).extend({
+  id: ResourceIdSchema,
+  name: z.string().trim().nonempty('Please enter a name.').max(256),
+  type: z.enum(['web_client', 'api']),
+  defaultAgentId: z.string().min(1).nullish(),
+  config: AppConfigSchema,
+});
+
+export const AppUpdateSchema = AppInsertSchema.partial().omit({
+  id: true,
+  type: true,
+  createdAt: true,
+});
+
+export const AppApiSelectSchema = AppSelectSchema.openapi('App');
+
+export const AppApiResponseSelectSchema = AppApiSelectSchema.omit({ config: true })
+  .extend({
+    config: AppConfigResponseSchema,
+  })
+  .openapi('AppResponseItem');
+
+export const AppApiInsertSchema = AppInsertSchema.omit({
+  id: true,
+  lastUsedAt: true,
+}).openapi('AppCreate');
+
+export const AppApiUpdateSchema = AppUpdateSchema.openapi('AppUpdate');
+
+export const AppApiCreationResponseSchema = z.object({
+  data: z.object({
+    app: AppApiResponseSelectSchema,
+  }),
+});
+
 export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
-export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
-  id: ResourceIdSchema,
-  type: z.string(),
-  credentialStoreId: ResourceIdSchema,
-  retrievalParams: z.record(z.string(), z.unknown()).nullish(),
-});
+export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences)
+  .extend({
+    id: ResourceIdSchema,
+    type: z.string(),
+    credentialStoreId: ResourceIdSchema,
+    retrievalParams: z.record(z.string(), z.unknown()).nullish(),
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const CredentialReferenceUpdateSchema = CredentialReferenceInsertSchema.partial();
 
@@ -1963,8 +2089,6 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   projectId: true,
   status: true,
   version: true,
-  createdAt: true,
-  updatedAt: true,
   credentialReferenceId: true,
 }).extend({
   tenantId: z.string().optional(),
@@ -2002,9 +2126,14 @@ export const ToolApiUpdateSchema = createApiUpdateSchema(ToolUpdateSchema).opena
 
 export const FunctionToolSelectSchema = createSelectSchema(functionTools);
 
-export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend({
-  id: ResourceIdSchema,
-});
+export const FunctionToolInsertSchema = createInsertSchema(functionTools)
+  .extend({
+    id: ResourceIdSchema,
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
 
@@ -2062,12 +2191,12 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
     const { body } = ast.program;
     for (const node of body) {
       if (node.type === 'ExportDefaultDeclaration') {
-        throw SyntaxError(
+        throw new SyntaxError(
           'Export default declarations are not supported. Provide a single function instead.'
         );
       }
       if (node.type === 'ExportNamedDeclaration') {
-        throw SyntaxError(
+        throw new SyntaxError(
           'Export declarations are not supported. Provide a single function instead.'
         );
       }
@@ -2113,10 +2242,14 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
 };
 
 export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
-  .openapi('FunctionCreate')
   .extend({
     executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
-  });
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .openapi('FunctionCreate');
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 
@@ -2686,6 +2819,13 @@ export const ApiKeyListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('ApiKeyListResponse');
+export const AppResponse = z.object({ data: AppApiResponseSelectSchema }).openapi('AppResponse');
+export const AppListResponse = z
+  .object({
+    data: z.array(AppApiResponseSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('AppListResponse');
 export const CredentialReferenceListResponse = z
   .object({
     data: z.array(CredentialReferenceApiSelectSchema),
@@ -2955,8 +3095,17 @@ const SubAgentId = z.string().openapi('SubAgentIdPathParam', {
   example: 'sub_agent_123',
 });
 
+const UserIdPathParam = z.string().openapi('UserIdPathParam', {
+  param: {
+    name: 'userId',
+    in: 'path',
+  },
+  description: 'User identifier',
+  example: 'user_123',
+});
+
 export const UserIdParamsSchema = z.object({
-  userId: UserIdSchema,
+  userId: UserIdPathParam,
 });
 
 export const TenantParamsSchema = z.object({
@@ -3203,3 +3352,10 @@ export const UserProfileApiUpdateSchema = UserProfileUpdateSchema.omit({
   id: true,
   userId: true,
 });
+
+export const AnonymousSessionResponseSchema = z
+  .object({
+    token: z.string().describe('Anonymous session JWT'),
+    expiresAt: z.string().describe('Token expiration time (ISO 8601)'),
+  })
+  .openapi('AnonymousSessionResponse');
