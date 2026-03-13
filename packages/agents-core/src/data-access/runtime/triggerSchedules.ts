@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte, sql } from 'drizzle-orm';
+import { and, eq, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { triggerSchedules } from '../../db/runtime/runtime-schema';
 
@@ -84,6 +84,8 @@ export const updateTriggerScheduleEnabled =
       );
   };
 
+const STALE_CLAIM_INTERVAL = sql`now() - interval '5 minutes'`;
+
 export const findDueTriggerSchedules =
   (db: AgentsRunDatabaseClient) =>
   async (params: { asOf: string }): Promise<TriggerScheduleRow[]> => {
@@ -94,8 +96,11 @@ export const findDueTriggerSchedules =
         and(
           eq(triggerSchedules.enabled, true),
           lte(triggerSchedules.nextRunAt, params.asOf),
-          isNull(triggerSchedules.claimedAt)
-        )
+          or(
+            isNull(triggerSchedules.claimedAt),
+            lt(triggerSchedules.claimedAt, STALE_CLAIM_INTERVAL),
+          ),
+        ),
       );
     return rows;
   };
@@ -105,12 +110,7 @@ export const claimTriggerSchedule =
   async (params: {
     tenantId: string;
     scheduledTriggerId: string;
-    expectedClaimedAt: string | null;
   }): Promise<boolean> => {
-    const claimCondition = params.expectedClaimedAt
-      ? lte(triggerSchedules.claimedAt, params.expectedClaimedAt)
-      : isNull(triggerSchedules.claimedAt);
-
     const rows = await db
       .update(triggerSchedules)
       .set({
@@ -120,8 +120,11 @@ export const claimTriggerSchedule =
         and(
           eq(triggerSchedules.tenantId, params.tenantId),
           eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
-          claimCondition
-        )
+          or(
+            isNull(triggerSchedules.claimedAt),
+            lt(triggerSchedules.claimedAt, STALE_CLAIM_INTERVAL),
+          ),
+        ),
       )
       .returning();
     return rows.length > 0;
@@ -188,7 +191,21 @@ export const releaseTriggerScheduleClaim =
       .where(
         and(
           eq(triggerSchedules.tenantId, params.tenantId),
-          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId)
-        )
+          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
+        ),
+      );
+  };
+
+export const listTriggerSchedulesByProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: { tenantId: string; projectId: string } }): Promise<TriggerScheduleRow[]> => {
+    return db
+      .select()
+      .from(triggerSchedules)
+      .where(
+        and(
+          eq(triggerSchedules.tenantId, params.scopes.tenantId),
+          eq(triggerSchedules.projectId, params.scopes.projectId),
+        ),
       );
   };

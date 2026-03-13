@@ -59,7 +59,6 @@ async function dispatchSingleTrigger(
   const claimed = await claimTriggerSchedule(runDbClient)({
     tenantId,
     scheduledTriggerId,
-    expectedClaimedAt: schedule.claimedAt,
   });
 
   if (!claimed) return 'skipped';

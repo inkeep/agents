@@ -1,5 +1,5 @@
 {
-  "id": "077fbc00-78ca-4743-ad71-c5233248443c",
+  "id": "d9cf376f-e732-4c8c-af8d-2a7e0fc81945",
   "prevId": "9dc3e813-268e-4093-8338-cb04bc5ff68a",
   "version": "7",
   "dialect": "postgresql",
@@ -688,12 +688,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "ref": {
-          "name": "ref",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1059,12 +1053,6 @@
         "evaluation_run_config_id": {
           "name": "evaluation_run_config_id",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ref": {
-          "name": "ref",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -1924,12 +1912,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "ref": {
-          "name": "ref",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "status": {
           "name": "status",
           "type": "varchar(50)",
@@ -2015,6 +1997,52 @@
           ]
         }
       },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scheduler_state": {
+      "name": "scheduler_state",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "'singleton'"
+        },
+        "current_run_id": {
+          "name": "current_run_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deployment_id": {
+          "name": "deployment_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -2447,12 +2475,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "ref": {
-          "name": "ref",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "status": {
           "name": "status",
           "type": "varchar(20)",
@@ -2539,6 +2561,120 @@
             "project_id",
             "agent_id",
             "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.trigger_schedules": {
+      "name": "trigger_schedules",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduled_trigger_id": {
+          "name": "scheduled_trigger_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cron_expression": {
+          "name": "cron_expression",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cron_timezone": {
+          "name": "cron_timezone",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'UTC'"
+        },
+        "run_at": {
+          "name": "run_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "next_run_at": {
+          "name": "next_run_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "trigger_schedules_dispatch_idx": {
+          "name": "trigger_schedules_dispatch_idx",
+          "columns": [
+            {
+              "expression": "next_run_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "enabled = true AND claimed_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "trigger_schedules_tenant_id_scheduled_trigger_id_pk": {
+          "name": "trigger_schedules_tenant_id_scheduled_trigger_id_pk",
+          "columns": [
+            "tenant_id",
+            "scheduled_trigger_id"
           ]
         }
       },
