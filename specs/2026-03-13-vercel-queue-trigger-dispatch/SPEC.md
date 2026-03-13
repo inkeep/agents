@@ -20,7 +20,7 @@
 
 ### Why a new spec?
 
-The [previous spec](../2026-03-12-schedule-table-cron-dispatcher/SPEC.md) proposed a schedule-table + scheduler-workflow architecture. That design solves the problem but introduces significant complexity:
+An earlier design proposed a schedule-table + scheduler-workflow architecture. That design solves the problem but introduces significant complexity:
 
 - A new `trigger_schedules` table in runtime Postgres that must be kept in sync with DoltgreSQL via write-through
 - A new `scheduler_state` singleton table for scheduler supersession
@@ -120,13 +120,13 @@ Vercel Queues (GA, `@vercel/queue`) provides native primitives — **delayed del
 **Guarantee:** The first execution attempt for a scheduled trigger starts within 1 minute of its `scheduledFor` time.
 
 - Cron expressions have minute resolution — triggers are always due at exact minute boundaries.
-- Vercel Queue delivers messages as soon as the delay expires. Delivery latency is sub-second in normal conditions.
-- **Normal case:** Message delay expires at :05:00 → consumer invoked within seconds.
+- Vercel Queue docs state messages become visible to consumers once the delay expires, but do not document a specific delivery latency SLA after expiry. Needs validation.
+- **Normal case (assumed):** Message delay expires at :05:00 → consumer invoked within seconds. This assumption needs to be verified on staging.
 - **Degraded case:** Consumer is busy or Vercel Queue has delivery delay → message delivered within ~60s.
 
 ### Retries
 
-Same as previous spec. Retries are a continuation of the same invocation and are NOT bound by the 1-minute guarantee.
+Retries are a continuation of the same invocation and are NOT bound by the 1-minute guarantee.
 
 ### Overlap
 
@@ -172,7 +172,7 @@ Each scheduled occurrence dispatches independently. Concurrent invocations allow
   - Target: Zero triggers on stale code
   - Instrumentation: Compare `VERCEL_DEPLOYMENT_ID` at execution time vs current production deployment
 - **Metric 2: Deploy-time overhead**
-  - Baseline: O(triggers) restart cost (current) or O(1) scheduler restart (previous spec)
+  - Baseline: O(triggers) restart cost (current daisy-chain)
   - Target: O(0) — no deploy action needed
   - Instrumentation: Absence of deploy-time CI step
 - **Metric 3: Dispatch latency**
@@ -187,9 +187,7 @@ Each scheduled occurrence dispatches independently. Concurrent invocations allow
 
 ## 9) Current State (How It Works Today)
 
-Same as [previous spec §9](../2026-03-12-schedule-table-cron-dispatcher/SPEC.md#9-current-state-how-it-works-today).
-
-**What exists from Phase 1 of the previous spec (already implemented):**
+**What exists today on `main`:**
 
 - `trigger_schedules` table in runtime Postgres (schema + data access layer)
 - `scheduler_state` table in runtime Postgres (schema + data access layer)
@@ -204,7 +202,7 @@ Same as [previous spec §9](../2026-03-12-schedule-table-cron-dispatcher/SPEC.md
 **What this spec replaces:**
 
 
-| Component                  | Previous spec                                         | This spec                                                   |
+| Component on `main`        | Current behavior                                      | This spec                                                   |
 | -------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
 | `trigger_schedules` table  | Denormalized schedule rows with `next_run_at`, claims | **Removed** — queue IS the schedule                         |
 | `scheduler_state` table    | Singleton for scheduler supersession                  | **Removed** — no scheduler to coordinate                    |
@@ -214,7 +212,7 @@ Same as [previous spec §9](../2026-03-12-schedule-table-cron-dispatcher/SPEC.md
 | `restartScheduler.ts`      | Deploy restart endpoint                               | **Removed** — poll mode consumers are deployment-agnostic   |
 | CI `restart-scheduler` job | Post-deploy curl to restart endpoint                  | **Removed**                                                 |
 | Write-through sync         | Upsert to `trigger_schedules` on CRUD                 | **Removed** — CRUD enqueues directly to queue               |
-| Bulk resync                | Populate schedule table from manage DB                | **Removed** — recovery via catch-up scan                    |
+| Bulk resync                | Populate schedule table from manage DB                | **Removed** — recovery via startup scan (local dev only)    |
 
 
 **What stays the same:**
@@ -654,18 +652,18 @@ async function recoverLocalSchedulerOnStartup() {
 ## 11) What Changes From Current System
 
 
-| Concern                                       | Current (daisy-chain)               | Previous spec (scheduler + table)        | This spec (Vercel Queue)                         |
-| --------------------------------------------- | ----------------------------------- | ---------------------------------------- | ------------------------------------------------ |
-| Who decides "when"                            | Workflow itself (sleep + chain)     | Schedule table + dispatcher              | Queue delayed delivery                           |
-| Execution model                               | Long-lived daisy-chain workflow     | One-shot workflow per occurrence         | One-shot workflow per occurrence (same)          |
-| Deployment pinning                            | Yes (inherits from parent)          | No (scheduler restarted on deploy)       | No (poll mode not pinned)                        |
-| Deploy-time cost                              | O(triggers) restart                 | O(1) scheduler restart + CI step         | O(0) — nothing needed                            |
-| New DB tables                                 | None                                | `trigger_schedules` + `scheduler_state`  | None                                             |
-| Double-fire prevention                        | N/A (single chain)                  | ACID claim + idempotency key             | Queue idempotency + invocation idempotency       |
-| Next occurrence blocked by current execution? | Yes (chain waits)                   | No (advance before start)                | No (enqueue next before start)                   |
-| Scheduler mechanism                           | Per-trigger workflow with sleep     | Single scheduler workflow, 60s tick      | Queue delayed delivery                           |
-| Self-hosted                                   | Accidental (no pinning in pg world) | Same scheduler workflow, orphan recovery | graphile-worker delayed jobs                     |
-| Cross-environment code                        | Shared (WDK abstracts worlds)       | Shared (single scheduler workflow)       | Shared consumer logic, per-env scheduler backend |
+| Concern                                       | Current on `main` (daisy-chain)     | This spec (Vercel Queue)                         |
+| --------------------------------------------- | ----------------------------------- | ------------------------------------------------ |
+| Who decides "when"                            | Workflow itself (sleep + chain)     | Queue delayed delivery                           |
+| Execution model                               | Long-lived daisy-chain workflow     | One-shot workflow per occurrence                 |
+| Deployment pinning                            | Yes (inherits from parent)          | No (poll mode not pinned)                        |
+| Deploy-time cost                              | O(triggers) restart                 | O(0) — nothing needed                            |
+| New DB tables                                 | None                                | None                                             |
+| Double-fire prevention                        | N/A (single chain)                  | Queue idempotency + invocation idempotency       |
+| Next occurrence blocked by current execution? | Yes (chain waits)                   | No (enqueue next before start)                   |
+| Scheduler mechanism                           | Per-trigger workflow with sleep     | Queue delayed delivery                           |
+| Self-hosted                                   | Accidental (no pinning in pg world) | graphile-worker delayed jobs                     |
+| Cross-environment code                        | Shared (WDK abstracts worlds)       | Shared consumer logic, per-env scheduler backend |
 
 
 ## 12) Implementation Plan
@@ -740,7 +738,7 @@ async function recoverLocalSchedulerOnStartup() {
 
 | Alternative                                                                                                     | Why not                                                                                                                                                                                                                                                      |
 | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Schedule table + scheduler workflow** ([previous spec](../2026-03-12-schedule-table-cron-dispatcher/SPEC.md)) | Works but introduces 2 new tables, write-through sync, polling loop, claim/release cycle, deploy restart hook, bulk resync. More moving parts than needed now that Vercel Queue provides the primitives natively.                                            |
+| **Schedule table + scheduler workflow** | Works but introduces 2 new tables, write-through sync, polling loop, claim/release cycle, deploy restart hook, bulk resync. More moving parts than needed now that Vercel Queue provides the primitives natively. |
 | **Vercel Cron as primary scheduler**                                                                            | Works on Vercel (no deployment pinning). But needs a separate mechanism for self-hosted. Two code paths.                                                                                                                                                     |
 | **Vercel Queue push mode only**                                                                                 | Push mode consumers are air-gapped (good for security) but historically deployment-pinned. If push mode routing has been updated to deliver to current production (v2beta topic routing), this becomes viable. Otherwise, poll mode avoids pinning entirely. |
 | **graphile-worker for all environments**                                                                        | Would unify the backend but requires Postgres on all environments and doesn't leverage Vercel's managed queue infrastructure. graphile-worker is already used by `@workflow/world-postgres` — it's the self-hosted backend.                                  |
@@ -782,7 +780,7 @@ async function recoverLocalSchedulerOnStartup() {
 
 | ID  | Assumption                                                                              | Confidence | Verification Plan                                                                                                     |
 | --- | --------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |
-| A1  | Vercel Queue `delaySeconds` reliably delivers within seconds of delay expiry            | HIGH       | Vercel Queue is GA. Test with 60s and 300s delays on staging.                                                         |
+| A1  | Vercel Queue `delaySeconds` reliably delivers within seconds of delay expiry            | MEDIUM     | Not documented by Vercel — docs only state messages become visible after delay expires, no latency SLA. Must test with 60s and 300s delays on staging to measure actual delivery latency. |
 | A2  | Push mode consumers on `queue/v2beta` are invoked on the current production deployment  | MEDIUM     | Critical assumption. Test on staging. If false, switch to poll mode.                                                  |
 | A3  | graphile-worker `runAt` works for delays up to 7+ days                                  | HIGH       | graphile-worker is mature. `runAt` accepts any future `Date`. Verified in docs.                                       |
 | A4  | Vercel Queue `idempotencyKey` dedup window covers the full retention period             | HIGH       | Documented: "The deduplication window lasts for the entire lifetime of the original message."                         |
