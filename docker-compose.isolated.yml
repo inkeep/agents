@@ -62,7 +62,7 @@ services:
       SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@spicedb-postgres:5432/spicedb?sslmode=disable"
       SPICEDB_HTTP_ENABLED: "true"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8443/healthz || exit 1"]
+      test: ["CMD", "grpc_health_probe", "-addr", "localhost:50051"]
       interval: 5s
       timeout: 3s
       retries: 10
