@@ -2199,8 +2199,7 @@
             "enum": [
               "memory",
               "keychain",
-              "nango",
-              "composio"
+              "nango"
             ],
             "type": "string"
           },
@@ -2260,8 +2259,7 @@
             "enum": [
               "memory",
               "keychain",
-              "nango",
-              "composio"
+              "nango"
             ],
             "type": "string"
           },
@@ -2341,8 +2339,7 @@
             "enum": [
               "memory",
               "keychain",
-              "nango",
-              "composio"
+              "nango"
             ],
             "type": "string"
           },
@@ -2373,8 +2370,7 @@
             "enum": [
               "memory",
               "keychain",
-              "nango",
-              "composio"
+              "nango"
             ],
             "type": "string"
           }
@@ -5558,16 +5554,8 @@
           "data": {
             "items": {
               "properties": {
-                "authScheme": {
-                  "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
-                  "type": "string"
-                },
                 "category": {
                   "description": "Category of the MCP server (e.g., communication, project_management)",
-                  "type": "string"
-                },
-                "connectedAccountId": {
-                  "description": "The Composio connected account ID for the active connection",
                   "type": "string"
                 },
                 "description": {
@@ -6205,7 +6193,6 @@
               "forbidden",
               "not_found",
               "conflict",
-              "too_many_requests",
               "internal_server_error",
               "unprocessable_entity"
             ],
@@ -6882,16 +6869,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "ref": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ResolvedRef"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
           "resolvedPayload": {
             "additionalProperties": {
               "nullable": true
@@ -6977,6 +6954,10 @@
       },
       "ScheduledTriggerUpdate": {
         "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -7028,6 +7009,10 @@
             "nullable": true,
             "type": "object"
           },
+          "projectId": {
+            "maxLength": 256,
+            "type": "string"
+          },
           "retryDelaySeconds": {
             "maximum": 3600,
             "minimum": 10,
@@ -7042,6 +7027,10 @@
             "description": "One-time execution timestamp",
             "format": "date-time",
             "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
             "type": "string"
           },
           "timeoutSeconds": {
@@ -8869,16 +8858,8 @@
           "data": {
             "nullable": true,
             "properties": {
-              "authScheme": {
-                "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
-                "type": "string"
-              },
               "category": {
                 "description": "Category of the MCP server (e.g., communication, project_management)",
-                "type": "string"
-              },
-              "connectedAccountId": {
-                "description": "The Composio connected account ID for the active connection",
                 "type": "string"
               },
               "description": {
@@ -9863,16 +9844,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "ref": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ResolvedRef"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
           "requestPayload": {
             "anyOf": [
               {
@@ -10066,6 +10037,10 @@
       },
       "TriggerUpdate": {
         "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
           "authentication": {
             "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
@@ -10111,6 +10086,10 @@
           },
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
+          },
+          "projectId": {
+            "maxLength": 256,
+            "type": "string"
           },
           "runAsUserId": {
             "description": "User ID to run the webhook as",
@@ -10171,6 +10150,10 @@
           "signingSecretCredentialReferenceId": {
             "description": "Reference to credential containing signing secret",
             "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
             "type": "string"
           },
           "updatedAt": {
@@ -10461,6 +10444,39 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/deploy/restart-scheduler": {
+      "post": {
+        "description": "Called by CI after deploy to restart the scheduler workflow on the latest deployment. Auth via INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
+        "responses": {
+          "200": {
+            "description": "Scheduler workflow restarted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [],
+        "summary": "Restart scheduler workflow on new deployment",
+        "tags": [
+          "Deploy"
+        ]
+      }
+    },
+    "/api/workflow/process": {
+      "get": {
+        "description": "Keeps the workflow worker active to process queued jobs (called by cron)",
+        "responses": {
+          "200": {
+            "description": "Processing complete"
+          }
+        },
+        "security": [],
+        "summary": "Process workflow jobs",
+        "tags": [
+          "Workflows"
+        ]
+      }
+    },
     "/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversation": {
       "post": {
         "operationId": "evaluate-conversation",
@@ -11162,7 +11178,7 @@
           "resource": "organization"
         }
       },
-      "patch": {
+      "put": {
         "description": "Create or update the profile for a specific user. Users can only update their own profile.",
         "operationId": "upsert-user-profile",
         "parameters": [
@@ -15114,7 +15130,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-context-config",
         "parameters": [
           {
@@ -15870,7 +15886,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-function-tool",
         "parameters": [
           {
@@ -20057,7 +20073,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-sub-agent-relation",
         "parameters": [
           {
@@ -21180,7 +21196,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-subagent-tool-relation",
         "parameters": [
           {
@@ -21782,7 +21798,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-subagent",
         "parameters": [
           {
@@ -22413,7 +22429,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-sub-agent-external-agent-relation",
         "parameters": [
           {
@@ -23174,7 +23190,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-sub-agent-team-agent-relation",
         "parameters": [
           {
@@ -24630,7 +24646,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-agent",
         "parameters": [
           {
@@ -25211,7 +25227,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "description": "Update an API key (currently only expiration date can be changed)",
         "operationId": "update-api-key",
         "parameters": [
@@ -25792,7 +25808,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "description": "Update an app credential configuration",
         "operationId": "update-app",
         "parameters": [
@@ -26339,7 +26355,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-artifact-component",
         "parameters": [
           {
@@ -28211,7 +28227,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-credential",
         "parameters": [
           {
@@ -28757,7 +28773,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-data-component",
         "parameters": [
           {
@@ -34524,7 +34540,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-external-agent",
         "parameters": [
           {
@@ -35120,7 +35136,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-function",
         "parameters": [
           {
@@ -36960,7 +36976,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-skill",
         "parameters": [
           {
@@ -37871,7 +37887,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-tool",
         "parameters": [
           {
@@ -39208,33 +39224,6 @@
                               },
                               {
                                 "properties": {
-                                  "filename": {
-                                    "type": "string"
-                                  },
-                                  "mediaType": {
-                                    "type": "string"
-                                  },
-                                  "mimeType": {
-                                    "type": "string"
-                                  },
-                                  "text": {
-                                    "type": "string"
-                                  },
-                                  "type": {
-                                    "enum": [
-                                      "file"
-                                    ],
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "text"
-                                ],
-                                "type": "object"
-                              },
-                              {
-                                "properties": {
                                   "text": {
                                     "type": "string"
                                   },
@@ -39243,7 +39232,8 @@
                                       {
                                         "enum": [
                                           "audio",
-                                          "video"
+                                          "video",
+                                          "file"
                                         ],
                                         "type": "string"
                                       },
@@ -39895,36 +39885,6 @@
                                     "required": [
                                       "type",
                                       "image_url"
-                                    ],
-                                    "type": "object"
-                                  },
-                                  {
-                                    "properties": {
-                                      "file": {
-                                        "properties": {
-                                          "file_data": {
-                                            "pattern": "^data:application\\/pdf;base64,",
-                                            "type": "string"
-                                          },
-                                          "filename": {
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "file_data"
-                                        ],
-                                        "type": "object"
-                                      },
-                                      "type": {
-                                        "enum": [
-                                          "file"
-                                        ],
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "file"
                                     ],
                                     "type": "object"
                                   }
