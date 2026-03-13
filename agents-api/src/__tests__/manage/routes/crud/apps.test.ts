@@ -285,6 +285,26 @@ describe('App CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update app via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-put-compat');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { app } = await createTestApp({ tenantId, projectId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PUT Updated Widget' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('tenant isolation', () => {
     it('should return 404 when getting app from different tenant', async () => {
       const tenantId1 = await createTestTenantWithOrg('apps-iso-get-1');

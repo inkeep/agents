@@ -617,6 +617,37 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing data component via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('data-components-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { dataComponentId } = await createTestDataComponent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: 'PUT Updated Component',
+            description: 'Updated Description',
+            props: {
+              type: 'object',
+              properties: {
+                item: { type: 'string', description: 'An item' },
+              },
+            },
+            render: {
+              component: 'function Renderer() { return <span>Test</span>; }',
+              mockData: { value: 1 },
+            },
+          }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete an existing data component', async () => {
       const tenantId = await createTestTenantWithOrg('data-components-delete-success');

@@ -563,6 +563,24 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing artifact component via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('artifact-components-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PutUpdatedArtifactComponent' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete an existing artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-delete-success');

@@ -604,6 +604,24 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing agent via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-agent-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'put-updated' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete an existing agent', async () => {
       const tenantId = await createTestTenantWithOrg('agent-agent-delete-success');

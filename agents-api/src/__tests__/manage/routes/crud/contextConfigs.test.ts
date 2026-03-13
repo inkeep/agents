@@ -495,6 +495,31 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing context config via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('context-configs-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { contextConfigId } = await createTestContextConfig({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            headersSchema: {
+              type: 'object',
+              properties: {
+                userId: { type: 'string', description: 'PUT updated user identifier' },
+              },
+            },
+          }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete an existing context config', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-delete-success');

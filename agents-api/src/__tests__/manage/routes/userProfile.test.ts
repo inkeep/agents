@@ -207,4 +207,18 @@ describe('User Profile Route', () => {
       });
     });
   });
+
+  describe('PUT /{userId}/profile (backward compatibility)', () => {
+    it('should update profile via PUT', async () => {
+      upsertUserProfileMock.mockResolvedValue(mockProfile);
+
+      const res = await userProfileRoutes.request('/test-user-123/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timezone: 'America/New_York' }),
+      });
+
+      expect(res.status).toBe(200);
+    });
+  });
 });

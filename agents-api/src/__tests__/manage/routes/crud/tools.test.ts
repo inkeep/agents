@@ -310,6 +310,24 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing tool via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { toolId } = await createTestTool({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PUT Updated Tool Name' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete an existing tool', async () => {
       const tenantId = await createTestTenantWithOrg('tools-delete-success');

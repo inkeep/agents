@@ -632,6 +632,25 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing sub-agent via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('agents-put-compat');
+      await createTestProject(manageDbClient, tenantId, 'default');
+      const agentId = await createTestAgent(tenantId);
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PUT Updated Agent' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete an existing agent', async () => {
       const tenantId = await createTestTenantWithOrg('agents-delete-success');

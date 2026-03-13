@@ -495,6 +495,31 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing agent relation via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-relations-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
+      const { agentRelationId } = await createTestAgentRelation({
+        tenantId,
+        agentId,
+        sourceSubAgentId,
+        targetSubAgentId,
+        relationType: 'transfer',
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations/${agentRelationId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ relationType: 'delegate' as const }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete an existing agent relation', async () => {
       const tenantId = await createTestTenantWithOrg('agent-relations-delete-success');

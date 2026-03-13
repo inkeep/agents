@@ -442,6 +442,32 @@ describe('Sub Agent Team Agent Relations CRUD Routes - Integration Tests', () =>
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing sub-agent team agent relation via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('sub-agent-team-relations-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { subAgentId, targetAgentId, agentId } = await setupTestEnvironment(tenantId);
+
+      const { relationId } = await createTestRelation({
+        tenantId,
+        agentId,
+        subAgentId,
+        targetAgentId,
+        headers: { 'X-Original': 'value' },
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}/team-agent-relations/${relationId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ headers: { 'X-Put-Updated': 'new-value' } }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete an existing sub-agent team agent relation', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-team-relations-delete-success');

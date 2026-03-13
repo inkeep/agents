@@ -449,6 +449,24 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing external agent via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('agents-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { externalAgentId } = await createTestExternalAgent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PUT Updated Agent' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{id}', () => {
     it('should delete an existing agent', async () => {
       const tenantId = await createTestTenantWithOrg('agents-delete-success');
