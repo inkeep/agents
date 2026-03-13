@@ -3,9 +3,6 @@
 **Status:** Draft
 **Owner(s):** —
 **Last updated:** 2026-03-13
-**Supersedes:** [schedule-table-cron-dispatcher](../2026-03-12-schedule-table-cron-dispatcher/SPEC.md)
-**Links:**
-
 - Research: [reports/vercel-workflow-deployment-pinning/](../../reports/vercel-workflow-deployment-pinning/REPORT.md)
 - Vercel Queues docs: [vercel.com/docs/queues](https://vercel.com/docs/queues)
 - Vercel Queues SDK: [vercel.com/docs/queues/sdk](https://vercel.com/docs/queues/sdk)
