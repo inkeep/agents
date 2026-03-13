@@ -474,6 +474,48 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PUT /project-full/{projectId} (backward compatibility)', () => {
+    it('should update an existing project via PUT', async () => {
+      const tenantId = await createTrackedTenant();
+      const projectId = `project-${generateId()}`;
+      const originalDefinition = createTestProjectDefinition(projectId);
+
+      await makeRequest(`/manage/tenants/${tenantId}/project-full`, {
+        method: 'POST',
+        body: JSON.stringify(originalDefinition),
+      });
+
+      const updatedDefinition = {
+        ...originalDefinition,
+        name: 'Updated via PUT',
+      };
+
+      const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updatedDefinition),
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.data.name).toBe('Updated via PUT');
+    });
+
+    it('should create project via PUT if it does not exist (upsert)', async () => {
+      const tenantId = await createTrackedTenant();
+      const projectId = `project-${generateId()}`;
+      const projectDefinition = createTestProjectDefinition(projectId);
+
+      const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(projectDefinition),
+      });
+
+      expect(response.status).toBe(201);
+      const body = await response.json();
+      expect(body.data.id).toBe(projectId);
+    });
+  });
+
   describe('DELETE /project-full/{projectId}', () => {
     it('should delete a project and all its resources', async () => {
       const tenantId = await createTrackedTenant();
