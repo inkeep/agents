@@ -2180,7 +2180,7 @@ export const FunctionInsertSchema = createInsertSchema(functions).extend({
   id: ResourceIdSchema,
   dependencies: StringRecordSchema.nullish(),
   executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
-  inputSchema: z.record(z.string(), z.unknown(), 'Input Schema is required'),
+  inputSchema: z.record(z.string(), z.unknown()).nullish(),
 });
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 

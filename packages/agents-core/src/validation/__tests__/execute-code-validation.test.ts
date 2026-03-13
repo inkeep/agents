@@ -4,7 +4,6 @@ function parse(executeCode: string) {
   return FunctionApiInsertSchema.parse({
     id: 'fn-1',
     executeCode,
-    inputSchema: {},
   });
 }
 
