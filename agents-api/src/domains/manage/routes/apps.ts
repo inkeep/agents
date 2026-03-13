@@ -175,61 +175,73 @@ app.openapi(
   }
 );
 
+const updateAppRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update App',
+  description: 'Update an app credential configuration',
+  tags: ['Apps'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: AppApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'App updated successfully',
+      content: {
+        'application/json': {
+          schema: AppResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateAppHandler = async (c: any) => {
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const data = { ...body };
+  if ('defaultAgentId' in data) {
+    data.defaultProjectId = data.defaultAgentId ? (data.defaultProjectId ?? projectId) : null;
+  }
+
+  const updatedApp = await updateAppForTenant(runDbClient)({
+    scopes: { tenantId },
+    id,
+    data,
+  });
+
+  if (!updatedApp) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'App not found',
+    });
+  }
+
+  return c.json({ data: sanitizeAppConfig(updatedApp) });
+};
+
+app.openapi(
+  createProtectedRoute({ ...updateAppRouteConfig, method: 'patch', operationId: 'update-app' }),
+  updateAppHandler
+);
+
 app.openapi(
   createProtectedRoute({
+    ...updateAppRouteConfig,
     method: 'put',
-    path: '/{id}',
-    summary: 'Update App',
-    description: 'Update an app credential configuration',
-    operationId: 'update-app',
-    tags: ['Apps'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: AppApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'App updated successfully',
-        content: {
-          'application/json': {
-            schema: AppResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
+    operationId: 'update-app-put',
+    'x-speakeasy-ignore': true,
   }),
-  async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
-
-    const data = { ...body };
-    if ('defaultAgentId' in data) {
-      data.defaultProjectId = data.defaultAgentId ? (data.defaultProjectId ?? projectId) : null;
-    }
-
-    const updatedApp = await updateAppForTenant(runDbClient)({
-      scopes: { tenantId },
-      id,
-      data,
-    });
-
-    if (!updatedApp) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'App not found',
-      });
-    }
-
-    return c.json({ data: sanitizeAppConfig(updatedApp) });
-  }
+  updateAppHandler
 );
 
 app.openapi(

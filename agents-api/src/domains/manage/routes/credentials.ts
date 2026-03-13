@@ -210,57 +210,73 @@ app.openapi(
   }
 );
 
+const updateCredentialRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Credential',
+  tags: ['Credentials'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: CredentialReferenceApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Credential updated successfully',
+      content: {
+        'application/json': {
+          schema: CredentialReferenceResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateCredentialHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const updatedCredential = await updateCredentialReference(db)({
+    scopes: { tenantId, projectId },
+    id,
+    data: body,
+  });
+
+  if (!updatedCredential) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Credential not found',
+    });
+  }
+
+  const validatedCredential = CredentialReferenceApiSelectSchema.parse(updatedCredential);
+  return c.json({ data: validatedCredential });
+};
+
 app.openapi(
   createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Credential',
+    ...updateCredentialRouteConfig,
+    method: 'patch',
     operationId: 'update-credential',
-    tags: ['Credentials'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: CredentialReferenceApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Credential updated successfully',
-        content: {
-          'application/json': {
-            schema: CredentialReferenceResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
   }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+  updateCredentialHandler
+);
 
-    const updatedCredential = await updateCredentialReference(db)({
-      scopes: { tenantId, projectId },
-      id,
-      data: body,
-    });
-
-    if (!updatedCredential) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Credential not found',
-      });
-    }
-
-    const validatedCredential = CredentialReferenceApiSelectSchema.parse(updatedCredential);
-    return c.json({ data: validatedCredential });
-  }
+app.openapi(
+  createProtectedRoute({
+    ...updateCredentialRouteConfig,
+    method: 'put',
+    operationId: 'update-credential-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateCredentialHandler
 );
 
 app.openapi(

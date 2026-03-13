@@ -256,55 +256,67 @@ app.openapi(
   }
 );
 
+const updateAgentRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Agent',
+  tags: ['Agents'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: AgentApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Agent updated successfully',
+      content: {
+        'application/json': {
+          schema: AgentResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateAgentHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const validatedBody = c.req.valid('json');
+
+  const updatedAgent = await updateAgent(db)({
+    scopes: { tenantId, projectId, agentId: id },
+    data: validatedBody,
+  });
+
+  if (!updatedAgent) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Agent not found',
+    });
+  }
+
+  return c.json({ data: updatedAgent });
+};
+
+app.openapi(
+  createProtectedRoute({ ...updateAgentRouteConfig, method: 'patch', operationId: 'update-agent' }),
+  updateAgentHandler
+);
+
 app.openapi(
   createProtectedRoute({
+    ...updateAgentRouteConfig,
     method: 'put',
-    path: '/{id}',
-    summary: 'Update Agent',
-    operationId: 'update-agent',
-    tags: ['Agents'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: AgentApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Agent updated successfully',
-        content: {
-          'application/json': {
-            schema: AgentResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
+    operationId: 'update-agent-put',
+    'x-speakeasy-ignore': true,
   }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const validatedBody = c.req.valid('json');
-
-    const updatedAgent = await updateAgent(db)({
-      scopes: { tenantId, projectId, agentId: id },
-      data: validatedBody,
-    });
-
-    if (!updatedAgent) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Agent not found',
-      });
-    }
-
-    return c.json({ data: updatedAgent });
-  }
+  updateAgentHandler
 );
 
 app.openapi(

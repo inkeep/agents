@@ -175,62 +175,77 @@ app.openapi(
   }
 );
 
+const updateExternalAgentRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update External Agent',
+  tags: ['External Agents'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ExternalAgentApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'External agent updated successfully',
+      content: {
+        'application/json': {
+          schema: ExternalAgentResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateExternalAgentHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const updatedExternalAgent = await updateExternalAgent(db)({
+    scopes: { tenantId, projectId },
+    externalAgentId: id,
+    data: body,
+  });
+
+  if (!updatedExternalAgent) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'External agent not found',
+    });
+  }
+
+  const agentWithType = {
+    ...updatedExternalAgent,
+    type: 'external' as const,
+  };
+
+  return c.json({ data: agentWithType });
+};
+
 app.openapi(
   createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update External Agent',
+    ...updateExternalAgentRouteConfig,
+    method: 'patch',
     operationId: 'update-external-agent',
-    tags: ['External Agents'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: ExternalAgentApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'External agent updated successfully',
-        content: {
-          'application/json': {
-            schema: ExternalAgentResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
   }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+  updateExternalAgentHandler
+);
 
-    const updatedExternalAgent = await updateExternalAgent(db)({
-      scopes: { tenantId, projectId },
-      externalAgentId: id,
-      data: body,
-    });
-
-    if (!updatedExternalAgent) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'External agent not found',
-      });
-    }
-
-    // Add type field to the external agent response
-    const agentWithType = {
-      ...updatedExternalAgent,
-      type: 'external' as const,
-    };
-
-    return c.json({ data: agentWithType });
-  }
+app.openapi(
+  createProtectedRoute({
+    ...updateExternalAgentRouteConfig,
+    method: 'put',
+    operationId: 'update-external-agent-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateExternalAgentHandler
 );
 
 app.openapi(

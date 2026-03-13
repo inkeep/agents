@@ -182,77 +182,93 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Artifact Component',
-    operationId: 'update-artifact-component',
-    tags: ['Artifact Components'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: ArtifactComponentApiUpdateSchema,
-          },
+const updateArtifactComponentRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Artifact Component',
+  tags: ['Artifact Components'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ArtifactComponentApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Artifact component updated successfully',
-        content: {
-          'application/json': {
-            schema: ArtifactComponentResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Artifact component updated successfully',
+      content: {
+        'application/json': {
+          schema: ArtifactComponentResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    if (body.props !== undefined && body.props !== null) {
-      const propsValidation = validatePropsAsJsonSchema(body.props);
-      if (!propsValidation.isValid) {
-        const errorMessages = propsValidation.errors
-          .map((e) => `${e.field}: ${e.message}`)
-          .join(', ');
-        throw createApiError({
-          code: 'bad_request',
-          message: `Invalid props schema: ${errorMessages}`,
-        });
-      }
-    }
+const updateArtifactComponentHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
 
-    const updateData: any = {
-      ...body,
-      ...(body.name !== undefined && { name: String(body.name) }),
-      ...(body.description !== undefined && { description: String(body.description) }),
-      ...(body.props !== undefined && { props: body.props ?? null }),
-      ...(body.render !== undefined && { render: body.render ?? null }),
-    };
-
-    const updatedArtifactComponent = await updateArtifactComponent(db)({
-      scopes: { tenantId, projectId },
-      id,
-      data: updateData,
-    });
-
-    if (!updatedArtifactComponent) {
+  if (body.props !== undefined && body.props !== null) {
+    const propsValidation = validatePropsAsJsonSchema(body.props);
+    if (!propsValidation.isValid) {
+      const errorMessages = propsValidation.errors
+        .map((e) => `${e.field}: ${e.message}`)
+        .join(', ');
       throw createApiError({
-        code: 'not_found',
-        message: 'Artifact component not found',
+        code: 'bad_request',
+        message: `Invalid props schema: ${errorMessages}`,
       });
     }
-
-    return c.json({ data: updatedArtifactComponent });
   }
+
+  const updateData: any = {
+    ...body,
+    ...(body.name !== undefined && { name: String(body.name) }),
+    ...(body.description !== undefined && { description: String(body.description) }),
+    ...(body.props !== undefined && { props: body.props ?? null }),
+    ...(body.render !== undefined && { render: body.render ?? null }),
+  };
+
+  const updatedArtifactComponent = await updateArtifactComponent(db)({
+    scopes: { tenantId, projectId },
+    id,
+    data: updateData,
+  });
+
+  if (!updatedArtifactComponent) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Artifact component not found',
+    });
+  }
+
+  return c.json({ data: updatedArtifactComponent });
+};
+
+app.openapi(
+  createProtectedRoute({
+    ...updateArtifactComponentRouteConfig,
+    method: 'patch',
+    operationId: 'update-artifact-component',
+  }),
+  updateArtifactComponentHandler
+);
+
+app.openapi(
+  createProtectedRoute({
+    ...updateArtifactComponentRouteConfig,
+    method: 'put',
+    operationId: 'update-artifact-component-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateArtifactComponentHandler
 );
 
 app.openapi(

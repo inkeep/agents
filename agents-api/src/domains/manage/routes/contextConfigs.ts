@@ -154,56 +154,72 @@ app.openapi(
   }
 );
 
+const updateContextConfigRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Context Configuration',
+  tags: ['Context Configs'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectAgentIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ContextConfigApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Context configuration updated successfully',
+      content: {
+        'application/json': {
+          schema: ContextConfigResponse,
+        },
+      },
+    },
+    ...commonUpdateErrorResponses,
+  },
+};
+
+const updateContextConfigHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, agentId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const updatedContextConfig = await updateContextConfig(db)({
+    scopes: { tenantId, projectId, agentId },
+    id,
+    data: body,
+  });
+
+  if (!updatedContextConfig) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Context configuration not found',
+    });
+  }
+
+  return c.json({ data: updatedContextConfig });
+};
+
 app.openapi(
   createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Context Configuration',
+    ...updateContextConfigRouteConfig,
+    method: 'patch',
     operationId: 'update-context-config',
-    tags: ['Context Configs'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectAgentIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: ContextConfigApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Context configuration updated successfully',
-        content: {
-          'application/json': {
-            schema: ContextConfigResponse,
-          },
-        },
-      },
-      ...commonUpdateErrorResponses,
-    },
   }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+  updateContextConfigHandler
+);
 
-    const updatedContextConfig = await updateContextConfig(db)({
-      scopes: { tenantId, projectId, agentId },
-      id,
-      data: body,
-    });
-
-    if (!updatedContextConfig) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Context configuration not found',
-      });
-    }
-
-    return c.json({ data: updatedContextConfig });
-  }
+app.openapi(
+  createProtectedRoute({
+    ...updateContextConfigRouteConfig,
+    method: 'put',
+    operationId: 'update-context-config-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateContextConfigHandler
 );
 
 app.openapi(
