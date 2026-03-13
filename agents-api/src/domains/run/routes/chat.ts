@@ -448,7 +448,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
               if (done) break;
               await s.write(value);
             }
-            await s.write('data: [DONE]\n\n');
           } catch (error) {
             logger.error({ error, runId: run.runId }, 'Error streaming durable execution');
             await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);

@@ -155,11 +155,10 @@ export async function runAgentExecutionStep(params: {
     });
   } finally {
     unregisterStreamHelper(requestId);
+    await closeable.close().catch(() => {});
   }
 
   if (result.pendingApproval) {
-    await sseHelper.complete();
-    await closeable.close();
     return {
       type: 'needs_approval',
       toolCallId: result.pendingApproval.toolCallId,
@@ -167,9 +166,6 @@ export async function runAgentExecutionStep(params: {
       args: result.pendingApproval.args,
     };
   }
-
-  await sseHelper.complete();
-  await closeable.close();
 
   return { type: 'completed', success: result.success, error: result.error };
 }
