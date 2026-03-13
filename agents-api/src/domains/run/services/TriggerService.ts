@@ -531,6 +531,7 @@ export async function dispatchExecution(params: {
     projectId,
     agentId,
     conversationId,
+    ref: resolvedRef,
     status: 'pending',
     requestPayload: payload,
     transformedPayload: transformedPayload as Record<string, unknown> | undefined,

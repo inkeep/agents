@@ -163,6 +163,7 @@ app.openapi(
             tenantId,
             projectId,
             evaluationRunConfigId: runConfig.id,
+            ref: resolvedRef,
           });
 
           logger.info(
@@ -311,6 +312,7 @@ app.openapi(
         id: evaluationRunId,
         tenantId,
         projectId,
+        ref: resolvedRef,
       });
 
       // Trigger evaluations via Workflow
@@ -413,6 +415,7 @@ app.openapi(
           evaluationJobConfigId,
           evaluatorIds,
           jobFilters,
+          resolvedRef: c.get('resolvedRef'),
         });
 
       logger.info(
