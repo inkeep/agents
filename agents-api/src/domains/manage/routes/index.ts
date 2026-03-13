@@ -15,6 +15,7 @@ import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
+import mergeRoutes from './merge';
 import projectMembersRoutes from './projectMembers';
 import projectPermissionsRoutes from './projectPermissions';
 import projectsRoutes from './projects';
@@ -43,6 +44,7 @@ app.route('/projects', projectsRoutes);
 
 // Mount branches route under project scope
 app.route('/projects/:projectId/branches', branchesRoutes);
+app.route('/projects/:projectId/branches', mergeRoutes);
 
 // Mount ref routes under project scope
 app.route('/projects/:projectId/refs', refRoutes);

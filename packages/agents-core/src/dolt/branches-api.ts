@@ -9,6 +9,7 @@ import {
   doltGetBranchNamespace,
   doltListBranches,
 } from './branch';
+import { doltHashOf } from './commit';
 import {
   ensureSchemaSync,
   getSchemaDiff,
@@ -32,24 +33,28 @@ export const isProtectedBranchName = (branchName: string): boolean => {
   return branchName === MAIN_BRANCH_SUFFIX;
 };
 
+export const getTempBranchSuffix = (prefix: string): string => {
+  return `temp-${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+};
+
+export const isTempBranchName = (fullName: string): boolean => {
+  return /temp-[a-z-]+_\d+_[a-z0-9]+$/.test(fullName);
+};
+
 export type CreateBranchParams = {
   tenantId: string;
   projectId: string;
   name: string;
-  /** Branch to create from. Defaults to tenant main branch. */
-  from?: string;
+  /** Branch name to create from. Defaults to tenant main branch. */
+  fromBranch?: string;
+  /** Commit hash to create from. Mutually exclusive with fromBranch. */
+  fromCommit?: string;
   /**
    * Whether to sync schema on the source branch before creating.
    * This ensures the new branch starts with the latest schema from main.
-   * Default: true
+   * Default: true. Ignored when fromCommit is set.
    */
   syncSchemaOnSource?: boolean;
-};
-
-export type DeleteBranchParams = {
-  tenantId: string;
-  projectId: string;
-  name: string;
 };
 
 export type GetBranchParams = {
@@ -148,6 +153,21 @@ export const checkoutBranch =
     };
   };
 
+export const syncSchemaOnBranch =
+  (db: AgentsManageDatabaseClient) =>
+  async (branchName: string): Promise<void> => {
+    const schemaDiffs = await getSchemaDiff(db)(branchName);
+    if (schemaDiffs.length > 0) {
+      await doltCheckout(db)({ branch: branchName });
+      const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
+      if (syncResult.error && !syncResult.synced) {
+        throw new Error(
+          `Failed to sync schema on source branch '${branchName}': ${syncResult.error}`
+        );
+      }
+    }
+  };
+
 /**
  * Create a new branch with optional schema synchronization.
  *
@@ -157,102 +177,92 @@ export const checkoutBranch =
  *
  * By syncing schema on the source branch first, we ensure the new branch
  * starts with the latest schema, avoiding schema conflicts later.
+ * If you want to create a branch from a commit hash, use the fromCommit parameter.
  */
 export const createBranch =
   (db: AgentsManageDatabaseClient) =>
   async (params: CreateBranchParams): Promise<BranchInfo> => {
-    const { tenantId, projectId, name, from, syncSchemaOnSource = true } = params;
+    const { tenantId, projectId, name, fromBranch, fromCommit, syncSchemaOnSource = true } = params;
 
-    // Validate branch name
+    if (fromBranch && fromCommit) {
+      throw new Error('Cannot specify both fromBranch and fromCommit');
+    }
+
     if (!name || name.trim() === '') {
       throw new Error('Branch name cannot be empty');
     }
 
-    // Get full branch name
     const fullName = doltGetBranchNamespace({ tenantId, projectId, branchName: name })();
 
-    // Check if branch already exists
     const existingBranches = await doltListBranches(db)();
     const branchExists = existingBranches.some((b) => b.name === fullName);
 
     if (branchExists) {
       throw new Error(`Branch '${name}' already exists`);
     }
-
-    // Determine source branch
-    let fromFullBranchName: string;
-    if (from && from !== MAIN_BRANCH_SUFFIX) {
-      fromFullBranchName = doltGetBranchNamespace({
-        tenantId,
-        projectId,
-        branchName: from,
-      })();
-    } else {
-      fromFullBranchName = getTenantMainBranch(tenantId);
-    }
-
-    // Sync schema on source branch if requested and source is not the schema source branch
-    if (syncSchemaOnSource && fromFullBranchName !== SCHEMA_SOURCE_BRANCH) {
-      // Check if source branch has schema differences from main
-      const schemaDiffs = await getSchemaDiff(db)(fromFullBranchName);
-
-      if (schemaDiffs.length > 0) {
-        // Checkout source branch and sync schema
-        await doltCheckout(db)({ branch: fromFullBranchName });
-        const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
-
-        if (syncResult.error && !syncResult.synced) {
-          throw new Error(
-            `Failed to sync schema on source branch '${fromFullBranchName}': ${syncResult.error}`
-          );
-        }
+    //For commits, sync schema onto the created branch
+    if (fromCommit) {
+      await doltBranch(db)({ name: fullName, startPoint: fromCommit });
+      if (syncSchemaOnSource) {
+        await syncSchemaOnBranch(db)(fullName);
       }
+    } else {
+      //For branches, sync schema onto the source branch. This has the benefit of ensuring the branch has the latest schema from the source branch.
+      let fromFullBranchName: string;
+      if (fromBranch && fromBranch !== MAIN_BRANCH_SUFFIX) {
+        fromFullBranchName = doltGetBranchNamespace({
+          tenantId,
+          projectId,
+          branchName: fromBranch,
+        })();
+      } else {
+        fromFullBranchName = getTenantMainBranch(tenantId);
+      }
+
+      if (syncSchemaOnSource && fromFullBranchName !== SCHEMA_SOURCE_BRANCH) {
+        await syncSchemaOnBranch(db)(fromFullBranchName);
+      }
+
+      await doltBranch(db)({ name: fullName, startPoint: fromFullBranchName });
     }
 
-    // Create the branch from the (possibly updated) source branch
-    await doltBranch(db)({ name: fullName, startPoint: fromFullBranchName });
-
-    // Get the hash of the newly created branch
-    const branches = await doltListBranches(db)();
-    const newBranch = branches.find((b) => b.name === fullName);
-
-    if (!newBranch) {
-      throw new Error('Failed to create branch');
-    }
+    const hash = await doltHashOf(db)({ revision: fullName });
 
     return {
       baseName: name,
       fullName,
-      hash: newBranch.hash,
+      hash,
     };
   };
 
+export type DeleteBranchParams = {
+  tenantId: string;
+  projectId: string;
+  branchName: string;
+  force?: boolean;
+};
 /**
  * Delete a branch
  */
 export const deleteBranch =
   (db: AgentsManageDatabaseClient) =>
   async (params: DeleteBranchParams): Promise<void> => {
-    const { tenantId, projectId, name } = params;
+    const { tenantId, projectId, branchName, force } = params;
 
-    // Check if trying to delete a protected branch
-    if (isProtectedBranchName(name)) {
-      throw new Error(`Cannot delete protected branch '${name}'`);
+    if (isProtectedBranchName(branchName)) {
+      throw new Error(`Cannot delete protected branch '${branchName}'`);
     }
 
-    // Get full branch name
-    const fullName = doltGetBranchNamespace({ tenantId, projectId, branchName: name })();
+    const fullName = doltGetBranchNamespace({ tenantId, projectId, branchName: branchName })();
 
-    // Check if branch exists
     const existingBranches = await doltListBranches(db)();
     const branchExists = existingBranches.some((b) => b.name === fullName);
 
     if (!branchExists) {
-      throw new Error(`Branch '${name}' not found`);
+      throw new Error(`Branch '${branchName}' not found`);
     }
 
-    // Delete the branch
-    await doltDeleteBranch(db)({ name: fullName });
+    await doltDeleteBranch(db)({ name: fullName, force });
   };
 
 /**
@@ -263,8 +273,6 @@ export const getBranch =
   async (params: GetBranchParams): Promise<BranchInfo | null> => {
     const { tenantId, projectId, name } = params;
 
-    // All branch names are project-scoped: {tenantId}_{projectId}_{branchName}
-    // "main" refers to the project's main branch, not the tenant main branch
     const fullName = doltGetBranchNamespace({ tenantId, projectId, branchName: name })();
 
     // Find the branch
