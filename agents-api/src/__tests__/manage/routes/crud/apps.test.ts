@@ -212,7 +212,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ defaultAgentId: 'agent-2' }),
         }
       );
@@ -233,7 +233,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ defaultAgentId: null }),
         }
       );
@@ -244,7 +244,7 @@ describe('App CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update app name and config', async () => {
       const tenantId = await createTestTenantWithOrg('apps-update');
       const projectId = 'default-project';
@@ -255,7 +255,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({
             name: 'Updated Widget',
             enabled: false,
@@ -277,11 +277,31 @@ describe('App CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/nonexistent-${generateId()}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated' }),
         }
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update app via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-put-compat');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { app } = await createTestApp({ tenantId, projectId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PUT Updated Widget' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 
@@ -313,7 +333,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId2}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Hijacked' }),
         }
       );
