@@ -580,6 +580,69 @@ jobs:
             export VERCEL_PROJECT_ID="${project_id}"
             vercel pull --yes --environment=preview --git-branch="${PR_BRANCH}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}"
 
+            if [ "${output_key}" = "api_deployment_url" ]; then
+              emit_preview_env_debug() {
+                local env_file=".vercel/.env.preview.local"
+
+                if [ ! -f "${env_file}" ]; then
+                  {
+                    echo "## API Preview Env Snapshot"
+                    echo "- Missing \`${env_file}\` after \`vercel pull\`"
+                  } | tee -a "$GITHUB_STEP_SUMMARY"
+                  return
+                fi
+
+                debug_key() {
+                  local key="$1"
+                  local raw value length
+
+                  raw="$(grep -m1 "^${key}=" "${env_file}" || true)"
+                  if [ -z "${raw}" ]; then
+                    echo "- \`${key}\`: absent"
+                    return
+                  fi
+
+                  value="${raw#*=}"
+                  length="${#value}"
+
+                  case "${key}" in
+                    ENVIRONMENT|NODE_ENV|LOG_LEVEL|SPICEDB_TLS_ENABLED)
+                      echo "- \`${key}\`: present, value=\`${value}\`, len=${length}"
+                      ;;
+                    *)
+                      echo "- \`${key}\`: present, len=${length}"
+                      ;;
+                  esac
+                }
+
+                {
+                  echo "## API Preview Env Snapshot"
+                  debug_key "ENVIRONMENT"
+                  debug_key "NODE_ENV"
+                  debug_key "LOG_LEVEL"
+                  debug_key "INKEEP_AGENTS_MANAGE_DATABASE_URL"
+                  debug_key "INKEEP_AGENTS_RUN_DATABASE_URL"
+                  debug_key "SPICEDB_ENDPOINT"
+                  debug_key "SPICEDB_PRESHARED_KEY"
+                  debug_key "SPICEDB_TLS_ENABLED"
+                  debug_key "ANTHROPIC_API_KEY"
+                  debug_key "BETTER_AUTH_SECRET"
+                  debug_key "INKEEP_AGENTS_JWT_SIGNING_SECRET"
+                  debug_key "GITHUB_STATE_SIGNING_SECRET"
+                  debug_key "INKEEP_COPILOT_TENANT_ID"
+                  debug_key "INKEEP_COPILOT_PROJECT_ID"
+                  debug_key "INKEEP_COPILOT_AGENT_ID"
+                  debug_key "BLOB_READ_WRITE_TOKEN"
+                  debug_key "BLOB_STORAGE_S3_BUCKET"
+                  debug_key "BLOB_STORAGE_S3_REGION"
+                  debug_key "BLOB_STORAGE_S3_ACCESS_KEY_ID"
+                  debug_key "BLOB_STORAGE_S3_SECRET_ACCESS_KEY"
+                } | tee -a "$GITHUB_STEP_SUMMARY"
+              }
+
+              emit_preview_env_debug
+            fi
+
             log_file="$(mktemp)"
             vercel deploy --yes --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" 2>&1 | tee "${log_file}"
 
@@ -705,11 +768,13 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           API_DEPLOYMENT_URL: ${{ needs.configure-vercel-preview.outputs.api_deployment_url }}
         run: |
           set +e
           npm install -g vercel
+          export VERCEL_PROJECT_ID="${VERCEL_API_PROJECT_ID}"
           TARGET_DEPLOYMENT="${API_DEPLOYMENT_URL:-${API_URL}}"
           echo "## Vercel Deployment Inspect (API)" >> "$GITHUB_STEP_SUMMARY"
           vercel inspect "${TARGET_DEPLOYMENT}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" 2>&1 | tee /tmp/vercel-inspect.txt
