@@ -1,5 +1,9 @@
 import type { ScheduledTriggerAuditResult } from '@inkeep/agents-core';
-import { defineHandlers } from '@inkeep/agents-core';
+import {
+  defineHandlers,
+  listEnabledScheduledTriggers,
+  listTriggerSchedulesByProject,
+} from '@inkeep/agents-core';
 import {
   onTriggerCreated,
   onTriggerDeleted,
@@ -23,10 +27,29 @@ export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
   onDeleted: async (before) => {
     await onTriggerDeleted(before);
   },
-  check: async (): Promise<ScheduledTriggerAuditResult> => {
+  check: async (ctx): Promise<ScheduledTriggerAuditResult> => {
+    const [enabledTriggers, schedules] = await Promise.all([
+      listEnabledScheduledTriggers(ctx.manageDb)({ scopes: ctx.scopes }),
+      listTriggerSchedulesByProject(ctx.runDb)({ scopes: ctx.scopes }),
+    ]);
+
+    const scheduleMap = new Map(schedules.map((s) => [s.scheduledTriggerId, s]));
+    const enabledTriggerIds = new Set(enabledTriggers.map((t) => t.id));
+
+    const missingWorkflows = enabledTriggers
+      .filter((t) => !scheduleMap.has(t.id))
+      .map((t) => ({ triggerId: t.id, triggerName: t.name }));
+
+    const orphanedWorkflows = schedules
+      .filter((s) => s.enabled && !enabledTriggerIds.has(s.scheduledTriggerId))
+      .map((s) => ({
+        workflowRunId: s.scheduledTriggerId,
+        scheduledTriggerId: s.scheduledTriggerId,
+      }));
+
     return {
-      missingWorkflows: [],
-      orphanedWorkflows: [],
+      missingWorkflows,
+      orphanedWorkflows,
       staleWorkflows: [],
       deadWorkflows: [],
       verificationFailures: [],

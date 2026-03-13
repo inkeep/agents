@@ -26,14 +26,12 @@ export const upsertSchedulerState =
         id: SINGLETON_ID,
         currentRunId: params.currentRunId,
         deploymentId: params.deploymentId,
-        startedAt: sql`now()`.mapWith(String),
       })
       .onConflictDoUpdate({
         target: schedulerState.id,
         set: {
           currentRunId: params.currentRunId,
           deploymentId: params.deploymentId,
-          startedAt: sql`now()`.mapWith(String),
           updatedAt: sql`now()`.mapWith(String),
         },
       })
