@@ -94,8 +94,8 @@ export const findDueTriggerSchedules =
         and(
           eq(triggerSchedules.enabled, true),
           lte(triggerSchedules.nextRunAt, params.asOf),
-          isNull(triggerSchedules.claimedAt),
-        ),
+          isNull(triggerSchedules.claimedAt)
+        )
       );
     return rows;
   };
