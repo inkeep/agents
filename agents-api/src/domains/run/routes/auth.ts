@@ -10,7 +10,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import { createChallenge } from 'altcha-lib';
-import { SignJWT } from 'jose';
+import { errors, jwtVerify, SignJWT } from 'jose';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
@@ -119,7 +119,7 @@ app.openapi(
     path: '/apps/{appId}/anonymous-session',
     summary: 'Create Anonymous Session',
     description:
-      'Issue an anonymous session JWT for a web_client app. The app must have anonymous access enabled and the Origin must match an allowed domain.',
+      'Issue an anonymous session JWT for a web_client app. If a valid Bearer token for the same app is provided, the existing anonymous identity is preserved with a fresh expiry (rolling refresh). Otherwise a new identity is created.',
     operationId: 'create-anonymous-session',
     tags: ['Auth'],
     permission: noAuth(),
@@ -178,13 +178,55 @@ app.openapi(
       throw createApiError({ code: 'bad_request', message: getPoWErrorMessage(pow.error) });
     }
 
-    const anonUserId = `anon_${crypto.randomUUID()}`;
+    const secret = getAnonJwtSecret();
+    let anonUserId: string | undefined;
+
+    const authHeader = c.req.header('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const bearerToken = authHeader.slice(7);
+      try {
+        const { payload } = await jwtVerify(bearerToken, secret, {
+          issuer: 'inkeep',
+          algorithms: ['HS256'],
+        });
+        if (
+          payload.app === appId &&
+          payload.type === 'anonymous' &&
+          typeof payload.sub === 'string' &&
+          payload.sub.startsWith('anon_')
+        ) {
+          anonUserId = payload.sub;
+        } else {
+          logger.debug(
+            { appId, tokenApp: payload.app, tokenType: payload.type },
+            'Anonymous session refresh: token claims mismatch, creating new identity'
+          );
+        }
+      } catch (err) {
+        if (err instanceof errors.JWTExpired) {
+          logger.debug(
+            { appId, error: err.message },
+            'Anonymous session refresh: token expired, creating new identity'
+          );
+        } else {
+          logger.debug(
+            { appId, error: err instanceof Error ? err.message : String(err) },
+            'Anonymous session refresh: invalid token, creating new identity'
+          );
+        }
+      }
+    }
+
+    const isRefresh = !!anonUserId;
+    if (!anonUserId) {
+      anonUserId = `anon_${crypto.randomUUID()}`;
+    }
+
     const lifetimeSeconds = env.INKEEP_ANON_SESSION_LIFETIME_SECONDS;
     const now = Math.floor(Date.now() / 1000);
     const exp = now + lifetimeSeconds;
     const expiresAt = new Date(exp * 1000).toISOString();
 
-    const secret = getAnonJwtSecret();
     const token = await new SignJWT({
       tid: appRecord.tenantId,
       pid: appRecord.projectId,
@@ -204,8 +246,9 @@ app.openapi(
         appType: appRecord.type,
         origin,
         anonUserId,
+        isRefresh,
       },
-      'Anonymous session created'
+      isRefresh ? 'Anonymous session refreshed' : 'Anonymous session created'
     );
 
     return c.json({ token, expiresAt });
