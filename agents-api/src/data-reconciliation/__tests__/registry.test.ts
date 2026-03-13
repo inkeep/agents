@@ -295,12 +295,10 @@ describe('createEntityEffectRegistry', () => {
         vi.fn().mockResolvedValue([
           { id: 'trigger-1', name: 'Synced trigger' },
           { id: 'trigger-2', name: 'Missing trigger' },
-        ]) as any,
+        ]) as any
       );
       vi.mocked(listTriggerSchedulesByProject).mockReturnValue(
-        vi.fn().mockResolvedValue([
-          { scheduledTriggerId: 'trigger-1', enabled: true },
-        ]) as any,
+        vi.fn().mockResolvedValue([{ scheduledTriggerId: 'trigger-1', enabled: true }]) as any
       );
 
       const h = getHandlers(registry, 'scheduled_triggers');
@@ -314,15 +312,13 @@ describe('createEntityEffectRegistry', () => {
 
     it('scheduled_triggers check detects orphaned schedule rows', async () => {
       vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([
-          { id: 'trigger-1', name: 'Active trigger' },
-        ]) as any,
+        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Active trigger' }]) as any
       );
       vi.mocked(listTriggerSchedulesByProject).mockReturnValue(
         vi.fn().mockResolvedValue([
           { scheduledTriggerId: 'trigger-1', enabled: true },
           { scheduledTriggerId: 'trigger-deleted', enabled: true },
-        ]) as any,
+        ]) as any
       );
 
       const h = getHandlers(registry, 'scheduled_triggers');
@@ -338,14 +334,10 @@ describe('createEntityEffectRegistry', () => {
 
     it('scheduled_triggers check returns clean when in sync', async () => {
       vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([
-          { id: 'trigger-1', name: 'Trigger' },
-        ]) as any,
+        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Trigger' }]) as any
       );
       vi.mocked(listTriggerSchedulesByProject).mockReturnValue(
-        vi.fn().mockResolvedValue([
-          { scheduledTriggerId: 'trigger-1', enabled: true },
-        ]) as any,
+        vi.fn().mockResolvedValue([{ scheduledTriggerId: 'trigger-1', enabled: true }]) as any
       );
 
       const h = getHandlers(registry, 'scheduled_triggers');

@@ -49,8 +49,11 @@ restartWorkflowHandler.openapi(
       logger.info(result, 'Scheduler workflow restarted via deploy hook');
       return c.json(result);
     } catch (err) {
-      logger.error({ error: err instanceof Error ? err.message : String(err) }, 'Failed to restart scheduler workflow');
+      logger.error(
+        { error: err instanceof Error ? err.message : String(err) },
+        'Failed to restart scheduler workflow'
+      );
       return c.json({ error: err instanceof Error ? err.message : 'Internal error' }, 500);
     }
-  },
+  }
 );

@@ -98,19 +98,16 @@ export const findDueTriggerSchedules =
           lte(triggerSchedules.nextRunAt, params.asOf),
           or(
             isNull(triggerSchedules.claimedAt),
-            lt(triggerSchedules.claimedAt, STALE_CLAIM_INTERVAL),
-          ),
-        ),
+            lt(triggerSchedules.claimedAt, STALE_CLAIM_INTERVAL)
+          )
+        )
       );
     return rows;
   };
 
 export const claimTriggerSchedule =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    tenantId: string;
-    scheduledTriggerId: string;
-  }): Promise<boolean> => {
+  async (params: { tenantId: string; scheduledTriggerId: string }): Promise<boolean> => {
     const rows = await db
       .update(triggerSchedules)
       .set({
@@ -122,9 +119,9 @@ export const claimTriggerSchedule =
           eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
           or(
             isNull(triggerSchedules.claimedAt),
-            lt(triggerSchedules.claimedAt, STALE_CLAIM_INTERVAL),
-          ),
-        ),
+            lt(triggerSchedules.claimedAt, STALE_CLAIM_INTERVAL)
+          )
+        )
       )
       .returning();
     return rows.length > 0;
@@ -191,21 +188,23 @@ export const releaseTriggerScheduleClaim =
       .where(
         and(
           eq(triggerSchedules.tenantId, params.tenantId),
-          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
-        ),
+          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId)
+        )
       );
   };
 
 export const listTriggerSchedulesByProject =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: { tenantId: string; projectId: string } }): Promise<TriggerScheduleRow[]> => {
+  async (params: {
+    scopes: { tenantId: string; projectId: string };
+  }): Promise<TriggerScheduleRow[]> => {
     return db
       .select()
       .from(triggerSchedules)
       .where(
         and(
           eq(triggerSchedules.tenantId, params.scopes.tenantId),
-          eq(triggerSchedules.projectId, params.scopes.projectId),
-        ),
+          eq(triggerSchedules.projectId, params.scopes.projectId)
+        )
       );
   };
