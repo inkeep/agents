@@ -13,7 +13,6 @@ import { useSidePane } from '@/hooks/use-side-pane';
 
 interface AgentErrorSummaryProps {
   onNavigateToNode?: (nodeId: string) => void;
-  onNavigateToEdge?: (edgeId: string) => void;
 }
 
 interface PartialProcessedAgentError {
@@ -32,7 +31,9 @@ interface ErrorGroupProps {
 function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  if (!errors.length) return;
+  if (!errors.length) {
+    return null;
+  }
 
   const groupedErrors: Record<string, PartialProcessedAgentError[]> = {};
   for (const error of errors) {
@@ -144,18 +145,6 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
     onNavigateToNode?.(nodeId);
   }
 
-  // const handleNavigateToEdge = (edgeId: string) => {
-  //   setQueryState({
-  //     pane: 'edge',
-  //     nodeId: null,
-  //     edgeId,
-  //   });
-  //   onNavigateToEdge?.(edgeId);
-  // };
-  // const getConnectionLabel = (error: ProcessedAgentError) => {
-  //   return `Connection (${error.edgeId})`;
-  // };
-  // const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
   const { subAgents, functionTools, externalAgents, teamAgents, tools, agentSettings, other } =
     useGroupedAgentErrors();
 
@@ -211,7 +200,7 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   const isFocused = useWindowFocus();
 
   if (!errorCount || !showErrors || (!isSubmitted && isFocused)) {
-    return;
+    return null;
   }
 
   return (
@@ -241,14 +230,6 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
         {data.map((o) => (
           <ErrorGroup key={o.title} {...o} />
         ))}
-
-        {/*<ErrorGroup*/}
-        {/*  title="Connection Errors"*/}
-        {/*  errors={edgeErrors}*/}
-        {/*  icon={<div className="w-3 h-3 border rounded-full" />}*/}
-        {/*  onNavigate={handleNavigateToEdge}*/}
-        {/*  getItemLabel={getConnectionLabel}*/}
-        {/*/>*/}
 
         <div className="flex items-center gap-2 mt-2 pt-2 border-t border-red-200 dark:border-red-800 text-xs text-red-500 dark:text-red-400">
           <Lightbulb className="inline size-3" />

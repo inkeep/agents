@@ -563,30 +563,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     }
   };
 
-  const handleNavigateToEdge = (edgeId: string) => {
-    // The edgeId parameter is from error parsing
-    // We need to find the React Flow edge that has this ID
-    const targetEdge = edges.find((edge) => edge.id === edgeId);
-
-    if (targetEdge) {
-      // Clear selection and select the target edge
-      setEdges((edges) =>
-        edges.map((edge) => ({
-          ...edge,
-          selected: edge.id === targetEdge.id,
-        }))
-      );
-      setNodes((nodes) => nodes.map((node) => ({ ...node, selected: false })));
-
-      // Open the sidepane for the selected edge
-      setQueryState({
-        pane: 'edge',
-        nodeId: null,
-        edgeId: targetEdge.id,
-      });
-    }
-  };
-
   const onSubmit = form.handleSubmit(async ({ mcpRelations, ...data }): Promise<void> => {
     // TODO: next step will be to refactoring deserializeAgentData/serializeAgentData
     const hydratedNodes = hydrateNodesWithFormData(nodes, data);
@@ -846,10 +822,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             </Panel>
           )}
           <Panel position="bottom-left" className="max-w-sm left-8!">
-            <AgentErrorSummary
-              onNavigateToNode={handleNavigateToNode}
-              onNavigateToEdge={handleNavigateToEdge}
-            />
+            <AgentErrorSummary onNavigateToNode={handleNavigateToNode} />
           </Panel>
         </ReactFlow>
       </ResizablePanel>

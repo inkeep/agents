@@ -194,7 +194,6 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
           <TruncateBadge>No tools</TruncateBadge>
         )}
       </BaseNodeContent>
-      {hasErrors && <ErrorIndicator errors={processedErrors} />}
       <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable />
     </BaseNode>
   );
