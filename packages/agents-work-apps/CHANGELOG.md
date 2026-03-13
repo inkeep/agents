@@ -1,5 +1,11 @@
 # @inkeep/agents-work-apps
 
+## 0.58.14
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.14
+
 ## 0.58.13
 
 ### Patch Changes
