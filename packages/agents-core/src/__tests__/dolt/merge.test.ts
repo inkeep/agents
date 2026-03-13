@@ -78,8 +78,25 @@ describe('Merge Module', () => {
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
         .mockResolvedValueOnce({ rows: [] }) // START TRANSACTION
         .mockResolvedValueOnce({
-          rows: [{ conflicts: 5, fast_forward: 0, hash: headHash, message: '' }],
+          rows: [{ conflicts: 1, fast_forward: 0, hash: headHash, message: '' }],
         }) // DOLT_MERGE
+        .mockResolvedValueOnce({
+          rows: [{ table: 'agent', num_conflicts: 1, num_data_conflicts: 1 }],
+        }) // dolt_conflicts
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              base_id: 'a1',
+              our_id: 'a1',
+              their_id: 'a1',
+              base_name: 'old',
+              our_name: 'ours-name',
+              their_name: 'theirs-name',
+              our_diff_type: 'modified',
+              their_diff_type: 'modified',
+            },
+          ],
+        }) // dolt_conflicts_agent
         .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
 
       const mockDb = {
@@ -108,6 +125,23 @@ describe('Merge Module', () => {
         .mockResolvedValueOnce({
           rows: [{ dolt_merge: ['', '0', '1', 'conflicts found'] }],
         }) // DOLT_MERGE (array format)
+        .mockResolvedValueOnce({
+          rows: [{ table: 'agent', num_conflicts: 1, num_data_conflicts: 1 }],
+        }) // dolt_conflicts
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              base_id: 'a1',
+              our_id: 'a1',
+              their_id: 'a1',
+              base_name: 'old',
+              our_name: 'changed-ours',
+              their_name: 'changed-theirs',
+              our_diff_type: 'modified',
+              their_diff_type: 'modified',
+            },
+          ],
+        }) // dolt_conflicts_agent
         .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
 
       const mockDb = {
@@ -137,7 +171,30 @@ describe('Merge Module', () => {
           rows: [{ conflicts: 2, fast_forward: 0, hash: headHash, message: '' }],
         }) // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ table: 'agent', numConflicts: 2 }] }) // dolt_conflicts
-        .mockResolvedValueOnce({ rows: [{ id: '1' }, { id: '2' }] }) // dolt_conflicts_agent
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              base_id: '1',
+              our_id: '1',
+              their_id: '1',
+              base_name: 'old',
+              our_name: 'ours-1',
+              their_name: 'theirs-1',
+              our_diff_type: 'modified',
+              their_diff_type: 'modified',
+            },
+            {
+              base_id: '2',
+              our_id: '2',
+              their_id: '2',
+              base_name: 'old2',
+              our_name: 'ours-2',
+              their_name: 'theirs-2',
+              our_diff_type: 'modified',
+              their_diff_type: 'modified',
+            },
+          ],
+        }) // dolt_conflicts_agent
         .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
 
       const mockDb = {
@@ -174,7 +231,20 @@ describe('Merge Module', () => {
           rows: [{ conflicts: 1, fast_forward: 0, hash: headHash, message: '' }],
         }) // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ table: 'agent', numConflicts: 1 }] }) // dolt_conflicts
-        .mockResolvedValueOnce({ rows: [{ id: '1' }] }) // dolt_conflicts_agent (count)
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              base_id: '1',
+              our_id: '1',
+              their_id: '1',
+              base_name: 'old',
+              our_name: 'ours-name',
+              their_name: 'theirs-name',
+              our_diff_type: 'modified',
+              their_diff_type: 'modified',
+            },
+          ],
+        }) // dolt_conflicts_agent
         .mockResolvedValueOnce({ rows: [] }) // DOLT_CONFLICTS_RESOLVE (applyResolutions — ours is a no-op for reads, just resolves)
         .mockResolvedValueOnce({ rows: [] }) // DOLT_ADD
         .mockResolvedValueOnce({ rows: [{ hash: 'new-hash' }] }); // DOLT_COMMIT
@@ -195,6 +265,60 @@ describe('Merge Module', () => {
             rowDefaultPick: 'ours',
           },
         ],
+      });
+
+      expect(result).toEqual({
+        status: 'success',
+        from: fromBranch,
+        to: toBranch,
+        toHead: headHash,
+        hasConflicts: true,
+      });
+    });
+
+    it('should auto-resolve timestamp-only conflicts without user resolutions', async () => {
+      const fromBranch = 'feature-branch';
+      const toBranch = 'main';
+      const headHash = 'a1b2c3d4e5f6789012345678901234ab';
+
+      const mockExecute = vi
+        .fn()
+        .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
+        .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
+        .mockResolvedValueOnce({ rows: [] }) // START TRANSACTION
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 1, fast_forward: 0, hash: headHash, message: '' }],
+        }) // DOLT_MERGE
+        .mockResolvedValueOnce({ rows: [{ table: 'agent', numConflicts: 1 }] }) // dolt_conflicts
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              base_id: 'a1',
+              our_id: 'a1',
+              their_id: 'a1',
+              base_name: 'same',
+              our_name: 'same',
+              their_name: 'same',
+              base_updated_at: '2026-03-13 19:39:25.492',
+              our_updated_at: '2026-03-13 20:29:03.588',
+              their_updated_at: '2026-03-13 19:41:32.104',
+              our_diff_type: 'modified',
+              their_diff_type: 'modified',
+            },
+          ],
+        }) // dolt_conflicts_agent (timestamp-only)
+        .mockResolvedValueOnce({ rows: [] }) // DOLT_CONFLICTS_RESOLVE (auto-resolution)
+        .mockResolvedValueOnce({ rows: [] }) // DOLT_ADD
+        .mockResolvedValueOnce({ rows: [{ hash: 'new-hash' }] }); // DOLT_COMMIT
+
+      const mockDb = {
+        ...db,
+        execute: mockExecute,
+      } as any;
+
+      const result = await doltMerge(mockDb)({
+        fromBranch,
+        toBranch,
       });
 
       expect(result).toEqual({
