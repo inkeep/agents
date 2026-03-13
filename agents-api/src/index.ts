@@ -1,8 +1,8 @@
 import { env } from './env';
 import './sentry';
-import { defaultSDK } from './instrumentation';
+import { startOpenTelemetrySDK } from './instrumentation';
 
-defaultSDK.start();
+startOpenTelemetrySDK();
 
 import {
   CredentialStoreRegistry,
