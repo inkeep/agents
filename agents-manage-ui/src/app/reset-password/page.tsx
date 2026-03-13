@@ -108,14 +108,14 @@ function ResetPasswordForm() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-        <div className="px-6">
-          <InkeepIcon size={48} />
-        </div>
-        <CardHeader>
-          <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-            Reset your password
-          </CardTitle>
-          <CardDescription>Enter a new password to continue.</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-center gap-4">
+          <InkeepIcon size={48} className="shrink-0" />
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+              Reset your password
+            </CardTitle>
+            <CardDescription>Enter a new password to continue.</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

@@ -1,4 +1,4 @@
-import { Copy, Info, MoreVertical, XCircle } from 'lucide-react';
+import { Copy, MoreVertical, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,17 +47,10 @@ export function InvitationActionsMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {invitation.authMethod === 'email-password' ? (
-          <DropdownMenuItem onClick={handleCopyInviteLink}>
-            <Copy className="h-4 w-4" />
-            Copy invite link
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem disabled className="text-muted-foreground">
-            <Info className="h-4 w-4" />
-            Sign in via {invitation.authMethod === 'google' ? 'Google' : 'Inkeep SSO'}
-          </DropdownMenuItem>
-        )}
+        <DropdownMenuItem onClick={handleCopyInviteLink}>
+          <Copy className="h-4 w-4" />
+          Copy invite link
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onRevokeInvitation(invitation)} variant="destructive">
           <XCircle className="h-4 w-4" />
           Revoke invite
