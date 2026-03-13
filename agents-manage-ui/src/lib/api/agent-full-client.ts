@@ -11,7 +11,6 @@ import { cache } from 'react';
 import type {
   Agent,
   CreateAgentResponse,
-  CreateFullAgentResponse,
   FullAgentDefinition,
   GetAgentResponse,
   UpdateAgentResponse,
@@ -64,26 +63,6 @@ export async function updateAgent(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
     {
       method: 'PUT',
-      body: JSON.stringify(agentData),
-    }
-  );
-}
-
-/**
- * Create a new full agent
- */
-export async function createFullAgent(
-  tenantId: string,
-  projectId: string,
-  agentData: FullAgentDefinition
-): Promise<CreateFullAgentResponse> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  return makeManagementApiRequest<CreateFullAgentResponse>(
-    `tenants/${tenantId}/projects/${projectId}/agent`,
-    {
-      method: 'POST',
       body: JSON.stringify(agentData),
     }
   );

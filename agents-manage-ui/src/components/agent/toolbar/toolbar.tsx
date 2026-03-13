@@ -1,25 +1,28 @@
 import { Activity, Play, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { useFormState } from 'react-hook-form';
 import { FlowButton } from '@/components/agent/flow-button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
 
-type MaybePromise<T> = T | Promise<T>;
-
 interface ToolbarProps {
-  onSubmit: () => MaybePromise<boolean>;
   toggleSidePane: () => void;
   setShowPlayground: (show: boolean) => void;
 }
 
-export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
-  const isDirty = useAgentStore((state) => state.dirty);
+export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
+  'use memo';
+  const form = useFullAgentFormContext();
+  const agentDirtyState = useAgentStore((state) => state.dirty);
+  const { isDirty: rhfDirty, isSubmitting } = useFormState({ control: form.control });
+  const isDirty = agentDirtyState || rhfDirty;
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{
@@ -50,13 +53,6 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
       window.removeEventListener('keydown', handleSaveShortcut);
     };
   }, []);
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const saveAgent = useCallback(async () => {
-    setIsSubmitting(true);
-    await onSubmit();
-    setIsSubmitting(false);
-  }, [onSubmit]);
 
   return (
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
@@ -95,7 +91,7 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
         <FlowButton
           // fix layout shift, variant="default" doesn't have a border
           className="border"
-          onClick={saveAgent}
+          type="submit"
           variant={isDirty ? 'default' : 'outline'}
           disabled={isSubmitting || !isDirty || hasOpenModelConfig}
           ref={saveButtonRef}

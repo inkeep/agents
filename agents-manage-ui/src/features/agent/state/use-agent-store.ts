@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
@@ -17,7 +16,6 @@ type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
-  metadata: AgentMetadata;
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
@@ -46,14 +44,13 @@ interface AgentPersistedStateData {
 }
 
 interface AgentActions {
-  setInitial(nodes: Node[], edges: Edge[], metadata: AgentMetadata): void;
+  setInitial(nodes: Node[], edges: Edge[]): void;
   reset(): void;
   setNodes(updater: (prev: Node[]) => Node[]): void;
   setEdges(updater: (prev: Edge[]) => Edge[]): void;
   onNodesChange(changes: NodeChange[]): void;
   onEdgesChange(changes: EdgeChange[]): void;
   onConnect(connection: Connection): void;
-  setMetadata<K extends keyof AgentMetadata>(field: K, value: AgentMetadata[K]): void;
   push(nodes: Node[], edges: Edge[]): void;
   undo(): void;
   redo(): void;
@@ -97,19 +94,6 @@ interface AgentState extends AllAgentStateData {
 const initialAgentState: AgentStateData = {
   nodes: [],
   edges: [],
-  metadata: {
-    id: undefined,
-    name: '',
-    description: '',
-    contextConfig: {
-      contextVariables: '',
-      headersSchema: '',
-    },
-    models: undefined,
-    stopWhen: undefined,
-    prompt: undefined,
-    statusUpdates: undefined,
-  },
   dirty: false,
   history: [],
   future: [],
@@ -131,11 +115,10 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   variableSuggestions: [],
   // Separate "namespace" for actions
   actions: {
-    setInitial(nodes, edges, metadata) {
+    setInitial(nodes, edges) {
       set({
         nodes,
         edges,
-        metadata,
         dirty: false,
         history: [],
         future: [],
@@ -207,9 +190,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     onConnect(connection) {
       set((state) => ({ edges: addEdge(connection, state.edges) }));
-    },
-    setMetadata(field, value) {
-      set((state) => ({ metadata: { ...state.metadata, [field]: value } }));
     },
     undo() {
       const { history } = get();

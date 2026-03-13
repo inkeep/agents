@@ -3,7 +3,7 @@
 describe('Validation', () => {
   it('should not allow save invalid JSON', () => {
     cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
-    cy.typeInMonaco('contextVariables.json', 'foo bar');
+    cy.typeInMonaco('contextConfig.contextVariables.json', 'foo bar');
     cy.contains('Save changes').click();
     cy.get('[data-sonner-toast][data-type=error]').should('be.visible');
     cy.contains('Save changes').should('not.be.disabled');
