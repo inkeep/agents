@@ -228,7 +228,7 @@ export class ManagementApiClient extends BaseApiClient {
 
   async createBranch(
     projectId: string,
-    request: { name: string; from?: string }
+    request: { name: string; fromBranch?: string; fromCommit?: string }
   ): Promise<{ baseName: string; fullName: string; hash: string }> {
     const tenantId = this.checkTenantId();
 
@@ -252,13 +252,15 @@ export class ManagementApiClient extends BaseApiClient {
     return responseData.data;
   }
 
-  async deleteBranch(projectId: string, branchName: string): Promise<void> {
+  async deleteBranch(projectId: string, branchName: string, force?: boolean): Promise<void> {
     const tenantId = this.checkTenantId();
 
-    const response = await this.authenticatedFetch(
-      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}`,
-      { method: 'DELETE' }
+    const url = new URL(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}`
     );
+    if (force) url.searchParams.set('force', 'true');
+
+    const response = await this.authenticatedFetch(url.toString(), { method: 'DELETE' });
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');

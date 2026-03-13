@@ -1899,8 +1899,12 @@
       },
       "CreateBranchRequest": {
         "properties": {
-          "from": {
-            "description": "Branch or commit to create from. Defaults to tenant main branch.",
+          "fromBranch": {
+            "description": "Branch name to create from. Defaults to tenant main branch.",
+            "type": "string"
+          },
+          "fromCommit": {
+            "description": "Commit hash to create from. Mutually exclusive with fromBranch.",
             "type": "string"
           },
           "name": {
@@ -27324,6 +27328,19 @@
             "name": "branchName",
             "required": true,
             "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "default": "false",
+              "enum": [
+                "true",
+                "false"
+              ],
               "type": "string"
             }
           }

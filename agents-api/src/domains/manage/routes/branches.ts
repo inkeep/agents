@@ -1,4 +1,4 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   BranchListResponseSchema,
   BranchNameParamsSchema,
@@ -8,13 +8,9 @@ import {
   commonGetErrorResponses,
   createApiError,
   createBranch,
-  createTempBranchFromCommit,
   deleteBranch,
-  doltHashOf,
   ErrorResponseSchema,
   getBranch,
-  isTempBranchName,
-  isValidCommitHash,
   listBranches,
   listBranchesForAgent,
   TenantProjectAgentParamsSchema,
@@ -181,20 +177,15 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
-    const { name, from } = c.req.valid('json');
+    const { name, fromBranch, fromCommit } = c.req.valid('json');
 
     try {
-      if (isTempBranchName(name) && from && isValidCommitHash(from)) {
-        await createTempBranchFromCommit(db)({ name, commitHash: from });
-        const hash = await doltHashOf(db)({ revision: name });
-        return c.json({ data: { baseName: name, fullName: name, hash } }, 201);
-      }
-
       const branch = await createBranch(db)({
         tenantId,
         projectId,
         name,
-        from,
+        fromBranch,
+        fromCommit,
       });
 
       return c.json({ data: branch }, 201);
@@ -203,7 +194,11 @@ app.openapi(
 
       throwIfUniqueConstraintError(error, `Branch '${name}' already exists`);
 
-      if (message.includes('cannot be empty') || message.includes('invalid')) {
+      if (
+        message.includes('cannot be empty') ||
+        message.includes('invalid') ||
+        message.includes('Cannot specify both')
+      ) {
         throw createApiError({
           code: 'bad_request',
           message,
@@ -215,7 +210,6 @@ app.openapi(
   }
 );
 
-// Delete a branch
 app.openapi(
   createProtectedRoute({
     method: 'delete',
@@ -227,6 +221,14 @@ app.openapi(
     permission: requireProjectPermission('edit'),
     request: {
       params: BranchNameParamsSchema,
+      query: z.object({
+        force: z
+          .enum(['true', 'false'])
+          .optional()
+          .default('false')
+          .transform((v) => v === 'true')
+          .openapi({ param: { name: 'force', in: 'query' } }),
+      }),
     },
     responses: {
       204: {
@@ -246,17 +248,17 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, branchName } = c.req.valid('param');
+    const { force } = c.req.valid('query');
 
     try {
-      // First delete runtime entities associated with this branch
       const fullBranchName = `${tenantId}_${projectId}_${branchName}`;
       await cascadeDeleteByBranch(runDbClient)({
         scopes: { tenantId, projectId },
         fullBranchName,
       });
 
-      // Then delete the branch from the config DB
-      await deleteBranch(db)({ tenantId, projectId, name: branchName });
+      await deleteBranch(db)({ tenantId, projectId, branchName, force });
+
       return c.body(null, 204);
     } catch (error: any) {
       const message = error?.message || 'Unknown error';
