@@ -138,9 +138,9 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   const initialNode: Node = {
     id: generateId(),
-    type: NodeType.SubAgentPlaceholder,
+    type: NodeType.SubAgent,
     position: { x: 0, y: 0 },
-    data: { ...newNodeDefaults[NodeType.SubAgentPlaceholder] },
+    data: { ...newNodeDefaults[NodeType.SubAgent] },
   };
 
   const initialNodes = [initialNode];
@@ -211,6 +211,20 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     clearSelection();
     markUnsaved();
     commandManager.execute(new AddNodeCommand(newNode));
+    form.setValue(
+      `subAgents.${newNode.id}`,
+      {
+        id: newNode.id,
+        name: '',
+        models: { base: {}, summarizer: {}, structuredOutput: {} },
+        canUse: [],
+        dataComponents: [],
+        artifactComponents: [],
+        stopWhen: {},
+      },
+      { shouldDirty: true }
+    );
+    form.setValue('defaultSubAgentId', newNode.id, { shouldDirty: true });
     // Wait for sidebar to open (350ms for CSS transition) then center the node
     setTimeout(() => {
       fitView({

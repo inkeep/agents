@@ -25,6 +25,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
+import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useProjectData } from '@/hooks/use-project-data';
 import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
@@ -83,6 +84,13 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
 
   const { deleteNode } = useDeleteNode(nodeId);
 
+  useAutoPrefillId({
+    form,
+    nameField: path('name'),
+    idField: path('id'),
+    isEditing: false,
+  });
+
   return (
     <div className="space-y-8 flex flex-col">
       <GenericInput
@@ -109,7 +117,9 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
       />
       <SkillSelector
         selectedSkills={subAgent.skills ?? []}
-        onChange={(value) => form.setValue(path('skills'), value)}
+        onChange={(value) =>
+          form.setValue(path('skills'), value, { shouldDirty: true, shouldValidate: true })
+        }
         // TODO
         // error={getFieldError('skills')}
       />
@@ -150,8 +160,8 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
       <Separator />
       <ModelSection
         models={subAgent.models}
-        updatePath={(path, value) => {
-          form.setValue(path as any, value, { shouldDirty: true });
+        updatePath={(modelPath, value) => {
+          form.setValue(`subAgents.${nodeId}.${modelPath}` as any, value, { shouldDirty: true });
         }}
         projectModels={project?.models}
         agentModels={models}
