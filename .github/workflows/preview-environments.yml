@@ -1,0 +1,868 @@
+name: Preview Environments
+
+# Required GitHub Actions configuration
+# Secrets:
+# - RAILWAY_TOKEN
+# - VERCEL_TOKEN
+# - VERCEL_ORG_ID
+# - VERCEL_API_PROJECT_ID
+# - VERCEL_MANAGE_UI_PROJECT_ID
+#
+# Repository variables:
+# - PREVIEW_ENVIRONMENTS_ENABLED=true|false
+# - RAILWAY_PROJECT_ID=<railway project id>
+# - RAILWAY_TEMPLATE_ENVIRONMENT=<base environment to copy, e.g. staging>
+# - RAILWAY_OUTPUT_SERVICE=<service name/id that exposes resolved runtime vars, default: agents-api>
+# - RAILWAY_MANAGE_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_MANAGE_DATABASE_URL>
+# - RAILWAY_RUN_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_RUN_DATABASE_URL>
+# - RAILWAY_SPICEDB_ENDPOINT_KEY=<runtime var key, default: SPICEDB_ENDPOINT>
+# - Optional explicit runtime templates (used when PR env is missing vars):
+#   - RAILWAY_MANAGE_DB_URL_TEMPLATE (example: ${{doltgres.DATABASE_URL}})
+#   - RAILWAY_RUN_DB_URL_TEMPLATE (example: ${{postgres.DATABASE_URL}})
+#   - RAILWAY_SPICEDB_ENDPOINT_TEMPLATE (example: ${{spicedb.SERVICE_PRIVATE_URL}})
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to simulate
+        required: false
+        type: string
+      force_enable:
+        description: Force-enable preview flow for this manual run only
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-environments-${{ github.event.pull_request.number || inputs.pr_number || github.ref }}
+  cancel-in-progress: false
+
+env:
+  PREVIEW_BASE_DOMAIN: preview.inkeep.com
+  PREVIEW_ENVIRONMENTS_ENABLED: ${{ vars.PREVIEW_ENVIRONMENTS_ENABLED || 'false' }}
+
+jobs:
+  compute-context:
+    name: Compute Preview Context
+    runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ steps.compute.outputs.pr_number }}
+      pr_branch: ${{ steps.compute.outputs.pr_branch }}
+      api_url: ${{ steps.compute.outputs.api_url }}
+      ui_url: ${{ steps.compute.outputs.ui_url }}
+      is_internal_pr: ${{ steps.compute.outputs.is_internal_pr }}
+      preview_enabled: ${{ steps.compute.outputs.preview_enabled }}
+    steps:
+      - name: Compute context
+        id: compute
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          EVENT_PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          INPUT_FORCE_ENABLE: ${{ inputs.force_enable }}
+          EVENT_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
+          WORKFLOW_REPO_FULL_NAME: ${{ github.repository }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          PR_NUMBER="${EVENT_PR_NUMBER:-${INPUT_PR_NUMBER:-}}"
+          if [ -z "${PR_NUMBER}" ]; then
+            echo "Unable to determine PR number."
+            exit 1
+          fi
+          if ! [[ "${PR_NUMBER}" =~ ^[0-9]+$ ]]; then
+            echo "Invalid PR number: ${PR_NUMBER}"
+            exit 1
+          fi
+
+          if [ -n "${EVENT_PR_BRANCH:-}" ]; then
+            PR_BRANCH="${EVENT_PR_BRANCH}"
+          elif [ "${EVENT_NAME:-}" = "workflow_dispatch" ]; then
+            PR_BRANCH="$(
+              curl -fsS \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "${GITHUB_API_URL}/repos/${WORKFLOW_REPO_FULL_NAME}/pulls/${PR_NUMBER}" |
+                jq -r '.head.ref // empty'
+            )"
+            if [ -z "${PR_BRANCH}" ]; then
+              echo "Unable to resolve PR branch from GitHub API for PR #${PR_NUMBER}; using fallback."
+              PR_BRANCH="pr-${PR_NUMBER}"
+            fi
+          else
+            PR_BRANCH="pr-${PR_NUMBER}"
+          fi
+
+          IS_INTERNAL_PR="false"
+          if [ "${EVENT_NAME:-}" = "workflow_dispatch" ]; then
+            IS_INTERNAL_PR="true"
+          fi
+          if [ -n "${EVENT_REPO_FULL_NAME:-}" ] && [ "${EVENT_REPO_FULL_NAME}" = "${WORKFLOW_REPO_FULL_NAME}" ]; then
+            IS_INTERNAL_PR="true"
+          fi
+
+          API_URL="https://pr-${PR_NUMBER}-api.${PREVIEW_BASE_DOMAIN}"
+          UI_URL="https://pr-${PR_NUMBER}-ui.${PREVIEW_BASE_DOMAIN}"
+
+          PREVIEW_ENABLED="${PREVIEW_ENVIRONMENTS_ENABLED}"
+          if [ "${EVENT_NAME:-}" = "workflow_dispatch" ] && [ "${INPUT_FORCE_ENABLE:-false}" = "true" ]; then
+            PREVIEW_ENABLED="true"
+          fi
+
+          echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "pr_branch=${PR_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "api_url=${API_URL}" >> "$GITHUB_OUTPUT"
+          echo "ui_url=${UI_URL}" >> "$GITHUB_OUTPUT"
+          echo "is_internal_pr=${IS_INTERNAL_PR}" >> "$GITHUB_OUTPUT"
+          echo "preview_enabled=${PREVIEW_ENABLED}" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        run: |
+          {
+            echo "## Preview Context"
+            echo "- PR: #${{ steps.compute.outputs.pr_number }}"
+            echo "- Branch: \`${{ steps.compute.outputs.pr_branch }}\`"
+            echo "- API URL: \`${{ steps.compute.outputs.api_url }}\`"
+            echo "- UI URL: \`${{ steps.compute.outputs.ui_url }}\`"
+            echo "- Internal PR: \`${{ steps.compute.outputs.is_internal_pr }}\`"
+            echo "- Preview flow enabled: \`${{ steps.compute.outputs.preview_enabled }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  preview-disabled:
+    name: Preview Flow Disabled
+    runs-on: ubuntu-latest
+    needs: [compute-context]
+    if: needs.compute-context.outputs.preview_enabled != 'true'
+    steps:
+      - name: Explain disabled state
+        run: |
+          {
+            echo "## Preview Environments Disabled"
+            echo "Set repository variable \`PREVIEW_ENVIRONMENTS_ENABLED=true\` to activate provisioning + env injection."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  provision-tier1:
+    name: Provision Tier 1 (Railway)
+    runs-on: ubuntu-latest
+    needs: [compute-context]
+    if: |
+      needs.compute-context.outputs.preview_enabled == 'true' &&
+      github.event.action != 'closed' &&
+      needs.compute-context.outputs.is_internal_pr == 'true'
+    outputs:
+      manage_db_url: ${{ steps.provision.outputs.manage_db_url }}
+      run_db_url: ${{ steps.provision.outputs.run_db_url }}
+      spicedb_endpoint: ${{ steps.provision.outputs.spicedb_endpoint }}
+    steps:
+      - name: Validate required secrets
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
+        run: |
+          set -euo pipefail
+          for required in RAILWAY_TOKEN RAILWAY_PROJECT_ID RAILWAY_TEMPLATE_ENVIRONMENT; do
+            if [ -z "${!required:-}" ]; then
+              echo "Missing required configuration: ${required}"
+              exit 1
+            fi
+          done
+
+      - name: Provision per-PR resources
+        id: provision
+        env:
+          CI: true
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
+          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+          RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
+          RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
+          RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
+          RAILWAY_MANAGE_DB_URL_TEMPLATE: ${{ vars.RAILWAY_MANAGE_DB_URL_TEMPLATE || '' }}
+          RAILWAY_RUN_DB_URL_TEMPLATE: ${{ vars.RAILWAY_RUN_DB_URL_TEMPLATE || '' }}
+          RAILWAY_SPICEDB_ENDPOINT_TEMPLATE: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_TEMPLATE || '' }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
+          RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
+          RAILWAY_HOME_DIR="${RUNNER_TEMP:-/tmp}/railway-home"
+          mkdir -p "${RAILWAY_HOME_DIR}"
+          if ! [[ "${RAILWAY_ENV_NAME}" =~ ^pr-[0-9]+$ ]]; then
+            echo "Refusing to provision non-PR environment name: ${RAILWAY_ENV_NAME}"
+            exit 1
+          fi
+
+          railway() {
+            docker run --rm \
+              -e CI \
+              -e RAILWAY_API_TOKEN \
+              -v "${RAILWAY_HOME_DIR}:/root/.railway" \
+              -v "$PWD:/workspace" \
+              -w /workspace \
+              ghcr.io/railwayapp/cli:latest railway "$@"
+          }
+
+          railway link \
+            --project "${RAILWAY_PROJECT_ID}" \
+            --service "${RAILWAY_OUTPUT_SERVICE}" \
+            --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
+            >/dev/null
+
+          if railway project list --json > /tmp/railway-projects.json; then
+            ENV_EXISTS="$(
+              jq -r \
+                --arg project_id "${RAILWAY_PROJECT_ID}" \
+                --arg name "${RAILWAY_ENV_NAME}" \
+                '[.[] | select(.id == $project_id) | .environments.edges[].node | select(.name == $name)] | length' \
+                /tmp/railway-projects.json
+            )"
+          else
+            echo "Failed to list Railway environments for project ${RAILWAY_PROJECT_ID}"
+            exit 1
+          fi
+
+          if [ "${ENV_EXISTS}" = "0" ]; then
+            if ! railway environment new "${RAILWAY_ENV_NAME}" \
+              --copy "${RAILWAY_TEMPLATE_ENVIRONMENT}"; then
+              echo "Initial create attempt failed; re-checking whether ${RAILWAY_ENV_NAME} now exists."
+              railway project list --json > /tmp/railway-projects.json
+              ENV_EXISTS="$(
+                jq -r \
+                  --arg project_id "${RAILWAY_PROJECT_ID}" \
+                  --arg name "${RAILWAY_ENV_NAME}" \
+                  '[.[] | select(.id == $project_id) | .environments.edges[].node | select(.name == $name)] | length' \
+                  /tmp/railway-projects.json
+              )"
+              if [ "${ENV_EXISTS}" = "0" ]; then
+                echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}."
+                exit 1
+              fi
+            fi
+          else
+            echo "Railway environment ${RAILWAY_ENV_NAME} already exists"
+          fi
+
+          TEMPLATE_SERVICE_ENV_JSON="$(
+            railway variable list \
+              --service "${RAILWAY_OUTPUT_SERVICE}" \
+              --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
+              --json
+          )"
+
+          SERVICE_ENV_JSON="$(
+            railway variable list \
+              --service "${RAILWAY_OUTPUT_SERVICE}" \
+              --environment "${RAILWAY_ENV_NAME}" \
+              --json
+          )"
+
+          json_get_var() {
+            local json="$1"
+            local key="$2"
+
+            jq -r --arg key "$key" '.[$key] // empty' <<< "${json}"
+          }
+
+          refresh_service_env_dump() {
+            SERVICE_ENV_JSON="$(
+              railway variable list \
+                --service "${RAILWAY_OUTPUT_SERVICE}" \
+                --environment "${RAILWAY_ENV_NAME}" \
+                --json
+            )"
+            SERVICE_ENV_DUMP="$(jq -r 'to_entries[] | "\(.key)=\(.value)"' <<< "${SERVICE_ENV_JSON}")"
+          }
+
+          ensure_runtime_var_seeded() {
+            local key="$1"
+            local explicit_template="$2"
+            local existing seed_value source
+
+            existing="$(json_get_var "${SERVICE_ENV_JSON}" "${key}")"
+            if [ -n "${existing}" ]; then
+              return
+            fi
+
+            if [ -n "${explicit_template}" ]; then
+              seed_value="${explicit_template}"
+              source="repository template variable"
+            else
+              seed_value="$(json_get_var "${TEMPLATE_SERVICE_ENV_JSON}" "${key}")"
+              source="template environment ${RAILWAY_TEMPLATE_ENVIRONMENT}"
+            fi
+
+            if [ -z "${seed_value}" ]; then
+              echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
+              echo "Set ${key} in ${RAILWAY_TEMPLATE_ENVIRONMENT} or provide an explicit template repo var override for this key." >&2
+              exit 1
+            fi
+
+            railway variable set \
+              --service "${RAILWAY_OUTPUT_SERVICE}" \
+              --environment "${RAILWAY_ENV_NAME}" \
+              --skip-deploys \
+              "${key}=${seed_value}" >/dev/null
+
+            echo "Seeded ${key} in ${RAILWAY_ENV_NAME} from ${source}."
+            refresh_service_env_dump
+          }
+
+          extract_runtime_var() {
+            local key="$1"
+            local max_attempts="${2:-30}"
+            local sleep_seconds="${3:-2}"
+            local attempt line value
+
+            for attempt in $(seq 1 "${max_attempts}"); do
+              line="$(printf '%s\n' "${SERVICE_ENV_DUMP}" | grep -m1 "^${key}=" || true)"
+              if [ -n "${line}" ]; then
+                value="${line#*=}"
+                if ! printf '%s' "${value}" | grep -q '\$[{][{]'; then
+                  printf '%s' "${value}"
+                  return 0
+                fi
+              fi
+
+              if [ "${attempt}" -lt "${max_attempts}" ]; then
+                sleep "${sleep_seconds}"
+                refresh_service_env_dump
+                continue
+              fi
+            done
+
+            if [ -z "${line}" ]; then
+              echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
+            else
+              echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
+            fi
+            exit 1
+          }
+
+          refresh_service_env_dump
+          ensure_runtime_var_seeded "${RAILWAY_MANAGE_DB_URL_KEY}" "${RAILWAY_MANAGE_DB_URL_TEMPLATE}"
+          ensure_runtime_var_seeded "${RAILWAY_RUN_DB_URL_KEY}" "${RAILWAY_RUN_DB_URL_TEMPLATE}"
+          ensure_runtime_var_seeded "${RAILWAY_SPICEDB_ENDPOINT_KEY}" "${RAILWAY_SPICEDB_ENDPOINT_TEMPLATE}"
+
+          MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
+          RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
+          SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
+
+          echo "::add-mask::${MANAGE_DB_URL}"
+          echo "::add-mask::${RUN_DB_URL}"
+          echo "::add-mask::${SPICEDB_ENDPOINT}"
+
+          echo "manage_db_url=${MANAGE_DB_URL}" >> "$GITHUB_OUTPUT"
+          echo "run_db_url=${RUN_DB_URL}" >> "$GITHUB_OUTPUT"
+          echo "spicedb_endpoint=${SPICEDB_ENDPOINT}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Tier 1 Provisioning"
+            echo "- Railway environment: \`${RAILWAY_ENV_NAME}\`"
+            echo "- Template environment: \`${RAILWAY_TEMPLATE_ENVIRONMENT}\`"
+            echo "- Runtime variable source service: \`${RAILWAY_OUTPUT_SERVICE}\`"
+            echo "- Resolved manage DB URL: ✅"
+            echo "- Resolved run DB URL: ✅"
+            echo "- Resolved SpiceDB endpoint: ✅"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  configure-vercel-preview:
+    name: Inject Vercel Preview Env Vars
+    runs-on: ubuntu-latest
+    needs: [compute-context, provision-tier1]
+    if: |
+      needs.compute-context.outputs.preview_enabled == 'true' &&
+      github.event.action != 'closed' &&
+      needs.compute-context.outputs.is_internal_pr == 'true'
+    outputs:
+      api_deployment_url: ${{ steps.deploy.outputs.api_deployment_url }}
+      ui_deployment_url: ${{ steps.deploy.outputs.ui_deployment_url }}
+    steps:
+      - name: Upsert Vercel env vars for API + UI projects
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          VERCEL_MANAGE_UI_PROJECT_ID: ${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_BRANCH: ${{ needs.compute-context.outputs.pr_branch }}
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+          MANAGE_DB_URL: ${{ needs.provision-tier1.outputs.manage_db_url }}
+          RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
+          SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          CI: true
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+          RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
+          RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
+          RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
+        run: |
+          set -euo pipefail
+
+          for required in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_API_PROJECT_ID VERCEL_MANAGE_UI_PROJECT_ID ANTHROPIC_API_KEY; do
+            if [ -z "${!required:-}" ]; then
+              echo "Missing required secret: ${required}"
+              exit 1
+            fi
+          done
+          if ! [[ "${PR_BRANCH}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "Invalid PR branch value: ${PR_BRANCH}"
+            exit 1
+          fi
+
+          if [ -z "${MANAGE_DB_URL}" ] || [ -z "${RUN_DB_URL}" ] || [ -z "${SPICEDB_ENDPOINT}" ]; then
+            PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
+            RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
+            RAILWAY_HOME_DIR="${RUNNER_TEMP:-/tmp}/railway-home"
+            mkdir -p "${RAILWAY_HOME_DIR}"
+
+            railway() {
+              docker run --rm \
+                -e CI \
+                -e RAILWAY_API_TOKEN \
+                -v "${RAILWAY_HOME_DIR}:/root/.railway" \
+                -v "$PWD:/workspace" \
+                -w /workspace \
+                ghcr.io/railwayapp/cli:latest railway "$@"
+            }
+
+            railway link \
+              --project "${RAILWAY_PROJECT_ID}" \
+              --service "${RAILWAY_OUTPUT_SERVICE}" \
+              --environment "${RAILWAY_ENV_NAME}" \
+              >/dev/null
+
+            extract_runtime_var() {
+              local key="$1"
+              local max_attempts="${2:-20}"
+              local sleep_seconds="${3:-2}"
+              local attempt value
+
+              for attempt in $(seq 1 "${max_attempts}"); do
+                value="$(
+                  railway variable list \
+                    --service "${RAILWAY_OUTPUT_SERVICE}" \
+                    --environment "${RAILWAY_ENV_NAME}" \
+                    --json |
+                  jq -r --arg key "${key}" '.[$key] // empty'
+                )"
+
+                if [ -n "${value}" ] && ! printf '%s' "${value}" | grep -q '\$[{][{]'; then
+                  printf '%s' "${value}"
+                  return 0
+                fi
+
+                if [ "${attempt}" -lt "${max_attempts}" ]; then
+                  sleep "${sleep_seconds}"
+                fi
+              done
+
+              if [ -z "${value:-}" ]; then
+                echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
+              else
+                echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
+              fi
+              exit 1
+            }
+
+            if [ -z "${MANAGE_DB_URL}" ]; then
+              MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
+            fi
+            if [ -z "${RUN_DB_URL}" ]; then
+              RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
+            fi
+            if [ -z "${SPICEDB_ENDPOINT}" ]; then
+              SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
+            fi
+          fi
+
+          echo "::add-mask::${MANAGE_DB_URL}"
+          echo "::add-mask::${RUN_DB_URL}"
+          echo "::add-mask::${SPICEDB_ENDPOINT}"
+
+          for required in MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT; do
+            if [ -z "${!required:-}" ]; then
+              echo "Missing required runtime value: ${required}"
+              exit 1
+            fi
+          done
+
+          upsert_env() {
+            local project_id="$1"
+            local key="$2"
+            local value="$3"
+
+            local payload
+            payload="$(jq -n \
+              --arg key "$key" \
+              --arg value "$value" \
+              --arg branch "$PR_BRANCH" \
+              '{key:$key, value:$value, type:"encrypted", target:["preview"], gitBranch:$branch}')"
+
+            curl --fail-with-body -sS \
+              -X POST \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "https://api.vercel.com/v10/projects/${project_id}/env?upsert=true&teamId=${VERCEL_ORG_ID}" \
+              --data "${payload}" >/dev/null
+          }
+
+          # agents-manage-ui project
+          upsert_env "${VERCEL_MANAGE_UI_PROJECT_ID}" "INKEEP_AGENTS_API_URL" "${API_URL}"
+          upsert_env "${VERCEL_MANAGE_UI_PROJECT_ID}" "PUBLIC_INKEEP_AGENTS_API_URL" "${API_URL}"
+          upsert_env "${VERCEL_MANAGE_UI_PROJECT_ID}" "NEXT_PUBLIC_INKEEP_AGENTS_API_URL" "${API_URL}"
+
+          # agents-api project
+          upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_API_URL" "${API_URL}"
+          upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_MANAGE_UI_URL" "${UI_URL}"
+          upsert_env "${VERCEL_API_PROJECT_ID}" "ANTHROPIC_API_KEY" "${ANTHROPIC_API_KEY}"
+
+          # Tier 1 outputs from Railway provisioning
+          if [ -n "${MANAGE_DB_URL}" ]; then
+            upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_MANAGE_DATABASE_URL" "${MANAGE_DB_URL}"
+          fi
+          if [ -n "${RUN_DB_URL}" ]; then
+            upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_RUN_DATABASE_URL" "${RUN_DB_URL}"
+          fi
+          if [ -n "${SPICEDB_ENDPOINT}" ]; then
+            upsert_env "${VERCEL_API_PROJECT_ID}" "SPICEDB_ENDPOINT" "${SPICEDB_ENDPOINT}"
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Trigger Vercel preview deploys
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          VERCEL_MANAGE_UI_PROJECT_ID: ${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}
+          PR_BRANCH: ${{ needs.compute-context.outputs.pr_branch }}
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PR_BRANCH:-}" ]; then
+            echo "PR branch is required for preview deploy targeting."
+            exit 1
+          fi
+          npm install -g vercel
+
+          API_DOMAIN="${API_URL#https://}"
+          API_DOMAIN="${API_DOMAIN#http://}"
+          API_DOMAIN="${API_DOMAIN%%/*}"
+
+          UI_DOMAIN="${UI_URL#https://}"
+          UI_DOMAIN="${UI_DOMAIN#http://}"
+          UI_DOMAIN="${UI_DOMAIN%%/*}"
+
+          deploy_and_alias() {
+            local project_id="$1"
+            local alias_domain="$2"
+            local output_key="$3"
+            local deployment_url log_file
+
+            export VERCEL_PROJECT_ID="${project_id}"
+            vercel pull --yes --environment=preview --git-branch="${PR_BRANCH}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}"
+
+            if [ "${output_key}" = "api_deployment_url" ]; then
+              emit_preview_env_debug() {
+                local env_file=".vercel/.env.preview.local"
+
+                if [ ! -f "${env_file}" ]; then
+                  {
+                    echo "## API Preview Env Snapshot"
+                    echo "- Missing \`${env_file}\` after \`vercel pull\`"
+                  } | tee -a "$GITHUB_STEP_SUMMARY"
+                  return
+                fi
+
+                debug_key() {
+                  local key="$1"
+                  local raw value length
+
+                  raw="$(grep -m1 "^${key}=" "${env_file}" || true)"
+                  if [ -z "${raw}" ]; then
+                    echo "- \`${key}\`: absent"
+                    return
+                  fi
+
+                  value="${raw#*=}"
+                  length="${#value}"
+
+                  case "${key}" in
+                    ENVIRONMENT|NODE_ENV|LOG_LEVEL|SPICEDB_TLS_ENABLED)
+                      echo "- \`${key}\`: present, value=\`${value}\`, len=${length}"
+                      ;;
+                    *)
+                      echo "- \`${key}\`: present, len=${length}"
+                      ;;
+                  esac
+                }
+
+                {
+                  echo "## API Preview Env Snapshot"
+                  debug_key "ENVIRONMENT"
+                  debug_key "NODE_ENV"
+                  debug_key "LOG_LEVEL"
+                  debug_key "INKEEP_AGENTS_MANAGE_DATABASE_URL"
+                  debug_key "INKEEP_AGENTS_RUN_DATABASE_URL"
+                  debug_key "SPICEDB_ENDPOINT"
+                  debug_key "SPICEDB_PRESHARED_KEY"
+                  debug_key "SPICEDB_TLS_ENABLED"
+                  debug_key "ANTHROPIC_API_KEY"
+                  debug_key "BETTER_AUTH_SECRET"
+                  debug_key "INKEEP_AGENTS_JWT_SIGNING_SECRET"
+                  debug_key "GITHUB_STATE_SIGNING_SECRET"
+                  debug_key "INKEEP_COPILOT_TENANT_ID"
+                  debug_key "INKEEP_COPILOT_PROJECT_ID"
+                  debug_key "INKEEP_COPILOT_AGENT_ID"
+                  debug_key "BLOB_READ_WRITE_TOKEN"
+                  debug_key "BLOB_STORAGE_S3_BUCKET"
+                  debug_key "BLOB_STORAGE_S3_REGION"
+                  debug_key "BLOB_STORAGE_S3_ACCESS_KEY_ID"
+                  debug_key "BLOB_STORAGE_S3_SECRET_ACCESS_KEY"
+                } | tee -a "$GITHUB_STEP_SUMMARY"
+              }
+
+              emit_preview_env_debug
+            fi
+
+            log_file="$(mktemp)"
+            vercel deploy --yes --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" 2>&1 | tee "${log_file}"
+
+            deployment_url="$(
+              grep -E 'Preview:[[:space:]]+https://' "${log_file}" |
+                tail -n1 |
+                sed -E 's/.*Preview:[[:space:]]+(https:\/\/[^[:space:]]+).*/\1/' ||
+                true
+            )"
+            if [ -z "${deployment_url}" ]; then
+              deployment_url="$(grep -Eo 'https://[^[:space:]]+' "${log_file}" | tail -n1 || true)"
+            fi
+            if [ -z "${deployment_url}" ]; then
+              echo "Unable to parse deployment URL for project ${project_id}."
+              echo "Last deploy log lines:"
+              tail -n 20 "${log_file}" || true
+              exit 1
+            fi
+
+            vercel alias set "${deployment_url}" "${alias_domain}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}"
+            echo "${output_key}=${deployment_url}" >> "$GITHUB_OUTPUT"
+
+            {
+              echo "## Vercel Preview Alias"
+              echo "- Project: \`${project_id}\`"
+              echo "- Deployment: \`${deployment_url}\`"
+              echo "- Alias: \`${alias_domain}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          deploy_and_alias "${VERCEL_API_PROJECT_ID}" "${API_DOMAIN}" "api_deployment_url"
+          deploy_and_alias "${VERCEL_MANAGE_UI_PROJECT_ID}" "${UI_DOMAIN}" "ui_deployment_url"
+
+  smoke-preview:
+    name: Smoke Test Preview URLs
+    runs-on: ubuntu-latest
+    needs: [compute-context, configure-vercel-preview]
+    if: |
+      needs.compute-context.outputs.preview_enabled == 'true' &&
+      github.event.action != 'closed' &&
+      needs.compute-context.outputs.is_internal_pr == 'true'
+    steps:
+      - name: Basic URL checks
+        id: smoke
+        continue-on-error: true
+        env:
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+        run: |
+          set -euo pipefail
+
+          wait_for_success_url() {
+            local url="$1"
+            local attempts="${2:-30}"
+            local sleep_seconds="${3:-5}"
+            local attempt
+
+            for attempt in $(seq 1 "${attempts}"); do
+              if curl -fsS "${url}" >/dev/null; then
+                return 0
+              fi
+
+              if [ "${attempt}" -lt "${attempts}" ]; then
+                sleep "${sleep_seconds}"
+              fi
+            done
+
+            echo "Timed out waiting for ${url}" >&2
+            return 1
+          }
+
+          wait_for_ui_url() {
+            local url="$1"
+            local attempts="${2:-30}"
+            local sleep_seconds="${3:-5}"
+            local attempt status_code
+
+            for attempt in $(seq 1 "${attempts}"); do
+              status_code="$(
+                curl -sS -o /dev/null -w '%{http_code}' "${url}" || true
+              )"
+              case "${status_code}" in
+                200|204|301|302|307|308|401|403)
+                  return 0
+                  ;;
+              esac
+
+              if [ "${attempt}" -lt "${attempts}" ]; then
+                sleep "${sleep_seconds}"
+              fi
+            done
+
+            echo "Timed out waiting for UI preview at ${url}; last status=${status_code:-unknown}" >&2
+            return 1
+          }
+
+          wait_for_success_url "${API_URL}/health" 30 5
+          wait_for_ui_url "${UI_URL}" 30 5
+
+      - name: Capture preview failure diagnostics
+        if: ${{ always() && steps.smoke.outcome == 'failure' }}
+        env:
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+        run: |
+          set -euo pipefail
+
+          echo "## Smoke Failure Diagnostics" >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo "### API /health response"
+            curl -i -sS "${API_URL}/health" || true
+            echo
+            echo "### API / response"
+            curl -i -sS "${API_URL}/" || true
+            echo
+            echo "### UI response"
+            curl -I -sS "${UI_URL}" || true
+          } | tee /tmp/preview-smoke-diagnostics.txt
+
+      - name: Fetch Vercel runtime logs for API deployment
+        if: ${{ always() && steps.smoke.outcome == 'failure' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          API_DEPLOYMENT_URL: ${{ needs.configure-vercel-preview.outputs.api_deployment_url }}
+        run: |
+          set +e
+          npm install -g vercel
+          export VERCEL_PROJECT_ID="${VERCEL_API_PROJECT_ID}"
+          TARGET_DEPLOYMENT="${API_DEPLOYMENT_URL:-${API_URL}}"
+          echo "## Vercel Deployment Inspect (API)" >> "$GITHUB_STEP_SUMMARY"
+          vercel inspect "${TARGET_DEPLOYMENT}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" 2>&1 | tee /tmp/vercel-inspect.txt
+          echo "## Vercel Runtime Logs (API)" >> "$GITHUB_STEP_SUMMARY"
+          vercel logs "${TARGET_DEPLOYMENT}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" --since=1h --no-follow 2>&1 | tail -n 200
+
+      - name: Fail job when smoke checks fail
+        if: ${{ steps.smoke.outcome == 'failure' }}
+        run: |
+          echo "Smoke checks failed"
+          exit 1
+
+  teardown-tier1:
+    name: Teardown Tier 1 (Railway)
+    runs-on: ubuntu-latest
+    needs: [compute-context]
+    if: |
+      needs.compute-context.outputs.preview_enabled == 'true' &&
+      github.event.action == 'closed' &&
+      needs.compute-context.outputs.is_internal_pr == 'true'
+    steps:
+      - name: Validate required secrets
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
+          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+        run: |
+          set -euo pipefail
+          for required in RAILWAY_TOKEN RAILWAY_PROJECT_ID RAILWAY_TEMPLATE_ENVIRONMENT RAILWAY_OUTPUT_SERVICE; do
+            if [ -z "${!required:-}" ]; then
+              echo "Missing required configuration: ${required}"
+              exit 1
+            fi
+          done
+
+      - name: Teardown per-PR resources
+        env:
+          CI: true
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
+          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
+          RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
+          RAILWAY_HOME_DIR="${RUNNER_TEMP:-/tmp}/railway-home"
+          mkdir -p "${RAILWAY_HOME_DIR}"
+          if ! [[ "${RAILWAY_ENV_NAME}" =~ ^pr-[0-9]+$ ]]; then
+            echo "Refusing to delete non-PR environment name: ${RAILWAY_ENV_NAME}"
+            exit 1
+          fi
+
+          railway() {
+            docker run --rm \
+              -e CI \
+              -e RAILWAY_API_TOKEN \
+              -v "${RAILWAY_HOME_DIR}:/root/.railway" \
+              -v "$PWD:/workspace" \
+              -w /workspace \
+              ghcr.io/railwayapp/cli:latest railway "$@"
+          }
+
+          railway link \
+            --project "${RAILWAY_PROJECT_ID}" \
+            --service "${RAILWAY_OUTPUT_SERVICE}" \
+            --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
+            >/dev/null
+
+          railway project list --json > /tmp/railway-projects.json
+          ENV_EXISTS="$(
+            jq -r \
+              --arg project_id "${RAILWAY_PROJECT_ID}" \
+              --arg name "${RAILWAY_ENV_NAME}" \
+              '[.[] | select(.id == $project_id) | .environments.edges[].node | select(.name == $name)] | length' \
+              /tmp/railway-projects.json
+          )"
+
+          if [ "${ENV_EXISTS}" = "0" ]; then
+            echo "Railway environment ${RAILWAY_ENV_NAME} does not exist; nothing to teardown."
+            exit 0
+          fi
+
+          railway environment delete "${RAILWAY_ENV_NAME}" --yes
+
+          {
+            echo "## Tier 1 Teardown"
+            echo "- Railway environment: \`${RAILWAY_ENV_NAME}\`"
+            echo "- Status: deleted"
+          } >> "$GITHUB_STEP_SUMMARY"
