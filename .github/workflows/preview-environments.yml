@@ -52,6 +52,7 @@ jobs:
   compute-context:
     name: Compute Preview Context
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       pr_number: ${{ steps.compute.outputs.pr_number }}
       pr_branch: ${{ steps.compute.outputs.pr_branch }}
@@ -89,7 +90,7 @@ jobs:
             PR_BRANCH="${EVENT_PR_BRANCH}"
           elif [ "${EVENT_NAME:-}" = "workflow_dispatch" ]; then
             PR_BRANCH="$(
-              curl -fsS \
+              curl --connect-timeout 10 --max-time 30 -fsS \
                 -H "Authorization: Bearer ${GH_TOKEN}" \
                 -H "Accept: application/vnd.github+json" \
                 "${GITHUB_API_URL}/repos/${WORKFLOW_REPO_FULL_NAME}/pulls/${PR_NUMBER}" |
@@ -141,6 +142,7 @@ jobs:
   preview-disabled:
     name: Preview Flow Disabled
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [compute-context]
     if: needs.compute-context.outputs.preview_enabled != 'true'
     steps:
@@ -154,6 +156,7 @@ jobs:
   provision-tier1:
     name: Provision Tier 1 (Railway)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [compute-context]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
@@ -164,6 +167,9 @@ jobs:
       run_db_url: ${{ steps.provision.outputs.run_db_url }}
       spicedb_endpoint: ${{ steps.provision.outputs.spicedb_endpoint }}
     steps:
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@4.31.0
+
       - name: Validate required secrets
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -196,22 +202,10 @@ jobs:
           set -euo pipefail
           PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
           RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
-          RAILWAY_HOME_DIR="${RUNNER_TEMP:-/tmp}/railway-home"
-          mkdir -p "${RAILWAY_HOME_DIR}"
           if ! [[ "${RAILWAY_ENV_NAME}" =~ ^pr-[0-9]+$ ]]; then
             echo "Refusing to provision non-PR environment name: ${RAILWAY_ENV_NAME}"
             exit 1
           fi
-
-          railway() {
-            docker run --rm \
-              -e CI \
-              -e RAILWAY_API_TOKEN \
-              -v "${RAILWAY_HOME_DIR}:/root/.railway" \
-              -v "$PWD:/workspace" \
-              -w /workspace \
-              ghcr.io/railwayapp/cli:latest railway "$@"
-          }
 
           railway link \
             --project "${RAILWAY_PROJECT_ID}" \
@@ -355,11 +349,10 @@ jobs:
           ensure_runtime_var_seeded "${RAILWAY_SPICEDB_ENDPOINT_KEY}" "${RAILWAY_SPICEDB_ENDPOINT_TEMPLATE}"
 
           MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
-          RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
-          SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
-
           echo "::add-mask::${MANAGE_DB_URL}"
+          RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
           echo "::add-mask::${RUN_DB_URL}"
+          SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
           echo "::add-mask::${SPICEDB_ENDPOINT}"
 
           echo "manage_db_url=${MANAGE_DB_URL}" >> "$GITHUB_OUTPUT"
@@ -379,6 +372,7 @@ jobs:
   configure-vercel-preview:
     name: Inject Vercel Preview Env Vars
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [compute-context, provision-tier1]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
@@ -388,6 +382,9 @@ jobs:
       api_deployment_url: ${{ steps.deploy.outputs.api_deployment_url }}
       ui_deployment_url: ${{ steps.deploy.outputs.ui_deployment_url }}
     steps:
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@4.31.0
+
       - name: Upsert Vercel env vars for API + UI projects
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -421,22 +418,11 @@ jobs:
             echo "Invalid PR branch value: ${PR_BRANCH}"
             exit 1
           fi
+          echo "::add-mask::${ANTHROPIC_API_KEY}"
 
           if [ -z "${MANAGE_DB_URL}" ] || [ -z "${RUN_DB_URL}" ] || [ -z "${SPICEDB_ENDPOINT}" ]; then
             PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
             RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
-            RAILWAY_HOME_DIR="${RUNNER_TEMP:-/tmp}/railway-home"
-            mkdir -p "${RAILWAY_HOME_DIR}"
-
-            railway() {
-              docker run --rm \
-                -e CI \
-                -e RAILWAY_API_TOKEN \
-                -v "${RAILWAY_HOME_DIR}:/root/.railway" \
-                -v "$PWD:/workspace" \
-                -w /workspace \
-                ghcr.io/railwayapp/cli:latest railway "$@"
-            }
 
             railway link \
               --project "${RAILWAY_PROJECT_ID}" \
@@ -480,17 +466,20 @@ jobs:
             if [ -z "${MANAGE_DB_URL}" ]; then
               MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
             fi
+            echo "::add-mask::${MANAGE_DB_URL}"
             if [ -z "${RUN_DB_URL}" ]; then
               RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
             fi
+            echo "::add-mask::${RUN_DB_URL}"
             if [ -z "${SPICEDB_ENDPOINT}" ]; then
               SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
             fi
+            echo "::add-mask::${SPICEDB_ENDPOINT}"
+          else
+            echo "::add-mask::${MANAGE_DB_URL}"
+            echo "::add-mask::${RUN_DB_URL}"
+            echo "::add-mask::${SPICEDB_ENDPOINT}"
           fi
-
-          echo "::add-mask::${MANAGE_DB_URL}"
-          echo "::add-mask::${RUN_DB_URL}"
-          echo "::add-mask::${SPICEDB_ENDPOINT}"
 
           for required in MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT; do
             if [ -z "${!required:-}" ]; then
@@ -504,19 +493,28 @@ jobs:
             local key="$2"
             local value="$3"
 
-            local payload
+            local payload response
             payload="$(jq -n \
               --arg key "$key" \
               --arg value "$value" \
               --arg branch "$PR_BRANCH" \
               '{key:$key, value:$value, type:"encrypted", target:["preview"], gitBranch:$branch}')"
 
-            curl --fail-with-body -sS \
-              -X POST \
-              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-              -H "Content-Type: application/json" \
-              "https://api.vercel.com/v10/projects/${project_id}/env?upsert=true&teamId=${VERCEL_ORG_ID}" \
-              --data "${payload}" >/dev/null
+            if ! response="$(
+              curl --fail-with-body -sS \
+                --connect-timeout 10 \
+                --max-time 60 \
+                -X POST \
+                -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+                -H "Content-Type: application/json" \
+                "https://api.vercel.com/v10/projects/${project_id}/env?upsert=true&teamId=${VERCEL_ORG_ID}" \
+                --data "${payload}" \
+                2>&1
+            )"; then
+              echo "Failed to upsert env var ${key} for project ${project_id}." >&2
+              printf '%s\n' "${response}" >&2
+              return 1
+            fi
           }
 
           # agents-manage-ui project
@@ -544,7 +542,7 @@ jobs:
           fi
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
@@ -569,7 +567,7 @@ jobs:
             echo "PR head SHA is required for preview deploy targeting."
             exit 1
           fi
-          npm install -g vercel
+          npm install -g vercel@50.32.5
 
           REPO_OWNER="${GITHUB_REPOSITORY%%/*}"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
@@ -707,7 +705,8 @@ jobs:
   smoke-preview:
     name: Smoke Test Preview URLs
     runs-on: ubuntu-latest
-    needs: [compute-context, configure-vercel-preview]
+    timeout-minutes: 15
+    needs: [compute-context, provision-tier1, configure-vercel-preview]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
       github.event.action != 'closed' &&
@@ -729,7 +728,7 @@ jobs:
             local attempt
 
             for attempt in $(seq 1 "${attempts}"); do
-              if curl -fsS "${url}" >/dev/null; then
+              if curl --connect-timeout 5 --max-time 15 -fsS "${url}" >/dev/null; then
                 return 0
               fi
 
@@ -750,7 +749,7 @@ jobs:
 
             for attempt in $(seq 1 "${attempts}"); do
               status_code="$(
-                curl -sS -o /dev/null -w '%{http_code}' "${url}" || true
+                curl --connect-timeout 5 --max-time 15 -sS -o /dev/null -w '%{http_code}' "${url}" || true
               )"
               case "${status_code}" in
                 200|204|301|302|307|308|401|403)
@@ -782,13 +781,13 @@ jobs:
 
           {
             echo "### API /health response"
-            curl -i -sS "${API_URL}/health" || true
+            curl --connect-timeout 5 --max-time 15 -i -sS "${API_URL}/health" || true
             echo
             echo "### API / response"
-            curl -i -sS "${API_URL}/" || true
+            curl --connect-timeout 5 --max-time 15 -i -sS "${API_URL}/" || true
             echo
             echo "### UI response"
-            curl -I -sS "${UI_URL}" || true
+            curl --connect-timeout 5 --max-time 15 -I -sS "${UI_URL}" || true
           } | tee /tmp/preview-smoke-diagnostics.txt
 
       - name: Fetch Vercel runtime logs for API deployment
@@ -799,15 +798,27 @@ jobs:
           VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           API_DEPLOYMENT_URL: ${{ needs.configure-vercel-preview.outputs.api_deployment_url }}
+          MANAGE_DB_URL: ${{ needs.provision-tier1.outputs.manage_db_url }}
+          RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
+          SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           set +e
-          npm install -g vercel
+          npm install -g vercel@50.32.5
           export VERCEL_PROJECT_ID="${VERCEL_API_PROJECT_ID}"
           TARGET_DEPLOYMENT="${API_DEPLOYMENT_URL:-${API_URL}}"
+
+          redact_preview_logs() {
+            sed -E \
+              -e 's#(postgres(ql)?://)[^[:space:]]+#\1[REDACTED]#g' \
+              -e 's#((ANTHROPIC_API_KEY|SPICEDB_PRESHARED_KEY|BETTER_AUTH_SECRET|INKEEP_AGENTS_MANAGE_DATABASE_URL|INKEEP_AGENTS_RUN_DATABASE_URL|BLOB_STORAGE_S3_SECRET_ACCESS_KEY|BLOB_STORAGE_S3_ACCESS_KEY_ID|SPICEDB_ENDPOINT)[:=])[^\r\n[:space:]]+#\1[REDACTED]#g' \
+              -e 's#(Bearer )[A-Za-z0-9._-]+#\1[REDACTED]#g'
+          }
+
           echo "## Vercel Deployment Inspect (API)" >> "$GITHUB_STEP_SUMMARY"
-          vercel inspect "${TARGET_DEPLOYMENT}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" 2>&1 | tee /tmp/vercel-inspect.txt
+          vercel inspect "${TARGET_DEPLOYMENT}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" 2>&1 | redact_preview_logs | tee /tmp/vercel-inspect.txt
           echo "## Vercel Runtime Logs (API)" >> "$GITHUB_STEP_SUMMARY"
-          vercel logs "${TARGET_DEPLOYMENT}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" --since=1h --no-follow 2>&1 | tail -n 200
+          vercel logs "${TARGET_DEPLOYMENT}" --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" --since=1h --no-follow 2>&1 | redact_preview_logs | tail -n 200
 
       - name: Fail job when smoke checks fail
         if: ${{ steps.smoke.outcome == 'failure' }}
@@ -818,12 +829,16 @@ jobs:
   teardown-tier1:
     name: Teardown Tier 1 (Railway)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [compute-context]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
       github.event.action == 'closed' &&
       needs.compute-context.outputs.is_internal_pr == 'true'
     steps:
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@4.31.0
+
       - name: Validate required secrets
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -850,22 +865,10 @@ jobs:
           set -euo pipefail
           PR_NUMBER="${{ needs.compute-context.outputs.pr_number }}"
           RAILWAY_ENV_NAME="pr-${PR_NUMBER}"
-          RAILWAY_HOME_DIR="${RUNNER_TEMP:-/tmp}/railway-home"
-          mkdir -p "${RAILWAY_HOME_DIR}"
           if ! [[ "${RAILWAY_ENV_NAME}" =~ ^pr-[0-9]+$ ]]; then
             echo "Refusing to delete non-PR environment name: ${RAILWAY_ENV_NAME}"
             exit 1
           fi
-
-          railway() {
-            docker run --rm \
-              -e CI \
-              -e RAILWAY_API_TOKEN \
-              -v "${RAILWAY_HOME_DIR}:/root/.railway" \
-              -v "$PWD:/workspace" \
-              -w /workspace \
-              ghcr.io/railwayapp/cli:latest railway "$@"
-          }
 
           railway link \
             --project "${RAILWAY_PROJECT_ID}" \
@@ -873,7 +876,10 @@ jobs:
             --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
             >/dev/null
 
-          railway project list --json > /tmp/railway-projects.json
+          if ! railway project list --json > /tmp/railway-projects.json; then
+            echo "Failed to list Railway environments for project ${RAILWAY_PROJECT_ID}" >&2
+            exit 1
+          fi
           ENV_EXISTS="$(
             jq -r \
               --arg project_id "${RAILWAY_PROJECT_ID}" \
@@ -887,7 +893,39 @@ jobs:
             exit 0
           fi
 
-          railway environment delete "${RAILWAY_ENV_NAME}" --yes
+          if ! railway environment delete "${RAILWAY_ENV_NAME}" --yes; then
+            echo "Failed to delete Railway environment ${RAILWAY_ENV_NAME}." >&2
+            exit 1
+          fi
+
+          POST_EXISTS="1"
+          for attempt in $(seq 1 10); do
+            if ! railway project list --json > /tmp/railway-projects-post.json; then
+              echo "Failed to verify teardown state for Railway environment ${RAILWAY_ENV_NAME}." >&2
+              exit 1
+            fi
+
+            POST_EXISTS="$(
+              jq -r \
+                --arg project_id "${RAILWAY_PROJECT_ID}" \
+                --arg name "${RAILWAY_ENV_NAME}" \
+                '[.[] | select(.id == $project_id) | .environments.edges[].node | select(.name == $name)] | length' \
+                /tmp/railway-projects-post.json
+            )"
+
+            if [ "${POST_EXISTS}" = "0" ]; then
+              break
+            fi
+
+            if [ "${attempt}" -lt 10 ]; then
+              sleep 2
+            fi
+          done
+
+          if [ "${POST_EXISTS}" != "0" ]; then
+            echo "Railway environment ${RAILWAY_ENV_NAME} still exists after teardown." >&2
+            exit 1
+          fi
 
           {
             echo "## Tier 1 Teardown"
