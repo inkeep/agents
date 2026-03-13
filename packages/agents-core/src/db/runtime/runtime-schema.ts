@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
   foreignKey,
@@ -940,6 +940,44 @@ export const workAppGitHubMcpToolRepositoryAccessRelations = relations(
     }),
   })
 );
+
+export const triggerSchedules = pgTable(
+  'trigger_schedules',
+  {
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
+
+    cronExpression: varchar('cron_expression', { length: 256 }),
+    cronTimezone: varchar('cron_timezone', { length: 64 }).default('UTC'),
+    runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
+    enabled: boolean('enabled').notNull().default(true),
+
+    nextRunAt: timestamp('next_run_at', { withTimezone: true, mode: 'string' }),
+
+    claimedAt: timestamp('claimed_at', { withTimezone: true, mode: 'string' }),
+
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.scheduledTriggerId] }),
+    index('trigger_schedules_dispatch_idx')
+      .on(table.nextRunAt)
+      .where(sql`enabled = true AND claimed_at IS NULL`),
+    index('trigger_schedules_stale_claim_idx')
+      .on(table.claimedAt)
+      .where(sql`claimed_at IS NOT NULL`),
+  ]
+);
+
+export const schedulerState = pgTable('scheduler_state', {
+  id: varchar('id', { length: 64 }).primaryKey().default('singleton'),
+  currentRunId: varchar('current_run_id', { length: 256 }),
+  deploymentId: varchar('deployment_id', { length: 256 }),
+  startedAt: timestamp('started_at', { withTimezone: true, mode: 'string' }),
+  ...timestamps,
+});
 
 // ============================================================================
 // SLACK WORK APP MCP ACCESS CONFIG
