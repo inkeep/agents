@@ -35,14 +35,25 @@ export function BuiltInMcpCard({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   return (
     <ItemCardRoot
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
       className={`h-full min-w-0 transition-shadow ${
         disabled
           ? 'opacity-50 cursor-not-allowed'
-          : 'cursor-pointer hover:shadow-md hover:bg-accent/50'
+          : 'cursor-pointer hover:shadow-md hover:bg-accent/50 focus:ring-2 focus:ring-primary focus:outline-none'
       }`}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
     >
       <ItemCardHeader>
         <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
