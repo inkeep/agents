@@ -143,7 +143,7 @@ it('should persist imageUrl field on create', async () => {
 it('should update imageUrl field', async () => {
   const createRes = await makeRequest('POST', '/tools', createTestToolData());
 
-  const updateRes = await makeRequest('PUT', `/tools/${createRes.body.id}`, {
+  const updateRes = await makeRequest('PATCH', `/tools/${createRes.body.id}`, {
     imageUrl: 'https://example.com/new-icon.png',
   });
   expect(updateRes.status).toBe(200);
@@ -178,3 +178,13 @@ app.openapi(
   },
 );
 ```
+
+---
+
+## HTTP Method Conventions
+
+Use the correct HTTP method for each CRUD operation. See the "CRUD HTTP Method Conventions" section in AGENTS.md for the full table and RFC references.
+
+- **PATCH** is the canonical method for partial/sparse update operations
+- **PUT** is reserved for full-resource replacement — existing PUT routes remain but new update routes must use PATCH
+- When adding a PATCH route alongside an existing PUT route, extract the handler and route config to shared variables, register PATCH with the canonical `operationId`, and register PUT with a `-put` suffixed `operationId` and `'x-speakeasy-ignore': true`

@@ -158,6 +158,22 @@ The `agents-api` package contains all API domains under a single service:
 
 ## Key Implementation Details
 
+### CRUD HTTP Method Conventions (RFC 9110, RFC 5789)
+
+| Operation | Method | Path Pattern | Example |
+|-----------|--------|-------------|---------|
+| Create | POST | `/resources` | `POST /agents` |
+| Read (list) | GET | `/resources` | `GET /agents` |
+| Read (single) | GET | `/resources/{id}` | `GET /agents/{id}` |
+| Update (partial) | PATCH | `/resources/{id}` | `PATCH /agents/{id}` |
+| Delete | DELETE | `/resources/{id}` | `DELETE /agents/{id}` |
+
+- **PATCH** for updates with partial/sparse bodies (RFC 5789) — this is the canonical method
+- **PUT** is reserved for full-resource replacement (RFC 9110 §9.3.4) — existing PUT routes remain functional but new update routes must use PATCH
+- **POST** for creates and non-idempotent actions (sync, reconnect, cancel, etc.)
+- **GET** for reads — never mutates state
+- **DELETE** for resource removal
+
 ### Database Migration Workflow
 
 #### Standard Workflow
