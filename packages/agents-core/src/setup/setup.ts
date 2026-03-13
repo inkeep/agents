@@ -1,7 +1,9 @@
 import { exec, spawn } from 'node:child_process';
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
-import { copyFileSync, existsSync, writeFileSync } from 'node:fs';
+import { copyFileSync, createWriteStream, existsSync, writeFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import dotenv from 'dotenv';
 import { loadEnvironmentFiles } from '../env.js';
@@ -234,6 +236,7 @@ export interface SetupPushConfig {
   projectPath: string;
   configPath: string;
   apiKey?: string;
+  apiUrl?: string;
 }
 
 export interface SetupConfig {
@@ -605,8 +608,10 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
     logSuccess('API server already running');
   } else if (config.devApiCommand) {
     logInfo('Starting API server temporarily...');
+    const apiLogPath = join(tmpdir(), `setup-dev-api-${Date.now()}.log`);
+    const apiLogStream = createWriteStream(apiLogPath, { flags: 'a' });
     const proc = spawn('sh', ['-c', config.devApiCommand], {
-      stdio: 'ignore',
+      stdio: ['ignore', apiLogStream, apiLogStream],
       detached: true,
       cwd: process.cwd(),
     });
@@ -614,6 +619,7 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
     result.startedApi = true;
     result.apiPid = proc.pid ?? null;
     logSuccess(`API server process started (PID: ${proc.pid})`);
+    logInfo(`API server logs: ${apiLogPath}`);
   }
 
   if (config.uiHealthUrl) {
@@ -622,8 +628,10 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
       logSuccess('Dashboard already running');
     } else if (config.devUiCommand) {
       logInfo('Starting Dashboard temporarily...');
+      const uiLogPath = join(tmpdir(), `setup-dev-ui-${Date.now()}.log`);
+      const uiLogStream = createWriteStream(uiLogPath, { flags: 'a' });
       const proc = spawn('sh', ['-c', config.devUiCommand], {
-        stdio: 'ignore',
+        stdio: ['ignore', uiLogStream, uiLogStream],
         detached: true,
         cwd: process.cwd(),
         env: process.env,
@@ -632,6 +640,7 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
       result.startedUi = true;
       result.uiPid = proc.pid ?? null;
       logSuccess(`Dashboard process started (PID: ${proc.pid})`);
+      logInfo(`Dashboard logs: ${uiLogPath}`);
     }
   }
 
@@ -700,11 +709,12 @@ async function pushProject(pushConfig: SetupPushConfig) {
         INKEEP_CI: 'true',
         INKEEP_API_KEY: pushConfig.apiKey,
         INKEEP_TENANT_ID: process.env.INKEEP_TENANT_ID || 'default',
+        ...(pushConfig.apiUrl ? { INKEEP_AGENTS_API_URL: pushConfig.apiUrl } : {}),
       }
     : { ...process.env };
 
   try {
-    const pushCmd = `pnpm inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`;
+    const pushCmd = `pnpm exec inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`;
     const { stdout } = await execAsync(pushCmd, { env: pushEnv, cwd: process.cwd() });
     if (stdout) console.log(`${colors.dim}${stdout.trim()}${colors.reset}`);
     logSuccess('Project pushed successfully');
@@ -720,7 +730,7 @@ async function pushProject(pushConfig: SetupPushConfig) {
     }
     logWarning('The project may not have been seeded. You can manually run:');
     logInfo(
-      `  pnpm inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`
+      `  pnpm exec inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`
     );
     return false;
   }

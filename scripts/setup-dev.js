@@ -108,6 +108,7 @@ if (isolatedName) {
           projectPath: 'agents-cookbook/template-projects/activities-planner',
           configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
           apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
+          apiUrl: `http://localhost:${apiPort}`,
         },
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
     apiHealthUrl: `http://localhost:${apiPort}/health`,
