@@ -996,9 +996,6 @@ export const triggerSchedules = pgTable(
     index('trigger_schedules_dispatch_idx')
       .on(table.nextRunAt)
       .where(sql`enabled = true AND claimed_at IS NULL`),
-    index('trigger_schedules_stale_claim_idx')
-      .on(table.claimedAt)
-      .where(sql`claimed_at IS NOT NULL`),
   ]
 );
 

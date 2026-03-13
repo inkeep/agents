@@ -21,10 +21,6 @@
             "nullable": true,
             "type": "string"
           },
-          "executionMode": {
-            "maxLength": 50,
-            "type": "string"
-          },
           "id": {
             "maxLength": 256,
             "type": "string"
@@ -144,7 +140,6 @@
           "statusUpdates",
           "prompt",
           "stopWhen",
-          "executionMode",
           "createdAt",
           "updatedAt"
         ],
@@ -158,26 +153,16 @@
             "type": "string"
           },
           "defaultSubAgentId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ResourceId"
-              },
-              {
-                "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
-                "example": "my-default-subagent",
-                "nullable": true
-              }
-            ]
+            "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
+            "example": "my-default-subagent",
+            "maxLength": 255,
+            "minLength": 1,
+            "nullable": true,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
+            "type": "string"
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
-          },
-          "executionMode": {
-            "enum": [
-              "classic",
-              "durable"
-            ],
-            "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -329,7 +314,7 @@
             "description": "The maximum number of transfers to trigger the stop condition.",
             "maximum": 1000,
             "minimum": 1,
-            "type": "integer"
+            "type": "number"
           }
         },
         "type": "object"
@@ -342,26 +327,16 @@
             "type": "string"
           },
           "defaultSubAgentId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ResourceId"
-              },
-              {
-                "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
-                "example": "my-default-subagent",
-                "nullable": true
-              }
-            ]
+            "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
+            "example": "my-default-subagent",
+            "maxLength": 255,
+            "minLength": 1,
+            "nullable": true,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
+            "type": "string"
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
-          },
-          "executionMode": {
-            "enum": [
-              "classic",
-              "durable"
-            ],
-            "type": "string"
           },
           "models": {
             "anyOf": [
@@ -916,10 +891,6 @@
             "nullable": true,
             "type": "string"
           },
-          "prompt": {
-            "nullable": true,
-            "type": "string"
-          },
           "tenantId": {
             "maxLength": 256,
             "nullable": true,
@@ -1014,10 +985,6 @@
             "nullable": true,
             "type": "string"
           },
-          "prompt": {
-            "nullable": true,
-            "type": "string"
-          },
           "tenantId": {
             "maxLength": 256,
             "nullable": true,
@@ -1040,7 +1007,6 @@
           "type",
           "defaultProjectId",
           "defaultAgentId",
-          "prompt",
           "enabled",
           "lastUsedAt",
           "createdAt",
@@ -1082,10 +1048,6 @@
           },
           "projectId": {
             "maxLength": 256,
-            "nullable": true,
-            "type": "string"
-          },
-          "prompt": {
             "nullable": true,
             "type": "string"
           },
@@ -2291,8 +2253,7 @@
             "enum": [
               "memory",
               "keychain",
-              "nango",
-              "composio"
+              "nango"
             ],
             "type": "string"
           },
@@ -2352,8 +2313,7 @@
             "enum": [
               "memory",
               "keychain",
-              "nango",
-              "composio"
+              "nango"
             ],
             "type": "string"
           },
@@ -2433,8 +2393,7 @@
             "enum": [
               "memory",
               "keychain",
-              "nango",
-              "composio"
+              "nango"
             ],
             "type": "string"
           },
@@ -2465,8 +2424,7 @@
             "enum": [
               "memory",
               "keychain",
-              "nango",
-              "composio"
+              "nango"
             ],
             "type": "string"
           }
@@ -5168,7 +5126,35 @@
       "FunctionCreate": {
         "properties": {
           "dependencies": {
-            "$ref": "#/components/schemas/StringRecord"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "executeCode": {
             "minLength": 1,
@@ -5178,11 +5164,35 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
-            "additionalProperties": {
-              "nullable": true
-            },
-            "nullable": true,
-            "type": "object"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           }
         },
         "required": [
@@ -5266,7 +5276,8 @@
       "FunctionToolCreate": {
         "properties": {
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "functionId": {
             "maxLength": 256,
@@ -5276,7 +5287,8 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           }
         },
         "required": [
@@ -5322,7 +5334,8 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "functionId": {
             "maxLength": 256,
@@ -5332,7 +5345,8 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           }
         },
         "type": "object"
@@ -5343,21 +5357,72 @@
             "type": "string"
           },
           "dependencies": {
-            "$ref": "#/components/schemas/StringRecord"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "executeCode": {
-            "minLength": 1,
             "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
-            "additionalProperties": {
-              "nullable": true
-            },
-            "nullable": true,
-            "type": "object"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "updatedAt": {
             "type": "string"
@@ -5566,16 +5631,8 @@
           "data": {
             "items": {
               "properties": {
-                "authScheme": {
-                  "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
-                  "type": "string"
-                },
                 "category": {
                   "description": "Category of the MCP server (e.g., communication, project_management)",
-                  "type": "string"
-                },
-                "connectedAccountId": {
-                  "description": "The Composio connected account ID for the active connection",
                   "type": "string"
                 },
                 "description": {
@@ -5888,13 +5945,42 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "expiresAt": {
             "type": "string"
           },
           "headers": {
-            "$ref": "#/components/schemas/StringRecord"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -5910,7 +5996,8 @@
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           },
           "projectId": {
             "maxLength": 256,
@@ -6357,7 +6444,6 @@
               "forbidden",
               "not_found",
               "conflict",
-              "too_many_requests",
               "internal_server_error",
               "unprocessable_entity"
             ],
@@ -7034,16 +7120,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "ref": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ResolvedRef"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
           "resolvedPayload": {
             "additionalProperties": {
               "nullable": true
@@ -7129,6 +7205,10 @@
       },
       "ScheduledTriggerUpdate": {
         "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -7180,6 +7260,10 @@
             "nullable": true,
             "type": "object"
           },
+          "projectId": {
+            "maxLength": 256,
+            "type": "string"
+          },
           "retryDelaySeconds": {
             "maximum": 3600,
             "minimum": 10,
@@ -7194,6 +7278,10 @@
             "description": "One-time execution timestamp",
             "format": "date-time",
             "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
             "type": "string"
           },
           "timeoutSeconds": {
@@ -7570,16 +7658,14 @@
         "type": "object"
       },
       "StatusUpdate": {
-        "additionalProperties": false,
         "properties": {
           "enabled": {
             "type": "boolean"
           },
           "numEvents": {
-            "description": "Trigger after N events",
             "maximum": 100,
             "minimum": 1,
-            "type": "integer"
+            "type": "number"
           },
           "prompt": {
             "maxLength": 2000,
@@ -7592,10 +7678,9 @@
             "type": "array"
           },
           "timeInSeconds": {
-            "description": "Trigger after N seconds",
             "maximum": 600,
             "minimum": 1,
-            "type": "integer"
+            "type": "number"
           }
         },
         "type": "object"
@@ -7607,13 +7692,13 @@
             "description": "The maximum number of steps to trigger the stop condition.",
             "maximum": 1000,
             "minimum": 1,
-            "type": "integer"
+            "type": "number"
           },
           "transferCountIs": {
             "description": "The maximum number of transfers to trigger the stop condition.",
             "maximum": 1000,
             "minimum": 1,
-            "type": "integer"
+            "type": "number"
           }
         },
         "type": "object"
@@ -7827,7 +7912,8 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -7836,7 +7922,8 @@
             "$ref": "#/components/schemas/Model"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           },
           "prompt": {
             "nullable": true,
@@ -8479,7 +8566,7 @@
             "description": "The maximum number of steps to trigger the stop condition.",
             "maximum": 1000,
             "minimum": 1,
-            "type": "integer"
+            "type": "number"
           }
         },
         "type": "object"
@@ -8915,7 +9002,8 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -8924,7 +9012,8 @@
             "$ref": "#/components/schemas/Model"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           },
           "prompt": {
             "nullable": true,
@@ -8970,18 +9059,19 @@
       "TeamAgent": {
         "properties": {
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceId"
+            "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "type": "string"
           }
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "description"
         ],
         "type": "object"
       },
@@ -9019,16 +9109,8 @@
           "data": {
             "nullable": true,
             "properties": {
-              "authScheme": {
-                "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
-                "type": "string"
-              },
               "category": {
                 "description": "Category of the MCP server (e.g., communication, project_management)",
-                "type": "string"
-              },
-              "connectedAccountId": {
-                "description": "The Composio connected account ID for the active connection",
                 "type": "string"
               },
               "description": {
@@ -9387,10 +9469,39 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "headers": {
-            "$ref": "#/components/schemas/StringRecord"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -9406,7 +9517,8 @@
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           }
         },
         "required": [
@@ -9567,10 +9679,39 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "headers": {
-            "$ref": "#/components/schemas/StringRecord"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -9586,7 +9727,8 @@
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           }
         },
         "type": "object"
@@ -9953,16 +10095,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "ref": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ResolvedRef"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
           "requestPayload": {
             "anyOf": [
               {
@@ -10156,6 +10288,10 @@
       },
       "TriggerUpdate": {
         "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
           "authentication": {
             "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
@@ -10201,6 +10337,10 @@
           },
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
+          },
+          "projectId": {
+            "maxLength": 256,
+            "type": "string"
           },
           "runAsUserId": {
             "description": "User ID to run the webhook as",
@@ -10261,6 +10401,10 @@
           "signingSecretCredentialReferenceId": {
             "description": "Reference to credential containing signing secret",
             "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
             "type": "string"
           },
           "updatedAt": {
@@ -10551,6 +10695,39 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/deploy/restart-scheduler": {
+      "post": {
+        "description": "Called by CI after deploy to restart the scheduler workflow on the latest deployment. Auth via INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
+        "responses": {
+          "200": {
+            "description": "Scheduler workflow restarted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [],
+        "summary": "Restart scheduler workflow on new deployment",
+        "tags": [
+          "Deploy"
+        ]
+      }
+    },
+    "/api/workflow/process": {
+      "get": {
+        "description": "Keeps the workflow worker active to process queued jobs (called by cron)",
+        "responses": {
+          "200": {
+            "description": "Processing complete"
+          }
+        },
+        "security": [],
+        "summary": "Process workflow jobs",
+        "tags": [
+          "Workflows"
+        ]
+      }
+    },
     "/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversation": {
       "post": {
         "operationId": "evaluate-conversation",
@@ -11252,7 +11429,7 @@
           "resource": "organization"
         }
       },
-      "patch": {
+      "put": {
         "description": "Create or update the profile for a specific user. Users can only update their own profile.",
         "operationId": "upsert-user-profile",
         "parameters": [
@@ -15204,7 +15381,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-context-config",
         "parameters": [
           {
@@ -15960,7 +16137,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-function-tool",
         "parameters": [
           {
@@ -20147,7 +20324,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-sub-agent-relation",
         "parameters": [
           {
@@ -21270,7 +21447,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-subagent-tool-relation",
         "parameters": [
           {
@@ -21872,7 +22049,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-subagent",
         "parameters": [
           {
@@ -22503,7 +22680,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-sub-agent-external-agent-relation",
         "parameters": [
           {
@@ -23264,7 +23441,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-sub-agent-team-agent-relation",
         "parameters": [
           {
@@ -24720,7 +24897,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-agent",
         "parameters": [
           {
@@ -25301,7 +25478,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "description": "Update an API key (currently only expiration date can be changed)",
         "operationId": "update-api-key",
         "parameters": [
@@ -25882,7 +26059,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "description": "Update an app credential configuration",
         "operationId": "update-app",
         "parameters": [
@@ -26429,7 +26606,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-artifact-component",
         "parameters": [
           {
@@ -28556,7 +28733,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-credential",
         "parameters": [
           {
@@ -29102,7 +29279,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-data-component",
         "parameters": [
           {
@@ -34869,7 +35046,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-external-agent",
         "parameters": [
           {
@@ -35465,7 +35642,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-function",
         "parameters": [
           {
@@ -37305,7 +37482,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-skill",
         "parameters": [
           {
@@ -38216,7 +38393,7 @@
           "resource": "project"
         }
       },
-      "patch": {
+      "put": {
         "operationId": "update-tool",
         "parameters": [
           {
@@ -39553,31 +39730,6 @@
                               },
                               {
                                 "properties": {
-                                  "filename": {
-                                    "type": "string"
-                                  },
-                                  "mediaType": {
-                                    "type": "string"
-                                  },
-                                  "type": {
-                                    "enum": [
-                                      "file"
-                                    ],
-                                    "type": "string"
-                                  },
-                                  "url": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "url",
-                                  "mediaType"
-                                ],
-                                "type": "object"
-                              },
-                              {
-                                "properties": {
                                   "text": {
                                     "type": "string"
                                   },
@@ -39586,7 +39738,8 @@
                                       {
                                         "enum": [
                                           "audio",
-                                          "video"
+                                          "video",
+                                          "file"
                                         ],
                                         "type": "string"
                                       },
@@ -39793,449 +39946,6 @@
         "summary": "Chat (Vercel Streaming Protocol)",
         "tags": [
           "Chat"
-        ],
-        "x-authz": {
-          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
-        }
-      }
-    },
-    "/run/api/executions": {
-      "post": {
-        "description": "Starts a durable workflow-backed agent execution. Returns an SSE stream with an x-workflow-run-id header for reconnection.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "conversationId": {
-                    "type": "string"
-                  },
-                  "forwardedHeaders": {
-                    "additionalProperties": {
-                      "type": "string"
-                    },
-                    "type": "object"
-                  },
-                  "messages": {
-                    "description": "The conversation messages",
-                    "items": {
-                      "properties": {
-                        "content": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "items": {
-                                "oneOf": [
-                                  {
-                                    "properties": {
-                                      "text": {
-                                        "type": "string"
-                                      },
-                                      "type": {
-                                        "enum": [
-                                          "text"
-                                        ],
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "text"
-                                    ],
-                                    "type": "object"
-                                  },
-                                  {
-                                    "properties": {
-                                      "image_url": {
-                                        "properties": {
-                                          "detail": {
-                                            "enum": [
-                                              "auto",
-                                              "low",
-                                              "high"
-                                            ],
-                                            "type": "string"
-                                          },
-                                          "url": {
-                                            "anyOf": [
-                                              {
-                                                "format": "uri",
-                                                "type": "string"
-                                              },
-                                              {
-                                                "pattern": "^data:image\\/(png|jpeg|jpg|webp);base64,",
-                                                "type": "string"
-                                              }
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "url"
-                                        ],
-                                        "type": "object"
-                                      },
-                                      "type": {
-                                        "enum": [
-                                          "image_url"
-                                        ],
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "image_url"
-                                    ],
-                                    "type": "object"
-                                  }
-                                ]
-                              },
-                              "type": "array"
-                            }
-                          ],
-                          "description": "The message content"
-                        },
-                        "role": {
-                          "enum": [
-                            "system",
-                            "user",
-                            "assistant",
-                            "function",
-                            "tool"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "role",
-                        "content"
-                      ],
-                      "type": "object"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "messages"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Streaming SSE response. The x-workflow-run-id header contains the run ID for reconnection.",
-            "headers": {
-              "Content-Type": {
-                "required": false,
-                "schema": {
-                  "default": "text/event-stream",
-                  "type": "string"
-                }
-              },
-              "x-workflow-run-id": {
-                "required": true,
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Invalid request"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Agent not found"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Create durable agent execution",
-        "tags": [
-          "Executions"
-        ],
-        "x-authz": {
-          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
-        }
-      }
-    },
-    "/run/api/executions/:executionId": {
-      "get": {
-        "description": "Returns the status of a durable execution.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "executionId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "agentId": {
-                      "type": "string"
-                    },
-                    "conversationId": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "enum": [
-                        "running",
-                        "suspended",
-                        "completed",
-                        "failed"
-                      ],
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "status",
-                    "conversationId",
-                    "agentId",
-                    "createdAt",
-                    "updatedAt"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Execution status"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Execution not found"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Get execution status",
-        "tags": [
-          "Executions"
-        ],
-        "x-authz": {
-          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
-        }
-      }
-    },
-    "/run/api/executions/:executionId/approvals/:toolCallId": {
-      "post": {
-        "description": "Resumes a suspended durable execution by approving or denying a pending tool call.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "executionId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "toolCallId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "approved": {
-                    "type": "boolean"
-                  },
-                  "reason": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "approved"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Tool call approval submitted"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Execution not found"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Approve or deny a tool call",
-        "tags": [
-          "Executions"
-        ],
-        "x-authz": {
-          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
-        }
-      }
-    },
-    "/run/api/executions/:executionId/stream": {
-      "get": {
-        "description": "Reconnects to the SSE stream of an existing durable execution.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "executionId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "SSE stream"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Execution not found"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Reconnect to execution stream",
-        "tags": [
-          "Executions"
         ],
         "x-authz": {
           "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
@@ -40681,44 +40391,6 @@
                                     "required": [
                                       "type",
                                       "image_url"
-                                    ],
-                                    "type": "object"
-                                  },
-                                  {
-                                    "properties": {
-                                      "file": {
-                                        "properties": {
-                                          "file_data": {
-                                            "anyOf": [
-                                              {
-                                                "pattern": "^data:application\\/pdf;base64,",
-                                                "type": "string"
-                                              },
-                                              {
-                                                "format": "uri",
-                                                "type": "string"
-                                              }
-                                            ]
-                                          },
-                                          "filename": {
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "file_data"
-                                        ],
-                                        "type": "object"
-                                      },
-                                      "type": {
-                                        "enum": [
-                                          "file"
-                                        ],
-                                        "type": "string"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "file"
                                     ],
                                     "type": "object"
                                   }
@@ -43026,10 +42698,6 @@
     {
       "description": "Operations for managing evaluations",
       "name": "Evaluations"
-    },
-    {
-      "description": "Durable agent execution endpoints",
-      "name": "Executions"
     },
     {
       "description": "Operations for managing external agents",

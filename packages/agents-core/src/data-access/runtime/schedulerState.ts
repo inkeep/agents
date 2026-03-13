@@ -16,7 +16,7 @@ export const getSchedulerState =
 
 export const upsertSchedulerState =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { currentRunId: string; deploymentId: string }): Promise<SchedulerStateRow> => {
+  async (params: { currentRunId: string; deploymentId?: string | null }): Promise<SchedulerStateRow> => {
     const [row] = await db
       .insert(schedulerState)
       .values({
@@ -38,13 +38,12 @@ export const upsertSchedulerState =
     return row;
   };
 
-export const clearSchedulerState =
-  (db: AgentsRunDatabaseClient) => async (): Promise<void> => {
-    await db
-      .update(schedulerState)
-      .set({
-        currentRunId: null,
-        updatedAt: sql`now()`.mapWith(String),
-      })
-      .where(eq(schedulerState.id, SINGLETON_ID));
-  };
+export const clearSchedulerState = (db: AgentsRunDatabaseClient) => async (): Promise<void> => {
+  await db
+    .update(schedulerState)
+    .set({
+      currentRunId: null,
+      updatedAt: sql`now()`.mapWith(String),
+    })
+    .where(eq(schedulerState.id, SINGLETON_ID));
+};
