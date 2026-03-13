@@ -1,8 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import axios from 'axios';
 import { z } from 'zod';
 
 const EXA_BASE_URL = 'https://api.exa.ai';
+const EXA_TIMEOUT_MS = 30_000;
 
 interface ExaResult {
   title?: string | null;
@@ -21,21 +23,15 @@ async function exaRequest<T>(
   body: Record<string, unknown>,
   apiKey: string
 ): Promise<T> {
-  const response = await fetch(`${EXA_BASE_URL}${endpoint}`, {
-    method: 'POST',
+  const response = await axios.post<T>(`${EXA_BASE_URL}${endpoint}`, body, {
     headers: {
       'content-type': 'application/json',
       'x-api-key': apiKey,
     },
-    body: JSON.stringify(body),
+    timeout: EXA_TIMEOUT_MS,
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Exa API error ${response.status}: ${text}`);
-  }
-
-  return response.json() as Promise<T>;
+  return response.data;
 }
 
 function formatResults(results: ExaResult[]): string {

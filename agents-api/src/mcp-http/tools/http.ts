@@ -1,5 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import axios from 'axios';
+import ssrfFilter from 'ssrf-req-filter';
 import { z } from 'zod';
 
 export function registerHttpTools(server: McpServer): void {
@@ -31,9 +33,6 @@ export function registerHttpTools(server: McpServer): void {
       headers = {},
       timeoutMs = 10_000,
     }): Promise<CallToolResult> => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-
       try {
         const isJsonBody = body !== null && body !== undefined && typeof body === 'object';
         const requestHeaders: Record<string, string> = { ...headers };
@@ -41,30 +40,31 @@ export function registerHttpTools(server: McpServer): void {
           requestHeaders['content-type'] = 'application/json';
         }
 
-        const response = await fetch(url, {
+        const agent = ssrfFilter(url);
+        const response = await axios({
+          url,
           method,
           headers: requestHeaders,
-          body: body !== undefined ? (isJsonBody ? JSON.stringify(body) : String(body)) : undefined,
-          signal: controller.signal,
-        });
-
-        const responseBody = await response.text();
-        const responseHeaders: Record<string, string> = {};
-        response.headers.forEach((value, key) => {
-          responseHeaders[key] = value;
+          data: body !== undefined ? (isJsonBody ? body : String(body)) : undefined,
+          timeout: timeoutMs,
+          httpAgent: agent,
+          httpsAgent: agent,
+          responseType: 'text',
+          validateStatus: () => true,
+          transformResponse: (data) => data,
         });
 
         const result = {
           status: response.status,
           statusText: response.statusText,
-          headers: responseHeaders,
-          body: responseBody,
+          headers: response.headers,
+          body: response.data,
         };
 
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        const isTimeout = message.includes('abort') || message.includes('timeout');
+        const isTimeout = message.toLowerCase().includes('timeout');
         return {
           content: [
             {
@@ -76,8 +76,6 @@ export function registerHttpTools(server: McpServer): void {
           ],
           isError: true,
         };
-      } finally {
-        clearTimeout(timer);
       }
     }
   );

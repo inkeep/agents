@@ -205,6 +205,7 @@ export class AgentMcpManager {
       try {
         client = await connectionPromise;
         this.mcpClientCache.set(cacheKey, client);
+        this.mcpConnectionLocks.delete(cacheKey);
       } catch (error) {
         this.mcpConnectionLocks.delete(cacheKey);
         logger.error(

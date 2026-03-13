@@ -57,6 +57,10 @@ class ToolResultSanitizingProcessor implements SpanProcessor {
         for (const key of INTERNAL_TOOL_RESULT_KEYS) {
           delete parsed[key];
         }
+        // Direct mutation of span.attributes works in current OTEL SDK versions because the attributes
+        // object is a plain mutable reference. This may break in future SDK versions if attributes
+        // are snapshotted before onEnd. A safer long-term fix would be a custom exporter that
+        // sanitizes before export rather than a span processor.
         (span.attributes as Record<string, unknown>)['ai.toolCall.result'] = JSON.stringify(parsed);
       }
     } catch {}
