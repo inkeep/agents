@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, lte, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { triggerSchedules } from '../../db/runtime/runtime-schema';
 
@@ -57,8 +57,8 @@ export const deleteTriggerSchedule =
       .where(
         and(
           eq(triggerSchedules.tenantId, params.tenantId),
-          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
-        ),
+          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId)
+        )
       );
   };
 
@@ -79,17 +79,14 @@ export const updateTriggerScheduleEnabled =
       .where(
         and(
           eq(triggerSchedules.tenantId, params.tenantId),
-          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
-        ),
+          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId)
+        )
       );
   };
 
 export const findDueTriggerSchedules =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    asOf: string;
-    staleClaimThreshold: string;
-  }): Promise<TriggerScheduleRow[]> => {
+  async (params: { asOf: string }): Promise<TriggerScheduleRow[]> => {
     const rows = await db
       .select()
       .from(triggerSchedules)
@@ -97,10 +94,7 @@ export const findDueTriggerSchedules =
         and(
           eq(triggerSchedules.enabled, true),
           lte(triggerSchedules.nextRunAt, params.asOf),
-          or(
-            isNull(triggerSchedules.claimedAt),
-            lte(triggerSchedules.claimedAt, params.staleClaimThreshold),
-          ),
+          isNull(triggerSchedules.claimedAt),
         ),
       );
     return rows;
@@ -126,8 +120,8 @@ export const claimTriggerSchedule =
         and(
           eq(triggerSchedules.tenantId, params.tenantId),
           eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
-          claimCondition,
-        ),
+          claimCondition
+        )
       )
       .returning();
     return rows.length > 0;
@@ -154,8 +148,8 @@ export const advanceTriggerSchedule =
       .where(
         and(
           eq(triggerSchedules.tenantId, params.tenantId),
-          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
-        ),
+          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId)
+        )
       );
   };
 
@@ -178,8 +172,8 @@ export const rollbackTriggerSchedule =
       .where(
         and(
           eq(triggerSchedules.tenantId, params.tenantId),
-          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
-        ),
+          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId)
+        )
       );
   };
 
@@ -194,7 +188,7 @@ export const releaseTriggerScheduleClaim =
       .where(
         and(
           eq(triggerSchedules.tenantId, params.tenantId),
-          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId),
-        ),
+          eq(triggerSchedules.scheduledTriggerId, params.scheduledTriggerId)
+        )
       );
   };

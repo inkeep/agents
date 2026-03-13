@@ -10444,6 +10444,24 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/deploy/restart-scheduler": {
+      "post": {
+        "description": "Called by CI after deploy to restart the scheduler workflow on the latest deployment. Auth via INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
+        "responses": {
+          "200": {
+            "description": "Scheduler workflow restarted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [],
+        "summary": "Restart scheduler workflow on new deployment",
+        "tags": [
+          "Deploy"
+        ]
+      }
+    },
     "/api/workflow/process": {
       "get": {
         "description": "Keeps the workflow worker active to process queued jobs (called by cron)",

@@ -45,7 +45,7 @@ function syncTriggerToScheduleTable(trigger: ScheduledTrigger) {
 export async function onTriggerCreated(trigger: ScheduledTrigger): Promise<void> {
   logger.info(
     { scheduledTriggerId: trigger.id, enabled: trigger.enabled },
-    'Syncing new trigger to schedule table',
+    'Syncing new trigger to schedule table'
   );
 
   await syncTriggerToScheduleTable(trigger);
@@ -92,7 +92,7 @@ export async function onTriggerUpdated(params: {
     if (cancelledCount > 0) {
       logger.info(
         { scheduledTriggerId: trigger.id, cancelledCount },
-        'Cancelled past pending invocations on trigger re-enable',
+        'Cancelled past pending invocations on trigger re-enable'
       );
     }
 
@@ -114,7 +114,7 @@ export async function onTriggerUpdated(params: {
     if (cancelledCount > 0) {
       logger.info(
         { scheduledTriggerId: trigger.id, cancelledCount },
-        'Cancelled pending invocations on schedule change',
+        'Cancelled pending invocations on schedule change'
       );
     }
 
@@ -127,10 +127,7 @@ export async function onTriggerUpdated(params: {
  * The workflow will be automatically deleted via cascade when the trigger is deleted.
  */
 export async function onTriggerDeleted(trigger: ScheduledTrigger): Promise<void> {
-  logger.info(
-    { scheduledTriggerId: trigger.id },
-    'Removing trigger from schedule table',
-  );
+  logger.info({ scheduledTriggerId: trigger.id }, 'Removing trigger from schedule table');
 
   await deleteTriggerSchedule(runDbClient)({
     tenantId: trigger.tenantId,

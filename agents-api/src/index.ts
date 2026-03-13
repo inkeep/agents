@@ -20,6 +20,7 @@ import { createAgentsHono } from './createApp';
 import { createAgentsAuth } from './factory';
 import { createAuth0Provider } from './ssoHelpers';
 import type { SandboxConfig } from './types';
+import { startSchedulerWorkflow } from './domains/run/services/SchedulerService';
 import { recoverOrphanedWorkflows, world } from './workflow/world';
 
 export type { AppConfig, AppVariables } from './types';
@@ -138,6 +139,8 @@ if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
       if (recoveredCount > 0) {
         logger.info({ recoveredCount }, 'Recovered orphaned workflow(s)');
       }
+      await startSchedulerWorkflow();
+      logger.info({}, 'Scheduler workflow started');
     } catch (err) {
       logger.error({ error: err }, 'Failed to start workflow world');
     }
