@@ -35,6 +35,8 @@ import { sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
 import { healthChecksHandler } from './routes/healthChecks';
+import { restartWorkflowHandler } from './routes/restartScheduler';
+import { workflowProcessHandler } from './routes/workflowProcess';
 import type { AppConfig, AppVariables } from './types';
 
 const logger = getLogger('agents-api');
@@ -215,6 +217,12 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount health check routes at root level
   app.route('/', healthChecksHandler);
+
+  // Workflow process endpoint - called by Vercel cron to keep worker active
+  app.route('/', workflowProcessHandler);
+
+  // Deploy hook - restarts scheduler workflow on new deployment
+  app.route('/', restartWorkflowHandler);
 
   // Authentication middleware for protected manage routes
   app.use('/manage/tenants/*', manageBearerOrSessionAuth());
