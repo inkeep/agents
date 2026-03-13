@@ -94,7 +94,7 @@ Cypress.Commands.add('deleteAgent', (tenantId: string, projectId: string, agentI
 
 Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
   return cy
-    .get(`[data-uri="file:///${uri}"] textarea`, { timeout: 10_000 })
+    .get(`[data-uri$="${uri}"] textarea`, { timeout: 10_000 })
     .type('{selectall}{del}', { force: true })
     .type(value, {
       parseSpecialCharSequences: false,
@@ -105,12 +105,12 @@ Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
 
 Cypress.Commands.add(
   'assertMonacoContent',
-  ($uri: string, expected: string | ((content: string) => void)) => {
+  (uri: string, expected: string | ((content: string) => void)) => {
     cy.window().should('have.property', 'monaco');
     cy.window().should((win) => {
-      const { Uri, editor } = win.monaco;
-      const uri = Uri.file($uri);
-      const model = editor.getModel(uri);
+      const { editor } = win.monaco;
+      const models = editor.getModels();
+      const model = models.find((model) => model.uri.path.endsWith(uri));
 
       const value = model.getValue();
 

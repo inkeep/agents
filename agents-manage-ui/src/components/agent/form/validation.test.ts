@@ -24,6 +24,10 @@ describe('FullAgentUpdateSchema', () => {
           providerOptions: value,
         },
       },
+      subAgents: {},
+      externalAgents: {},
+      teamAgents: {},
+      tools: {},
     };
   }
 
@@ -75,6 +79,7 @@ describe('FullAgentUpdateSchema', () => {
       name: '_',
       statusUpdates: {},
       contextConfig: {
+        id: '_',
         contextVariables: '',
         headersSchema: '',
       },
@@ -95,6 +100,10 @@ describe('FullAgentUpdateSchema', () => {
           providerOptions: '',
         },
       },
+      subAgents: {},
+      externalAgents: {},
+      teamAgents: {},
+      tools: {},
     });
     expect(result.success).toBe(true);
     if (result.data) {

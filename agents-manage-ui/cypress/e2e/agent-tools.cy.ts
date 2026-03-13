@@ -23,27 +23,23 @@ describe('Agent Tools', () => {
     cy.contains('Create agent').click();
     cy.get('[name=name]').type(generateId(), { delay: 0 });
     cy.get('button[type=submit]').click();
+    cy.get('#agent').click();
+    cy.get('[name$=".name"]').type('test', { delay: 0 });
+    cy.contains('Is default sub agent').click();
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 1);
 
     dragNode('[aria-label="Drag Function Tool node"]');
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 2);
     connectEdge('[data-handleid="target-function-tool"]');
-    cy.typeInMonaco('code.jsx', 'function () {}');
+    cy.typeInMonaco('executeCode.js', 'function () {}');
     dragNode('[aria-label="Drag MCP node"]');
     cy.contains('Weather').click();
     connectEdge('[data-handleid="target-mcp"]');
     cy.contains('Connecting...').should('not.exist');
-    saveAndAssert();
-    cy.get('.react-flow__node-agent').click();
-    cy.get('[name=id]').clear().type('TEST', { delay: 0 });
-    saveAndAssert();
-
-    function saveAndAssert() {
-      cy.contains('Save changes').click();
-      cy.contains('Agent saved', { timeout: 30_000 }).should('exist');
-      cy.reload();
-      cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 3);
-    }
+    cy.contains('Save changes').click();
+    cy.contains('Agent saved', { timeout: 30_000 }).should('exist');
+    cy.reload();
+    cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 3);
   });
 
   describe('Format', () => {
@@ -56,7 +52,7 @@ describe('Agent Tools', () => {
       cy.assertMonacoContent(uri, '{\n  "foo": 123\n}');
     });
     it('JavaScript', () => {
-      const uri = 'code.jsx';
+      const uri = 'executeCode.js';
 
       cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       dragNode('[aria-label="Drag Function Tool node"]');

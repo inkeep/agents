@@ -207,13 +207,14 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       {...props}
       ref={containerRef}
     >
-      {!monaco && (
+      {monaco ? (
+        children
+      ) : (
         <>
           <Skeleton className="h-4 w-4/5" />
           <Skeleton className="h-4 w-3/5 mt-3 mb-full" />
         </>
       )}
-      {children}
     </div>
   );
 };

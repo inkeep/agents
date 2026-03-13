@@ -1,15 +1,17 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
+import type { FC } from 'react';
+import { useWatch } from 'react-hook-form';
 import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
 import { STATIC_LABELS } from '@/constants/theme';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProject } from '@/contexts/project';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { cn, createLookup } from '@/lib/utils';
@@ -20,15 +22,11 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-const ListSection = ({
-  title,
-  items,
-  Icon,
-}: {
+const ListSection: FC<{
   title: string;
   items: string[];
   Icon: LucideIcon;
-}) => {
+}> = ({ title, items, Icon }) => {
   return (
     <div className="flex flex-col gap-3 pt-2">
       <div className="flex items-center justify-start gap-2">
@@ -46,28 +44,38 @@ const ListSection = ({
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
   'use memo';
-  const { name, isDefault, description, status } = data;
-  const { data: artifactComponents } = useArtifactComponentsQuery();
+  const { status } = data;
 
-  const agentModel = useAgentStore((state) => state.metadata.models);
+  const { control } = useFullAgentFormContext();
+  const formKey = `subAgents.${id}` as const;
+  const subAgent = useWatch({ control, name: formKey });
+  const processedErrors = useProcessedErrors('subAgents', id);
+  const hasErrors = processedErrors.length > 0;
+
+  const {
+    name,
+    description,
+    dataComponents: dataComponentIds = [],
+    artifactComponents: artifactComponentIds = [],
+  } = subAgent ?? {};
+  const defaultSubAgentId = useWatch({ control, name: 'defaultSubAgentId' });
+  const isDefault = id === defaultSubAgentId;
+
+  const agentModel = useWatch({ control, name: 'models' });
   const { project } = useProject();
   const projectModel = project.models;
-  const modelName = (data.models ?? agentModel ?? projectModel).base?.model ?? '';
+  const modelName = (subAgent.models ?? agentModel ?? projectModel).base.model ?? '';
+
+  const { data: artifactComponents } = useArtifactComponentsQuery();
 
   const { data: dataComponents } = useDataComponentsQuery();
   const dataComponentsById = createLookup(dataComponents);
   const artifactComponentsById = createLookup(artifactComponents);
-  const { getNodeErrors, hasNodeErrors } = useAgentErrors();
-
-  // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-  const subAgentId = data.id || id;
-  const nodeErrors = getNodeErrors(subAgentId);
-  const hasErrors = hasNodeErrors(subAgentId);
 
   const dataComponentNames =
-    data.dataComponents?.map((id) => dataComponentsById[id]?.name).filter(Boolean) || [];
+    dataComponentIds.map((id) => dataComponentsById[id]?.name).filter(Boolean) || [];
   const artifactComponentNames =
-    data.artifactComponents?.map((id) => artifactComponentsById[id]?.name).filter(Boolean) || [];
+    artifactComponentIds.map((id) => artifactComponentsById[id]?.name).filter(Boolean) || [];
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';
@@ -96,20 +104,18 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
         <BaseNodeHeader className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Bot className="size-4 text-muted-foreground" />
-            <BaseNodeHeaderTitle>{name || 'Sub Agent'}</BaseNodeHeaderTitle>
+            <BaseNodeHeaderTitle>
+              {name || <i className="text-muted-foreground/50">No name</i>}
+            </BaseNodeHeaderTitle>
           </div>
           <Badge variant="primary" className="text-xs uppercase">
             Sub Agent
           </Badge>
-          {hasErrors && (
-            <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />
-          )}
+          {hasErrors && <ErrorIndicator errors={processedErrors} />}
         </BaseNodeHeader>
         <BaseNodeContent>
-          <div
-            className={`text-sm ${description ? ' text-muted-foreground' : 'text-muted-foreground/50'}`}
-          >
-            {description || 'No description'}
+          <div className="text-sm text-muted-foreground">
+            {description || <i className="text-muted-foreground/50">No description</i>}
           </div>
           <Badge className="text-xs max-w-full" variant="code">
             {ModelIcon && <ModelIcon className="size-3 shrink-0" />}

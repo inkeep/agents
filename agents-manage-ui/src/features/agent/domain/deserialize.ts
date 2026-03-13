@@ -10,7 +10,7 @@ import {
   NodeType,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
-import type { PartialFullAgentDefinition } from '@/lib/types/agent-full';
+import type { FullAgentPayload, FullAgentResponse } from '@/components/agent/form/validation';
 import { formatJsonField } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -18,6 +18,28 @@ interface TransformResult {
   nodes: Node[];
   edges: Edge[];
 }
+
+type AgentGraphData =
+  | Pick<
+      FullAgentPayload,
+      | 'subAgents'
+      | 'defaultSubAgentId'
+      | 'tools'
+      | 'functionTools'
+      | 'functions'
+      | 'externalAgents'
+      | 'teamAgents'
+    >
+  | Pick<
+      FullAgentResponse,
+      | 'subAgents'
+      | 'defaultSubAgentId'
+      | 'tools'
+      | 'functionTools'
+      | 'functions'
+      | 'externalAgents'
+      | 'teamAgents'
+    >;
 
 export const NODE_WIDTH = 300;
 const BASE_NODE_HEIGHT = 150;
@@ -98,7 +120,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-export function deserializeAgentData(data: PartialFullAgentDefinition): TransformResult {
+export function deserializeAgentData(data: AgentGraphData): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   const createdExternalAgentNodes = new Set<string>();
@@ -108,75 +130,68 @@ export function deserializeAgentData(data: PartialFullAgentDefinition): Transfor
   for (const subAgentId of subAgentIds) {
     const subAgent = data.subAgents[subAgentId];
     if (!subAgent) continue;
-    const isDefault = subAgentId === data.defaultSubAgentId;
-
     const nodeType = NodeType.SubAgent;
-    const agentNodeData = (() => {
-      return {
-        id: subAgent.id,
-        name: subAgent.name,
-        isDefault,
-        prompt: subAgent.prompt,
-        description: subAgent.description,
-        dataComponents: subAgent.dataComponents,
-        artifactComponents: subAgent.artifactComponents,
-        models: subAgent.models
-          ? {
-              base: subAgent.models.base
-                ? {
-                    model: subAgent.models.base.model ?? '',
-                    providerOptions: subAgent.models.base.providerOptions
-                      ? formatJsonField(subAgent.models.base.providerOptions)
-                      : undefined,
-                  }
-                : undefined,
-              structuredOutput: subAgent.models.structuredOutput
-                ? {
-                    model: subAgent.models.structuredOutput.model ?? '',
-                    providerOptions: subAgent.models.structuredOutput.providerOptions
-                      ? formatJsonField(subAgent.models.structuredOutput.providerOptions)
-                      : undefined,
-                  }
-                : undefined,
-              summarizer: subAgent.models.summarizer
-                ? {
-                    model: subAgent.models.summarizer.model ?? '',
-                    providerOptions: subAgent.models.summarizer.providerOptions
-                      ? formatJsonField(subAgent.models.summarizer.providerOptions)
-                      : undefined,
-                  }
-                : undefined,
+    const agentNodeData = {
+      id: subAgent.id,
+      name: subAgent.name,
+      prompt: subAgent.prompt,
+      description: subAgent.description,
+      dataComponents: subAgent.dataComponents,
+      artifactComponents: subAgent.artifactComponents,
+      models: subAgent.models
+        ? {
+            base: subAgent.models.base
+              ? {
+                  model: subAgent.models.base.model ?? '',
+                  providerOptions: subAgent.models.base.providerOptions
+                    ? formatJsonField(subAgent.models.base.providerOptions)
+                    : undefined,
+                }
+              : undefined,
+            structuredOutput: subAgent.models.structuredOutput
+              ? {
+                  model: subAgent.models.structuredOutput.model ?? '',
+                  providerOptions: subAgent.models.structuredOutput.providerOptions
+                    ? formatJsonField(subAgent.models.structuredOutput.providerOptions)
+                    : undefined,
+                }
+              : undefined,
+            summarizer: subAgent.models.summarizer
+              ? {
+                  model: subAgent.models.summarizer.model ?? '',
+                  providerOptions: subAgent.models.summarizer.providerOptions
+                    ? formatJsonField(subAgent.models.summarizer.providerOptions)
+                    : undefined,
+                }
+              : undefined,
+          }
+        : undefined,
+      skills: subAgent.skills,
+      stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
+      type: subAgent.type,
+      tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],
+      selectedTools: subAgent.canUse
+        ? subAgent.canUse.reduce<Record<string, string[]>>((acc, item) => {
+            if (item.toolSelection) {
+              acc[item.toolId] = item.toolSelection;
             }
-          : undefined,
-        skills: subAgent.skills,
-        stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
-        type: subAgent.type,
-        tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],
-        selectedTools: subAgent.canUse
-          ? subAgent.canUse.reduce<Record<string, string[]>>((acc, item) => {
-              if (item.toolSelection) {
-                acc[item.toolId] = item.toolSelection;
-              }
-              return acc;
-            }, {})
-          : undefined,
-        headers: subAgent.canUse
-          ? subAgent.canUse.reduce<Record<string, Record<string, string>>>((acc, item) => {
-              if (item.headers) {
-                acc[item.toolId] = item.headers;
-              }
-              return acc;
-            }, {})
-          : undefined,
-      };
-    })();
-
+            return acc;
+          }, {})
+        : undefined,
+      headers: subAgent.canUse
+        ? subAgent.canUse.reduce<Record<string, Record<string, string>>>((acc, item) => {
+            if (item.headers) {
+              acc[item.toolId] = item.headers;
+            }
+            return acc;
+          }, {})
+        : undefined,
+    };
     const agentNode: Node = {
       id: subAgentId,
       type: nodeType,
       position: { x: 0, y: 0 },
       data: agentNodeData,
-      deletable: !isDefault,
     };
     nodes.push(agentNode);
   }
