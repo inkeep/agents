@@ -1,6 +1,6 @@
 import { exec, spawn } from 'node:child_process';
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
-import { copyFileSync, createWriteStream, existsSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, openSync, writeFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -609,9 +609,9 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
   } else if (config.devApiCommand) {
     logInfo('Starting API server temporarily...');
     const apiLogPath = join(tmpdir(), `setup-dev-api-${Date.now()}.log`);
-    const apiLogStream = createWriteStream(apiLogPath, { flags: 'a' });
+    const apiLogFd = openSync(apiLogPath, 'a');
     const proc = spawn('sh', ['-c', config.devApiCommand], {
-      stdio: ['ignore', apiLogStream, apiLogStream],
+      stdio: ['ignore', apiLogFd, apiLogFd],
       detached: true,
       cwd: process.cwd(),
     });
@@ -629,9 +629,9 @@ async function startServersIfNeeded(config: SetupConfig): Promise<SpawnedServers
     } else if (config.devUiCommand) {
       logInfo('Starting Dashboard temporarily...');
       const uiLogPath = join(tmpdir(), `setup-dev-ui-${Date.now()}.log`);
-      const uiLogStream = createWriteStream(uiLogPath, { flags: 'a' });
+      const uiLogFd = openSync(uiLogPath, 'a');
       const proc = spawn('sh', ['-c', config.devUiCommand], {
-        stdio: ['ignore', uiLogStream, uiLogStream],
+        stdio: ['ignore', uiLogFd, uiLogFd],
         detached: true,
         cwd: process.cwd(),
         env: process.env,
