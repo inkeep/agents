@@ -11,10 +11,10 @@ FOUR WAYS TO ACCESS ARTIFACT DATA:
    Saves a new artifact from a tool result. Only summary/preview fields are captured in context.
 
 3. { "$artifact": "id", "$tool": "toolCallId" } as a tool argument → FULL DATA
-   Passes the artifact directly to a tool. The system resolves the complete artifact data automatically — no retrieval needed.
+   Passes the artifact directly to a tool. The system resolves the complete artifact data automatically — do NOT call get_reference_artifact first. This works with any tool that accepts a data/content/input argument.
 
-4. get_reference_artifact tool → FULL DATA
-   Explicitly fetches the complete artifact data into your context. Only call this when you specifically need to read the actual value of a non-preview field that is not visible in summary_data.
+4. get_reference_artifact tool → FULL DATA IN CONTEXT
+   Explicitly fetches the complete artifact data into your context. Only call this when you need to read a non-preview field value in context (e.g. to reason about it). If you need to extract a specific field from the result, extract it before passing to any other tool.
 
 AVOID DUPLICATE ARTIFACTS:
 - Check available_artifacts before creating new ones for the same source

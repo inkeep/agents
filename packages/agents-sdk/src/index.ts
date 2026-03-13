@@ -21,6 +21,7 @@ export {
   trigger,
 } from './builderFunctions';
 export { transfer } from './builders';
+export { INKEEP_COREUTILS, INKEEP_HTTP, INKEEP_MEDIA, INKEEP_SEARCH } from './built-in-mcps';
 export {
   type CredentialProviderConfig,
   type CredentialProviderType,

@@ -1,6 +1,24 @@
 import { getLogger } from '../../../logger';
 import { estimateTokens } from '../utils/token-estimator';
 
+/**
+ * Unwraps a raw tool result to the data payload that JMESPath selectors execute against.
+ * Always strips the MCP content envelope when present, regardless of extra fields like structuredContent.
+ */
+export function unwrapToolResult(result: any): unknown {
+  if (!result || typeof result !== 'object') return result;
+
+  const first = result?.content?.[0];
+
+  if (first?.type === 'text') return first.text;
+  if (first?.type === 'image')
+    return { data: first.data, encoding: 'base64', mimeType: first.mimeType };
+  if (!Array.isArray(result) && result.type === 'text' && typeof result.value === 'string')
+    return result.value;
+
+  return result;
+}
+
 const logger = getLogger('artifact-utils');
 
 /**

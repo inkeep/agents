@@ -4,6 +4,7 @@ import {
   commonGetErrorResponses,
   commonUpdateErrorResponses,
   createApiError,
+  getMcpServerUrl,
   getMcpToolAccessMode,
   getMcpToolRepositoryAccessWithDetails,
   getToolById,
@@ -82,7 +83,7 @@ async function validateGitHubWorkappTool(
     });
   }
 
-  const toolUrl = tool.config.mcp.server.url;
+  const toolUrl = getMcpServerUrl(tool.config.mcp.server);
   if (!toolUrl?.includes('/github')) {
     throw createApiError({
       code: 'bad_request',

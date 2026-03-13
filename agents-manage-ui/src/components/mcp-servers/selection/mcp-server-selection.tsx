@@ -16,8 +16,10 @@ import { useScopeSelection } from '@/hooks/use-scope-selection';
 import type { Credential } from '@/lib/api/credentials';
 import { getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { createMCPTool } from '@/lib/api/tools';
+import { BUILT_IN_MCP_URL_PREFIX, BUILT_IN_MCPS } from '@/lib/data/built-in-mcps';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
+import { BuiltInMcpCard } from './built-in-mcp-card';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
 import { WorkAppGitHubCard } from './work-app-github-card';
 import { WorkAppGitHubRepositoryConfigDialog } from './work-app-github-repository-config-dialog';
@@ -46,16 +48,16 @@ interface MCPServerSelectionProps {
   projectId: string;
 }
 
-type SelectionMode = 'popular' | 'workapps' | 'custom';
+type SelectionMode = 'popular' | 'builtin' | 'workapps' | 'custom';
 
 export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServerSelectionProps) {
   const [loadingServerId, setLoadingServerId] = useState<string>();
+  const [loadingBuiltInId, setLoadingBuiltInId] = useState<string>();
   const [selectedMode, setSelectedMode] = useState<SelectionMode>('popular');
   const [searchQuery, setSearchQuery] = useState('');
   const [gitHubDialogOpen, setGitHubDialogOpen] = useState(false);
   const [slackDialogOpen, setSlackDialogOpen] = useState(false);
   const router = useRouter();
-
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
@@ -152,10 +154,41 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
     }
   };
 
+  const handleSelectBuiltIn = async (id: string) => {
+    const mcp = BUILT_IN_MCPS.find((m) => m.id === id);
+    if (!mcp) return;
+
+    setLoadingBuiltInId(id);
+    try {
+      const newTool = await createMCPTool(tenantId, projectId, {
+        id: mcp.id,
+        name: mcp.name,
+        config: {
+          type: 'mcp' as const,
+          mcp: {
+            server: { url: `${BUILT_IN_MCP_URL_PREFIX}${mcp.id}` },
+            transport: { type: 'streamable_http' },
+          },
+        },
+        credentialReferenceId: null,
+        credentialScope: CredentialScopeEnum.project,
+        imageUrl: mcp.imageUrl,
+      });
+      toast.success(`${mcp.name} added successfully`);
+      router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
+    } catch (error) {
+      console.error('Failed to create built-in MCP:', error);
+      toast.error(`Failed to add ${mcp.name}. Please try again.`);
+      setLoadingBuiltInId(undefined);
+    }
+  };
+
   const getPageTitle = () => {
     switch (selectedMode) {
       case 'popular':
         return 'Popular MCP Servers';
+      case 'builtin':
+        return 'Built-in Tools';
       case 'workapps':
         return 'Work Apps';
       case 'custom':
@@ -167,6 +200,8 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
     switch (selectedMode) {
       case 'popular':
         return 'Connect to popular services with pre-configured servers. Click any server to set up with OAuth authentication.';
+      case 'builtin':
+        return 'First-party tools built into Inkeep. No configuration needed — authentication is handled automatically.';
       case 'workapps':
         return 'First-party integrations with secure authentication. Configure access to specific repositories and resources.';
       case 'custom':
@@ -188,6 +223,13 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
               onClick={() => setSelectedMode('popular')}
             >
               Popular Servers
+            </Button>
+            <Button
+              variant={selectedMode === 'builtin' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSelectedMode('builtin')}
+            >
+              Built-in Tools
             </Button>
             <Button
               variant={selectedMode === 'workapps' ? 'default' : 'ghost'}
@@ -224,6 +266,24 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
             loadingServerId={loadingServerId}
             searchQuery={searchQuery}
           />
+        </div>
+      )}
+
+      {selectedMode === 'builtin' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {BUILT_IN_MCPS.map((mcp) => (
+            <BuiltInMcpCard
+              key={mcp.id}
+              id={mcp.id}
+              name={mcp.name}
+              description={mcp.description}
+              imageUrl={mcp.imageUrl}
+              tools={mcp.tools}
+              onSelect={handleSelectBuiltIn}
+              isLoading={loadingBuiltInId === mcp.id}
+              disabled={!!loadingBuiltInId && loadingBuiltInId !== mcp.id}
+            />
+          ))}
         </div>
       )}
 

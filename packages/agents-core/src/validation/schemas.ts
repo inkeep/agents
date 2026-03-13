@@ -1221,7 +1221,13 @@ export const ToolInsertSchema = createInsertSchema(tools)
       type: z.literal('mcp'),
       mcp: z.object({
         server: z.object({
-          url: z.url(),
+          url: z.union([
+            z.string().url(),
+            z.literal('inkeepBuiltIn:inkeep-coreutils'),
+            z.literal('inkeepBuiltIn:inkeep-http'),
+            z.literal('inkeepBuiltIn:inkeep-media'),
+            z.literal('inkeepBuiltIn:inkeep-search'),
+          ]),
         }),
         transport: z
           .object({
@@ -2092,7 +2098,6 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   tenantId: z.string().optional(),
   projectId: z.string().optional(),
   description: z.string().optional(),
-  serverUrl: z.url(),
   activeTools: z.array(z.string()).optional(),
   mcpType: z.enum(MCPServerType).optional(),
   transport: McpTransportConfigSchema.optional(),
@@ -2114,6 +2119,7 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
     )
     .optional(),
   prompt: z.string().optional(),
+  serverUrl: z.string(),
 });
 
 export const ToolUpdateSchema = ToolInsertSchema.partial();

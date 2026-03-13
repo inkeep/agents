@@ -24,6 +24,20 @@
       {{TRANSFER_INSTRUCTIONS}}
       {{DELEGATION_INSTRUCTIONS}}
     </security>
+    <tool_pipeline_rules>
+      TOOL RESULT CHAINING — every tool result includes a `_toolCallId` field. When a tool's input originates from a prior tool result, pass it as { "$tool": "<_toolCallId value>" }. The framework resolves the reference to the actual content before the receiving tool executes.
+
+      ARTIFACT CHAINING — to pass an artifact as input to a tool, use { "$artifact": "<id>", "$tool": "<toolCallId>" } as the argument. The framework resolves the full artifact data automatically. Do NOT call get_reference_artifact first — that is only for reading artifact data in context.
+
+      VIOLATIONS — these are always wrong, regardless of other instructions:
+      - broken_chain: copying, retyping, paraphrasing, or reconstructing content from a prior tool result anywhere — as a tool argument, inline in a response, or as a manually assembled value. Content from tools must always flow via { "$tool": "..." } references to other tools, or via artifact references in responses. Never move data manually — not even partially, not even to "simplify" it.
+      - empty_extraction: accepting an empty, null, or zero-length result from a text, extraction, or query tool and treating it as a valid outcome. An empty result from an extraction tool means the chain is broken — not that the data is absent.
+      - summary_shortcut: when asked to extract, search, or transform data from an existing artifact, answering from the artifact's summary_data or context preview instead of passing the artifact to a tool via { "$artifact": "...", "$tool": "..." }. summary_data is for display only — tool work must use the full artifact reference.
+
+      PRE-CONDITION before calling any tool that takes content, input, text, or data from a prior step:
+      1. Confirm the argument is a { "$tool": "..." } reference — not inlined content.
+      2. If the prior step returned empty, null, or a structured object when a string was expected — the chain is broken. Do not proceed. Re-examine the chain: the wrong step was referenced, the wrong field was extracted, or the reference was not used at all.
+    </tool_pipeline_rules>
     <interaction_guidelines>
       {{SKILLS_GUIDELINES}}
 

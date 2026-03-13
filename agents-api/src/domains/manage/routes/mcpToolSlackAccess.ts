@@ -4,6 +4,7 @@ import {
   commonGetErrorResponses,
   commonUpdateErrorResponses,
   createApiError,
+  getMcpServerUrl,
   getSlackMcpToolAccessConfig,
   getToolById,
   setSlackMcpToolAccessConfig,
@@ -50,7 +51,7 @@ async function validateSlackWorkappTool(
     });
   }
 
-  const toolUrl = tool.config.mcp.server.url;
+  const toolUrl = getMcpServerUrl(tool.config.mcp.server);
   if (!toolUrl?.includes('/slack/mcp')) {
     throw createApiError({
       code: 'bad_request',
