@@ -270,7 +270,7 @@ describe('runSetup', () => {
     );
 
     expect(mockExecImpl).toHaveBeenCalledWith(
-      'pnpm inkeep push --project src/projects/my-project --config src/inkeep.config.ts'
+      'pnpm exec inkeep push --project src/projects/my-project --config src/inkeep.config.ts'
     );
   });
 
@@ -296,6 +296,49 @@ describe('runSetup', () => {
     expect(env?.INKEEP_CI).toBe('true');
     expect(env?.INKEEP_API_KEY).toBe('my-bypass-secret');
     expect(env?.INKEEP_TENANT_ID).toBe('default');
+  });
+
+  it('should pass INKEEP_AGENTS_API_URL when apiUrl is set in pushProject config', async () => {
+    const { runSetup } = await import('../setup.js');
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    await runSetup(
+      baseConfig({
+        pushProject: {
+          projectPath: 'src/projects/test',
+          configPath: 'src/inkeep.config.ts',
+          apiKey: 'my-bypass-secret',
+          apiUrl: 'http://localhost:55000',
+        },
+        apiHealthUrl: 'http://localhost:55000/health',
+      })
+    );
+
+    const pushCall = execCalls.find((c) => c.cmd.includes('inkeep push'));
+    expect(pushCall).toBeDefined();
+    const env = (pushCall?.options as { env: Record<string, string> })?.env;
+    expect(env?.INKEEP_AGENTS_API_URL).toBe('http://localhost:55000');
+  });
+
+  it('should not set INKEEP_AGENTS_API_URL when apiUrl is not provided', async () => {
+    const { runSetup } = await import('../setup.js');
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    await runSetup(
+      baseConfig({
+        pushProject: {
+          projectPath: 'src/projects/test',
+          configPath: 'src/inkeep.config.ts',
+          apiKey: 'my-bypass-secret',
+        },
+        apiHealthUrl: 'http://localhost:3002/health',
+      })
+    );
+
+    const pushCall = execCalls.find((c) => c.cmd.includes('inkeep push'));
+    expect(pushCall).toBeDefined();
+    const env = (pushCall?.options as { env: Record<string, string> })?.env;
+    expect(env?.INKEEP_AGENTS_API_URL).toBeUndefined();
   });
 
   it('should skip docker startup when preflight detects port conflicts', async () => {
