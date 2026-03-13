@@ -1215,54 +1215,56 @@ export const McpToolDefinitionSchema = z.object({
 
 export const ToolSelectSchema = createSelectSchema(tools);
 
-export const ToolInsertSchema = createInsertSchema(tools).extend({
-  id: ResourceIdSchema,
-  name: NameSchema,
-  description: DescriptionSchema,
-  imageUrl: imageUrlSchema,
-  headers: StringRecordSchema.nullish(),
-  config: z.object({
-    type: z.literal('mcp'),
-    mcp: z.object({
-      server: z.object({
-        url: z.url(),
-      }),
-      transport: z
-        .object({
-          type: z.enum(MCPTransportType),
-          requestInit: z.record(z.string(), z.unknown()).optional(),
-          eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-          reconnectionOptions: z.any().optional().openapi({
-            type: 'object',
-            description: 'Reconnection options for streamable HTTP transport',
-          }),
-          sessionId: z.string().optional(),
-        })
-        .optional(),
-      activeTools: z.array(z.string()).optional(),
-      toolOverrides: z
-        .record(
-          z.string(),
-          z.object({
-            displayName: z.string().optional(),
-            description: z.string().optional(),
-            schema: z.any().optional(),
-            transformation: z
-              .union([
-                z.string(), // JMESPath expression
-                z.record(z.string(), z.string()), // object mapping
-              ])
-              .optional(),
+export const ToolInsertSchema = createInsertSchema(tools)
+  .extend({
+    id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
+    imageUrl: imageUrlSchema,
+    headers: StringRecordSchema.nullish(),
+    config: z.object({
+      type: z.literal('mcp'),
+      mcp: z.object({
+        server: z.object({
+          url: z.url(),
+        }),
+        transport: z
+          .object({
+            type: z.enum(MCPTransportType),
+            requestInit: z.record(z.string(), z.unknown()).optional(),
+            eventSourceInit: z.record(z.string(), z.unknown()).optional(),
+            reconnectionOptions: z.any().optional().openapi({
+              type: 'object',
+              description: 'Reconnection options for streamable HTTP transport',
+            }),
+            sessionId: z.string().optional(),
           })
-        )
-        .optional(),
-      prompt: z.string().optional(),
+          .optional(),
+        activeTools: z.array(z.string()).optional(),
+        toolOverrides: z
+          .record(
+            z.string(),
+            z.object({
+              displayName: z.string().optional(),
+              description: z.string().optional(),
+              schema: z.any().optional(),
+              transformation: z
+                .union([
+                  z.string(), // JMESPath expression
+                  z.record(z.string(), z.string()), // object mapping
+                ])
+                .optional(),
+            })
+          )
+          .optional(),
+        prompt: z.string().optional(),
+      }),
     }),
-  }),
-})  .omit({
+  })
+  .omit({
     createdAt: true,
     updatedAt: true,
-});
+  });
 
 export const ConversationSelectSchema = createSelectSchema(conversations);
 export const ConversationInsertSchema = createInsertSchema(conversations).extend({
@@ -2246,10 +2248,11 @@ function validateExecuteCode(val: string, ctx: z.RefinementCtx) {
   }
 }
 
-export const FunctionApiInsertSchema =
-  createApiInsertSchema(FunctionInsertSchema).openapi('FunctionCreate').omit({
-      createdAt: true,
-      updatedAt: true,
+export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
+  .openapi('FunctionCreate')
+  .omit({
+    createdAt: true,
+    updatedAt: true,
   });
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');

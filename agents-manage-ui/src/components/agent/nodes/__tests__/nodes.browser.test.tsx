@@ -7,8 +7,8 @@ import { MCPNode } from '@/components/agent/nodes/mcp-node';
 import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
 import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
-import { ProjectProvider } from '@/contexts/project';
 import { FullAgentFormProvider } from '@/contexts/full-agent-form';
+import { ProjectProvider } from '@/contexts/project';
 import '@/lib/utils/test-utils/styles.css';
 
 vi.mock('next/navigation', () => {
@@ -116,19 +116,19 @@ function Nodes() {
         {divider}
         <PlaceholderNode {...baseProps} data={{ ...data, type: NodeType.MCPPlaceholder }} />
         {divider}
-          <ProjectProvider
-              value={{
-                  // @ts-expect-error
-                  project: {
-                      models: {
-                          base: { model: `openai/${data.name}` },
-                      },
-                  },
-              }}
-          >
-        <SubAgentNode {...baseProps} id="SubAgent" data={{ ...data, skills: [] }} />
-          </ProjectProvider>
-              {divider}
+        <ProjectProvider
+          value={{
+            // @ts-expect-error
+            project: {
+              models: {
+                base: { model: `openai/${data.name}` },
+              },
+            },
+          }}
+        >
+          <SubAgentNode {...baseProps} id="SubAgent" data={{ ...data, skills: [] }} />
+        </ProjectProvider>
+        {divider}
         <TeamAgentNode {...baseProps} data={{ ...data, id: 'TeamAgent' }} />
       </ReactFlowProvider>
     </FullAgentFormProvider>
