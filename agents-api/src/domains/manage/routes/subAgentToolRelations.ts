@@ -262,63 +262,79 @@ app.openapi(
   }
 );
 
+const updateSubAgentToolRelationRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update SubAgent Tool Relation',
+  tags: ['SubAgents', 'Tools'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectAgentIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: SubAgentToolRelationApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'SubAgent tool relation updated successfully',
+      content: {
+        'application/json': {
+          schema: SubAgentToolRelationResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateSubAgentToolRelationHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, agentId, id } = c.req.valid('param');
+  const body = await c.req.valid('json');
+
+  if (Object.keys(body).length === 0) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'No fields to update',
+    });
+  }
+
+  const updatedAgentToolRelation = await updateAgentToolRelation(db)({
+    scopes: { tenantId, projectId, agentId },
+    relationId: id,
+    data: body,
+  });
+
+  if (!updatedAgentToolRelation) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'SubAgent tool relation not found',
+    });
+  }
+
+  return c.json({ data: updatedAgentToolRelation });
+};
+
 app.openapi(
   createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update SubAgent Tool Relation',
+    ...updateSubAgentToolRelationRouteConfig,
+    method: 'patch',
     operationId: 'update-subagent-tool-relation',
-    tags: ['SubAgents', 'Tools'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectAgentIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: SubAgentToolRelationApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'SubAgent tool relation updated successfully',
-        content: {
-          'application/json': {
-            schema: SubAgentToolRelationResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
   }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const body = await c.req.valid('json');
+  updateSubAgentToolRelationHandler
+);
 
-    if (Object.keys(body).length === 0) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'No fields to update',
-      });
-    }
-
-    const updatedAgentToolRelation = await updateAgentToolRelation(db)({
-      scopes: { tenantId, projectId, agentId },
-      relationId: id,
-      data: body,
-    });
-
-    if (!updatedAgentToolRelation) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'SubAgent tool relation not found',
-      });
-    }
-
-    return c.json({ data: updatedAgentToolRelation });
-  }
+app.openapi(
+  createProtectedRoute({
+    ...updateSubAgentToolRelationRouteConfig,
+    method: 'put',
+    operationId: 'update-subagent-tool-relation-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateSubAgentToolRelationHandler
 );
 
 app.openapi(

@@ -148,56 +148,68 @@ app.openapi(
   }
 );
 
+const updateSkillRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Skill',
+  tags: ['Skills'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: SkillApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Skill updated successfully',
+      content: {
+        'application/json': {
+          schema: SkillResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateSkillHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const skill = await updateSkill(db)({
+    scopes: { tenantId, projectId },
+    skillId: id,
+    data: body,
+  });
+
+  if (!skill) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Skill not found',
+    });
+  }
+
+  return c.json({ data: skill });
+};
+
+app.openapi(
+  createProtectedRoute({ ...updateSkillRouteConfig, method: 'patch', operationId: 'update-skill' }),
+  updateSkillHandler
+);
+
 app.openapi(
   createProtectedRoute({
+    ...updateSkillRouteConfig,
     method: 'put',
-    path: '/{id}',
-    summary: 'Update Skill',
-    operationId: 'update-skill',
-    tags: ['Skills'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: SkillApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Skill updated successfully',
-        content: {
-          'application/json': {
-            schema: SkillResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
+    operationId: 'update-skill-put',
+    'x-speakeasy-ignore': true,
   }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
-
-    const skill = await updateSkill(db)({
-      scopes: { tenantId, projectId },
-      skillId: id,
-      data: body,
-    });
-
-    if (!skill) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Skill not found',
-      });
-    }
-
-    return c.json({ data: skill });
-  }
+  updateSkillHandler
 );
 
 app.openapi(

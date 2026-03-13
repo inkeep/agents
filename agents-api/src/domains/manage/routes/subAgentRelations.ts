@@ -222,56 +222,72 @@ app.openapi(
   }
 );
 
+const updateSubAgentRelationRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Sub Agent Relation',
+  tags: ['SubAgents'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectAgentIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: SubAgentRelationApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Sub Agent relation updated successfully',
+      content: {
+        'application/json': {
+          schema: SubAgentRelationResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateSubAgentRelationHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, agentId, id } = c.req.valid('param');
+  const body = await c.req.valid('json');
+
+  const updatedAgentRelation = await updateAgentRelation(db)({
+    scopes: { tenantId, projectId, agentId },
+    relationId: id,
+    data: body,
+  });
+
+  if (!updatedAgentRelation) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Sub Agent Relation not found',
+    });
+  }
+
+  return c.json({ data: updatedAgentRelation });
+};
+
 app.openapi(
   createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Sub Agent Relation',
+    ...updateSubAgentRelationRouteConfig,
+    method: 'patch',
     operationId: 'update-sub-agent-relation',
-    tags: ['SubAgents'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectAgentIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: SubAgentRelationApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Sub Agent relation updated successfully',
-        content: {
-          'application/json': {
-            schema: SubAgentRelationResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
   }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const body = await c.req.valid('json');
+  updateSubAgentRelationHandler
+);
 
-    const updatedAgentRelation = await updateAgentRelation(db)({
-      scopes: { tenantId, projectId, agentId },
-      relationId: id,
-      data: body,
-    });
-
-    if (!updatedAgentRelation) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Sub Agent Relation not found',
-      });
-    }
-
-    return c.json({ data: updatedAgentRelation });
-  }
+app.openapi(
+  createProtectedRoute({
+    ...updateSubAgentRelationRouteConfig,
+    method: 'put',
+    operationId: 'update-sub-agent-relation-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateSubAgentRelationHandler
 );
 
 app.openapi(

@@ -184,70 +184,83 @@ app.openapi(
   }
 );
 
+const updateFunctionToolRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Function Tool',
+  tags: ['Function Tools'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectAgentIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: FunctionToolApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Function tool updated successfully',
+      content: {
+        'application/json': {
+          schema: FunctionToolResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateFunctionToolHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, agentId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  try {
+    const functionTool = await updateFunctionTool(db)({
+      scopes: { tenantId, projectId, agentId },
+      functionToolId: id,
+      data: body,
+    });
+
+    if (!functionTool) {
+      return c.json(createApiError({ code: 'not_found', message: 'Function tool not found' }), 404);
+    }
+
+    return c.json({ data: functionTool }) as any;
+  } catch (error) {
+    logger.error(
+      { error, tenantId, projectId, agentId, id, body },
+      'Failed to update function tool'
+    );
+    return c.json(
+      createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to update function tool',
+      }),
+      500
+    );
+  }
+};
+
 app.openapi(
   createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Function Tool',
+    ...updateFunctionToolRouteConfig,
+    method: 'patch',
     operationId: 'update-function-tool',
-    tags: ['Function Tools'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectAgentIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: FunctionToolApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Function tool updated successfully',
-        content: {
-          'application/json': {
-            schema: FunctionToolResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
   }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+  updateFunctionToolHandler
+);
 
-    try {
-      const functionTool = await updateFunctionTool(db)({
-        scopes: { tenantId, projectId, agentId },
-        functionToolId: id,
-        data: body,
-      });
-
-      if (!functionTool) {
-        return c.json(
-          createApiError({ code: 'not_found', message: 'Function tool not found' }),
-          404
-        );
-      }
-
-      return c.json({ data: functionTool }) as any;
-    } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, agentId, id, body },
-        'Failed to update function tool'
-      );
-      return c.json(
-        createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to update function tool',
-        }),
-        500
-      );
-    }
-  }
+app.openapi(
+  createProtectedRoute({
+    ...updateFunctionToolRouteConfig,
+    method: 'put',
+    operationId: 'update-function-tool-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateFunctionToolHandler
 );
 
 app.openapi(

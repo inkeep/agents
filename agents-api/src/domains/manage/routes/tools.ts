@@ -237,67 +237,79 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Tool',
-    operationId: 'update-tool',
-    tags: ['Tools'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: ToolApiUpdateSchema,
-          },
+const updateToolRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Tool',
+  tags: ['Tools'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ToolApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Tool updated successfully',
-        content: {
-          'application/json': {
-            schema: McpToolResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Tool updated successfully',
+      content: {
+        'application/json': {
+          schema: McpToolResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
-    const credentialStores = c.get('credentialStores');
-    const userId = c.get('userId');
+    ...commonGetErrorResponses,
+  },
+};
 
-    if (Object.keys(body).length === 0) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'No fields to update',
-      });
-    }
+const updateToolHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const credentialStores = c.get('credentialStores');
+  const userId = c.get('userId');
 
-    const updatedTool = await updateTool(db)({
-      scopes: { tenantId, projectId },
-      toolId: id,
-      data: body,
-    });
-
-    if (!updatedTool) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Tool not found',
-      });
-    }
-
-    return c.json({
-      data: await dbResultToMcpTool(updatedTool, db, credentialStores, undefined, userId),
+  if (Object.keys(body).length === 0) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'No fields to update',
     });
   }
+
+  const updatedTool = await updateTool(db)({
+    scopes: { tenantId, projectId },
+    toolId: id,
+    data: body,
+  });
+
+  if (!updatedTool) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Tool not found',
+    });
+  }
+
+  return c.json({
+    data: await dbResultToMcpTool(updatedTool, db, credentialStores, undefined, userId),
+  });
+};
+
+app.openapi(
+  createProtectedRoute({ ...updateToolRouteConfig, method: 'patch', operationId: 'update-tool' }),
+  updateToolHandler
+);
+
+app.openapi(
+  createProtectedRoute({
+    ...updateToolRouteConfig,
+    method: 'put',
+    operationId: 'update-tool-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateToolHandler
 );
 
 // Get user-scoped credential for a tool

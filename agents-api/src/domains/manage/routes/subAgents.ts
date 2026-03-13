@@ -177,62 +177,77 @@ app.openapi(
   }
 );
 
+const updateSubAgentRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update SubAgent',
+  tags: ['SubAgents'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectAgentIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: SubAgentApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'SubAgent updated successfully',
+      content: {
+        'application/json': {
+          schema: SubAgentResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateSubAgentHandler = async (c: any) => {
+  const { tenantId, projectId, agentId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const db = c.get('db');
+  const updatedSubAgent = await updateSubAgent(db)({
+    scopes: { tenantId, projectId, agentId },
+    subAgentId: id,
+    data: body,
+  });
+
+  if (!updatedSubAgent) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'SubAgent not found',
+    });
+  }
+
+  const subAgentWithType = {
+    ...updatedSubAgent,
+    type: 'internal' as const,
+  };
+
+  return c.json({ data: subAgentWithType });
+};
+
 app.openapi(
   createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update SubAgent',
+    ...updateSubAgentRouteConfig,
+    method: 'patch',
     operationId: 'update-subagent',
-    tags: ['SubAgents'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectAgentIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: SubAgentApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'SubAgent updated successfully',
-        content: {
-          'application/json': {
-            schema: SubAgentResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
   }),
-  async (c) => {
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+  updateSubAgentHandler
+);
 
-    const db = c.get('db');
-    const updatedSubAgent = await updateSubAgent(db)({
-      scopes: { tenantId, projectId, agentId },
-      subAgentId: id,
-      data: body,
-    });
-
-    if (!updatedSubAgent) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'SubAgent not found',
-      });
-    }
-
-    // Add type field to the sub-agent response
-    const subAgentWithType = {
-      ...updatedSubAgent,
-      type: 'internal' as const,
-    };
-
-    return c.json({ data: subAgentWithType });
-  }
+app.openapi(
+  createProtectedRoute({
+    ...updateSubAgentRouteConfig,
+    method: 'put',
+    operationId: 'update-subagent-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateSubAgentHandler
 );
 
 app.openapi(
