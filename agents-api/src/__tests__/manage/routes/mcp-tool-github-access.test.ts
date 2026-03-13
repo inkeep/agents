@@ -226,14 +226,14 @@ describe('MCP Tool GitHub Access Routes', () => {
     });
   });
 
-  describe('PATCH /tools/:toolId/github-access', () => {
+  describe('PUT /tools/:toolId/github-access', () => {
     it('should set mode=all successfully', async () => {
       setMcpToolRepositoryAccessMock.mockResolvedValue(undefined);
 
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'all' }),
         }
@@ -267,7 +267,7 @@ describe('MCP Tool GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'selected', repositoryIds }),
         }
@@ -300,7 +300,7 @@ describe('MCP Tool GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'selected' }),
         }
@@ -318,7 +318,7 @@ describe('MCP Tool GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'selected', repositoryIds: [] }),
         }
@@ -338,7 +338,7 @@ describe('MCP Tool GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             mode: 'selected',
@@ -363,7 +363,7 @@ describe('MCP Tool GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'all' }),
         }
@@ -381,7 +381,7 @@ describe('MCP Tool GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'all' }),
         }
@@ -400,7 +400,7 @@ describe('MCP Tool GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'all' }),
         }
@@ -419,7 +419,7 @@ describe('MCP Tool GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'all', repositoryIds: ['repo-1', 'repo-2'] }),
         }
@@ -446,14 +446,14 @@ describe('MCP Tool GitHub Access Routes', () => {
     });
   });
 
-  describe('PUT /tools/:toolId/github-access (backward compatibility)', () => {
-    it('should update github access via PUT', async () => {
+  describe('PATCH /tools/:toolId/github-access (backward compatibility)', () => {
+    it('should update github access via PATCH', async () => {
       setMcpToolRepositoryAccessMock.mockResolvedValue(undefined);
 
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'all' }),
         }

@@ -707,7 +707,7 @@ const updateFullProjectHandler = async (c: any) => {
 app.openapi(
   createProtectedRoute({
     ...updateFullProjectRouteConfig,
-    method: 'patch',
+    method: 'put',
     operationId: 'update-full-project',
   }),
   updateFullProjectHandler
@@ -716,8 +716,8 @@ app.openapi(
 app.openapi(
   createProtectedRoute({
     ...updateFullProjectRouteConfig,
-    method: 'put',
-    operationId: 'update-full-project-put',
+    method: 'patch',
+    operationId: 'update-full-project-patch',
     'x-speakeasy-ignore': true,
   }),
   updateFullProjectHandler

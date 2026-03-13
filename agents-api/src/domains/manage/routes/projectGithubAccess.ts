@@ -228,7 +228,7 @@ const setProjectGithubAccessHandler = async (c: any) => {
 app.openapi(
   createProtectedRoute({
     ...setProjectGithubAccessRouteConfig,
-    method: 'patch',
+    method: 'put',
     operationId: 'set-project-github-access',
   }),
   setProjectGithubAccessHandler
@@ -237,8 +237,8 @@ app.openapi(
 app.openapi(
   createProtectedRoute({
     ...setProjectGithubAccessRouteConfig,
-    method: 'put',
-    operationId: 'set-project-github-access-put',
+    method: 'patch',
+    operationId: 'set-project-github-access-patch',
     'x-speakeasy-ignore': true,
   }),
   setProjectGithubAccessHandler

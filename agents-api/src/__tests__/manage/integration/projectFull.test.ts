@@ -258,7 +258,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PATCH /project-full/{projectId}', () => {
+  describe('PUT /project-full/{projectId}', () => {
     it('should update an existing project', async () => {
       const tenantId = await createTrackedTenant();
       const projectId = `project-${generateId()}`;
@@ -278,7 +278,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(updatedDefinition),
       });
 
@@ -298,7 +298,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
       // Try to update a non-existent project
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(projectDefinition),
       });
 
@@ -318,7 +318,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const projectDefinition = createTestProjectDefinition(differentProjectId);
 
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(projectDefinition),
         expectError: true,
       });
@@ -390,7 +390,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(updatedDefinition),
       });
 
@@ -451,7 +451,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(updatedDefinition),
       });
 
@@ -474,8 +474,8 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /project-full/{projectId} (backward compatibility)', () => {
-    it('should update an existing project via PUT', async () => {
+  describe('PATCH /project-full/{projectId} (backward compatibility)', () => {
+    it('should update an existing project via PATCH', async () => {
       const tenantId = await createTrackedTenant();
       const projectId = `project-${generateId()}`;
       const originalDefinition = createTestProjectDefinition(projectId);
@@ -487,26 +487,26 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
       const updatedDefinition = {
         ...originalDefinition,
-        name: 'Updated via PUT',
+        name: 'Updated via PATCH',
       };
 
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(updatedDefinition),
       });
 
       expect(response.status).toBe(200);
       const body = await response.json();
-      expect(body.data.name).toBe('Updated via PUT');
+      expect(body.data.name).toBe('Updated via PATCH');
     });
 
-    it('should create project via PUT if it does not exist (upsert)', async () => {
+    it('should create project via PATCH if it does not exist (upsert)', async () => {
       const tenantId = await createTrackedTenant();
       const projectId = `project-${generateId()}`;
       const projectDefinition = createTestProjectDefinition(projectId);
 
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(projectDefinition),
       });
 
@@ -680,7 +680,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PATCH /project-full with scheduled triggers', () => {
+  describe('PUT /project-full with scheduled triggers', () => {
     it('should create a project with scheduled triggers and stamp createdBy', async () => {
       const tenantId = await createTrackedTenant();
       const projectId = `project-${generateId()}`;
@@ -709,7 +709,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(projectDefinition),
       });
 
@@ -755,14 +755,14 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const createRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(projectDefinition),
       });
       expect(createRes.status).toBe(201);
 
       const pushAgainRes = await makeRequest(
         `/manage/tenants/${tenantId}/project-full/${projectId}`,
-        { method: 'PATCH', body: JSON.stringify(projectDefinition) }
+        { method: 'PUT', body: JSON.stringify(projectDefinition) }
       );
       expect(pushAgainRes.status).toBe(200);
     });
@@ -794,7 +794,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const createRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(projectDefinition),
       });
       expect(createRes.status).toBe(201);
@@ -816,7 +816,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(updatedDefinition),
       });
       expect(updateRes.status).toBe(200);
@@ -854,7 +854,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(projectDefinition),
       });
 
@@ -903,7 +903,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(projectDefinition),
         expectError: true,
       });
@@ -936,7 +936,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(projectDefinition),
       });
 

@@ -218,7 +218,7 @@ const setMcpToolSlackAccessHandler = async (c: any) => {
 app.openapi(
   createProtectedRoute({
     ...setMcpToolSlackAccessRouteConfig,
-    method: 'patch',
+    method: 'put',
     operationId: 'set-mcp-tool-slack-access',
   }),
   setMcpToolSlackAccessHandler
@@ -227,8 +227,8 @@ app.openapi(
 app.openapi(
   createProtectedRoute({
     ...setMcpToolSlackAccessRouteConfig,
-    method: 'put',
-    operationId: 'set-mcp-tool-slack-access-put',
+    method: 'patch',
+    operationId: 'set-mcp-tool-slack-access-patch',
     'x-speakeasy-ignore': true,
   }),
   setMcpToolSlackAccessHandler

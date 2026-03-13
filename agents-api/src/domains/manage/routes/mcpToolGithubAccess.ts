@@ -296,7 +296,7 @@ const setMcpToolGithubAccessHandler = async (c: any) => {
 app.openapi(
   createProtectedRoute({
     ...setMcpToolGithubAccessRouteConfig,
-    method: 'patch',
+    method: 'put',
     operationId: 'set-mcp-tool-github-access',
   }),
   setMcpToolGithubAccessHandler
@@ -305,8 +305,8 @@ app.openapi(
 app.openapi(
   createProtectedRoute({
     ...setMcpToolGithubAccessRouteConfig,
-    method: 'put',
-    operationId: 'set-mcp-tool-github-access-put',
+    method: 'patch',
+    operationId: 'set-mcp-tool-github-access-patch',
     'x-speakeasy-ignore': true,
   }),
   setMcpToolGithubAccessHandler

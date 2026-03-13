@@ -324,7 +324,7 @@ const updateFullAgentHandler = async (c: any) => {
 app.openapi(
   createProtectedRoute({
     ...updateFullAgentRouteConfig,
-    method: 'patch',
+    method: 'put',
     operationId: 'update-full-agent',
   }),
   updateFullAgentHandler
@@ -333,8 +333,8 @@ app.openapi(
 app.openapi(
   createProtectedRoute({
     ...updateFullAgentRouteConfig,
-    method: 'put',
-    operationId: 'update-full-agent-put',
+    method: 'patch',
+    operationId: 'update-full-agent-patch',
     'x-speakeasy-ignore': true,
   }),
   updateFullAgentHandler

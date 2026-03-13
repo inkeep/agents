@@ -450,7 +450,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PATCH /{agentId}', () => {
+  describe('PUT /{agentId}', () => {
     it('should update an existing agent', async () => {
       const tenantId = await createTestTenantWithOrg('agent-update');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -466,7 +466,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(updatedAgentData),
         }
       );
@@ -495,7 +495,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(agentData),
         }
       );
@@ -519,7 +519,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${differentId}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(agentData),
         }
       );
@@ -548,7 +548,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(updatedAgentData),
         }
       );
@@ -619,7 +619,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(updatedAgentData),
         }
       );
@@ -674,7 +674,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
       // Update to add agents
       await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(expandedAgentData),
       });
 
@@ -703,7 +703,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(minimalAgentData),
         }
       );
@@ -717,21 +717,21 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{agentId} (backward compatibility)', () => {
-    it('should update an existing agent via PUT', async () => {
-      const tenantId = await createTestTenantWithOrg('agent-full-put-compat');
+  describe('PATCH /{agentId} (backward compatibility)', () => {
+    it('should update an existing agent via PATCH', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-full-patch-compat');
       await createTestProject(manageDbClient, tenantId, projectId);
       const { agentData } = await createTestAgent(tenantId);
 
       const updatedAgentData = {
         ...agentData,
-        name: 'PUT Updated Agent',
+        name: 'PATCH Updated Agent',
       };
 
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updatedAgentData),
         }
       );
@@ -1214,7 +1214,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${initialAgentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(updatedAgentData),
         }
       );
@@ -1315,7 +1315,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(updateData),
         }
       );
@@ -1356,7 +1356,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(updateData),
         }
       );
@@ -1399,7 +1399,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(updateData),
         }
       );
@@ -1469,7 +1469,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       };
 
       await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(updateData),
       });
 
@@ -1969,7 +1969,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify(updatedData),
         }
       );
