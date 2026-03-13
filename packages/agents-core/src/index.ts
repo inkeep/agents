@@ -14,6 +14,7 @@ export * from './context/index';
 export * from './credential-stores/index';
 export * from './credential-stuffer/index';
 export * from './data-access/index';
+export * from './data-reconciliation/index';
 export * from './db/manage/dolt-cleanup';
 export * from './db/manage/manage-client';
 export * from './db/manage/manage-schema';

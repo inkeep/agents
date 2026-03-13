@@ -41,6 +41,19 @@ The chat components are available for:
 - **[Next.js](/talk-to-your-agents/nextjs/chat-button)** - Same React components with App Router–friendly setup (dynamic import, `"use client"`)
 - **[JavaScript](/talk-to-your-agents/javascript/chat-button)** - Vanilla JavaScript for any framework or plain HTML
 
+## Setup
+
+To use chat components, create an **app credential** — this configures domain restrictions, agent access, and end-user identity for your widget.
+
+1. Open the Visual Builder Dashboard
+2. Navigate to your Project → **Apps**
+3. Click **Create App** and set the type to `web_client`
+4. Add your **allowed domains** (e.g., `docs.example.com`)
+5. Select a **default agent**
+6. Copy your **App ID** (e.g., `app_a1b2c3d4e5f6`) — you'll pass this to the widget
+
+See [App Credentials](/talk-to-your-agents/app-credentials) for the full auth flow details, security model, and API-based setup.
+
 ## Automatic Headers
 
 The chat components automatically send the following headers with each request to provide client context:

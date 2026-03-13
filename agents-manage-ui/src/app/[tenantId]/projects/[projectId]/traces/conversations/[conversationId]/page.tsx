@@ -26,6 +26,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
@@ -101,6 +102,43 @@ export default function ConversationDetail({
 
   const handleRerunTrigger = async () => {
     if (!conversation?.triggerId || !conversation?.agentId) return;
+
+    const isScheduledTrigger = conversation.invocationType === 'scheduled_trigger';
+
+    if (isScheduledTrigger) {
+      if (!conversation.triggerInvocationId) {
+        toast.error('Missing invocation ID — cannot rerun scheduled trigger from this trace');
+        return;
+      }
+
+      setIsRerunning(true);
+      try {
+        const result = await rerunScheduledTriggerInvocationAction(
+          tenantId,
+          projectId,
+          conversation.agentId,
+          conversation.triggerId,
+          conversation.triggerInvocationId
+        );
+
+        if (result.success && result.data) {
+          toast.success('Scheduled trigger rerun dispatched', {
+            description: `New invocation: ${result.data.newInvocationId}`,
+          });
+        } else {
+          toast.error('Failed to rerun scheduled trigger', {
+            description: result.error || 'An unknown error occurred',
+          });
+        }
+      } catch (err) {
+        toast.error('Failed to rerun scheduled trigger', {
+          description: err instanceof Error ? err.message : 'An unknown error occurred',
+        });
+      } finally {
+        setIsRerunning(false);
+      }
+      return;
+    }
 
     const userMessageActivity = conversation.activities?.find(
       (a) => a.type === 'user_message' && a.messageContent

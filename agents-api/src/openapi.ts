@@ -6,6 +6,8 @@ export const TagToDescription = {
   A2A: 'Agent-to-Agent communication endpoints',
   'API Keys': 'Operations for managing API keys',
   Agents: 'Operations for managing agents',
+  Apps: 'Operations for managing app credentials',
+  Auth: 'Authentication endpoints for app credentials',
   'Artifact Components': 'Operations for managing artifact components',
   Branches: 'Operations for managing branches',
   Channels: 'Operations for managing Slack channels',

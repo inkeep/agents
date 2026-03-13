@@ -387,7 +387,7 @@ describe('Project GitHub Access Routes', () => {
       const repositoryIds = ['repo-1', 'repo-2'];
 
       await app.request(`/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'selected', repositoryIds }),
       });
@@ -396,6 +396,23 @@ describe('Project GitHub Access Routes', () => {
         tenantId: TEST_TENANT_ID,
         repositoryIds,
       });
+    });
+  });
+
+  describe('PUT /projects/:projectId/github-access (backward compatibility)', () => {
+    it('should update project github access via PUT', async () => {
+      setProjectRepositoryAccessMock.mockResolvedValue(undefined);
+
+      const response = await app.request(
+        `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'all' }),
+        }
+      );
+
+      expect(response.status).toBe(200);
     });
   });
 });

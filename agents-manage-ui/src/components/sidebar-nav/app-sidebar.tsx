@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  AppWindow,
   BarChart3,
   Blocks,
   Component,
@@ -95,6 +96,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.triggers,
           url: `/${tenantId}/projects/${projectId}/triggers`,
           icon: Zap,
+        },
+        {
+          title: STATIC_LABELS.apps,
+          url: `/${tenantId}/projects/${projectId}/apps`,
+          icon: AppWindow,
         },
         {
           title: STATIC_LABELS['api-keys'],

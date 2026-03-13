@@ -3,7 +3,11 @@ export const jsChatButtonTemplate = `Add the chat button component to your appli
 \`\`\`js
 const config = {
   baseSettings: {{BASE_SETTINGS}},
-  aiChatSettings: {{AI_CHAT_SETTINGS}}
+  aiChatSettings: {
+    appId: "{{APP_ID}}",
+    baseUrl: "{{BASE_URL}}",
+{{EXTRA_AI_CHAT_SETTINGS}}
+  }
 };
 
 const chatButton = Inkeep.ChatButton(config);

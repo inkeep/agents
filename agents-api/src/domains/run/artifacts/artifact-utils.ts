@@ -15,6 +15,8 @@ export interface CompressedArtifactInfo {
   structureInfo?: string;
   oversizedWarning?: string;
   summaryData?: Record<string, any>;
+  name?: string;
+  description?: string;
 }
 
 /**

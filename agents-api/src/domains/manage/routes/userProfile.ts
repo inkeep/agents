@@ -12,6 +12,10 @@ import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-
 import runDbClient from '../../../data/db/runDbClient';
 import { sessionAuth } from '../../../middleware/sessionAuth';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -75,68 +79,74 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{userId}/profile',
-    summary: 'Upsert User Profile',
-    description:
-      'Create or update the profile for a specific user. Users can only update their own profile.',
-    operationId: 'upsert-user-profile',
-    tags: ['User Profile'],
-    permission: inheritedManageTenantAuth(),
-    request: {
-      params: UserIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: UserProfileApiUpdateSchema,
-          },
+const upsertUserProfileRouteConfig = {
+  path: '/{userId}/profile' as const,
+  summary: 'Upsert User Profile',
+  description:
+    'Create or update the profile for a specific user. Users can only update their own profile.',
+  tags: ['User Profile'],
+  permission: inheritedManageTenantAuth(),
+  request: {
+    params: UserIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: UserProfileApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Updated user profile',
-        content: {
-          'application/json': {
-            schema: UserProfileSelectSchema,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Updated user profile',
+      content: {
+        'application/json': {
+          schema: UserProfileSelectSchema,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const { userId } = c.req.valid('param');
-    const authenticatedUserId = c.get('userId') as string;
+    ...commonGetErrorResponses,
+  },
+};
 
-    if (userId !== authenticatedUserId) {
-      throw createApiError({
-        code: 'forbidden',
-        message: "Cannot update another user's profile",
-      });
-    }
+const upsertUserProfileHandler: ManageRouteHandler<typeof upsertUserProfileRouteConfig> = async (
+  c
+) => {
+  const { userId } = c.req.valid('param');
+  const authenticatedUserId = c.get('userId') as string;
 
-    const body = c.req.valid('json');
-
-    const updated = await upsertUserProfile(runDbClient)(userId, {
-      timezone: body.timezone,
-      attributes: body.attributes ?? {},
+  if (userId !== authenticatedUserId) {
+    throw createApiError({
+      code: 'forbidden',
+      message: "Cannot update another user's profile",
     });
-
-    return c.json(
-      {
-        id: updated.id,
-        userId: updated.userId,
-        timezone: updated.timezone,
-        attributes: updated.attributes ?? {},
-        createdAt: updated.createdAt,
-        updatedAt: updated.updatedAt,
-      },
-      200
-    );
   }
+
+  const body = c.req.valid('json');
+
+  const updated = await upsertUserProfile(runDbClient)(userId, {
+    ...body,
+    attributes: body.attributes ?? {},
+  });
+
+  return c.json(
+    {
+      id: updated.id,
+      userId: updated.userId,
+      timezone: updated.timezone,
+      attributes: updated.attributes ?? {},
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    },
+    200
+  );
+};
+
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  upsertUserProfileRouteConfig,
+  upsertUserProfileHandler,
+  { operationId: 'upsert-user-profile' }
 );
 
 export default app;

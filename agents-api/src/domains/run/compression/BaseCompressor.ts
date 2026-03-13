@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
-import { getLedgerArtifacts } from '@inkeep/agents-core';
+import { getLedgerArtifacts, SPAN_KEYS } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { toolSessionManager } from '../agents/services/ToolSessionManager';
 import { type CompressedArtifactInfo, detectOversizedArtifact } from '../artifacts/artifact-utils';
 import { agentSessionManager } from '../session/AgentSession';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
@@ -13,6 +14,22 @@ import { tracer } from '../utils/tracer';
 
 const logger = getLogger('BaseCompressor');
 
+function stripStructureHints(value: unknown): unknown {
+  if (typeof value === 'string') {
+    try {
+      return stripStructureHints(JSON.parse(value));
+    } catch {
+      return value;
+    }
+  }
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const { _structureHints, ...rest } = value as Record<string, unknown>;
+    void _structureHints;
+    return rest;
+  }
+  return value;
+}
+
 export interface CompressionConfig {
   hardLimit: number;
   safetyBuffer: number;
@@ -21,7 +38,7 @@ export interface CompressionConfig {
 
 export interface CompressionResult {
   artifactIds: string[];
-  summary: any;
+  summary: ConversationSummary | any[];
 }
 
 export interface CompressionEventData {
@@ -62,7 +79,7 @@ export abstract class BaseCompressor {
     return estimateTokensUtil(typeof content === 'string' ? content : JSON.stringify(content));
   }
 
-  protected calculateContextSize(messages: any[]): number {
+  calculateContextSize(messages: any[]): number {
     return messages.reduce((total, msg) => {
       if (Array.isArray(msg.content)) {
         for (const block of msg.content) {
@@ -147,6 +164,8 @@ export abstract class BaseCompressor {
         toolArgs?: unknown;
         toolName?: string;
         summaryData?: Record<string, any>;
+        name?: string;
+        description?: string;
       }
     >
   > {
@@ -158,6 +177,8 @@ export abstract class BaseCompressor {
         toolArgs?: unknown;
         toolName?: string;
         summaryData?: Record<string, any>;
+        name?: string;
+        description?: string;
       }
     >();
 
@@ -181,6 +202,8 @@ export abstract class BaseCompressor {
             toolArgs: artifact.metadata?.toolArgs,
             toolName: artifact.metadata?.toolName as string | undefined,
             summaryData: dataPart?.data?.summary ?? dataPart?.data,
+            name: artifact.name,
+            description: artifact.description,
           });
         }
       }
@@ -233,6 +256,8 @@ export abstract class BaseCompressor {
         toolArgs?: unknown;
         toolName?: string;
         summaryData?: Record<string, any>;
+        name?: string;
+        description?: string;
       }
     >
   ): Promise<CompressedArtifactInfo | null> {
@@ -245,11 +270,14 @@ export abstract class BaseCompressor {
 
     const existing = existingArtifacts.get(block.toolCallId);
     if (existing) {
+      this.processedToolCalls.add(block.toolCallId);
       return {
         artifactId: existing.artifactId,
         isOversized: existing.isOversized,
         toolArgs: existing.toolArgs as Record<string, unknown> | undefined,
         summaryData: existing.summaryData,
+        name: existing.name,
+        description: existing.description,
       };
     }
 
@@ -346,10 +374,12 @@ export abstract class BaseCompressor {
   ): Promise<CompressedArtifactInfo | null> {
     const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
     const toolInput = block.input ?? this.toolCallInputMap.get(block.toolCallId) ?? null;
+    const cachedResult = toolSessionManager.getToolResult(this.sessionId, block.toolCallId)?.result;
+    const toolResult = cachedResult ?? stripStructureHints(block.output);
     const toolResultData = {
       toolName: block.toolName,
       toolInput,
-      toolResult: this.removeStructureHints(block.output),
+      toolResult,
       compressedAt: new Date().toISOString(),
     };
 
@@ -421,6 +451,12 @@ export abstract class BaseCompressor {
               // Intentionally skip tool results without artifact mappings (skipped/internal tools).
               // Only artifact-backed results are included so the distillation prompt stays compact.
               if (artifactInfo) {
+                const header = artifactInfo.name
+                  ? `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
+                  : `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
+                const descriptionLine = artifactInfo.description
+                  ? `Description: ${artifactInfo.description}\n`
+                  : '';
                 const summary = artifactInfo.summaryData
                   ? JSON.stringify(artifactInfo.summaryData)
                   : '';
@@ -428,9 +464,7 @@ export abstract class BaseCompressor {
                   perResultLimit && summary.length > perResultLimit
                     ? `${summary.slice(0, perResultLimit)}...`
                     : summary;
-                parts.push(
-                  `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]\n${truncated}`
-                );
+                parts.push(`${header}\n${descriptionLine}${truncated}`);
               } else {
                 logger.debug(
                   { toolCallId: block.toolCallId, toolName: block.toolName },
@@ -451,17 +485,100 @@ export abstract class BaseCompressor {
 
   protected async createConversationSummary(
     messages: any[],
-    toolCallToArtifactMap: Record<string, CompressedArtifactInfo>
+    toolCallToArtifactMap: Record<string, CompressedArtifactInfo>,
+    compressionCycle = 0
   ): Promise<any> {
+    const oversizedArtifacts = Object.values(toolCallToArtifactMap).filter((a) => a.isOversized);
+    if (oversizedArtifacts.length > 0) {
+      logger.warn(
+        {
+          sessionId: this.sessionId,
+          oversizedArtifacts: oversizedArtifacts.map((a) => ({
+            artifactId: a.artifactId,
+            oversizedWarning: a.oversizedWarning,
+          })),
+        },
+        'Distilling conversation with oversized artifacts — warning may not reach agent'
+      );
+    }
+
+    const currentSummary = await this.refreshSummaryArtifactNames();
+
     const summary = await distillConversation({
       conversationId: this.conversationId,
-      currentSummary: this.cumulativeSummary,
+      currentSummary,
       summarizerModel: this.summarizerModel,
       messageFormatter: (maxChars) =>
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
+      compressionCycle,
     });
+
+    logger.info(
+      {
+        sessionId: this.sessionId,
+        highLevel: summary.high_level,
+        nextStepsForAgent: summary.next_steps?.for_agent,
+        relatedArtifacts: summary.related_artifacts?.map((a) => ({
+          id: a.id,
+          name: a.name,
+          keyFindings: a.key_findings,
+        })),
+      },
+      'Distillation summary produced'
+    );
+
     this.cumulativeSummary = summary;
     return summary;
+  }
+
+  private async refreshSummaryArtifactNames(): Promise<ConversationSummary | null> {
+    if (!this.cumulativeSummary?.related_artifacts?.length) return this.cumulativeSummary;
+
+    const toolCallIds = this.cumulativeSummary.related_artifacts
+      .filter((a) => !!a.tool_call_id)
+      .map((a) => a.tool_call_id);
+
+    if (!toolCallIds.length) return this.cumulativeSummary;
+
+    try {
+      const artifacts = await getLedgerArtifacts(runDbClient)({
+        scopes: { tenantId: this.tenantId, projectId: this.projectId },
+        toolCallIds,
+      });
+
+      if (!artifacts.length) return this.cumulativeSummary;
+
+      const nameMap = new Map<string, { name?: string; description?: string }>(
+        artifacts
+          .filter((a) => a.toolCallId && (a.name || a.description))
+          .map((a) => [a.toolCallId as string, { name: a.name, description: a.description }])
+      );
+
+      const refreshed = {
+        ...this.cumulativeSummary,
+        related_artifacts: this.cumulativeSummary.related_artifacts.map((a) => {
+          const db = nameMap.get(a.tool_call_id);
+          return db
+            ? {
+                ...a,
+                name: db.name ?? a.name,
+                ...(db.description ? { description: db.description } : {}),
+              }
+            : a;
+        }),
+      };
+
+      return refreshed;
+    } catch (error) {
+      logger.warn(
+        {
+          sessionId: this.sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Failed to refresh artifact names from DB, using cached summary'
+      );
+      return this.cumulativeSummary;
+    }
   }
 
   protected generatePreview(value: any, maxChars = 150): string | null {
@@ -481,19 +598,6 @@ export abstract class BaseCompressor {
     if (session) {
       session.recordEvent('compression', this.sessionId, eventData);
     }
-  }
-
-  protected removeStructureHints(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
-    if (Array.isArray(obj)) return obj.map((item) => this.removeStructureHints(item));
-    if (typeof obj === 'object') {
-      const cleaned: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (key !== '_structureHints') cleaned[key] = this.removeStructureHints(value);
-      }
-      return cleaned;
-    }
-    return obj;
   }
 
   getCompressionSummary(): ConversationSummary | null {
@@ -529,17 +633,26 @@ export abstract class BaseCompressor {
   }
 
   async safeCompress(messages: any[], fullContextSize?: number): Promise<CompressionResult> {
+    const hardLimit = this.getHardLimit();
+    const triggerAt = hardLimit - this.config.safetyBuffer;
+    const generatedTokens = this.calculateContextSize(messages);
+    const totalContextTokens = fullContextSize ?? generatedTokens;
+    const baseContextTokens = totalContextTokens - generatedTokens;
+
     return await tracer.startActiveSpan(
       'compressor.safe_compress',
       {
         attributes: {
-          'compression.type': this.getCompressionType(),
-          'compression.session_id': this.sessionId,
-          'compression.message_count': messages.length,
-          'compression.input_tokens': this.calculateContextSize(messages),
-          'compression.full_context_size': fullContextSize,
-          'compression.hard_limit': this.getHardLimit(),
-          'compression.safety_buffer': this.config.safetyBuffer,
+          [SPAN_KEYS.COMPRESSION_TYPE]: this.getCompressionType(),
+          [SPAN_KEYS.COMPRESSION_SESSION_ID]: this.sessionId,
+          [SPAN_KEYS.COMPRESSION_MESSAGE_COUNT]: messages.length,
+          [SPAN_KEYS.COMPRESSION_BASE_CONTEXT_TOKENS]: baseContextTokens,
+          [SPAN_KEYS.COMPRESSION_GENERATED_TOKENS]: generatedTokens,
+          [SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS]: totalContextTokens,
+          [SPAN_KEYS.COMPRESSION_HARD_LIMIT]: hardLimit,
+          [SPAN_KEYS.COMPRESSION_TRIGGER_AT]: triggerAt,
+          [SPAN_KEYS.COMPRESSION_SAFETY_BUFFER]: this.config.safetyBuffer,
+          [SPAN_KEYS.COMPRESSION_OVERAGE]: totalContextTokens - triggerAt,
         },
       },
       async (compressionSpan: Span) => {
@@ -548,14 +661,23 @@ export abstract class BaseCompressor {
           const resultTokens = Array.isArray(result.summary)
             ? this.calculateContextSize(result.summary)
             : this.estimateTokens(result.summary);
-          const inputTokens = fullContextSize ?? this.calculateContextSize(messages);
+          const summary = Array.isArray(result.summary) ? null : result.summary;
           compressionSpan.setAttributes({
-            'compression.result.artifact_count': result.artifactIds.length,
-            'compression.result.output_tokens': resultTokens,
-            'compression.result.compression_ratio':
-              inputTokens > 0 ? (inputTokens - resultTokens) / inputTokens : 0,
-            'compression.success': true,
-            'compression.result.summary': result.summary?.high_level || '',
+            [SPAN_KEYS.COMPRESSION_SUCCESS]: true,
+            [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_COUNT]: result.artifactIds.length,
+            [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_IDS]: result.artifactIds.join(','),
+            [SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS]: resultTokens,
+            [SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO]:
+              generatedTokens > 0 ? (generatedTokens - resultTokens) / generatedTokens : 0,
+            [SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL]: summary?.high_level ?? '',
+            [SPAN_KEYS.COMPRESSION_RESULT_USER_INTENT]: summary?.user_intent ?? '',
+            [SPAN_KEYS.COMPRESSION_RESULT_DECISIONS_COUNT]: summary?.decisions?.length ?? 0,
+            [SPAN_KEYS.COMPRESSION_RESULT_NEXT_STEPS_FOR_AGENT_COUNT]:
+              summary?.next_steps?.for_agent?.length ?? 0,
+            [SPAN_KEYS.COMPRESSION_RESULT_OPEN_QUESTIONS_COUNT]:
+              summary?.open_questions?.length ?? 0,
+            [SPAN_KEYS.COMPRESSION_RESULT_RELATED_ARTIFACT_COUNT]:
+              summary?.related_artifacts?.length ?? 0,
           });
           compressionSpan.setStatus({ code: SpanStatusCode.OK });
           return result;
@@ -570,22 +692,40 @@ export abstract class BaseCompressor {
             'Compression failed, using simple fallback'
           );
           compressionSpan.setAttributes({
-            'compression.error': error instanceof Error ? error.message : String(error),
+            [SPAN_KEYS.COMPRESSION_ERROR]: error instanceof Error ? error.message : String(error),
           });
-          const fallbackResult = await this.simpleCompressionFallback(messages);
-          const fallbackTokens = Array.isArray(fallbackResult.summary)
-            ? this.calculateContextSize(fallbackResult.summary)
-            : this.estimateTokens(fallbackResult.summary);
-          const inputTokens = fullContextSize ?? this.calculateContextSize(messages);
-          compressionSpan.setAttributes({
-            'compression.result.artifact_count': fallbackResult.artifactIds.length,
-            'compression.result.output_tokens': fallbackTokens,
-            'compression.result.compression_ratio':
-              inputTokens > 0 ? (inputTokens - fallbackTokens) / inputTokens : 0,
-            'compression.success': true,
-          });
-          compressionSpan.setStatus({ code: SpanStatusCode.OK });
-          return fallbackResult;
+          try {
+            const fallbackResult = await this.simpleCompressionFallback(messages);
+            const fallbackTokens = Array.isArray(fallbackResult.summary)
+              ? this.calculateContextSize(fallbackResult.summary)
+              : this.estimateTokens(fallbackResult.summary);
+            compressionSpan.setAttributes({
+              [SPAN_KEYS.COMPRESSION_SUCCESS]: true,
+              [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_COUNT]: fallbackResult.artifactIds.length,
+              [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_IDS]: fallbackResult.artifactIds.join(','),
+              [SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS]: fallbackTokens,
+              [SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO]:
+                generatedTokens > 0 ? (generatedTokens - fallbackTokens) / generatedTokens : 0,
+            });
+            compressionSpan.setStatus({ code: SpanStatusCode.OK });
+            return fallbackResult;
+          } catch (fallbackError) {
+            logger.error(
+              {
+                sessionId: this.sessionId,
+                error:
+                  fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+              },
+              'Simple compression fallback also failed'
+            );
+            compressionSpan.setAttributes({
+              [SPAN_KEYS.COMPRESSION_SUCCESS]: false,
+              [SPAN_KEYS.COMPRESSION_ERROR]:
+                fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+            });
+            compressionSpan.setStatus({ code: SpanStatusCode.ERROR });
+            throw fallbackError;
+          }
         } finally {
           compressionSpan.end();
         }

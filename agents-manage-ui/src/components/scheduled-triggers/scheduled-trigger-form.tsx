@@ -489,6 +489,9 @@ export function ScheduledTriggerForm({
                         value={field.value ?? ''}
                         onChange={field.onChange}
                         timezone={form.watch('cronTimezone') ?? 'UTC'}
+                        onTimezoneChange={(tz) =>
+                          form.setValue('cronTimezone', tz, { shouldDirty: true })
+                        }
                       />
                     </FormControl>
                     <FormMessage />

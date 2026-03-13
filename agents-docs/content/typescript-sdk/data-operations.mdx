@@ -186,7 +186,7 @@ See [Tool approvals](/typescript-sdk/tools/tool-approvals) for complete configur
 
 #### `tool_result`
 
-Emitted when a tool execution completes (success or failure).
+Emitted when a tool execution completes (success or failure). Tool results can include text, structured data, or multimedia content such as images.
 
 ```json
 {
@@ -240,6 +240,36 @@ Emitted when a tool execution completes (success or failure).
   }
 }
 ```
+
+**Image Result Example:**
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "tool_result",
+    "label": "Tool result: generate_chart",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "analysis-agent",
+      "data": {
+        "toolName": "generate_chart",
+        "result": {
+          "image": "blob://v1/t_org123/media/p_proj456/conv/c_conv789/m_msg012/sha256-a1b2c3d4.png",
+          "title": "Q4 Sales Performance"
+        },
+        "toolCallId": "call_xyz789",
+        "toolId": "tool_chart123",
+        "duration": 2100
+      }
+    }
+  }
+}
+```
+
+<Note>
+The `blob://` URI is an internal storage reference. When retrieved via the API or conversation history, these are automatically resolved to accessible media proxy URLs. See [Images in Memory](/typescript-sdk/memory#images-in-memory).
+</Note>
 
 ### Agent Interaction Events
 

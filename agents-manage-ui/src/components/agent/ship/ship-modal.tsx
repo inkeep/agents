@@ -1,6 +1,6 @@
 import {
+  AppWindow,
   Hexagon,
-  Key,
   type LucideProps,
   MessagesSquare,
   RocketIcon,
@@ -108,12 +108,12 @@ export const ShipModal: FC = () => {
             <div className="flex items-center gap-2">
               <Button asChild variant="outline" size="sm">
                 <Link
-                  href={`/${tenantId}/projects/${projectId}/api-keys`}
+                  href={`/${tenantId}/projects/${projectId}/apps`}
                   target="_blank"
                   rel="noreferrer noopener"
                 >
-                  <Key className="size-4" />
-                  Create API key
+                  <AppWindow className="size-4" />
+                  Create App
                 </Link>
               </Button>
               <DialogClose asChild>

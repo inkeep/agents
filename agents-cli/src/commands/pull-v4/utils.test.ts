@@ -1,9 +1,13 @@
 import {
   buildComponentFileName,
   collectTemplateVariableNames,
+  createFactoryDefinition,
   formatStringLiteral,
   formatTemplate,
   isHumanReadableId,
+  resolveContextTemplateImports,
+  resolveImportedReference,
+  resolveNonCollidingName,
   toCamelCase,
   toKebabCase,
 } from './utils';
@@ -17,8 +21,24 @@ describe('camelCase', () => {
   });
   test('should capitalize char after dot', () => {
     expect(toCamelCase('status.config')).toBe('statusConfig');
-    expect(toCamelCase('statuS.config')).toBe('statuSConfig');
-    expect(toCamelCase('statuS0.config')).toBe('statuS0Config');
+    expect(toCamelCase('statuS.config')).toBe('statusConfig');
+    expect(toCamelCase('statuS0.config')).toBe('status0Config');
+  });
+  test('handle special characters', () => {
+    expect(toCamelCase('inkeep manage mcp (Andrew Mikofalvy)')).toBe(
+      'inkeepManageMcpAndrewMikofalvy'
+    );
+    expect(toCamelCase('DO NOT USE, ENTERPRISE DB ZENDESK API KEY')).toBe(
+      'doNotUseEnterpriseDbZendeskApiKey'
+    );
+  });
+
+  test('should normalize leading acronym runs', () => {
+    expect(toCamelCase('ARR Calculator')).toBe('arrCalculator');
+    expect(toCamelCase('JIRA Epic Creator')).toBe('jiraEpicCreator');
+    expect(toCamelCase('MCP Manager')).toBe('mcpManager');
+    expect(toCamelCase('QA Sub Agent')).toBe('qaSubAgent');
+    expect(toCamelCase('CEGsoft Key')).toBe('cegsoftKey');
   });
 });
 
@@ -121,5 +141,78 @@ describe('template variable replacement', () => {
       // biome-ignore lint/suspicious/noTemplateCurlyInString: test assert
       'Time: ${supportContext.toTemplate("time")}, TZ: ${supportContextHeaders.toTemplate("tz")}'
     );
+  });
+});
+
+describe('createFactoryDefinition', () => {
+  test('should avoid variable collisions with the imported factory name', () => {
+    const { sourceFile } = createFactoryDefinition({
+      importName: 'functionTool',
+      variableName: 'functionTool',
+    });
+    const file = sourceFile.getFullText();
+
+    expect(file).toContain("import { functionTool } from '@inkeep/agents-sdk';");
+    expect(file).toContain('const functionTool1 = functionTool({');
+    expect(file).toContain('export { functionTool1 as functionTool };');
+  });
+});
+
+describe('resolveImportedReference', () => {
+  test('should alias colliding import names', () => {
+    const reservedNames = new Set(['builder']);
+    const resolved = resolveImportedReference('builder', reservedNames, 'ContextConfig');
+
+    expect(resolved.referenceName).toBe('builderContextConfig');
+    expect(resolved.namedImport).toEqual({ name: 'builder', alias: 'builderContextConfig' });
+  });
+
+  test('should not create named import when marked local', () => {
+    const reservedNames = new Set<string>();
+    const resolved = resolveImportedReference('builder', reservedNames, 'ContextConfig', true);
+
+    expect(resolved.referenceName).toBe('builder');
+    expect(resolved.namedImport).toBeUndefined();
+  });
+});
+
+describe('resolveContextTemplateImports', () => {
+  test('should resolve and alias both context and headers references', () => {
+    const reservedNames = new Set(['builder']);
+    const resolved = resolveContextTemplateImports({
+      reservedNames,
+      shouldResolveContextReference: true,
+      shouldResolveHeadersReference: true,
+      contextConfigReference: { name: 'builder' },
+      contextConfigHeadersReference: { name: 'builderHeaders' },
+    });
+
+    expect(resolved.contextReferenceName).toBe('builderContextConfig');
+    expect(resolved.headersReferenceName).toBe('builderHeaders');
+    expect(resolved.namedImports).toEqual([
+      { name: 'builder', alias: 'builderContextConfig' },
+      'builderHeaders',
+    ]);
+  });
+
+  test('should resolve context reference from defaults', () => {
+    const resolved = resolveContextTemplateImports({
+      reservedNames: new Set<string>(),
+      shouldResolveContextReference: true,
+      shouldResolveHeadersReference: false,
+      defaultContextImportName: 'builder',
+    });
+
+    expect(resolved.contextReferenceName).toBe('builder');
+    expect(resolved.headersReferenceName).toBeUndefined();
+    expect(resolved.namedImports).toEqual(['builder']);
+  });
+});
+
+describe('resolveNonCollidingName', () => {
+  test('should resolve collisions with numeric suffixes', () => {
+    const reservedNames = new Set(['builder', 'builder1']);
+
+    expect(resolveNonCollidingName('builder', reservedNames)).toBe('builder2');
   });
 });

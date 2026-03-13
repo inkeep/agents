@@ -42,8 +42,8 @@ pnpm add @inkeep/agents-ui
 
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          agentUrl: "https://your-api.example.com/run/api/chat",
-          apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+          baseUrl: "https://your-api.example.com",
+          appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
         },
         position: "right",
         openSettings: {
@@ -75,8 +75,8 @@ pnpm add @inkeep/agents-ui
     export default function App() {
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          agentUrl: "https://your-api.example.com/run/api/chat",
-          apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+          baseUrl: "https://your-api.example.com",
+          appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
         },
         position: "right",
       };
@@ -119,12 +119,8 @@ pnpm add @inkeep/agents-ui
 
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          agentUrl: "http://localhost:3002/run/api/chat",
-          headers: {
-            "x-inkeep-tenant-id": "your-tenant-id",
-            "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-agent-id": "your-agent-id",
-          },
+          baseUrl: "http://localhost:3003",
+          appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
         },
         position: "right",
         openSettings: {
@@ -156,12 +152,8 @@ pnpm add @inkeep/agents-ui
     export default function App() {
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          agentUrl: "http://localhost:3002/run/api/chat",
-          headers: {
-            "x-inkeep-tenant-id": "your-tenant-id",
-            "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-agent-id": "your-agent-id",
-          },
+          baseUrl: "http://localhost:3003",
+          appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
         },
         position: "right",
       };
@@ -190,8 +182,8 @@ pnpm add @inkeep/agents-ui
 | Property                  | Type   | Description                                         |
 | ------------------------- | ------ | --------------------------------------------------- |
 | `aiChatSettings`          | object | Configuration for the AI chat connection            |
-| `aiChatSettings.agentUrl` | string | The URL of your agent endpoint                      |
-| `aiChatSettings.headers`  | object | Headers for authentication and agent identification |
+| `aiChatSettings.baseUrl` | string | The base URL of your API server                      |
+| `aiChatSettings.appId` | string | The app ID of your project                      |
 
 ## Props
 

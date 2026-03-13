@@ -97,13 +97,10 @@ export const weatherMcpTool = mcpTool({
         id: 'inkeep-rag-mcp',
         name: 'Inkeep RAG MCP',
         config: {
+          type: 'mcp',
           mcp: {
-            server: {
-              url: 'https://mcp.inkeep.com',
-            },
-            transport: {
-              type: 'streamable_http',
-            },
+            server: { url: 'https://mcp.inkeep.com' },
+            transport: { type: 'streamable_http' },
           },
         },
       },
@@ -117,6 +114,7 @@ export const weatherMcpTool = mcpTool({
         subAgents: {
           'docs-assistant': {
             id: 'docs-assistant',
+            name: '',
             description: 'Answers questions about docs',
             prompt: 'Use the Inkeep RAG MCP tool to find relevant information.',
             canUse: [{ toolId: 'inkeep-rag-mcp' }],
@@ -138,15 +136,112 @@ export const weatherMcpTool = mcpTool({
     const { default: generatedSubAgentFile } = await import(`${subAgentFilePath}?raw`);
     const { default: generatedProjectFile } = await import(`${indexFilePath}?raw`);
 
-    expect(generatedToolFile).toContain('export const inkeepRagMcp = mcpTool({');
+    expect(generatedToolFile).toContain('export const inkeepRagMcpTool = mcpTool({');
     expect(generatedSubAgentFile).toContain(
-      "import { inkeepRagMcp } from '../../tools/inkeep-rag-mcp';"
+      "import { inkeepRagMcpTool } from '../../tools/inkeep-rag-mcp';"
     );
-    expect(generatedSubAgentFile).toContain('canUse: () => [inkeepRagMcp]');
+    expect(generatedSubAgentFile).toContain('canUse: () => [inkeepRagMcpTool]');
     expect(generatedProjectFile).toContain(
-      "import { inkeepRagMcp } from './tools/inkeep-rag-mcp';"
+      "import { inkeepRagMcpTool } from './tools/inkeep-rag-mcp';"
     );
-    expect(generatedProjectFile).toContain('tools: () => [inkeepRagMcp],');
+    expect(generatedProjectFile).toContain('tools: () => [inkeepRagMcpTool],');
+  });
+
+  it('uses exported tool name for a suffixed tool path when only one duplicate is referenced', async () => {
+    const project = createProjectFixture();
+    const supportAgent = project.agents?.['support-agent'];
+    if (!supportAgent?.subAgents?.['tier-one']) {
+      throw new Error('Expected support-agent fixture to include tier-one sub-agent');
+    }
+
+    project.tools = {
+      'calculate-arr-tool-a': {
+        id: 'calculate-arr-tool-a',
+        name: 'calculate-arr-tool',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://example.com/mcp-a' },
+            transport: { type: 'streamable_http' },
+          },
+        },
+      },
+      'calculate-arr-tool-b': {
+        id: 'calculate-arr-tool-b',
+        name: 'calculate-arr-tool',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://example.com/mcp-b' },
+            transport: { type: 'streamable_http' },
+          },
+        },
+      },
+    };
+    supportAgent.subAgents['tier-one'].canUse = [{ toolId: 'calculate-arr-tool-b' }];
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'overwrite' });
+
+    const subAgentFilePath = join(testDir, 'agents', 'sub-agents', 'tier-one.ts');
+    const { default: generatedSubAgentFile } = await import(`${subAgentFilePath}?raw`);
+
+    expect(generatedSubAgentFile).toContain(
+      "import { calculateArrTool } from '../../tools/calculate-arr-tool-1';"
+    );
+    expect(generatedSubAgentFile).not.toContain(
+      "import { calculateArrTool1 } from '../../tools/calculate-arr-tool-1';"
+    );
+    expect(generatedSubAgentFile).toContain('canUse: () => [calculateArrTool]');
+  });
+
+  it('aliases duplicate tool imports within a sub-agent using numeric suffixes', async () => {
+    const project = createProjectFixture();
+    const supportAgent = project.agents?.['support-agent'];
+    if (!supportAgent?.subAgents?.['tier-one']) {
+      throw new Error('Expected support-agent fixture to include tier-one sub-agent');
+    }
+
+    project.tools = {
+      'calculate-arr-tool-a': {
+        id: 'calculate-arr-tool-a',
+        name: 'calculate-arr-tool',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://example.com/mcp-a' },
+            transport: { type: 'streamable_http' },
+          },
+        },
+      },
+      'calculate-arr-tool-b': {
+        id: 'calculate-arr-tool-b',
+        name: 'calculate-arr-tool',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://example.com/mcp-b' },
+            transport: { type: 'streamable_http' },
+          },
+        },
+      },
+    };
+    supportAgent.subAgents['tier-one'].canUse = [
+      { toolId: 'calculate-arr-tool-a' },
+      { toolId: 'calculate-arr-tool-b' },
+    ];
+
+    await introspectGenerate({ project, paths: projectPaths, writeMode: 'overwrite' });
+
+    const subAgentFilePath = join(testDir, 'agents', 'sub-agents', 'tier-one.ts');
+    const { default: generatedSubAgentFile } = await import(`${subAgentFilePath}?raw`);
+
+    expect(generatedSubAgentFile).toContain(
+      "import { calculateArrTool } from '../../tools/calculate-arr-tool';"
+    );
+    expect(generatedSubAgentFile).toContain(
+      "import { calculateArrTool as calculateArrTool1 } from '../../tools/calculate-arr-tool-1';"
+    );
+    expect(generatedSubAgentFile).toContain('canUse: () => [calculateArrTool, calculateArrTool1]');
   });
 
   it('aliases agent import when project variable name collides with agent name', async () => {
@@ -162,6 +257,7 @@ export const weatherMcpTool = mcpTool({
           'docs-sub': {
             id: 'docs-sub',
             name: 'Docs Sub',
+            canUse: [],
           },
         },
       },
@@ -217,6 +313,7 @@ export const weatherMcpTool = mcpTool({
           'router-tier': {
             id: 'router-tier',
             name: 'Router Tier',
+            canUse: [],
           },
         },
       },
@@ -234,6 +331,7 @@ export const weatherMcpTool = mcpTool({
     supportAgent.subAgents['tier-two'] = {
       id: 'tier-two',
       name: 'Tier Two',
+      canUse: [],
     };
 
     await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
@@ -257,6 +355,7 @@ export const weatherMcpTool = mcpTool({
     supportAgent.subAgents['tier-two'] = {
       id: 'tier-two',
       name: 'Tier Two',
+      canUse: [],
     };
 
     await introspectGenerate({ project, paths: projectPaths, writeMode: 'merge' });
@@ -274,12 +373,22 @@ export const weatherMcpTool = mcpTool({
       'weather-mcp': {
         id: 'weather-mcp',
         name: 'foo',
-        serverUrl: 'https://foo.com',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://foo.com' },
+          },
+        },
       },
       'exa-mcp': {
         id: 'exa-mcp',
         name: 'bar',
-        serverUrl: 'https://bar.com',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://bar.com' },
+          },
+        },
       },
     };
 
@@ -349,7 +458,12 @@ export const exaMcpTool = mcpTool({
       'ad1dRlGjxH7FgdTcRn-qr': {
         id: 'ad1dRlGjxH7FgdTcRn-qr',
         name: 'foo',
-        serverUrl: 'https://foo.com',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://foo.com' },
+          },
+        },
       },
     };
 
@@ -423,6 +537,7 @@ import { loadSkills, project } from '@inkeep/agents-sdk';
 import { supportAgent } from './agents/support-agent';
 import { customerProfile } from './data-components/customer-profile';
 import { ticketSummary } from './artifact-components/ticket-summary';
+// biome-ignore lint/correctness/noUnusedImports: ignore in snapshot
 import { apiCredentials } from './credentials/api-credentials';
 
 export const supportProject = project({

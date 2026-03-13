@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for agent generator
  */
@@ -18,8 +17,8 @@ describe('Agent Generator', () => {
     description: 'A personalized AI assistant for managing tasks and information',
     defaultSubAgentId: 'personalAssistant',
     subAgents: {
-      personalAssistant: { id: 'personalAssistant' },
-      coordinatesAgent: { id: 'coordinatesAgent' },
+      personalAssistant: { id: 'personalAssistant', name: '', canUse: [] },
+      coordinatesAgent: { id: 'coordinatesAgent', name: '', canUse: [] },
     },
     contextConfig: { id: 'personalAgentContext' },
   };
@@ -29,9 +28,9 @@ describe('Agent Generator', () => {
     description: 'A complex agent with status updates and transfer limits',
     defaultSubAgentId: 'mainAssistant',
     subAgents: {
-      mainAssistant: { id: 'mainAssistant' },
-      helperAgent: { id: 'helperAgent' },
-      coordinatorAgent: { id: 'coordinatorAgent' },
+      mainAssistant: { id: 'mainAssistant', name: '', canUse: [] },
+      helperAgent: { id: 'helperAgent', name: '', canUse: [] },
+      coordinatorAgent: { id: 'coordinatorAgent', name: '', canUse: [] },
     },
     contextConfig: { id: 'complexAgentContext' },
     stopWhen: {
@@ -56,13 +55,13 @@ describe('Agent Generator', () => {
       expect(definition).toContain(
         "description: 'A personalized AI assistant for managing tasks and information',"
       );
-      expect(definition).toContain('defaultSubAgent: personalAssistant,');
+      expect(definition).toContain('defaultSubAgent: personalassistant,');
       expect(definition).toContain('subAgents: () => [');
-      expect(definition).toContain('personalAssistant,');
-      expect(definition).toContain('coordinatesAgent');
-      expect(definition).toContain('contextConfig: personalAgentContext');
+      expect(definition).toContain('personalassistant,');
+      expect(definition).toContain('coordinatesagent');
+      expect(definition).toContain('contextConfig: personalagentcontext');
       expect(definition).toContain('});');
-      expect(definition).not.toContain('coordinatesAgent,'); // No trailing comma
+      expect(definition).not.toContain('coordinatesagent,'); // No trailing comma
       await expectSnapshots(definition);
     });
 
@@ -75,7 +74,7 @@ describe('Agent Generator', () => {
       expect(definition).toContain('numEvents: 3,');
       expect(definition).toContain('timeInSeconds: 15,');
       expect(definition).toContain(
-        'statusComponents: [toolSummary.config, progressUpdate.config],'
+        'statusComponents: [toolsummary.config, progressupdate.config],'
       );
       expect(definition).toContain(
         "prompt: 'Provide status updates on task progress and tool usage'"
@@ -103,9 +102,7 @@ describe('Agent Generator', () => {
         new Error(`Validation failed for agent:
 ✖ Invalid input: expected string, received undefined
   → at name
-✖ Invalid input: expected string, received undefined
-  → at defaultSubAgentId
-✖ Invalid input
+✖ Invalid input: expected record, received undefined
   → at subAgents`)
       );
     });
@@ -124,11 +121,14 @@ describe('Agent Generator', () => {
         description:
           'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings',
         defaultSubAgentId: 'defaultSubAgent',
-        subAgents: ['subAgent1', 'subAgent2'],
+        subAgents: {
+          subAgent1: { id: 'subAgent1', name: '', canUse: [] },
+          subAgent2: { id: 'subAgent2', name: '', canUse: [] },
+        },
         statusUpdates: {
           numEvents: 2,
           timeInSeconds: 10,
-          statusComponents: ['status.config'],
+          statusComponents: [{ type: 'status.config' }],
           prompt:
             'This is a very long prompt that should be handled as a multiline string\nIt even contains newlines which should trigger multiline formatting',
         },
@@ -171,7 +171,13 @@ describe('Agent Generator', () => {
       const partialStatusData = {
         name: 'Partial Status Agent',
         defaultSubAgentId: 'defaultSubAgent',
-        subAgents: ['subAgent1'],
+        subAgents: {
+          subAgent1: {
+            id: 'foo',
+            name: '',
+            canUse: [],
+          },
+        },
         statusUpdates: {
           numEvents: 5,
           statusComponents: [{ type: 'summary' }],
@@ -193,10 +199,14 @@ describe('Agent Generator', () => {
       const noTransferCountData = {
         name: 'No Transfer Count Agent',
         defaultSubAgentId: 'defaultSubAgent',
-        subAgents: ['subAgent1'],
-        stopWhen: {
-          someOtherProperty: 10,
+        subAgents: {
+          subAgent1: {
+            id: 'foo',
+            name: '',
+            canUse: [],
+          },
         },
+        stopWhen: {},
       };
 
       const agentId = 'no-transfer-agent';
@@ -215,9 +225,7 @@ describe('Agent Generator', () => {
         generateAgentDefinition({ agentId, ...minimalData });
       }).toThrow(
         new Error(`Validation failed for agent:
-✖ Invalid input: expected string, received undefined
-  → at defaultSubAgentId
-✖ Invalid input
+✖ Invalid input: expected record, received undefined
   → at subAgents`)
       );
     });
@@ -229,14 +237,14 @@ describe('Agent Generator', () => {
         name: '',
         description: '',
         defaultSubAgentId: 'assistant',
-        subAgents: ['subAgent1'],
+        subAgents: {},
       };
       const agentId = 'empty-strings-agent';
       expect(() => {
         generateAgentDefinition({ agentId, ...emptyStringData });
       }).toThrow(
         new Error(`Validation failed for agent:
-✖ Too small: expected string to have >=1 characters
+✖ Name is required
   → at name`)
       );
     });
@@ -245,18 +253,14 @@ describe('Agent Generator', () => {
       const nullData = {
         name: 'Test Agent',
         description: null,
-        defaultSubAgentId: undefined,
         subAgents: null,
-        contextConfig: undefined,
       };
       const agentId = 'null-values-agent';
       expect(() => {
         generateAgentDefinition({ agentId, ...nullData });
       }).toThrow(
         new Error(`Validation failed for agent:
-✖ Invalid input: expected string, received undefined
-  → at defaultSubAgentId
-✖ Invalid input
+✖ Invalid input: expected record, received null
   → at subAgents`)
       );
     });

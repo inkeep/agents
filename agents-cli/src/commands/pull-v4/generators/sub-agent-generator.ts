@@ -6,15 +6,21 @@ import {
   addStringProperty,
   addValueToObject,
   collectTemplateVariableNames,
-  convertNullToUndefined,
   createFactoryDefinition,
-  formatInlineLiteral,
   formatTemplate,
   hasReferences,
   isPlainObject,
+  resolveContextTemplateImports,
+  resolveNonCollidingName,
   resolveReferenceName,
-  toCamelCase,
 } from '../utils';
+import {
+  collectCanDelegateToReferences,
+  collectCanUseReferences,
+  collectSkills,
+  resolveSubAgentName,
+  resolveSubAgentVariableName,
+} from './sub-agent-generator.helpers';
 
 const ReferenceNameByIdSchema = z.record(z.string(), z.string().nonempty());
 
@@ -27,19 +33,32 @@ const ReferenceOverridesSchema = z.object({
   artifactComponents: ReferenceNameByIdSchema.optional(),
 });
 
+const ReferencePathOverridesSchema = z.object({
+  tools: ReferenceNameByIdSchema.optional(),
+  subAgents: ReferenceNameByIdSchema.optional(),
+  agents: ReferenceNameByIdSchema.optional(),
+  externalAgents: ReferenceNameByIdSchema.optional(),
+});
+
 const ContextTemplateReferenceSchema = z.object({
   name: z.string().nonempty(),
   local: z.boolean().optional(),
 });
 
-const SubAgentSchema = FullAgentAgentInsertSchema.pick({
+const MySchema = FullAgentAgentInsertSchema.pick({
   id: true,
-  description: true,
   prompt: true,
-}).extend({
-  name: z.string().optional(),
-  stopWhen: z.preprocess(convertNullToUndefined, FullAgentAgentInsertSchema.shape.stopWhen),
-  models: z.preprocess(convertNullToUndefined, z.looseObject({}).optional()),
+  name: true,
+  description: true,
+  stopWhen: true,
+});
+
+const SubAgentSchema = z.strictObject({
+  ...MySchema.shape,
+  prompt: z.preprocess((v) => v || undefined, MySchema.shape.prompt),
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  stopWhen: z.preprocess((v) => v ?? undefined, MySchema.shape.stopWhen),
+  models: z.preprocess((v) => v ?? undefined, z.looseObject({}).optional()),
   skills: z.array(z.unknown()).optional(),
   canUse: z.array(z.unknown()).optional(),
   canDelegateTo: z.array(z.unknown()).optional(),
@@ -47,6 +66,7 @@ const SubAgentSchema = FullAgentAgentInsertSchema.pick({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   referenceOverrides: ReferenceOverridesSchema.optional(),
+  referencePathOverrides: ReferencePathOverridesSchema.optional(),
   contextConfigId: z.string().nonempty().optional(),
   contextConfigReference: ContextTemplateReferenceSchema.optional(),
   contextConfigHeadersReference: ContextTemplateReferenceSchema.optional(),
@@ -55,17 +75,22 @@ const SubAgentSchema = FullAgentAgentInsertSchema.pick({
 type SubAgentInput = z.input<typeof SubAgentSchema>;
 type SubAgentOutput = z.output<typeof SubAgentSchema>;
 
-export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
+export function generateSubAgentDefinition({
+  subAgentId,
+  ...data
+}: SubAgentInput & Record<string, unknown>): SourceFile {
   const result = SubAgentSchema.safeParse(data);
   if (!result.success) {
     throw new Error(`Validation failed for sub-agent:\n${z.prettifyError(result.error)}`);
   }
 
   const parsed = result.data;
+  const subAgentVariableName = resolveSubAgentVariableName(parsed.id, parsed.name);
   const { sourceFile, configObject } = createFactoryDefinition({
     importName: 'subAgent',
-    variableName: toCamelCase(parsed.id),
+    variableName: subAgentVariableName,
   });
+  const reservedReferenceNames = new Set([subAgentVariableName]);
 
   const promptTemplateVariables =
     typeof parsed.prompt === 'string' ? collectTemplateVariableNames(parsed.prompt) : [];
@@ -75,31 +100,27 @@ export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
   const hasHeadersTemplateVariables = promptTemplateVariables.some((variableName) =>
     variableName.startsWith('headers.')
   );
-  const namedImports: string[] = [];
-  if (
-    hasContextTemplateVariables &&
-    parsed.contextConfigId &&
-    parsed.contextConfigReference &&
-    parsed.contextConfigReference.local !== true
-  ) {
-    namedImports.push(parsed.contextConfigReference.name);
-  }
-  if (
-    hasHeadersTemplateVariables &&
-    parsed.contextConfigId &&
-    parsed.contextConfigHeadersReference &&
-    parsed.contextConfigHeadersReference.local !== true
-  ) {
-    namedImports.push(parsed.contextConfigHeadersReference.name);
-  }
-  if (namedImports.length > 0 && parsed.contextConfigId) {
+  const contextImportResolution = resolveContextTemplateImports({
+    reservedNames: reservedReferenceNames,
+    shouldResolveContextReference: hasContextTemplateVariables && Boolean(parsed.contextConfigId),
+    shouldResolveHeadersReference: hasHeadersTemplateVariables && Boolean(parsed.contextConfigId),
+    contextConfigReference: parsed.contextConfigReference,
+    contextConfigHeadersReference: parsed.contextConfigHeadersReference,
+  });
+  if (contextImportResolution.namedImports.length > 0 && parsed.contextConfigId) {
     sourceFile.addImportDeclaration({
-      namedImports: [...new Set(namedImports)],
+      namedImports: contextImportResolution.namedImports,
       moduleSpecifier: `../../context-configs/${parsed.contextConfigId}`,
     });
   }
 
-  addCanUseToolImports(sourceFile, parsed.canUse, parsed.referenceOverrides?.tools);
+  const canUseToolReferenceOverrides = addCanUseToolImports(
+    sourceFile,
+    parsed.canUse,
+    parsed.referenceOverrides?.tools,
+    parsed.referencePathOverrides?.tools,
+    reservedReferenceNames
+  );
   addDataComponentImports(
     sourceFile,
     parsed.dataComponents,
@@ -119,14 +140,20 @@ export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
       agents: parsed.referenceOverrides?.agents,
       externalAgents: parsed.referenceOverrides?.externalAgents,
     },
+    referencePathOverrides: {
+      subAgents: parsed.referencePathOverrides?.subAgents,
+      agents: parsed.referencePathOverrides?.agents,
+      externalAgents: parsed.referencePathOverrides?.externalAgents,
+    },
   });
 
   writeSubAgentConfig(
     configObject,
     {
-      contextReference: parsed.contextConfigReference?.name,
-      headersReference: parsed.contextConfigHeadersReference?.name,
+      contextReference: contextImportResolution.contextReferenceName,
+      headersReference: contextImportResolution.headersReferenceName,
     },
+    canUseToolReferenceOverrides,
     parsed
   );
 
@@ -136,9 +163,11 @@ export function generateSubAgentDefinition(data: SubAgentInput): SourceFile {
 function addCanUseToolImports(
   sourceFile: SourceFile,
   canUse?: unknown[],
-  toolReferenceOverrides?: Record<string, string>
-): void {
-  const toolImportsById = new Map<string, string>();
+  toolReferenceOverrides?: Record<string, string>,
+  toolReferencePathOverrides?: Record<string, string>,
+  reservedReferenceNames?: Set<string>
+): Record<string, string> {
+  const toolImportsById = new Map<string, { importName: string; modulePath: string }>();
   for (const item of canUse ?? []) {
     const toolId =
       typeof item === 'string'
@@ -149,15 +178,26 @@ function addCanUseToolImports(
     if (!toolId || toolImportsById.has(toolId)) {
       continue;
     }
-    toolImportsById.set(toolId, resolveReferenceName(toolId, [toolReferenceOverrides]));
-  }
-
-  for (const [toolId, referenceName] of toolImportsById) {
-    sourceFile.addImportDeclaration({
-      namedImports: [referenceName],
-      moduleSpecifier: `../../tools/${toolId}`,
+    toolImportsById.set(toolId, {
+      importName: resolveReferenceName(toolId, [toolReferenceOverrides]),
+      modulePath: resolveReferenceName(toolId, [toolReferencePathOverrides]),
     });
   }
+
+  const localReferenceNamesByToolId: Record<string, string> = {};
+  const localNames = reservedReferenceNames ?? new Set<string>();
+  for (const [toolId, { importName, modulePath }] of toolImportsById) {
+    const localName = resolveNonCollidingName(importName, localNames);
+    localReferenceNamesByToolId[toolId] = localName;
+    sourceFile.addImportDeclaration({
+      namedImports: [
+        importName === localName ? importName : { name: importName, alias: localName },
+      ],
+      moduleSpecifier: `../../tools/${modulePath}`,
+    });
+  }
+
+  return localReferenceNamesByToolId;
 }
 
 function addDataComponentImports(
@@ -222,12 +262,24 @@ function addDelegateTargetImports(
       agents?: Record<string, string>;
       externalAgents?: Record<string, string>;
     };
+    referencePathOverrides?: {
+      subAgents?: Record<string, string>;
+      agents?: Record<string, string>;
+      externalAgents?: Record<string, string>;
+    };
   }
 ): void {
-  const importsByTarget = new Map<string, { type: DelegateTargetType; id: string; name: string }>();
+  const importsByTarget = new Map<
+    string,
+    { type: DelegateTargetType; id: string; name: string; modulePath?: string }
+  >();
 
   for (const item of options.canDelegateTo ?? []) {
-    const resolvedTarget = resolveDelegateTargetImport(item, options.referenceOverrides);
+    const resolvedTarget = resolveDelegateTargetImport(
+      item,
+      options.referenceOverrides,
+      options.referencePathOverrides
+    );
     if (!resolvedTarget) {
       continue;
     }
@@ -238,7 +290,11 @@ function addDelegateTargetImports(
   }
 
   for (const targetId of options.canTransferTo ?? []) {
-    const resolvedTarget = resolveDelegateTargetImport(targetId, options.referenceOverrides);
+    const resolvedTarget = resolveDelegateTargetImport(
+      targetId,
+      options.referenceOverrides,
+      options.referencePathOverrides
+    );
     if (!resolvedTarget) {
       continue;
     }
@@ -251,7 +307,11 @@ function addDelegateTargetImports(
   for (const target of importsByTarget.values()) {
     sourceFile.addImportDeclaration({
       namedImports: [target.name],
-      moduleSpecifier: resolveDelegateImportModuleSpecifier(target.type, target.id),
+      moduleSpecifier: resolveDelegateImportModuleSpecifier(
+        target.type,
+        target.id,
+        target.modulePath
+      ),
     });
   }
 }
@@ -262,8 +322,13 @@ function resolveDelegateTargetImport(
     subAgents?: Record<string, string>;
     agents?: Record<string, string>;
     externalAgents?: Record<string, string>;
+  },
+  referencePathOverrides?: {
+    subAgents?: Record<string, string>;
+    agents?: Record<string, string>;
+    externalAgents?: Record<string, string>;
   }
-): { type: DelegateTargetType; id: string; name: string } | undefined {
+): { type: DelegateTargetType; id: string; name: string; modulePath?: string } | undefined {
   if (typeof canDelegateToEntry === 'string') {
     const resolvedType = resolveDelegateTargetType(canDelegateToEntry, referenceOverrides);
     if (!resolvedType) {
@@ -274,6 +339,15 @@ function resolveDelegateTargetImport(
       type: resolvedType,
       id: canDelegateToEntry,
       name: resolveReferenceName(canDelegateToEntry, [referenceOverrides[resolvedType]]),
+      ...((resolvedType === 'subAgents' && {
+        modulePath: referencePathOverrides?.subAgents?.[canDelegateToEntry],
+      }) ||
+        (resolvedType === 'agents' && {
+          modulePath: referencePathOverrides?.agents?.[canDelegateToEntry],
+        }) ||
+        (resolvedType === 'externalAgents' && {
+          modulePath: referencePathOverrides?.externalAgents?.[canDelegateToEntry],
+        })),
     };
   }
 
@@ -286,6 +360,7 @@ function resolveDelegateTargetImport(
       type: 'subAgents',
       id: canDelegateToEntry.subAgentId,
       name: resolveReferenceName(canDelegateToEntry.subAgentId, [referenceOverrides.subAgents]),
+      modulePath: referencePathOverrides?.subAgents?.[canDelegateToEntry.subAgentId],
     };
   }
 
@@ -294,6 +369,7 @@ function resolveDelegateTargetImport(
       type: 'agents',
       id: canDelegateToEntry.agentId,
       name: resolveReferenceName(canDelegateToEntry.agentId, [referenceOverrides.agents]),
+      modulePath: referencePathOverrides?.agents?.[canDelegateToEntry.agentId],
     };
   }
 
@@ -304,6 +380,7 @@ function resolveDelegateTargetImport(
       name: resolveReferenceName(canDelegateToEntry.externalAgentId, [
         referenceOverrides.externalAgents,
       ]),
+      modulePath: referencePathOverrides?.externalAgents?.[canDelegateToEntry.externalAgentId],
     };
   }
 }
@@ -329,14 +406,19 @@ function resolveDelegateTargetType(
   return 'subAgents';
 }
 
-function resolveDelegateImportModuleSpecifier(type: DelegateTargetType, id: string): string {
+function resolveDelegateImportModuleSpecifier(
+  type: DelegateTargetType,
+  id: string,
+  modulePath?: string
+): string {
+  const path = modulePath ?? id;
   switch (type) {
     case 'subAgents':
-      return `./${id}`;
+      return `./${path}`;
     case 'agents':
-      return `../${id}`;
+      return `../${path}`;
     case 'externalAgents':
-      return `../../external-agents/${id}`;
+      return `../../external-agents/${path}`;
   }
 }
 
@@ -346,6 +428,7 @@ function writeSubAgentConfig(
     contextReference?: string;
     headersReference?: string;
   },
+  canUseToolReferenceOverrides: Record<string, string>,
   {
     dataComponents,
     name,
@@ -355,6 +438,7 @@ function writeSubAgentConfig(
     artifactComponents,
     canUse,
     referenceOverrides,
+    referencePathOverrides: _referencePathOverrides,
     contextConfigId: _contextConfigId,
     contextConfigReference: _contextConfigReference,
     contextConfigHeadersReference: _contextConfigHeadersReference,
@@ -368,7 +452,12 @@ function writeSubAgentConfig(
   }
   addStringProperty(configObject, 'name', resolveSubAgentName(rest.id, name));
 
-  const canUseReferences = collectCanUseReferences(canUse, referenceOverrides?.tools);
+  const canUseReferences = collectCanUseReferences(
+    canUse,
+    Object.keys(canUseToolReferenceOverrides).length
+      ? canUseToolReferenceOverrides
+      : referenceOverrides?.tools
+  );
   if (canUseReferences.length) {
     addReferenceGetterProperty(configObject, 'canUse', canUseReferences);
   }
@@ -426,171 +515,4 @@ function writeSubAgentConfig(
       skillsArray.addElement(skill);
     }
   }
-}
-
-function resolveSubAgentName(subAgentId: string, name?: string): string {
-  if (name !== undefined) {
-    return name;
-  }
-
-  return subAgentId
-    .replace(/[-_]/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function collectCanUseReferences(
-  canUse?: unknown[],
-  toolReferenceOverrides?: Record<string, string>
-): string[] {
-  if (!Array.isArray(canUse)) {
-    return [];
-  }
-
-  const references: string[] = [];
-  for (const item of canUse) {
-    if (typeof item === 'string') {
-      references.push(resolveReferenceName(item, [toolReferenceOverrides]));
-      continue;
-    }
-
-    if (!isPlainObject(item)) {
-      continue;
-    }
-
-    const toolId = typeof item.toolId === 'string' ? item.toolId : undefined;
-    if (!toolId) {
-      continue;
-    }
-
-    const toolReference = resolveReferenceName(toolId, [toolReferenceOverrides]);
-    const withConfig: Record<string, unknown> = {};
-    const selectedTools =
-      Array.isArray(item.toolSelection) && item.toolSelection.length
-        ? item.toolSelection
-        : Array.isArray(item.selectedTools) && item.selectedTools.length
-          ? item.selectedTools
-          : undefined;
-
-    if (selectedTools) {
-      withConfig.selectedTools = selectedTools;
-    }
-
-    if (isPlainObject(item.headers) && Object.keys(item.headers).length) {
-      withConfig.headers = item.headers;
-    }
-
-    if (isPlainObject(item.toolPolicies) && Object.keys(item.toolPolicies).length) {
-      withConfig.toolPolicies = item.toolPolicies;
-    }
-
-    if (Object.keys(withConfig).length > 0) {
-      references.push(`${toolReference}.with(${formatInlineLiteral(withConfig)})`);
-      continue;
-    }
-
-    references.push(toolReference);
-  }
-
-  return references;
-}
-
-function collectCanDelegateToReferences(
-  canDelegateTo: unknown[] | undefined,
-  referenceOverrides: {
-    subAgents?: Record<string, string>;
-    agents?: Record<string, string>;
-    externalAgents?: Record<string, string>;
-  }
-): string[] {
-  if (!Array.isArray(canDelegateTo)) {
-    return [];
-  }
-
-  const references: string[] = [];
-  for (const item of canDelegateTo) {
-    if (typeof item === 'string') {
-      references.push(
-        resolveReferenceName(item, [
-          referenceOverrides.subAgents,
-          referenceOverrides.agents,
-          referenceOverrides.externalAgents,
-        ])
-      );
-      continue;
-    }
-
-    if (!isPlainObject(item)) {
-      continue;
-    }
-
-    const subAgentId = typeof item.subAgentId === 'string' ? item.subAgentId : undefined;
-    const agentId = typeof item.agentId === 'string' ? item.agentId : undefined;
-    const externalAgentId =
-      typeof item.externalAgentId === 'string' ? item.externalAgentId : undefined;
-    const targetId = subAgentId || agentId || externalAgentId;
-
-    if (!targetId) {
-      continue;
-    }
-
-    const targetReference = subAgentId
-      ? resolveReferenceName(subAgentId, [referenceOverrides.subAgents])
-      : agentId
-        ? resolveReferenceName(agentId, [referenceOverrides.agents])
-        : resolveReferenceName(targetId, [referenceOverrides.externalAgents]);
-
-    if (isPlainObject(item.headers) && Object.keys(item.headers).length > 0) {
-      references.push(
-        `${targetReference}.with(${formatInlineLiteral({
-          headers: item.headers,
-        })})`
-      );
-      continue;
-    }
-
-    references.push(targetReference);
-  }
-
-  return references;
-}
-
-function collectSkills(skills?: unknown[]): string[] {
-  if (!Array.isArray(skills)) {
-    return [];
-  }
-
-  const formattedSkills: string[] = [];
-  for (const skill of skills) {
-    if (typeof skill === 'string') {
-      formattedSkills.push(formatInlineLiteral(skill));
-      continue;
-    }
-
-    if (!isPlainObject(skill)) {
-      continue;
-    }
-
-    const skillId =
-      typeof skill.id === 'string'
-        ? skill.id
-        : typeof skill.skillId === 'string'
-          ? skill.skillId
-          : undefined;
-    if (!skillId) {
-      continue;
-    }
-
-    const formattedSkill: Record<string, unknown> = { id: skillId };
-    if (typeof skill.index === 'number' && Number.isInteger(skill.index)) {
-      formattedSkill.index = skill.index;
-    }
-    if (typeof skill.alwaysLoaded === 'boolean') {
-      formattedSkill.alwaysLoaded = skill.alwaysLoaded;
-    }
-
-    formattedSkills.push(formatInlineLiteral(formattedSkill));
-  }
-
-  return formattedSkills;
 }

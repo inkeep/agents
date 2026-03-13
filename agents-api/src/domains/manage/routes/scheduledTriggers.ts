@@ -374,11 +374,11 @@ app.openapi(
     );
 
     const trigger = await createScheduledTrigger(db)({
+      ...body,
       id,
       tenantId,
       projectId,
       agentId,
-      name: body.name,
       description: body.description ?? null,
       enabled: body.enabled ?? true,
       cronExpression: body.cronExpression ?? null,
@@ -386,9 +386,6 @@ app.openapi(
       runAt: body.runAt ?? null,
       payload: body.payload ?? null,
       messageTemplate: body.messageTemplate ?? null,
-      maxRetries: body.maxRetries,
-      retryDelaySeconds: body.retryDelaySeconds,
-      timeoutSeconds: body.timeoutSeconds,
       runAsUserId,
       createdBy: callerId || null,
     });
@@ -572,14 +569,7 @@ app.openapi(
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
       data: {
-        name: body.name,
-        description: body.description,
-        enabled: body.enabled,
-        cronExpression: body.cronExpression,
-        cronTimezone: body.cronTimezone,
-        runAt: body.runAt,
-        payload: body.payload,
-        messageTemplate: body.messageTemplate,
+        ...body,
         maxRetries: resolveRetryValue(body.maxRetries, existing.maxRetries, 3),
         retryDelaySeconds: resolveRetryValue(
           body.retryDelaySeconds,

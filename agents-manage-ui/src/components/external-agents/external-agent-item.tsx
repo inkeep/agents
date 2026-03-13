@@ -18,29 +18,13 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { URLDisplay } from '@/components/url-display';
 import { useProjectPermissions } from '@/contexts/project';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';
 import { Badge } from '../ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { DeleteExternalAgentConfirmation } from './delete-external-agent-confirmation';
-
-// URL Display Component with ellipsis and tooltip
-function URLDisplay({ url }: { url: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="rounded py-1 min-w-0">
-          <code className="text-sm text-muted-foreground block truncate">{url}</code>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="max-w-md">
-        <code className="text-xs break-all">{url}</code>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 interface ExternalAgentDialogMenuProps {
   externalAgentId: string;
@@ -74,8 +58,8 @@ function ExternalAgentDialogMenu({
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
           <DialogTrigger asChild>
-            <DropdownMenuItem className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer">
-              <Trash2 className="size-4 text-destructive" />
+            <DropdownMenuItem variant="destructive">
+              <Trash2 />
               Delete
             </DropdownMenuItem>
           </DialogTrigger>
@@ -110,9 +94,7 @@ export function ExternalAgentItem({
         <ItemCardLink href={linkPath} className="min-w-0">
           <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
             <ProviderIcon provider={externalAgent.name} size={24} className="flex-shrink-0" />
-            <span className="flex-1 min-w-0 text-base font-medium truncate">
-              {externalAgent.name}
-            </span>
+            <span className="font-medium break-all">{externalAgent.name}</span>
           </ItemCardTitle>
         </ItemCardLink>
         {canEdit && (
@@ -130,7 +112,7 @@ export function ExternalAgentItem({
             </p>
           )}
 
-          <URLDisplay url={externalAgent.baseUrl} />
+          <URLDisplay>{externalAgent.baseUrl}</URLDisplay>
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">
