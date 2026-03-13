@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import { startSchedulerWorkflow } from '../domains/run/services/SchedulerService';
@@ -6,6 +7,13 @@ import { getLogger } from '../logger';
 import type { AppVariables } from '../types';
 
 const logger = getLogger('deploy-restart-scheduler');
+
+function constantTimeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 export const restartWorkflowHandler = new OpenAPIHono<{ Variables: AppVariables }>();
 
@@ -21,20 +29,28 @@ restartWorkflowHandler.openapi(
     responses: {
       200: { description: 'Scheduler workflow restarted' },
       401: { description: 'Unauthorized' },
+      503: { description: 'Endpoint not available' },
     },
   }),
   async (c) => {
+    if (!env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
+      return c.json({ error: 'Endpoint not available' }, 503);
+    }
+
     const authHeader = c.req.header('Authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    if (token !== env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
+    if (!token || !constantTimeEqual(token, env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET)) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    const result = await startSchedulerWorkflow();
-
-    logger.info(result, 'Scheduler workflow restarted via deploy hook');
-
-    return c.json(result);
-  }
+    try {
+      const result = await startSchedulerWorkflow();
+      logger.info(result, 'Scheduler workflow restarted via deploy hook');
+      return c.json(result);
+    } catch (err) {
+      logger.error({ error: err instanceof Error ? err.message : String(err) }, 'Failed to restart scheduler workflow');
+      return c.json({ error: err instanceof Error ? err.message : 'Internal error' }, 500);
+    }
+  },
 );
