@@ -13,7 +13,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
 import * as p from '@clack/prompts';
-import { type FullProjectDefinition, getTempBranchName } from '@inkeep/agents-core';
+import { type FullProjectDefinition, getTempBranchSuffix } from '@inkeep/agents-core';
 
 // Increase max listeners to prevent warnings during complex CLI flows
 // This is needed because @clack/prompts + multiple interactive prompts + spinners all add listeners
@@ -322,10 +322,13 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     if (hasDiverged && localProjectForId) {
       s.message('Divergence detected — creating temp branch...');
 
-      const tempBranchName = getTempBranchName('cli-pull');
+      const tempBranchName = getTempBranchSuffix('cli-pull');
 
       try {
-        await apiClient.createBranch(projectId, { name: tempBranchName, from: lastPulledHash });
+        await apiClient.createBranch(projectId, {
+          name: tempBranchName,
+          fromCommit: lastPulledHash,
+        });
 
         const localProjectDefinition = await localProjectForId.getFullDefinition();
         await apiClient.pushFullProject(projectId, tempBranchName, localProjectDefinition);
@@ -345,7 +348,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
           const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
 
           s.start('Executing merge with resolutions...');
-          await apiClient.mergeExecute(projectId, {
+          const mergeResult = await apiClient.mergeExecute(projectId, {
             sourceBranch: 'main',
             targetBranch: tempBranchName,
             sourceHash: preview.sourceHash,
@@ -353,7 +356,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
             resolutions,
             message: 'CLI pull: merge main into local state',
           });
-          s.stop('Merge completed');
+          if (mergeResult) s.stop('Merge completed');
         } else {
           s.message('Clean merge — no conflicts');
 
@@ -370,7 +373,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         remoteProject = await apiClient.getFullProject(projectId, tempBranchName);
       } finally {
         try {
-          await apiClient.deleteBranch(projectId, tempBranchName);
+          await apiClient.deleteBranch(projectId, tempBranchName, true);
         } catch {
           // best-effort cleanup
         }

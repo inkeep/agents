@@ -1,9 +1,51 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import { getLogger } from '../utils/logger';
+import type { ConflictResolution } from '../validation/dolt-schemas';
 import { doltCheckout } from './branch';
+import { doltAddAndCommit } from './commit';
+import { applyResolutions } from './resolve-conflicts';
+
+const logger = getLogger('dolt-merge');
+
+export class MergeConflictError extends Error {
+  constructor(
+    message: string,
+    public readonly conflictCount: number,
+    public readonly fromBranch: string,
+    public readonly toBranch: string
+  ) {
+    super(message);
+    this.name = 'MergeConflictError';
+  }
+}
+
+function extractConflictCount(row: Record<string, unknown>): number {
+  if (typeof row.conflicts === 'number' || typeof row.conflicts === 'string') {
+    return Number(row.conflicts);
+  }
+
+  const doltMerge = row.dolt_merge;
+
+  // Doltgres returns an array: [hash, fast_forward, conflicts, message]
+  if (Array.isArray(doltMerge)) {
+    return Number(doltMerge[2] ?? 0);
+  }
+
+  throw new Error(`Unexpected DOLT_MERGE result format: ${JSON.stringify(row)}`);
+}
+
 /**
- * Merge another branch into the current branch
- * Returns merge status and handles conflicts by allowing commit with conflicts
+ * Merge a branch into the currently checked out branch.
+ *
+ * Runs inside an explicit transaction so that conflicts and
+ * constraint-violations are surfaced to the caller instead of being
+ * auto-rolled-back by Dolt's AUTOCOMMIT mode.
+ *
+ * If conflicts arise and `resolutions` are provided, they are applied
+ * and the merge is committed. If conflicts arise without resolutions
+ * (or with insufficient resolutions), the transaction is rolled back
+ * and a `MergeConflictError` is thrown.
  */
 export const doltMerge =
   (db: AgentsManageDatabaseClient) =>
@@ -13,23 +55,21 @@ export const doltMerge =
     message?: string;
     noFastForward?: boolean;
     author?: { name: string; email: string };
+    resolutions?: ConflictResolution[];
   }): Promise<{
-    status: 'success' | 'conflicts';
+    status: 'success';
     from: string;
     to: string;
     toHead?: string;
     hasConflicts: boolean;
   }> => {
-    console.log('merging branch', params.fromBranch, 'into', params.toBranch);
+    logger.info({ fromBranch: params.fromBranch, toBranch: params.toBranch }, 'Merging branch');
 
-    // Checkout target branch
     await doltCheckout(db)({ branch: params.toBranch });
 
-    // Get current HEAD hash before merge
     const headResult = await db.execute(sql`SELECT HASHOF('HEAD') as hash`);
     const toHead = headResult.rows[0]?.hash as string;
 
-    // Perform merge
     const args: string[] = [`'${params.fromBranch}'`];
 
     if (params.noFastForward) {
@@ -44,36 +84,101 @@ export const doltMerge =
       args.push("'--author'", `'${params.author.name} <${params.author.email}>'`);
     }
 
-    const result = await db.execute(sql.raw(`SELECT DOLT_MERGE(${args.join(', ')})`));
+    await db.execute(sql.raw('START TRANSACTION'));
 
-    // Check for conflicts
-    const firstRow = (result.rows[0] ?? {}) as Record<string, unknown>;
-    const mergeResult =
-      typeof firstRow.conflicts === 'number' ||
-      typeof firstRow.conflicts === 'string' ||
-      firstRow.conflicts == null
-        ? firstRow
-        : ((Object.values(firstRow)[0] as Record<string, unknown> | undefined) ?? {});
-    const conflicts = Number(mergeResult.conflicts ?? 0);
-    const hasConflicts = Number.isFinite(conflicts) && conflicts > 0;
+    let txFinalized = false;
+    try {
+      let result: any;
+      try {
+        result = await db.execute(sql.raw(`SELECT DOLT_MERGE(${args.join(', ')})`));
+        logger.info({ result }, 'DOLT_MERGE result');
+      } catch (error: any) {
+        const cause = error?.cause;
+        logger.error(
+          {
+            message: error?.message,
+            code: cause?.code,
+            severity: cause?.severity,
+            detail: cause?.detail,
+            hint: cause?.hint,
+            query: error?.query,
+            fromBranch: params.fromBranch,
+            toBranch: params.toBranch,
+          },
+          'Error merging branch'
+        );
+        throw error;
+      }
 
-    if (hasConflicts) {
+      const firstRow = (result.rows[0] ?? {}) as Record<string, unknown>;
+      const conflicts = extractConflictCount(firstRow);
+      const hasConflicts = Number.isFinite(conflicts) && conflicts > 0;
+
+      if (hasConflicts) {
+        const { resolutions } = params;
+
+        if (!resolutions || resolutions.length === 0) {
+          throw new MergeConflictError(
+            'Merge has conflicts but no resolutions were provided.',
+            conflicts,
+            params.fromBranch,
+            params.toBranch
+          );
+        }
+
+        const conflictTables = await doltConflicts(db)();
+        let totalConflicts = 0;
+        for (const ct of conflictTables) {
+          const tableConflicts = await doltTableConflicts(db)({ tableName: ct.table });
+          totalConflicts += tableConflicts.length;
+        }
+
+        if (resolutions.length < totalConflicts) {
+          throw new MergeConflictError(
+            `Resolutions provided (${resolutions.length}) do not cover all conflicts (${totalConflicts}). All conflicts must be resolved.`,
+            totalConflicts,
+            params.fromBranch,
+            params.toBranch
+          );
+        }
+
+        await applyResolutions(db)(resolutions);
+        await doltAddAndCommit(db)({
+          message: params.message
+            ? `${params.message} (with conflict resolution)`
+            : `Merge ${params.fromBranch} into ${params.toBranch} (with conflict resolution)`,
+          author: params.author,
+        });
+        txFinalized = true;
+
+        return {
+          status: 'success',
+          from: params.fromBranch,
+          to: params.toBranch,
+          toHead,
+          hasConflicts: true,
+        };
+      }
+
+      await db.execute(sql.raw('COMMIT'));
+      txFinalized = true;
+
       return {
-        status: 'conflicts',
+        status: 'success',
         from: params.fromBranch,
         to: params.toBranch,
         toHead,
-        hasConflicts: true,
+        hasConflicts: false,
       };
+    } finally {
+      if (!txFinalized) {
+        try {
+          await db.execute(sql.raw('ROLLBACK'));
+        } catch (rollbackError) {
+          logger.error({ error: rollbackError }, 'Failed to rollback transaction');
+        }
+      }
     }
-
-    return {
-      status: 'success',
-      from: params.fromBranch,
-      to: params.toBranch,
-      toHead,
-      hasConflicts: false,
-    };
   };
 
 /**
@@ -153,7 +258,7 @@ export const doltPreviewMergeConflictsSummary =
       )
     );
     return (result.rows as any[]).map((row) => ({
-      table: row.table,
+      table: row.table.replace('public.', ''),
       numDataConflicts: Number(row.num_data_conflicts ?? 0),
       numSchemaConflicts: Number(row.num_schema_conflicts ?? 0),
     }));

@@ -7,9 +7,30 @@ import {
   doltResolveConflicts,
   doltSchemaConflicts,
   doltTableConflicts,
+  MergeConflictError,
 } from '../../dolt/merge';
 import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
+
+vi.mock('../../dolt/pk-map', () => ({
+  isValidManageTable: vi.fn((name: string) => name === 'agent' || name === 'tools'),
+  managePkMap: {
+    agent: ['tenant_id', 'project_id', 'id'],
+    tools: ['tenant_id', 'project_id', 'id'],
+  },
+}));
+
+function mockCleanMerge(headHash: string) {
+  return vi
+    .fn()
+    .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
+    .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
+    .mockResolvedValueOnce({ rows: [] }) // START TRANSACTION
+    .mockResolvedValueOnce({
+      rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
+    }) // DOLT_MERGE
+    .mockResolvedValueOnce({ rows: [] }); // COMMIT
+}
 
 describe('Merge Module', () => {
   let db: AgentsManageDatabaseClient;
@@ -25,13 +46,7 @@ describe('Merge Module', () => {
       const toBranch = 'main';
       const headHash = 'a1b2c3d4e5f6789012345678901234ab';
 
-      const mockExecute = vi
-        .fn()
-        .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
-        .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
-        .mockResolvedValueOnce({
-          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
-        }); // DOLT_MERGE
+      const mockExecute = mockCleanMerge(headHash);
 
       const mockDb = {
         ...db,
@@ -52,7 +67,7 @@ describe('Merge Module', () => {
       });
     });
 
-    it('should detect conflicts during merge', async () => {
+    it('should throw MergeConflictError when conflicts arise without resolutions', async () => {
       const fromBranch = 'feature-branch';
       const toBranch = 'main';
       const headHash = 'a1b2c3d4e5f6789012345678901234ab';
@@ -61,9 +76,108 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
+        .mockResolvedValueOnce({ rows: [] }) // START TRANSACTION
         .mockResolvedValueOnce({
           rows: [{ conflicts: 5, fast_forward: 0, hash: headHash, message: '' }],
-        }); // DOLT_MERGE
+        }) // DOLT_MERGE
+        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+      const mockDb = {
+        ...db,
+        execute: mockExecute,
+      } as any;
+
+      await expect(
+        doltMerge(mockDb)({
+          fromBranch,
+          toBranch,
+        })
+      ).rejects.toThrow(MergeConflictError);
+    });
+
+    it('should detect conflicts from Doltgres array result format', async () => {
+      const fromBranch = 'feature-branch';
+      const toBranch = 'main';
+      const headHash = 'a1b2c3d4e5f6789012345678901234ab';
+
+      const mockExecute = vi
+        .fn()
+        .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
+        .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
+        .mockResolvedValueOnce({ rows: [] }) // START TRANSACTION
+        .mockResolvedValueOnce({
+          rows: [{ dolt_merge: ['', '0', '1', 'conflicts found'] }],
+        }) // DOLT_MERGE (array format)
+        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+      const mockDb = {
+        ...db,
+        execute: mockExecute,
+      } as any;
+
+      await expect(
+        doltMerge(mockDb)({
+          fromBranch,
+          toBranch,
+        })
+      ).rejects.toThrow(MergeConflictError);
+    });
+
+    it('should throw MergeConflictError with insufficient resolutions', async () => {
+      const fromBranch = 'feature-branch';
+      const toBranch = 'main';
+      const headHash = 'a1b2c3d4e5f6789012345678901234ab';
+
+      const mockExecute = vi
+        .fn()
+        .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
+        .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
+        .mockResolvedValueOnce({ rows: [] }) // START TRANSACTION
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 2, fast_forward: 0, hash: headHash, message: '' }],
+        }) // DOLT_MERGE
+        .mockResolvedValueOnce({ rows: [{ table: 'agent', numConflicts: 2 }] }) // dolt_conflicts
+        .mockResolvedValueOnce({ rows: [{ id: '1' }, { id: '2' }] }) // dolt_conflicts_agent
+        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+      const mockDb = {
+        ...db,
+        execute: mockExecute,
+      } as any;
+
+      await expect(
+        doltMerge(mockDb)({
+          fromBranch,
+          toBranch,
+          resolutions: [
+            {
+              table: 'agent',
+              primaryKey: { tenant_id: 't1', project_id: 'p1', id: '1' },
+              rowDefaultPick: 'ours',
+            },
+          ],
+        })
+      ).rejects.toThrow('do not cover all conflicts');
+    });
+
+    it('should resolve conflicts and commit when resolutions are provided', async () => {
+      const fromBranch = 'feature-branch';
+      const toBranch = 'main';
+      const headHash = 'a1b2c3d4e5f6789012345678901234ab';
+
+      const mockExecute = vi
+        .fn()
+        .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
+        .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
+        .mockResolvedValueOnce({ rows: [] }) // START TRANSACTION
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 1, fast_forward: 0, hash: headHash, message: '' }],
+        }) // DOLT_MERGE
+        .mockResolvedValueOnce({ rows: [{ table: 'agent', numConflicts: 1 }] }) // dolt_conflicts
+        .mockResolvedValueOnce({ rows: [{ id: '1' }] }) // dolt_conflicts_agent (count)
+        .mockResolvedValueOnce({ rows: [] }) // DOLT_CONFLICTS_RESOLVE (applyResolutions — ours is a no-op for reads, just resolves)
+        .mockResolvedValueOnce({ rows: [] }) // DOLT_ADD
+        .mockResolvedValueOnce({ rows: [{ hash: 'new-hash' }] }); // DOLT_COMMIT
 
       const mockDb = {
         ...db,
@@ -73,10 +187,18 @@ describe('Merge Module', () => {
       const result = await doltMerge(mockDb)({
         fromBranch,
         toBranch,
+        message: 'Merge feature into main',
+        resolutions: [
+          {
+            table: 'agent',
+            primaryKey: { tenant_id: 't1', project_id: 'p1', id: '1' },
+            rowDefaultPick: 'ours',
+          },
+        ],
       });
 
       expect(result).toEqual({
-        status: 'conflicts',
+        status: 'success',
         from: fromBranch,
         to: toBranch,
         toHead: headHash,
@@ -89,13 +211,7 @@ describe('Merge Module', () => {
       const toBranch = 'main';
       const headHash = 'a1b2c3d4e5f6789012345678901234ab';
 
-      const mockExecute = vi
-        .fn()
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({
-          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
-        });
+      const mockExecute = mockCleanMerge(headHash);
 
       const mockDb = {
         ...db,
@@ -109,7 +225,7 @@ describe('Merge Module', () => {
       });
 
       expect(mockExecute).toHaveBeenCalled();
-      const mergeCallIndex = 2;
+      const mergeCallIndex = 3;
       const sqlString = getSqlString(mockExecute, mergeCallIndex);
       expect(sqlString).toContain('DOLT_MERGE');
       expect(sqlString).toContain('-m');
@@ -121,13 +237,7 @@ describe('Merge Module', () => {
       const toBranch = 'main';
       const headHash = 'a1b2c3d4e5f6789012345678901234ab';
 
-      const mockExecute = vi
-        .fn()
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({
-          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
-        });
+      const mockExecute = mockCleanMerge(headHash);
 
       const mockDb = {
         ...db,
@@ -141,7 +251,7 @@ describe('Merge Module', () => {
       });
 
       expect(mockExecute).toHaveBeenCalled();
-      const mergeCallIndex = 2;
+      const mergeCallIndex = 3;
       const sqlString = getSqlString(mockExecute, mergeCallIndex);
       expect(sqlString).toContain('--no-ff');
     });
@@ -151,13 +261,7 @@ describe('Merge Module', () => {
       const toBranch = 'main';
       const headHash = 'a1b2c3d4e5f6789012345678901234ab';
 
-      const mockExecute = vi
-        .fn()
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({
-          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
-        });
+      const mockExecute = mockCleanMerge(headHash);
 
       const mockDb = {
         ...db,
@@ -171,7 +275,7 @@ describe('Merge Module', () => {
       });
 
       expect(mockExecute).toHaveBeenCalled();
-      const mergeCallIndex = 2;
+      const mergeCallIndex = 3;
       const sqlString = getSqlString(mockExecute, mergeCallIndex);
       expect(sqlString).toContain("Merge John''s feature");
     });
@@ -181,13 +285,7 @@ describe('Merge Module', () => {
       const toBranch = 'develop';
       const headHash = 'a1b2c3d4e5f6789012345678901234ab';
 
-      const mockExecute = vi
-        .fn()
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({
-          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
-        });
+      const mockExecute = mockCleanMerge(headHash);
 
       const mockDb = {
         ...db,
@@ -206,18 +304,12 @@ describe('Merge Module', () => {
       expect(sqlString).toContain('develop');
     });
 
-    it('should not enable commit with conflicts', async () => {
+    it('should not enable commit with conflicts on clean merge', async () => {
       const fromBranch = 'feature';
       const toBranch = 'main';
       const headHash = 'a1b2c3d4e5f6789012345678901234ab';
 
-      const mockExecute = vi
-        .fn()
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({
-          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
-        });
+      const mockExecute = mockCleanMerge(headHash);
 
       const mockDb = {
         ...db,
@@ -230,9 +322,39 @@ describe('Merge Module', () => {
       });
 
       expect(mockExecute).toHaveBeenCalled();
-      const sqlString =
-        getSqlString(mockExecute, 0) + getSqlString(mockExecute, 1) + getSqlString(mockExecute, 2);
-      expect(sqlString).not.toContain('dolt_allow_commit_conflicts');
+      let allSql = '';
+      for (let i = 0; i < mockExecute.mock.calls.length; i++) {
+        allSql += getSqlString(mockExecute, i);
+      }
+      expect(allSql).not.toContain('dolt_allow_commit_conflicts');
+    });
+
+    it('should rollback on merge error', async () => {
+      const fromBranch = 'feature';
+      const toBranch = 'main';
+      const headHash = 'a1b2c3d4e5f6789012345678901234ab';
+
+      const mockExecute = vi
+        .fn()
+        .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
+        .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
+        .mockResolvedValueOnce({ rows: [] }) // START TRANSACTION
+        .mockRejectedValueOnce(new Error('merge failed')) // DOLT_MERGE throws
+        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+      const mockDb = {
+        ...db,
+        execute: mockExecute,
+      } as any;
+
+      await expect(
+        doltMerge(mockDb)({
+          fromBranch,
+          toBranch,
+        })
+      ).rejects.toThrow('merge failed');
+
+      expect(mockExecute).toHaveBeenCalledTimes(5);
     });
   });
 

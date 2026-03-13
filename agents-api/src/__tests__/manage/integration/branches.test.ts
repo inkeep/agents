@@ -382,6 +382,44 @@ describe('Branch CRUD Routes - Integration Tests', () => {
       expect(getRes2.status).toBe(404);
     });
 
+    it('should force delete a branch', async () => {
+      const tenantId = await createTestTenantWithOrg('branches-force-delete');
+      const projectId = await createTestProject(tenantId);
+      const branchName = 'force-branch';
+
+      await createTestBranch({ tenantId, projectId, name: branchName });
+
+      const deleteRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}?force=true`,
+        { method: 'DELETE' }
+      );
+      expect(deleteRes.status).toBe(204);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}`
+      );
+      expect(getRes.status).toBe(404);
+    });
+
+    it('should delete without force by default', async () => {
+      const tenantId = await createTestTenantWithOrg('branches-delete-no-force');
+      const projectId = await createTestProject(tenantId);
+      const branchName = 'no-force-branch';
+
+      await createTestBranch({ tenantId, projectId, name: branchName });
+
+      const deleteRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}`,
+        { method: 'DELETE' }
+      );
+      expect(deleteRes.status).toBe(204);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}`
+      );
+      expect(getRes.status).toBe(404);
+    });
+
     it('should return 404 when deleting non-existent branch', async () => {
       const tenantId = await createTestTenantWithOrg('branches-delete-notfound');
       const projectId = await createTestProject(tenantId);

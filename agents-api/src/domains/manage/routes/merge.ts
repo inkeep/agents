@@ -1,22 +1,17 @@
 import { OpenAPIHono, type z } from '@hono/zod-openapi';
 import {
-  applyResolutions,
   areBranchesSchemaCompatible,
   type ConflictItemSchema,
   ConflictResolutionSchema,
   commonGetErrorResponses,
   createApiError,
-  doltAbortMerge,
-  doltAddAndCommit,
   doltCheckout,
-  doltConflicts,
   doltDiffSummary,
   doltGetBranchNamespace,
   doltHashOf,
   doltMerge,
   doltPreviewMergeConflicts,
   doltPreviewMergeConflictsSummary,
-  doltTableConflicts,
   ErrorResponseSchema,
   getBranch,
   MergeExecuteRequestSchema,
@@ -30,9 +25,11 @@ import {
   tryAdvisoryLock,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
+const logger = getLogger('merge');
 const SCOPE_PK_COLUMNS = new Set(['tenant_id', 'project_id']);
 
 function stripScopePks(pk: Record<string, string>): Record<string, string> {
@@ -268,6 +265,8 @@ app.openapi(
     const { sourceBranch, targetBranch, sourceHash, targetHash, message, author, resolutions } =
       body;
 
+    logger.info({ resolutions }, 'Resolutions');
+
     const sourceFullName = doltGetBranchNamespace({
       tenantId,
       projectId,
@@ -321,62 +320,23 @@ app.openapi(
           message: 'Another merge is in progress on the target branch. Please try again.',
         });
       }
-      const mergeResult = await doltMerge(db)({
-        fromBranch: sourceFullName,
-        toBranch: targetFullName,
-        message: message ?? `Merge ${sourceBranch} into ${targetBranch}`,
-        author,
-      });
 
-      if (mergeResult.hasConflicts) {
-        if (!resolutions || resolutions.length === 0) {
-          try {
-            await doltAbortMerge(db)();
-          } catch {
-            // may not be in merge state
-          }
+      try {
+        await doltMerge(db)({
+          fromBranch: sourceFullName,
+          toBranch: targetFullName,
+          message: message ?? `Merge ${sourceBranch} into ${targetBranch}`,
+          author,
+          resolutions,
+        });
+      } catch (error: any) {
+        if (error?.name === 'MergeConflictError') {
           throw createApiError({
             code: 'conflict',
-            message:
-              'Merge has conflicts but no resolutions were provided. Please re-preview and provide resolutions.',
+            message: error.message,
           });
         }
-
-        const conflictTables = await doltConflicts(db)();
-        let totalConflicts = 0;
-        for (const ct of conflictTables) {
-          const tableConflicts = await doltTableConflicts(db)({ tableName: ct.table });
-          totalConflicts += tableConflicts.length;
-        }
-
-        if (resolutions.length < totalConflicts) {
-          try {
-            await doltAbortMerge(db)();
-          } catch {
-            // may not be in merge state
-          }
-          throw createApiError({
-            code: 'bad_request',
-            message: `Resolutions provided (${resolutions.length}) do not cover all conflicts (${totalConflicts}). All conflicts must be resolved.`,
-          });
-        }
-
-        try {
-          await applyResolutions(db)(resolutions);
-
-          await doltAddAndCommit(db)({
-            message:
-              message ?? `Merge ${sourceBranch} into ${targetBranch} (with conflict resolution)`,
-            author,
-          });
-        } catch (resolutionError) {
-          try {
-            await doltAbortMerge(db)();
-          } catch {
-            // best-effort abort
-          }
-          throw resolutionError;
-        }
+        throw error;
       }
 
       const newTargetHash = await doltHashOf(db)({ revision: targetFullName });

@@ -18,10 +18,14 @@ export const BranchNameSchema = z
 export const CreateBranchRequestSchema = z
   .object({
     name: BranchNameSchema,
-    from: z
+    fromBranch: z
       .string()
       .optional()
-      .describe('Branch or commit to create from. Defaults to tenant main branch.'),
+      .describe('Branch name to create from. Defaults to tenant main branch.'),
+    fromCommit: z
+      .string()
+      .optional()
+      .describe('Commit hash to create from. Mutually exclusive with fromBranch.'),
   })
   .openapi('CreateBranchRequest');
 
