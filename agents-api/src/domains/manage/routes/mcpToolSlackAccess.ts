@@ -107,115 +107,131 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/',
-    summary: 'Set MCP tool Slack channel access',
-    operationId: 'set-mcp-tool-slack-access',
-    tags: ['Tools'],
-    description:
-      'Configures which Slack channels an MCP tool can post to. ' +
-      'When channelAccessMode is "all", the tool can post to any channel. ' +
-      'When channelAccessMode is "selected", the tool is scoped to specific channels (channelIds required).',
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectToolParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: WorkAppSlackMcpToolAccessConfigApiInsertSchema,
-          },
+const setMcpToolSlackAccessRouteConfig = {
+  path: '/' as const,
+  summary: 'Set MCP tool Slack channel access',
+  tags: ['Tools'],
+  description:
+    'Configures which Slack channels an MCP tool can post to. ' +
+    'When channelAccessMode is "all", the tool can post to any channel. ' +
+    'When channelAccessMode is "selected", the tool is scoped to specific channels (channelIds required).',
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectToolParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: WorkAppSlackMcpToolAccessConfigApiInsertSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Slack access configuration updated successfully',
-        content: {
-          'application/json': {
-            schema: WorkAppSlackMcpToolAccessConfigApiInsertSchema,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Slack access configuration updated successfully',
+      content: {
+        'application/json': {
+          schema: WorkAppSlackMcpToolAccessConfigApiInsertSchema,
         },
       },
-      ...commonUpdateErrorResponses,
     },
-  }),
-  async (c) => {
-    const { tenantId, projectId, toolId } = c.req.valid('param');
-    const { channelAccessMode, dmEnabled, channelIds } = c.req.valid('json');
-    const db = c.get('db');
+    ...commonUpdateErrorResponses,
+  },
+};
 
-    logger.info(
-      { tenantId, projectId, toolId, channelAccessMode },
-      'Setting MCP tool Slack access configuration'
-    );
+const setMcpToolSlackAccessHandler = async (c: any) => {
+  const { tenantId, projectId, toolId } = c.req.valid('param');
+  const { channelAccessMode, dmEnabled, channelIds } = c.req.valid('json');
+  const db = c.get('db');
 
-    await validateSlackWorkappTool(db, tenantId, projectId, toolId);
+  logger.info(
+    { tenantId, projectId, toolId, channelAccessMode },
+    'Setting MCP tool Slack access configuration'
+  );
 
-    if (channelAccessMode === 'selected') {
-      if (!channelIds || channelIds.length === 0) {
-        throw createApiError({
-          code: 'bad_request',
-          message: 'channelIds is required when channelAccessMode is "selected"',
-        });
-      }
+  await validateSlackWorkappTool(db, tenantId, projectId, toolId);
 
-      const botToken = await resolveWorkspaceToken(tenantId);
-
-      const client = getSlackClient(botToken);
-      const { invalid } = await validateBotChannelMembership(client, channelIds);
-      if (invalid.length > 0) {
-        throw createApiError({
-          code: 'bad_request',
-          message: `Bot is not a member of channels: ${invalid.join(', ')}`,
-        });
-      }
-
-      await setSlackMcpToolAccessConfig(runDbClient)({
-        toolId,
-        tenantId,
-        projectId,
-        channelAccessMode: 'selected',
-        dmEnabled,
-        channelIds,
+  if (channelAccessMode === 'selected') {
+    if (!channelIds || channelIds.length === 0) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'channelIds is required when channelAccessMode is "selected"',
       });
+    }
 
-      logger.info(
-        { tenantId, projectId, toolId, channelCount: channelIds.length },
-        'MCP tool Slack access set to selected channels'
-      );
+    const botToken = await resolveWorkspaceToken(tenantId);
 
-      return c.json(
-        {
-          channelAccessMode: 'selected' as const,
-          dmEnabled,
-          channelIds,
-        },
-        200
-      );
+    const client = getSlackClient(botToken);
+    const { invalid } = await validateBotChannelMembership(client, channelIds);
+    if (invalid.length > 0) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Bot is not a member of channels: ${invalid.join(', ')}`,
+      });
     }
 
     await setSlackMcpToolAccessConfig(runDbClient)({
       toolId,
       tenantId,
       projectId,
-      channelAccessMode: 'all',
+      channelAccessMode: 'selected',
       dmEnabled,
-      channelIds: [],
+      channelIds,
     });
 
-    logger.info({ tenantId, projectId, toolId }, 'MCP tool Slack access set to all channels');
+    logger.info(
+      { tenantId, projectId, toolId, channelCount: channelIds.length },
+      'MCP tool Slack access set to selected channels'
+    );
 
     return c.json(
       {
-        channelAccessMode: 'all' as const,
+        channelAccessMode: 'selected' as const,
         dmEnabled,
-        channelIds: [],
+        channelIds,
       },
       200
     );
   }
+
+  await setSlackMcpToolAccessConfig(runDbClient)({
+    toolId,
+    tenantId,
+    projectId,
+    channelAccessMode: 'all',
+    dmEnabled,
+    channelIds: [],
+  });
+
+  logger.info({ tenantId, projectId, toolId }, 'MCP tool Slack access set to all channels');
+
+  return c.json(
+    {
+      channelAccessMode: 'all' as const,
+      dmEnabled,
+      channelIds: [],
+    },
+    200
+  );
+};
+
+app.openapi(
+  createProtectedRoute({
+    ...setMcpToolSlackAccessRouteConfig,
+    method: 'patch',
+    operationId: 'set-mcp-tool-slack-access',
+  }),
+  setMcpToolSlackAccessHandler
+);
+
+app.openapi(
+  createProtectedRoute({
+    ...setMcpToolSlackAccessRouteConfig,
+    method: 'put',
+    operationId: 'set-mcp-tool-slack-access-put',
+    'x-speakeasy-ignore': true,
+  }),
+  setMcpToolSlackAccessHandler
 );
 
 export default app;

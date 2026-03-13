@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  type AgentsManageDatabaseClient,
   cascadeDeleteByProject,
   checkoutBranch,
   commonGetErrorResponses,
@@ -350,363 +351,376 @@ app.openapi(
   }
 );
 
-// Update/upsert full project
-// Authorization: dynamic - 'project:create' (new) or 'edit' (existing)
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/project-full/{projectId}',
-    summary: 'Update Full Project',
-    operationId: 'update-full-project',
-    tags: ['Projects'],
-    description:
-      'Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
-    permission: requireProjectUpsertPermission,
-    request: {
-      params: TenantProjectParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: FullProjectDefinitionSchema,
-          },
+const updateFullProjectRouteConfig = {
+  path: '/project-full/{projectId}' as const,
+  summary: 'Update Full Project',
+  tags: ['Projects'],
+  description:
+    'Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
+  permission: requireProjectUpsertPermission,
+  request: {
+    params: TenantProjectParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: FullProjectDefinitionSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Full project updated successfully',
-        content: {
-          'application/json': {
-            schema: FullProjectSelectResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Full project updated successfully',
+      content: {
+        'application/json': {
+          schema: FullProjectSelectResponse,
         },
       },
-      201: {
-        description: 'Full project created successfully',
-        content: {
-          'application/json': {
-            schema: FullProjectSelectResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
-    const projectData = c.req.valid('json');
-    const configDb = c.get('db');
-    const userId = c.get('userId');
-    const isCreate = c.get('isProjectCreate') ?? false;
+    201: {
+      description: 'Full project created successfully',
+      content: {
+        'application/json': {
+          schema: FullProjectSelectResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
 
-    try {
-      const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
+const updateFullProjectHandler = async (c: any) => {
+  const { tenantId, projectId } = c.req.valid('param');
+  const projectData = c.req.valid('json');
+  const configDb: AgentsManageDatabaseClient = c.get('db');
+  const userId = c.get('userId');
+  const isCreate = c.get('isProjectCreate') ?? false;
 
-      if (projectId !== validatedProjectData.id) {
-        throw createApiError({
-          code: 'bad_request',
-          message: `Project ID mismatch: expected ${projectId}, got ${validatedProjectData.id}`,
-        });
-      }
+  try {
+    const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
 
-      // fetch existing scheduled triggers and webhook triggers for all agents in parallel
-      const existingTriggersByAgent = new Map<string, ScheduledTrigger[]>();
-      const existingWebhookTriggersByAgent = new Map<string, TriggerSelect[]>();
-      if (!isCreate) {
-        const agents = Object.keys(validatedProjectData.agents || {});
-        const [scheduledResults, webhookResults] = await Promise.all([
-          Promise.all(
-            agents.map(async (agentId) => ({
-              agentId,
-              triggers: await listScheduledTriggers(configDb)({
-                scopes: { tenantId, projectId, agentId },
-              }),
-            }))
-          ),
-          Promise.all(
-            agents.map(async (agentId) => ({
-              agentId,
-              triggers: await listTriggers(configDb)({
-                scopes: { tenantId, projectId, agentId },
-              }),
-            }))
-          ),
-        ]);
-        for (const { agentId, triggers } of scheduledResults) {
-          existingTriggersByAgent.set(agentId, triggers);
-        }
-        for (const { agentId, triggers } of webhookResults) {
-          existingWebhookTriggersByAgent.set(agentId, triggers);
-        }
-      }
+    if (projectId !== validatedProjectData.id) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Project ID mismatch: expected ${projectId}, got ${validatedProjectData.id}`,
+      });
+    }
 
-      const callerId = userId ?? '';
-      const tenantRole = c.get('tenantRole') as OrgRole;
-
-      if (!tenantRole) {
-        throw createApiError({
-          code: 'unauthorized',
-          message: 'Missing tenant role',
-        });
-      }
-
-      for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
-        if (!agentData.scheduledTriggers) continue;
-
-        const existingTriggers = existingTriggersByAgent.get(agentId) || [];
-        const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
-
-        for (const [triggerId, triggerData] of Object.entries(agentData.scheduledTriggers)) {
-          await validateTriggerPermissions({
-            triggerData,
-            existing: existingById.get(triggerId),
-            callerId,
-            tenantId,
-            projectId,
-            tenantRole,
-          });
-        }
-      }
-
-      for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
-        if (!agentData.triggers) continue;
-
-        const existingTriggers = existingWebhookTriggersByAgent.get(agentId) || [];
-        const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
-
-        for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
-          await validateTriggerPermissions({
-            triggerData,
-            existing: existingById.get(triggerId),
-            callerId,
-            tenantId,
-            projectId,
-            tenantRole,
-          });
-        }
-      }
-
-      // Update/create the full project using server-side data layer operations
-      // SpiceDB sync is placed inside the transaction callbacks so that a SpiceDB failure
-      // causes both DB transactions to roll back. However, SpiceDB is not a true transaction
-      // participant — if DB commit fails after SpiceDB succeeds, orphaned auth relationships
-      // may remain in SpiceDB (safe due to deny-by-default).
-      const updatedProject: FullProjectSelect = isCreate
-        ? await runDbClient.transaction(async (runTx) => {
-            return await configDb.transaction(async (configTx) => {
-              // Create project with branch first
-              await createProjectMetadataAndBranch(
-                runTx,
-                configTx
-              )({
-                tenantId,
-                projectId,
-                createdBy: userId,
-              });
-
-              logger.info({ tenantId, projectId }, 'Created project with branch for PUT (upsert)');
-
-              // Checkout the project main branch
-              const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
-              await checkoutBranch(configTx)({
-                branchName: projectMainBranch,
-                autoCommitPending: true,
-              });
-
-              // Create the full project config
-              const project = await createFullProjectServerSide(configTx)({
-                scopes: { tenantId, projectId },
-                projectData: validatedProjectData,
-              });
-
-              // Sync to SpiceDB — if this throws, both DB transactions roll back.
-              // Note: if this succeeds but a subsequent DB commit fails, SpiceDB retains
-              // the auth relationships (orphaned but safe due to deny-by-default).
-              if (userId) {
-                await syncProjectToSpiceDb({
-                  tenantId,
-                  projectId,
-                  creatorUserId: userId,
-                });
-              } else {
-                logger.warn({ tenantId, projectId }, 'Skipping SpiceDB sync — no userId available');
-              }
-
-              return project;
-            });
-          })
-        : await updateFullProjectServerSide(configDb)({
-            scopes: { tenantId, projectId },
-            projectData: validatedProjectData,
-          });
-
-      // Reconcile scheduled trigger workflows for all agents in the project
-      try {
-        const agents = Object.keys(validatedProjectData.agents || {});
-
-        logger.info(
-          { tenantId, projectId, agentIds: agents, agentCount: agents.length },
-          'Starting scheduled trigger workflow reconciliation'
-        );
-
-        // Process all agents in parallel
-        await Promise.all(
-          agents.map(async (agentId) => {
-            const existingTriggersForAgent = existingTriggersByAgent.get(agentId) || [];
-            const newTriggersForAgent = await listScheduledTriggers(configDb)({
+    // fetch existing scheduled triggers and webhook triggers for all agents in parallel
+    const existingTriggersByAgent = new Map<string, ScheduledTrigger[]>();
+    const existingWebhookTriggersByAgent = new Map<string, TriggerSelect[]>();
+    if (!isCreate) {
+      const agents = Object.keys(validatedProjectData.agents || {});
+      const [scheduledResults, webhookResults] = await Promise.all([
+        Promise.all(
+          agents.map(async (agentId) => ({
+            agentId,
+            triggers: await listScheduledTriggers(configDb)({
               scopes: { tenantId, projectId, agentId },
+            }),
+          }))
+        ),
+        Promise.all(
+          agents.map(async (agentId) => ({
+            agentId,
+            triggers: await listTriggers(configDb)({
+              scopes: { tenantId, projectId, agentId },
+            }),
+          }))
+        ),
+      ]);
+      for (const { agentId, triggers } of scheduledResults) {
+        existingTriggersByAgent.set(agentId, triggers);
+      }
+      for (const { agentId, triggers } of webhookResults) {
+        existingWebhookTriggersByAgent.set(agentId, triggers);
+      }
+    }
+
+    const callerId = userId ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
+
+    for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
+      if (!agentData.scheduledTriggers) continue;
+
+      const existingTriggers = existingTriggersByAgent.get(agentId) || [];
+      const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
+
+      for (const [triggerId, triggerData] of Object.entries(agentData.scheduledTriggers)) {
+        await validateTriggerPermissions({
+          triggerData,
+          existing: existingById.get(triggerId),
+          callerId,
+          tenantId,
+          projectId,
+          tenantRole,
+        });
+      }
+    }
+
+    for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
+      if (!agentData.triggers) continue;
+
+      const existingTriggers = existingWebhookTriggersByAgent.get(agentId) || [];
+      const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
+
+      for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
+        await validateTriggerPermissions({
+          triggerData,
+          existing: existingById.get(triggerId),
+          callerId,
+          tenantId,
+          projectId,
+          tenantRole,
+        });
+      }
+    }
+
+    // Update/create the full project using server-side data layer operations
+    // SpiceDB sync is placed inside the transaction callbacks so that a SpiceDB failure
+    // causes both DB transactions to roll back. However, SpiceDB is not a true transaction
+    // participant — if DB commit fails after SpiceDB succeeds, orphaned auth relationships
+    // may remain in SpiceDB (safe due to deny-by-default).
+    const updatedProject: FullProjectSelect = isCreate
+      ? await runDbClient.transaction(async (runTx) => {
+          return await configDb.transaction(async (configTx) => {
+            // Create project with branch first
+            await createProjectMetadataAndBranch(
+              runTx,
+              configTx
+            )({
+              tenantId,
+              projectId,
+              createdBy: userId,
             });
 
-            logger.info(
-              {
+            logger.info({ tenantId, projectId }, 'Created project with branch for PUT (upsert)');
+
+            // Checkout the project main branch
+            const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
+            await checkoutBranch(configTx)({
+              branchName: projectMainBranch,
+              autoCommitPending: true,
+            });
+
+            // Create the full project config
+            const project = await createFullProjectServerSide(configTx)({
+              scopes: { tenantId, projectId },
+              projectData: validatedProjectData,
+            });
+
+            // Sync to SpiceDB — if this throws, both DB transactions roll back.
+            // Note: if this succeeds but a subsequent DB commit fails, SpiceDB retains
+            // the auth relationships (orphaned but safe due to deny-by-default).
+            if (userId) {
+              await syncProjectToSpiceDb({
                 tenantId,
                 projectId,
-                agentId,
-                existingCount: existingTriggersForAgent.length,
-                newCount: newTriggersForAgent.length,
-              },
-              'Reconciling scheduled triggers for agent'
-            );
+                creatorUserId: userId,
+              });
+            } else {
+              logger.warn({ tenantId, projectId }, 'Skipping SpiceDB sync — no userId available');
+            }
 
-            const existingTriggerMap = new Map(existingTriggersForAgent.map((t) => [t.id, t]));
-            const newTriggerMap = new Map(newTriggersForAgent.map((t) => [t.id, t]));
+            return project;
+          });
+        })
+      : await updateFullProjectServerSide(configDb)({
+          scopes: { tenantId, projectId },
+          projectData: validatedProjectData,
+        });
 
-            // Collect all workflow operations to parallelize them
-            const workflowOperations: Promise<void>[] = [];
+    // Reconcile scheduled trigger workflows for all agents in the project
+    try {
+      const agents = Object.keys(validatedProjectData.agents || {});
 
-            // Handle created and updated triggers
-            for (const trigger of newTriggersForAgent) {
-              const existing = existingTriggerMap.get(trigger.id);
+      logger.info(
+        { tenantId, projectId, agentIds: agents, agentCount: agents.length },
+        'Starting scheduled trigger workflow reconciliation'
+      );
 
-              if (!existing) {
-                // New trigger
+      // Process all agents in parallel
+      await Promise.all(
+        agents.map(async (agentId) => {
+          const existingTriggersForAgent = existingTriggersByAgent.get(agentId) || [];
+          const newTriggersForAgent = await listScheduledTriggers(configDb)({
+            scopes: { tenantId, projectId, agentId },
+          });
+
+          logger.info(
+            {
+              tenantId,
+              projectId,
+              agentId,
+              existingCount: existingTriggersForAgent.length,
+              newCount: newTriggersForAgent.length,
+            },
+            'Reconciling scheduled triggers for agent'
+          );
+
+          const existingTriggerMap = new Map(existingTriggersForAgent.map((t) => [t.id, t]));
+          const newTriggerMap = new Map(newTriggersForAgent.map((t) => [t.id, t]));
+
+          // Collect all workflow operations to parallelize them
+          const workflowOperations: Promise<void>[] = [];
+
+          // Handle created and updated triggers
+          for (const trigger of newTriggersForAgent) {
+            const existing = existingTriggerMap.get(trigger.id);
+
+            if (!existing) {
+              // New trigger
+              workflowOperations.push(
+                onTriggerCreated(trigger)
+                  .then(() =>
+                    logger.info(
+                      { tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
+                      'Started workflow for new scheduled trigger'
+                    )
+                  )
+                  .catch((err) =>
+                    logger.error(
+                      { err, tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
+                      'Failed to start workflow for new scheduled trigger'
+                    )
+                  )
+              );
+            } else {
+              // Updated trigger
+              const scheduleChanged =
+                existing.cronExpression !== trigger.cronExpression ||
+                String(existing.runAt) !== String(trigger.runAt);
+              const previousEnabled = existing.enabled;
+
+              if (scheduleChanged || previousEnabled !== trigger.enabled) {
                 workflowOperations.push(
-                  onTriggerCreated(trigger)
+                  onTriggerUpdated({ trigger, previousEnabled, scheduleChanged })
                     .then(() =>
                       logger.info(
                         { tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                        'Started workflow for new scheduled trigger'
+                        'Updated workflow for scheduled trigger'
                       )
                     )
                     .catch((err) =>
                       logger.error(
                         { err, tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                        'Failed to start workflow for new scheduled trigger'
-                      )
-                    )
-                );
-              } else {
-                // Updated trigger
-                const scheduleChanged =
-                  existing.cronExpression !== trigger.cronExpression ||
-                  String(existing.runAt) !== String(trigger.runAt);
-                const previousEnabled = existing.enabled;
-
-                if (scheduleChanged || previousEnabled !== trigger.enabled) {
-                  workflowOperations.push(
-                    onTriggerUpdated({ trigger, previousEnabled, scheduleChanged })
-                      .then(() =>
-                        logger.info(
-                          { tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                          'Updated workflow for scheduled trigger'
-                        )
-                      )
-                      .catch((err) =>
-                        logger.error(
-                          { err, tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                          'Failed to update workflow for scheduled trigger'
-                        )
-                      )
-                  );
-                }
-              }
-            }
-
-            // Handle deleted triggers
-            for (const existing of existingTriggersForAgent) {
-              if (!newTriggerMap.has(existing.id)) {
-                workflowOperations.push(
-                  onTriggerDeleted(existing)
-                    .then(() =>
-                      logger.info(
-                        { tenantId, projectId, agentId, scheduledTriggerId: existing.id },
-                        'Stopped workflow for deleted scheduled trigger'
-                      )
-                    )
-                    .catch((err) =>
-                      logger.error(
-                        { err, tenantId, projectId, agentId, scheduledTriggerId: existing.id },
-                        'Failed to stop workflow for deleted scheduled trigger'
+                        'Failed to update workflow for scheduled trigger'
                       )
                     )
                 );
               }
             }
+          }
 
-            // Execute all workflow operations for this agent in parallel
-            await Promise.allSettled(workflowOperations);
-          })
-        );
+          // Handle deleted triggers
+          for (const existing of existingTriggersForAgent) {
+            if (!newTriggerMap.has(existing.id)) {
+              workflowOperations.push(
+                onTriggerDeleted(existing)
+                  .then(() =>
+                    logger.info(
+                      { tenantId, projectId, agentId, scheduledTriggerId: existing.id },
+                      'Stopped workflow for deleted scheduled trigger'
+                    )
+                  )
+                  .catch((err) =>
+                    logger.error(
+                      { err, tenantId, projectId, agentId, scheduledTriggerId: existing.id },
+                      'Failed to stop workflow for deleted scheduled trigger'
+                    )
+                  )
+              );
+            }
+          }
 
-        logger.info(
-          { tenantId, projectId, agentCount: agents.length },
-          'Completed scheduled trigger workflow reconciliation'
-        );
-      } catch (err) {
-        logger.error(
-          { err, tenantId, projectId },
-          'Failed to reconcile scheduled trigger workflows after project update'
-        );
-      }
+          // Execute all workflow operations for this agent in parallel
+          await Promise.allSettled(workflowOperations);
+        })
+      );
 
-      return c.json({ data: updatedProject }, isCreate ? 201 : 200);
-    } catch (error: any) {
-      if (error instanceof HTTPException) {
-        throw error;
-      }
-      if (error instanceof z.ZodError) {
-        throw createApiError({
-          code: 'bad_request',
-          message: 'Invalid project definition',
-        });
-      }
+      logger.info(
+        { tenantId, projectId, agentCount: agents.length },
+        'Completed scheduled trigger workflow reconciliation'
+      );
+    } catch (err) {
+      logger.error(
+        { err, tenantId, projectId },
+        'Failed to reconcile scheduled trigger workflows after project update'
+      );
+    }
 
-      if (error instanceof Error && error.message.includes('ID mismatch')) {
-        throw createApiError({
-          code: 'bad_request',
-          message: error.message,
-        });
-      }
-
-      // Handle SpiceDB sync failures for creates — DB transactions rolled back since the
-      // exception propagated out of the transaction callbacks.
-      if (isCreate) {
-        const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
-        const mentionsSpiceDb = error?.message?.includes('SpiceDB');
-        if (mentionsSpiceDb || isGrpcError) {
-          logger.error(
-            {
-              error,
-              tenantId,
-              projectId,
-              userId,
-            },
-            'Failed to sync project to SpiceDB — database transactions rolled back'
-          );
-          throw createApiError({
-            code: 'internal_server_error',
-            message:
-              'Failed to set up project authorization. No changes were made to the database.',
-          });
-        }
-      }
-
+    return c.json({ data: updatedProject }, isCreate ? 201 : 200);
+  } catch (error: any) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+    if (error instanceof z.ZodError) {
       throw createApiError({
-        code: 'internal_server_error',
-        message: 'Failed to update project',
+        code: 'bad_request',
+        message: 'Invalid project definition',
       });
     }
+
+    if (error instanceof Error && error.message.includes('ID mismatch')) {
+      throw createApiError({
+        code: 'bad_request',
+        message: error.message,
+      });
+    }
+
+    // Handle SpiceDB sync failures for creates — DB transactions rolled back since the
+    // exception propagated out of the transaction callbacks.
+    if (isCreate) {
+      const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
+      const mentionsSpiceDb = error?.message?.includes('SpiceDB');
+      if (mentionsSpiceDb || isGrpcError) {
+        logger.error(
+          {
+            error,
+            tenantId,
+            projectId,
+            userId,
+          },
+          'Failed to sync project to SpiceDB — database transactions rolled back'
+        );
+        throw createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to set up project authorization. No changes were made to the database.',
+        });
+      }
+    }
+
+    throw createApiError({
+      code: 'internal_server_error',
+      message: 'Failed to update project',
+    });
   }
+};
+
+app.openapi(
+  createProtectedRoute({
+    ...updateFullProjectRouteConfig,
+    method: 'patch',
+    operationId: 'update-full-project',
+  }),
+  updateFullProjectHandler
+);
+
+app.openapi(
+  createProtectedRoute({
+    ...updateFullProjectRouteConfig,
+    method: 'put',
+    operationId: 'update-full-project-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateFullProjectHandler
 );
 
 // Authorization: org 'project:delete'

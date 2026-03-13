@@ -176,127 +176,140 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/',
-    summary: 'Set MCP tool GitHub repository access',
-    operationId: 'set-mcp-tool-github-access',
-    tags: ['Tools'],
-    description:
-      'Configures which GitHub repositories an MCP tool can access. ' +
-      'When mode is "all", the tool has access to all repositories the project can access. ' +
-      'When mode is "selected", the tool is scoped to specific repositories (repositoryIds required). ' +
-      'This replaces any existing access configuration. ' +
-      'This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).',
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectToolParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: SetGitHubAccessRequestSchema,
-          },
+const setMcpToolGithubAccessRouteConfig = {
+  path: '/' as const,
+  summary: 'Set MCP tool GitHub repository access',
+  tags: ['Tools'],
+  description:
+    'Configures which GitHub repositories an MCP tool can access. ' +
+    'When mode is "all", the tool has access to all repositories the project can access. ' +
+    'When mode is "selected", the tool is scoped to specific repositories (repositoryIds required). ' +
+    'This replaces any existing access configuration. ' +
+    'This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).',
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectToolParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: SetGitHubAccessRequestSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'GitHub access configuration updated successfully',
-        content: {
-          'application/json': {
-            schema: SetGitHubAccessResponseSchema,
-          },
+  },
+  responses: {
+    200: {
+      description: 'GitHub access configuration updated successfully',
+      content: {
+        'application/json': {
+          schema: SetGitHubAccessResponseSchema,
         },
       },
-      ...commonUpdateErrorResponses,
     },
-  }),
-  async (c) => {
-    const { tenantId, projectId, toolId } = c.req.valid('param');
-    const { mode, repositoryIds } = c.req.valid('json');
-    const db = c.get('db');
+    ...commonUpdateErrorResponses,
+  },
+};
 
-    logger.info(
-      { tenantId, projectId, toolId, mode },
-      'Setting MCP tool GitHub access configuration'
-    );
+const setMcpToolGithubAccessHandler = async (c: any) => {
+  const { tenantId, projectId, toolId } = c.req.valid('param');
+  const { mode, repositoryIds } = c.req.valid('json');
+  const db = c.get('db');
 
-    await validateGitHubWorkappTool(db, tenantId, projectId, toolId);
+  logger.info(
+    { tenantId, projectId, toolId, mode },
+    'Setting MCP tool GitHub access configuration'
+  );
 
-    if (mode === 'selected') {
-      if (!repositoryIds || repositoryIds.length === 0) {
-        logger.warn(
-          { tenantId, projectId, toolId },
-          'repositoryIds required when mode is selected'
-        );
-        throw createApiError({
-          code: 'bad_request',
-          message: 'repositoryIds is required when mode is "selected"',
-        });
-      }
+  await validateGitHubWorkappTool(db, tenantId, projectId, toolId);
 
-      const invalidRepoIds = await validateRepositoryOwnership(runDbClient)({
-        tenantId,
-        repositoryIds,
+  if (mode === 'selected') {
+    if (!repositoryIds || repositoryIds.length === 0) {
+      logger.warn({ tenantId, projectId, toolId }, 'repositoryIds required when mode is selected');
+      throw createApiError({
+        code: 'bad_request',
+        message: 'repositoryIds is required when mode is "selected"',
       });
-
-      if (invalidRepoIds.length > 0) {
-        logger.warn(
-          { tenantId, projectId, toolId, invalidRepoIds },
-          'Some repository IDs do not belong to tenant installations'
-        );
-        throw createApiError({
-          code: 'bad_request',
-          message: `Invalid repository IDs: ${invalidRepoIds.join(', ')}. Repositories must belong to GitHub installations owned by this tenant.`,
-        });
-      }
-
-      // Set explicit mode and repository access
-      await setMcpToolAccessMode(runDbClient)({ toolId, tenantId, projectId, mode: 'selected' });
-      await setMcpToolRepositoryAccess(runDbClient)({
-        toolId,
-        tenantId,
-        projectId,
-        repositoryIds,
-      });
-
-      logger.info(
-        { tenantId, projectId, toolId, repositoryCount: repositoryIds.length },
-        'MCP tool GitHub access set to selected repositories'
-      );
-
-      return c.json(
-        {
-          mode: 'selected' as const,
-          repositoryCount: repositoryIds.length,
-        },
-        200
-      );
     }
 
-    // mode === 'all': Set explicit mode and clear any repository access entries
-    await setMcpToolAccessMode(runDbClient)({ toolId, tenantId, projectId, mode: 'all' });
+    const invalidRepoIds = await validateRepositoryOwnership(runDbClient)({
+      tenantId,
+      repositoryIds,
+    });
+
+    if (invalidRepoIds.length > 0) {
+      logger.warn(
+        { tenantId, projectId, toolId, invalidRepoIds },
+        'Some repository IDs do not belong to tenant installations'
+      );
+      throw createApiError({
+        code: 'bad_request',
+        message: `Invalid repository IDs: ${invalidRepoIds.join(', ')}. Repositories must belong to GitHub installations owned by this tenant.`,
+      });
+    }
+
+    // Set explicit mode and repository access
+    await setMcpToolAccessMode(runDbClient)({ toolId, tenantId, projectId, mode: 'selected' });
     await setMcpToolRepositoryAccess(runDbClient)({
       toolId,
       tenantId,
       projectId,
-      repositoryIds: [],
+      repositoryIds,
     });
 
     logger.info(
-      { tenantId, projectId, toolId },
-      'MCP tool GitHub access set to all project repositories'
+      { tenantId, projectId, toolId, repositoryCount: repositoryIds.length },
+      'MCP tool GitHub access set to selected repositories'
     );
 
     return c.json(
       {
-        mode: 'all' as const,
-        repositoryCount: 0,
+        mode: 'selected' as const,
+        repositoryCount: repositoryIds.length,
       },
       200
     );
   }
+
+  // mode === 'all': Set explicit mode and clear any repository access entries
+  await setMcpToolAccessMode(runDbClient)({ toolId, tenantId, projectId, mode: 'all' });
+  await setMcpToolRepositoryAccess(runDbClient)({
+    toolId,
+    tenantId,
+    projectId,
+    repositoryIds: [],
+  });
+
+  logger.info(
+    { tenantId, projectId, toolId },
+    'MCP tool GitHub access set to all project repositories'
+  );
+
+  return c.json(
+    {
+      mode: 'all' as const,
+      repositoryCount: 0,
+    },
+    200
+  );
+};
+
+app.openapi(
+  createProtectedRoute({
+    ...setMcpToolGithubAccessRouteConfig,
+    method: 'patch',
+    operationId: 'set-mcp-tool-github-access',
+  }),
+  setMcpToolGithubAccessHandler
+);
+
+app.openapi(
+  createProtectedRoute({
+    ...setMcpToolGithubAccessRouteConfig,
+    method: 'put',
+    operationId: 'set-mcp-tool-github-access-put',
+    'x-speakeasy-ignore': true,
+  }),
+  setMcpToolGithubAccessHandler
 );
 
 export default app;

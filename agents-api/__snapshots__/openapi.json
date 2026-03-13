@@ -11160,7 +11160,7 @@
           "resource": "organization"
         }
       },
-      "put": {
+      "patch": {
         "description": "Create or update the profile for a specific user. Users can only update their own profile.",
         "operationId": "upsert-user-profile",
         "parameters": [
@@ -11358,6 +11358,206 @@
           "permission": "member",
           "resource": "organization"
         }
+      },
+      "put": {
+        "description": "Create or update the profile for a specific user. Users can only update their own profile.",
+        "operationId": "upsert-user-profile-put",
+        "parameters": [
+          {
+            "description": "User identifier",
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "attributes": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "nullable": true
+                      },
+                      {
+                        "additionalProperties": {
+                          "nullable": true
+                        },
+                        "type": "object"
+                      },
+                      {
+                        "items": {
+                          "nullable": true
+                        },
+                        "type": "array"
+                      },
+                      {
+                        "nullable": true
+                      }
+                    ]
+                  },
+                  "timezone": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "attributes": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "nullable": true
+                        },
+                        {
+                          "additionalProperties": {
+                            "nullable": true
+                          },
+                          "type": "object"
+                        },
+                        {
+                          "items": {
+                            "nullable": true
+                          },
+                          "type": "array"
+                        },
+                        {
+                          "nullable": true
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "userId",
+                    "timezone",
+                    "attributes",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Updated user profile"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Upsert User Profile",
+        "tags": [
+          "User Profile"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/available-agents": {
@@ -13062,7 +13262,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition",
         "operationId": "update-full-project",
         "parameters": [
@@ -13183,6 +13383,129 @@
         "x-authz": {
           "description": "Dynamic: requires organization admin for new projects, or project edit permission for existing projects."
         }
+      },
+      "put": {
+        "description": "Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition",
+        "operationId": "update-full-project-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FullProjectDefinition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullProjectSelectResponse"
+                }
+              }
+            },
+            "description": "Full project updated successfully"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullProjectSelectResponse"
+                }
+              }
+            },
+            "description": "Full project created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Full Project",
+        "tags": [
+          "Projects"
+        ],
+        "x-authz": {
+          "description": "Dynamic: requires organization admin for new projects, or project edit permission for existing projects."
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/project-full/{projectId}/with-relation-ids": {
@@ -14216,7 +14539,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Update or create a complete agent with all agents, tools, and relationships from JSON definition",
         "operationId": "update-full-agent",
         "parameters": [
@@ -14348,6 +14671,140 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "description": "Update or create a complete agent with all agents, tools, and relationships from JSON definition",
+        "operationId": "update-full-agent-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentWithinContextOfProject"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentWithinContextOfProjectResponse"
+                }
+              }
+            },
+            "description": "Full agent updated successfully"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentWithinContextOfProjectResponse"
+                }
+              }
+            },
+            "description": "Full agent created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Full Agent",
+        "tags": [
+          "Agents"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents": {
@@ -36925,7 +37382,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-function",
         "parameters": [
           {
@@ -37046,6 +37503,129 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "operationId": "update-function-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FunctionUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunctionResponse"
+                }
+              }
+            },
+            "description": "Function updated"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Function",
+        "tags": [
+          "Functions"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/github-access": {
@@ -37215,7 +37795,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Configures which GitHub repositories a project can access. When mode is \"all\", the project has access to all repositories from tenant GitHub installations. When mode is \"selected\", the project is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration.",
         "operationId": "set-project-github-access",
         "parameters": [
@@ -37366,6 +37946,159 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "description": "Configures which GitHub repositories a project can access. When mode is \"all\", the project has access to all repositories from tenant GitHub installations. When mode is \"selected\", the project is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration.",
+        "operationId": "set-project-github-access-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mode": {
+                    "description": "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "repositoryIds": {
+                    "description": "Internal repository IDs (required when mode=\"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositoryCount": {
+                      "description": "Number of repositories the project now has access to (0 when mode=\"all\")",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositoryCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set project GitHub repository access",
+        "tags": [
+          "Projects"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/mcp-catalog": {
@@ -40422,7 +41155,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Configures which GitHub repositories an MCP tool can access. When mode is \"all\", the tool has access to all repositories the project can access. When mode is \"selected\", the tool is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration. This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).",
         "operationId": "set-mcp-tool-github-access",
         "parameters": [
@@ -40584,6 +41317,170 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "description": "Configures which GitHub repositories an MCP tool can access. When mode is \"all\", the tool has access to all repositories the project can access. When mode is \"selected\", the tool is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration. This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).",
+        "operationId": "set-mcp-tool-github-access-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mode": {
+                    "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "repositoryIds": {
+                    "description": "Internal repository IDs (required when mode=\"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositoryCount": {
+                      "description": "Number of repositories the MCP tool now has access to (0 when mode=\"all\")",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositoryCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set MCP tool GitHub repository access",
+        "tags": [
+          "Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/projects/{projectId}/tools/{toolId}/slack-access": {
@@ -40729,7 +41626,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Configures which Slack channels an MCP tool can post to. When channelAccessMode is \"all\", the tool can post to any channel. When channelAccessMode is \"selected\", the tool is scoped to specific channels (channelIds required).",
         "operationId": "set-mcp-tool-slack-access",
         "parameters": [
@@ -40905,6 +41802,184 @@
           "permission": "edit",
           "resource": "project"
         }
+      },
+      "put": {
+        "description": "Configures which Slack channels an MCP tool can post to. When channelAccessMode is \"all\", the tool can post to any channel. When channelAccessMode is \"selected\", the tool is scoped to specific channels (channelIds required).",
+        "operationId": "set-mcp-tool-slack-access-put",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channelAccessMode": {
+                    "description": "Channel access mode: \"all\" means the MCP tool can post to any channel, \"selected\" means the tool is scoped to specific channels",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "channelIds": {
+                    "default": [],
+                    "description": "List of allowed channel IDs (only used when channelAccessMode is \"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "dmEnabled": {
+                    "description": "Whether DM access is enabled for this tool",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "channelAccessMode",
+                  "dmEnabled"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "channelAccessMode": {
+                      "description": "Channel access mode: \"all\" means the MCP tool can post to any channel, \"selected\" means the tool is scoped to specific channels",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "channelIds": {
+                      "default": [],
+                      "description": "List of allowed channel IDs (only used when channelAccessMode is \"selected\")",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "dmEnabled": {
+                      "description": "Whether DM access is enabled for this tool",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "channelAccessMode",
+                    "dmEnabled"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Slack access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set MCP tool Slack channel access",
+        "tags": [
+          "Tools"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        },
+        "x-speakeasy-ignore": true
       }
     },
     "/manage/tenants/{tenantId}/users/{userId}/project-memberships": {

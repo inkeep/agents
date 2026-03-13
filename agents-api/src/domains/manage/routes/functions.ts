@@ -190,78 +190,94 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    permission: requireProjectPermission('edit'),
-    summary: 'Update Function',
-    operationId: 'update-function',
-    tags: ['Functions'],
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: FunctionApiUpdateSchema,
-          },
+const updateFunctionRouteConfig = {
+  path: '/{id}' as const,
+  permission: requireProjectPermission('edit'),
+  summary: 'Update Function',
+  tags: ['Functions'],
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: FunctionApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Function updated',
-        content: {
-          'application/json': {
-            schema: FunctionResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Function updated',
+      content: {
+        'application/json': {
+          schema: FunctionResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const updateData = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    try {
-      const existing = await getFunction(db)({
-        functionId: id,
-        scopes: { tenantId, projectId },
-      });
-      if (!existing) {
-        return c.json(
-          createApiError({ code: 'not_found', message: 'Function not found' }),
-          404
-        ) as any;
-      }
+const updateFunctionHandler = async (c: any) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const updateData = c.req.valid('json');
 
-      await upsertFunction(db)({
-        data: {
-          ...existing,
-          ...updateData,
-          id,
-        },
-        scopes: { tenantId, projectId },
-      });
-
-      const updated = await getFunction(db)({
-        functionId: id,
-        scopes: { tenantId, projectId },
-      });
-
-      logger.info({ tenantId, functionId: id }, 'Function updated');
-
-      return c.json({ data: updated as any }) as any;
-    } catch (error) {
-      logger.error({ error, tenantId, id, updateData }, 'Failed to update function');
+  try {
+    const existing = await getFunction(db)({
+      functionId: id,
+      scopes: { tenantId, projectId },
+    });
+    if (!existing) {
       return c.json(
-        createApiError({ code: 'internal_server_error', message: 'Failed to update function' }),
-        500
+        createApiError({ code: 'not_found', message: 'Function not found' }),
+        404
       ) as any;
     }
+
+    await upsertFunction(db)({
+      data: {
+        ...existing,
+        ...updateData,
+        id,
+      },
+      scopes: { tenantId, projectId },
+    });
+
+    const updated = await getFunction(db)({
+      functionId: id,
+      scopes: { tenantId, projectId },
+    });
+
+    logger.info({ tenantId, functionId: id }, 'Function updated');
+
+    return c.json({ data: updated as any }) as any;
+  } catch (error) {
+    logger.error({ error, tenantId, id, updateData }, 'Failed to update function');
+    return c.json(
+      createApiError({ code: 'internal_server_error', message: 'Failed to update function' }),
+      500
+    ) as any;
   }
+};
+
+app.openapi(
+  createProtectedRoute({
+    ...updateFunctionRouteConfig,
+    method: 'patch',
+    operationId: 'update-function',
+  }),
+  updateFunctionHandler
+);
+
+app.openapi(
+  createProtectedRoute({
+    ...updateFunctionRouteConfig,
+    method: 'put',
+    operationId: 'update-function-put',
+    'x-speakeasy-ignore': true,
+  }),
+  updateFunctionHandler
 );
 
 app.openapi(

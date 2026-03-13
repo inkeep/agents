@@ -75,68 +75,84 @@ app.openapi(
   }
 );
 
+const upsertUserProfileRouteConfig = {
+  path: '/{userId}/profile' as const,
+  summary: 'Upsert User Profile',
+  description:
+    'Create or update the profile for a specific user. Users can only update their own profile.',
+  tags: ['User Profile'],
+  permission: inheritedManageTenantAuth(),
+  request: {
+    params: UserIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: UserProfileApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Updated user profile',
+      content: {
+        'application/json': {
+          schema: UserProfileSelectSchema,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const upsertUserProfileHandler = async (c: any) => {
+  const { userId } = c.req.valid('param');
+  const authenticatedUserId = c.get('userId') as string;
+
+  if (userId !== authenticatedUserId) {
+    throw createApiError({
+      code: 'forbidden',
+      message: "Cannot update another user's profile",
+    });
+  }
+
+  const body = c.req.valid('json');
+
+  const updated = await upsertUserProfile(runDbClient)(userId, {
+    ...body,
+    attributes: body.attributes ?? {},
+  });
+
+  return c.json(
+    {
+      id: updated.id,
+      userId: updated.userId,
+      timezone: updated.timezone,
+      attributes: updated.attributes ?? {},
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    },
+    200
+  );
+};
+
 app.openapi(
   createProtectedRoute({
-    method: 'put',
-    path: '/{userId}/profile',
-    summary: 'Upsert User Profile',
-    description:
-      'Create or update the profile for a specific user. Users can only update their own profile.',
+    ...upsertUserProfileRouteConfig,
+    method: 'patch',
     operationId: 'upsert-user-profile',
-    tags: ['User Profile'],
-    permission: inheritedManageTenantAuth(),
-    request: {
-      params: UserIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: UserProfileApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Updated user profile',
-        content: {
-          'application/json': {
-            schema: UserProfileSelectSchema,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
   }),
-  async (c) => {
-    const { userId } = c.req.valid('param');
-    const authenticatedUserId = c.get('userId') as string;
+  upsertUserProfileHandler
+);
 
-    if (userId !== authenticatedUserId) {
-      throw createApiError({
-        code: 'forbidden',
-        message: "Cannot update another user's profile",
-      });
-    }
-
-    const body = c.req.valid('json');
-
-    const updated = await upsertUserProfile(runDbClient)(userId, {
-      ...body,
-      attributes: body.attributes ?? {},
-    });
-
-    return c.json(
-      {
-        id: updated.id,
-        userId: updated.userId,
-        timezone: updated.timezone,
-        attributes: updated.attributes ?? {},
-        createdAt: updated.createdAt,
-        updatedAt: updated.updatedAt,
-      },
-      200
-    );
-  }
+app.openapi(
+  createProtectedRoute({
+    ...upsertUserProfileRouteConfig,
+    method: 'put',
+    operationId: 'upsert-user-profile-put',
+    'x-speakeasy-ignore': true,
+  }),
+  upsertUserProfileHandler
 );
 
 export default app;
