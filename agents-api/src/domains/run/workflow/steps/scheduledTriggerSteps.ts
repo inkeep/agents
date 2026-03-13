@@ -174,7 +174,7 @@ export async function checkTriggerEnabledStep(params: {
   if (!resolvedRef) {
     logger.warn(
       { tenantId: params.tenantId, projectId: params.projectId },
-      'Failed to resolve ref for project, run will not be'
+      'Failed to resolve ref for project, treating trigger as deleted'
     );
     return { shouldContinue: false, reason: 'deleted', trigger: null };
   }
