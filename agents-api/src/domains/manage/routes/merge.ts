@@ -31,6 +31,7 @@ import type { ManageAppVariables } from '../../../types/app';
 
 const logger = getLogger('merge');
 const SCOPE_PK_COLUMNS = new Set(['tenant_id', 'project_id']);
+const TIMESTAMP_COLUMNS = new Set(['created_at', 'updated_at']);
 
 function stripScopePks(pk: Record<string, string>): Record<string, string> {
   const result: Record<string, string> = {};
@@ -40,6 +41,26 @@ function stripScopePks(pk: Record<string, string>): Record<string, string> {
     }
   }
   return result;
+}
+
+function isTimestampOnlyDiff(
+  base: Record<string, unknown>,
+  ours: Record<string, unknown>,
+  theirs: Record<string, unknown>,
+  row: Record<string, unknown>
+): boolean {
+  if (row.our_diff_type !== 'modified' || row.their_diff_type !== 'modified') return false;
+
+  for (const key of Object.keys(base)) {
+    if (TIMESTAMP_COLUMNS.has(key)) continue;
+    if (
+      String(base[key] ?? '') !== String(ours[key] ?? '') ||
+      String(base[key] ?? '') !== String(theirs[key] ?? '')
+    ) {
+      return false;
+    }
+  }
+  return true;
 }
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -170,43 +191,14 @@ app.openapi(
     }
 
     const conflicts: z.infer<typeof ConflictItemSchema>[] = [];
-
     for (const ct of tablesWithConflicts) {
-      const tableName = ct.table;
-      const tableConflicts = await doltPreviewMergeConflicts(db)({
-        baseBranch: targetFullName,
-        mergeBranch: sourceFullName,
-        tableName,
-      });
-      const pkColumns = managePkMap[tableName] ?? [];
-
-      for (const row of tableConflicts) {
-        const fullPk: Record<string, string> = {};
-        for (const col of pkColumns) {
-          fullPk[col] = String(row[`base_${col}`] ?? row[`our_${col}`] ?? row[`their_${col}`]);
-        }
-
-        const strippedPk = stripScopePks(fullPk);
-
-        const base = extractPrefixedValues(row, 'base_', pkColumns);
-        const ours = extractPrefixedValues(row, 'our_', pkColumns);
-        const theirs = extractPrefixedValues(row, 'their_', pkColumns);
-
-        conflicts.push({
-          table: tableName,
-          primaryKey: strippedPk,
-          ourDiffType: String(row.our_diff_type ?? 'modified'),
-          theirDiffType: String(row.their_diff_type ?? 'modified'),
-          base: row.base_diff_type === 'added' ? null : base,
-          ours: row.our_diff_type === 'removed' ? null : ours,
-          theirs: row.their_diff_type === 'removed' ? null : theirs,
-        });
-      }
+      const items = await buildConflictItems(db, ct.table, targetFullName, sourceFullName);
+      conflicts.push(...items);
     }
 
     return c.json({
       data: {
-        hasConflicts: true,
+        hasConflicts: conflicts.length > 0,
         sourceHash,
         targetHash,
         canFastForward: false,
@@ -380,6 +372,42 @@ function extractPrefixedValues(
   }
 
   return result;
+}
+
+async function buildConflictItems(
+  db: Parameters<typeof doltPreviewMergeConflicts>[0],
+  tableName: string,
+  baseBranch: string,
+  mergeBranch: string
+): Promise<z.infer<typeof ConflictItemSchema>[]> {
+  const rows = await doltPreviewMergeConflicts(db)({ baseBranch, mergeBranch, tableName });
+  const pkColumns = managePkMap[tableName] ?? [];
+  const items: z.infer<typeof ConflictItemSchema>[] = [];
+
+  for (const row of rows) {
+    const fullPk: Record<string, string> = {};
+    for (const col of pkColumns) {
+      fullPk[col] = String(row[`base_${col}`] ?? row[`our_${col}`] ?? row[`their_${col}`]);
+    }
+
+    const base = extractPrefixedValues(row, 'base_', pkColumns);
+    const ours = extractPrefixedValues(row, 'our_', pkColumns);
+    const theirs = extractPrefixedValues(row, 'their_', pkColumns);
+
+    if (isTimestampOnlyDiff(base, ours, theirs, row)) continue;
+
+    items.push({
+      table: tableName,
+      primaryKey: stripScopePks(fullPk),
+      ourDiffType: String(row.our_diff_type ?? 'modified'),
+      theirDiffType: String(row.their_diff_type ?? 'modified'),
+      base: row.base_diff_type === 'added' ? null : base,
+      ours: row.our_diff_type === 'removed' ? null : ours,
+      theirs: row.their_diff_type === 'removed' ? null : theirs,
+    });
+  }
+
+  return items;
 }
 
 async function syncBranchSchema(

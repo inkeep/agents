@@ -4,9 +4,12 @@ import { getLogger } from '../utils/logger';
 import type { ConflictResolution } from '../validation/dolt-schemas';
 import { doltCheckout } from './branch';
 import { doltAddAndCommit } from './commit';
+import { managePkMap } from './pk-map';
 import { applyResolutions } from './resolve-conflicts';
 
 const logger = getLogger('dolt-merge');
+
+const TIMESTAMP_COLUMNS = new Set(['created_at', 'updated_at']);
 
 export class MergeConflictError extends Error {
   constructor(
@@ -33,6 +36,50 @@ function extractConflictCount(row: Record<string, unknown>): number {
   }
 
   throw new Error(`Unexpected DOLT_MERGE result format: ${JSON.stringify(row)}`);
+}
+
+function isTimestampOnlyConflictRow(row: Record<string, unknown>, pkColumns: string[]): boolean {
+  if (row.our_diff_type !== 'modified' || row.their_diff_type !== 'modified') return false;
+
+  const pkSet = new Set(pkColumns);
+
+  for (const key of Object.keys(row)) {
+    if (!key.startsWith('base_')) continue;
+    const col = key.slice(5);
+    if (col === 'diff_type' || pkSet.has(col) || TIMESTAMP_COLUMNS.has(col)) continue;
+
+    if (
+      String(row[`base_${col}`] ?? '') !== String(row[`our_${col}`] ?? '') ||
+      String(row[`base_${col}`] ?? '') !== String(row[`their_${col}`] ?? '')
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// We automatically resolve timestamp-only conflicts so that the user doesn't constantly face conflicts.
+function buildTimestampAutoResolution(
+  tableName: string,
+  row: Record<string, unknown>,
+  pkColumns: string[]
+): ConflictResolution {
+  const primaryKey: Record<string, string> = {};
+  for (const col of pkColumns) {
+    primaryKey[col] = String(row[`base_${col}`] ?? row[`our_${col}`] ?? row[`their_${col}`]);
+  }
+
+  const ourUpdatedAt = row.our_updated_at ? new Date(String(row.our_updated_at)) : new Date(0);
+  const theirUpdatedAt = row.their_updated_at
+    ? new Date(String(row.their_updated_at))
+    : new Date(0);
+
+  return {
+    table: tableName,
+    primaryKey,
+    rowDefaultPick: ourUpdatedAt >= theirUpdatedAt ? 'ours' : 'theirs',
+  };
 }
 
 /**
@@ -115,34 +162,38 @@ export const doltMerge =
       const hasConflicts = Number.isFinite(conflicts) && conflicts > 0;
 
       if (hasConflicts) {
-        const { resolutions } = params;
-
-        if (!resolutions || resolutions.length === 0) {
-          throw new MergeConflictError(
-            'Merge has conflicts but no resolutions were provided.',
-            conflicts,
-            params.fromBranch,
-            params.toBranch
-          );
-        }
+        const userResolutions = params.resolutions ?? [];
+        const autoResolutions: ConflictResolution[] = [];
 
         const conflictTables = await doltConflicts(db)();
-        let totalConflicts = 0;
+        let manualConflicts = 0;
+
         for (const ct of conflictTables) {
           const tableConflicts = await doltTableConflicts(db)({ tableName: ct.table });
-          totalConflicts += tableConflicts.length;
+          const pkColumns = managePkMap[ct.table] ?? [];
+
+          for (const row of tableConflicts) {
+            if (isTimestampOnlyConflictRow(row, pkColumns)) {
+              autoResolutions.push(buildTimestampAutoResolution(ct.table, row, pkColumns));
+            } else {
+              manualConflicts++;
+            }
+          }
         }
 
-        if (resolutions.length < totalConflicts) {
+        if (manualConflicts > 0 && userResolutions.length < manualConflicts) {
           throw new MergeConflictError(
-            `Resolutions provided (${resolutions.length}) do not cover all conflicts (${totalConflicts}). All conflicts must be resolved.`,
-            totalConflicts,
+            manualConflicts > 0 && userResolutions.length === 0
+              ? 'Merge has conflicts but no resolutions were provided.'
+              : `Resolutions provided (${userResolutions.length}) do not cover all conflicts (${manualConflicts}). All conflicts must be resolved.`,
+            manualConflicts,
             params.fromBranch,
             params.toBranch
           );
         }
 
-        await applyResolutions(db)(resolutions);
+        const allResolutions = [...autoResolutions, ...userResolutions];
+        await applyResolutions(db)(allResolutions);
         await doltAddAndCommit(db)({
           message: params.message
             ? `${params.message} (with conflict resolution)`

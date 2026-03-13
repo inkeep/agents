@@ -305,22 +305,14 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       // Non-fatal: if we can't get the hash, fall through to direct pull
     }
 
-    const hasDiverged = lastPulledHash && currentMainHash && lastPulledHash !== currentMainHash;
-
     if (options.debug && currentMainHash) {
       console.log(styleText('gray', `   Current main hash: ${currentMainHash}`));
-      console.log(
-        styleText(
-          'gray',
-          hasDiverged ? '   Divergence detected — using merge flow' : '   No divergence'
-        )
-      );
     }
 
     let remoteProject: any;
 
-    if (hasDiverged && localProjectForId) {
-      s.message('Divergence detected — creating temp branch...');
+    if (localProjectForId) {
+      s.message('Checking for conflicts...');
 
       const tempBranchName = getTempBranchSuffix('cli-pull');
 
@@ -345,6 +337,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         if (preview.hasConflicts) {
           s.stop('Conflicts detected');
           const { resolveConflictsInteractive } = await import('../merge-conflicts');
+          console.log(preview.conflicts);
           const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
 
           s.start('Executing merge with resolutions...');

@@ -90,6 +90,7 @@ export async function resolveConflictsInteractive(
     });
 
     if (p.isCancel(pick)) {
+      console.log('Conflict resolution cancelled');
       throw new Error('Conflict resolution cancelled');
     }
 
