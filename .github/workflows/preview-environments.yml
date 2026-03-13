@@ -556,6 +556,7 @@ jobs:
           VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
           VERCEL_MANAGE_UI_PROJECT_ID: ${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}
           PR_BRANCH: ${{ needs.compute-context.outputs.pr_branch }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
         run: |
@@ -564,7 +565,14 @@ jobs:
             echo "PR branch is required for preview deploy targeting."
             exit 1
           fi
+          if [ -z "${PR_HEAD_SHA:-}" ]; then
+            echo "PR head SHA is required for preview deploy targeting."
+            exit 1
+          fi
           npm install -g vercel
+
+          REPO_OWNER="${GITHUB_REPOSITORY%%/*}"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
 
           API_DOMAIN="${API_URL#https://}"
           API_DOMAIN="${API_DOMAIN#http://}"
@@ -653,7 +661,18 @@ jobs:
             fi
 
             log_file="$(mktemp)"
-            vercel deploy --yes --token="${VERCEL_TOKEN}" --scope="${VERCEL_ORG_ID}" 2>&1 | tee "${log_file}"
+            vercel deploy \
+              --yes \
+              --token="${VERCEL_TOKEN}" \
+              --scope="${VERCEL_ORG_ID}" \
+              -m githubDeployment=1 \
+              -m githubCommitRef="${PR_BRANCH}" \
+              -m githubCommitSha="${PR_HEAD_SHA}" \
+              -m githubOrg="${REPO_OWNER}" \
+              -m githubRepo="${REPO_NAME}" \
+              -m githubCommitOrg="${REPO_OWNER}" \
+              -m githubCommitRepo="${REPO_NAME}" \
+              2>&1 | tee "${log_file}"
 
             deployment_url="$(
               grep -E 'Preview:[[:space:]]+https://' "${log_file}" |
