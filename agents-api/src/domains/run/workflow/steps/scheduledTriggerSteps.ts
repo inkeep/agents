@@ -62,7 +62,7 @@ export async function checkTriggerEnabledStep(params: {
   if (!resolvedRef) {
     logger.warn(
       { tenantId: params.tenantId, projectId: params.projectId },
-      'Failed to resolve ref for project, treating trigger as deleted',
+      'Failed to resolve ref for project, treating trigger as deleted'
     );
     return { shouldContinue: false, reason: 'deleted' as const, trigger: null };
   }
@@ -77,7 +77,7 @@ export async function checkTriggerEnabledStep(params: {
   if (!trigger || !trigger.enabled) {
     logger.info(
       { scheduledTriggerId: params.scheduledTriggerId, reason: !trigger ? 'deleted' : 'disabled' },
-      'Scheduled trigger workflow stopping',
+      'Scheduled trigger workflow stopping'
     );
     return {
       shouldContinue: false,

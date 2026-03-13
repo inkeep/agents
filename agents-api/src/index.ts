@@ -17,10 +17,10 @@ import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { createEmailService } from '@inkeep/agents-email';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
+import { startSchedulerWorkflow } from './domains/run/services/SchedulerService';
 import { createAgentsAuth } from './factory';
 import { createAuth0Provider } from './ssoHelpers';
 import type { SandboxConfig } from './types';
-import { startSchedulerWorkflow } from './domains/run/services/SchedulerService';
 import { recoverOrphanedWorkflows, world } from './workflow/world';
 
 export type { AppConfig, AppVariables } from './types';
