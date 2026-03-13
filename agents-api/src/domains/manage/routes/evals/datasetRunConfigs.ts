@@ -237,6 +237,7 @@ app.openapi(
           datasetId: runConfigData.datasetId,
           datasetRunConfigId: id,
           evaluationJobConfigId: undefined, // Will be linked after conversations exist
+          ref: c.get('resolvedRef'),
         });
 
         logger.info(
@@ -322,6 +323,7 @@ app.openapi(
             tenantId,
             projectId,
             evaluationJobConfigId: evalJobConfigId,
+            ref: c.get('resolvedRef'),
           });
         }
 

@@ -279,6 +279,9 @@ export async function createInvocationIdempotentStep(params: {
     return { invocation: existing, alreadyExists: true };
   }
 
+  const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
+  const resolvedRef = await resolveRef(manageDbClient)(ref);
+
   const invocationId = generateId();
 
   const invocation = await createScheduledTriggerInvocation(runDbClient)({
@@ -287,6 +290,7 @@ export async function createInvocationIdempotentStep(params: {
     projectId: params.projectId,
     agentId: params.agentId,
     scheduledTriggerId: params.scheduledTriggerId,
+    ref: resolvedRef ?? undefined,
     status: 'pending',
     scheduledFor: params.scheduledFor,
     resolvedPayload: params.payload,

@@ -1,4 +1,4 @@
-import type { EvaluationJobFilterCriteria } from '@inkeep/agents-core';
+import type { EvaluationJobFilterCriteria, ResolvedRef } from '@inkeep/agents-core';
 import { createEvaluationRun, filterConversationsForJob, generateId } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
@@ -13,13 +13,15 @@ export async function queueEvaluationJobConversations(params: {
   evaluationJobConfigId: string;
   evaluatorIds: string[];
   jobFilters: EvaluationJobFilterCriteria | null | undefined;
+  resolvedRef?: ResolvedRef;
 }): Promise<{
   conversationCount: number;
   queued: number;
   failed: number;
   evaluationRunId: string;
 }> {
-  const { tenantId, projectId, evaluationJobConfigId, evaluatorIds, jobFilters } = params;
+  const { tenantId, projectId, evaluationJobConfigId, evaluatorIds, jobFilters, resolvedRef } =
+    params;
 
   const conversations = await filterConversationsForJob(runDbClient)({
     scopes: { tenantId, projectId },
@@ -36,6 +38,7 @@ export async function queueEvaluationJobConversations(params: {
     tenantId,
     projectId,
     evaluationJobConfigId,
+    ref: resolvedRef,
   });
 
   let queued = 0;
