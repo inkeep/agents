@@ -501,7 +501,7 @@ const updateFullProjectHandler = async (c: any) => {
               createdBy: userId,
             });
 
-            logger.info({ tenantId, projectId }, 'Created project with branch for PUT (upsert)');
+            logger.info({ tenantId, projectId }, 'Created project with branch (upsert)');
 
             // Checkout the project main branch
             const projectMainBranch = getProjectMainBranchName(tenantId, projectId);

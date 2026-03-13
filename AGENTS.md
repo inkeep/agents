@@ -168,8 +168,8 @@ The `agents-api` package contains all API domains under a single service:
 | Update (partial) | PATCH | `/resources/{id}` | `PATCH /agents/{id}` |
 | Delete | DELETE | `/resources/{id}` | `DELETE /agents/{id}` |
 
-- **PATCH** for updates with partial/sparse bodies (RFC 5789) — this is the canonical method
-- **PUT** is reserved for full-resource replacement (RFC 9110 §9.3.4) — existing PUT routes remain functional but new update routes must use PATCH
+- **PATCH** for updates with partial/sparse bodies (RFC 5789) — this is the canonical method for all update operations, including upsert routes
+- **PUT** is reserved for full-resource replacement (RFC 9110 §9.3.4) — existing PUT routes remain functional for backward compatibility but currently behave as partial updates (same handler as PATCH); new update routes must use PATCH only
 - **POST** for creates and non-idempotent actions (sync, reconnect, cancel, etc.)
 - **GET** for reads — never mutates state
 - **DELETE** for resource removal
