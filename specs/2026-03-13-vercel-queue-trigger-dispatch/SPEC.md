@@ -187,33 +187,30 @@ Each scheduled occurrence dispatches independently. Concurrent invocations allow
 
 ## 9) Current State (How It Works Today)
 
-**What exists today on `main`:**
+Today on `main`, scheduled triggers use a **daisy-chain workflow** pattern:
 
-- `trigger_schedules` table in runtime Postgres (schema + data access layer)
-- `scheduler_state` table in runtime Postgres (schema + data access layer)
-- `schedulerWorkflow` (sleep 60s → check superseded → dispatch loop)
-- `scheduledTriggerRunnerWorkflow` (one-shot execution, no daisy-chain)
-- `triggerDispatcher.ts` (claim → advance → start → release pattern)
-- `SchedulerService.ts` (startSchedulerWorkflow)
-- `restartScheduler.ts` (deploy restart endpoint)
-- CI step in `vercel-production.yml` (restart-scheduler job)
-- Step functions (`scheduledTriggerSteps.ts`) — all reusable
+1. On trigger create/enable, `ScheduledTriggerService` starts a WDK workflow
+2. The workflow sleeps until the next cron occurrence
+3. On wake, it executes the trigger (agent run)
+4. After execution, it starts a **new workflow for the next occurrence** (the "chain")
+5. Each chained workflow inherits the deployment it was started on → **deployment pinning**
+
+**Files on `main`:**
+
+- `scheduled_triggers` table in manage DB (DoltgreSQL) — source of truth for trigger config
+- `scheduled_trigger_invocations` table in runtime DB — execution records
+- `ScheduledTriggerService.ts` — trigger lifecycle hooks (create/update/delete → starts daisy-chain workflows)
+- `scheduledTriggerRunnerWorkflow.ts` — one-shot trigger execution workflow
+- `scheduledTriggerSteps.ts` — step functions (checkEnabled, createInvocation, markRunning, execute, markCompleted/Failed)
+- `TriggerService.ts` — `executeAgentAsync()` for actual agent execution
+- Trigger CRUD API and manage UI
 
 **What this spec replaces:**
 
-
-| Component on `main`        | Current behavior                                      | This spec                                                   |
-| -------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
-| `trigger_schedules` table  | Denormalized schedule rows with `next_run_at`, claims | **Removed** — queue IS the schedule                         |
-| `scheduler_state` table    | Singleton for scheduler supersession                  | **Removed** — no scheduler to coordinate                    |
-| `schedulerWorkflow.ts`     | 60s polling loop                                      | **Removed** — queue delivers at the right time              |
-| `triggerDispatcher.ts`     | Claim/advance/release dispatch logic                  | **Replaced** — consumer validates and dispatches directly   |
-| `SchedulerService.ts`      | Start/restart scheduler workflow                      | **Replaced** — `TriggerSchedulingService` enqueues/dequeues |
-| `restartScheduler.ts`      | Deploy restart endpoint                               | **Removed** — poll mode consumers are deployment-agnostic   |
-| CI `restart-scheduler` job | Post-deploy curl to restart endpoint                  | **Removed**                                                 |
-| Write-through sync         | Upsert to `trigger_schedules` on CRUD                 | **Removed** — CRUD enqueues directly to queue               |
-| Bulk resync                | Populate schedule table from manage DB                | **Removed** — recovery via startup scan (local dev only)    |
-
+| Component on `main`                | Current behavior                                                              | This spec                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Daisy-chain scheduling             | Each workflow chains to the next on completion → deployment-pinned            | **Removed** — queue delayed delivery handles scheduling                    |
+| `ScheduledTriggerService` hooks    | Starts daisy-chain workflows on trigger create/enable                         | **Modified** — enqueues delayed message via `triggerScheduler.schedule()`  |
 
 **What stays the same:**
 
@@ -697,7 +694,7 @@ async function recoverLocalSchedulerOnStartup() {
 
 | File                                                                                               | Action                                                                                                                                                      |
 | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agents-api/src/domains/run/services/ScheduledTriggerService.ts` (or equivalent manage-side hooks) | Modify — `onTriggerCreated/Updated/Deleted` calls `triggerScheduler.schedule()` instead of writing to `trigger_schedules` or starting daisy-chain workflows |
+| `agents-api/src/domains/run/services/ScheduledTriggerService.ts` | Modify — `onTriggerCreated/Updated/Deleted` calls `triggerScheduler.schedule()` instead of starting daisy-chain workflows |
 
 
 ### Phase 4: Migration + Initial Enqueue
@@ -721,16 +718,7 @@ async function recoverLocalSchedulerOnStartup() {
 
 | File                                                                 | Action                                                         |
 | -------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `agents-api/src/domains/run/workflow/functions/schedulerWorkflow.ts` | Delete                                                         |
-| `agents-api/src/domains/run/workflow/steps/schedulerSteps.ts`        | Delete                                                         |
-| `agents-api/src/domains/run/services/SchedulerService.ts`            | Delete                                                         |
-| `agents-api/src/domains/run/services/triggerDispatcher.ts`           | Delete                                                         |
-| `agents-api/src/routes/restartScheduler.ts`                          | Delete                                                         |
-| `packages/agents-core/src/data-access/runtime/triggerSchedules.ts`   | Delete                                                         |
-| `packages/agents-core/src/data-access/runtime/schedulerState.ts`     | Delete                                                         |
-| `packages/agents-core/src/db/runtime/runtime-schema.ts`              | Remove `triggerSchedules` + `schedulerState` table definitions |
-| `.github/workflows/vercel-production.yml`                            | Remove `restart-scheduler` job                                 |
-| DB migration                                                         | Drop `trigger_schedules` + `scheduler_state` tables            |
+| `agents-api/src/domains/run/services/ScheduledTriggerService.ts`     | Remove daisy-chain workflow start logic (replaced by queue enqueue in Phase 3) |
 
 
 ## 13) Alternatives Considered
