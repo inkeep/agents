@@ -11,8 +11,6 @@ import { STATIC_LABELS } from '@/constants/theme';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProject } from '@/contexts/project';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
@@ -63,10 +61,10 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const defaultSubAgentId = useWatch({ control, name: 'defaultSubAgentId' });
   const isDefault = id === defaultSubAgentId;
 
-    const agentModel = useAgentStore((state) => state.metadata.models);
-    const { project } = useProject();
-    const projectModel = project.models;
-    const modelName = (data.models ?? agentModel ?? projectModel).base?.model ?? '';
+  const agentModel = useWatch({ control, name: 'models' });
+  const { project } = useProject();
+  const projectModel = project.models;
+  const modelName = (subAgent.models ?? agentModel ?? projectModel).base.model ?? '';
 
   const { data: artifactComponents } = useArtifactComponentsQuery();
 
