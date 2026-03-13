@@ -22,6 +22,10 @@ import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -233,7 +237,7 @@ const updateApiKeyRouteConfig = {
   },
 };
 
-const updateApiKeyHandler = async (c: any) => {
+const updateApiKeyHandler: ManageRouteHandler<typeof updateApiKeyRouteConfig> = async (c) => {
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
 
@@ -262,24 +266,9 @@ const updateApiKeyHandler = async (c: any) => {
   });
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateApiKeyRouteConfig,
-    method: 'patch',
-    operationId: 'update-api-key',
-  }),
-  updateApiKeyHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateApiKeyRouteConfig,
-    method: 'put',
-    operationId: 'update-api-key-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateApiKeyHandler
-);
+openapiRegisterPutPatchRoutesForLegacy(app, updateApiKeyRouteConfig, updateApiKeyHandler, {
+  operationId: 'update-api-key',
+});
 
 app.openapi(
   createProtectedRoute({

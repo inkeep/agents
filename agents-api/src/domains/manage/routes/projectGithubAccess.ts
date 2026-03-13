@@ -19,6 +19,10 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 
 const logger = getLogger('project-github-access');
 
@@ -153,7 +157,9 @@ const setProjectGithubAccessRouteConfig = {
   },
 };
 
-const setProjectGithubAccessHandler = async (c: any) => {
+const setProjectGithubAccessHandler: ManageRouteHandler<
+  typeof setProjectGithubAccessRouteConfig
+> = async (c) => {
   const { tenantId, projectId } = c.req.valid('param');
   const { mode, repositoryIds } = c.req.valid('json');
 
@@ -225,23 +231,11 @@ const setProjectGithubAccessHandler = async (c: any) => {
   );
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...setProjectGithubAccessRouteConfig,
-    method: 'put',
-    operationId: 'set-project-github-access',
-  }),
-  setProjectGithubAccessHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...setProjectGithubAccessRouteConfig,
-    method: 'patch',
-    operationId: 'set-project-github-access-patch',
-    'x-speakeasy-ignore': true,
-  }),
-  setProjectGithubAccessHandler
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  setProjectGithubAccessRouteConfig,
+  setProjectGithubAccessHandler,
+  { operationId: 'set-project-github-access', canonical: 'put' }
 );
 
 export default app;

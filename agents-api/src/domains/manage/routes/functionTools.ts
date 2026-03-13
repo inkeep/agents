@@ -20,6 +20,10 @@ import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const logger = getLogger('functionTools');
@@ -212,7 +216,9 @@ const updateFunctionToolRouteConfig = {
   },
 };
 
-const updateFunctionToolHandler = async (c: any) => {
+const updateFunctionToolHandler: ManageRouteHandler<typeof updateFunctionToolRouteConfig> = async (
+  c
+) => {
   const db = c.get('db');
   const { tenantId, projectId, agentId, id } = c.req.valid('param');
   const body = c.req.valid('json');
@@ -244,23 +250,13 @@ const updateFunctionToolHandler = async (c: any) => {
   }
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateFunctionToolRouteConfig,
-    method: 'patch',
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateFunctionToolRouteConfig,
+  updateFunctionToolHandler,
+  {
     operationId: 'update-function-tool',
-  }),
-  updateFunctionToolHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateFunctionToolRouteConfig,
-    method: 'put',
-    operationId: 'update-function-tool-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateFunctionToolHandler
+  }
 );
 
 app.openapi(

@@ -28,6 +28,10 @@ import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -284,7 +288,7 @@ const updateAgentRouteConfig = {
   },
 };
 
-const updateAgentHandler = async (c: any) => {
+const updateAgentHandler: ManageRouteHandler<typeof updateAgentRouteConfig> = async (c) => {
   const db = c.get('db');
   const { tenantId, projectId, id } = c.req.valid('param');
   const validatedBody = c.req.valid('json');
@@ -304,20 +308,9 @@ const updateAgentHandler = async (c: any) => {
   return c.json({ data: updatedAgent });
 };
 
-app.openapi(
-  createProtectedRoute({ ...updateAgentRouteConfig, method: 'patch', operationId: 'update-agent' }),
-  updateAgentHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateAgentRouteConfig,
-    method: 'put',
-    operationId: 'update-agent-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateAgentHandler
-);
+openapiRegisterPutPatchRoutesForLegacy(app, updateAgentRouteConfig, updateAgentHandler, {
+  operationId: 'update-agent',
+});
 
 app.openapi(
   createProtectedRoute({

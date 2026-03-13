@@ -22,6 +22,10 @@ import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
+import {
   onTriggerCreated,
   onTriggerDeleted,
   onTriggerUpdated,
@@ -207,7 +211,7 @@ const updateFullAgentRouteConfig = {
   },
 };
 
-const updateFullAgentHandler = async (c: any) => {
+const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConfig> = async (c) => {
   const db = c.get('db');
   const { tenantId, projectId, agentId } = c.req.valid('param');
   const agentData = c.req.valid('json');
@@ -321,24 +325,10 @@ const updateFullAgentHandler = async (c: any) => {
   }
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateFullAgentRouteConfig,
-    method: 'put',
-    operationId: 'update-full-agent',
-  }),
-  updateFullAgentHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateFullAgentRouteConfig,
-    method: 'patch',
-    operationId: 'update-full-agent-patch',
-    'x-speakeasy-ignore': true,
-  }),
-  updateFullAgentHandler
-);
+openapiRegisterPutPatchRoutesForLegacy(app, updateFullAgentRouteConfig, updateFullAgentHandler, {
+  operationId: 'update-full-agent',
+  canonical: 'put',
+});
 
 app.openapi(
   createProtectedRoute({

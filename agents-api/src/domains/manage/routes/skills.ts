@@ -18,6 +18,10 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -176,7 +180,7 @@ const updateSkillRouteConfig = {
   },
 };
 
-const updateSkillHandler = async (c: any) => {
+const updateSkillHandler: ManageRouteHandler<typeof updateSkillRouteConfig> = async (c) => {
   const db = c.get('db');
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
@@ -197,20 +201,9 @@ const updateSkillHandler = async (c: any) => {
   return c.json({ data: skill });
 };
 
-app.openapi(
-  createProtectedRoute({ ...updateSkillRouteConfig, method: 'patch', operationId: 'update-skill' }),
-  updateSkillHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateSkillRouteConfig,
-    method: 'put',
-    operationId: 'update-skill-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateSkillHandler
-);
+openapiRegisterPutPatchRoutesForLegacy(app, updateSkillRouteConfig, updateSkillHandler, {
+  operationId: 'update-skill',
+});
 
 app.openapi(
   createProtectedRoute({

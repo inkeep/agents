@@ -22,6 +22,10 @@ import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -182,7 +186,9 @@ const updateContextConfigRouteConfig = {
   },
 };
 
-const updateContextConfigHandler = async (c: any) => {
+const updateContextConfigHandler: ManageRouteHandler<
+  typeof updateContextConfigRouteConfig
+> = async (c) => {
   const db = c.get('db');
   const { tenantId, projectId, agentId, id } = c.req.valid('param');
   const body = c.req.valid('json');
@@ -203,23 +209,13 @@ const updateContextConfigHandler = async (c: any) => {
   return c.json({ data: updatedContextConfig });
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateContextConfigRouteConfig,
-    method: 'patch',
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateContextConfigRouteConfig,
+  updateContextConfigHandler,
+  {
     operationId: 'update-context-config',
-  }),
-  updateContextConfigHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateContextConfigRouteConfig,
-    method: 'put',
-    operationId: 'update-context-config-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateContextConfigHandler
+  }
 );
 
 app.openapi(

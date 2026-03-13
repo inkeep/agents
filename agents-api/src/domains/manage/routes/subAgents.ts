@@ -23,6 +23,10 @@ import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -205,7 +209,7 @@ const updateSubAgentRouteConfig = {
   },
 };
 
-const updateSubAgentHandler = async (c: any) => {
+const updateSubAgentHandler: ManageRouteHandler<typeof updateSubAgentRouteConfig> = async (c) => {
   const { tenantId, projectId, agentId, id } = c.req.valid('param');
   const body = c.req.valid('json');
 
@@ -231,24 +235,9 @@ const updateSubAgentHandler = async (c: any) => {
   return c.json({ data: subAgentWithType });
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateSubAgentRouteConfig,
-    method: 'patch',
-    operationId: 'update-subagent',
-  }),
-  updateSubAgentHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateSubAgentRouteConfig,
-    method: 'put',
-    operationId: 'update-subagent-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateSubAgentHandler
-);
+openapiRegisterPutPatchRoutesForLegacy(app, updateSubAgentRouteConfig, updateSubAgentHandler, {
+  operationId: 'update-subagent',
+});
 
 app.openapi(
   createProtectedRoute({

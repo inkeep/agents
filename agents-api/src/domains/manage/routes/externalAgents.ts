@@ -20,6 +20,10 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -203,7 +207,9 @@ const updateExternalAgentRouteConfig = {
   },
 };
 
-const updateExternalAgentHandler = async (c: any) => {
+const updateExternalAgentHandler: ManageRouteHandler<
+  typeof updateExternalAgentRouteConfig
+> = async (c) => {
   const db = c.get('db');
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
@@ -229,23 +235,13 @@ const updateExternalAgentHandler = async (c: any) => {
   return c.json({ data: agentWithType });
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateExternalAgentRouteConfig,
-    method: 'patch',
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateExternalAgentRouteConfig,
+  updateExternalAgentHandler,
+  {
     operationId: 'update-external-agent',
-  }),
-  updateExternalAgentHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateExternalAgentRouteConfig,
-    method: 'put',
-    operationId: 'update-external-agent-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateExternalAgentHandler
+  }
 );
 
 app.openapi(

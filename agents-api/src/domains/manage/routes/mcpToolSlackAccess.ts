@@ -20,6 +20,10 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 
 const logger = getLogger('mcp-tool-slack-access');
 
@@ -139,7 +143,9 @@ const setMcpToolSlackAccessRouteConfig = {
   },
 };
 
-const setMcpToolSlackAccessHandler = async (c: any) => {
+const setMcpToolSlackAccessHandler: ManageRouteHandler<
+  typeof setMcpToolSlackAccessRouteConfig
+> = async (c) => {
   const { tenantId, projectId, toolId } = c.req.valid('param');
   const { channelAccessMode, dmEnabled, channelIds } = c.req.valid('json');
   const db = c.get('db');
@@ -215,23 +221,11 @@ const setMcpToolSlackAccessHandler = async (c: any) => {
   );
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...setMcpToolSlackAccessRouteConfig,
-    method: 'put',
-    operationId: 'set-mcp-tool-slack-access',
-  }),
-  setMcpToolSlackAccessHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...setMcpToolSlackAccessRouteConfig,
-    method: 'patch',
-    operationId: 'set-mcp-tool-slack-access-patch',
-    'x-speakeasy-ignore': true,
-  }),
-  setMcpToolSlackAccessHandler
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  setMcpToolSlackAccessRouteConfig,
+  setMcpToolSlackAccessHandler,
+  { operationId: 'set-mcp-tool-slack-access', canonical: 'put' }
 );
 
 export default app;

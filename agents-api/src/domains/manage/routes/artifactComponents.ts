@@ -22,6 +22,10 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -210,7 +214,9 @@ const updateArtifactComponentRouteConfig = {
   },
 };
 
-const updateArtifactComponentHandler = async (c: any) => {
+const updateArtifactComponentHandler: ManageRouteHandler<
+  typeof updateArtifactComponentRouteConfig
+> = async (c) => {
   const db = c.get('db');
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
@@ -252,23 +258,13 @@ const updateArtifactComponentHandler = async (c: any) => {
   return c.json({ data: updatedArtifactComponent });
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateArtifactComponentRouteConfig,
-    method: 'patch',
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateArtifactComponentRouteConfig,
+  updateArtifactComponentHandler,
+  {
     operationId: 'update-artifact-component',
-  }),
-  updateArtifactComponentHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateArtifactComponentRouteConfig,
-    method: 'put',
-    operationId: 'update-artifact-component-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateArtifactComponentHandler
+  }
 );
 
 app.openapi(

@@ -12,6 +12,10 @@ import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-
 import runDbClient from '../../../data/db/runDbClient';
 import { sessionAuth } from '../../../middleware/sessionAuth';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -105,7 +109,9 @@ const upsertUserProfileRouteConfig = {
   },
 };
 
-const upsertUserProfileHandler = async (c: any) => {
+const upsertUserProfileHandler: ManageRouteHandler<typeof upsertUserProfileRouteConfig> = async (
+  c
+) => {
   const { userId } = c.req.valid('param');
   const authenticatedUserId = c.get('userId') as string;
 
@@ -136,23 +142,11 @@ const upsertUserProfileHandler = async (c: any) => {
   );
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...upsertUserProfileRouteConfig,
-    method: 'patch',
-    operationId: 'upsert-user-profile',
-  }),
-  upsertUserProfileHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...upsertUserProfileRouteConfig,
-    method: 'put',
-    operationId: 'upsert-user-profile-put',
-    'x-speakeasy-ignore': true,
-  }),
-  upsertUserProfileHandler
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  upsertUserProfileRouteConfig,
+  upsertUserProfileHandler,
+  { operationId: 'upsert-user-profile' }
 );
 
 export default app;

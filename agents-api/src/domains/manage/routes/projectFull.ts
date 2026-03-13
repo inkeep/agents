@@ -42,6 +42,10 @@ import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
 import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
+import {
   onTriggerCreated,
   onTriggerDeleted,
   onTriggerUpdated,
@@ -389,7 +393,9 @@ const updateFullProjectRouteConfig = {
   },
 };
 
-const updateFullProjectHandler = async (c: any) => {
+const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRouteConfig> = async (
+  c
+) => {
   const { tenantId, projectId } = c.req.valid('param');
   const projectData = c.req.valid('json');
   const configDb: AgentsManageDatabaseClient = c.get('db');
@@ -704,23 +710,11 @@ const updateFullProjectHandler = async (c: any) => {
   }
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateFullProjectRouteConfig,
-    method: 'put',
-    operationId: 'update-full-project',
-  }),
-  updateFullProjectHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateFullProjectRouteConfig,
-    method: 'patch',
-    operationId: 'update-full-project-patch',
-    'x-speakeasy-ignore': true,
-  }),
-  updateFullProjectHandler
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateFullProjectRouteConfig,
+  updateFullProjectHandler,
+  { operationId: 'update-full-project', canonical: 'put' }
 );
 
 // Authorization: org 'project:delete'

@@ -21,6 +21,10 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 
 const logger = getLogger('mcp-tool-github-access');
 
@@ -210,7 +214,9 @@ const setMcpToolGithubAccessRouteConfig = {
   },
 };
 
-const setMcpToolGithubAccessHandler = async (c: any) => {
+const setMcpToolGithubAccessHandler: ManageRouteHandler<
+  typeof setMcpToolGithubAccessRouteConfig
+> = async (c) => {
   const { tenantId, projectId, toolId } = c.req.valid('param');
   const { mode, repositoryIds } = c.req.valid('json');
   const db = c.get('db');
@@ -293,23 +299,11 @@ const setMcpToolGithubAccessHandler = async (c: any) => {
   );
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...setMcpToolGithubAccessRouteConfig,
-    method: 'put',
-    operationId: 'set-mcp-tool-github-access',
-  }),
-  setMcpToolGithubAccessHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...setMcpToolGithubAccessRouteConfig,
-    method: 'patch',
-    operationId: 'set-mcp-tool-github-access-patch',
-    'x-speakeasy-ignore': true,
-  }),
-  setMcpToolGithubAccessHandler
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  setMcpToolGithubAccessRouteConfig,
+  setMcpToolGithubAccessHandler,
+  { operationId: 'set-mcp-tool-github-access', canonical: 'put' }
 );
 
 export default app;

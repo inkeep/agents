@@ -23,6 +23,10 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -290,7 +294,9 @@ const updateSubAgentToolRelationRouteConfig = {
   },
 };
 
-const updateSubAgentToolRelationHandler = async (c: any) => {
+const updateSubAgentToolRelationHandler: ManageRouteHandler<
+  typeof updateSubAgentToolRelationRouteConfig
+> = async (c) => {
   const db = c.get('db');
   const { tenantId, projectId, agentId, id } = c.req.valid('param');
   const body = await c.req.valid('json');
@@ -318,23 +324,13 @@ const updateSubAgentToolRelationHandler = async (c: any) => {
   return c.json({ data: updatedAgentToolRelation });
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateSubAgentToolRelationRouteConfig,
-    method: 'patch',
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateSubAgentToolRelationRouteConfig,
+  updateSubAgentToolRelationHandler,
+  {
     operationId: 'update-subagent-tool-relation',
-  }),
-  updateSubAgentToolRelationHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateSubAgentToolRelationRouteConfig,
-    method: 'put',
-    operationId: 'update-subagent-tool-relation-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateSubAgentToolRelationHandler
+  }
 );
 
 app.openapi(

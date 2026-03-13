@@ -26,6 +26,10 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -238,7 +242,9 @@ const updateCredentialRouteConfig = {
   },
 };
 
-const updateCredentialHandler = async (c: any) => {
+const updateCredentialHandler: ManageRouteHandler<typeof updateCredentialRouteConfig> = async (
+  c
+) => {
   const db = c.get('db');
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
@@ -260,24 +266,9 @@ const updateCredentialHandler = async (c: any) => {
   return c.json({ data: validatedCredential });
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateCredentialRouteConfig,
-    method: 'patch',
-    operationId: 'update-credential',
-  }),
-  updateCredentialHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateCredentialRouteConfig,
-    method: 'put',
-    operationId: 'update-credential-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateCredentialHandler
-);
+openapiRegisterPutPatchRoutesForLegacy(app, updateCredentialRouteConfig, updateCredentialHandler, {
+  operationId: 'update-credential',
+});
 
 app.openapi(
   createProtectedRoute({

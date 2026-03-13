@@ -20,6 +20,10 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -194,7 +198,9 @@ const updateDataComponentRouteConfig = {
   },
 };
 
-const updateDataComponentHandler = async (c: any) => {
+const updateDataComponentHandler: ManageRouteHandler<
+  typeof updateDataComponentRouteConfig
+> = async (c) => {
   const db = c.get('db');
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
@@ -228,23 +234,13 @@ const updateDataComponentHandler = async (c: any) => {
   return c.json({ data: updatedDataComponent });
 };
 
-app.openapi(
-  createProtectedRoute({
-    ...updateDataComponentRouteConfig,
-    method: 'patch',
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateDataComponentRouteConfig,
+  updateDataComponentHandler,
+  {
     operationId: 'update-data-component',
-  }),
-  updateDataComponentHandler
-);
-
-app.openapi(
-  createProtectedRoute({
-    ...updateDataComponentRouteConfig,
-    method: 'put',
-    operationId: 'update-data-component-put',
-    'x-speakeasy-ignore': true,
-  }),
-  updateDataComponentHandler
+  }
 );
 
 app.openapi(
