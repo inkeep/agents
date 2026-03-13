@@ -82,13 +82,32 @@ export const defaultTextMapPropagator = new CompositePropagator({
   propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
 });
 
-export const defaultSDK = new NodeSDK({
+const defaultSDK = new NodeSDK({
   resource: defaultResource,
   contextManager: defaultContextManager,
   textMapPropagator: defaultTextMapPropagator,
   spanProcessors: defaultSpanProcessors,
   instrumentations: defaultInstrumentations,
 });
+
+const OTEL_STARTED_KEY = Symbol.for('@inkeep/agents-api.otelStarted');
+
+export function startOpenTelemetrySDK(): void {
+  if ((globalThis as unknown as { [key: symbol]: boolean })[OTEL_STARTED_KEY]) {
+    return;
+  }
+  try {
+    defaultSDK.start();
+    (globalThis as unknown as { [key: symbol]: boolean })[OTEL_STARTED_KEY] = true;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('MetricReader') && msg.includes('can not be bound')) {
+      (globalThis as unknown as { [key: symbol]: boolean })[OTEL_STARTED_KEY] = true;
+      return;
+    }
+    throw error;
+  }
+}
 
 export async function flushBatchProcessor(): Promise<void> {
   try {
