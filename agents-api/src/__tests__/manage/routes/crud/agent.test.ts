@@ -89,7 +89,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agent.agentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ defaultSubAgentId: subAgentId }),
         }
       );
@@ -134,7 +134,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Update agent with default agent
       await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
@@ -219,7 +219,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Update agent with default agent
       await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
@@ -450,7 +450,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id} - field persistence', () => {
+  describe('PATCH /{id} - field persistence', () => {
     it('should update models field individually', async () => {
       const tenantId = await createTestTenantWithOrg('agent-update-models');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -459,7 +459,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const models = { base: { model: 'gpt-4o' } };
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
-        { method: 'PUT', body: JSON.stringify({ models }) }
+        { method: 'PATCH', body: JSON.stringify({ models }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -481,7 +481,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const statusUpdates = { enabled: false };
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
-        { method: 'PUT', body: JSON.stringify({ statusUpdates }) }
+        { method: 'PATCH', body: JSON.stringify({ statusUpdates }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -502,7 +502,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
-        { method: 'PUT', body: JSON.stringify({ prompt: 'Updated prompt' }) }
+        { method: 'PATCH', body: JSON.stringify({ prompt: 'Updated prompt' }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -524,7 +524,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const stopWhen = { transferCountIs: 10 };
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
-        { method: 'PUT', body: JSON.stringify({ stopWhen }) }
+        { method: 'PATCH', body: JSON.stringify({ stopWhen }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -539,7 +539,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing agent', async () => {
       const tenantId = await createTestTenantWithOrg('agent-agent-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -566,7 +566,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -595,7 +595,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -617,7 +617,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Update agent with default agent
       await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
@@ -665,7 +665,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Update agent with default agent
       await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
@@ -700,7 +700,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Update agent with default agent
       await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
@@ -780,7 +780,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Update agent with agent1 as default
       await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ defaultSubAgentId: agent1Id }),
       });
 
@@ -856,7 +856,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Update agent with default agent
       await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 

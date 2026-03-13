@@ -396,7 +396,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing agent', async () => {
       const tenantId = await createTestTenantWithOrg('agents-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -411,7 +411,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -440,7 +440,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/external-agents/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );

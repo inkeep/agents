@@ -353,7 +353,7 @@ describe('Sub Agent Team Agent Relations CRUD Routes - Integration Tests', () =>
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing sub-agent team agent relation', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-team-relations-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -374,7 +374,7 @@ describe('Sub Agent Team Agent Relations CRUD Routes - Integration Tests', () =>
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}/team-agent-relations/${relationId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -412,7 +412,7 @@ describe('Sub Agent Team Agent Relations CRUD Routes - Integration Tests', () =>
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}/team-agent-relations/${relationId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -433,7 +433,7 @@ describe('Sub Agent Team Agent Relations CRUD Routes - Integration Tests', () =>
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}/team-agent-relations/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );

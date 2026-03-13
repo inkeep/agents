@@ -101,7 +101,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     const updateRes = await makeRequest(
       `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
       {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify({ defaultSubAgentId: sourceSubAgentId }),
       }
     );
@@ -415,7 +415,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing agent relation', async () => {
       const tenantId = await createTestTenantWithOrg('agent-relations-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -435,7 +435,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations/${agentRelationId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -457,7 +457,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/default/sub-agent-relations/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -483,7 +483,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations/${agentRelationId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(invalidUpdateData),
         }
       );

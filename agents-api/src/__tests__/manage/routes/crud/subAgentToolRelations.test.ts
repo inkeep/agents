@@ -494,7 +494,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing agent tool relation', async () => {
       const tenantId = await createTestTenantWithOrg('agent-tool-relations-update-success');
       await createTestProject(manageDbClient, tenantId, 'default');
@@ -515,7 +515,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/${relationId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -532,7 +532,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ toolId: 'some-tool-id' }),
         }
       );
@@ -553,7 +553,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/${relationId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({}),
         }
       );

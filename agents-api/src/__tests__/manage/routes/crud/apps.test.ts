@@ -212,7 +212,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ defaultAgentId: 'agent-2' }),
         }
       );
@@ -233,7 +233,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ defaultAgentId: null }),
         }
       );
@@ -244,7 +244,7 @@ describe('App CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update app name and config', async () => {
       const tenantId = await createTestTenantWithOrg('apps-update');
       const projectId = 'default-project';
@@ -255,7 +255,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({
             name: 'Updated Widget',
             enabled: false,
@@ -277,7 +277,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/nonexistent-${generateId()}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated' }),
         }
       );
@@ -313,7 +313,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId2}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Hijacked' }),
         }
       );

@@ -361,7 +361,7 @@ describe('Ref Middleware - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}?ref=${commitHash}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated' }),
         }
       );

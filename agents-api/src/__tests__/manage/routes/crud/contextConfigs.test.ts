@@ -443,7 +443,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing context config', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -479,7 +479,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -666,7 +666,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         const res = await makeRequest(
           `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify({ contextVariables: null }),
           }
         );
@@ -685,7 +685,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         const res = await makeRequest(
           `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify({ contextVariables: {} }),
           }
         );
@@ -745,7 +745,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         const res = await makeRequest(
           `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify(updateData),
           }
         );
@@ -767,7 +767,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         const res = await makeRequest(
           `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify({ headersSchema: null }),
           }
         );
@@ -823,7 +823,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         const res = await makeRequest(
           `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify(updateData),
           }
         );
@@ -845,7 +845,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         const res = await makeRequest(
           `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify({
               contextVariables: null,
               headersSchema: null,
@@ -878,7 +878,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         const res = await makeRequest(
           `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify(updateData),
           }
         );
@@ -927,7 +927,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         await makeRequest(
           `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify({
               contextVariables: null,
               headersSchema: null,
@@ -958,7 +958,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         await makeRequest(
           `/manage/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify({
               contextVariables: null,
               headersSchema: null,

@@ -196,12 +196,12 @@ describe('MCP Tool Slack Access Routes', () => {
     });
   });
 
-  describe('PUT /tools/:toolId/slack-access', () => {
+  describe('PATCH /tools/:toolId/slack-access', () => {
     it('should set channelAccessMode=all successfully', async () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channelAccessMode: 'all', dmEnabled: true }),
         }
@@ -233,7 +233,7 @@ describe('MCP Tool Slack Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             channelAccessMode: 'selected',
@@ -263,7 +263,7 @@ describe('MCP Tool Slack Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channelAccessMode: 'selected', dmEnabled: false }),
         }
@@ -279,7 +279,7 @@ describe('MCP Tool Slack Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             channelAccessMode: 'selected',
@@ -301,7 +301,7 @@ describe('MCP Tool Slack Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channelAccessMode: 'all', dmEnabled: false }),
         }
@@ -316,7 +316,7 @@ describe('MCP Tool Slack Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channelAccessMode: 'all', dmEnabled: false }),
         }
@@ -334,7 +334,7 @@ describe('MCP Tool Slack Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channelAccessMode: 'all', dmEnabled: false }),
         }
@@ -355,7 +355,7 @@ describe('MCP Tool Slack Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             channelAccessMode: 'selected',
@@ -381,7 +381,7 @@ describe('MCP Tool Slack Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             channelAccessMode: 'selected',

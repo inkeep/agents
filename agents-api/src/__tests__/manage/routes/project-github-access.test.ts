@@ -185,14 +185,14 @@ describe('Project GitHub Access Routes', () => {
     });
   });
 
-  describe('PUT /projects/:projectId/github-access', () => {
+  describe('PATCH /projects/:projectId/github-access', () => {
     it('should set mode=all successfully', async () => {
       setProjectRepositoryAccessMock.mockResolvedValue(undefined);
 
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'all' }),
         }
@@ -224,7 +224,7 @@ describe('Project GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'selected', repositoryIds }),
         }
@@ -255,7 +255,7 @@ describe('Project GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'selected' }),
         }
@@ -273,7 +273,7 @@ describe('Project GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'selected', repositoryIds: [] }),
         }
@@ -293,7 +293,7 @@ describe('Project GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             mode: 'selected',
@@ -318,7 +318,7 @@ describe('Project GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'all', repositoryIds: ['repo-1', 'repo-2'] }),
         }
@@ -346,7 +346,7 @@ describe('Project GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'invalid' }),
         }
@@ -362,7 +362,7 @@ describe('Project GitHub Access Routes', () => {
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'selected', repositoryIds: ['repo-1'] }),
         }
@@ -387,7 +387,7 @@ describe('Project GitHub Access Routes', () => {
       const repositoryIds = ['repo-1', 'repo-2'];
 
       await app.request(`/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'selected', repositoryIds }),
       });

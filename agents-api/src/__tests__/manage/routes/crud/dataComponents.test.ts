@@ -504,7 +504,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id} - render field persistence', () => {
+  describe('PATCH /{id} - render field persistence', () => {
     it('should update render field', async () => {
       const tenantId = await createTestTenantWithOrg('data-components-update-render');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -517,7 +517,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({
             name: 'Updated Component',
             description: 'Updated Description',
@@ -544,7 +544,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing data component', async () => {
       const tenantId = await createTestTenantWithOrg('data-components-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -569,7 +569,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -608,7 +608,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
