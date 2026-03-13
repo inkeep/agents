@@ -972,7 +972,6 @@ export const schedulerState = pgTable('scheduler_state', {
   id: varchar('id', { length: 64 }).primaryKey().default('singleton'),
   currentRunId: varchar('current_run_id', { length: 256 }),
   deploymentId: varchar('deployment_id', { length: 256 }),
-  startedAt: timestamp('started_at', { withTimezone: true, mode: 'string' }),
   ...timestamps,
 });
 
