@@ -28,18 +28,18 @@ export function TeamAgentNodeEditor({ selectedNode }: TeamAgentNodeEditorProps) 
   const id = selectedNode.data.id;
 
   const path = <K extends string>(key: K) => `teamAgents.${id}.${key}` as const;
+  const headersPath = path('headers');
 
   // Sync input value when node changes (but not on every data change)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
-    const fieldPath = path('headers');
-    const existingHeaders = form.getValues(fieldPath);
+    const existingHeaders = form.getValues(headersPath);
     if (existingHeaders !== undefined) {
       return;
     }
     const newHeaders = selectedNode.data.tempHeaders ?? {};
-    form.setValue(fieldPath, JSON.stringify(newHeaders, null, 2));
-  }, [selectedNode.id]);
+    form.setValue(headersPath, JSON.stringify(newHeaders, null, 2));
+  }, [headersPath]);
 
   return (
     <div className="space-y-8 flex flex-col">

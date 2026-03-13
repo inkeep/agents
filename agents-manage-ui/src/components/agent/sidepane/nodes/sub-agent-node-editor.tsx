@@ -161,7 +161,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
       <ModelSection
         models={subAgent.models}
         updatePath={(modelPath, value) => {
-          form.setValue(`subAgents.${nodeId}.${modelPath}` as any, value, { shouldDirty: true });
+          form.setValue(path(modelPath), value, { shouldDirty: true });
         }}
         projectModels={project?.models}
         agentModels={models}

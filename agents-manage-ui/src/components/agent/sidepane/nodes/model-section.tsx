@@ -17,7 +17,10 @@ import { SectionHeader } from '../section';
 
 interface ModelSectionProps {
   models: AgentModels;
-  updatePath: (path: string, value: any) => void;
+  updatePath: (
+    path: `models.${'base' | 'structuredOutput' | 'summarizer'}.${'model' | 'providerOptions'}`,
+    value: any
+  ) => void;
   projectModels?: any;
   agentModels?: any;
 }
