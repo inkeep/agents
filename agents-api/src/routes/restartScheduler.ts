@@ -1,7 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
-import { env } from '../env';
 import { startSchedulerWorkflow } from '../domains/run/services/SchedulerService';
+import { env } from '../env';
 import { getLogger } from '../logger';
 import type { AppVariables } from '../types';
 
@@ -36,5 +36,5 @@ restartWorkflowHandler.openapi(
     logger.info(result, 'Scheduler workflow restarted via deploy hook');
 
     return c.json(result);
-  },
+  }
 );

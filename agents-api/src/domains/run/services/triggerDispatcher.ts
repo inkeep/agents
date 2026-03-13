@@ -10,8 +10,8 @@ import runDbClient from 'src/data/db/runDbClient';
 import { start } from 'workflow/api';
 import { getLogger } from '../../../logger';
 import {
-  type TriggerPayload,
   scheduledTriggerRunnerWorkflow,
+  type TriggerPayload,
 } from '../workflow/functions/scheduledTriggerRunner';
 import { computeNextRunAt } from './computeNextRunAt';
 
@@ -35,11 +35,11 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
   logger.info({ dueCount: dueTriggers.length }, 'Found due triggers');
 
   const results = await Promise.allSettled(
-    dueTriggers.map((schedule) => dispatchSingleTrigger(schedule)),
+    dueTriggers.map((schedule) => dispatchSingleTrigger(schedule))
   );
 
   const dispatched = results.filter(
-    (r) => r.status === 'fulfilled' && r.value === 'dispatched',
+    (r) => r.status === 'fulfilled' && r.value === 'dispatched'
   ).length;
 
   for (const result of results) {
@@ -52,7 +52,7 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
 }
 
 async function dispatchSingleTrigger(
-  schedule: TriggerScheduleRow,
+  schedule: TriggerScheduleRow
 ): Promise<'dispatched' | 'skipped'> {
   const { tenantId, scheduledTriggerId } = schedule;
 
@@ -107,10 +107,7 @@ async function dispatchSingleTrigger(
     scheduledTriggerId,
   });
 
-  logger.info(
-    { scheduledTriggerId, scheduledFor: schedule.nextRunAt },
-    'Trigger dispatched',
-  );
+  logger.info({ scheduledTriggerId, scheduledFor: schedule.nextRunAt }, 'Trigger dispatched');
 
   return 'dispatched';
 }
