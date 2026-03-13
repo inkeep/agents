@@ -711,7 +711,10 @@ async function pushProject(pushConfig: SetupPushConfig) {
         INKEEP_TENANT_ID: process.env.INKEEP_TENANT_ID || 'default',
         ...(pushConfig.apiUrl ? { INKEEP_AGENTS_API_URL: pushConfig.apiUrl } : {}),
       }
-    : { ...process.env };
+    : {
+        ...process.env,
+        ...(pushConfig.apiUrl ? { INKEEP_AGENTS_API_URL: pushConfig.apiUrl } : {}),
+      };
 
   try {
     const pushCmd = `pnpm exec inkeep push --project ${pushConfig.projectPath} --config ${pushConfig.configPath}`;

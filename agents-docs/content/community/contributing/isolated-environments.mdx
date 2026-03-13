@@ -54,9 +54,9 @@ Each isolated environment is a separate Docker Compose project:
 2. **Dynamic port allocation** — services expose container ports without binding to specific host ports, so Docker assigns random available ones
 3. **Port discovery** — after startup, the script queries Docker for the assigned ports and saves them to `.isolated-envs/<name>.json`
 4. **App port allocation** — free host ports are found for `agents-api` and `agents-manage-ui` via python socket binding
-5. **Environment export** — `env <name>` reads the state file and exports database URLs, app ports (`AGENTS_API_PORT`, `MANAGE_UI_PORT`), and API URLs (`INKEEP_AGENTS_API_URL`) so both backing services and the app layer use isolated ports
+5. **Environment export** — `env <name>` reads the state file and exports database URLs, Mailpit SMTP settings, app ports (`AGENTS_API_PORT`, `MANAGE_UI_PORT`), and API URLs (`INKEEP_AGENTS_API_URL`) so both backing services and the app layer use isolated ports
 
-The backing services are the same as `pnpm setup-dev`: Doltgres (manage DB), Postgres (runtime DB), SpiceDB + its Postgres (authorization).
+The backing services are the same as `pnpm setup-dev`: Doltgres (manage DB), Postgres (runtime DB), SpiceDB + its Postgres (authorization), and Mailpit (local email capture).
 
 ## Environment variables
 
@@ -67,6 +67,10 @@ Running `source <(./scripts/isolated-env.sh env <name>)` exports:
 INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:<doltgres-port>/inkeep_agents
 INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:<postgres-port>/inkeep_agents
 SPICEDB_ENDPOINT=localhost:<spicedb-grpc-port>
+
+# Local email capture
+SMTP_HOST=localhost
+SMTP_PORT=<mailpit-smtp-port>
 
 # App ports (so parallel pnpm dev sessions don't collide)
 AGENTS_API_PORT=<random-port>

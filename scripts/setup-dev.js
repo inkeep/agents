@@ -88,9 +88,17 @@ if (isolatedName) {
       `${styleText('yellow', '⚠')} agents_api port missing from state file, falling back to 3002. Re-run setup to fix.`
     );
   }
+  const apiUrl = `http://localhost:${apiPort}`;
   process.env.AGENTS_API_PORT = String(apiPort);
+  process.env.INKEEP_AGENTS_API_URL = apiUrl;
+  process.env.PUBLIC_INKEEP_AGENTS_API_URL = apiUrl;
+  process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL = apiUrl;
   if (p.manage_ui) {
     process.env.MANAGE_UI_PORT = String(p.manage_ui);
+  }
+  if (p.mailpit_smtp) {
+    process.env.SMTP_HOST = 'localhost';
+    process.env.SMTP_PORT = String(p.mailpit_smtp);
   }
 
   // Run remaining setup steps (secrets generation, project push) but skip
@@ -108,10 +116,10 @@ if (isolatedName) {
           projectPath: 'agents-cookbook/template-projects/activities-planner',
           configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
           apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
-          apiUrl: `http://localhost:${apiPort}`,
+          apiUrl,
         },
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
-    apiHealthUrl: `http://localhost:${apiPort}/health`,
+    apiHealthUrl: `${apiUrl}/health`,
     isCloud: false,
     skipPush,
   });

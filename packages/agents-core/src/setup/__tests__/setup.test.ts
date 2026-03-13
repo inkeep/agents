@@ -178,6 +178,7 @@ describe('runSetup', () => {
         pushProject: {
           projectPath: 'src/projects/test',
           configPath: 'src/inkeep.config.ts',
+          apiUrl: 'http://localhost:4010',
         },
         apiHealthUrl: 'http://localhost:3002/health',
       })
@@ -190,6 +191,7 @@ describe('runSetup', () => {
     const env = (pushCall?.options as { env: Record<string, string> })?.env;
     expect(env?.INKEEP_CI).toBeUndefined();
     expect(env?.INKEEP_API_KEY).toBeUndefined();
+    expect(env?.INKEEP_AGENTS_API_URL).toBe('http://localhost:4010');
   });
 
   it('should detect running API server and not spawn a new one', async () => {
@@ -284,6 +286,7 @@ describe('runSetup', () => {
           projectPath: 'src/projects/test',
           configPath: 'src/inkeep.config.ts',
           apiKey: 'my-bypass-secret',
+          apiUrl: 'http://localhost:4010',
         },
         apiHealthUrl: 'http://localhost:3002/health',
       })
@@ -296,6 +299,7 @@ describe('runSetup', () => {
     expect(env?.INKEEP_CI).toBe('true');
     expect(env?.INKEEP_API_KEY).toBe('my-bypass-secret');
     expect(env?.INKEEP_TENANT_ID).toBe('default');
+    expect(env?.INKEEP_AGENTS_API_URL).toBe('http://localhost:4010');
   });
 
   it('should pass INKEEP_AGENTS_API_URL when apiUrl is set in pushProject config', async () => {

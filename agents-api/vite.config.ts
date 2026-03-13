@@ -34,8 +34,9 @@ export default defineConfig({
   ],
   server: {
     port: (() => {
-      const p = parseInt(process.env.AGENTS_API_PORT || '3002', 10);
-      if (Number.isNaN(p))
+      const rawPort = process.env.AGENTS_API_PORT || '3002';
+      const p = Number(rawPort);
+      if (!Number.isInteger(p) || p < 1 || p > 65535)
         throw new Error(`Invalid AGENTS_API_PORT: "${process.env.AGENTS_API_PORT}"`);
       return p;
     })(),

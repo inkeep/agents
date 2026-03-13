@@ -125,11 +125,14 @@ save_state() {
   local name="$1" project="$2"
 
   local doltgres_port postgres_port spicedb_grpc_port spicedb_http_port spicedb_pg_port
+  local mailpit_web_port mailpit_smtp_port
   doltgres_port=$(discover_port "$project" "doltgres-db" "5432") || true
   postgres_port=$(discover_port "$project" "postgres-db" "5432") || true
   spicedb_grpc_port=$(discover_port "$project" "spicedb" "50051") || true
   spicedb_http_port=$(discover_port "$project" "spicedb" "8443") || true
   spicedb_pg_port=$(discover_port "$project" "spicedb-postgres" "5432") || true
+  mailpit_web_port=$(discover_port "$project" "mailpit" "8025") || true
+  mailpit_smtp_port=$(discover_port "$project" "mailpit" "1025") || true
 
   # Find free host ports for the app layer (agents-api and manage-ui)
   local agents_api_port manage_ui_port
@@ -138,7 +141,7 @@ save_state() {
 
   # Validate all ports were discovered
   local failed=false
-  for var_name in doltgres_port postgres_port spicedb_grpc_port spicedb_http_port spicedb_pg_port agents_api_port manage_ui_port; do
+  for var_name in doltgres_port postgres_port spicedb_grpc_port spicedb_http_port spicedb_pg_port mailpit_web_port mailpit_smtp_port agents_api_port manage_ui_port; do
     if [ -z "${!var_name}" ]; then
       echo "Error: failed to discover port for $var_name. Are containers running?" >&2
       failed=true
@@ -160,18 +163,22 @@ print(json.dumps({
         'spicedb_grpc': int(sys.argv[5]),
         'spicedb_http': int(sys.argv[6]),
         'spicedb_pg': int(sys.argv[7]),
-        'agents_api': int(sys.argv[8]),
-        'manage_ui': int(sys.argv[9]),
+        'mailpit_web': int(sys.argv[8]),
+        'mailpit_smtp': int(sys.argv[9]),
+        'agents_api': int(sys.argv[10]),
+        'manage_ui': int(sys.argv[11]),
     }
 }, indent=2))" "$name" "$project" "$doltgres_port" "$postgres_port" \
     "$spicedb_grpc_port" "$spicedb_http_port" "$spicedb_pg_port" \
-    "$agents_api_port" "$manage_ui_port" > "$STATE_DIR/${name}.json"
+    "$mailpit_web_port" "$mailpit_smtp_port" "$agents_api_port" "$manage_ui_port" > "$STATE_DIR/${name}.json"
 
   echo "Ports assigned:"
   echo "  Doltgres (manage DB):  localhost:$doltgres_port"
   echo "  Postgres (runtime DB): localhost:$postgres_port"
   echo "  SpiceDB gRPC:          localhost:$spicedb_grpc_port"
   echo "  SpiceDB HTTP:          localhost:$spicedb_http_port"
+  echo "  Mailpit SMTP:          localhost:$mailpit_smtp_port"
+  echo "  Mailpit UI:            http://localhost:$mailpit_web_port"
   echo "  Agents API:            localhost:$agents_api_port"
   echo "  Manage UI:             localhost:$manage_ui_port"
 }
@@ -343,6 +350,10 @@ p = d['ports']
 print(f"export INKEEP_AGENTS_MANAGE_DATABASE_URL='postgresql://appuser:password@localhost:{p['doltgres']}/inkeep_agents'")
 print(f"export INKEEP_AGENTS_RUN_DATABASE_URL='postgresql://appuser:password@localhost:{p['postgres']}/inkeep_agents'")
 print(f"export SPICEDB_ENDPOINT='localhost:{p['spicedb_grpc']}'")
+mailpit_smtp = p.get('mailpit_smtp')
+if mailpit_smtp is not None:
+    print("export SMTP_HOST='localhost'")
+    print(f"export SMTP_PORT='{mailpit_smtp}'")
 api = p.get('agents_api', 3002)
 ui = p.get('manage_ui', 3000)
 print(f"export AGENTS_API_PORT='{api}'")
