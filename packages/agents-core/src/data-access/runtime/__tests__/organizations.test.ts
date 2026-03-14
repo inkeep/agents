@@ -159,19 +159,6 @@ describe('createInvitationInDb', () => {
     ).rejects.toThrow('does not have a serviceAccountUserId configured');
   });
 
-  it('should throw when preferredAuthMethod is not configured', async () => {
-    mockLimit.mockResolvedValue([
-      { serviceAccountUserId: 'user_sa_123', preferredAuthMethod: null },
-    ]);
-
-    await expect(
-      createInvitationInDb(mockDb as never)({
-        organizationId: 'org_123',
-        email: 'test@example.com',
-      })
-    ).rejects.toThrow('does not have a preferredAuthMethod configured');
-  });
-
   it('should throw when organization is not found', async () => {
     mockLimit.mockResolvedValue([]);
 

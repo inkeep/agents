@@ -12,8 +12,6 @@ import runDbClient from './data/db/runDbClient';
 import { env } from './env';
 import type { SandboxConfig } from './types';
 
-export { createAuth0Provider, createOIDCProvider } from './ssoHelpers';
-
 export type { UserAuthConfig, SSOProviderConfig };
 
 const defaultConfig: ServerConfig = {
@@ -35,7 +33,6 @@ export function createAgentsAuth(
     dbClient: runDbClient,
     manageDbPool,
     ...(env.AUTH_COOKIE_DOMAIN && { cookieDomain: env.AUTH_COOKIE_DOMAIN }),
-    ...(userAuthConfig?.ssoProviders && { ssoProviders: userAuthConfig.ssoProviders }),
     ...(userAuthConfig?.socialProviders && { socialProviders: userAuthConfig.socialProviders }),
     ...(emailService && { emailService }),
   });

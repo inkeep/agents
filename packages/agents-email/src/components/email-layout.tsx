@@ -7,10 +7,18 @@ import { EmailHeader } from './email-header.js';
 interface EmailLayoutProps {
   previewText: string;
   securityText: string;
+  title: string;
+  description?: string;
   children: ReactNode;
 }
 
-export function EmailLayout({ previewText, securityText, children }: EmailLayoutProps) {
+export function EmailLayout({
+  previewText,
+  securityText,
+  title,
+  description,
+  children,
+}: EmailLayoutProps) {
   return (
     <Html lang="en">
       <Head />
@@ -24,7 +32,7 @@ export function EmailLayout({ previewText, securityText, children }: EmailLayout
         >
           <Preview>{previewText}</Preview>
           <Container className="bg-email-card rounded-[8px] mx-auto my-[40px] p-[32px] max-w-[600px]">
-            <EmailHeader />
+            <EmailHeader title={title} description={description} />
             {children}
             <EmailFooter securityText={securityText} />
           </Container>

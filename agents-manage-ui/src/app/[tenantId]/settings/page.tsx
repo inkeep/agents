@@ -1,48 +1,55 @@
 'use client';
 
+import type { AllowedAuthMethod } from '@inkeep/agents-core/auth/auth-types';
+import { parseAllowedAuthMethods } from '@inkeep/agents-core/auth/auth-types';
+import { Loader2 } from 'lucide-react';
 import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
-import { MembersTable } from '@/components/settings/members-table';
+import { AuthMethodConfiguration } from '@/components/settings/auth-method-configuration';
+import {
+  EditSSOForm,
+  RegisterSSOForm,
+  RemoveSSODialog,
+  type SSOProviderInfo,
+  useSSOProviders,
+} from '@/components/settings/sso-configuration';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
-import { OrgRoles } from '@/constants/signoz';
 import { useAuthClient } from '@/contexts/auth-client';
-import { getUserProviders, type UserProvider } from '@/lib/actions/user-accounts';
+import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import SettingsLoadingSkeleton from './loading';
-
-type FullOrganization = NonNullable<
-  Awaited<
-    ReturnType<ReturnType<typeof useAuthClient>['organization']['getFullOrganization']>
-  >['data']
->;
 
 export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings'>) {
   const authClient = useAuthClient();
   const { tenantId } = use(params);
-  const [organization, setOrganization] = useState<FullOrganization | null>();
-  const [currentMember, setCurrentMember] = useState<typeof authClient.$Infer.Member | null>(null);
-  const [pendingInvitations, setPendingInvitations] = useState<
-    (typeof authClient.$Infer.Invitation)[]
-  >([]);
-  const [memberProviders, setMemberProviders] = useState<UserProvider[]>([]);
+
+  const [organization, setOrganization] = useState<
+    typeof authClient.$Infer.ActiveOrganization | null
+  >();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAdmin: isOrgAdmin, isLoading: isAdminLoading } = useIsOrgAdmin();
+
+  const [editingProvider, setEditingProvider] = useState<SSOProviderInfo | null>(null);
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [removingProvider, setRemovingProvider] = useState<SSOProviderInfo | null>(null);
+
+  const {
+    providers: ssoProviders,
+    loading: ssoLoading,
+    refetch: refetchSSO,
+  } = useSSOProviders(tenantId);
 
   const fetchOrganization = useCallback(async () => {
     if (!tenantId) return;
 
     try {
-      const [orgResult, memberResult, invitationsResult] = await Promise.all([
-        authClient.organization.getFullOrganization({
-          query: {
-            organizationId: tenantId,
-            membersLimit: 100,
-          },
-        }),
-        authClient.organization.getActiveMember(),
-        authClient.organization.listInvitations({
-          query: { organizationId: tenantId },
-        }),
-      ]);
+      const orgResult = await authClient.organization.getFullOrganization({
+        query: {
+          organizationId: tenantId,
+          membersLimit: 300,
+        },
+      });
 
       if (orgResult.error) {
         setError(orgResult.error.message || 'Failed to fetch organization');
@@ -51,22 +58,6 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
 
       if (orgResult.data) {
         setOrganization(orgResult.data);
-
-        // Fetch providers for all members
-        const userIds = orgResult.data.members?.map((m) => m.user.id) || [];
-        if (userIds.length > 0) {
-          const providers = await getUserProviders(userIds, tenantId);
-          setMemberProviders(providers);
-        }
-      }
-
-      if (memberResult.data) {
-        setCurrentMember(memberResult.data);
-      }
-
-      if (invitationsResult.data) {
-        const pending = invitationsResult.data.filter((inv) => inv.status === 'pending');
-        setPendingInvitations(pending);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch organization');
@@ -79,7 +70,7 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
     fetchOrganization();
   }, [fetchOrganization]);
 
-  if (loading) {
+  if (loading || isAdminLoading) {
     return <SettingsLoadingSkeleton />;
   }
 
@@ -89,6 +80,73 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
         error={new Error(error || 'Failed to load organization')}
         context="organization"
       />
+    );
+  }
+
+  const allowedMethods = parseAllowedAuthMethods(organization.allowedAuthMethods);
+
+  type SSOMethod = Extract<AllowedAuthMethod, { method: 'sso' }>;
+  const findSSOEntry = (providerId: string) =>
+    allowedMethods.find((m): m is SSOMethod => m.method === 'sso' && m.providerId === providerId);
+
+  const ssoRows = ssoProviders.map((p) => {
+    const entry = findSSOEntry(p.providerId);
+    return {
+      providerId: p.providerId,
+      displayName: entry?.displayName ?? p.providerId,
+      domain: p.domain,
+      enabled: entry?.enabled ?? false,
+      autoProvision: entry?.autoProvision ?? true,
+    };
+  });
+
+  const handleRefreshAll = () => {
+    fetchOrganization();
+    refetchSSO();
+  };
+
+  const handleEditSSO = (providerId: string) => {
+    const provider = ssoProviders.find((p) => p.providerId === providerId);
+    if (provider) setEditingProvider(provider);
+  };
+
+  const handleRemoveSSO = (providerId: string) => {
+    const provider = ssoProviders.find((p) => p.providerId === providerId);
+    if (provider) setRemovingProvider(provider);
+  };
+
+  if (editingProvider) {
+    const entry = findSSOEntry(editingProvider.providerId);
+    return (
+      <div className="space-y-6">
+        <EditSSOForm
+          provider={editingProvider}
+          organizationId={tenantId}
+          currentAutoProvision={entry?.autoProvision ?? true}
+          currentDisplayName={entry?.displayName ?? editingProvider.providerId}
+          onSaved={() => {
+            setEditingProvider(null);
+            handleRefreshAll();
+          }}
+          onCancel={() => setEditingProvider(null)}
+        />
+      </div>
+    );
+  }
+
+  if (showRegisterForm) {
+    return (
+      <div className="space-y-6">
+        <RegisterSSOForm
+          organizationId={tenantId}
+          organizationSlug={organization.slug}
+          onRegistered={() => {
+            setShowRegisterForm(false);
+            handleRefreshAll();
+          }}
+          onCancel={() => setShowRegisterForm(false)}
+        />
+      </div>
     );
   }
 
@@ -104,17 +162,46 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
           <CopyableSingleLineCode code={organization.id} />
         </div>
       </div>
-      <MembersTable
-        members={organization?.members || []}
-        pendingInvitations={pendingInvitations}
-        currentMember={currentMember}
-        organizationId={tenantId}
-        onMemberUpdated={fetchOrganization}
-        isOrgAdmin={
-          currentMember?.role === OrgRoles.OWNER || currentMember?.role === OrgRoles.ADMIN
-        }
-        memberProviders={memberProviders}
-      />
+      {isOrgAdmin && (
+        <>
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle className="text-base font-medium">Authentication Methods</CardTitle>
+              <CardDescription>
+                Enable one or more sign-in methods for your organization.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {ssoLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <AuthMethodConfiguration
+                  organizationId={tenantId}
+                  allowedAuthMethods={allowedMethods}
+                  isOrgAdmin={isOrgAdmin}
+                  ssoProviders={ssoRows}
+                  onAuthMethodChanged={fetchOrganization}
+                  onEditSSO={handleEditSSO}
+                  onRemoveSSO={handleRemoveSSO}
+                  onAddSSO={() => setShowRegisterForm(true)}
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          <RemoveSSODialog
+            provider={removingProvider}
+            organizationId={tenantId}
+            onClose={() => setRemovingProvider(null)}
+            onRemoved={() => {
+              setRemovingProvider(null);
+              handleRefreshAll();
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

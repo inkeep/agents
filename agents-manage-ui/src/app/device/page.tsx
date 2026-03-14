@@ -161,25 +161,25 @@ function DeviceVerificationForm() {
   return (
     <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-        <div className="flex justify-center">
-          <InkeepIcon size={48} />
-        </div>
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-medium tracking-tight text-foreground flex items-center justify-center gap-2">
-            <Terminal className="h-6 w-6" />
-            Device Authorization
-          </CardTitle>
-          <CardDescription>
-            {state === 'input' || state === 'validating'
-              ? 'Enter the code displayed in your CLI to authorize the device.'
-              : state === 'confirm' || state === 'approving'
-                ? 'Confirm that you want to authorize this device.'
-                : state === 'approved'
-                  ? 'Device authorized successfully.'
-                  : state === 'denied'
-                    ? 'Device authorization denied.'
-                    : 'An error occurred.'}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-center gap-4">
+          <InkeepIcon size={48} className="shrink-0" />
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-medium tracking-tight text-foreground flex items-center gap-2">
+              <Terminal className="h-6 w-6" />
+              Device Authorization
+            </CardTitle>
+            <CardDescription>
+              {state === 'input' || state === 'validating'
+                ? 'Enter the code displayed in your CLI to authorize the device.'
+                : state === 'confirm' || state === 'approving'
+                  ? 'Confirm that you want to authorize this device.'
+                  : state === 'approved'
+                    ? 'Device authorized successfully.'
+                    : state === 'denied'
+                      ? 'Device authorization denied.'
+                      : 'An error occurred.'}
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="space-y-5">
           {error && (
