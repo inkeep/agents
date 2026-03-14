@@ -2,6 +2,7 @@
 
 import type { SSOPlugin } from '@better-auth/sso';
 import type { AllowedAuthMethod } from '@inkeep/agents-core/auth/auth-types';
+import { parseAllowedAuthMethods } from '@inkeep/agents-core/auth/auth-types';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -105,25 +106,36 @@ export function RemoveSSODialog({
     if (!provider) return;
 
     try {
-      await authClient.sso.deleteProvider({ providerId: provider.providerId });
-
       const orgResult = await authClient.organization.getFullOrganization({
         query: { organizationId },
       });
       const currentRaw = orgResult.data?.allowedAuthMethods;
-      if (currentRaw) {
-        try {
-          const current = JSON.parse(currentRaw) as { method: string; providerId?: string }[];
-          const updated = current.filter(
-            (m) => !(m.method === 'sso' && m.providerId === provider.providerId)
-          );
-          await authClient.organization.update({
-            data: { allowedAuthMethods: JSON.stringify(updated) },
-            organizationId,
-          });
-        } catch {
-          // best-effort allowedAuthMethods cleanup
-        }
+      const current = parseAllowedAuthMethods(currentRaw);
+      const updated = current.filter(
+        (m) => !(m.method === 'sso' && m.providerId === provider.providerId)
+      );
+
+      const hasRemainingMethod =
+        updated.some((m) => m.method === 'email-password') ||
+        updated.some((m) => m.method === 'google') ||
+        updated.some((m) => m.method === 'sso' && m.enabled);
+
+      if (!hasRemainingMethod) {
+        toast.error(
+          'At least one sign-in method must remain enabled. Enable another method before removing this provider.'
+        );
+        return;
+      }
+
+      await authClient.sso.deleteProvider({ providerId: provider.providerId });
+
+      try {
+        await authClient.organization.update({
+          data: { allowedAuthMethods: JSON.stringify(updated) },
+          organizationId,
+        });
+      } catch {
+        // best-effort allowedAuthMethods cleanup
       }
 
       toast.success('SSO provider removed');

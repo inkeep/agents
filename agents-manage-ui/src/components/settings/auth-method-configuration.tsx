@@ -1,7 +1,7 @@
 'use client';
 
-import type { AllowedAuthMethod, AuthMethodType } from '@inkeep/agents-core/auth/auth-types';
-import { Globe, KeyRound, Mail, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import type { AllowedAuthMethod } from '@inkeep/agents-core/auth/auth-types';
+import { Globe, Mail, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -33,23 +33,6 @@ interface AuthMethodConfigurationProps {
   onEditSSO?: (providerId: string) => void;
   onRemoveSSO?: (providerId: string) => void;
   onAddSSO?: () => void;
-}
-
-export function getAuthMethodLabel(method: AuthMethodType | string | null | undefined): string {
-  if (!method) return 'Not configured';
-  if (method === 'google') return 'Google';
-  if (method === 'sso') return 'Enterprise SSO';
-  if (method === 'email-password') return 'Email and password';
-  return method;
-}
-
-export function getAuthMethodIcon(
-  method: AuthMethodType | string | null | undefined
-): React.ReactNode {
-  if (!method) return null;
-  if (method === 'google') return <GoogleColorIcon className="h-4 w-4" />;
-  if (method === 'sso') return <Globe className="h-4 w-4 text-muted-foreground" />;
-  return <KeyRound className="h-4 w-4 text-muted-foreground" />;
 }
 
 export function AuthMethodConfiguration({

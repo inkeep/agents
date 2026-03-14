@@ -52,7 +52,6 @@
   },
   "dependencies": {
     "@better-auth/sso": "catalog:",
-    "@better-auth/infra": "catalog:",
     "@hookform/resolvers": "^5.2.1",
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-ui": "^0.15.13",
