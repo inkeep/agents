@@ -1,22 +1,17 @@
 'use client';
 
+import type { ColumnDef } from '@tanstack/react-table';
 import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { formatDate } from '@/lib/utils/format-date';
 import { DeleteEvaluatorConfirmation } from './delete-evaluator-confirmation';
@@ -36,99 +31,117 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
   const [deletingEvaluator, setDeletingEvaluator] = useState<Evaluator | undefined>();
   const [viewingEvaluator, setViewingEvaluator] = useState<Evaluator | undefined>();
 
-  const handleEdit = (evaluator: Evaluator) => {
-    setEditingEvaluator(evaluator);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleDelete = (evaluator: Evaluator) => {
-    setDeletingEvaluator(evaluator);
-  };
+  const columns = useMemo<ColumnDef<Evaluator>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+        sortingFn: 'text',
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={() => setViewingEvaluator(row.original)}
+            className="font-medium text-foreground hover:underline text-left"
+          >
+            {row.original.name}
+          </button>
+        ),
+      },
+      {
+        accessorKey: 'description',
+        header: 'Description',
+        enableSorting: false,
+        meta: { className: 'max-w-md' },
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground whitespace-normal">
+            {row.original.description}
+          </span>
+        ),
+      },
+      {
+        id: 'model',
+        accessorFn: (row) => row.model?.model || 'N/A',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Model" />,
+        sortingFn: 'text',
+        cell: ({ row }) => (
+          <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
+            {row.original.model?.model || 'N/A'}
+          </code>
+        ),
+      },
+      {
+        id: 'updatedAt',
+        accessorFn: (row) => new Date(row.updatedAt),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
+        sortingFn: 'datetime',
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.original.updatedAt)}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreVertical />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => {
+                  setEditingEvaluator(row.original);
+                  setIsEditDialogOpen(true);
+                }}
+              >
+                <Pencil />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setDeletingEvaluator(row.original)}
+                className="text-destructive!"
+              >
+                <Trash2 className="text-inherit" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <>
       <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow noHover>
-              <TableHead>Name</TableHead>
-              <TableHead className="max-w-md">Description</TableHead>
-              <TableHead>Model</TableHead>
-              <TableHead>Updated</TableHead>
-              <TableHead className="w-12" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {evaluators.length === 0 ? (
-              <TableRow noHover>
-                <TableCell colSpan={5} className="py-12">
-                  <div className="flex flex-col items-center gap-4">
-                    <span className="text-muted-foreground">No evaluators yet</span>
-                    <EvaluatorFormDialog
-                      tenantId={tenantId}
-                      projectId={projectId}
-                      isOpen={isCreateDialogOpen}
-                      onOpenChange={setIsCreateDialogOpen}
-                      trigger={
-                        <Button variant="outline" size="sm">
-                          <Plus className="h-4 w-4" />
-                          Add first evaluator
-                        </Button>
-                      }
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              evaluators.map((evaluator) => (
-                <TableRow key={evaluator.id} noHover>
-                  <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => setViewingEvaluator(evaluator)}
-                      className="font-medium text-foreground hover:underline text-left"
-                    >
-                      {evaluator.name}
-                    </button>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-normal">
-                    {evaluator.description}
-                  </TableCell>
-                  <TableCell>
-                    <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
-                      {evaluator.model?.model || 'N/A'}
-                    </code>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(evaluator.updatedAt)}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(evaluator)}>
-                          <Pencil />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(evaluator)}
-                          className="!text-destructive"
-                        >
-                          <Trash2 className="text-inherit" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          columns={columns}
+          data={evaluators}
+          defaultSort={[{ id: 'name', desc: false }]}
+          emptyState={
+            <div className="flex flex-col items-center gap-4">
+              <span>No evaluators yet</span>
+              <EvaluatorFormDialog
+                tenantId={tenantId}
+                projectId={projectId}
+                isOpen={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4" />
+                    Add first evaluator
+                  </Button>
+                }
+              />
+            </div>
+          }
+        />
       </div>
 
       {editingEvaluator && (
