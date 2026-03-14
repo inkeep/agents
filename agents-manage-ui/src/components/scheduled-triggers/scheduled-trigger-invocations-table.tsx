@@ -1,11 +1,14 @@
 'use client';
 
+import type { ColumnDef } from '@tanstack/react-table';
 import { Ban, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,14 +16,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   cancelScheduledTriggerInvocationAction,
   getScheduledTriggerInvocationsAction,
@@ -34,7 +29,7 @@ import {
   type InvocationStatus,
 } from '@/lib/utils/invocation-display';
 
-const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
+const POLLING_INTERVAL_MS = 3000;
 
 interface ScheduledTriggerInvocationsTableProps {
   invocations: ScheduledTriggerInvocation[];
@@ -55,12 +50,10 @@ export function ScheduledTriggerInvocationsTable({
   const [invocations, setInvocations] = useState(initialInvocations);
   const [loadingInvocations, setLoadingInvocations] = useState<Set<string>>(new Set());
 
-  // Check if any invocations are in a transient state (pending or running)
   const hasTransientInvocations = invocations.some(
     (inv) => inv.status === 'pending' || inv.status === 'running'
   );
 
-  // Poll for updates when there are pending/running invocations
   useEffect(() => {
     if (!hasTransientInvocations) return;
 
@@ -83,7 +76,6 @@ export function ScheduledTriggerInvocationsTable({
     return () => clearInterval(intervalId);
   }, [hasTransientInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
 
-  // Update invocations when initial props change
   useEffect(() => {
     setInvocations(initialInvocations);
   }, [initialInvocations]);
@@ -156,122 +148,131 @@ export function ScheduledTriggerInvocationsTable({
     }
   };
 
+  const columns: ColumnDef<ScheduledTriggerInvocation>[] = [
+    {
+      id: 'scheduledFor',
+      accessorFn: (row) => new Date(row.scheduledFor),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Scheduled For" />,
+      sortingFn: 'datetime',
+      cell: ({ row }) => (
+        <div className="font-mono text-sm">
+          {formatInvocationDateTime(row.original.scheduledFor)}
+        </div>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      enableSorting: false,
+      cell: ({ row }) => getInvocationStatusBadge(row.original.status as InvocationStatus),
+    },
+    {
+      id: 'startedAt',
+      accessorFn: (row) => (row.startedAt ? new Date(row.startedAt) : null),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Started At" />,
+      sortingFn: 'datetime',
+      sortUndefined: 'last',
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {formatInvocationDateTime(row.original.startedAt)}
+        </div>
+      ),
+    },
+    {
+      id: 'duration',
+      header: 'Duration',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {formatInvocationDuration(row.original.startedAt, row.original.completedAt)}
+        </div>
+      ),
+    },
+    {
+      id: 'attempt',
+      header: 'Attempt',
+      enableSorting: false,
+      cell: ({ row }) => <Badge variant="count">{row.original.attemptNumber}</Badge>,
+    },
+    {
+      id: 'conversation',
+      header: 'Conversation',
+      enableSorting: false,
+      cell: ({ row }) =>
+        row.original.conversationIds && row.original.conversationIds.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            {row.original.conversationIds.map((convId: string, idx: number) => (
+              <ExternalLink
+                key={convId}
+                href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
+                className="text-primary no-underline"
+                iconClassName="text-primary"
+              >
+                {row.original.conversationIds && row.original.conversationIds.length > 1 && (
+                  <span className="text-muted-foreground text-xs">#{idx + 1}</span>
+                )}
+                View
+              </ExternalLink>
+            ))}
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: ({ row }) => {
+        const isLoading = loadingInvocations.has(row.original.id);
+        const canCancel = row.original.status === 'pending' || row.original.status === 'running';
+        const canRerun =
+          row.original.status === 'completed' ||
+          row.original.status === 'failed' ||
+          row.original.status === 'cancelled';
+        const hasActions = canCancel || canRerun;
+
+        if (!hasActions) return null;
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" disabled={isLoading}>
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canRerun && (
+                <DropdownMenuItem onClick={() => rerunInvocation(row.original.id)}>
+                  <RotateCcw className="w-4 h-4" />
+                  Rerun
+                </DropdownMenuItem>
+              )}
+              {canCancel && (
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => cancelInvocation(row.original.id)}
+                >
+                  <Ban className="w-4 h-4" />
+                  Cancel
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow noHover>
-            <TableHead>Scheduled For</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Started At</TableHead>
-            <TableHead>Duration</TableHead>
-            <TableHead>Attempt</TableHead>
-            <TableHead>Conversation</TableHead>
-            <TableHead className="w-12" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {invocations.length === 0 ? (
-            <TableRow noHover>
-              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                No invocations yet. The scheduled trigger will create invocations when it runs.
-              </TableCell>
-            </TableRow>
-          ) : (
-            invocations.map((invocation) => {
-              const isLoading = loadingInvocations.has(invocation.id);
-              const canCancel = invocation.status === 'pending' || invocation.status === 'running';
-              const canRerun =
-                invocation.status === 'completed' ||
-                invocation.status === 'failed' ||
-                invocation.status === 'cancelled';
-              const hasActions = canCancel || canRerun;
-
-              return (
-                <TableRow key={invocation.id} noHover>
-                  <TableCell>
-                    <div className="font-mono text-sm">
-                      {formatInvocationDateTime(invocation.scheduledFor)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {getInvocationStatusBadge(invocation.status as InvocationStatus)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-muted-foreground">
-                      {formatInvocationDateTime(invocation.startedAt)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-muted-foreground">
-                      {formatInvocationDuration(invocation.startedAt, invocation.completedAt)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="count">{invocation.attemptNumber}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {invocation.conversationIds && invocation.conversationIds.length > 0 ? (
-                      <div className="flex flex-col gap-1">
-                        {invocation.conversationIds.map((convId: string, idx: number) => (
-                          <ExternalLink
-                            key={convId}
-                            href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
-                            className="text-primary no-underline"
-                            iconClassName="text-primary"
-                          >
-                            {invocation.conversationIds &&
-                              invocation.conversationIds.length > 1 && (
-                                <span className="text-muted-foreground text-xs">#{idx + 1}</span>
-                              )}
-                            View
-                          </ExternalLink>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {hasActions && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-sm" disabled={isLoading}>
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {canRerun && (
-                            <DropdownMenuItem
-                              onClick={() => {
-                                rerunInvocation(invocation.id);
-                              }}
-                            >
-                              <RotateCcw className="w-4 h-4" />
-                              Rerun
-                            </DropdownMenuItem>
-                          )}
-                          {canCancel && (
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onClick={() => {
-                                cancelInvocation(invocation.id);
-                              }}
-                            >
-                              <Ban className="w-4 h-4" />
-                              Cancel
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={columns}
+        data={invocations}
+        defaultSort={[{ id: 'scheduledFor', desc: true }]}
+        emptyState="No invocations yet. The scheduled trigger will create invocations when it runs."
+      />
     </div>
   );
 }

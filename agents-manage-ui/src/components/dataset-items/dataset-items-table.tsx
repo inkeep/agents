@@ -1,23 +1,18 @@
 'use client';
 
+import type { ColumnDef } from '@tanstack/react-table';
 import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
-import { type FC, useState } from 'react';
+import { type FC, useMemo, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import type { DatasetItem } from '@/lib/api/dataset-items';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 import { DatasetItemFormDialog } from './dataset-item-form-dialog';
@@ -64,102 +59,116 @@ export function DatasetItemsTable({
     ? items.find((item) => item.id === deletingItemId)
     : undefined;
 
+  const columns = useMemo<ColumnDef<DatasetItem>[]>(
+    () => [
+      {
+        id: 'updatedAt',
+        accessorFn: (row) => new Date(row.updatedAt),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Updated At" />,
+        sortingFn: 'datetime',
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDateTimeTable(row.original.updatedAt)}
+          </span>
+        ),
+      },
+      {
+        id: 'input',
+        header: 'Input',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <ReadOnlyEditor name={`input_${row.index}`} value={row.original.input} />
+        ),
+      },
+      {
+        id: 'expectedOutput',
+        header: 'Expected Output',
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.expectedOutput ? (
+            <ReadOnlyEditor name={`output_${row.index}`} value={row.original.expectedOutput} />
+          ) : (
+            <span className="text-sm text-muted-foreground italic">None</span>
+          ),
+      },
+      {
+        id: 'simulationAgent',
+        header: 'Simulation Agent',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const hasSimulationAgent = !!(
+            row.original.simulationAgent &&
+            typeof row.original.simulationAgent === 'object' &&
+            !Array.isArray(row.original.simulationAgent) &&
+            (row.original.simulationAgent.prompt || row.original.simulationAgent.model)
+          );
+          return hasSimulationAgent ? (
+            <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              Configured
+            </span>
+          ) : (
+            <span className="text-sm text-muted-foreground italic">None</span>
+          );
+        },
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreVertical />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditingItemId(row.original.id)}>
+                <Pencil />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setDeletingItemId(row.original.id)}
+                variant="destructive"
+              >
+                <Trash2 className="text-inherit" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    []
+  );
+
   return (
     <>
       <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow noHover>
-              <TableHead>Updated At</TableHead>
-              <TableHead>Input</TableHead>
-              <TableHead>Expected Output</TableHead>
-              <TableHead>Simulation Agent</TableHead>
-              <TableHead className="w-12" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.length === 0 ? (
-              <TableRow noHover>
-                <TableCell colSpan={5} className="py-12">
-                  <div className="flex flex-col items-center gap-4">
-                    <span className="text-muted-foreground">No items yet</span>
-                    <DatasetItemFormDialog
-                      tenantId={tenantId}
-                      projectId={projectId}
-                      datasetId={datasetId}
-                      isOpen={isCreateDialogOpen}
-                      onOpenChange={setIsCreateDialogOpen}
-                      trigger={
-                        <Button variant="outline" size="sm">
-                          <Plus className="h-4 w-4" />
-                          Add first item
-                        </Button>
-                      }
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              items.map((item, index) => {
-                const hasSimulationAgent = !!(
-                  item.simulationAgent &&
-                  typeof item.simulationAgent === 'object' &&
-                  !Array.isArray(item.simulationAgent) &&
-                  (item.simulationAgent.prompt || item.simulationAgent.model)
-                );
-
-                return (
-                  <TableRow key={item.id} noHover>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDateTimeTable(item.updatedAt)}
-                    </TableCell>
-                    <TableCell>
-                      <ReadOnlyEditor name={`input_${index}`} value={item.input} />
-                    </TableCell>
-                    <TableCell>
-                      {item.expectedOutput ? (
-                        <ReadOnlyEditor name={`output_${index}`} value={item.expectedOutput} />
-                      ) : (
-                        <span className="text-sm text-muted-foreground italic">None</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {hasSimulationAgent ? (
-                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          Configured
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground italic">None</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingItemId(item.id)}>
-                            <Pencil />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeletingItemId(item.id)}
-                            className="!text-destructive"
-                          >
-                            <Trash2 className="text-inherit" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          columns={columns}
+          data={items}
+          defaultSort={[{ id: 'updatedAt', desc: true }]}
+          emptyState={
+            <div className="flex flex-col items-center gap-4">
+              <span>No items yet</span>
+              <DatasetItemFormDialog
+                tenantId={tenantId}
+                projectId={projectId}
+                datasetId={datasetId}
+                isOpen={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4" />
+                    Add first item
+                  </Button>
+                }
+              />
+            </div>
+          }
+        />
       </div>
 
       {editingItem && (

@@ -44,11 +44,8 @@ export function DatasetItemMenu({
             <Pencil className="size-4" />
             Rename
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => setIsDeleteOpen(true)}
-            className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
-          >
-            <Trash2 className="size-4 text-destructive" />
+          <DropdownMenuItem onClick={() => setIsDeleteOpen(true)} variant="destructive">
+            <Trash2 className="size-4" />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
