@@ -159,8 +159,11 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={() => setDeletingJobConfig(row.original)}
-                  className="text-destructive!"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeletingJobConfig(row.original);
+                  }}
+                  variant="destructive"
                 >
                   <Trash2 className="text-inherit" />
                   Delete

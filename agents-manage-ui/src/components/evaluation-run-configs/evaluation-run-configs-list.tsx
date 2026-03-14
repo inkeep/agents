@@ -82,7 +82,7 @@ export function EvaluationRunConfigsList({
         header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
         sortingFn: 'basic',
         cell: ({ row }) => (
-          <Badge variant={row.original.isActive ? 'default' : 'secondary'}>
+          <Badge className="uppercase" variant={row.original.isActive ? 'primary' : 'code'}>
             {row.original.isActive ? 'Active' : 'Inactive'}
           </Badge>
         ),
@@ -117,19 +117,23 @@ export function EvaluationRunConfigsList({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setEditingRunConfig(row.original);
                   setIsEditDialogOpen(true);
                 }}
               >
-                <Pencil className="mr-2 h-4 w-4" />
+                <Pencil className="h-4 w-4" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setDeletingRunConfig(row.original)}
-                className="text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeletingRunConfig(row.original);
+                }}
+                variant="destructive"
               >
-                <Trash2 className="mr-2 h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>

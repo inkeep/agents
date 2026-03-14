@@ -104,7 +104,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeletingEvaluator(row.original)}
-                className="text-destructive!"
+                variant="destructive"
               >
                 <Trash2 className="text-inherit" />
                 Delete

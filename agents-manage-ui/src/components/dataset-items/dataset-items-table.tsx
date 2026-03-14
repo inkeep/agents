@@ -130,7 +130,7 @@ export function DatasetItemsTable({
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeletingItemId(row.original.id)}
-                className="text-destructive!"
+                variant="destructive"
               >
                 <Trash2 className="text-inherit" />
                 Delete
