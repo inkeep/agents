@@ -16,6 +16,7 @@ import type {
 import type { FinishReason, StepResult, ToolSet } from 'ai';
 import type { MidGenerationCompressor } from '../compression/MidGenerationCompressor';
 import type { ContextResolver } from '../context';
+import type { HydrateBlobToDataUrl } from '../services/blob-storage';
 import type { StreamHelper } from '../stream/stream-helpers';
 import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
@@ -235,4 +236,6 @@ export interface AgentRunContext {
   currentCompressor: MidGenerationCompressor | null;
   functionToolRelationshipIdByName: Map<string, string>;
   taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }>;
+  /** When set, conversation history image parts with blob URIs are hydrated to data URLs (e.g. when the model supports images). */
+  hydrateBlobToDataUrl?: HydrateBlobToDataUrl;
 }

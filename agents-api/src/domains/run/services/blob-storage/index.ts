@@ -1,9 +1,14 @@
 import { env } from '../../../../env';
+import {
+  createBlobToDataUrlHydrator as createBlobToDataUrlHydratorImpl,
+  type HydrateBlobToDataUrl,
+} from './blob-to-data-url';
 import { LocalBlobStorageProvider } from './local-provider';
 import { S3BlobStorageProvider } from './s3-provider';
 import type { BlobStorageProvider } from './types';
 import { VercelBlobStorageProvider } from './vercel-blob-provider';
 
+export type { HydrateBlobToDataUrl } from './blob-to-data-url';
 export type {
   BlobStorageDownloadResult,
   BlobStorageProvider,
@@ -49,4 +54,8 @@ export function fromBlobUri(uri: string): string {
     throw new Error(`Not a blob URI: ${uri}`);
   }
   return uri.slice(BLOB_URI_PREFIX.length);
+}
+
+export function createBlobToDataUrlHydrator(): HydrateBlobToDataUrl {
+  return createBlobToDataUrlHydratorImpl(getBlobStorageProvider(), fromBlobUri);
 }

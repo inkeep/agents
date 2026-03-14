@@ -9,6 +9,7 @@ import type { ToolSet } from 'ai';
 import { ArtifactReferenceSchema } from '../artifacts/artifact-component-schema';
 import { ContextResolver } from '../context';
 import { createDefaultConversationHistoryConfig } from '../data/conversations';
+import { createBlobToDataUrlHydrator } from '../services/blob-storage';
 import type { StreamHelper } from '../stream/stream-helpers';
 import {
   type AgentConfig,
@@ -109,6 +110,8 @@ export class Agent {
       functionToolRelationshipIdByName,
       taskDenialRedirects: [],
     };
+
+    ctx.hydrateBlobToDataUrl = createBlobToDataUrlHydrator();
 
     ctx.mcpManager = new AgentMcpManager(
       processedConfig,
