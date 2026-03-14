@@ -197,16 +197,6 @@ All update routes register both PUT and PATCH methods using `openapiRegisterPutP
 
 All existing PUT update routes remain functional — they share the same handler as PATCH. New update routes must use PATCH as canonical (or PUT for upsert/set-replace semantics). Do not remove existing PUT routes without a deprecation period.
 
-### Slack Bot Scopes (Single Source of Truth)
-
-`slack-app-manifest.json` → `oauth_config.scopes.bot` is the **only** place bot scopes are defined. Do not hardcode scopes anywhere else.
-
-**To add/remove a scope:** edit `packages/agents-work-apps/src/slack/slack-app-manifest.json`. Runtime code (`oauth.ts`) imports via `slack-scopes.ts`; dev setup (`setup-slack-dev.ts`) reads the manifest directly. Both derive automatically.
-
-**Production apps** must be updated manually at [api.slack.com/apps](https://api.slack.com/apps) — the manifest is a template with `<YOUR_API_DOMAIN>` placeholders and is not auto-synced.
-
-**Local dev apps**: re-run `pnpm setup-slack-dev` — it detects scope drift and triggers OAuth re-install automatically.
-
 ### Database Migration Workflow
 
 #### Standard Workflow

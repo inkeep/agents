@@ -155,16 +155,6 @@ Both transports share the same event dispatcher and handlers. The Socket Mode ad
 
 ---
 
-## Managing Slack Bot Scopes
-
-`slack-app-manifest.json` → `oauth_config.scopes.bot` is the single source of truth. See **CLAUDE.md → "Slack Bot Scopes"** for the full workflow (adding/removing scopes, production vs dev, what not to do).
-
-```
-slack-app-manifest.json          ← edit scopes here
-  ├── slack-scopes.ts            ← exports BOT_SCOPES / BOT_SCOPES_CSV (used by oauth.ts)
-  └── setup-slack-dev.ts         ← reads manifest directly (local dev setup)
-```
-
 ## File Structure
 
 ```
