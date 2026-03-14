@@ -155,6 +155,41 @@ Both transports share the same event dispatcher and handlers. The Socket Mode ad
 
 ---
 
+## Managing Slack Bot Scopes
+
+Bot scopes are defined in **one place**: `slack-app-manifest.json` → `oauth_config.scopes.bot`. All other code derives scopes from this file automatically.
+
+### How it works
+
+```
+slack-app-manifest.json          ← SINGLE SOURCE OF TRUTH
+  │
+  ├── slack-scopes.ts            ← exports BOT_SCOPES / BOT_SCOPES_CSV (used by oauth.ts at runtime)
+  └── setup-slack-dev.ts         ← reads manifest directly (used for local dev app setup)
+```
+
+### Adding or removing a scope
+
+1. Edit `slack-app-manifest.json` — add/remove the scope in `oauth_config.scopes.bot`
+2. That's it for code. `slack-scopes.ts` re-exports at import time; `setup-slack-dev.ts` reads the manifest at runtime.
+3. **Production Slack app**: You must manually update scopes in your production app at [api.slack.com/apps](https://api.slack.com/apps) → OAuth & Permissions. The manifest file is a template (contains `<YOUR_API_DOMAIN>` placeholders) and is not automatically synced to production.
+4. **Local dev apps**: Re-run `pnpm setup-slack-dev`. The script detects scope drift automatically — it compares the manifest scopes against what was last installed and triggers an OAuth re-install if they differ.
+5. **Changeset**: Create one for `agents-work-apps` since scope changes affect runtime OAuth behavior.
+
+### Do NOT
+
+- Hardcode scopes in `oauth.ts`, `setup-slack-dev.ts`, or anywhere else
+- Add scopes only to the manifest without updating the production Slack app
+- Remove scopes that are actively used by features without checking event subscriptions and API calls
+
+### Current scopes reference
+
+The manifest's `oauth_config.scopes.bot` array is authoritative. To see current scopes:
+
+```bash
+node -e "console.log(require('./packages/agents-work-apps/src/slack/slack-app-manifest.json').oauth_config.scopes.bot.join('\n'))"
+```
+
 ## File Structure
 
 ```
