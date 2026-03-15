@@ -455,8 +455,12 @@ function loadDevConfig(): SlackDevConfig {
   if (!existsSync(DEV_CONFIG_PATH)) return {};
   try {
     return JSON.parse(readFileSync(DEV_CONFIG_PATH, 'utf-8')) as SlackDevConfig;
-  } catch {
-    console.log(fmt.warn('Warning: .slack-dev.json is corrupted, starting fresh.'));
+  } catch (err) {
+    console.warn(
+      fmt.warn(
+        `Warning: failed to parse ${DEV_CONFIG_PATH}: ${err instanceof Error ? err.message : String(err)}. Starting with empty config.`
+      )
+    );
     return {};
   }
 }
@@ -759,8 +763,10 @@ async function main(): Promise<void> {
       devConfig.configRefreshToken = rotated.refreshToken;
       saveDevConfig(devConfig);
       console.log(fmt.ok('ok'));
-    } catch {
-      console.log(fmt.warn('expired — need a new one.'));
+    } catch (err) {
+      console.log(
+        fmt.warn(`failed: ${err instanceof Error ? err.message : String(err)} — need a new one.`)
+      );
       devConfig.configRefreshToken = '';
     }
   }
