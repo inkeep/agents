@@ -455,8 +455,12 @@ function loadDevConfig(): SlackDevConfig {
   if (!existsSync(DEV_CONFIG_PATH)) return {};
   try {
     return JSON.parse(readFileSync(DEV_CONFIG_PATH, 'utf-8')) as SlackDevConfig;
-  } catch {
-    console.log(fmt.warn('Warning: .slack-dev.json is corrupted, starting fresh.'));
+  } catch (err) {
+    console.warn(
+      fmt.warn(
+        `Warning: failed to parse ${DEV_CONFIG_PATH}: ${err instanceof Error ? err.message : String(err)}. Starting with empty config.`
+      )
+    );
     return {};
   }
 }

@@ -116,6 +116,10 @@ export function parseOAuthState(stateStr: string): OAuthState | null {
   }
 }
 
+export function sanitizeTenantId(raw: string): string {
+  return /^[a-zA-Z0-9_-]+$/.test(raw) ? raw : '';
+}
+
 const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 
 export { getBotTokenForTeam, setBotTokenForTeam };
@@ -185,7 +189,14 @@ app.openapi(
     const { code, error, state: stateParam } = c.req.valid('query');
 
     const parsedState = stateParam ? parseOAuthState(stateParam) : null;
-    const tenantId = parsedState?.tenantId || '';
+    const rawTenantId = parsedState?.tenantId || '';
+    const tenantId = sanitizeTenantId(rawTenantId);
+    if (rawTenantId && !tenantId) {
+      logger.warn(
+        { rawTenantId: rawTenantId.slice(0, 50) },
+        'Rejected invalid tenantId from OAuth state'
+      );
+    }
     const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
     if (!stateParam || !parsedState) {
