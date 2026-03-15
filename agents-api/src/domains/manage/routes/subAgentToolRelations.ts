@@ -9,6 +9,7 @@ import {
   getAgentToolRelationByAgent,
   getAgentToolRelationById,
   getAgentToolRelationByTool,
+  isForeignKeyViolation,
   listAgentToolRelations,
   PaginationQueryParamsSchema,
   SubAgentToolRelationApiInsertSchema,
@@ -254,8 +255,7 @@ app.openapi(
       });
       return c.json({ data: agentToolRelation }, 201);
     } catch (error) {
-      // Handle foreign key constraint violations (PostgreSQL foreign key violation)
-      if ((error as any)?.cause?.code === '23503') {
+      if (isForeignKeyViolation(error)) {
         throw createApiError({
           code: 'bad_request',
           message: 'Invalid subAgent ID or tool ID - referenced entity does not exist',
