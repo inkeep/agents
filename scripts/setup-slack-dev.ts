@@ -763,8 +763,10 @@ async function main(): Promise<void> {
       devConfig.configRefreshToken = rotated.refreshToken;
       saveDevConfig(devConfig);
       console.log(fmt.ok('ok'));
-    } catch {
-      console.log(fmt.warn('expired — need a new one.'));
+    } catch (err) {
+      console.log(
+        fmt.warn(`failed: ${err instanceof Error ? err.message : String(err)} — need a new one.`)
+      );
       devConfig.configRefreshToken = '';
     }
   }
