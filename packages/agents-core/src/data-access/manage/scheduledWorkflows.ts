@@ -3,6 +3,7 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { scheduledWorkflows } from '../../db/manage/manage-schema';
 import type { AgentScopeConfig } from '../../types/utility';
 import type { ScheduledWorkflow, ScheduledWorkflowInsert } from '../../validation/schemas';
+import { agentScopedWhere } from './scope-helpers';
 
 /**
  * Get a scheduled workflow by trigger ID (agent-scoped)
@@ -17,9 +18,7 @@ export const getScheduledWorkflowByTriggerId =
 
     const result = await db.query.scheduledWorkflows.findFirst({
       where: and(
-        eq(scheduledWorkflows.tenantId, scopes.tenantId),
-        eq(scheduledWorkflows.projectId, scopes.projectId),
-        eq(scheduledWorkflows.agentId, scopes.agentId),
+        agentScopedWhere(scheduledWorkflows, scopes),
         eq(scheduledWorkflows.scheduledTriggerId, scheduledTriggerId)
       ),
     });
@@ -66,9 +65,7 @@ export const updateScheduledWorkflowRunId =
       .set(updateData)
       .where(
         and(
-          eq(scheduledWorkflows.tenantId, params.scopes.tenantId),
-          eq(scheduledWorkflows.projectId, params.scopes.projectId),
-          eq(scheduledWorkflows.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledWorkflows, params.scopes),
           eq(scheduledWorkflows.id, params.scheduledWorkflowId)
         )
       )
