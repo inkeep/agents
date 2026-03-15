@@ -33,6 +33,7 @@ export * from './manage/triggers';
 export * from './runtime/apiKeys';
 export * from './runtime/apps';
 export * from './runtime/audit-queries';
+export * from './runtime/auth';
 export * from './runtime/cascade-delete';
 export * from './runtime/contextCache';
 export * from './runtime/conversations';
