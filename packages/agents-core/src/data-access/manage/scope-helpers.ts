@@ -44,3 +44,8 @@ export const subAgentScopedWhere = <T extends ScopedTable<'subAgent'>>(
   table: T,
   scopes: ScopeConfig<'subAgent'>
 ) => scopedWhere('subAgent', table, scopes);
+
+export const toolScopedWhere = <T extends ScopedTable<'tool'>>(
+  table: T,
+  scopes: ScopeConfig<'tool'>
+) => scopedWhere('tool', table, scopes);
