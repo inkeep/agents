@@ -11,15 +11,6 @@ vi.mock('@inkeep/agents-work-apps/slack', () => ({
   clearWorkspaceConnectionCache: vi.fn(),
 }));
 
-const mockWorldRunsGet = vi.fn();
-vi.mock('../../workflow/world', () => ({
-  world: {
-    runs: {
-      get: (...args: unknown[]) => mockWorldRunsGet(...args),
-    },
-  },
-}));
-
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
@@ -30,8 +21,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     cascadeDeleteBySubAgent: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     isGithubWorkAppTool: vi.fn((tool) => tool.config?.mcp?.server?.url?.includes('/github/mcp')),
     isSlackWorkAppTool: vi.fn((tool) => tool.config?.mcp?.server?.url?.includes('/slack/mcp')),
-    listEnabledScheduledTriggers: vi.fn(() => vi.fn().mockResolvedValue([])),
-    listScheduledWorkflowsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listToolIdsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listGitHubToolAccessByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listGitHubToolAccessModeByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
@@ -41,6 +30,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     listAgentIdsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listApiKeysByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listSlackChannelAgentConfigsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
+    listEnabledScheduledTriggers: vi.fn(() => vi.fn().mockResolvedValue([])),
+    listTriggerSchedulesByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
   };
 });
 
@@ -56,10 +47,10 @@ import {
   listEnabledScheduledTriggers,
   listGitHubToolAccessByProject,
   listGitHubToolAccessModeByProject,
-  listScheduledWorkflowsByProject,
   listSlackChannelAgentConfigsByProject,
   listSlackToolAccessConfigByProject,
   listToolIdsByProject,
+  listTriggerSchedulesByProject,
 } from '@inkeep/agents-core';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import {
@@ -299,43 +290,35 @@ describe('createEntityEffectRegistry', () => {
   });
 
   describe('check functions', () => {
-    it('scheduled_triggers check detects missing and orphaned workflows', async () => {
+    it('scheduled_triggers check detects missing schedule rows', async () => {
       vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
         vi.fn().mockResolvedValue([
-          { id: 'trigger-1', name: 'Active trigger' },
+          { id: 'trigger-1', name: 'Synced trigger' },
           { id: 'trigger-2', name: 'Missing trigger' },
         ]) as any
       );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi.fn().mockResolvedValue([
-          { id: 'wf-1', workflowRunId: 'run-1', scheduledTriggerId: 'trigger-1' },
-          { id: 'wf-2', workflowRunId: 'run-2', scheduledTriggerId: 'trigger-deleted' },
-        ]) as any
+      vi.mocked(listTriggerSchedulesByProject).mockReturnValue(
+        vi.fn().mockResolvedValue([{ scheduledTriggerId: 'trigger-1', enabled: true }]) as any
       );
-      mockWorldRunsGet.mockResolvedValue({ status: 'running' });
 
       const h = getHandlers(registry, 'scheduled_triggers');
       const result = await h.check?.(mockCtx);
 
       expect(result).toMatchObject({
         missingWorkflows: [{ triggerId: 'trigger-2', triggerName: 'Missing trigger' }],
-        orphanedWorkflows: [{ workflowRunId: 'run-2', scheduledTriggerId: 'trigger-deleted' }],
-        staleWorkflows: [],
-        deadWorkflows: [],
-        verificationFailures: [],
+        orphanedWorkflows: [],
       });
     });
 
-    it('scheduled_triggers check detects stale workflows (null workflowRunId)', async () => {
+    it('scheduled_triggers check detects orphaned schedule rows', async () => {
       vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Stale trigger' }]) as any
+        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Active trigger' }]) as any
       );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: null, scheduledTriggerId: 'trigger-1' },
-          ]) as any
+      vi.mocked(listTriggerSchedulesByProject).mockReturnValue(
+        vi.fn().mockResolvedValue([
+          { scheduledTriggerId: 'trigger-1', enabled: true },
+          { scheduledTriggerId: 'trigger-deleted', enabled: true },
+        ]) as any
       );
 
       const h = getHandlers(registry, 'scheduled_triggers');
@@ -343,146 +326,29 @@ describe('createEntityEffectRegistry', () => {
 
       expect(result).toMatchObject({
         missingWorkflows: [],
-        staleWorkflows: [
-          { triggerId: 'trigger-1', triggerName: 'Stale trigger', workflowId: 'wf-1' },
+        orphanedWorkflows: [
+          { workflowRunId: 'trigger-deleted', scheduledTriggerId: 'trigger-deleted' },
         ],
       });
     });
 
-    it('scheduled_triggers check detects dead workflows via Workflow SDK', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Dead trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-dead', scheduledTriggerId: 'trigger-1' },
-          ]) as any
-      );
-      mockWorldRunsGet.mockResolvedValue({ status: 'failed' });
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        deadWorkflows: [
-          {
-            triggerId: 'trigger-1',
-            triggerName: 'Dead trigger',
-            workflowRunId: 'run-dead',
-            runStatus: 'failed',
-          },
-        ],
-        verificationFailures: [],
-      });
-    });
-
-    it('scheduled_triggers check detects cancelled workflows as dead', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Cancelled trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-cancelled', scheduledTriggerId: 'trigger-1' },
-          ]) as any
-      );
-      mockWorldRunsGet.mockResolvedValue({ status: 'cancelled' });
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        deadWorkflows: [
-          {
-            triggerId: 'trigger-1',
-            triggerName: 'Cancelled trigger',
-            workflowRunId: 'run-cancelled',
-            runStatus: 'cancelled',
-          },
-        ],
-        verificationFailures: [],
-      });
-    });
-
-    it('scheduled_triggers check detects completed workflows as dead', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Completed trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-completed', scheduledTriggerId: 'trigger-1' },
-          ]) as any
-      );
-      mockWorldRunsGet.mockResolvedValue({ status: 'completed' });
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        deadWorkflows: [
-          {
-            triggerId: 'trigger-1',
-            triggerName: 'Completed trigger',
-            workflowRunId: 'run-completed',
-            runStatus: 'completed',
-          },
-        ],
-        verificationFailures: [],
-      });
-    });
-
-    it('scheduled_triggers check handles Workflow SDK errors gracefully', async () => {
+    it('scheduled_triggers check returns clean when in sync', async () => {
       vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
         vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Trigger' }]) as any
       );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-1', scheduledTriggerId: 'trigger-1' },
-          ]) as any
+      vi.mocked(listTriggerSchedulesByProject).mockReturnValue(
+        vi.fn().mockResolvedValue([{ scheduledTriggerId: 'trigger-1', enabled: true }]) as any
       );
-      mockWorldRunsGet.mockRejectedValue(new Error('Workflow service unavailable'));
 
       const h = getHandlers(registry, 'scheduled_triggers');
       const result = await h.check?.(mockCtx);
 
-      expect(result).toMatchObject({
+      expect(result).toEqual({
+        missingWorkflows: [],
+        orphanedWorkflows: [],
+        staleWorkflows: [],
         deadWorkflows: [],
-        verificationFailures: [{ workflowRunId: 'run-1', error: 'Workflow service unavailable' }],
-      });
-    });
-
-    it('scheduled_triggers check treats not-found runs as dead', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Ghost trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-gone', scheduledTriggerId: 'trigger-1' },
-          ]) as any
-      );
-      mockWorldRunsGet.mockResolvedValue(null);
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        deadWorkflows: [
-          {
-            triggerId: 'trigger-1',
-            triggerName: 'Ghost trigger',
-            workflowRunId: 'run-gone',
-            runStatus: 'not_found',
-          },
-        ],
+        verificationFailures: [],
       });
     });
 

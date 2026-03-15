@@ -152,7 +152,7 @@ app.openapi(
         } else if (trigger.cronExpression) {
           // Cron trigger - calculate next execution time
           try {
-            const baseDate = runInfo.lastRunAt ? new Date(runInfo.lastRunAt) : new Date();
+            const baseDate = new Date();
             const interval = CronExpressionParser.parse(trigger.cronExpression, {
               currentDate: baseDate,
               tz: trigger.cronTimezone || 'UTC',

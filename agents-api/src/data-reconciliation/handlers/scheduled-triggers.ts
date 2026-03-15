@@ -2,14 +2,13 @@ import type { ScheduledTriggerAuditResult } from '@inkeep/agents-core';
 import {
   defineHandlers,
   listEnabledScheduledTriggers,
-  listScheduledWorkflowsByProject,
+  listTriggerSchedulesByProject,
 } from '@inkeep/agents-core';
 import {
   onTriggerCreated,
   onTriggerDeleted,
   onTriggerUpdated,
 } from '../../domains/run/services/ScheduledTriggerService';
-import { world } from '../../workflow/world';
 
 export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
   onCreated: async (after) => {
@@ -29,90 +28,31 @@ export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
     await onTriggerDeleted(before);
   },
   check: async (ctx): Promise<ScheduledTriggerAuditResult> => {
-    const [enabledTriggers, workflows] = await Promise.all([
+    const [enabledTriggers, schedules] = await Promise.all([
       listEnabledScheduledTriggers(ctx.manageDb)({ scopes: ctx.scopes }),
-      listScheduledWorkflowsByProject(ctx.manageDb)({ scopes: ctx.scopes }),
+      listTriggerSchedulesByProject(ctx.runDb)({ scopes: ctx.scopes }),
     ]);
 
+    const scheduleMap = new Map(schedules.map((s) => [s.scheduledTriggerId, s]));
     const enabledTriggerIds = new Set(enabledTriggers.map((t) => t.id));
-    const enabledTriggerMap = new Map(enabledTriggers.map((t) => [t.id, t]));
-    const workflowsByTriggerId = new Map(workflows.map((w) => [w.scheduledTriggerId, w]));
 
     const missingWorkflows = enabledTriggers
-      .filter((t) => !workflowsByTriggerId.has(t.id))
+      .filter((t) => !scheduleMap.has(t.id))
       .map((t) => ({ triggerId: t.id, triggerName: t.name }));
 
-    const orphanedWorkflows = workflows
-      .filter((w) => !enabledTriggerIds.has(w.scheduledTriggerId))
-      .map((w) => ({
-        workflowRunId: w.workflowRunId ?? w.id,
-        scheduledTriggerId: w.scheduledTriggerId,
+    const orphanedWorkflows = schedules
+      .filter((s) => s.enabled && !enabledTriggerIds.has(s.scheduledTriggerId))
+      .map((s) => ({
+        workflowRunId: s.scheduledTriggerId,
+        scheduledTriggerId: s.scheduledTriggerId,
       }));
-
-    const staleWorkflows = enabledTriggers
-      .filter((t) => {
-        const wf = workflowsByTriggerId.get(t.id);
-        return wf && !wf.workflowRunId;
-      })
-      .map((t) => ({
-        triggerId: t.id,
-        triggerName: t.name,
-        // biome-ignore lint/style/noNonNullAssertion: gauranteed by the filter above
-        workflowId: workflowsByTriggerId.get(t.id)!.id,
-      }));
-
-    const deadWorkflows: ScheduledTriggerAuditResult['deadWorkflows'] = [];
-    const verificationFailures: ScheduledTriggerAuditResult['verificationFailures'] = [];
-
-    const workflowsToVerify = workflows.filter(
-      (w) => w.workflowRunId && enabledTriggerIds.has(w.scheduledTriggerId)
-    );
-
-    const verificationResults = await Promise.allSettled(
-      workflowsToVerify.map(async (w) => {
-        // biome-ignore lint/style/noNonNullAssertion: gauranteed by the filter above
-        const run = await world.runs.get(w.workflowRunId!);
-        return { workflow: w, run };
-      })
-    );
-
-    for (let i = 0; i < verificationResults.length; i++) {
-      const result = verificationResults[i];
-      const wf = workflowsToVerify[i];
-      const trigger = enabledTriggerMap.get(wf.scheduledTriggerId);
-
-      if (result.status === 'rejected') {
-        verificationFailures.push({
-          // biome-ignore lint/style/noNonNullAssertion: gauranteed by the filter above
-          workflowRunId: wf.workflowRunId!,
-          error: result.reason instanceof Error ? result.reason.message : String(result.reason),
-        });
-        continue;
-      }
-
-      const { run } = result.value;
-      if (
-        !run ||
-        run.status === 'failed' ||
-        run.status === 'cancelled' ||
-        run.status === 'completed'
-      ) {
-        deadWorkflows.push({
-          triggerId: wf.scheduledTriggerId,
-          triggerName: trigger?.name ?? wf.scheduledTriggerId,
-          // biome-ignore lint/style/noNonNullAssertion: gauranteed by the filter above
-          workflowRunId: wf.workflowRunId!,
-          runStatus: run?.status ?? 'not_found',
-        });
-      }
-    }
 
     return {
       missingWorkflows,
       orphanedWorkflows,
-      staleWorkflows,
-      deadWorkflows,
-      verificationFailures,
+      staleWorkflows: [],
+      deadWorkflows: [],
+      verificationFailures: [],
     };
   },
 });
