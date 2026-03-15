@@ -87,6 +87,8 @@ The script will:
 3. Collect your App-Level Token (the only manual step — no API exists for this)
 4. Install the app to your workspace via automatic OAuth flow
 5. Write all credentials to your `.env` file
+6. Detect manifest/scope drift on re-run and show a diff of changes
+7. Auto-trigger OAuth re-install when bot scopes change
 
 First run requires 2 pastes (config refresh token + app-level token). Re-runs require 0 pastes.
 
@@ -155,12 +157,28 @@ Both transports share the same event dispatcher and handlers. The Socket Mode ad
 
 ---
 
+## Modifying Slack App Configuration
+
+`slack-app-manifest.json` is the **single source of truth** for all Slack app configuration — bot scopes, event subscriptions, slash commands, and shortcuts. All other files derive from it automatically:
+
+- `slack-scopes.ts` exports `BOT_SCOPES` and `BOT_SCOPES_CSV` from the manifest (imported by `oauth.ts`)
+- `setup-slack-dev.ts` reads the manifest at runtime for local dev app setup
+
+When you need to add or remove bot scopes, edit only `oauth_config.scopes.bot` in the manifest. No other code changes are needed.
+
+On re-run, `setup-slack-dev.ts` automatically detects manifest changes and scope drift, showing a diff of what changed. If bot scopes have changed, it triggers an OAuth re-install to apply the new scopes.
+
+For detailed guidance on modifying scopes, events, and commands, see the AI skill file at `.agents/skills/slack-manifest/SKILL.md`.
+
+---
+
 ## File Structure
 
 ```
 packages/agents-work-apps/src/slack/
 ├── README.md                 # This file
-├── slack-app-manifest.json   # Slack app configuration template
+├── slack-app-manifest.json   # Slack app configuration (single source of truth)
+├── slack-scopes.ts           # Exports BOT_SCOPES from manifest (single source of truth)
 ├── dispatcher.ts             # Shared event dispatcher (used by both HTTP and Socket Mode)
 ├── socket-mode.ts            # Socket Mode adapter (local dev only)
 ├── tracer.ts                 # OTel tracing utilities
