@@ -16,6 +16,7 @@ describe('runtime tasks scoping isolation', () => {
   const tenantB = 'tenant-b';
   const projectA = 'project-a';
   const projectB = 'project-b';
+  const testRef = { type: 'branch' as const, name: 'main', hash: 'abc123' };
 
   beforeEach(async () => {
     db = testRunDbClient;
@@ -32,6 +33,7 @@ describe('runtime tasks scoping isolation', () => {
       subAgentId: 'sub-1',
       contextId: 'ctx-1',
       status: 'working',
+      ref: testRef,
     });
 
     const result = await getTask(db)({
@@ -58,6 +60,7 @@ describe('runtime tasks scoping isolation', () => {
       subAgentId: 'sub-1',
       contextId: 'ctx-1',
       status: 'working',
+      ref: testRef,
     });
 
     const result = await getTask(db)({
@@ -77,6 +80,7 @@ describe('runtime tasks scoping isolation', () => {
       subAgentId: 'sub-1',
       contextId: 'ctx-1',
       status: 'working',
+      ref: testRef,
     });
 
     const updated = await updateTask(db)({
@@ -106,6 +110,7 @@ describe('runtime tasks scoping isolation', () => {
       subAgentId: 'sub-1',
       contextId,
       status: 'working',
+      ref: testRef,
     });
     await createTask(db)({
       id: task2Id,
@@ -115,6 +120,7 @@ describe('runtime tasks scoping isolation', () => {
       subAgentId: 'sub-1',
       contextId,
       status: 'working',
+      ref: testRef,
     });
 
     const result = await listTaskIdsByContextId(db)({
