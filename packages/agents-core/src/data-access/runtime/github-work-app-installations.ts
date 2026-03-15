@@ -862,15 +862,13 @@ export const setMcpToolRepositoryAccess =
     const now = new Date().toISOString();
 
     // Remove all existing access for this tool
-    await db
-      .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(
-        toolScopedWhere(workAppGitHubMcpToolRepositoryAccess, {
-          tenantId: params.tenantId,
-          projectId: params.projectId,
-          toolId: params.toolId,
-        })
-      );
+    await db.delete(workAppGitHubMcpToolRepositoryAccess).where(
+      toolScopedWhere(workAppGitHubMcpToolRepositoryAccess, {
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        toolId: params.toolId,
+      })
+    );
 
     // Add new access entries
     if (params.repositoryIds.length > 0) {
