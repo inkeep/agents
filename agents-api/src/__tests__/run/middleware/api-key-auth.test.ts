@@ -146,10 +146,9 @@ describe('API Key Authentication Middleware', () => {
       expect(body).toContain('Invalid API key format');
     });
 
-    it('should reject invalid or expired API keys', async () => {
+    it('should reject invalid or expired API keys with combined error message', async () => {
       vi.mocked(validateAndGetApiKey).mockResolvedValueOnce(null);
 
-      // Mock JWT verification to also fail
       verifyServiceTokenMock.mockResolvedValueOnce({
         valid: false,
         error: 'Invalid token',
@@ -166,7 +165,12 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Invalid team agent token: Invalid token');
+      expect(body).toContain('Authentication failed. Tried:');
+      expect(body).toContain('JWT temp token (not a JWT)');
+      expect(body).toContain('bypass secret (no bypass secret configured)');
+      expect(body).toContain('Slack user JWT (not a Slack token)');
+      expect(body).toContain('API key (not found)');
+      expect(body).toContain('team agent token (Invalid team agent token: Invalid token)');
       expect(validateAndGetApiKeyMock).toHaveBeenCalledWith(
         'sk_test_1234567890abcdef.verylongsecretkey',
         expect.any(Object)
@@ -363,7 +367,6 @@ describe('API Key Authentication Middleware', () => {
     it('should reject invalid API key when bypass secret is set but key does not match', async () => {
       vi.mocked(validateAndGetApiKey).mockResolvedValueOnce(null);
 
-      // Mock JWT verification to also fail
       verifyServiceTokenMock.mockResolvedValueOnce({
         valid: false,
         error: 'Invalid token',
@@ -380,7 +383,10 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Invalid team agent token: Invalid token');
+      expect(body).toContain('Authentication failed. Tried:');
+      expect(body).toContain('bypass secret (no match)');
+      expect(body).toContain('API key (not found)');
+      expect(body).toContain('team agent token (Invalid team agent token: Invalid token)');
       expect(validateAndGetApiKey).toHaveBeenCalledWith(
         'invalid_key_not_matching_bypass',
         expect.any(Object)
@@ -463,7 +469,7 @@ describe('API Key Authentication Middleware', () => {
       );
     });
 
-    it('should reject invalid team agent JWT tokens', async () => {
+    it('should reject invalid team agent JWT tokens with combined error', async () => {
       verifyServiceTokenMock.mockResolvedValueOnce({
         valid: false,
         error: 'Invalid signature',
@@ -474,13 +480,14 @@ describe('API Key Authentication Middleware', () => {
 
       const res = await app.request('/', {
         headers: {
-          Authorization: 'Bearer invalid.jwt.token',
+          Authorization: 'Bearer invalid.jwt.token.padding',
         },
       });
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Invalid team agent token: Invalid signature');
+      expect(body).toContain('Authentication failed. Tried:');
+      expect(body).toContain('team agent token (Invalid team agent token: Invalid signature)');
     });
 
     it('should reject team agent JWT tokens with target agent mismatch', async () => {
@@ -1043,6 +1050,32 @@ describe('API Key Authentication Middleware', () => {
         teamId: 'T12345678',
       });
       expect(canUseProjectStrictMock).not.toHaveBeenCalled();
+    });
+
+    it('should short-circuit with Slack-specific error when token is identified as Slack but fails verification', async () => {
+      isSlackUserTokenMock.mockReturnValueOnce(true);
+      verifySlackUserTokenMock.mockResolvedValueOnce({
+        valid: false,
+        error: 'signature verification failed',
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${slackToken}`,
+          'x-inkeep-project-id': 'project_789',
+          'x-inkeep-agent-id': 'agent_abc',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.text();
+      expect(body).toContain('Invalid Slack user token');
+      expect(body).not.toContain('Authentication failed. Tried:');
+      expect(validateAndGetApiKeyMock).not.toHaveBeenCalled();
+      expect(verifyServiceTokenMock).not.toHaveBeenCalled();
     });
 
     it('should default authSource to channel when missing from JWT', async () => {
