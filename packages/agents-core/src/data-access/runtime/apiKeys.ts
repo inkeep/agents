@@ -14,15 +14,12 @@ import {
   isApiKeyExpired,
   validateApiKey,
 } from '../../utils/apiKeys';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 export const getApiKeyById =
   (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.apiKeys.findFirst({
-      where: and(
-        eq(apiKeys.tenantId, params.scopes.tenantId),
-        eq(apiKeys.projectId, params.scopes.projectId),
-        eq(apiKeys.id, params.id)
-      ),
+      where: and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)),
     });
   };
 
@@ -37,10 +34,7 @@ export const getApiKeyByPublicId = (db: AgentsRunDatabaseClient) => async (publi
 export const listApiKeys =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; agentId?: string }) => {
-    const conditions = [
-      eq(apiKeys.tenantId, params.scopes.tenantId),
-      eq(apiKeys.projectId, params.scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(apiKeys, params.scopes)];
 
     if (params.agentId) {
       conditions.push(eq(apiKeys.agentId, params.agentId));
@@ -66,10 +60,7 @@ export const listApiKeysPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const conditions = [
-      eq(apiKeys.tenantId, params.scopes.tenantId),
-      eq(apiKeys.projectId, params.scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(apiKeys, params.scopes)];
     if (params.agentId) {
       conditions.push(eq(apiKeys.agentId, params.agentId));
     }
@@ -132,13 +123,7 @@ export const updateApiKey =
         expiresAt: params.data.expiresAt,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(apiKeys.tenantId, params.scopes.tenantId),
-          eq(apiKeys.projectId, params.scopes.projectId),
-          eq(apiKeys.id, params.id)
-        )
-      )
+      .where(and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)))
       .returning();
 
     return updatedKey;
@@ -160,13 +145,7 @@ export const deleteApiKey =
 
       await db
         .delete(apiKeys)
-        .where(
-          and(
-            eq(apiKeys.tenantId, params.scopes.tenantId),
-            eq(apiKeys.projectId, params.scopes.projectId),
-            eq(apiKeys.id, params.id)
-          )
-        );
+        .where(and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)));
 
       return true;
     } catch (error) {
@@ -188,22 +167,13 @@ export const updateApiKeyLastUsed =
     await db
       .update(apiKeys)
       .set({ lastUsedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(apiKeys.tenantId, params.scopes.tenantId),
-          eq(apiKeys.projectId, params.scopes.projectId),
-          eq(apiKeys.id, params.id)
-        )
-      );
+      .where(and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)));
   };
 
 export const countApiKeys =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; agentId?: string }): Promise<number> => {
-    const conditions = [
-      eq(apiKeys.tenantId, params.scopes.tenantId),
-      eq(apiKeys.projectId, params.scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(apiKeys, params.scopes)];
 
     if (params.agentId) {
       conditions.push(eq(apiKeys.agentId, params.agentId));

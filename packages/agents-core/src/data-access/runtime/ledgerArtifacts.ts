@@ -3,6 +3,7 @@ import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { ledgerArtifacts } from '../../db/runtime/runtime-schema';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../../types/index';
 import { generateId } from '../../utils/conversations';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 /**
  * Validate artifact data before database insertion
@@ -171,8 +172,7 @@ export const upsertLedgerArtifact =
           .from(ledgerArtifacts)
           .where(
             and(
-              eq(ledgerArtifacts.tenantId, scopes.tenantId),
-              eq(ledgerArtifacts.projectId, scopes.projectId),
+              projectScopedWhere(ledgerArtifacts, scopes),
               eq(ledgerArtifacts.id, artifactRow.id),
               eq(ledgerArtifacts.taskId, taskId)
             )
@@ -315,10 +315,7 @@ export const getLedgerArtifacts =
       );
     }
 
-    const conditions = [
-      eq(ledgerArtifacts.tenantId, scopes.tenantId),
-      eq(ledgerArtifacts.projectId, scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(ledgerArtifacts, scopes)];
 
     if (artifactId) {
       conditions.push(eq(ledgerArtifacts.id, artifactId));
@@ -372,8 +369,7 @@ export const getLedgerArtifactsByContext =
       .from(ledgerArtifacts)
       .where(
         and(
-          eq(ledgerArtifacts.tenantId, params.scopes.tenantId),
-          eq(ledgerArtifacts.projectId, params.scopes.projectId),
+          projectScopedWhere(ledgerArtifacts, params.scopes),
           eq(ledgerArtifacts.contextId, params.contextId)
         )
       );
@@ -389,8 +385,7 @@ export const deleteLedgerArtifactsByTask =
       .delete(ledgerArtifacts)
       .where(
         and(
-          eq(ledgerArtifacts.tenantId, params.scopes.tenantId),
-          eq(ledgerArtifacts.projectId, params.scopes.projectId),
+          projectScopedWhere(ledgerArtifacts, params.scopes),
           eq(ledgerArtifacts.taskId, params.taskId)
         )
       )
@@ -409,8 +404,7 @@ export const deleteLedgerArtifactsByContext =
       .delete(ledgerArtifacts)
       .where(
         and(
-          eq(ledgerArtifacts.tenantId, params.scopes.tenantId),
-          eq(ledgerArtifacts.projectId, params.scopes.projectId),
+          projectScopedWhere(ledgerArtifacts, params.scopes),
           eq(ledgerArtifacts.contextId, params.contextId)
         )
       )
@@ -430,8 +424,7 @@ export const countLedgerArtifactsByTask =
       .from(ledgerArtifacts)
       .where(
         and(
-          eq(ledgerArtifacts.tenantId, params.scopes.tenantId),
-          eq(ledgerArtifacts.projectId, params.scopes.projectId),
+          projectScopedWhere(ledgerArtifacts, params.scopes),
           eq(ledgerArtifacts.taskId, params.taskId)
         )
       );
