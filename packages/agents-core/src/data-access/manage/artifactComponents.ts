@@ -20,14 +20,14 @@ import type {
 import { generateId } from '../../utils/conversations';
 import { validatePropsAsJsonSchema } from '../../validation/props-validation';
 import { validateRender } from '../../validation/render-validation';
+import { projectScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
 export const getArtifactComponentById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.artifactComponents.findFirst({
       where: and(
-        eq(artifactComponents.tenantId, params.scopes.tenantId),
-        eq(artifactComponents.projectId, params.scopes.projectId),
+        projectScopedWhere(artifactComponents, params.scopes),
         eq(artifactComponents.id, params.id)
       ),
     });
@@ -38,12 +38,7 @@ export const listArtifactComponents =
     return await db
       .select()
       .from(artifactComponents)
-      .where(
-        and(
-          eq(artifactComponents.tenantId, params.scopes.tenantId),
-          eq(artifactComponents.projectId, params.scopes.projectId)
-        )
-      )
+      .where(projectScopedWhere(artifactComponents, params.scopes))
       .orderBy(desc(artifactComponents.createdAt));
   };
 
@@ -60,10 +55,7 @@ export const listArtifactComponentsPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(artifactComponents.tenantId, params.scopes.tenantId),
-      eq(artifactComponents.projectId, params.scopes.projectId)
-    );
+    const whereClause = projectScopedWhere(artifactComponents, params.scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -173,8 +165,7 @@ export const updateArtifactComponent =
       })
       .where(
         and(
-          eq(artifactComponents.tenantId, params.scopes.tenantId),
-          eq(artifactComponents.projectId, params.scopes.projectId),
+          projectScopedWhere(artifactComponents, params.scopes),
           eq(artifactComponents.id, params.id)
         )
       )
@@ -191,8 +182,7 @@ export const deleteArtifactComponent =
         .delete(artifactComponents)
         .where(
           and(
-            eq(artifactComponents.tenantId, params.scopes.tenantId),
-            eq(artifactComponents.projectId, params.scopes.projectId),
+            projectScopedWhere(artifactComponents, params.scopes),
             eq(artifactComponents.id, params.id)
           )
         )
@@ -230,8 +220,7 @@ export const getArtifactComponentsForAgent =
       )
       .where(
         and(
-          eq(artifactComponents.tenantId, params.scopes.tenantId),
-          eq(artifactComponents.projectId, params.scopes.projectId),
+          projectScopedWhere(artifactComponents, params.scopes),
           eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
           eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId)
         )
@@ -266,10 +255,7 @@ export const removeArtifactComponentFromAgent =
         .delete(subAgentArtifactComponents)
         .where(
           and(
-            eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
-            eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
-            eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
-            eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId),
+            subAgentScopedWhere(subAgentArtifactComponents, params.scopes),
             eq(subAgentArtifactComponents.artifactComponentId, params.artifactComponentId)
           )
         )
@@ -286,14 +272,7 @@ export const deleteAgentArtifactComponentRelationByAgent =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .delete(subAgentArtifactComponents)
-      .where(
-        and(
-          eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
-          eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
-          eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId)
-        )
-      )
+      .where(subAgentScopedWhere(subAgentArtifactComponents, params.scopes))
       .returning();
     return result.length > 0;
   };
@@ -310,8 +289,7 @@ export const getAgentsUsingArtifactComponent =
       .from(subAgentArtifactComponents)
       .where(
         and(
-          eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
+          projectScopedWhere(subAgentArtifactComponents, params.scopes),
           eq(subAgentArtifactComponents.artifactComponentId, params.artifactComponentId)
         )
       )
@@ -326,10 +304,7 @@ export const isArtifactComponentAssociatedWithAgent =
       .from(subAgentArtifactComponents)
       .where(
         and(
-          eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
-          eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
-          eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId),
+          subAgentScopedWhere(subAgentArtifactComponents, params.scopes),
           eq(subAgentArtifactComponents.artifactComponentId, params.artifactComponentId)
         )
       )
@@ -364,8 +339,7 @@ export const agentHasArtifactComponents =
       )
       .where(
         and(
-          eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
+          projectScopedWhere(subAgentArtifactComponents, params.scopes),
           eq(subAgentRelations.agentId, params.scopes.agentId)
         )
       )
@@ -383,12 +357,7 @@ export const countArtifactComponents =
     const result = await db
       .select({ count: count() })
       .from(artifactComponents)
-      .where(
-        and(
-          eq(artifactComponents.tenantId, params.scopes.tenantId),
-          eq(artifactComponents.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(artifactComponents, params.scopes));
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
@@ -400,14 +369,7 @@ export const countArtifactComponentsForAgent =
     const result = await db
       .select({ count: count() })
       .from(subAgentArtifactComponents)
-      .where(
-        and(
-          eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
-          eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
-          eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId)
-        )
-      );
+      .where(subAgentScopedWhere(subAgentArtifactComponents, params.scopes));
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
