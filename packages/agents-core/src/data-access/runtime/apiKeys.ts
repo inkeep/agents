@@ -26,6 +26,8 @@ export const getApiKeyById =
     });
   };
 
+// Intentionally unscoped: auth discovery function that looks up API keys by publicId
+// to determine tenantId/projectId. Scoping would create a circular dependency.
 export const getApiKeyByPublicId = (db: AgentsRunDatabaseClient) => async (publicId: string) => {
   return await db.query.apiKeys.findFirst({
     where: eq(apiKeys.publicId, publicId),
@@ -182,11 +184,17 @@ export const hasApiKey =
 
 export const updateApiKeyLastUsed =
   (db: AgentsRunDatabaseClient) =>
-  async (id: string): Promise<void> => {
+  async (params: { id: string; scopes: ProjectScopeConfig }): Promise<void> => {
     await db
       .update(apiKeys)
       .set({ lastUsedAt: new Date().toISOString() })
-      .where(eq(apiKeys.id, id));
+      .where(
+        and(
+          eq(apiKeys.tenantId, params.scopes.tenantId),
+          eq(apiKeys.projectId, params.scopes.projectId),
+          eq(apiKeys.id, params.id)
+        )
+      );
   };
 
 export const countApiKeys =
@@ -239,9 +247,8 @@ export const generateAndCreateApiKey = async (
   };
 };
 
-/**
- * Validate an API key and return the associated record if valid
- */
+// Intentionally unscoped: auth discovery function that validates a raw API key
+// and returns the associated record. Scoping would create a circular dependency.
 export const validateAndGetApiKey = async (
   key: string,
   db: AgentsRunDatabaseClient
@@ -268,7 +275,10 @@ export const validateAndGetApiKey = async (
     return null;
   }
 
-  await updateApiKeyLastUsed(db)(apiKey.id);
+  await updateApiKeyLastUsed(db)({
+    id: apiKey.id,
+    scopes: { tenantId: apiKey.tenantId, projectId: apiKey.projectId },
+  });
 
   return apiKey;
 };

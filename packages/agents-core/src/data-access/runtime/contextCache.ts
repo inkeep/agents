@@ -15,10 +15,13 @@ export const getCacheEntry =
     contextConfigId: string;
     contextVariableKey: string;
     requestHash?: string;
+    scopes: ProjectScopeConfig;
   }): Promise<ContextCacheSelect | null> => {
     try {
       const cacheEntry = await db.query.contextCache.findFirst({
         where: and(
+          eq(contextCache.tenantId, params.scopes.tenantId),
+          eq(contextCache.projectId, params.scopes.projectId),
           eq(contextCache.conversationId, params.conversationId),
           eq(contextCache.contextConfigId, params.contextConfigId),
           eq(contextCache.contextVariableKey, params.contextVariableKey)
