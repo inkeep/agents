@@ -42,6 +42,12 @@ import {
   listScheduledTriggers,
   upsertScheduledTrigger,
 } from './scheduledTriggers';
+import {
+  agentScopedWhere,
+  projectScopedWhere,
+  subAgentScopedWhere,
+  tenantScopedWhere,
+} from './scope-helpers';
 import { upsertSubAgentSkill } from './skills';
 import {
   deleteSubAgentExternalAgentRelation,
@@ -79,15 +85,7 @@ async function syncSubAgentSkills(
   subAgentsMap: FullAgentDefinition['subAgents'],
   logger: AgentLogger
 ) {
-  await db
-    .delete(subAgentSkills)
-    .where(
-      and(
-        eq(subAgentSkills.tenantId, scopes.tenantId),
-        eq(subAgentSkills.projectId, scopes.projectId),
-        eq(subAgentSkills.agentId, scopes.agentId)
-      )
-    );
+  await db.delete(subAgentSkills).where(agentScopedWhere(subAgentSkills, scopes));
 
   const skillPromises: Array<Promise<any>> = [];
   for (const [subAgentId, subAgentData] of Object.entries(subAgentsMap)) {
@@ -124,22 +122,20 @@ async function applyExecutionLimitsInheritance(
   scopes: ProjectScopeConfig,
   agentData: FullAgentDefinition
 ): Promise<void> {
-  const { tenantId, projectId } = scopes;
-
   try {
     const project = await db.query.projects.findFirst({
-      where: and(eq(projects.tenantId, tenantId), eq(projects.id, projectId)),
+      where: and(tenantScopedWhere(projects, scopes), eq(projects.id, scopes.projectId)),
     });
 
     if (!project?.stopWhen) {
-      logger.info({ projectId }, 'No project stopWhen configuration found');
+      logger.info({ projectId: scopes.projectId }, 'No project stopWhen configuration found');
       return;
     }
 
     const projectStopWhen = project.stopWhen as any;
     logger.info(
       {
-        projectId,
+        projectId: scopes.projectId,
         projectStopWhen: projectStopWhen,
       },
       'Found project stopWhen configuration'
@@ -177,7 +173,7 @@ async function applyExecutionLimitsInheritance(
     if (projectStopWhen?.stepCountIs !== undefined) {
       logger.info(
         {
-          projectId,
+          projectId: scopes.projectId,
           stepCountIs: projectStopWhen.stepCountIs,
         },
         'Propagating stepCountIs to agents'
@@ -207,7 +203,7 @@ async function applyExecutionLimitsInheritance(
   } catch (error) {
     logger.error(
       {
-        projectId,
+        projectId: scopes.projectId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to apply execution limits inheritance'
@@ -1346,9 +1342,8 @@ export const updateFullAgentServerSide =
           try {
             existingSubAgent = await db.query.subAgents.findFirst({
               where: and(
-                eq(subAgents.id, subAgentId),
-                eq(subAgents.tenantId, tenantId),
-                eq(subAgents.projectId, projectId)
+                projectScopedWhere(subAgents, { tenantId, projectId }),
+                eq(subAgents.id, subAgentId)
               ),
               columns: {
                 models: true,
@@ -1641,27 +1636,19 @@ export const updateFullAgentServerSide =
           let deletedCount = 0;
 
           if (incomingRelationshipIds.size === 0) {
+            const toolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
             const result = await db
               .delete(subAgentToolRelations)
-              .where(
-                and(
-                  eq(subAgentToolRelations.tenantId, tenantId),
-                  eq(subAgentToolRelations.projectId, projectId),
-                  eq(subAgentToolRelations.agentId, finalAgentId),
-                  eq(subAgentToolRelations.subAgentId, subAgentId)
-                )
-              )
+              .where(subAgentScopedWhere(subAgentToolRelations, toolRelScopes))
               .returning();
             deletedCount = result.length;
           } else {
+            const toolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
             const result = await db
               .delete(subAgentToolRelations)
               .where(
                 and(
-                  eq(subAgentToolRelations.tenantId, tenantId),
-                  eq(subAgentToolRelations.projectId, projectId),
-                  eq(subAgentToolRelations.agentId, finalAgentId),
-                  eq(subAgentToolRelations.subAgentId, subAgentId),
+                  subAgentScopedWhere(subAgentToolRelations, toolRelScopes),
                   not(inArray(subAgentToolRelations.id, Array.from(incomingRelationshipIds)))
                 )
               )
@@ -1700,28 +1687,20 @@ export const updateFullAgentServerSide =
 
           if (incomingFunctionToolRelationIds.size === 0) {
             // No incoming function tool relations - delete all existing ones
+            const fnToolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
             const result = await db
               .delete(subAgentFunctionToolRelations)
-              .where(
-                and(
-                  eq(subAgentFunctionToolRelations.tenantId, tenantId),
-                  eq(subAgentFunctionToolRelations.projectId, projectId),
-                  eq(subAgentFunctionToolRelations.agentId, finalAgentId),
-                  eq(subAgentFunctionToolRelations.subAgentId, subAgentId)
-                )
-              )
+              .where(subAgentScopedWhere(subAgentFunctionToolRelations, fnToolRelScopes))
               .returning();
             deletedFunctionToolRelationCount = result.length;
           } else {
             // Delete relations not in the incoming set
+            const fnToolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
             const result = await db
               .delete(subAgentFunctionToolRelations)
               .where(
                 and(
-                  eq(subAgentFunctionToolRelations.tenantId, tenantId),
-                  eq(subAgentFunctionToolRelations.projectId, projectId),
-                  eq(subAgentFunctionToolRelations.agentId, finalAgentId),
-                  eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
+                  subAgentScopedWhere(subAgentFunctionToolRelations, fnToolRelScopes),
                   not(
                     inArray(
                       subAgentFunctionToolRelations.id,
