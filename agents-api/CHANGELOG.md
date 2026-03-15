@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.58.15
+
+### Patch Changes
+
+- 6e8e655: Standardize CRUD HTTP method conventions: PATCH for partial updates, PUT for upsert/set-replace; hide legacy dual-method routes from OpenAPI spec and SDK generation
+- Updated dependencies [b10c96f]
+- Updated dependencies [1ca09cd]
+  - @inkeep/agents-work-apps@0.58.15
+  - @inkeep/agents-core@0.58.15
+  - @inkeep/agents-email@0.58.15
+  - @inkeep/agents-mcp@0.58.15
+
 ## 0.58.14
 
 ### Patch Changes
