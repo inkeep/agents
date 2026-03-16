@@ -8,6 +8,7 @@ import { GenericInput } from '@/components/form/generic-input';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { SkillSelector } from '@/components/skills/skill-selector';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -35,30 +36,24 @@ import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
 import { ModelSection } from './model-section';
-import { Badge } from '@/components/ui/badge';
 
-const ExecutionLimitInheritanceInfo = () => {
-  return (
-    <ul className="space-y-1.5 list-disc list-outside pl-4">
-      <li>
-        <span className="font-medium">stepCountIs</span>: Project → Agent only (sub agent-level
-        execution limit)
-      </li>
-      <li>
-        <span className="font-medium">Explicit settings</span> always take precedence over inherited
-        values
-      </li>
-      <li>
-        <span className="font-medium">Agent scope</span>: This limit applies only to this specific
-        sub agent's execution steps
-      </li>
-      <li>
-        <span className="font-medium">Independent from transfers</span>: Steps are counted per sub
-        agent, transfers are counted per conversation
-      </li>
-    </ul>
-  );
-};
+const executionLimitInheritanceInfo = (
+  <ul className="space-y-1.5 list-disc list-outside pl-4">
+    <li>
+      <b>stepCountIs</b>: Project → Agent only (sub agent-level execution limit)
+    </li>
+    <li>
+      <b>Explicit settings</b> always take precedence over inherited values
+    </li>
+    <li>
+      <b>Agent scope</b>: This limit applies only to this specific sub agent's execution steps
+    </li>
+    <li>
+      <b>Independent from transfers</b>: Steps are counted per sub agent, transfers are counted per
+      conversation
+    </li>
+  </ul>
+);
 
 interface SubAgentNodeEditorProps {
   selectedNode: Node<AgentNodeData>;
@@ -184,7 +179,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
           titleTooltip={
             <div>
               <p>How execution limit inheritance works:</p>
-              <ExecutionLimitInheritanceInfo />
+              {executionLimitInheritanceInfo}
             </div>
           }
         />
@@ -212,32 +207,55 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
         />
       </div>
       <Separator />
-      <ComponentSelector
-        label="Components"
-        componentLookup={dataComponentsById}
-        // @ts-expect-error -- fixme
-        selectedComponents={subAgent.dataComponents}
-        onSelectionChange={(newSelection) => {
-          form.setValue(path('dataComponents'), newSelection, { shouldDirty: true });
+      <FormField
+        control={form.control}
+        name={path('dataComponents')}
+        render={({ field }) => {
+          const value = field.value ?? [];
+          return (
+            <FormItem>
+              <FormLabel>
+                Components<Badge variant="count">{value.length}</Badge>
+              </FormLabel>
+              <ComponentSelector
+                componentLookup={dataComponentsById}
+                selectedComponents={value}
+                onSelectionChange={field.onChange}
+                emptyStateMessage="No components found."
+                emptyStateActionText="Create component"
+                emptyStateActionHref={`/${tenantId}/projects/${projectId}/components/new`}
+                placeholder="Select components..."
+              />
+              <FormMessage />
+            </FormItem>
+          );
         }}
-        emptyStateMessage="No components found."
-        emptyStateActionText="Create component"
-        emptyStateActionHref={`/${tenantId}/projects/${projectId}/components/new`}
-        placeholder="Select components..."
       />
-      <ComponentSelector
-        label="Artifacts"
-        componentLookup={artifactComponentsById}
-        // @ts-expect-error -- fixme
-        selectedComponents={subAgent.artifactComponents}
-        onSelectionChange={(newSelection) => {
-          form.setValue(path('artifactComponents'), newSelection, { shouldDirty: true });
+
+      <FormField
+        control={form.control}
+        name={path('artifactComponents')}
+        render={({ field }) => {
+          const value = field.value ?? [];
+          return (
+            <FormItem>
+              <FormLabel>
+                Artifacts<Badge variant="count">{value.length}</Badge>
+              </FormLabel>
+              <ComponentSelector
+                componentLookup={artifactComponentsById}
+                selectedComponents={value}
+                onSelectionChange={field.onChange}
+                emptyStateMessage="No artifacts found."
+                emptyStateActionText="Create artifact"
+                emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
+                placeholder="Select artifacts..."
+                commandInputPlaceholder="Search artifacts..."
+              />
+              <FormMessage />
+            </FormItem>
+          );
         }}
-        emptyStateMessage="No artifacts found."
-        emptyStateActionText="Create artifact"
-        emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
-        placeholder="Select artifacts..."
-        commandInputPlaceholder="Search artifacts..."
       />
       {!isDefault && canEdit && (
         <>
