@@ -16,22 +16,17 @@ export const getSchedulerState =
 
 export const upsertSchedulerState =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    currentRunId: string;
-    deploymentId?: string | null;
-  }): Promise<SchedulerStateRow> => {
+  async (params: { currentRunId: string }): Promise<SchedulerStateRow> => {
     const [row] = await db
       .insert(schedulerState)
       .values({
         id: SINGLETON_ID,
         currentRunId: params.currentRunId,
-        deploymentId: params.deploymentId,
       })
       .onConflictDoUpdate({
         target: schedulerState.id,
         set: {
           currentRunId: params.currentRunId,
-          deploymentId: params.deploymentId,
           updatedAt: sql`now()`.mapWith(String),
         },
       })

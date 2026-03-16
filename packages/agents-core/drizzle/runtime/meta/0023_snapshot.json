@@ -2019,12 +2019,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "deployment_id": {
-          "name": "deployment_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
