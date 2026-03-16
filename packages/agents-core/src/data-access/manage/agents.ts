@@ -366,19 +366,20 @@ const getFullAgentDefinitionInternal =
     scopes: AgentScopeConfig;
     includeRelationIds?: boolean;
   }): Promise<FullAgentSelect | FullAgentSelectWithRelationIds | null> => {
+    const agentScope = { tenantId, projectId, agentId };
     const agent = await getAgentById(db)({
-      scopes: { tenantId, projectId, agentId },
+      scopes: agentScope,
     });
     if (!agent) {
       return null;
     }
 
     const agentRelations = await getAgentRelationsByAgent(db)({
-      scopes: { tenantId, projectId, agentId },
+      scopes: agentScope,
     });
 
     const agentSubAgents = await db.query.subAgents.findMany({
-      where: agentScopedWhere(subAgents, { tenantId, projectId, agentId }),
+      where: agentScopedWhere(subAgents, agentScope),
     });
 
     const subAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
@@ -428,6 +429,7 @@ const getFullAgentDefinitionInternal =
       agentSubAgents.map(async (agent) => {
         if (!agent) return null;
 
+        const subAgentScope = { tenantId, projectId, agentId, subAgentId: agent.id };
         const subAgentRelationsList = agentRelations.filter(
           (relation) => relation.sourceSubAgentId === agent.id
         );
@@ -517,14 +519,7 @@ const getFullAgentDefinitionInternal =
               eq(subAgentToolRelations.projectId, tools.projectId)
             )
           )
-          .where(
-            subAgentScopedWhere(subAgentToolRelations, {
-              tenantId,
-              projectId,
-              agentId,
-              subAgentId: agent.id,
-            })
-          );
+          .where(subAgentScopedWhere(subAgentToolRelations, subAgentScope));
 
         const agentFunctionTools = await db
           .select({
@@ -550,32 +545,15 @@ const getFullAgentDefinitionInternal =
               eq(subAgentFunctionToolRelations.agentId, functionTools.agentId)
             )
           )
-          .where(
-            subAgentScopedWhere(subAgentFunctionToolRelations, {
-              tenantId,
-              projectId,
-              agentId,
-              subAgentId: agent.id,
-            })
-          );
+          .where(subAgentScopedWhere(subAgentFunctionToolRelations, subAgentScope));
 
         const agentDataComponentRelations = await db.query.subAgentDataComponents.findMany({
-          where: subAgentScopedWhere(subAgentDataComponents, {
-            tenantId,
-            projectId,
-            agentId,
-            subAgentId: agent.id,
-          }),
+          where: subAgentScopedWhere(subAgentDataComponents, subAgentScope),
         });
         const agentDataComponentIds = agentDataComponentRelations.map((rel) => rel.dataComponentId);
 
         const agentArtifactComponentRelations = await db.query.subAgentArtifactComponents.findMany({
-          where: subAgentScopedWhere(subAgentArtifactComponents, {
-            tenantId,
-            projectId,
-            agentId,
-            subAgentId: agent.id,
-          }),
+          where: subAgentScopedWhere(subAgentArtifactComponents, subAgentScope),
         });
         const agentArtifactComponentIds = agentArtifactComponentRelations.map(
           (rel) => rel.artifactComponentId
@@ -698,7 +676,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
+      await fetchComponentRelationships(db)(agentScope, subAgentIds, {
         relationTable: subAgentDataComponents,
         componentTable: dataComponents,
         relationIdField: subAgentDataComponents.dataComponentId,
@@ -716,7 +694,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
+      await fetchComponentRelationships(db)(agentScope, subAgentIds, {
         relationTable: subAgentArtifactComponents,
         componentTable: artifactComponents,
         relationIdField: subAgentArtifactComponents.artifactComponentId,

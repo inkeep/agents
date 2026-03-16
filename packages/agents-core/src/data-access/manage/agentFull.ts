@@ -1629,16 +1629,15 @@ export const updateFullAgentServerSide =
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         try {
           let deletedCount = 0;
+          const toolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
 
           if (incomingRelationshipIds.size === 0) {
-            const toolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
             const result = await db
               .delete(subAgentToolRelations)
               .where(subAgentScopedWhere(subAgentToolRelations, toolRelScopes))
               .returning();
             deletedCount = result.length;
           } else {
-            const toolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
             const result = await db
               .delete(subAgentToolRelations)
               .where(
@@ -1679,18 +1678,15 @@ export const updateFullAgentServerSide =
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         try {
           let deletedFunctionToolRelationCount = 0;
+          const fnToolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
 
           if (incomingFunctionToolRelationIds.size === 0) {
-            // No incoming function tool relations - delete all existing ones
-            const fnToolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
             const result = await db
               .delete(subAgentFunctionToolRelations)
               .where(subAgentScopedWhere(subAgentFunctionToolRelations, fnToolRelScopes))
               .returning();
             deletedFunctionToolRelationCount = result.length;
           } else {
-            // Delete relations not in the incoming set
-            const fnToolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
             const result = await db
               .delete(subAgentFunctionToolRelations)
               .where(
