@@ -10465,7 +10465,7 @@
         "security": [],
         "summary": "Restart scheduler workflow on new deployment",
         "tags": [
-          "Deploy"
+          "Workflows"
         ]
       }
     },
