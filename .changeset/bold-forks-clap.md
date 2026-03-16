@@ -2,4 +2,4 @@
 "@inkeep/agents-api": patch
 ---
 
-fix- adding agent filters to continous tests for evaluations
+Fix agent ID filtering for continuous evaluation tests
