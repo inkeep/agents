@@ -11161,7 +11161,7 @@
           "resource": "organization"
         }
       },
-      "put": {
+      "patch": {
         "description": "Create or update the profile for a specific user. Users can only update their own profile.",
         "operationId": "upsert-user-profile",
         "parameters": [
@@ -15113,7 +15113,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-context-config",
         "parameters": [
           {
@@ -15869,7 +15869,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-function-tool",
         "parameters": [
           {
@@ -20056,7 +20056,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-relation",
         "parameters": [
           {
@@ -21179,7 +21179,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-subagent-tool-relation",
         "parameters": [
           {
@@ -21781,7 +21781,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-subagent",
         "parameters": [
           {
@@ -22412,7 +22412,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-external-agent-relation",
         "parameters": [
           {
@@ -23173,7 +23173,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-team-agent-relation",
         "parameters": [
           {
@@ -24629,7 +24629,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-agent",
         "parameters": [
           {
@@ -25210,7 +25210,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Update an API key (currently only expiration date can be changed)",
         "operationId": "update-api-key",
         "parameters": [
@@ -25791,7 +25791,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Update an app credential configuration",
         "operationId": "update-app",
         "parameters": [
@@ -26338,7 +26338,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-artifact-component",
         "parameters": [
           {
@@ -28210,7 +28210,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-credential",
         "parameters": [
           {
@@ -28756,7 +28756,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-data-component",
         "parameters": [
           {
@@ -34523,7 +34523,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-external-agent",
         "parameters": [
           {
@@ -35119,7 +35119,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-function",
         "parameters": [
           {
@@ -36959,7 +36959,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-skill",
         "parameters": [
           {
@@ -37870,7 +37870,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-tool",
         "parameters": [
           {

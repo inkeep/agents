@@ -26,6 +26,10 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -210,58 +214,61 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Credential',
-    operationId: 'update-credential',
-    tags: ['Credentials'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: CredentialReferenceApiUpdateSchema,
-          },
+const updateCredentialRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Credential',
+  tags: ['Credentials'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: CredentialReferenceApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Credential updated successfully',
-        content: {
-          'application/json': {
-            schema: CredentialReferenceResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Credential updated successfully',
+      content: {
+        'application/json': {
+          schema: CredentialReferenceResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    const updatedCredential = await updateCredentialReference(db)({
-      scopes: { tenantId, projectId },
-      id,
-      data: body,
+const updateCredentialHandler: ManageRouteHandler<typeof updateCredentialRouteConfig> = async (
+  c
+) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const updatedCredential = await updateCredentialReference(db)({
+    scopes: { tenantId, projectId },
+    id,
+    data: body,
+  });
+
+  if (!updatedCredential) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Credential not found',
     });
-
-    if (!updatedCredential) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Credential not found',
-      });
-    }
-
-    const validatedCredential = CredentialReferenceApiSelectSchema.parse(updatedCredential);
-    return c.json({ data: validatedCredential });
   }
-);
+
+  const validatedCredential = CredentialReferenceApiSelectSchema.parse(updatedCredential);
+  return c.json({ data: validatedCredential });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateCredentialRouteConfig, updateCredentialHandler, {
+  operationId: 'update-credential',
+});
 
 app.openapi(
   createProtectedRoute({

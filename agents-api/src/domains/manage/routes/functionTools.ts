@@ -20,6 +20,10 @@ import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const logger = getLogger('functionTools');
@@ -184,69 +188,74 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Function Tool',
-    operationId: 'update-function-tool',
-    tags: ['Function Tools'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectAgentIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: FunctionToolApiUpdateSchema,
-          },
+const updateFunctionToolRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Function Tool',
+  tags: ['Function Tools'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectAgentIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: FunctionToolApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Function tool updated successfully',
-        content: {
-          'application/json': {
-            schema: FunctionToolResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Function tool updated successfully',
+      content: {
+        'application/json': {
+          schema: FunctionToolResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    try {
-      const functionTool = await updateFunctionTool(db)({
-        scopes: { tenantId, projectId, agentId },
-        functionToolId: id,
-        data: body,
-      });
+const updateFunctionToolHandler: ManageRouteHandler<typeof updateFunctionToolRouteConfig> = async (
+  c
+) => {
+  const db = c.get('db');
+  const { tenantId, projectId, agentId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
 
-      if (!functionTool) {
-        return c.json(
-          createApiError({ code: 'not_found', message: 'Function tool not found' }),
-          404
-        );
-      }
+  try {
+    const functionTool = await updateFunctionTool(db)({
+      scopes: { tenantId, projectId, agentId },
+      functionToolId: id,
+      data: body,
+    });
 
-      return c.json({ data: functionTool }) as any;
-    } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, agentId, id, body },
-        'Failed to update function tool'
-      );
-      return c.json(
-        createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to update function tool',
-        }),
-        500
-      );
+    if (!functionTool) {
+      return c.json(createApiError({ code: 'not_found', message: 'Function tool not found' }), 404);
     }
+
+    return c.json({ data: functionTool }) as any;
+  } catch (error) {
+    logger.error(
+      { error, tenantId, projectId, agentId, id, body },
+      'Failed to update function tool'
+    );
+    return c.json(
+      createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to update function tool',
+      }),
+      500
+    );
+  }
+};
+
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateFunctionToolRouteConfig,
+  updateFunctionToolHandler,
+  {
+    operationId: 'update-function-tool',
   }
 );
 
