@@ -17,7 +17,12 @@ export function sanitizeJMESPathSelector(selector: string): string {
 }
 
 export function queryJMESPath(data: unknown, selector: string): unknown {
-  return jmespath.search(data, sanitizeJMESPathSelector(selector));
+  try {
+    return jmespath.search(data, sanitizeJMESPathSelector(selector));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Invalid $path selector "${selector}": ${message}`);
+  }
 }
 
 export type NormalizedContentItem =

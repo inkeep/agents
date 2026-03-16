@@ -5,4 +5,4 @@
 "@inkeep/agents-sdk": patch
 ---
 
-Add four built-in MCP servers (coreutils, http, media, search) with project-scoped JWT auth, artifact components as tool arguments, and tool result chaining
+Add built-in MCP servers (media, search) with project-scoped JWT auth, artifact components as tool arguments, and tool result field chaining with JMESPath
