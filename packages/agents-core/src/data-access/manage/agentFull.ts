@@ -42,12 +42,7 @@ import {
   listScheduledTriggers,
   upsertScheduledTrigger,
 } from './scheduledTriggers';
-import {
-  agentScopedWhere,
-  projectScopedWhere,
-  subAgentScopedWhere,
-  tenantScopedWhere,
-} from './scope-helpers';
+import { agentScopedWhere, subAgentScopedWhere, tenantScopedWhere } from './scope-helpers';
 import { upsertSubAgentSkill } from './skills';
 import {
   deleteSubAgentExternalAgentRelation,
@@ -81,7 +76,7 @@ const defaultLogger: AgentLogger = {
 
 async function syncSubAgentSkills(
   db: AgentsManageDatabaseClient,
-  scopes: ProjectScopeConfig & { agentId: string },
+  scopes: AgentScopeConfig,
   subAgentsMap: FullAgentDefinition['subAgents'],
   logger: AgentLogger
 ) {
@@ -1342,7 +1337,7 @@ export const updateFullAgentServerSide =
           try {
             existingSubAgent = await db.query.subAgents.findFirst({
               where: and(
-                projectScopedWhere(subAgents, { tenantId, projectId }),
+                agentScopedWhere(subAgents, { tenantId, projectId, agentId: finalAgentId }),
                 eq(subAgents.id, subAgentId)
               ),
               columns: {

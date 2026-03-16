@@ -20,7 +20,7 @@ import type {
 import { generateId } from '../../utils/conversations';
 import { validatePropsAsJsonSchema } from '../../validation/props-validation';
 import { validateRender } from '../../validation/render-validation';
-import { projectScopedWhere, subAgentScopedWhere } from './scope-helpers';
+import { agentScopedWhere, projectScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
 export const getArtifactComponentById =
   (db: AgentsManageDatabaseClient) =>
@@ -337,12 +337,7 @@ export const agentHasArtifactComponents =
           eq(subAgents.agentId, subAgentRelations.agentId)
         )
       )
-      .where(
-        and(
-          projectScopedWhere(subAgentArtifactComponents, params.scopes),
-          eq(subAgentRelations.agentId, params.scopes.agentId)
-        )
-      )
+      .where(agentScopedWhere(subAgentArtifactComponents, params.scopes))
       .limit(1);
 
     const total = result[0]?.count || 0;
