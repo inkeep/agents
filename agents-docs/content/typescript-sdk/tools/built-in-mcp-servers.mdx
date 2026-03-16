@@ -42,6 +42,8 @@ const myAgent = subAgent({
 | `image_resize` | Resize an image to specified dimensions. |
 | `image_crop` | Crop an image to a specified region. |
 
+Image tools accept and return image data in a structured format, so they can be chained directly in a pipeline. For example, an agent can resize an image and then crop the result in a single sequence of tool calls — no intermediate artifact required.
+
 ### INKEEP_SEARCH
 
 Each search provider is a separate server. Use `INKEEP_SEARCH.EXA`, `INKEEP_SEARCH.TAVILY`, `INKEEP_SEARCH.BRAVE`, or `INKEEP_SEARCH.SERPAPI`.

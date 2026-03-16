@@ -252,7 +252,7 @@ const extractText = functionTool({
 });
 ```
 
-When the agent calls `fetch-page` and then `extract-text`, it passes the HTML output directly into the next call. The intermediate HTML never surfaces to the user. Design tools meant to be used in sequence so their return types match the input types of downstream tools.
+When the agent calls `fetch-page` and then `extract-text`, it passes the HTML output directly into the next call. The intermediate HTML never surfaces to the user. When designing tools for sequential use, aligning return types with downstream input types makes pipelines more natural — though it isn't required, since agents can also select a specific field from a tool's output to pass forward.
 
 ### Best Practices
 
@@ -261,6 +261,6 @@ When the agent calls `fetch-page` and then `extract-text`, it passes the HTML ou
 - **Handle errors gracefully** - Always catch and return meaningful errors
 - **Test independently** - Functions should be testable in isolation
 - **Document thoroughly** - Clear descriptions help agents use tools effectively
-- **Design for composability** - When tools form a pipeline, align return types with downstream input types
+- **Design for composability** - When tools form a pipeline, aligning return types with downstream input types makes chaining more natural, though agents can also pass a specific field from a tool's output forward
 
 </SkillRule>

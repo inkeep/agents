@@ -19,6 +19,8 @@ Image processing tools.
 | `image_resize` | Resize an image to specified dimensions. |
 | `image_crop` | Crop an image to a specified region. |
 
+Image tools accept and return image data in a structured format, so they can be chained directly in a pipeline — for example, resize then crop in a single sequence of tool calls.
+
 ### inkeep-search-exa / inkeep-search-tavily / inkeep-search-brave / inkeep-search-serpapi
 
 Web search tools. Each provider is a separate server — pick one per agent. Requires a credential.
