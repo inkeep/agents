@@ -10,14 +10,12 @@ Use these tools to inspect and manipulate images. All tools require a base64-enc
 - **image_resize** — scale an image to target dimensions. Provide width, height, or both. Aspect ratio is preserved by default.
 
 ## Input format
-All tools accept base64-encoded image data. If you have a URL, use curl from inkeep-http first, then pass the response body using \`{"$tool": "<_toolCallId>"}\`.
-
-If you need to encode or decode base64, use base64_encode / base64_decode from inkeep-coreutils.
+All tools accept base64-encoded image data. If you have a URL, fetch it and base64-encode the response body before passing it to these tools.
 
 ## Chaining example
-1. curl({ "url": "https://example.com/photo.jpg" })
-2. image_info({ "imageBase64": { "$tool": "<_toolCallId from step 1>" } }) — inspect dimensions
-3. image_crop({ "imageBase64": { "$tool": "<_toolCallId from step 1>" }, "x": 0, "y": 0, "width": 200, "height": 200 })
+1. Fetch the image URL and base64-encode the response body.
+2. image_info({ "imageBase64": "<base64>" }) — inspect dimensions
+3. image_crop({ "imageBase64": "<base64>", "x": 0, "y": 0, "width": 200, "height": 200 })
 
 Base64 image data is large — always chain via references, never copy inline.
 `.trim();

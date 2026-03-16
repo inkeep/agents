@@ -5,12 +5,19 @@ import { z } from 'zod';
 
 const MAX_IMAGE_BASE64_BYTES = 25 * 1024 * 1024;
 
-function decodeBase64Image(imageBase64: string): Buffer {
-  if (imageBase64.length > MAX_IMAGE_BASE64_BYTES) {
+type ImageInput = { data: string; encoding: 'base64'; mimeType: string };
+
+export const imageInputSchema = z.object({
+  data: z.string().describe('Base64-encoded image bytes'),
+  encoding: z.literal('base64').describe('Encoding of the data field — must be "base64"'),
+  mimeType: z.string().describe('MIME type of the image (e.g. "image/png", "image/jpeg")'),
+});
+
+function decodeBase64Image(imageBase64: ImageInput): Buffer {
+  if (imageBase64.data.length > MAX_IMAGE_BASE64_BYTES) {
     throw new Error(`Image exceeds maximum allowed size of 25MB.`);
   }
-  const data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
-  return Buffer.from(data, 'base64');
+  return Buffer.from(imageBase64.data, 'base64');
 }
 
 export function registerImageTools(server: McpServer): void {
@@ -19,12 +26,12 @@ export function registerImageTools(server: McpServer): void {
     {
       description: 'Get metadata about an image: dimensions, format, channels, and file size.',
       inputSchema: z.object({
-        imageBase64: z.string().describe('Base64-encoded image data'),
+        image: imageInputSchema.describe('Image object with base64 data, encoding, and mimeType'),
       }),
     },
-    async ({ imageBase64 }): Promise<CallToolResult> => {
+    async ({ image }): Promise<CallToolResult> => {
       try {
-        const buffer = decodeBase64Image(imageBase64);
+        const buffer = decodeBase64Image(image);
         const metadata = await sharp(buffer).metadata();
         const info = {
           width: metadata.width,
@@ -54,16 +61,16 @@ export function registerImageTools(server: McpServer): void {
     {
       description: 'Crop a region from an image. Returns the cropped image as base64.',
       inputSchema: z.object({
-        imageBase64: z.string().describe('Base64-encoded image data'),
+        image: imageInputSchema.describe('Image to crop'),
         x: z.number().describe('Left edge of the crop region (pixels)'),
         y: z.number().describe('Top edge of the crop region (pixels)'),
         width: z.number().describe('Width of the crop region (pixels)'),
         height: z.number().describe('Height of the crop region (pixels)'),
       }),
     },
-    async ({ imageBase64, x, y, width, height }): Promise<CallToolResult> => {
+    async ({ image, x, y, width, height }): Promise<CallToolResult> => {
       try {
-        const buffer = decodeBase64Image(imageBase64);
+        const buffer = decodeBase64Image(image);
         const { data, info } = await sharp(buffer)
           .extract({ left: x, top: y, width, height })
           .toBuffer({ resolveWithObject: true });
@@ -91,7 +98,7 @@ export function registerImageTools(server: McpServer): void {
     {
       description: 'Resize an image. Returns the resized image as base64.',
       inputSchema: z.object({
-        imageBase64: z.string().describe('Base64-encoded image data'),
+        image: imageInputSchema.describe('Image to resize'),
         width: z.number().optional().describe('Target width in pixels'),
         height: z.number().optional().describe('Target height in pixels'),
         maintainAspect: z
@@ -107,7 +114,7 @@ export function registerImageTools(server: McpServer): void {
       }),
     },
     async ({
-      imageBase64,
+      image,
       width,
       height,
       maintainAspect = true,
@@ -121,7 +128,7 @@ export function registerImageTools(server: McpServer): void {
       }
 
       try {
-        const buffer = decodeBase64Image(imageBase64);
+        const buffer = decodeBase64Image(image);
         const resizeOptions: sharp.ResizeOptions = { fit };
         if (width) resizeOptions.width = width;
         if (height) resizeOptions.height = height;

@@ -9,40 +9,6 @@ Built-in MCP servers are pre-built tool collections that are hosted and maintain
 
 ## Available servers
 
-### inkeep-coreutils
-
-Core text and data processing tools.
-
-| Tool | Description |
-|------|-------------|
-| `text_search` | Search for a pattern in text. Supports regex, case control, context lines, invert match, and count mode. |
-| `text_replace` | Find and replace text. Supports literal or regex patterns, global or single replacement, and capture group references. |
-| `text_slice` | Extract a contiguous portion of text by line range, character range, or pattern-bounded range. |
-| `text_diff` | Generate a unified diff between two strings. |
-| `text_patch` | Apply a unified diff patch to a string. |
-| `text_window` | Return the first N lines, last N lines, or both from text. |
-| `json_format` | Pretty-print a JSON string or object. |
-| `json_query` | Extract a value from a JSON object using a JMESPath expression. |
-| `json_merge` | Deep or shallow merge two JSON objects. |
-| `json_diff` | Show structural differences between two JSON values. |
-| `base64_encode` | Encode a string to base64. |
-| `base64_decode` | Decode a base64 string to UTF-8 text. |
-| `url_encode` | Percent-encode a string for use in a URL. |
-| `url_decode` | Decode a percent-encoded URL string. |
-| `hash` | Compute a cryptographic hash (MD5, SHA-1, SHA-256, SHA-512). |
-| `html_to_markdown` | Convert HTML to Markdown. |
-| `calculate` | Evaluate a numeric arithmetic expression. |
-| `uuid` | Generate a random UUID (v4). |
-| `timestamp` | Get the current date/time in ISO, Unix, UTC, or locale format. |
-
-### inkeep-http
-
-Outbound HTTP request tools.
-
-| Tool | Description |
-|------|-------------|
-| `curl` | Make an outbound HTTP request and return the response. |
-
 ### inkeep-media
 
 Image processing tools.
@@ -63,7 +29,7 @@ Web search tools. Each provider is a separate server — pick one per agent. Req
 
 ## Adding built-in servers to an agent
 
-### Text, HTTP, and Media servers
+### Media server
 
 1. Go to the **Tools** tab in the Visual Builder.
 2. Select **Built-in MCP Servers**.
