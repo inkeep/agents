@@ -166,11 +166,14 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
       <FormField
         control={form.control}
         name={path('models')}
-        render={({ field }) => (
+        render={({ field: _field }) => (
           <FormItem>
             <ModelSection
-              models={field.value}
-              updatePath={field.onChange}
+              // field.value doesn't update properly here, so we read from subAgent.models instead
+              models={subAgent.models}
+              updatePath={(fieldPath, value) => {
+                form.setValue(path(fieldPath), value, { shouldDirty: true });
+              }}
               projectModels={project?.models}
               agentModels={models}
             />
