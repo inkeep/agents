@@ -216,12 +216,10 @@ export const findDueScheduledTriggersAcrossProjects =
     projects: Array<{ tenantId: string; projectId: string }>;
     asOf: string;
   }): Promise<DueScheduledTrigger[]> => {
-    const allDue: DueScheduledTrigger[] = [];
+    const results = await Promise.allSettled(
+      params.projects.map(async (project) => {
+        const branchName = getProjectScopedRef(project.tenantId, project.projectId, 'main');
 
-    for (const project of params.projects) {
-      const branchName = getProjectScopedRef(project.tenantId, project.projectId, 'main');
-
-      try {
         const rows = await db.execute(
           sql`SELECT id, tenant_id, project_id, agent_id,
                      cron_expression, cron_timezone, run_at,
@@ -232,22 +230,27 @@ export const findDueScheduledTriggersAcrossProjects =
                 AND next_run_at <= ${params.asOf}`
         );
 
-        for (const row of rows.rows) {
-          allDue.push({
-            id: row.id as string,
-            tenantId: row.tenant_id as string,
-            projectId: row.project_id as string,
-            agentId: row.agent_id as string,
-            cronExpression: row.cron_expression as string | null,
-            cronTimezone: row.cron_timezone as string | null,
-            runAt: row.run_at as string | null,
-            nextRunAt: row.next_run_at as string | null,
-            enabled: row.enabled as boolean,
-          });
-        }
-      } catch (err) {
+        return rows.rows.map((row) => ({
+          id: row.id as string,
+          tenantId: row.tenant_id as string,
+          projectId: row.project_id as string,
+          agentId: row.agent_id as string,
+          cronExpression: row.cron_expression as string | null,
+          cronTimezone: row.cron_timezone as string | null,
+          runAt: row.run_at as string | null,
+          nextRunAt: row.next_run_at as string | null,
+          enabled: row.enabled as boolean,
+        }));
+      })
+    );
+
+    const allDue: DueScheduledTrigger[] = [];
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        allDue.push(...result.value);
+      } else {
         logger.warn(
-          { tenantId: project.tenantId, projectId: project.projectId, err },
+          { err: result.reason },
           'Failed to query due triggers for project branch, skipping'
         );
       }
