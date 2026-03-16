@@ -45,6 +45,17 @@ export const listProjectsMetadata =
   };
 
 /**
+ * List all projects across all tenants from the runtime DB.
+ * Used by the scheduler dispatcher to enumerate projects for cross-tenant trigger scanning.
+ */
+export const listAllProjectsMetadata =
+  (db: AgentsRunDatabaseClient) => async (): Promise<ProjectMetadataSelect[]> => {
+    return await db.query.projectMetadata.findMany({
+      orderBy: [desc(projectMetadata.createdAt)],
+    });
+  };
+
+/**
  * List runtimeProjects with pagination from the runtime DB
  * @param projectIds - Optional array of project IDs to filter by. If undefined, returns all projects.
  */

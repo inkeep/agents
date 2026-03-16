@@ -40,11 +40,7 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
-import {
-  onTriggerCreated,
-  onTriggerDeleted,
-  onTriggerUpdated,
-} from '../../run/services/ScheduledTriggerService';
+import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { validateTriggerPermissions } from './triggerHelpers';
 
 const logger = getLogger('projectFull');
@@ -569,7 +565,6 @@ app.openapi(
             );
 
             const existingTriggerMap = new Map(existingTriggersForAgent.map((t) => [t.id, t]));
-            const newTriggerMap = new Map(newTriggersForAgent.map((t) => [t.id, t]));
 
             // Collect all workflow operations to parallelize them
             const workflowOperations: Promise<void>[] = [];
@@ -578,25 +573,7 @@ app.openapi(
             for (const trigger of newTriggersForAgent) {
               const existing = existingTriggerMap.get(trigger.id);
 
-              if (!existing) {
-                // New trigger
-                workflowOperations.push(
-                  onTriggerCreated(trigger)
-                    .then(() =>
-                      logger.info(
-                        { tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                        'Started workflow for new scheduled trigger'
-                      )
-                    )
-                    .catch((err) =>
-                      logger.error(
-                        { err, tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                        'Failed to start workflow for new scheduled trigger'
-                      )
-                    )
-                );
-              } else {
-                // Updated trigger
+              if (existing) {
                 const scheduleChanged =
                   existing.cronExpression !== trigger.cronExpression ||
                   String(existing.runAt) !== String(trigger.runAt);
@@ -619,27 +596,6 @@ app.openapi(
                       )
                   );
                 }
-              }
-            }
-
-            // Handle deleted triggers
-            for (const existing of existingTriggersForAgent) {
-              if (!newTriggerMap.has(existing.id)) {
-                workflowOperations.push(
-                  onTriggerDeleted(existing)
-                    .then(() =>
-                      logger.info(
-                        { tenantId, projectId, agentId, scheduledTriggerId: existing.id },
-                        'Stopped workflow for deleted scheduled trigger'
-                      )
-                    )
-                    .catch((err) =>
-                      logger.error(
-                        { err, tenantId, projectId, agentId, scheduledTriggerId: existing.id },
-                        'Failed to stop workflow for deleted scheduled trigger'
-                      )
-                    )
-                );
               }
             }
 

@@ -6591,6 +6591,10 @@
             "maxLength": 256,
             "type": "string"
           },
+          "nextRunAt": {
+            "nullable": true,
+            "type": "string"
+          },
           "payload": {
             "additionalProperties": {
               "nullable": true
@@ -6641,6 +6645,7 @@
           "timeoutSeconds",
           "runAsUserId",
           "createdBy",
+          "nextRunAt",
           "createdAt",
           "updatedAt"
         ],
@@ -7080,8 +7085,7 @@
             "required": [
               "lastRunAt",
               "lastRunStatus",
-              "lastRunConversationIds",
-              "nextRunAt"
+              "lastRunConversationIds"
             ],
             "type": "object"
           }
