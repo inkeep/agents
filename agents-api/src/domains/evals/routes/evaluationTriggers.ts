@@ -3,6 +3,8 @@ import {
   commonGetErrorResponses,
   createApiError,
   createEvaluationRun,
+  type EvaluationSuiteFilterCriteria,
+  type Filter,
   generateId,
   getConversation,
   getEvaluationSuiteConfigById,
@@ -25,6 +27,23 @@ import { evaluateConversationWorkflow } from '../workflow';
 
 const app = new OpenAPIHono<{ Variables: { resolvedRef: ResolvedRef } }>();
 const logger = getLogger('ConversationEvaluations');
+
+function extractSuiteFilterCriteria(
+  filter: Filter<EvaluationSuiteFilterCriteria> | null | undefined
+): EvaluationSuiteFilterCriteria | null {
+  if (!filter) return null;
+  if ('and' in filter || 'or' in filter) return null;
+  return filter;
+}
+
+function conversationMatchesSuiteFilter(
+  conversationAgentId: string | null | undefined,
+  filters: Filter<EvaluationSuiteFilterCriteria> | null | undefined
+): boolean {
+  const criteria = extractSuiteFilterCriteria(filters);
+  if (!criteria?.agentIds || criteria.agentIds.length === 0) return true;
+  return !!conversationAgentId && criteria.agentIds.includes(conversationAgentId);
+}
 
 const TriggerConversationSchema = z.object({
   conversationId: z.string(),
@@ -113,9 +132,6 @@ app.openapi(
       let evaluationsTriggered = 0;
 
       for (const runConfig of runConfigs) {
-        // Check if run config matches conversation (using filters)
-        // For now, we match all - can add filter logic later if needed
-
         for (const suiteConfigId of runConfig.suiteConfigIds) {
           const suiteConfig = await withRef(manageDbPool, resolvedRef, (db) =>
             getEvaluationSuiteConfigById(db)({
@@ -125,6 +141,19 @@ app.openapi(
 
           if (!suiteConfig) {
             logger.warn({ suiteConfigId }, 'Suite config not found, skipping');
+            continue;
+          }
+
+          if (!conversationMatchesSuiteFilter(conversation.agentId, suiteConfig.filters)) {
+            logger.info(
+              {
+                suiteConfigId: suiteConfig.id,
+                conversationAgentId: conversation.agentId,
+                filterAgentIds: extractSuiteFilterCriteria(suiteConfig.filters)?.agentIds,
+                conversationId,
+              },
+              'Conversation filtered out by agent filter'
+            );
             continue;
           }
 
