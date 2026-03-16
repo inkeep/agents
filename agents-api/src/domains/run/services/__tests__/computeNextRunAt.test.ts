@@ -87,7 +87,7 @@ describe('computeNextRunAt', () => {
     });
 
     expect(result).toBeDefined();
-    const nextDate = new Date(result!);
+    const nextDate = new Date(result as string);
     expect(nextDate.getTime()).toBeGreaterThan(new Date('2026-03-13T13:00:00.000Z').getTime());
   });
 
@@ -109,7 +109,7 @@ describe('computeNextRunAt', () => {
     });
 
     expect(result).toBeDefined();
-    const nextDate = new Date(result!);
+    const nextDate = new Date(result as string);
     expect(nextDate.getTime()).toBeGreaterThan(new Date('2026-03-07T07:30:00.000Z').getTime());
   });
 
@@ -121,7 +121,7 @@ describe('computeNextRunAt', () => {
     });
 
     expect(result).toBeDefined();
-    const nextDate = new Date(result!);
+    const nextDate = new Date(result as string);
     expect(nextDate.getTime()).toBeGreaterThan(new Date('2026-10-31T05:30:00.000Z').getTime());
   });
 
