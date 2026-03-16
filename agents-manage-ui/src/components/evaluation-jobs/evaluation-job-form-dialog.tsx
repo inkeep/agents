@@ -62,7 +62,6 @@ export function EvaluationJobFormDialog({
   }, [isOpen, form]);
 
   const { isSubmitting } = form.formState;
-  const selectedEvaluatorIds = form.watch('evaluatorIds') || [];
   const jobFilters = form.watch('jobFilters');
 
   const evaluatorLookup = useMemo(() => {
@@ -180,15 +179,13 @@ export function EvaluationJobFormDialog({
               <FormField
                 control={form.control}
                 name="evaluatorIds"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
                     <ComponentSelector
                       label="Evaluators"
                       componentLookup={evaluatorLookup}
-                      selectedComponents={selectedEvaluatorIds}
-                      onSelectionChange={(newSelection) => {
-                        form.setValue('evaluatorIds', newSelection);
-                      }}
+                      selectedComponents={field.value}
+                      onSelectionChange={field.onChange}
                       emptyStateMessage="No evaluators available."
                       emptyStateActionText="Create evaluator"
                       emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
