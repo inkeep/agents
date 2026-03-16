@@ -555,23 +555,10 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             scopes: { tenantId, projectId, agentId },
           });
 
-          logger.info(
-            {
-              tenantId,
-              projectId,
-              agentId,
-              existingCount: existingTriggersForAgent.length,
-              newCount: newTriggersForAgent.length,
-            },
-            'Reconciling scheduled triggers for agent'
-          );
-
           const existingTriggerMap = new Map(existingTriggersForAgent.map((t) => [t.id, t]));
 
-          // Collect all workflow operations to parallelize them
           const workflowOperations: Promise<void>[] = [];
 
-          // Handle created and updated triggers
           for (const trigger of newTriggersForAgent) {
             const existing = existingTriggerMap.get(trigger.id);
             if (existing) {
