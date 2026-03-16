@@ -51,41 +51,94 @@ async function $fetchNangoProviders(): Promise<ApiProvider[]> {
 
 export const fetchNangoProviders = cache($fetchNangoProviders);
 
+export interface MaskedCredentials {
+  type: string;
+  client_id?: string;
+  client_secret?: string;
+  scopes?: string | null;
+  app_id?: string;
+  app_link?: string;
+  has_private_key?: boolean;
+}
+
+export interface NangoIntegrationWithMaskedCredentials {
+  unique_key: string;
+  provider: string;
+  display_name?: string | null;
+  logo: string;
+  created_at: string;
+  updated_at: string;
+  areCredentialsSet: boolean;
+  maskedCredentials: MaskedCredentials | null;
+}
+
+function maskSecret(value: string | null | undefined, visibleChars = 4): string | undefined {
+  if (!value) return undefined;
+  if (value.length <= visibleChars) return '\u2022'.repeat(value.length);
+  return '\u2022'.repeat(Math.min(value.length - visibleChars, 12)) + value.slice(-visibleChars);
+}
+
+function buildMaskedCredentials(credentials: ApiPublicIntegration['credentials']): {
+  areCredentialsSet: boolean;
+  masked: MaskedCredentials | null;
+} {
+  if (!credentials) return { areCredentialsSet: false, masked: null };
+
+  if (
+    credentials.type === 'OAUTH2' ||
+    credentials.type === 'OAUTH1' ||
+    credentials.type === 'TBA'
+  ) {
+    const areCredentialsSet = !!(credentials.client_id && credentials.client_secret);
+    return {
+      areCredentialsSet,
+      masked: {
+        type: credentials.type,
+        client_id: credentials.client_id ?? undefined,
+        client_secret: maskSecret(credentials.client_secret),
+        scopes: credentials.scopes,
+      },
+    };
+  }
+
+  if (credentials.type === 'APP') {
+    const areCredentialsSet = !!(credentials.app_id && credentials.app_link);
+    return {
+      areCredentialsSet,
+      masked: {
+        type: credentials.type,
+        app_id: credentials.app_id ?? undefined,
+        app_link: credentials.app_link ?? undefined,
+        has_private_key: !!credentials.private_key,
+      },
+    };
+  }
+
+  return { areCredentialsSet: true, masked: { type: credentials.type } };
+}
+
 /**
  * Fetch a specific Nango integration
  */
 export async function fetchNangoIntegration(
   uniqueKey: string
-): Promise<(ApiPublicIntegration & { areCredentialsSet: boolean }) | null> {
+): Promise<NangoIntegrationWithMaskedCredentials | null> {
   try {
     const nango = getNangoClient();
-
     const response = await nango.getIntegration({ uniqueKey }, { include: ['credentials'] });
     const integration = response.data;
 
-    // Determine if credentials are set (server-side only)
-    let areCredentialsSet = false;
-
-    if (
-      integration.credentials?.type === 'OAUTH2' ||
-      integration.credentials?.type === 'OAUTH1' ||
-      integration.credentials?.type === 'TBA'
-    ) {
-      areCredentialsSet = !!(
-        integration.credentials?.client_id && integration.credentials?.client_secret
-      );
-    } else if (integration.credentials?.type === 'APP') {
-      areCredentialsSet = !!(integration.credentials?.app_id && integration.credentials?.app_link);
-    } else {
-      areCredentialsSet = true;
-    }
-
-    // Strip credentials before returning to frontend
-    const { credentials: _credentials, ...integrationWithoutCredentials } = integration;
+    const { areCredentialsSet, masked } = buildMaskedCredentials(integration.credentials);
 
     return {
-      ...integrationWithoutCredentials,
+      unique_key: integration.unique_key,
+      provider: integration.provider,
+      display_name: integration.display_name,
+      logo: integration.logo,
+      created_at: String(integration.created_at),
+      updated_at: String(integration.updated_at),
       areCredentialsSet,
+      maskedCredentials: masked,
     };
   } catch (error) {
     if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
@@ -94,6 +147,50 @@ export async function fetchNangoIntegration(
 
     console.error(`Failed to fetch integration ${uniqueKey}:`, error);
     wrapNangoError(error, `Unable to fetch integration with key '${uniqueKey}'`, 'getIntegration');
+  }
+}
+
+export async function deleteNangoIntegration(uniqueKey: string): Promise<void> {
+  try {
+    const nango = getNangoClient();
+    await nango.deleteIntegration(uniqueKey);
+  } catch (error) {
+    console.error(`Failed to delete integration ${uniqueKey}:`, error);
+    wrapNangoError(error, `Failed to delete integration '${uniqueKey}'`, 'deleteNangoIntegration');
+  }
+}
+
+/**
+ * List all Nango integrations for a given provider + tenant.
+ * Filters by the naming convention: keys starting with `{provider}-{tenantId}`.
+ * Fetches credentials for each to build masked summaries.
+ */
+export async function listNangoProviderIntegrations(
+  provider: string,
+  tenantId: string
+): Promise<NangoIntegrationWithMaskedCredentials[]> {
+  try {
+    const nango = getNangoClient();
+    const response = await nango.listIntegrations();
+    const allIntegrations = response.configs;
+
+    const prefix = `${provider}-${tenantId}`;
+    const matching = allIntegrations.filter(
+      (i) => i.provider === provider && i.unique_key.startsWith(prefix)
+    );
+
+    if (matching.length === 0) return [];
+
+    const detailed = await Promise.all(matching.map((i) => fetchNangoIntegration(i.unique_key)));
+
+    return detailed.filter((i): i is NangoIntegrationWithMaskedCredentials => i !== null);
+  } catch (error) {
+    console.error(`Failed to list integrations for ${provider}:`, error);
+    wrapNangoError(
+      error,
+      `Unable to list integrations for provider '${provider}'`,
+      'listNangoProviderIntegrations'
+    );
   }
 }
 
@@ -123,6 +220,45 @@ async function createNangoIntegration(params: {
       'createIntegration'
     );
   }
+}
+
+export async function updateNangoIntegrationCredentials({
+  uniqueKey,
+  credentials,
+}: {
+  uniqueKey: string;
+  credentials: ApiPublicIntegrationCredentials;
+}): Promise<ApiPublicIntegration> {
+  const secretKey = process.env.NANGO_SECRET_KEY;
+  if (!secretKey) {
+    throw new NangoError('NANGO_SECRET_KEY environment variable is required for Nango integration');
+  }
+
+  const host =
+    process.env.PUBLIC_NANGO_SERVER_URL ||
+    process.env.NEXT_PUBLIC_NANGO_SERVER_URL ||
+    process.env.NANGO_SERVER_URL ||
+    'https://api.nango.dev';
+
+  const response = await fetch(`${host}/integrations/${uniqueKey}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ credentials }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new NangoError(
+      `Failed to update integration credentials: ${response.status} ${response.statusText}`,
+      'updateNangoIntegrationCredentials',
+      errorData
+    );
+  }
+
+  return await response.json();
 }
 
 async function updateMCPGenericIntegration({
@@ -238,8 +374,8 @@ export async function createProviderConnectSession({
   organizationDisplayName?: string;
 }): Promise<string> {
   try {
-    let integration: ApiPublicIntegration;
-    let existingIntegration: (ApiPublicIntegration & { areCredentialsSet: boolean }) | null = null;
+    let integration: ApiPublicIntegration | NangoIntegrationWithMaskedCredentials;
+    let existingIntegration: NangoIntegrationWithMaskedCredentials | null = null;
 
     try {
       existingIntegration = await fetchNangoIntegration(uniqueKey);
@@ -247,7 +383,6 @@ export async function createProviderConnectSession({
       if (error instanceof NangoError) {
         throw error;
       }
-      // Log but continue - integration might not exist yet
       console.debug(`Integration '${providerName}' not found, will create new one`);
     }
 
