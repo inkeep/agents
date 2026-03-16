@@ -140,7 +140,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     id: generateId(),
     type: NodeType.SubAgent,
     position: { x: 0, y: 0 },
-    data: { ...newNodeDefaults[NodeType.SubAgent] },
+    data: {},
   };
 
   const initialNodes = [initialNode];
@@ -203,7 +203,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   // Always use enriched nodes for ReactFlow
   const nodes = enrichNodes(storeNodes);
 
-  const onAddInitialNode = () => {
+  function onAddInitialNode(): void {
     const newNode = {
       ...initialNode,
       selected: true,
@@ -215,7 +215,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       `subAgents.${newNode.id}`,
       {
         id: newNode.id,
-        name: '',
+        name: newNodeDefaults[NodeType.SubAgent].name,
         models: { base: {}, summarizer: {}, structuredOutput: {} },
         canUse: [],
         dataComponents: [],
@@ -233,7 +233,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         nodes: [newNode],
       });
     }, 350);
-  };
+  }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {

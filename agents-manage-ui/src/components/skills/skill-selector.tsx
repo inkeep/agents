@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import { type FC, useState } from 'react';
 import type { AgentSkill } from '@/components/agent/form/validation';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
-import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-selector/component-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -23,7 +22,6 @@ import { cn, createLookup } from '@/lib/utils';
 interface SkillSelectorProps {
   selectedSkills: AgentSkill[];
   onChange: (skills: AgentSkill[]) => void;
-  error?: string;
 }
 
 export function reorderSkills(
@@ -53,7 +51,7 @@ export function updateSkillAlwaysLoaded(
   return skills.map((skill) => (skill.id === id ? { ...skill, alwaysLoaded } : skill));
 }
 
-export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange, error }) => {
+export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange }) => {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [draggingId, setDraggingId] = useState('');
@@ -61,15 +59,15 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
   const { data: availableSkills } = useSkillsQuery();
   const skillById = createLookup(availableSkills);
 
-  const handleDrop = (targetId: string) => {
+  function handleDrop(targetId: string): void {
     if (!draggingId) return;
     const next = reorderSkills(selectedSkills, draggingId, targetId);
     onChange(next);
     setDraggingId('');
     setDragOverId('');
-  };
+  }
 
-  const handleToggle = (id: string) => {
+  function handleToggle(id: string): void {
     const newSelection = selectedSkills.some((skill) => skill.id === id)
       ? selectedSkills.filter((skill) => skill.id !== id)
       : [
@@ -78,16 +76,15 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
           availableSkills.find((skill) => skill.id === id)!,
         ];
     onChange(newSelection.map((skill, index) => ({ ...skill, index })));
-  };
+  }
 
-  const handleAlwaysLoadedChange = (id: string, checked: CheckedState) => {
+  function handleAlwaysLoadedChange(id: string, checked: CheckedState): void {
     const nextChecked = checked === 'indeterminate' ? true : checked;
     onChange(updateSkillAlwaysLoaded(selectedSkills, id, nextChecked));
-  };
+  }
 
   return (
-    <div className="space-y-2">
-      <ComponentHeader label="Skill Configuration" count={selectedSkills.length} />
+    <>
       <ComponentDropdown
         selectedComponents={selectedSkills.map((skill) => skill.id)}
         handleToggle={handleToggle}
@@ -189,7 +186,6 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
           </ul>
         </div>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-    </div>
+    </>
   );
 };

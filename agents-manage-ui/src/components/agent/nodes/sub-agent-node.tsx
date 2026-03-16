@@ -64,7 +64,8 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const agentModel = useWatch({ control, name: 'models' });
   const { project } = useProject();
   const projectModel = project.models;
-  const modelName = (subAgent.models ?? agentModel ?? projectModel).base.model ?? '';
+  const modelName =
+    subAgent.models.base.model ?? agentModel.base.model ?? (projectModel.base.model as string);
 
   const { data: artifactComponents } = useArtifactComponentsQuery();
 

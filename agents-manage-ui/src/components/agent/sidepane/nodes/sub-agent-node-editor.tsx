@@ -35,6 +35,7 @@ import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
 import { ModelSection } from './model-section';
+import { Badge } from '@/components/ui/badge';
 
 const ExecutionLimitInheritanceInfo = () => {
   return (
@@ -115,13 +116,21 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
         placeholder="This sub agent is responsible for..."
         isRequired={isRequired(FullAgentSubAgentSchema, 'description')}
       />
-      <SkillSelector
-        selectedSkills={subAgent.skills ?? []}
-        onChange={(value) =>
-          form.setValue(path('skills'), value, { shouldDirty: true, shouldValidate: true })
-        }
-        // TODO
-        // error={getFieldError('skills')}
+      <FormField
+        control={form.control}
+        name={path('skills')}
+        render={({ field }) => {
+          const value = field.value ?? [];
+          return (
+            <FormItem>
+              <FormLabel>
+                Skill Configuration<Badge variant="count">{value.length}</Badge>
+              </FormLabel>
+              <SkillSelector selectedSkills={value} onChange={field.onChange} />
+              <FormMessage />
+            </FormItem>
+          );
+        }}
       />
       <GenericPromptEditor
         control={form.control}

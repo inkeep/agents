@@ -88,7 +88,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
     type: NodeType.SubAgentPlaceholder,
   },
   [NodeType.SubAgent]: {
-    name: '',
+    name: 'Sub Agent',
   },
   [NodeType.ExternalAgent]: {
     name: '',
