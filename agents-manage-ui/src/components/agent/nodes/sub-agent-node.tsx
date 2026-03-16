@@ -65,7 +65,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const { project } = useProject();
   const projectModel = project.models;
   const modelName =
-    subAgent.models.base.model ?? agentModel.base.model ?? (projectModel.base.model as string);
+    subAgent.models?.base.model ?? agentModel.base.model ?? (projectModel.base.model as string);
 
   const { data: artifactComponents } = useArtifactComponentsQuery();
 
@@ -120,7 +120,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
           </div>
           <Badge className="text-xs max-w-full" variant="code">
             {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
-            <span className="truncate">{modelName}</span> {!data.models && '(inherited)'}
+            <span className="truncate">{modelName}</span> {!subAgent.models && '(inherited)'}
           </Badge>
           {dataComponentNames?.length > 0 && (
             <ListSection
