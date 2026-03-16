@@ -195,7 +195,7 @@ export function GenericAuthForm({
           <TriangleAlert className="h-4 w-4" />
           <AlertDescription>
             Updating the Client ID or Client Secret will invalidate token refreshes for all existing
-            connections using this integration. Affected users will need to re-authenticate.
+            connections using this OAuth app. Affected users will need to re-authenticate.
           </AlertDescription>
         </Alert>
       )}

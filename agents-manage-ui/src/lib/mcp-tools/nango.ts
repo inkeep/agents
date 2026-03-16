@@ -9,6 +9,7 @@ import type {
   ApiProvider,
   ApiPublicIntegration,
   ApiPublicIntegrationCredentials,
+  AuthModeType,
   PostConnectSessions,
 } from '@nangohq/types';
 import { cache } from 'react';
@@ -70,6 +71,34 @@ export interface NangoIntegrationWithMaskedCredentials {
   updated_at: string;
   areCredentialsSet: boolean;
   maskedCredentials: MaskedCredentials | null;
+}
+
+type CredentialAuthMode = ApiPublicIntegrationCredentials['type'];
+
+const CREDENTIAL_AUTH_MODES: readonly CredentialAuthMode[] = [
+  'OAUTH1',
+  'OAUTH2',
+  'TBA',
+  'APP',
+  'CUSTOM',
+];
+
+function isCredentialAuthMode(value: string): value is CredentialAuthMode {
+  return (CREDENTIAL_AUTH_MODES as readonly string[]).includes(value);
+}
+
+export function buildCredentialsPayload(
+  credentials: Record<string, unknown> | undefined,
+  authMode: AuthModeType | undefined
+): ApiPublicIntegrationCredentials | undefined {
+  if (!credentials || !authMode) return undefined;
+
+  if (!isCredentialAuthMode(authMode)) {
+    console.warn(`Auth mode "${authMode}" does not support credential payloads`);
+    return undefined;
+  }
+
+  return { ...credentials, type: authMode } as ApiPublicIntegrationCredentials;
 }
 
 function maskSecret(value: string | null | undefined, visibleChars = 4): string | undefined {
@@ -240,7 +269,7 @@ export async function updateNangoIntegrationCredentials({
     process.env.NANGO_SERVER_URL ||
     'https://api.nango.dev';
 
-  const response = await fetch(`${host}/integrations/${uniqueKey}`, {
+  const response = await fetch(`${host}/integrations/${encodeURIComponent(uniqueKey)}`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${secretKey}`,
@@ -282,7 +311,7 @@ async function updateMCPGenericIntegration({
   const logoUri =
     process.env.OAUTH_CLIENT_LOGO_URI || 'https://inkeep.com/images/logos/inkeep-logo-blue.svg';
 
-  const response = await fetch(`${host}/integrations/${uniqueKey}`, {
+  const response = await fetch(`${host}/integrations/${encodeURIComponent(uniqueKey)}`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${secretKey}`,

@@ -34,6 +34,7 @@ import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
 import {
+  buildCredentialsPayload,
   createProviderConnectSession,
   deleteNangoIntegration,
   listNangoProviderIntegrations,
@@ -137,13 +138,7 @@ function ProviderSetupPage({
           providerName: provider.name,
           uniqueKey: integrationKey,
           displayName: provider.name,
-          credentials:
-            credentials && provider.auth_mode
-              ? ({
-                  ...credentials,
-                  type: provider.auth_mode,
-                } as any)
-              : undefined,
+          credentials: buildCredentialsPayload(credentials, provider.auth_mode),
           endUserId: user?.id,
           endUserEmail: user?.email,
           endUserDisplayName: user?.name,
@@ -187,7 +182,9 @@ function ProviderSetupPage({
       try {
         const result = await listNangoProviderIntegrations(provider.name, tenantId);
         setIntegrations(result);
-      } catch {}
+      } catch (error) {
+        console.error('Failed to refresh integrations list:', error);
+      }
     },
     [provider, tenantId, startConnectFlow]
   );
@@ -198,12 +195,15 @@ function ProviderSetupPage({
 
       setLoading(true);
       try {
+        const payload = buildCredentialsPayload(credentials, provider.auth_mode);
+        if (!payload) {
+          toast.error(`Unsupported authentication mode: ${provider.auth_mode}`);
+          return;
+        }
+
         await updateNangoIntegrationCredentials({
           uniqueKey: formMode.integrationKey,
-          credentials: {
-            ...credentials,
-            type: provider.auth_mode,
-          } as any,
+          credentials: payload,
         });
 
         toast.success('App credentials updated');
@@ -212,7 +212,9 @@ function ProviderSetupPage({
         try {
           const result = await listNangoProviderIntegrations(provider.name, tenantId);
           setIntegrations(result);
-        } catch {}
+        } catch (refreshError) {
+          console.error('Failed to refresh integrations list:', refreshError);
+        }
       } catch (error) {
         console.error('Failed to update credentials:', error);
         if (error instanceof NangoError) {
@@ -234,7 +236,7 @@ function ProviderSetupPage({
       setLoading(true);
       try {
         await deleteNangoIntegration(uniqueKey);
-        toast.success('Integration deleted');
+        toast.success('OAuth app deleted');
 
         try {
           const result = await listNangoProviderIntegrations(provider.name, tenantId);
@@ -243,9 +245,9 @@ function ProviderSetupPage({
           setIntegrations([]);
         }
       } catch (error) {
-        console.error('Failed to delete integration:', error);
+        console.error('Failed to delete OAuth app:', error);
         if (error instanceof NangoError) {
-          toast.error('Failed to delete integration. Please try again.');
+          toast.error('Failed to delete OAuth app. Please try again.');
         } else {
           toast.error('An unexpected error occurred. Please try again.');
         }
@@ -368,7 +370,12 @@ function ProviderSetupPage({
             disabled={loading || !integration.areCredentialsSet}
           >
             <div className="space-y-1 min-w-0 flex-1">
-              <span className="text-sm font-medium truncate block">{integration.unique_key}</span>
+              <span className="text-sm font-medium truncate block">
+                {integration.display_name || integration.provider}
+              </span>
+              <span className="text-xs text-muted-foreground truncate block">
+                {integration.unique_key}
+              </span>
               {integration.maskedCredentials?.client_id && (
                 <p className="text-xs text-muted-foreground">
                   Client ID: {integration.maskedCredentials.client_id}
@@ -385,7 +392,13 @@ function ProviderSetupPage({
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button size="icon-sm" variant="ghost" className="shrink-0 ml-4" disabled={loading}>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  className="shrink-0 ml-4"
+                  disabled={loading}
+                  aria-label="OAuth app actions"
+                >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -424,11 +437,11 @@ function ProviderSetupPage({
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete integration</AlertDialogTitle>
+            <AlertDialogTitle>Delete OAuth app</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the integration and invalidate all existing connections
-              using these app credentials. Affected users will need to re-authenticate with a
-              different integration.
+              This will permanently delete the OAuth app configuration and invalidate all existing
+              connections using these credentials. Affected users will need to re-authenticate with
+              a different OAuth app.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
