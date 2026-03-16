@@ -110,14 +110,14 @@ function SlackLinkForm() {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-          <CardHeader className="flex flex-row items-center justify-center gap-4">
-            <InkeepIcon size={48} className="shrink-0" />
-            <div className="space-y-1">
-              <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-                Connect your Inkeep account
-              </CardTitle>
-              <CardDescription>Sign in to start using the bot in Slack.</CardDescription>
-            </div>
+          <div className="px-6">
+            <InkeepIcon size={48} />
+          </div>
+          <CardHeader>
+            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+              Connect your Inkeep account
+            </CardTitle>
+            <CardDescription>Sign in to start using the bot in Slack.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {isExpiredError && (
@@ -154,14 +154,14 @@ function SlackLinkForm() {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-          <CardHeader className="flex flex-row items-center justify-center gap-4">
-            <InkeepIcon size={48} className="shrink-0" />
-            <div className="space-y-1">
-              <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-                Link Slack Account
-              </CardTitle>
-              <CardDescription>Use /inkeep link in Slack to link your account.</CardDescription>
-            </div>
+          <div className="px-6">
+            <InkeepIcon size={48} />
+          </div>
+          <CardHeader>
+            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+              Link Slack Account
+            </CardTitle>
+            <CardDescription>Use /inkeep link in Slack to link your account.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="text-center space-y-4 py-4">
@@ -182,22 +182,22 @@ function SlackLinkForm() {
   return (
     <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-        <CardHeader className="flex flex-row items-center justify-center gap-4">
-          <InkeepIcon size={48} className="shrink-0" />
-          <div className="space-y-1">
-            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-              Link Slack Account
-            </CardTitle>
-            <CardDescription>
-              {state === 'waiting'
-                ? 'Use /inkeep link in Slack to link your account.'
-                : state === 'linking'
-                  ? 'Linking your accounts...'
-                  : state === 'success'
-                    ? 'Account linked successfully.'
-                    : 'An error occurred.'}
-            </CardDescription>
-          </div>
+        <div className="flex justify-center">
+          <InkeepIcon size={48} />
+        </div>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+            Link Slack Account
+          </CardTitle>
+          <CardDescription>
+            {state === 'waiting'
+              ? 'Use /inkeep link in Slack to link your account.'
+              : state === 'linking'
+                ? 'Linking your accounts...'
+                : state === 'success'
+                  ? 'Account linked successfully.'
+                  : 'An error occurred.'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           {error && (

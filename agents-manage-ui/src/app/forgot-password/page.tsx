@@ -26,17 +26,17 @@ function ForgotPasswordForm() {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-          <CardHeader className="flex flex-row items-center justify-center gap-4">
-            <InkeepIcon size={48} aria-hidden="true" className="shrink-0" />
-            <div className="space-y-1">
-              <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-                Password reset unavailable
-              </CardTitle>
-              <CardDescription>
-                Self-service password reset is not available. Contact your administrator to reset
-                your password.
-              </CardDescription>
-            </div>
+          <div className="px-6">
+            <InkeepIcon size={48} aria-hidden="true" />
+          </div>
+          <CardHeader>
+            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+              Password reset unavailable
+            </CardTitle>
+            <CardDescription>
+              Self-service password reset is not available. Contact your administrator to reset your
+              password.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="ghost" asChild className="px-0">
@@ -55,21 +55,21 @@ function ForgotPasswordForm() {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-          <CardHeader className="flex flex-row items-center justify-center gap-4">
-            <InkeepIcon size={48} aria-hidden="true" className="shrink-0" />
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Mail className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-                <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-                  Check your email
-                </CardTitle>
-              </div>
-              <CardDescription>
-                If an account exists with that email, we sent a password reset link. Check your
-                inbox and spam folder. If you signed up with Google or SSO, please sign in with that
-                method instead.
-              </CardDescription>
+          <div className="px-6">
+            <InkeepIcon size={48} aria-hidden="true" />
+          </div>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Mail className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+              <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+                Check your email
+              </CardTitle>
             </div>
+            <CardDescription>
+              If an account exists with that email, we sent a password reset link. Check your inbox
+              and spam folder. If you signed up with Google or SSO, please sign in with that method
+              instead.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="ghost" asChild className="px-0">
@@ -111,17 +111,17 @@ function ForgotPasswordForm() {
   return (
     <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-        <CardHeader className="flex flex-row items-center justify-center gap-4">
-          <InkeepIcon size={48} aria-hidden="true" className="shrink-0" />
-          <div className="space-y-1">
-            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-              Forgot your password?
-            </CardTitle>
-            <CardDescription>
-              Enter your email address and we'll send you a link to reset your password. If you
-              signed up with Google or SSO, please sign in with that method instead.
-            </CardDescription>
-          </div>
+        <div className="px-6">
+          <InkeepIcon size={48} aria-hidden="true" />
+        </div>
+        <CardHeader>
+          <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+            Forgot your password?
+          </CardTitle>
+          <CardDescription>
+            Enter your email address and we'll send you a link to reset your password. If you signed
+            up with Google or SSO, please sign in with that method instead.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           {error && (

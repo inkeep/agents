@@ -287,14 +287,6 @@ export function RegisterSSOForm({
             )}
 
             <div className="grid gap-2">
-              <Label>Callback / Redirect URI</Label>
-              <CopyableSingleLineCode code={callbackUrl} />
-              <p className="text-xs text-muted-foreground">
-                Add this URL as the sign-in redirect URI in your identity provider
-              </p>
-            </div>
-
-            <div className="grid gap-2">
               <Label htmlFor="sso-display-name">Provider Name</Label>
               <Input
                 id="sso-display-name"
@@ -377,6 +369,16 @@ export function RegisterSSOForm({
               <p className="text-xs text-muted-foreground">
                 Comma-separated OIDC scopes. Remove <code>offline_access</code> for Google
                 Workspace.
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="grid gap-2">
+              <Label>Callback / Redirect URI</Label>
+              <CopyableSingleLineCode code={callbackUrl} />
+              <p className="text-xs text-muted-foreground">
+                Add this URL as the sign-in redirect URI in your identity provider
               </p>
             </div>
 
@@ -553,14 +555,6 @@ export function EditSSOForm({
             </div>
 
             <div className="grid gap-2">
-              <Label>Callback / Redirect URI</Label>
-              <CopyableSingleLineCode code={callbackUrl} />
-              <p className="text-xs text-muted-foreground">
-                Add this URL as the sign-in redirect URI in your identity provider
-              </p>
-            </div>
-
-            <div className="grid gap-2">
               <Label htmlFor="edit-oidc-domain">Email Domain</Label>
               <Input
                 id="edit-oidc-domain"
@@ -622,6 +616,16 @@ export function EditSSOForm({
               <p className="text-xs text-muted-foreground">
                 Comma-separated OIDC scopes. Remove <code>offline_access</code> for Google
                 Workspace.
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="grid gap-2">
+              <Label>Callback / Redirect URI</Label>
+              <CopyableSingleLineCode code={callbackUrl} />
+              <p className="text-xs text-muted-foreground">
+                Add this URL as the sign-in redirect URI in your identity provider
               </p>
             </div>
 

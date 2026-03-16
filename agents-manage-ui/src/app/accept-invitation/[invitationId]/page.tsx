@@ -337,31 +337,28 @@ export default function AcceptInvitationPage({
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-          <CardHeader className="flex flex-row items-center justify-center gap-4">
-            <InkeepIcon size={48} className="shrink-0" />
-            <div className="space-y-1">
-              <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-                {orgName ? `Join ${orgName}` : 'Accept invitation'}
-              </CardTitle>
-              <CardDescription>
-                {hasNoMethods ? (
-                  <>
-                    No sign-in methods are available for your email domain. Contact the
-                    administrator of{' '}
-                    <span className="font-medium">{orgName ?? 'the organization'}</span> for help.
-                  </>
-                ) : orgName ? (
-                  <>
-                    You've been invited to join <span className="font-medium">{orgName}</span>.
-                    Choose how you'd like to sign in.
-                  </>
-                ) : (
-                  <>
-                    You've been invited to join an organization. Choose how you'd like to sign in.
-                  </>
-                )}
-              </CardDescription>
-            </div>
+          <div className="px-6">
+            <InkeepIcon size={48} />
+          </div>
+          <CardHeader>
+            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+              {orgName ? `Join ${orgName}` : 'Accept invitation'}
+            </CardTitle>
+            <CardDescription>
+              {hasNoMethods ? (
+                <>
+                  No sign-in methods are available for your email domain. Contact the administrator
+                  of <span className="font-medium">{orgName ?? 'the organization'}</span> for help.
+                </>
+              ) : orgName ? (
+                <>
+                  You've been invited to join <span className="font-medium">{orgName}</span>. Choose
+                  how you'd like to sign in.
+                </>
+              ) : (
+                <>You've been invited to join an organization. Choose how you'd like to sign in.</>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {error && (
@@ -513,25 +510,25 @@ export default function AcceptInvitationPage({
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-        <CardHeader className="flex flex-row items-center justify-center gap-4">
-          <InkeepIcon size={48} className="shrink-0" />
-          <div className="space-y-1">
-            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-              {invitationVerification?.organizationName
-                ? `Join ${invitationVerification.organizationName}`
-                : 'Accept invitation'}
-            </CardTitle>
-            <CardDescription>
-              {invitationVerification?.organizationName ? (
-                <>
-                  You've been invited to join{' '}
-                  <span className="font-medium">{invitationVerification.organizationName}</span>.
-                </>
-              ) : (
-                "You've been invited to join an organization."
-              )}
-            </CardDescription>
-          </div>
+        <div className="px-6">
+          <InkeepIcon size={48} />
+        </div>
+        <CardHeader>
+          <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+            {invitationVerification?.organizationName
+              ? `Join ${invitationVerification.organizationName}`
+              : 'Accept invitation'}
+          </CardTitle>
+          <CardDescription>
+            {invitationVerification?.organizationName ? (
+              <>
+                You've been invited to join{' '}
+                <span className="font-medium">{invitationVerification.organizationName}</span>.
+              </>
+            ) : (
+              "You've been invited to join an organization."
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
