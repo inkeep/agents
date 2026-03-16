@@ -44,11 +44,8 @@ import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
-import {
-  onTriggerCreated,
-  onTriggerDeleted,
-  onTriggerUpdated,
-} from '../../run/services/ScheduledTriggerService';
+import { computeNextRunAt } from '../../run/services/computeNextRunAt';
+import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { buildTimezoneHeaders, executeAgentAsync } from '../../run/services/TriggerService';
 
 export { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
@@ -370,6 +367,15 @@ app.openapi(
       'Creating scheduled trigger'
     );
 
+    const enabled = body.enabled ?? true;
+    const nextRunAt = enabled
+      ? computeNextRunAt({
+          cronExpression: body.cronExpression,
+          cronTimezone: body.cronTimezone,
+          runAt: body.runAt,
+        })
+      : null;
+
     const trigger = await createScheduledTrigger(db)({
       ...body,
       id,
@@ -377,7 +383,7 @@ app.openapi(
       projectId,
       agentId,
       description: body.description ?? null,
-      enabled: body.enabled ?? true,
+      enabled,
       cronExpression: body.cronExpression ?? null,
       cronTimezone: body.cronTimezone ?? 'UTC',
       runAt: body.runAt ?? null,
@@ -385,17 +391,8 @@ app.openapi(
       messageTemplate: body.messageTemplate ?? null,
       runAsUserId,
       createdBy: callerId || null,
-    });
-
-    // Start workflow for enabled triggers
-    try {
-      await onTriggerCreated(trigger);
-    } catch (err) {
-      logger.error(
-        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
-        'Failed to start workflow for new scheduled trigger'
-      );
-    }
+      nextRunAt,
+    } as any);
 
     const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
 
@@ -562,6 +559,25 @@ app.openapi(
       return defaultValue;
     };
 
+    const mergedEnabled = body.enabled !== undefined ? body.enabled : existing.enabled;
+    const enabledChanged = body.enabled !== undefined && body.enabled !== existing.enabled;
+
+    let nextRunAt: string | null | undefined;
+    if (!mergedEnabled) {
+      nextRunAt = null;
+    } else if (scheduleChanged || enabledChanged) {
+      const mergedCron =
+        body.cronExpression !== undefined ? body.cronExpression : existing.cronExpression;
+      const mergedTimezone =
+        body.cronTimezone !== undefined ? body.cronTimezone : existing.cronTimezone;
+      const mergedRunAt = body.runAt !== undefined ? body.runAt : existing.runAt;
+      nextRunAt = computeNextRunAt({
+        cronExpression: mergedCron,
+        cronTimezone: mergedTimezone,
+        runAt: mergedRunAt,
+      });
+    }
+
     const updatedTrigger = await updateScheduledTrigger(db)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
@@ -575,6 +591,7 @@ app.openapi(
         ),
         timeoutSeconds: resolveRetryValue(body.timeoutSeconds, existing.timeoutSeconds, 300),
         runAsUserId,
+        ...(nextRunAt !== undefined ? { nextRunAt } : {}),
       },
     });
 
@@ -670,17 +687,6 @@ app.openapi(
         { tenantId, projectId, agentId, scheduledTriggerId: id, cancelledCount },
         'Cancelled pending invocations before deleting scheduled trigger'
       );
-    }
-
-    // Cancel active workflow
-    try {
-      await onTriggerDeleted(existing);
-    } catch (err) {
-      logger.error(
-        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
-        'Failed to cancel workflow for deleted scheduled trigger'
-      );
-      // Continue with deletion - workflow will stop on its own eventually
     }
 
     await deleteScheduledTrigger(db)({

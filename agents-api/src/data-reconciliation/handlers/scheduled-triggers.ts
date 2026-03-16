@@ -1,19 +1,8 @@
 import type { ScheduledTriggerAuditResult } from '@inkeep/agents-core';
-import {
-  defineHandlers,
-  listEnabledScheduledTriggers,
-  listTriggerSchedulesByProject,
-} from '@inkeep/agents-core';
-import {
-  onTriggerCreated,
-  onTriggerDeleted,
-  onTriggerUpdated,
-} from '../../domains/run/services/ScheduledTriggerService';
+import { defineHandlers, listEnabledScheduledTriggers } from '@inkeep/agents-core';
+import { onTriggerUpdated } from '../../domains/run/services/ScheduledTriggerService';
 
 export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
-  onCreated: async (after) => {
-    await onTriggerCreated(after);
-  },
   onUpdated: async (before, after) => {
     const scheduleChanged =
       before.cronExpression !== after.cronExpression ||
@@ -24,32 +13,18 @@ export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
       scheduleChanged,
     });
   },
-  onDeleted: async (before) => {
-    await onTriggerDeleted(before);
-  },
   check: async (ctx): Promise<ScheduledTriggerAuditResult> => {
-    const [enabledTriggers, schedules] = await Promise.all([
-      listEnabledScheduledTriggers(ctx.manageDb)({ scopes: ctx.scopes }),
-      listTriggerSchedulesByProject(ctx.runDb)({ scopes: ctx.scopes }),
-    ]);
-
-    const scheduleMap = new Map(schedules.map((s) => [s.scheduledTriggerId, s]));
-    const enabledTriggerIds = new Set(enabledTriggers.map((t) => t.id));
+    const enabledTriggers = await listEnabledScheduledTriggers(ctx.manageDb)({
+      scopes: ctx.scopes,
+    });
 
     const missingWorkflows = enabledTriggers
-      .filter((t) => !scheduleMap.has(t.id))
+      .filter((t) => !(t as any).nextRunAt)
       .map((t) => ({ triggerId: t.id, triggerName: t.name }));
-
-    const orphanedWorkflows = schedules
-      .filter((s) => s.enabled && !enabledTriggerIds.has(s.scheduledTriggerId))
-      .map((s) => ({
-        workflowRunId: s.scheduledTriggerId,
-        scheduledTriggerId: s.scheduledTriggerId,
-      }));
 
     return {
       missingWorkflows,
-      orphanedWorkflows,
+      orphanedWorkflows: [],
       staleWorkflows: [],
       deadWorkflows: [],
       verificationFailures: [],

@@ -1,5 +1,5 @@
 {
-  "id": "b555284f-8ae7-4f48-820c-83ceed35c7b2",
+  "id": "1d4cc4c1-1d3e-471f-a99d-840a8a1c5d27",
   "prevId": "abc7a103-dd2c-4112-987f-c0e6750fb068",
   "version": "7",
   "dialect": "postgresql",
@@ -73,13 +73,6 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
-        },
-        "execution_mode": {
-          "name": "execution_mode",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'classic'"
         },
         "created_at": {
           "name": "created_at",
@@ -2058,6 +2051,12 @@
         "created_by": {
           "name": "created_by",
           "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "next_run_at": {
+          "name": "next_run_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },

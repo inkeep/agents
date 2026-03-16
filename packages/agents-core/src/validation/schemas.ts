@@ -997,6 +997,7 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   createdBy: () =>
     UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
 }).omit({
+  nextRunAt: true,
   createdAt: true,
   updatedAt: true,
 });
