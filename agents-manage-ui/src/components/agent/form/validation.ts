@@ -112,7 +112,8 @@ export const FullAgentFunctionSchema = z.object({
     .string()
     .trim()
     .transform((val, ctx) => (val ? transformToJson(val, ctx) : undefined))
-    .pipe(FunctionSchema.shape.inputSchema),
+    .pipe(FunctionSchema.shape.inputSchema)
+    .optional(),
 });
 export const FullAgentToolSchema = AgentWithinContextOfProjectSchema.shape.tools
   .unwrap()
@@ -274,6 +275,11 @@ export function serializeAgentForm(data: FullAgentResponse) {
             stepCountIs: value.stopWhen?.stepCountIs ?? null,
           },
           models: serializeModels(value.models ?? {}),
+          skills: value.skills?.map((skill) => ({
+            id: skill.id,
+            index: skill.index,
+            alwaysLoaded: skill.alwaysLoaded,
+          })),
         },
       ])
     ),
