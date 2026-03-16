@@ -98,7 +98,9 @@ export function ModelSection({
           </div>
         }
         description="Primary model for general sub agent responses"
-        onModelChange={(value) => updatePath('models.base.model', value)}
+        onModelChange={(value) => {
+          updatePath('models.base.model', value);
+        }}
         onProviderOptionsChange={(options) => {
           updatePath('models.base.providerOptions', options);
         }}
@@ -126,7 +128,9 @@ export function ModelSection({
             </div>
           }
           description="The model used for structured output and components (defaults to base model)"
-          onModelChange={(value) => updatePath('models.structuredOutput.model', value)}
+          onModelChange={(value) => {
+            updatePath('models.structuredOutput.model', value);
+          }}
           onProviderOptionsChange={(options) => {
             updatePath('models.structuredOutput.providerOptions', options);
           }}
@@ -159,7 +163,9 @@ export function ModelSection({
             </div>
           }
           description="The model used for summarization tasks (defaults to base model)"
-          onModelChange={(value) => updatePath('models.summarizer.model', value)}
+          onModelChange={(value) => {
+            updatePath('models.summarizer.model', value);
+          }}
           onProviderOptionsChange={(options) => {
             updatePath('models.summarizer.providerOptions', options);
           }}
