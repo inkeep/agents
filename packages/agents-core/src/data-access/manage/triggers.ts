@@ -3,6 +3,7 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { triggers } from '../../db/manage/manage-schema';
 import type { TriggerInsert, TriggerSelect, TriggerUpdate } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
+import { agentScopedWhere, projectScopedWhere } from './scope-helpers';
 
 /**
  * Get a trigger by ID (agent-scoped)
@@ -16,12 +17,7 @@ export const getTriggerById =
     const { scopes, triggerId } = params;
 
     const result = await db.query.triggers.findFirst({
-      where: and(
-        eq(triggers.tenantId, scopes.tenantId),
-        eq(triggers.projectId, scopes.projectId),
-        eq(triggers.agentId, scopes.agentId),
-        eq(triggers.id, triggerId)
-      ),
+      where: and(agentScopedWhere(triggers, scopes), eq(triggers.id, triggerId)),
     });
 
     return result as TriggerSelect | undefined;
@@ -34,11 +30,7 @@ export const listTriggers =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<TriggerSelect[]> => {
     const result = await db.query.triggers.findMany({
-      where: and(
-        eq(triggers.tenantId, params.scopes.tenantId),
-        eq(triggers.projectId, params.scopes.projectId),
-        eq(triggers.agentId, params.scopes.agentId)
-      ),
+      where: agentScopedWhere(triggers, params.scopes),
     });
     return result as TriggerSelect[];
   };
@@ -53,11 +45,7 @@ export const listTriggersPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(triggers.tenantId, params.scopes.tenantId),
-      eq(triggers.projectId, params.scopes.projectId),
-      eq(triggers.agentId, params.scopes.agentId)
-    );
+    const whereClause = agentScopedWhere(triggers, params.scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -110,14 +98,7 @@ export const updateTrigger =
     const result = await db
       .update(triggers)
       .set(updateData as any)
-      .where(
-        and(
-          eq(triggers.tenantId, params.scopes.tenantId),
-          eq(triggers.projectId, params.scopes.projectId),
-          eq(triggers.agentId, params.scopes.agentId),
-          eq(triggers.id, params.triggerId)
-        )
-      )
+      .where(and(agentScopedWhere(triggers, params.scopes), eq(triggers.id, params.triggerId)))
       .returning();
 
     return result[0] as TriggerSelect;
@@ -131,14 +112,7 @@ export const deleteTrigger =
   async (params: { scopes: AgentScopeConfig; triggerId: string }): Promise<void> => {
     await db
       .delete(triggers)
-      .where(
-        and(
-          eq(triggers.tenantId, params.scopes.tenantId),
-          eq(triggers.projectId, params.scopes.projectId),
-          eq(triggers.agentId, params.scopes.agentId),
-          eq(triggers.id, params.triggerId)
-        )
-      );
+      .where(and(agentScopedWhere(triggers, params.scopes), eq(triggers.id, params.triggerId)));
   };
 
 /**
@@ -152,8 +126,7 @@ export const deleteTriggersByRunAsUserId =
       .delete(triggers)
       .where(
         and(
-          eq(triggers.tenantId, params.tenantId),
-          eq(triggers.projectId, params.projectId),
+          projectScopedWhere(triggers, { tenantId: params.tenantId, projectId: params.projectId }),
           eq(triggers.runAsUserId, params.runAsUserId)
         )
       );
@@ -169,12 +142,7 @@ export const upsertTrigger =
 
     // Check if trigger exists
     const existing = await db.query.triggers.findFirst({
-      where: and(
-        eq(triggers.tenantId, scopes.tenantId),
-        eq(triggers.projectId, scopes.projectId),
-        eq(triggers.agentId, scopes.agentId),
-        eq(triggers.id, data.id)
-      ),
+      where: and(agentScopedWhere(triggers, scopes), eq(triggers.id, data.id)),
     });
 
     if (existing) {
@@ -186,14 +154,7 @@ export const upsertTrigger =
       const result = await db
         .update(triggers)
         .set(updateData as any)
-        .where(
-          and(
-            eq(triggers.tenantId, scopes.tenantId),
-            eq(triggers.projectId, scopes.projectId),
-            eq(triggers.agentId, scopes.agentId),
-            eq(triggers.id, data.id)
-          )
-        )
+        .where(and(agentScopedWhere(triggers, scopes), eq(triggers.id, data.id)))
         .returning();
       return result[0] as TriggerSelect;
     }

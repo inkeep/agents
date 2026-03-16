@@ -137,11 +137,13 @@ export class ArtifactService {
     try {
       const taskIds = await listTaskIdsByContextId(runDbClient)({
         contextId: contextId,
+        scopes: { tenantId, projectId },
       });
 
       for (const taskId of taskIds) {
         const task = await getTask(runDbClient)({
           id: taskId,
+          scopes: { tenantId, projectId },
         });
         if (!task) {
           logger.warn({ taskId }, 'Task not found when fetching artifacts');

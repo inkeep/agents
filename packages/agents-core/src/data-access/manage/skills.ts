@@ -16,6 +16,7 @@ import type {
   SubAgentScopeConfig,
 } from '../../types/utility';
 import { getLogger } from '../../utils/logger';
+import { agentScopedWhere, projectScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
 const logger = getLogger('skills-dal');
 
@@ -23,11 +24,7 @@ export const getSkillById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
     const result = await db.query.skills.findFirst({
-      where: and(
-        eq(skills.tenantId, params.scopes.tenantId),
-        eq(skills.projectId, params.scopes.projectId),
-        eq(skills.id, params.skillId)
-      ),
+      where: and(projectScopedWhere(skills, params.scopes), eq(skills.id, params.skillId)),
     });
     return result ?? null;
   };
@@ -39,10 +36,7 @@ export const listSkills =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(skills.tenantId, params.scopes.tenantId),
-      eq(skills.projectId, params.scopes.projectId)
-    );
+    const whereClause = projectScopedWhere(skills, params.scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -84,12 +78,9 @@ export const upsertSkill = (db: AgentsManageDatabaseClient) => async (data: Skil
     id: data.name,
   };
 
+  const scopes = { tenantId: baseData.tenantId, projectId: baseData.projectId };
   const existing = await db.query.skills.findFirst({
-    where: and(
-      eq(skills.tenantId, baseData.tenantId),
-      eq(skills.projectId, baseData.projectId),
-      eq(skills.id, baseData.id)
-    ),
+    where: and(projectScopedWhere(skills, scopes), eq(skills.id, baseData.id)),
   });
 
   if (existing) {
@@ -102,13 +93,7 @@ export const upsertSkill = (db: AgentsManageDatabaseClient) => async (data: Skil
         metadata: baseData.metadata,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(skills.tenantId, baseData.tenantId),
-          eq(skills.projectId, baseData.projectId),
-          eq(skills.id, baseData.id)
-        )
-      )
+      .where(and(projectScopedWhere(skills, scopes), eq(skills.id, baseData.id)))
       .returning();
 
     logger.info({ skillId: baseData.id }, 'Updated skill');
@@ -138,13 +123,7 @@ export const updateSkill =
     const [result] = await db
       .update(skills)
       .set(updateData)
-      .where(
-        and(
-          eq(skills.tenantId, params.scopes.tenantId),
-          eq(skills.projectId, params.scopes.projectId),
-          eq(skills.id, params.skillId)
-        )
-      )
+      .where(and(projectScopedWhere(skills, params.scopes), eq(skills.id, params.skillId)))
       .returning();
 
     return result ?? null;
@@ -155,13 +134,7 @@ export const deleteSkill =
   async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
     const result = await db
       .delete(skills)
-      .where(
-        and(
-          eq(skills.tenantId, params.scopes.tenantId),
-          eq(skills.projectId, params.scopes.projectId),
-          eq(skills.id, params.skillId)
-        )
-      )
+      .where(and(projectScopedWhere(skills, params.scopes), eq(skills.id, params.skillId)))
       .returning();
 
     return result.length > 0;
@@ -202,9 +175,7 @@ export const getSkillsForSubAgents =
       )
       .where(
         and(
-          eq(subAgentSkills.tenantId, params.scopes.tenantId),
-          eq(subAgentSkills.projectId, params.scopes.projectId),
-          eq(subAgentSkills.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentSkills, params.scopes),
           inArray(subAgentSkills.subAgentId, params.subAgentIds)
         )
       )
@@ -222,10 +193,7 @@ export const upsertSubAgentSkill =
     const now = new Date().toISOString();
     const existing = await db.query.subAgentSkills.findFirst({
       where: and(
-        eq(subAgentSkills.tenantId, params.scopes.tenantId),
-        eq(subAgentSkills.projectId, params.scopes.projectId),
-        eq(subAgentSkills.agentId, params.scopes.agentId),
-        eq(subAgentSkills.subAgentId, params.scopes.subAgentId),
+        subAgentScopedWhere(subAgentSkills, params.scopes),
         eq(subAgentSkills.skillId, params.skillId)
       ),
     });
@@ -265,9 +233,7 @@ export const deleteSubAgentSkill =
       .delete(subAgentSkills)
       .where(
         and(
-          eq(subAgentSkills.tenantId, params.scopes.tenantId),
-          eq(subAgentSkills.projectId, params.scopes.projectId),
-          eq(subAgentSkills.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentSkills, params.scopes),
           eq(subAgentSkills.id, params.subAgentSkillId)
         )
       )

@@ -13,15 +13,14 @@ import type {
 } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
+import { agentScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
 export const getAgentRelationById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; relationId: string }) => {
     return db.query.subAgentRelations.findFirst({
       where: and(
-        eq(subAgentRelations.tenantId, params.scopes.tenantId),
-        eq(subAgentRelations.projectId, params.scopes.projectId),
-        eq(subAgentRelations.agentId, params.scopes.agentId),
+        agentScopedWhere(subAgentRelations, params.scopes),
         eq(subAgentRelations.id, params.relationId)
       ),
     });
@@ -34,11 +33,7 @@ export const listAgentRelations =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(subAgentRelations.tenantId, params.scopes.tenantId),
-      eq(subAgentRelations.projectId, params.scopes.projectId),
-      eq(subAgentRelations.agentId, params.scopes.agentId)
-    );
+    const whereClause = agentScopedWhere(subAgentRelations, params.scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -61,9 +56,7 @@ export const getAgentRelations =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     return await db.query.subAgentRelations.findMany({
       where: and(
-        eq(subAgentRelations.tenantId, params.scopes.tenantId),
-        eq(subAgentRelations.projectId, params.scopes.projectId),
-        eq(subAgentRelations.agentId, params.scopes.agentId),
+        agentScopedWhere(subAgentRelations, params.scopes),
         eq(subAgentRelations.sourceSubAgentId, params.scopes.subAgentId)
       ),
     });
@@ -72,11 +65,7 @@ export const getAgentRelations =
 export const getAgentRelationsByAgent =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.subAgentRelations.findMany({
-      where: and(
-        eq(subAgentRelations.tenantId, params.scopes.tenantId),
-        eq(subAgentRelations.projectId, params.scopes.projectId),
-        eq(subAgentRelations.agentId, params.scopes.agentId)
-      ),
+      where: agentScopedWhere(subAgentRelations, params.scopes),
     });
   };
 
@@ -92,9 +81,7 @@ export const getAgentRelationsBySource =
     const offset = (page - 1) * limit;
 
     const whereClause = and(
-      eq(subAgentRelations.tenantId, params.scopes.tenantId),
-      eq(subAgentRelations.projectId, params.scopes.projectId),
-      eq(subAgentRelations.agentId, params.scopes.agentId),
+      agentScopedWhere(subAgentRelations, params.scopes),
       eq(subAgentRelations.sourceSubAgentId, params.sourceSubAgentId)
     );
 
@@ -130,9 +117,7 @@ export const getSubAgentRelationsByTarget =
     const offset = (page - 1) * limit;
 
     const whereClause = and(
-      eq(subAgentRelations.tenantId, params.scopes.tenantId),
-      eq(subAgentRelations.projectId, params.scopes.projectId),
-      eq(subAgentRelations.agentId, params.scopes.agentId),
+      agentScopedWhere(subAgentRelations, params.scopes),
       eq(subAgentRelations.targetSubAgentId, params.targetSubAgentId)
     );
 
@@ -179,9 +164,7 @@ export const getRelatedAgentsForAgent =
       )
       .where(
         and(
-          eq(subAgentRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentRelations.projectId, params.scopes.projectId),
-          eq(subAgentRelations.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentRelations, params.scopes),
           eq(subAgentRelations.sourceSubAgentId, params.subAgentId),
           isNotNull(subAgentRelations.targetSubAgentId)
         )
@@ -233,9 +216,7 @@ export const getAgentRelationByParams =
     relationType: string;
   }) => {
     const whereConditions = [
-      eq(subAgentRelations.tenantId, params.scopes.tenantId),
-      eq(subAgentRelations.projectId, params.scopes.projectId),
-      eq(subAgentRelations.agentId, params.scopes.agentId),
+      agentScopedWhere(subAgentRelations, params.scopes),
       eq(subAgentRelations.sourceSubAgentId, params.sourceSubAgentId),
       eq(subAgentRelations.relationType, params.relationType),
     ];
@@ -285,9 +266,7 @@ export const updateAgentRelation =
       .set(updateData)
       .where(
         and(
-          eq(subAgentRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentRelations.projectId, params.scopes.projectId),
-          eq(subAgentRelations.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentRelations, params.scopes),
           eq(subAgentRelations.id, params.relationId)
         )
       )
@@ -303,9 +282,7 @@ export const deleteSubAgentRelation =
       .delete(subAgentRelations)
       .where(
         and(
-          eq(subAgentRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentRelations.projectId, params.scopes.projectId),
-          eq(subAgentRelations.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentRelations, params.scopes),
           eq(subAgentRelations.id, params.relationId)
         )
       )
@@ -318,13 +295,7 @@ export const deleteAgentRelationsByAgent =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .delete(subAgentRelations)
-      .where(
-        and(
-          eq(subAgentRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentRelations.projectId, params.scopes.projectId),
-          eq(subAgentRelations.agentId, params.scopes.agentId)
-        )
-      )
+      .where(agentScopedWhere(subAgentRelations, params.scopes))
       .returning();
     return result.length > 0;
   };
@@ -348,9 +319,7 @@ export const createAgentToolRelation =
       .insert(subAgentToolRelations)
       .values({
         id: finalRelationId,
-        tenantId: params.scopes.tenantId,
-        projectId: params.scopes.projectId,
-        agentId: params.scopes.agentId,
+        ...params.scopes,
         subAgentId: params.data.subAgentId,
         toolId: params.data.toolId,
         selectedTools: params.data.selectedTools,
@@ -379,9 +348,7 @@ export const updateAgentToolRelation =
       .set(updateData)
       .where(
         and(
-          eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentToolRelations.projectId, params.scopes.projectId),
-          eq(subAgentToolRelations.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentToolRelations, params.scopes),
           eq(subAgentToolRelations.id, params.relationId)
         )
       )
@@ -397,9 +364,7 @@ export const deleteAgentToolRelation =
       .delete(subAgentToolRelations)
       .where(
         and(
-          eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentToolRelations.projectId, params.scopes.projectId),
-          eq(subAgentToolRelations.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentToolRelations, params.scopes),
           eq(subAgentToolRelations.id, params.relationId)
         )
       )
@@ -412,14 +377,7 @@ export const deleteAgentToolRelationByAgent =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .delete(subAgentToolRelations)
-      .where(
-        and(
-          eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentToolRelations.projectId, params.scopes.projectId),
-          eq(subAgentToolRelations.agentId, params.scopes.agentId),
-          eq(subAgentToolRelations.subAgentId, params.scopes.subAgentId)
-        )
-      )
+      .where(subAgentScopedWhere(subAgentToolRelations, params.scopes))
       .returning();
     return result.length > 0;
   };
@@ -429,9 +387,7 @@ export const getAgentToolRelationById =
   async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     return await db.query.subAgentToolRelations.findFirst({
       where: and(
-        eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-        eq(subAgentToolRelations.projectId, params.scopes.projectId),
-        eq(subAgentToolRelations.agentId, params.scopes.agentId),
+        agentScopedWhere(subAgentToolRelations, params.scopes),
         eq(subAgentToolRelations.id, params.relationId)
       ),
     });
@@ -444,32 +400,17 @@ export const getAgentToolRelationByAgent =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
+    const whereClause = subAgentScopedWhere(subAgentToolRelations, params.scopes);
+
     const [data, totalResult] = await Promise.all([
       db
         .select()
         .from(subAgentToolRelations)
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId),
-            eq(subAgentToolRelations.subAgentId, params.scopes.subAgentId)
-          )
-        )
+        .where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(subAgentToolRelations.createdAt)),
-      db
-        .select({ count: count() })
-        .from(subAgentToolRelations)
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId),
-            eq(subAgentToolRelations.subAgentId, params.scopes.subAgentId)
-          )
-        ),
+      db.select({ count: count() }).from(subAgentToolRelations).where(whereClause),
     ]);
 
     const total = totalResult[0]?.count || 0;
@@ -488,32 +429,20 @@ export const getAgentToolRelationByTool =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
+    const whereClause = and(
+      agentScopedWhere(subAgentToolRelations, params.scopes),
+      eq(subAgentToolRelations.toolId, params.toolId)
+    );
+
     const [data, totalResult] = await Promise.all([
       db
         .select()
         .from(subAgentToolRelations)
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId),
-            eq(subAgentToolRelations.toolId, params.toolId)
-          )
-        )
+        .where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(subAgentToolRelations.createdAt)),
-      db
-        .select({ count: count() })
-        .from(subAgentToolRelations)
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId),
-            eq(subAgentToolRelations.toolId, params.toolId)
-          )
-        ),
+      db.select({ count: count() }).from(subAgentToolRelations).where(whereClause),
     ]);
 
     const total = totalResult[0]?.count || 0;
@@ -531,30 +460,18 @@ export const listAgentToolRelations =
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
+
+    const whereClause = agentScopedWhere(subAgentToolRelations, params.scopes);
+
     const [data, totalResult] = await Promise.all([
       db
         .select()
         .from(subAgentToolRelations)
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId)
-          )
-        )
+        .where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(subAgentToolRelations.createdAt)),
-      db
-        .select({ count: count() })
-        .from(subAgentToolRelations)
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId)
-          )
-        ),
+      db.select({ count: count() }).from(subAgentToolRelations).where(whereClause),
     ]);
 
     const total = totalResult[0]?.count || 0;
@@ -572,6 +489,8 @@ export const getToolsForAgent =
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
+
+    const whereClause = subAgentScopedWhere(subAgentToolRelations, params.scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -611,28 +530,11 @@ export const getToolsForAgent =
             eq(subAgentToolRelations.toolId, tools.id)
           )
         )
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId),
-            eq(subAgentToolRelations.subAgentId, params.scopes.subAgentId)
-          )
-        )
+        .where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(subAgentToolRelations.createdAt)),
-      db
-        .select({ count: count() })
-        .from(subAgentToolRelations)
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId),
-            eq(subAgentToolRelations.subAgentId, params.scopes.subAgentId)
-          )
-        ),
+      db.select({ count: count() }).from(subAgentToolRelations).where(whereClause),
     ]);
 
     const total = totalResult[0]?.count || 0;
@@ -650,6 +552,11 @@ export const getAgentsForTool =
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
+
+    const whereClause = and(
+      agentScopedWhere(subAgentToolRelations, params.scopes),
+      eq(subAgentToolRelations.toolId, params.toolId)
+    );
 
     const [data, totalResult] = await Promise.all([
       db
@@ -685,28 +592,11 @@ export const getAgentsForTool =
             eq(subAgentToolRelations.agentId, subAgents.agentId)
           )
         )
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId),
-            eq(subAgentToolRelations.toolId, params.toolId)
-          )
-        )
+        .where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(subAgentToolRelations.createdAt)),
-      db
-        .select({ count: count() })
-        .from(subAgentToolRelations)
-        .where(
-          and(
-            eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-            eq(subAgentToolRelations.projectId, params.scopes.projectId),
-            eq(subAgentToolRelations.agentId, params.scopes.agentId),
-            eq(subAgentToolRelations.toolId, params.toolId)
-          )
-        ),
+      db.select({ count: count() }).from(subAgentToolRelations).where(whereClause),
     ]);
 
     const total = totalResult[0]?.count || 0;
@@ -724,12 +614,7 @@ export const validateSubAgent =
       .select({ id: subAgents.id })
       .from(subAgents)
       .where(
-        and(
-          eq(subAgents.tenantId, params.scopes.tenantId),
-          eq(subAgents.projectId, params.scopes.projectId),
-          eq(subAgents.agentId, params.scopes.agentId),
-          eq(subAgents.id, params.scopes.subAgentId)
-        )
+        and(agentScopedWhere(subAgents, params.scopes), eq(subAgents.id, params.scopes.subAgentId))
       )
       .limit(1);
 

@@ -11,6 +11,7 @@ import {
   getConversation,
   getEvaluatorById,
   getProjectScopedRef,
+  isForeignKeyViolation,
   resolveRef,
   updateEvaluationResult,
   withRef,
@@ -114,9 +115,8 @@ async function createRelationStep(payload: RunDatasetItemPayload, conversationId
     );
 
     return { relationId, success: true };
-  } catch (error: any) {
-    // If foreign key constraint fails, the conversation doesn't exist
-    if (error?.cause?.code === '23503' || error?.code === '23503') {
+  } catch (error) {
+    if (isForeignKeyViolation(error)) {
       logger.warn(
         { tenantId, projectId, datasetItemId, datasetRunId, conversationId },
         'Conversation does not exist, skipping relation creation'

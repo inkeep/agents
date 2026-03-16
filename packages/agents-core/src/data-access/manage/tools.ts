@@ -9,6 +9,7 @@ import { subAgentToolRelations, tools } from '../../db/manage/manage-schema';
 import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import { env } from '../../env';
+import { isSerializationError } from '../../retry/retryable-errors';
 import type { CredentialReferenceSelect } from '../../types/index';
 import {
   type AgentScopeConfig,
@@ -38,6 +39,7 @@ import { cascadeDeleteByTool } from '../runtime/cascade-delete';
 import { isGithubWorkAppTool } from '../runtime/github-work-app-installations';
 import { isSlackWorkAppTool } from '../runtime/slack-work-app-mcp';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
+import { agentScopedWhere, projectScopedWhere } from './scope-helpers';
 import { updateAgentToolRelation } from './subAgentRelations';
 
 /**
@@ -432,14 +434,7 @@ export const dbResultToMcpTool = async (
       },
     });
   } catch (updateError) {
-    // Check for serialization conflict (sqlstate 40001, errno 1213)
-    const isSerializationConflict =
-      updateError instanceof Error &&
-      (updateError.message.includes('serialization failure') ||
-        updateError.message.includes('40001') ||
-        (updateError as any).cause?.code === 'XX000');
-
-    if (isSerializationConflict) {
+    if (isSerializationError(updateError)) {
       logger.debug(
         { toolId: dbResult.id },
         'Skipping tool metadata update due to serialization conflict (concurrent request)'
@@ -474,11 +469,7 @@ export const getToolById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const result = await db.query.tools.findFirst({
-      where: and(
-        eq(tools.tenantId, params.scopes.tenantId),
-        eq(tools.projectId, params.scopes.projectId),
-        eq(tools.id, params.toolId)
-      ),
+      where: and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)),
     });
     return result ?? null;
   };
@@ -512,10 +503,7 @@ export const listTools =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(tools.tenantId, params.scopes.tenantId),
-      eq(tools.projectId, params.scopes.projectId)
-    );
+    const whereClause = projectScopedWhere(tools, params.scopes);
 
     const [toolsDbResults, totalResult] = await Promise.all([
       db
@@ -567,13 +555,7 @@ export const updateTool =
         ...params.data,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(tools.tenantId, params.scopes.tenantId),
-          eq(tools.projectId, params.scopes.projectId),
-          eq(tools.id, params.toolId)
-        )
-      )
+      .where(and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)))
       .returning();
 
     return updated ?? null;
@@ -584,13 +566,7 @@ export const deleteTool =
   async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const [deleted] = await db
       .delete(tools)
-      .where(
-        and(
-          eq(tools.tenantId, params.scopes.tenantId),
-          eq(tools.projectId, params.scopes.projectId),
-          eq(tools.id, params.toolId)
-        )
-      )
+      .where(and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)))
       .returning();
 
     if (!deleted) {
@@ -667,9 +643,7 @@ export const removeToolFromAgent =
       .delete(subAgentToolRelations)
       .where(
         and(
-          eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentToolRelations.projectId, params.scopes.projectId),
-          eq(subAgentToolRelations.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentToolRelations, params.scopes),
           eq(subAgentToolRelations.subAgentId, params.subAgentId),
           eq(subAgentToolRelations.toolId, params.toolId)
         )

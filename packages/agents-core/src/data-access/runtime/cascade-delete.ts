@@ -11,6 +11,7 @@ import {
   workAppGitHubProjectRepositoryAccess,
 } from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
+import { projectScopedWhere } from '../manage/scope-helpers';
 import { clearAppDefaultsByAgent, clearAppDefaultsByProject, deleteAppsByProject } from './apps';
 import { deleteSlackMcpToolAccessConfig } from './slack-work-app-mcp';
 import {
@@ -57,8 +58,7 @@ export const cascadeDeleteByBranch =
       .delete(contextCache)
       .where(
         and(
-          eq(contextCache.tenantId, scopes.tenantId),
-          eq(contextCache.projectId, scopes.projectId),
+          projectScopedWhere(contextCache, scopes),
           sql`${contextCache.ref}->>'name' = ${fullBranchName}`
         )
       )
@@ -69,8 +69,7 @@ export const cascadeDeleteByBranch =
       .delete(conversations)
       .where(
         and(
-          eq(conversations.tenantId, scopes.tenantId),
-          eq(conversations.projectId, scopes.projectId),
+          projectScopedWhere(conversations, scopes),
           sql`${conversations.ref}->>'name' = ${fullBranchName}`
         )
       )
@@ -79,13 +78,7 @@ export const cascadeDeleteByBranch =
     // Delete tasks for this branch (cascades to ledgerArtifacts, taskRelations)
     const tasksResult = await db
       .delete(tasks)
-      .where(
-        and(
-          eq(tasks.tenantId, scopes.tenantId),
-          eq(tasks.projectId, scopes.projectId),
-          sql`${tasks.ref}->>'name' = ${fullBranchName}`
-        )
-      )
+      .where(and(projectScopedWhere(tasks, scopes), sql`${tasks.ref}->>'name' = ${fullBranchName}`))
       .returning();
 
     return {
@@ -121,8 +114,7 @@ export const cascadeDeleteByProject =
       .delete(contextCache)
       .where(
         and(
-          eq(contextCache.tenantId, scopes.tenantId),
-          eq(contextCache.projectId, scopes.projectId),
+          projectScopedWhere(contextCache, scopes),
           sql`${contextCache.ref}->>'name' = ${fullBranchName}`
         )
       )
@@ -133,8 +125,7 @@ export const cascadeDeleteByProject =
       .delete(conversations)
       .where(
         and(
-          eq(conversations.tenantId, scopes.tenantId),
-          eq(conversations.projectId, scopes.projectId),
+          projectScopedWhere(conversations, scopes),
           sql`${conversations.ref}->>'name' = ${fullBranchName}`
         )
       )
@@ -143,19 +134,13 @@ export const cascadeDeleteByProject =
     // Delete tasks for this project on this branch (cascades to ledgerArtifacts, taskRelations)
     const tasksResult = await db
       .delete(tasks)
-      .where(
-        and(
-          eq(tasks.tenantId, scopes.tenantId),
-          eq(tasks.projectId, scopes.projectId),
-          sql`${tasks.ref}->>'name' = ${fullBranchName}`
-        )
-      )
+      .where(and(projectScopedWhere(tasks, scopes), sql`${tasks.ref}->>'name' = ${fullBranchName}`))
       .returning();
 
     // Delete all API keys for this project (API keys are branch-agnostic)
     const apiKeysResult = await db
       .delete(apiKeys)
-      .where(and(eq(apiKeys.tenantId, scopes.tenantId), eq(apiKeys.projectId, scopes.projectId)))
+      .where(projectScopedWhere(apiKeys, scopes))
       .returning();
 
     // Delete all MCP tool access mode entries for tools in this project
@@ -223,8 +208,7 @@ export const cascadeDeleteByAgent =
         .from(conversations)
         .where(
           and(
-            eq(conversations.tenantId, scopes.tenantId),
-            eq(conversations.projectId, scopes.projectId),
+            projectScopedWhere(conversations, scopes),
             inArray(conversations.activeSubAgentId, subAgentIds),
             sql`${conversations.ref}->>'name' = ${fullBranchName}`
           )
@@ -238,8 +222,7 @@ export const cascadeDeleteByAgent =
           .delete(contextCache)
           .where(
             and(
-              eq(contextCache.tenantId, scopes.tenantId),
-              eq(contextCache.projectId, scopes.projectId),
+              projectScopedWhere(contextCache, scopes),
               inArray(contextCache.conversationId, conversationIds)
             )
           )
@@ -251,8 +234,7 @@ export const cascadeDeleteByAgent =
           .delete(conversations)
           .where(
             and(
-              eq(conversations.tenantId, scopes.tenantId),
-              eq(conversations.projectId, scopes.projectId),
+              projectScopedWhere(conversations, scopes),
               inArray(conversations.id, conversationIds)
             )
           )
@@ -266,8 +248,7 @@ export const cascadeDeleteByAgent =
       .delete(tasks)
       .where(
         and(
-          eq(tasks.tenantId, scopes.tenantId),
-          eq(tasks.projectId, scopes.projectId),
+          projectScopedWhere(tasks, scopes),
           eq(tasks.agentId, scopes.agentId),
           sql`${tasks.ref}->>'name' = ${fullBranchName}`
         )
@@ -278,13 +259,7 @@ export const cascadeDeleteByAgent =
     // Delete API keys for this agent
     const apiKeysResult = await db
       .delete(apiKeys)
-      .where(
-        and(
-          eq(apiKeys.tenantId, scopes.tenantId),
-          eq(apiKeys.projectId, scopes.projectId),
-          eq(apiKeys.agentId, scopes.agentId)
-        )
-      )
+      .where(and(projectScopedWhere(apiKeys, scopes), eq(apiKeys.agentId, scopes.agentId)))
       .returning();
     apiKeysDeleted = apiKeysResult.length;
 
@@ -337,8 +312,7 @@ export const cascadeDeleteBySubAgent =
       .from(conversations)
       .where(
         and(
-          eq(conversations.tenantId, scopes.tenantId),
-          eq(conversations.projectId, scopes.projectId),
+          projectScopedWhere(conversations, scopes),
           eq(conversations.activeSubAgentId, subAgentId),
           sql`${conversations.ref}->>'name' = ${fullBranchName}`
         )
@@ -355,8 +329,7 @@ export const cascadeDeleteBySubAgent =
         .delete(contextCache)
         .where(
           and(
-            eq(contextCache.tenantId, scopes.tenantId),
-            eq(contextCache.projectId, scopes.projectId),
+            projectScopedWhere(contextCache, scopes),
             inArray(contextCache.conversationId, conversationIds)
           )
         )
@@ -367,11 +340,7 @@ export const cascadeDeleteBySubAgent =
       const conversationsResult = await db
         .delete(conversations)
         .where(
-          and(
-            eq(conversations.tenantId, scopes.tenantId),
-            eq(conversations.projectId, scopes.projectId),
-            inArray(conversations.id, conversationIds)
-          )
+          and(projectScopedWhere(conversations, scopes), inArray(conversations.id, conversationIds))
         )
         .returning();
       conversationsDeleted = conversationsResult.length;
@@ -382,8 +351,7 @@ export const cascadeDeleteBySubAgent =
       .delete(tasks)
       .where(
         and(
-          eq(tasks.tenantId, scopes.tenantId),
-          eq(tasks.projectId, scopes.projectId),
+          projectScopedWhere(tasks, scopes),
           eq(tasks.subAgentId, subAgentId),
           sql`${tasks.ref}->>'name' = ${fullBranchName}`
         )
@@ -422,8 +390,7 @@ export const cascadeDeleteByContextConfig =
       .delete(contextCache)
       .where(
         and(
-          eq(contextCache.tenantId, scopes.tenantId),
-          eq(contextCache.projectId, scopes.projectId),
+          projectScopedWhere(contextCache, scopes),
           eq(contextCache.contextConfigId, contextConfigId),
           sql`${contextCache.ref}->>'name' = ${fullBranchName}`
         )
@@ -471,13 +438,14 @@ export const cascadeDeleteByTool =
   }): Promise<ToolCascadeDeleteResult> => {
     const { toolId, tenantId, projectId } = params;
 
+    const scopes = { tenantId, projectId };
+
     // Delete MCP tool repository access entries
     const repositoryAccessResult = await db
       .delete(workAppGitHubMcpToolRepositoryAccess)
       .where(
         and(
-          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, tenantId),
-          eq(workAppGitHubMcpToolRepositoryAccess.projectId, projectId),
+          projectScopedWhere(workAppGitHubMcpToolRepositoryAccess, scopes),
           eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId)
         )
       )
@@ -488,8 +456,7 @@ export const cascadeDeleteByTool =
       .delete(workAppGitHubMcpToolAccessMode)
       .where(
         and(
-          eq(workAppGitHubMcpToolAccessMode.tenantId, tenantId),
-          eq(workAppGitHubMcpToolAccessMode.projectId, projectId),
+          projectScopedWhere(workAppGitHubMcpToolAccessMode, scopes),
           eq(workAppGitHubMcpToolAccessMode.toolId, toolId)
         )
       )
@@ -538,50 +505,30 @@ export const cascadeDeleteGitHubAccessByProject =
     tenantId: string;
     projectId: string;
   }): Promise<ProjectGitHubAccessCascadeDeleteResult> => {
-    const { tenantId, projectId } = params;
+    const scopes = params;
 
     // Delete project repository access entries
     const projectRepoAccessResult = await db
       .delete(workAppGitHubProjectRepositoryAccess)
-      .where(
-        and(
-          eq(workAppGitHubProjectRepositoryAccess.tenantId, tenantId),
-          eq(workAppGitHubProjectRepositoryAccess.projectId, projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubProjectRepositoryAccess, scopes))
       .returning();
 
     // Delete project access mode entry
     const projectAccessModeResult = await db
       .delete(workAppGitHubProjectAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubProjectAccessMode.tenantId, tenantId),
-          eq(workAppGitHubProjectAccessMode.projectId, projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubProjectAccessMode, scopes))
       .returning();
 
     // Delete MCP tool repository access entries for tools in this project
     const mcpToolRepoAccessResult = await db
       .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, tenantId),
-          eq(workAppGitHubMcpToolRepositoryAccess.projectId, projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubMcpToolRepositoryAccess, scopes))
       .returning();
 
     // Delete MCP tool access mode entries for tools in this project
     const mcpToolAccessModeResult = await db
       .delete(workAppGitHubMcpToolAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolAccessMode.tenantId, tenantId),
-          eq(workAppGitHubMcpToolAccessMode.projectId, projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubMcpToolAccessMode, scopes))
       .returning();
 
     return {

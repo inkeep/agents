@@ -11,6 +11,7 @@ import type {
   ToolSelect,
 } from '../../types/index';
 import { isUniqueConstraintError } from '../../utils/error';
+import { projectScopedWhere } from './scope-helpers';
 
 export type CredentialReferenceWithResources = CredentialReferenceSelect & {
   tools: ToolSelect[];
@@ -28,8 +29,7 @@ export const getCredentialReference =
   }): Promise<CredentialReferenceSelect | undefined> => {
     return await db.query.credentialReferences.findFirst({
       where: and(
-        eq(credentialReferences.tenantId, params.scopes.tenantId),
-        eq(credentialReferences.projectId, params.scopes.projectId),
+        projectScopedWhere(credentialReferences, params.scopes),
         eq(credentialReferences.id, params.id)
       ),
     });
@@ -47,8 +47,7 @@ export const getUserScopedCredentialReference =
   }): Promise<CredentialReferenceSelect | undefined> => {
     return await db.query.credentialReferences.findFirst({
       where: and(
-        eq(credentialReferences.tenantId, params.scopes.tenantId),
-        eq(credentialReferences.projectId, params.scopes.projectId),
+        projectScopedWhere(credentialReferences, params.scopes),
         eq(credentialReferences.toolId, params.toolId),
         eq(credentialReferences.userId, params.userId)
       ),
@@ -67,8 +66,7 @@ export const getCredentialReferenceWithResources =
     const [credential, relatedTools, relatedExternalAgents] = await Promise.all([
       db.query.credentialReferences.findFirst({
         where: and(
-          eq(credentialReferences.tenantId, params.scopes.tenantId),
-          eq(credentialReferences.projectId, params.scopes.projectId),
+          projectScopedWhere(credentialReferences, params.scopes),
           eq(credentialReferences.id, params.id)
         ),
       }),
@@ -76,19 +74,14 @@ export const getCredentialReferenceWithResources =
         .select()
         .from(tools)
         .where(
-          and(
-            eq(tools.tenantId, params.scopes.tenantId),
-            eq(tools.projectId, params.scopes.projectId),
-            eq(tools.credentialReferenceId, params.id)
-          )
+          and(projectScopedWhere(tools, params.scopes), eq(tools.credentialReferenceId, params.id))
         ),
       db
         .select()
         .from(externalAgents)
         .where(
           and(
-            eq(externalAgents.tenantId, params.scopes.tenantId),
-            eq(externalAgents.projectId, params.scopes.projectId),
+            projectScopedWhere(externalAgents, params.scopes),
             eq(externalAgents.credentialReferenceId, params.id)
           )
         ),
@@ -112,10 +105,7 @@ export const listCredentialReferences =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<CredentialReferenceSelect[]> => {
     return await db.query.credentialReferences.findMany({
-      where: and(
-        eq(credentialReferences.tenantId, params.scopes.tenantId),
-        eq(credentialReferences.projectId, params.scopes.projectId)
-      ),
+      where: projectScopedWhere(credentialReferences, params.scopes),
       orderBy: [desc(credentialReferences.createdAt)],
     });
   };
@@ -136,10 +126,7 @@ export const listCredentialReferencesPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(credentialReferences.tenantId, params.scopes.tenantId),
-      eq(credentialReferences.projectId, params.scopes.projectId)
-    );
+    const whereClause = projectScopedWhere(credentialReferences, params.scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -201,8 +188,7 @@ export const updateCredentialReference =
       })
       .where(
         and(
-          eq(credentialReferences.tenantId, params.scopes.tenantId),
-          eq(credentialReferences.projectId, params.scopes.projectId),
+          projectScopedWhere(credentialReferences, params.scopes),
           eq(credentialReferences.id, params.id)
         )
       );
@@ -233,8 +219,7 @@ export const deleteCredentialReference =
       .delete(credentialReferences)
       .where(
         and(
-          eq(credentialReferences.tenantId, params.scopes.tenantId),
-          eq(credentialReferences.projectId, params.scopes.projectId),
+          projectScopedWhere(credentialReferences, params.scopes),
           eq(credentialReferences.id, params.id)
         )
       );
@@ -269,8 +254,7 @@ export const getCredentialReferenceById =
   }): Promise<CredentialReferenceSelect | null> => {
     const result = await db.query.credentialReferences.findFirst({
       where: and(
-        eq(credentialReferences.tenantId, params.scopes.tenantId),
-        eq(credentialReferences.projectId, params.scopes.projectId),
+        projectScopedWhere(credentialReferences, params.scopes),
         eq(credentialReferences.id, params.id)
       ),
     });
@@ -287,12 +271,7 @@ export const countCredentialReferences =
     const result = await db
       .select({ count: count() })
       .from(credentialReferences)
-      .where(
-        and(
-          eq(credentialReferences.tenantId, params.scopes.tenantId),
-          eq(credentialReferences.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(credentialReferences, params.scopes));
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
