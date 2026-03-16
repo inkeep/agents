@@ -79,6 +79,41 @@ const validatedCreateAgent = withProjectValidation(db, createAgent);
 // Now automatically validates project before creating agent
 ```
 
+
+## Type-Safe Scope Helpers
+
+The data access layer uses type-safe scope helpers to enforce consistent project scoping across all queries. This prevents accidental data leakage between tenants and projects.
+
+### ScopedTable Pattern
+
+All DAL queries use scope helper functions instead of manual `eq()` WHERE clauses:
+
+```typescript
+import { projectScopedWhere, tenantScopedWhere } from './scope-helpers';
+
+// Instead of manual eq() calls:
+// .where(and(eq(table.tenantId, tenantId), eq(table.projectId, projectId)))
+
+// Use type-safe scope helpers:
+.where(projectScopedWhere(agents, { tenantId, projectId }))
+```
+
+### Available Scope Helpers
+
+| Helper | Scope Level | Required Fields |
+|--------|-------------|------------------|
+| `tenantScopedWhere` | Tenant | `tenantId` |
+| `projectScopedWhere` | Project | `tenantId`, `projectId` |
+| `agentScopedWhere` | Agent | `tenantId`, `projectId`, `agentId` |
+| `subAgentScopedWhere` | Sub Agent | `tenantId`, `projectId`, `agentId`, `subAgentId` |
+| `toolScopedWhere` | Tool | `tenantId`, `projectId`, `toolId` |
+
+### Security Benefits
+
+- **Compile-time safety**: TypeScript enforces that all required scope fields are provided
+- **Consistent scoping**: All queries automatically include the correct tenant/project filters
+- **Reduced errors**: Prevents accidentally omitting scope conditions
+
 ## Implementation Details
 
 ### Schema Definition
@@ -147,6 +182,7 @@ Please create the project first before adding resources to it.
 3. **Offer solutions**: When a project doesn't exist, offer to create it
 4. **Use transactions**: Ensure atomicity when creating projects and related resources
 5. **Test constraints**: Verify that constraints work as expected in tests
+6. **Use scope helpers**: Always use `projectScopedWhere` and related helpers instead of manual `eq()` clauses for consistent data isolation
 
 ## Migration Guide
 
