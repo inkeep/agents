@@ -239,13 +239,7 @@ export function RegisterSSOForm({
       const orgResult = await authClient.organization.getFullOrganization({
         query: { organizationId },
       });
-      let currentMethods: AllowedAuthMethod[] = [];
-      try {
-        const raw = orgResult.data?.allowedAuthMethods;
-        if (raw) currentMethods = JSON.parse(raw);
-      } catch {
-        // default to empty
-      }
+      const currentMethods = parseAllowedAuthMethods(orgResult.data?.allowedAuthMethods);
       currentMethods.push({
         method: 'sso',
         providerId,
