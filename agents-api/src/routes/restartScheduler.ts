@@ -19,7 +19,7 @@ restartWorkflowHandler.openapi(
   createProtectedRoute({
     method: 'post',
     path: '/api/deploy/restart-scheduler',
-    tags: ['Deploy'],
+    tags: ['Workflows'],
     summary: 'Restart scheduler workflow on new deployment',
     description:
       'Called by CI after deploy to restart the scheduler workflow on the latest deployment. Auth via INKEEP_AGENTS_RUN_API_BYPASS_SECRET.',
