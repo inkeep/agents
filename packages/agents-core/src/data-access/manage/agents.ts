@@ -1,5 +1,5 @@
-import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
-import type { PgTable } from 'drizzle-orm/pg-core';
+import { and, type Column, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import type { PgColumn } from 'drizzle-orm/pg-core';
 import { getProjectMainBranchName } from '../../data-access/manage/projectLifecycle';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
@@ -15,6 +15,7 @@ import {
   subAgentToolRelations,
   tools,
 } from '../../db/manage/manage-schema';
+import type { ScopedTable } from '../../db/manage/scope-definitions';
 import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import type {
@@ -267,28 +268,28 @@ export const fetchComponentRelationships =
     scopes: AgentScopeConfig,
     subAgentIds: string[],
     config: {
-      relationTable: PgTable<any>;
-      componentTable: PgTable<any>;
-      relationIdField: unknown;
-      componentIdField: unknown;
-      subAgentIdField: unknown;
-      selectFields: Record<string, unknown>;
+      relationTable: ScopedTable<'agent'>;
+      componentTable: ScopedTable<'project'>;
+      relationIdField: Column;
+      componentIdField: Column;
+      subAgentIdField: Column;
+      selectFields: Record<string, PgColumn>;
     }
   ): Promise<Record<string, T>> => {
     const componentsObject: Record<string, T> = {};
 
     if (subAgentIds.length > 0) {
       const results = await db
-        .select(config.selectFields as any)
-        .from(config.relationTable)
+        .select(config.selectFields)
+        .from(config.relationTable as any)
         .innerJoin(
-          config.componentTable,
-          eq(config.relationIdField as any, config.componentIdField as any)
+          config.componentTable as any,
+          eq(config.relationIdField, config.componentIdField)
         )
         .where(
           and(
-            agentScopedWhere(config.relationTable as any, scopes),
-            inArray(config.subAgentIdField as any, subAgentIds)
+            agentScopedWhere(config.relationTable, scopes),
+            inArray(config.subAgentIdField, subAgentIds)
           )
         );
 
