@@ -33,6 +33,11 @@ import {
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerWithAgent } from '@/lib/api/project-triggers';
 import { getCronDescription } from '@/lib/utils/cron';
+import {
+  formatDateTimeLocal,
+  getLocalTimezoneAbbreviation,
+  getTimezoneAbbreviation,
+} from '@/lib/utils/format-date';
 
 interface ProjectScheduledTriggersTableProps {
   triggers: ScheduledTriggerWithAgent[];
@@ -44,9 +49,13 @@ function getScheduleType(trigger: ScheduledTriggerWithAgent): 'cron' | 'one-time
   return trigger.cronExpression ? 'cron' : 'one-time';
 }
 
+function getTriggerTimezone(trigger: ScheduledTriggerWithAgent): string {
+  return trigger.cronTimezone || 'UTC';
+}
+
 function formatLastRun(trigger: ScheduledTriggerWithAgent): string {
   if (trigger.lastRunAt) {
-    return new Date(trigger.lastRunAt).toLocaleString();
+    return formatDateTimeLocal(trigger.lastRunAt);
   }
   return '—';
 }
@@ -56,7 +65,7 @@ function formatNextRun(trigger: ScheduledTriggerWithAgent): string {
     return '—';
   }
   if (trigger.nextRunAt) {
-    return new Date(trigger.nextRunAt).toLocaleString();
+    return formatDateTimeLocal(trigger.nextRunAt);
   }
   return '—';
 }
@@ -167,6 +176,8 @@ export function ProjectScheduledTriggersTable({
     }
   };
 
+  const localTz = getLocalTimezoneAbbreviation();
+
   return (
     <div className="rounded-lg border">
       <Table>
@@ -177,8 +188,8 @@ export function ProjectScheduledTriggersTable({
             <TableHead>Run As</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Schedule</TableHead>
-            <TableHead>Last Run</TableHead>
-            <TableHead>Next Run</TableHead>
+            <TableHead>Last Run{localTz ? ` (${localTz})` : ''}</TableHead>
+            <TableHead>Next Run{localTz ? ` (${localTz})` : ''}</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-12" />
           </TableRow>
@@ -250,17 +261,20 @@ export function ProjectScheduledTriggersTable({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
-                              {getCronDescription(trigger.cronExpression)}
+                              {getCronDescription(trigger.cronExpression)}{' '}
+                              {getTimezoneAbbreviation(getTriggerTimezone(trigger))}
                             </code>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <code className="font-mono">{trigger.cronExpression}</code>
+                            <code className="font-mono">
+                              {trigger.cronExpression} ({getTriggerTimezone(trigger)})
+                            </code>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     ) : (
                       <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
-                        {trigger.runAt ? new Date(trigger.runAt).toLocaleString() : '—'}
+                        {trigger.runAt ? formatDateTimeLocal(trigger.runAt) : '—'}
                       </code>
                     )}
                   </TableCell>
