@@ -75,7 +75,10 @@ export const createScheduledTrigger =
   async (
     params: ScheduledTriggerInsert & { nextRunAt?: string | null }
   ): Promise<ScheduledTrigger> => {
-    const result = await db.insert(scheduledTriggers).values(params).returning();
+    const result = await db
+      .insert(scheduledTriggers)
+      .values(params as any)
+      .returning();
     return result[0] as ScheduledTrigger;
   };
 
@@ -87,7 +90,7 @@ export const updateScheduledTrigger =
   async (params: {
     scopes: AgentScopeConfig;
     scheduledTriggerId: string;
-    data: ScheduledTriggerUpdate;
+    data: ScheduledTriggerUpdate & { nextRunAt?: string | null };
   }): Promise<ScheduledTrigger> => {
     const updateData = {
       ...params.data,
