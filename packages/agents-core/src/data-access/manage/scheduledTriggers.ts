@@ -71,11 +71,10 @@ export const listScheduledTriggersPaginated =
  */
 export const createScheduledTrigger =
   (db: AgentsManageDatabaseClient) =>
-  async (params: ScheduledTriggerInsert): Promise<ScheduledTrigger> => {
-    const result = await db
-      .insert(scheduledTriggers)
-      .values(params as any)
-      .returning();
+  async (
+    params: ScheduledTriggerInsert & { nextRunAt?: string | null }
+  ): Promise<ScheduledTrigger> => {
+    const result = await db.insert(scheduledTriggers).values(params).returning();
     return result[0] as ScheduledTrigger;
   };
 
