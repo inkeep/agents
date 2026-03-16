@@ -1,6 +1,7 @@
 import { and, count, eq, inArray } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { ledgerArtifacts } from '../../db/runtime/runtime-schema';
+import { isRetryableError } from '../../retry/retryable-errors';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../../types/index';
 import { generateId } from '../../utils/conversations';
 import { projectScopedWhere } from '../manage/scope-helpers';
@@ -256,17 +257,7 @@ export const addLedgerArtifacts =
       } catch (error: any) {
         lastError = error;
 
-        const isRetryable =
-          error?.cause?.code === '40P01' ||
-          error?.cause?.code === '40001' ||
-          error?.cause?.code === '55P03' ||
-          error.message?.includes('database is locked') ||
-          error.message?.includes('busy') ||
-          error.message?.includes('timeout') ||
-          error.message?.includes('deadlock') ||
-          error.message?.includes('serialization failure');
-
-        if (!isRetryable || attempt === maxRetries) {
+        if (!isRetryableError(error) || attempt === maxRetries) {
           await tryFallbackInsert(db, rows, error);
           return;
         }

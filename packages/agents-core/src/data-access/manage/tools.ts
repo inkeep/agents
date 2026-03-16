@@ -9,6 +9,7 @@ import { subAgentToolRelations, tools } from '../../db/manage/manage-schema';
 import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import { env } from '../../env';
+import { isSerializationError } from '../../retry/retryable-errors';
 import type { CredentialReferenceSelect } from '../../types/index';
 import {
   type AgentScopeConfig,
@@ -433,14 +434,7 @@ export const dbResultToMcpTool = async (
       },
     });
   } catch (updateError) {
-    // Check for serialization conflict (sqlstate 40001, errno 1213)
-    const isSerializationConflict =
-      updateError instanceof Error &&
-      (updateError.message.includes('serialization failure') ||
-        updateError.message.includes('40001') ||
-        (updateError as any).cause?.code === 'XX000');
-
-    if (isSerializationConflict) {
+    if (isSerializationError(updateError)) {
       logger.debug(
         { toolId: dbResult.id },
         'Skipping tool metadata update due to serialization conflict (concurrent request)'

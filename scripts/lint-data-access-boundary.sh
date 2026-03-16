@@ -17,7 +17,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 violations=$(
-  grep -rn "from 'drizzle-orm'" \
+  grep -rn "from 'drizzle-orm" \
     "$REPO_ROOT/packages" \
     "$REPO_ROOT/agents-api" \
     --include='*.ts' --include='*.tsx' \
@@ -25,13 +25,14 @@ violations=$(
     | grep -v '/db/' \
     | grep -v '/dolt/' \
     | grep -v '/validation/' \
+    | grep -v '/retry/' \
     | grep -v -- '-schema' \
     | grep -v 'branchScopedDb' \
     | grep -v 'node_modules' \
     | grep -v '__snapshots__' \
+    | grep -v '__tests__' \
     | grep -v '.d.ts' \
-    | grep -v '^\s*//' \
-    | grep -v '// import' \
+    | grep -v ':\s*//' \
     || true
 )
 
