@@ -12,6 +12,7 @@ export const ARTIFACT_TAG = {
 export const SENTINEL_KEY = {
   ARTIFACT: '$artifact',
   TOOL: '$tool',
+  PATH: '$path',
 } as const;
 
 /**

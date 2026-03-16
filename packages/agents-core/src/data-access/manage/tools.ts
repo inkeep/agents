@@ -225,7 +225,7 @@ const discoverToolsFromServer = async (
             retrievalParams: credentialReference.retrievalParams || {},
           }
         );
-        resolvedApiKey = credData?.headers['Authorization']?.replace(/^Bearer /, '') || undefined;
+        resolvedApiKey = credData?.headers.Authorization?.replace(/^Bearer /, '') || undefined;
       }
 
       const builtInHeaders = isBuiltInMcp(tool)

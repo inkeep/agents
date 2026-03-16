@@ -1,6 +1,7 @@
 import { parseEmbeddedJson } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
 import { unwrapToolResult } from '../../artifacts/artifact-utils';
+import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import type { AgentRunContext } from '../agent-types';
 
 const logger = getLogger('Agent');
@@ -11,18 +12,27 @@ export function getToolResultConversationId(ctx: AgentRunContext): string | unde
 
 const CHAINING_GUIDANCE = {
   howToChain:
-    '🔧 To pass this result as input to another tool, use { "$tool": "<_toolCallId value>" } as the argument — the system resolves the full data automatically.',
+    `🔧 To pass this result to another tool: { "${SENTINEL_KEY.TOOL}": "<_toolCallId>" } — passes the full output.\n` +
+    `🔧 To pass ONE field (string, number, object — any type): { "${SENTINEL_KEY.TOOL}": "<_toolCallId>", "${SENTINEL_KEY.PATH}": "<field>" }\n` +
+    `   • Single field:             { "${SENTINEL_KEY.TOOL}": "<id>", "${SENTINEL_KEY.PATH}": "title" }\n` +
+    `   • Nested field:             { "${SENTINEL_KEY.TOOL}": "<id>", "${SENTINEL_KEY.PATH}": "ticket.assignee.name" }\n` +
+    `   • Array filter:             { "${SENTINEL_KEY.TOOL}": "<id>", "${SENTINEL_KEY.PATH}": "results[?status=='active'] | [0]" }\n` +
+    `   • Image from multi-content: { "${SENTINEL_KEY.TOOL}": "<id>", "${SENTINEL_KEY.PATH}": "[?type=='image'] | [0]" }\n` +
+    `   • Text from multi-content:  { "${SENTINEL_KEY.TOOL}": "<id>", "${SENTINEL_KEY.PATH}": "[?type=='text'] | [0].text" }`,
   neverCopy:
-    '❌ NEVER copy, retype, paraphrase, or reconstruct result data manually — not as a tool argument, not inline in a response. Always use { "$tool": "..." } references.',
-  toolCallIdRule:
-    '🔧 CRITICAL: NEVER generate or make up a tool call ID. The _toolCallId field in this result is the exact ID to use in { "$tool": "..." } references.',
+    `⛔ NEVER copy, retype, or reconstruct any value from this result as a literal — not as a tool argument, not inline in a response. ` +
+    `This applies to ALL types including plain strings and numbers. ` +
+    `If you can read the value in context, you still MUST use a ${SENTINEL_KEY.TOOL}/${SENTINEL_KEY.PATH} reference. Doing otherwise is a context_shortcut violation.`,
+  toolCallIdRule: `🔧 CRITICAL: NEVER generate or make up a tool call ID. The _toolCallId field in this result is the exact ID to use in { "${SENTINEL_KEY.TOOL}": "..." } references.`,
 };
 
 const ARTIFACT_GUIDANCE = {
-  toolCallId:
-    '🔧 CRITICAL: Use the _toolCallId field from this result object as the exact tool call ID in your artifact:create tag. NEVER generate or make up a tool call ID.',
+  toolCallId: `🔧 CRITICAL: Use the _toolCallId field from this result object as the exact tool call ID in your artifact:create tag. NEVER generate or make up a tool call ID.`,
   artifactChaining:
-    '🔗 To pass a saved artifact as input to a tool, use { "$artifact": "<artifactId>", "$tool": "<toolCallId>" } as the argument — do NOT call get_reference_artifact first. The system resolves the full artifact data automatically.',
+    `🔗 To pass a saved artifact as input to a tool, use { "${SENTINEL_KEY.ARTIFACT}": "<artifactId>", "${SENTINEL_KEY.TOOL}": "<toolCallId>" } as the argument — do NOT call get_reference_artifact first. The system resolves the full artifact data automatically.\n` +
+    `🔗 To pass only part of an artifact, add "${SENTINEL_KEY.PATH}": "<JMESPath>" to select a subset of its data:\n` +
+    `   • Single field:  { "${SENTINEL_KEY.ARTIFACT}": "<id>", "${SENTINEL_KEY.TOOL}": "<id>", "${SENTINEL_KEY.PATH}": "ticket.id" }\n` +
+    `   • Nested object: { "${SENTINEL_KEY.ARTIFACT}": "<id>", "${SENTINEL_KEY.TOOL}": "<id>", "${SENTINEL_KEY.PATH}": "results[?status=='active'] | [0]" }`,
   creationFirst:
     '🚨 CRITICAL: Artifacts must be CREATED before they can be referenced. Use ArtifactCreate_[Type] components FIRST, then reference with Artifact components only if citing the SAME artifact again.',
   baseSelector:

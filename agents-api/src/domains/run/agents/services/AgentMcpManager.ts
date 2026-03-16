@@ -365,7 +365,7 @@ export class AgentMcpManager {
         retrievalParams: credRef.retrievalParams || {},
       }
     );
-    return credData?.headers['Authorization']?.replace(/^Bearer /, '') || undefined;
+    return credData?.headers.Authorization?.replace(/^Bearer /, '') || undefined;
   }
 
   private static errMsg(error: unknown): string {

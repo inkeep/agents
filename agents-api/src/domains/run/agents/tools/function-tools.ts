@@ -100,7 +100,7 @@ export async function getFunctionTools(
           }
           const finalArgs = parsed.args;
 
-          logger.debug(
+          logger.info(
             { toolName: functionToolDef.name, toolCallId, args: finalArgs },
             'Function Tool Called'
           );

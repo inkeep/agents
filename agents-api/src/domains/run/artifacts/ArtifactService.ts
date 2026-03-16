@@ -6,7 +6,6 @@ import {
   listTaskIdsByContextId,
   upsertLedgerArtifact,
 } from '@inkeep/agents-core';
-import jmespath from 'jmespath';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/services/ToolSessionManager';
@@ -16,7 +15,7 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { detectOversizedArtifact, unwrapToolResult } from './artifact-utils';
+import { detectOversizedArtifact, queryJMESPath, unwrapToolResult } from './artifact-utils';
 
 const logger = getLogger('ArtifactService');
 
@@ -76,16 +75,13 @@ export interface ArtifactServiceContext {
  */
 export class ArtifactService {
   private createdArtifacts: Map<string, any> = new Map();
-  private static selectorCache = new Map<string, string>();
 
   constructor(private context: ArtifactServiceContext) {}
 
   /**
    * Clear static caches to prevent memory leaks between sessions
    */
-  static clearCaches(): void {
-    ArtifactService.selectorCache.clear();
-  }
+  static clearCaches(): void {}
 
   /**
    * Update artifact components in the context
@@ -218,9 +214,7 @@ export class ArtifactService {
             )
           : parsed;
 
-      const sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
-
-      let selectedData = jmespath.search(toolResultData, sanitizedBaseSelector);
+      let selectedData: any = queryJMESPath(toolResultData, request.baseSelector);
 
       if (Array.isArray(selectedData)) {
         selectedData = selectedData.length > 0 ? selectedData[0] : {};
@@ -847,36 +841,6 @@ export class ArtifactService {
   }
 
   /**
-   * Sanitize JMESPath selector to fix common syntax issues (with caching)
-   */
-  private sanitizeJMESPathSelector(selector: string): string {
-    const cached = ArtifactService.selectorCache.get(selector);
-    if (cached !== undefined) {
-      return cached;
-    }
-
-    let sanitized = selector.replace(/=="([^"]*)"/g, "=='$1'");
-
-    sanitized = sanitized.replace(
-      /\[\?(\w+)\s*~\s*contains\(@,\s*"([^"]*)"\)\]/g,
-      '[?contains($1, `$2`)]'
-    );
-
-    sanitized = sanitized.replace(
-      /\[\?(\w+)\s*~\s*contains\(@,\s*'([^']*)'\)\]/g,
-      '[?contains($1, `$2`)]'
-    );
-
-    sanitized = sanitized.replace(/\s*~\s*/g, ' ');
-
-    if (ArtifactService.selectorCache.size < 1000) {
-      ArtifactService.selectorCache.set(selector, sanitized);
-    }
-
-    return sanitized;
-  }
-
-  /**
    * Save an already-created artifact directly to the database
    * Used by AgentSession to save artifacts after name/description generation
    */
@@ -1042,8 +1006,7 @@ export class ArtifactService {
 
           if (customSelector) {
             // Use custom JMESPath selector
-            const sanitizedSelector = this.sanitizeJMESPathSelector(customSelector);
-            rawValue = jmespath.search(item, sanitizedSelector);
+            rawValue = queryJMESPath(item, customSelector);
           } else {
             // Default to direct field access
             rawValue = item[fieldName];
