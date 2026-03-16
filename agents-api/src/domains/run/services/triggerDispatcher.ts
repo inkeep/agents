@@ -1,12 +1,12 @@
 import {
-  advanceTriggerSchedule,
-  claimTriggerSchedule,
-  findDueTriggerSchedules,
-  releaseTriggerScheduleClaim,
-  rollbackTriggerSchedule,
-  type TriggerScheduleRow,
+  advanceScheduledTriggerNextRunAt,
+  type DueScheduledTrigger,
+  findDueScheduledTriggersAcrossProjects,
+  getProjectMainResolvedRef,
+  listAllProjectsMetadata,
+  withRef,
 } from '@inkeep/agents-core';
-import runDbClient from 'src/data/db/runDbClient';
+import { manageDbClient, manageDbPool, runDbClient } from 'src/data/db';
 import { start } from 'workflow/api';
 import { getLogger } from '../../../logger';
 import {
@@ -24,7 +24,14 @@ export interface DispatchResult {
 export async function dispatchDueTriggers(): Promise<DispatchResult> {
   const now = new Date();
 
-  const dueTriggers = await findDueTriggerSchedules(runDbClient)({
+  const projects = await listAllProjectsMetadata(runDbClient)();
+
+  if (projects.length === 0) {
+    return { dispatched: 0 };
+  }
+
+  const dueTriggers = await findDueScheduledTriggersAcrossProjects(manageDbClient)({
+    projects: projects.map((p) => ({ tenantId: p.tenantId, projectId: p.id })),
     asOf: now.toISOString(),
   });
 
@@ -35,7 +42,7 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
   logger.info({ dueCount: dueTriggers.length }, 'Found due triggers');
 
   const results = await Promise.allSettled(
-    dueTriggers.map((schedule) => dispatchSingleTrigger(schedule))
+    dueTriggers.map((trigger) => dispatchSingleTrigger(trigger))
   );
 
   const dispatched = results.filter(
@@ -52,61 +59,63 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
 }
 
 async function dispatchSingleTrigger(
-  schedule: TriggerScheduleRow
+  trigger: DueScheduledTrigger
 ): Promise<'dispatched' | 'skipped'> {
-  const { tenantId, scheduledTriggerId } = schedule;
+  const { tenantId, projectId, agentId, id: scheduledTriggerId } = trigger;
 
-  const claimed = await claimTriggerSchedule(runDbClient)({
-    tenantId,
-    scheduledTriggerId,
-  });
-
-  if (!claimed) return 'skipped';
-
-  const isOneTime = !schedule.cronExpression;
+  const isOneTime = !trigger.cronExpression;
   const nextRunAt = isOneTime
     ? null
     : computeNextRunAt({
-        cronExpression: schedule.cronExpression,
-        cronTimezone: schedule.cronTimezone,
-        runAt: schedule.runAt,
-        lastScheduledFor: schedule.nextRunAt,
+        cronExpression: trigger.cronExpression,
+        cronTimezone: trigger.cronTimezone,
+        runAt: trigger.runAt,
+        lastScheduledFor: trigger.nextRunAt,
       });
 
-  await advanceTriggerSchedule(runDbClient)({
-    tenantId,
-    scheduledTriggerId,
-    nextRunAt,
-    enabled: isOneTime ? false : undefined,
-  });
+  const resolvedRef = await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId);
+
+  await withRef(
+    manageDbPool,
+    resolvedRef,
+    (db) =>
+      advanceScheduledTriggerNextRunAt(db)({
+        scopes: { tenantId, projectId, agentId },
+        scheduledTriggerId,
+        nextRunAt,
+        enabled: isOneTime ? false : undefined,
+      }),
+    { commit: true, commitMessage: `Advance next_run_at for trigger ${scheduledTriggerId}` }
+  );
 
   const payload: TriggerPayload = {
     tenantId,
-    projectId: schedule.projectId,
-    agentId: schedule.agentId,
+    projectId,
+    agentId,
     scheduledTriggerId,
-    scheduledFor: schedule.nextRunAt!,
+    scheduledFor: trigger.nextRunAt ?? new Date().toISOString(),
   };
 
   try {
     await start(scheduledTriggerRunnerWorkflow, [payload]);
   } catch (err) {
-    await rollbackTriggerSchedule(runDbClient)({
-      tenantId,
-      scheduledTriggerId,
-      nextRunAt: schedule.nextRunAt,
-      enabled: isOneTime ? true : schedule.enabled,
-    });
+    await withRef(
+      manageDbPool,
+      resolvedRef,
+      (db) =>
+        advanceScheduledTriggerNextRunAt(db)({
+          scopes: { tenantId, projectId, agentId },
+          scheduledTriggerId,
+          nextRunAt: trigger.nextRunAt,
+          enabled: isOneTime ? true : undefined,
+        }),
+      { commit: true, commitMessage: `Rollback next_run_at for trigger ${scheduledTriggerId}` }
+    );
     logger.error({ scheduledTriggerId, err }, 'Workflow start failed, rolled back');
     return 'skipped';
   }
 
-  await releaseTriggerScheduleClaim(runDbClient)({
-    tenantId,
-    scheduledTriggerId,
-  });
-
-  logger.info({ scheduledTriggerId, scheduledFor: schedule.nextRunAt }, 'Trigger dispatched');
+  logger.info({ scheduledTriggerId, scheduledFor: trigger.nextRunAt }, 'Trigger dispatched');
 
   return 'dispatched';
 }

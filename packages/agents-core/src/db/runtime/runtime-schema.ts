@@ -1,4 +1,4 @@
-import { relations, sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 import {
   boolean,
   foreignKey,
@@ -939,33 +939,6 @@ export const workAppGitHubMcpToolRepositoryAccessRelations = relations(
       references: [workAppGitHubRepositories.id],
     }),
   })
-);
-
-export const triggerSchedules = pgTable(
-  'trigger_schedules',
-  {
-    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
-    projectId: varchar('project_id', { length: 256 }).notNull(),
-    agentId: varchar('agent_id', { length: 256 }).notNull(),
-    scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
-
-    cronExpression: varchar('cron_expression', { length: 256 }),
-    cronTimezone: varchar('cron_timezone', { length: 64 }).default('UTC'),
-    runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
-    enabled: boolean('enabled').notNull().default(true),
-
-    nextRunAt: timestamp('next_run_at', { withTimezone: true, mode: 'string' }),
-
-    claimedAt: timestamp('claimed_at', { withTimezone: true, mode: 'string' }),
-
-    ...timestamps,
-  },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.scheduledTriggerId] }),
-    index('trigger_schedules_dispatch_idx')
-      .on(table.nextRunAt)
-      .where(sql`enabled = true AND claimed_at IS NULL`),
-  ]
 );
 
 export const schedulerState = pgTable('scheduler_state', {
