@@ -9,7 +9,6 @@ export async function registerSchedulerStep(params: { runId: string }): Promise<
   'use step';
   await upsertSchedulerState(runDbClient)({
     currentRunId: params.runId,
-    deploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null,
   });
   logger.info({ runId: params.runId }, 'Scheduler registered');
 }
