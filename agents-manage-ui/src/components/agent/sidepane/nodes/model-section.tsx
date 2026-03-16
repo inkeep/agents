@@ -18,7 +18,7 @@ interface ModelSectionProps {
   models: AgentModels;
   updatePath: (
     path: `models.${'base' | 'structuredOutput' | 'summarizer'}.${'model' | 'providerOptions'}`,
-    value: any
+    value: string
   ) => void;
   projectModels?: any;
   agentModels?: any;
@@ -35,26 +35,28 @@ export function ModelSection({
 
   // Helper to get inherited model and provider options from the same source
   function getInheritance(key: 'structuredOutput' | 'summarizer') {
-    if (agentModels?.[key]?.model) {
+    const agentModel = agentModels?.[key];
+    if (agentModel?.model) {
       return {
-        model: agentModels[key].model,
-        options: agentModels[key].providerOptions,
+        model: agentModel.model,
+        options: agentModel.providerOptions,
       };
     }
-    if (projectModels?.[key]?.model) {
+    const projectModel = projectModels?.[key];
+    if (projectModel?.model) {
       return {
-        model: projectModels[key].model,
-        options: projectModels[key].providerOptions,
+        model: projectModel.model,
+        options: projectModel.providerOptions,
       };
     }
     if (models?.base?.model) {
-      return { model: models.base.model, options: models.base.providerOptions };
+      return { model: models.base.model, options: undefined };
     }
     if (agentModels?.base?.model) {
-      return { model: agentModels.base.model, options: agentModels.base.providerOptions };
+      return { model: agentModels.base.model, options: undefined };
     }
     if (projectModels?.base?.model) {
-      return { model: projectModels.base.model, options: projectModels.base.providerOptions };
+      return { model: projectModels.base.model, options: undefined };
     }
     return { model: undefined, options: undefined };
   }

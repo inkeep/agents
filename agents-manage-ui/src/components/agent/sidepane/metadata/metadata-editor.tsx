@@ -163,9 +163,7 @@ export const MetadataEditor: FC = () => {
             inheritedProviderOptions={
               project?.models.structuredOutput?.model
                 ? project?.models.structuredOutput?.providerOptions
-                : models.base.model
-                  ? models.base.providerOptions
-                  : project?.models.base?.providerOptions
+                : undefined
             }
             label={
               <div className="flex items-center gap-2">
@@ -208,9 +206,7 @@ export const MetadataEditor: FC = () => {
             inheritedProviderOptions={
               project?.models.summarizer?.model
                 ? project?.models.summarizer?.providerOptions
-                : models.base.model
-                  ? models.base.providerOptions
-                  : project?.models.base?.providerOptions
+                : undefined
             }
             label={
               <div className="flex items-center gap-2">
