@@ -104,8 +104,8 @@ function Nodes() {
         },
         // @ts-expect-error
         models: {
-          base: {}
-        }
+          base: {},
+        },
       }}
     >
       <ReactFlowProvider>
