@@ -21,6 +21,15 @@ function coerceToString(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
+function checkReDoS(pattern: string): string | null {
+  if (/(\(.*\)|\[.*\]|\.|\w)\+\s*\+/.test(pattern))
+    return 'Pattern contains nested quantifiers that may cause ReDoS';
+  if (/(\(.*\)|\[.*\]|\.|\w)\*\s*[+*]/.test(pattern))
+    return 'Pattern contains nested quantifiers that may cause ReDoS';
+  if (pattern.length > 500) return 'Pattern too long';
+  return null;
+}
+
 function buildRegex(pattern: string, isRegex: boolean, caseSensitive: boolean): RegExp {
   const flags = caseSensitive ? '' : 'i';
   const src = isRegex ? pattern : pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -87,6 +96,16 @@ export function registerTextTools(server: McpServer): void {
       const beforeContext = args.beforeContext ?? contextLines;
       const afterContext = args.afterContext ?? contextLines;
       const content = coerceToString(args.content);
+
+      if (isRegex) {
+        const redosError = checkReDoS(pattern);
+        if (redosError) {
+          return {
+            content: [{ type: 'text', text: `Invalid pattern: ${redosError}` }],
+            isError: true,
+          };
+        }
+      }
 
       let regex: RegExp;
       try {
@@ -174,6 +193,16 @@ export function registerTextTools(server: McpServer): void {
       const content = coerceToString(args.content);
       const replace = args.replace ?? '';
 
+      if (isRegex) {
+        const redosError = checkReDoS(args.find);
+        if (redosError) {
+          return {
+            content: [{ type: 'text', text: `Invalid pattern: ${redosError}` }],
+            isError: true,
+          };
+        }
+      }
+
       try {
         let flags = replaceAll ? 'g' : '';
         if (!caseSensitive) flags += 'i';
@@ -249,6 +278,17 @@ export function registerTextTools(server: McpServer): void {
       }
 
       if (args.startPattern !== undefined) {
+        if (isRegex) {
+          const redosError =
+            checkReDoS(args.startPattern) ?? (args.endPattern ? checkReDoS(args.endPattern) : null);
+          if (redosError) {
+            return {
+              content: [{ type: 'text', text: `Invalid pattern: ${redosError}` }],
+              isError: true,
+            };
+          }
+        }
+
         let startRe: RegExp;
         try {
           startRe = buildRegex(args.startPattern, isRegex, caseSensitive);

@@ -81,7 +81,7 @@ const makeSearchTool = (mcp: {
     serverUrl: `${BUILT_IN_MCP_URL_PREFIX}${mcp.id}`,
   });
 
-export const INKEEP_SEARCH: Record<string, Tool> = {
+export const INKEEP_SEARCH: Record<'EXA' | 'TAVILY' | 'BRAVE' | 'SERPAPI', Tool> = {
   EXA: makeSearchTool(INKEEP_SEARCH_EXA_MCP),
   TAVILY: makeSearchTool(INKEEP_SEARCH_TAVILY_MCP),
   BRAVE: makeSearchTool(INKEEP_SEARCH_BRAVE_MCP),

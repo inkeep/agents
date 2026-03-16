@@ -192,9 +192,14 @@ DEBUGGING — if the result is null:
           };
         }
 
+        const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+        const safePairs = (o: object) => Object.entries(o).filter(([k]) => !DANGEROUS_KEYS.has(k));
         const merged = deep
           ? deepMerge(baseObj as Record<string, unknown>, overrideObj as Record<string, unknown>)
-          : { ...(baseObj as object), ...(overrideObj as object) };
+          : Object.fromEntries([
+              ...safePairs(baseObj as object),
+              ...safePairs(overrideObj as object),
+            ]);
 
         return { content: [{ type: 'text', text: JSON.stringify(merged, null, 2) }] };
       } catch (err) {
