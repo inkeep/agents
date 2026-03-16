@@ -5,7 +5,7 @@ description: Pre-built MCP servers you can add to agents without hosting or conf
 icon: LuPackage
 ---
 
-Built-in MCP servers are pre-built tool collections hosted and maintained for you. Import them directly from `@inkeep/agents-sdk` and add them to any agent — no server URL or credential required.
+Built-in MCP servers are pre-built tool collections hosted and maintained for you. Import them directly from `@inkeep/agents-sdk` and add them to any agent — no server URL required. Search servers require a credential to be configured.
 
 ## Available servers
 
@@ -14,7 +14,10 @@ Built-in MCP servers are pre-built tool collections hosted and maintained for yo
 | `INKEEP_COREUTILS` | `inkeep-coreutils` | Core text and data tools: search, replace, slice, diff, patch, window, JSON, encoding, hash, HTML, and utilities |
 | `INKEEP_HTTP` | `inkeep-http` | Outbound HTTP requests via curl |
 | `INKEEP_MEDIA` | `inkeep-media` | Image processing: info, resize, crop |
-| `INKEEP_SEARCH` | `inkeep-search` | Web search tools |
+| `INKEEP_SEARCH.EXA` | `inkeep-search-exa` | Web search powered by Exa. Requires a credential. |
+| `INKEEP_SEARCH.TAVILY` | `inkeep-search-tavily` | Web search powered by Tavily. Requires a credential. |
+| `INKEEP_SEARCH.BRAVE` | `inkeep-search-brave` | Web search powered by Brave. Requires a credential. |
+| `INKEEP_SEARCH.SERPAPI` | `inkeep-search-serpapi` | Web search powered by SerpAPI. Requires a credential. |
 
 ## Usage
 
@@ -27,7 +30,7 @@ const myAgent = subAgent({
   name: "My Agent",
   description: "An agent with access to built-in tools",
   prompt: "You are a helpful assistant.",
-  canUse: () => [INKEEP_COREUTILS, INKEEP_SEARCH],
+  canUse: () => [INKEEP_COREUTILS, INKEEP_SEARCH.TAVILY],
 });
 ```
 
@@ -91,10 +94,11 @@ canUse: () => [
 
 ### INKEEP_SEARCH
 
+Each search provider is a separate server. Use `INKEEP_SEARCH.EXA`, `INKEEP_SEARCH.TAVILY`, `INKEEP_SEARCH.BRAVE`, or `INKEEP_SEARCH.SERPAPI`.
+
 | Tool | Description |
 |------|-------------|
 | `web_search` | Search the web and return relevant results. |
-| `find_similar` | Find web pages similar to a given URL. |
 
 <Note>
   Built-in servers can also be added from the **Visual Builder** under **Tools → Built-in Servers**, without writing any code.

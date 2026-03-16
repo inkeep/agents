@@ -81,7 +81,7 @@ export async function verifyMcpAccessToken(token: string): Promise<McpAccessToke
 
   if (!parseResult.success) {
     logger.warn(
-      { payload: result.payload, issues: parseResult.error.issues },
+      { issues: parseResult.error.issues },
       'Invalid MCP access token: schema validation failed'
     );
     return {
