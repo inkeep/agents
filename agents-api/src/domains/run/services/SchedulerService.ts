@@ -6,8 +6,6 @@ import { schedulerWorkflow } from '../workflow/functions/schedulerWorkflow';
 
 const logger = getLogger('SchedulerService');
 
-const getDeploymentId = () => process.env.VERCEL_DEPLOYMENT_ID ?? null;
-
 export async function startSchedulerWorkflow(): Promise<{
   runId: string;
   previousRunId: string | null;
@@ -17,7 +15,6 @@ export async function startSchedulerWorkflow(): Promise<{
 
   await upsertSchedulerState(runDbClient)({
     currentRunId: run.runId,
-    deploymentId: getDeploymentId(),
   });
 
   logger.info(
