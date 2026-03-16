@@ -76,7 +76,7 @@ class ToolResultSanitizingProcessor implements SpanProcessor {
 }
 
 export const defaultResource = resourceFromAttributes({
-  [ATTR_SERVICE_NAME]: 'inkeep-agents-run-api',
+  [ATTR_SERVICE_NAME]: 'inkeep-agents-api',
 });
 
 export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrumentations']> = [
