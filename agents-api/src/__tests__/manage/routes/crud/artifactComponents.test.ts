@@ -405,7 +405,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id} - render field persistence', () => {
+  describe('PATCH /{id} - render field persistence', () => {
     it('should update render field', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-update-render');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -417,7 +417,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       };
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
-        { method: 'PUT', body: JSON.stringify({ render }) }
+        { method: 'PATCH', body: JSON.stringify({ render }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -432,7 +432,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -453,7 +453,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -484,7 +484,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(partialUpdate),
         }
       );
@@ -509,7 +509,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${nonExistentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated Name' }),
         }
       );
@@ -527,7 +527,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId2}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated Name' }),
         }
       );
@@ -545,7 +545,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({}),
         }
       );
@@ -560,6 +560,24 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         props: artifactComponentData.props,
         tenantId,
       });
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing artifact component via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('artifact-components-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PutUpdatedArtifactComponent' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 
@@ -639,7 +657,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated E2E Artifact Component' }),
         }
       );

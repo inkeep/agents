@@ -438,7 +438,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /:id', () => {
+  describe('PATCH /:id', () => {
     it('should update an existing credential', async () => {
       const tenantId = await createTestTenantWithOrg('credentials-update');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -456,7 +456,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -488,7 +488,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(partialUpdate),
         }
       );
@@ -515,7 +515,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/credentials/${nonExistentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -540,7 +540,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantB}/projects/${projectId}/credentials/${credentialId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );

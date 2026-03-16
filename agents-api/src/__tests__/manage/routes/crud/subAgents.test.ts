@@ -502,7 +502,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing agent', async () => {
       const tenantId = await createTestTenantWithOrg('agents-update-success');
       await createTestProject(manageDbClient, tenantId, 'default');
@@ -518,7 +518,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -544,7 +544,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const models = { base: { model: 'gpt-4o' } };
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
-        { method: 'PUT', body: JSON.stringify({ models }) }
+        { method: 'PATCH', body: JSON.stringify({ models }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -567,7 +567,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const stopWhen = { stepCountIs: 20 };
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
-        { method: 'PUT', body: JSON.stringify({ stopWhen }) }
+        { method: 'PATCH', body: JSON.stringify({ stopWhen }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -596,7 +596,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       };
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
-        { method: 'PUT', body: JSON.stringify({ conversationHistoryConfig }) }
+        { method: 'PATCH', body: JSON.stringify({ conversationHistoryConfig }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -623,12 +623,31 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing sub-agent via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('agents-put-compat');
+      await createTestProject(manageDbClient, tenantId, 'default');
+      const agentId = await createTestAgent(tenantId);
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PUT Updated Agent' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 

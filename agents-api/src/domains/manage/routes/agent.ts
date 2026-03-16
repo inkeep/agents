@@ -28,6 +28,10 @@ import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -256,56 +260,57 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Agent',
-    operationId: 'update-agent',
-    tags: ['Agents'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: AgentApiUpdateSchema,
-          },
+const updateAgentRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Agent',
+  tags: ['Agents'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: AgentApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Agent updated successfully',
-        content: {
-          'application/json': {
-            schema: AgentResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Agent updated successfully',
+      content: {
+        'application/json': {
+          schema: AgentResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const validatedBody = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    const updatedAgent = await updateAgent(db)({
-      scopes: { tenantId, projectId, agentId: id },
-      data: validatedBody,
+const updateAgentHandler: ManageRouteHandler<typeof updateAgentRouteConfig> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const validatedBody = c.req.valid('json');
+
+  const updatedAgent = await updateAgent(db)({
+    scopes: { tenantId, projectId, agentId: id },
+    data: validatedBody,
+  });
+
+  if (!updatedAgent) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Agent not found',
     });
-
-    if (!updatedAgent) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Agent not found',
-      });
-    }
-
-    return c.json({ data: updatedAgent });
   }
-);
+
+  return c.json({ data: updatedAgent });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateAgentRouteConfig, updateAgentHandler, {
+  operationId: 'update-agent',
+});
 
 app.openapi(
   createProtectedRoute({
