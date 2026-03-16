@@ -174,6 +174,10 @@ export class Agent {
     return getFunctionTools(this.ctx, sessionId, streamRequestId);
   }
 
+  get runContext(): AgentRunContext {
+    return this.ctx;
+  }
+
   async generate(
     userParts: Part[],
     runtimeContext?: {
@@ -185,9 +189,10 @@ export class Agent {
         streamRequestId: string;
         apiKey?: string;
       };
-    }
+    },
+    options?: { schemaOnlyTools?: boolean }
   ): Promise<ResolvedGenerationResponse> {
-    return runGenerate(this.ctx, userParts, runtimeContext);
+    return runGenerate(this.ctx, userParts, runtimeContext, options);
   }
 
   getRelationTools(

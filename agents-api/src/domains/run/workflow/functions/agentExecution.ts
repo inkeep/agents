@@ -1,12 +1,14 @@
 import type { Part, ResolvedRef } from '@inkeep/agents-core';
 import { defineHook, getWorkflowMetadata } from 'workflow';
 import {
+  callLlmStep,
+  executeToolStep,
+  initializeTaskStep,
   markWorkflowCompleteStep,
   markWorkflowFailedStep,
   markWorkflowResumingStep,
   markWorkflowRunningStep,
   markWorkflowSuspendedStep,
-  runAgentExecutionStep,
 } from '../steps/agentExecutionSteps';
 
 export type AgentExecutionPayload = {
@@ -39,60 +41,66 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
 
   await markWorkflowRunningStep({ payload, workflowRunId });
 
-  const approvedToolCalls: Record<
-    string,
-    Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
-  > = {};
+  const { taskId, defaultSubAgentId, maxTransfers } = await initializeTaskStep({ payload });
+
+  let currentSubAgentId = defaultSubAgentId;
+  let iterations = 0;
   let approvalRound = 0;
 
   try {
-    while (true) {
+    while (iterations < maxTransfers) {
+      iterations++;
       const streamNamespace = approvalRound === 0 ? undefined : `r${approvalRound}`;
-      const result = await runAgentExecutionStep({
-        payload: { ...payload, approvedToolCalls: { ...approvedToolCalls } },
+
+      const llmResult = await callLlmStep({
+        payload,
+        currentSubAgentId,
+        isFirstMessage: iterations === 1,
         workflowRunId,
         streamNamespace,
+        taskId,
       });
 
-      if (result.type === 'needs_approval') {
-        const continuationStreamNamespace = `r${approvalRound + 1}`;
-        await markWorkflowSuspendedStep({
-          tenantId: payload.tenantId,
-          projectId: payload.projectId,
-          workflowRunId,
-          continuationStreamNamespace,
-        });
-
-        const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${result.toolCallId}`;
-        const hook = toolApprovalHook.create({ token });
-        const approvalResult = await hook;
-
-        if (!approvedToolCalls[result.toolName]) {
-          approvedToolCalls[result.toolName] = [];
-        }
-        approvedToolCalls[result.toolName].push({
-          ...approvalResult,
-          originalToolCallId: result.toolCallId,
-        });
-        approvalRound++;
-
-        await markWorkflowResumingStep({
-          tenantId: payload.tenantId,
-          projectId: payload.projectId,
-          workflowRunId,
-        });
-
+      if (llmResult.type === 'transfer') {
+        currentSubAgentId = llmResult.targetSubAgentId;
         continue;
       }
 
-      if (!result.success) {
-        await markWorkflowFailedStep({
-          tenantId: payload.tenantId,
-          projectId: payload.projectId,
-          workflowRunId,
-          error: result.error ?? 'Agent execution failed',
-        });
-        return { success: false, error: result.error };
+      if (llmResult.type === 'tool_calls') {
+        for (const toolCall of llmResult.toolCalls) {
+          const continuationNs = `r${approvalRound + 1}`;
+          await markWorkflowSuspendedStep({
+            tenantId: payload.tenantId,
+            projectId: payload.projectId,
+            workflowRunId,
+            continuationStreamNamespace: continuationNs,
+          });
+
+          const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${toolCall.toolCallId}`;
+          const hook = toolApprovalHook.create({ token });
+          const approvalResult = await hook;
+          approvalRound++;
+
+          await markWorkflowResumingStep({
+            tenantId: payload.tenantId,
+            projectId: payload.projectId,
+            workflowRunId,
+          });
+
+          await executeToolStep({
+            payload,
+            currentSubAgentId,
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            args: toolCall.args,
+            workflowRunId,
+            streamNamespace: `r${approvalRound}`,
+            taskId,
+            preApproved: approvalResult.approved,
+            approvalReason: approvalResult.reason,
+          });
+        }
+        continue;
       }
 
       break;

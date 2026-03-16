@@ -65,6 +65,10 @@ export class WritableBackedVercelWriter implements VercelUIWriter {
     // Not supported in durable context
   }
 
+  releaseLock(): void {
+    this.writer.releaseLock();
+  }
+
   async close(): Promise<void> {
     try {
       await this.writer.close();
