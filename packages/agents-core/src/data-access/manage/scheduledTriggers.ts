@@ -3,6 +3,7 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { scheduledTriggers } from '../../db/manage/manage-schema';
 import { getProjectScopedRef } from '../../dolt/ref-helpers';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
+import { computeNextRunAt } from '../../utils/compute-next-run-at';
 import { getLogger } from '../../utils/logger';
 import type {
   ScheduledTrigger,
@@ -146,15 +147,24 @@ export const upsertScheduledTrigger =
       scheduledTriggerId: params.data.id,
     });
 
+    const enabled = params.data.enabled ?? true;
+    const nextRunAt = enabled
+      ? computeNextRunAt({
+          cronExpression: params.data.cronExpression,
+          cronTimezone: params.data.cronTimezone,
+          runAt: params.data.runAt,
+        })
+      : null;
+
     if (existing) {
       return await updateScheduledTrigger(db)({
         scopes: params.scopes,
         scheduledTriggerId: params.data.id,
-        data: params.data,
+        data: { ...params.data, nextRunAt },
       });
     }
 
-    return await createScheduledTrigger(db)(params.data);
+    return await createScheduledTrigger(db)({ ...params.data, nextRunAt });
   };
 
 /**
