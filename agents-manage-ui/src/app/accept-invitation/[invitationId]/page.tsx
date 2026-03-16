@@ -536,7 +536,7 @@ export default function AcceptInvitationPage({
         <CardContent className="space-y-4">
           {error && (
             <Alert variant="destructive" className="border-destructive/10 dark:border-border">
-              <AlertCircleIcon className="h-4 w-4" />
+              <AlertCircleIcon aria-hidden className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}

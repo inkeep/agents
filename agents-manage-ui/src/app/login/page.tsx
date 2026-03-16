@@ -23,7 +23,7 @@ type LoginState =
   | { step: 'email' }
   | { step: 'org-picker'; orgs: OrgAuthInfo[] }
   | { step: 'method-picker'; org: OrgAuthInfo; multiOrg: boolean }
-  | { step: 'password' };
+  | { step: 'password'; fromOrg?: OrgAuthInfo; multiOrg?: boolean };
 
 function LoginForm() {
   const router = useRouter();
@@ -79,6 +79,9 @@ function LoginForm() {
     setError(null);
     setIsLoading(true);
 
+    const fromOrg = state.step === 'method-picker' ? state.org : undefined;
+    const multiOrg = state.step === 'method-picker' ? state.multiOrg : undefined;
+
     try {
       if (method.method === 'sso') {
         const result = await authClient.signIn.sso({
@@ -101,7 +104,7 @@ function LoginForm() {
           setIsLoading(false);
         }
       } else {
-        setState({ step: 'password' });
+        setState({ step: 'password', fromOrg, multiOrg });
         setIsLoading(false);
       }
     } catch (err) {
@@ -172,7 +175,9 @@ function LoginForm() {
   };
 
   const handleBack = () => {
-    if (state.step === 'password') {
+    if (state.step === 'password' && state.fromOrg) {
+      setState({ step: 'method-picker', org: state.fromOrg, multiOrg: state.multiOrg ?? false });
+    } else if (state.step === 'password') {
       setState({ step: 'email' });
     } else if (state.step === 'method-picker' && state.multiOrg) {
       setError(null);

@@ -1,9 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
-import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
-import type { AllowedAuthMethod, SSOProviderConfig } from './auth-types';
+import type { AllowedAuthMethod } from './auth-types';
 import { parseAllowedAuthMethods } from './auth-types';
 
 /**
@@ -172,40 +171,6 @@ export function extractCookieDomain(baseURL: string, explicitDomain?: string): s
     return `.${domainParts.join('.')}`;
   } catch {
     return undefined;
-  }
-}
-
-export async function registerSSOProvider(
-  dbClient: AgentsRunDatabaseClient,
-  provider: SSOProviderConfig
-): Promise<void> {
-  try {
-    const existing = await dbClient
-      .select()
-      .from(authSchema.ssoProvider)
-      .where(eq(authSchema.ssoProvider.providerId, provider.providerId))
-      .limit(1);
-
-    if (existing.length > 0) {
-      return;
-    }
-
-    if (!provider.domain) {
-      throw new Error(`SSO provider '${provider.providerId}' must have a domain`);
-    }
-
-    await dbClient.insert(authSchema.ssoProvider).values({
-      id: generateId(),
-      providerId: provider.providerId,
-      issuer: provider.issuer,
-      domain: provider.domain,
-      oidcConfig: provider.oidcConfig ? JSON.stringify(provider.oidcConfig) : null,
-      samlConfig: provider.samlConfig ? JSON.stringify(provider.samlConfig) : null,
-      userId: null,
-      organizationId: provider.organizationId || null,
-    });
-  } catch (error) {
-    console.error(`❌ Failed to register SSO provider '${provider.providerId}':`, error);
   }
 }
 

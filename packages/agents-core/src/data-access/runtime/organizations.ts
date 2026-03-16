@@ -388,7 +388,7 @@ export const getAuthLookupForEmail =
       const org = orgRow[0];
       if (!org) continue;
 
-      const allowed = await getAllowedAuthMethods(db)(orgId);
+      const allowed = parseAllowedAuthMethods(org.allowedAuthMethods);
       const orgSSO = domainProviders.filter((p) => p.organizationId === orgId);
 
       orgMap.set(orgId, {
@@ -421,7 +421,7 @@ export const getAuthLookupForEmail =
       for (const m of memberships) {
         if (orgMap.has(m.organizationId)) continue;
 
-        const allowed = await getAllowedAuthMethods(db)(m.organizationId);
+        const allowed = parseAllowedAuthMethods(m.allowedAuthMethods);
         const orgSSO = domainProviders.filter((p) => p.organizationId === m.organizationId);
 
         orgMap.set(m.organizationId, {

@@ -279,7 +279,9 @@ export function MembersTable({
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Project Access</TableHead>
-              <TableHead />
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

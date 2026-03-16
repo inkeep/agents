@@ -19,7 +19,7 @@ export type MethodOption = z.infer<typeof methodOptionSchema>;
 export const orgAuthInfoSchema = z.object({
   organizationId: z.string(),
   organizationName: z.string(),
-  organizationSlug: z.string(),
+  organizationSlug: z.string().optional(),
   methods: z.array(methodOptionSchema),
 });
 
@@ -80,25 +80,34 @@ export interface SSOProviderConfig {
   samlConfig?: SAMLProviderConfig;
 }
 
-export type AllowedAuthMethod =
-  | { method: Extract<AuthMethodType, 'email-password'> }
-  | { method: Extract<AuthMethodType, 'google'> }
-  | {
-      method: Extract<AuthMethodType, 'sso'>;
-      providerId: string;
-      displayName: string;
-      autoProvision: boolean;
-      enabled: boolean;
-    };
+const allowedAuthMethodSchema = z.discriminatedUnion('method', [
+  z.object({ method: z.literal('email-password') }),
+  z.object({ method: z.literal('google') }),
+  z.object({
+    method: z.literal('sso'),
+    providerId: z.string(),
+    displayName: z.string(),
+    autoProvision: z.boolean(),
+    enabled: z.boolean(),
+  }),
+]);
+
+export type AllowedAuthMethod = z.infer<typeof allowedAuthMethodSchema>;
+
+const DEFAULT_AUTH_METHODS: AllowedAuthMethod[] = [{ method: 'email-password' }];
 
 export function parseAllowedAuthMethods(raw: string | null | undefined): AllowedAuthMethod[] {
-  if (!raw) return [{ method: 'email-password' }];
+  if (!raw) return DEFAULT_AUTH_METHODS;
   try {
-    const parsed = JSON.parse(raw) as AllowedAuthMethod[];
-    if (!Array.isArray(parsed)) return [{ method: 'email-password' }];
-    return parsed;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return DEFAULT_AUTH_METHODS;
+    const valid = parsed.flatMap((item) => {
+      const result = allowedAuthMethodSchema.safeParse(item);
+      return result.success ? [result.data] : [];
+    });
+    return valid.length > 0 ? valid : DEFAULT_AUTH_METHODS;
   } catch {
-    return [{ method: 'email-password' }];
+    return DEFAULT_AUTH_METHODS;
   }
 }
 

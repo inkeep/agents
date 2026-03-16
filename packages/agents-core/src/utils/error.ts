@@ -8,6 +8,7 @@ export const ErrorCode = z.enum([
   'forbidden',
   'not_found',
   'conflict',
+  'too_many_requests',
   'internal_server_error',
   'unprocessable_entity',
 ]);
@@ -18,6 +19,7 @@ const errorCodeToHttpStatus: Record<z.infer<typeof ErrorCode>, number> = {
   forbidden: 403,
   not_found: 404,
   conflict: 409,
+  too_many_requests: 429,
   unprocessable_entity: 422,
   internal_server_error: 500,
 };
@@ -227,6 +229,8 @@ function getTitleFromCode(code: ErrorCodes): string {
       return 'Not Found';
     case 'conflict':
       return 'Conflict';
+    case 'too_many_requests':
+      return 'Too Many Requests';
     case 'unprocessable_entity':
       return 'Unprocessable Entity';
     case 'internal_server_error':

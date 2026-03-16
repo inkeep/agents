@@ -6193,6 +6193,7 @@
               "forbidden",
               "not_found",
               "conflict",
+              "too_many_requests",
               "internal_server_error",
               "unprocessable_entity"
             ],
