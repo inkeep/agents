@@ -3,6 +3,7 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { functions } from '../../db/manage/manage-schema';
 import type { FunctionApiInsert } from '../../types/entities';
 import type { PaginationConfig, ProjectScopeConfig } from '../../types/utility';
+import { projectScopedWhere } from './scope-helpers';
 
 /**
  * Create or update a function (project-scoped)
@@ -23,13 +24,7 @@ export const upsertFunction =
     const existingFunction = await db
       .select()
       .from(functions)
-      .where(
-        and(
-          eq(functions.tenantId, tenantId),
-          eq(functions.projectId, projectId),
-          eq(functions.id, data.id)
-        )
-      )
+      .where(and(projectScopedWhere(functions, scopes), eq(functions.id, data.id)))
       .limit(1);
 
     if (existingFunction.length > 0) {
@@ -41,13 +36,7 @@ export const upsertFunction =
           dependencies: dependencies,
           updatedAt: new Date().toISOString(),
         })
-        .where(
-          and(
-            eq(functions.tenantId, tenantId),
-            eq(functions.projectId, projectId),
-            eq(functions.id, data.id)
-          )
-        );
+        .where(and(projectScopedWhere(functions, scopes), eq(functions.id, data.id)));
     } else {
       await db.insert(functions).values({
         tenantId,
@@ -72,18 +61,11 @@ export const getFunction =
     scopes: ProjectScopeConfig;
   }): Promise<FunctionApiInsert | null> => {
     const { functionId, scopes } = params;
-    const { tenantId, projectId } = scopes;
 
     const result = await db
       .select()
       .from(functions)
-      .where(
-        and(
-          eq(functions.tenantId, tenantId),
-          eq(functions.projectId, projectId),
-          eq(functions.id, functionId)
-        )
-      )
+      .where(and(projectScopedWhere(functions, scopes), eq(functions.id, functionId)))
       .limit(1);
 
     return result[0] || null;
@@ -96,12 +78,8 @@ export const listFunctions =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<FunctionApiInsert[]> => {
     const { scopes } = params;
-    const { tenantId, projectId } = scopes;
 
-    const result = await db
-      .select()
-      .from(functions)
-      .where(and(eq(functions.tenantId, tenantId), eq(functions.projectId, projectId)));
+    const result = await db.select().from(functions).where(projectScopedWhere(functions, scopes));
 
     return result;
   };
@@ -113,12 +91,11 @@ export const listFunctionsPaginated =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const { scopes, pagination } = params;
-    const { tenantId, projectId } = scopes;
     const page = pagination?.page || 1;
     const limit = Math.min(pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(eq(functions.tenantId, tenantId), eq(functions.projectId, projectId));
+    const whereClause = projectScopedWhere(functions, scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -147,15 +124,8 @@ export const deleteFunction =
   (db: AgentsManageDatabaseClient) =>
   async (params: { functionId: string; scopes: ProjectScopeConfig }): Promise<void> => {
     const { functionId, scopes } = params;
-    const { tenantId, projectId } = scopes;
 
     await db
       .delete(functions)
-      .where(
-        and(
-          eq(functions.tenantId, tenantId),
-          eq(functions.projectId, projectId),
-          eq(functions.id, functionId)
-        )
-      );
+      .where(and(projectScopedWhere(functions, scopes), eq(functions.id, functionId)));
   };

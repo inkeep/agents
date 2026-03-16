@@ -7,6 +7,7 @@ import type {
   TriggerInvocationUpdate,
 } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
+import { agentScopedWhere } from '../manage/scope-helpers';
 
 /**
  * Get a trigger invocation by ID (agent-scoped)
@@ -20,9 +21,7 @@ export const getTriggerInvocationById =
   }): Promise<TriggerInvocationSelect | undefined> => {
     const result = await db.query.triggerInvocations.findFirst({
       where: and(
-        eq(triggerInvocations.tenantId, params.scopes.tenantId),
-        eq(triggerInvocations.projectId, params.scopes.projectId),
-        eq(triggerInvocations.agentId, params.scopes.agentId),
+        agentScopedWhere(triggerInvocations, params.scopes),
         eq(triggerInvocations.triggerId, params.triggerId),
         eq(triggerInvocations.id, params.invocationId)
       ),
@@ -50,9 +49,7 @@ export const listTriggerInvocationsPaginated =
     const offset = (page - 1) * limit;
 
     const conditions = [
-      eq(triggerInvocations.tenantId, params.scopes.tenantId),
-      eq(triggerInvocations.projectId, params.scopes.projectId),
-      eq(triggerInvocations.agentId, params.scopes.agentId),
+      agentScopedWhere(triggerInvocations, params.scopes),
       eq(triggerInvocations.triggerId, params.triggerId),
     ];
 
@@ -115,9 +112,7 @@ export const updateTriggerInvocationStatus =
       .set(params.data)
       .where(
         and(
-          eq(triggerInvocations.tenantId, params.scopes.tenantId),
-          eq(triggerInvocations.projectId, params.scopes.projectId),
-          eq(triggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(triggerInvocations, params.scopes),
           eq(triggerInvocations.triggerId, params.triggerId),
           eq(triggerInvocations.id, params.invocationId)
         )

@@ -285,6 +285,7 @@ async function handleMessageSend(
 
     await updateTask(runDbClient)({
       taskId: task.id,
+      scopes: { tenantId: agent.tenantId, projectId: agent.projectId },
       data: {
         status: result.status.state.toLowerCase(),
         metadata: {

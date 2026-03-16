@@ -3,35 +3,18 @@ import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
-import { and, eq } from 'drizzle-orm';
+import {
+  getInitialOrganization,
+  queryHasCredentialAccount,
+  registerSSOProvider as registerSSOProviderDAL,
+} from '../data-access/runtime/auth';
 import { createUserProfileIfNotExists } from '../data-access/runtime/userProfiles';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
-import { generateId } from '../utils';
-import * as authSchema from './auth-schema';
 import { type OrgRole, OrgRoles } from './authz/types';
 import { setEmailSendStatus } from './email-send-status-store';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
-
-/**
- * Get the user's initial organization for a new session.
- * Returns the oldest organization the user is a member of.
- * See: https://www.better-auth.com/docs/plugins/organization#active-organization
- */
-async function getInitialOrganization(
-  dbClient: AgentsRunDatabaseClient,
-  userId: string
-): Promise<{ id: string } | null> {
-  const [membership] = await dbClient
-    .select({ organizationId: authSchema.member.organizationId })
-    .from(authSchema.member)
-    .where(eq(authSchema.member.userId, userId))
-    .orderBy(authSchema.member.createdAt)
-    .limit(1);
-
-  return membership ? { id: membership.organizationId } : null;
-}
 
 export interface OIDCProviderConfig {
   clientId: string;
@@ -176,49 +159,14 @@ async function registerSSOProvider(
   dbClient: AgentsRunDatabaseClient,
   provider: SSOProviderConfig
 ): Promise<void> {
-  try {
-    const existing = await dbClient
-      .select()
-      .from(authSchema.ssoProvider)
-      .where(eq(authSchema.ssoProvider.providerId, provider.providerId))
-      .limit(1);
-
-    if (existing.length > 0) {
-      return;
-    }
-
-    if (!provider.domain) {
-      throw new Error(`SSO provider '${provider.providerId}' must have a domain`);
-    }
-
-    await dbClient.insert(authSchema.ssoProvider).values({
-      id: generateId(),
-      providerId: provider.providerId,
-      issuer: provider.issuer,
-      domain: provider.domain,
-      oidcConfig: provider.oidcConfig ? JSON.stringify(provider.oidcConfig) : null,
-      samlConfig: provider.samlConfig ? JSON.stringify(provider.samlConfig) : null,
-      userId: null,
-      organizationId: provider.organizationId || null,
-    });
-  } catch (error) {
-    console.error(`❌ Failed to register SSO provider '${provider.providerId}':`, error);
-  }
+  await registerSSOProviderDAL(dbClient)(provider);
 }
 
 export async function hasCredentialAccount(
   dbClient: AgentsRunDatabaseClient,
   userId: string
 ): Promise<boolean> {
-  const [row] = await dbClient
-    .select({ id: authSchema.account.id })
-    .from(authSchema.account)
-    .where(
-      and(eq(authSchema.account.userId, userId), eq(authSchema.account.providerId, 'credential'))
-    )
-    .limit(1);
-
-  return !!row;
+  return queryHasCredentialAccount(dbClient)(userId);
 }
 
 export function createAuth(config: BetterAuthConfig) {
@@ -268,7 +216,7 @@ export function createAuth(config: BetterAuthConfig) {
       session: {
         create: {
           before: async (session) => {
-            const organization = await getInitialOrganization(config.dbClient, session.userId);
+            const organization = await getInitialOrganization(config.dbClient)(session.userId);
             return {
               data: {
                 ...session,

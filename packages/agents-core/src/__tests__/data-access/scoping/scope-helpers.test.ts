@@ -7,6 +7,7 @@ import {
   tenantScopedWhere,
 } from '../../../data-access/manage/scope-helpers';
 import { agents, subAgents, subAgentToolRelations, tools } from '../../../db/manage/manage-schema';
+import { conversations, tasks } from '../../../db/runtime/runtime-schema';
 
 describe('scope-helpers', () => {
   describe('tenantScopedWhere', () => {
@@ -54,6 +55,30 @@ describe('scope-helpers', () => {
         eq(subAgentToolRelations.projectId, 'p1'),
         eq(subAgentToolRelations.agentId, 'a1'),
         eq(subAgentToolRelations.subAgentId, 'sa1')
+      );
+      expect(result).toEqual(expected);
+    });
+  });
+
+  describe('runtime table support', () => {
+    it('should accept a runtime table with projectScopedWhere', () => {
+      const result = projectScopedWhere(conversations, { tenantId: 't1', projectId: 'p1' });
+      const expected = and(eq(conversations.tenantId, 't1'), eq(conversations.projectId, 'p1'));
+      expect(result).toEqual(expected);
+    });
+
+    it('should accept a runtime table with subAgentScopedWhere', () => {
+      const result = subAgentScopedWhere(tasks, {
+        tenantId: 't1',
+        projectId: 'p1',
+        agentId: 'a1',
+        subAgentId: 'sa1',
+      });
+      const expected = and(
+        eq(tasks.tenantId, 't1'),
+        eq(tasks.projectId, 'p1'),
+        eq(tasks.agentId, 'a1'),
+        eq(tasks.subAgentId, 'sa1')
       );
       expect(result).toEqual(expected);
     });
