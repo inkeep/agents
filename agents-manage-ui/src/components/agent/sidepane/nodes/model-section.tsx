@@ -63,7 +63,6 @@ export function ModelSection({
 
   const structuredOutputInheritance = getInheritance('structuredOutput');
   const summarizerInheritance = getInheritance('summarizer');
-  console.log({ structuredOutputInheritance, summarizerInheritance });
   return (
     <div className="space-y-8">
       <SectionHeader
