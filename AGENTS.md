@@ -17,7 +17,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 **Pre-push** (run both, in order):
 ```bash
 pnpm format     # auto-fix formatting
-pnpm check      # lint + typecheck + test + format:check + env-descriptions + route-handler-patterns + knip
+pnpm check      # lint + typecheck + test + format:check + env-descriptions + route-handler-patterns + dal-boundary + knip
 ```
 
 **Single-command iteration:** `pnpm typecheck`, `pnpm lint` (`lint:fix`), `pnpm test`, `cd <pkg> && pnpm test --run <file>`
