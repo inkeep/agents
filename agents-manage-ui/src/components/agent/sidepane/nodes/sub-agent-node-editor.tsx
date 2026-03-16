@@ -118,9 +118,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
           const value = field.value ?? [];
           return (
             <FormItem>
-              <FormLabel>
-                Skill Configuration<Badge variant="count">{value.length}</Badge>
-              </FormLabel>
+              <div className="flex gap-1">
+                <FormLabel>Skill Configuration</FormLabel>
+                <Badge variant="count">{value.length}</Badge>
+              </div>
               <SkillSelector selectedSkills={value} onChange={field.onChange} />
               <FormMessage />
             </FormItem>
@@ -214,9 +215,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
           const value = field.value ?? [];
           return (
             <FormItem>
-              <FormLabel>
-                Components<Badge variant="count">{value.length}</Badge>
-              </FormLabel>
+              <div className="flex gap-1">
+                <FormLabel>Components</FormLabel>
+                <Badge variant="count">{value.length}</Badge>
+              </div>
               <ComponentSelector
                 componentLookup={dataComponentsById}
                 selectedComponents={value}
@@ -239,9 +241,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
           const value = field.value ?? [];
           return (
             <FormItem>
-              <FormLabel>
-                Artifacts<Badge variant="count">{value.length}</Badge>
-              </FormLabel>
+              <div className="flex gap-1">
+                <FormLabel>Artifacts</FormLabel>
+                <Badge variant="count">{value.length}</Badge>
+              </div>
               <ComponentSelector
                 componentLookup={artifactComponentsById}
                 selectedComponents={value}
