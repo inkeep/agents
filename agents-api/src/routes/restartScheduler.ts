@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import { startSchedulerWorkflow } from '../domains/run/services/SchedulerService';
@@ -9,10 +9,8 @@ import type { AppVariables } from '../types';
 const logger = getLogger('deploy-restart-scheduler');
 
 function constantTimeEqual(a: string, b: string): boolean {
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  if (bufA.length !== bufB.length) return false;
-  return timingSafeEqual(bufA, bufB);
+  const hash = (s: string) => createHash('sha256').update(s).digest();
+  return timingSafeEqual(hash(a), hash(b));
 }
 
 export const restartWorkflowHandler = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -53,7 +51,7 @@ restartWorkflowHandler.openapi(
         { error: err instanceof Error ? err.message : String(err) },
         'Failed to restart scheduler workflow'
       );
-      return c.json({ error: err instanceof Error ? err.message : 'Internal error' }, 500);
+      return c.json({ error: 'Failed to restart scheduler workflow' }, 500);
     }
   }
 );

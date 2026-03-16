@@ -19,15 +19,9 @@ export const scheduledTriggersHandlers = defineHandlers('scheduled_triggers', {
     });
 
     const missingWorkflows = enabledTriggers
-      .filter((t) => !(t as any).nextRunAt)
+      .filter((t) => !t.nextRunAt)
       .map((t) => ({ triggerId: t.id, triggerName: t.name }));
 
-    return {
-      missingWorkflows,
-      orphanedWorkflows: [],
-      staleWorkflows: [],
-      deadWorkflows: [],
-      verificationFailures: [],
-    };
+    return { missingWorkflows };
   },
 });

@@ -73,21 +73,6 @@ async function dispatchSingleTrigger(
         lastScheduledFor: trigger.nextRunAt,
       });
 
-  const resolvedRef = await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId);
-
-  await withRef(
-    manageDbPool,
-    resolvedRef,
-    (db) =>
-      advanceScheduledTriggerNextRunAt(db)({
-        scopes: { tenantId, projectId, agentId },
-        scheduledTriggerId,
-        nextRunAt,
-        enabled: isOneTime ? false : undefined,
-      }),
-    { commit: true, commitMessage: `Advance next_run_at for trigger ${scheduledTriggerId}` }
-  );
-
   const payload: TriggerPayload = {
     tenantId,
     projectId,
@@ -96,9 +81,11 @@ async function dispatchSingleTrigger(
     scheduledFor: trigger.nextRunAt ?? new Date().toISOString(),
   };
 
+  await start(scheduledTriggerRunnerWorkflow, [payload]);
+
+  const resolvedRef = await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId);
+
   try {
-    await start(scheduledTriggerRunnerWorkflow, [payload]);
-  } catch (err) {
     await withRef(
       manageDbPool,
       resolvedRef,
@@ -106,13 +93,16 @@ async function dispatchSingleTrigger(
         advanceScheduledTriggerNextRunAt(db)({
           scopes: { tenantId, projectId, agentId },
           scheduledTriggerId,
-          nextRunAt: trigger.nextRunAt,
-          enabled: isOneTime ? true : undefined,
+          nextRunAt,
+          enabled: isOneTime ? false : undefined,
         }),
-      { commit: true, commitMessage: `Rollback next_run_at for trigger ${scheduledTriggerId}` }
+      { commit: true, commitMessage: `Advance next_run_at for trigger ${scheduledTriggerId}` }
     );
-    logger.error({ scheduledTriggerId, err }, 'Workflow start failed, rolled back');
-    return 'skipped';
+  } catch (err) {
+    logger.error(
+      { scheduledTriggerId, err },
+      'Failed to advance next_run_at after workflow start; next tick will retry (idempotent)'
+    );
   }
 
   logger.info({ scheduledTriggerId, scheduledFor: trigger.nextRunAt }, 'Trigger dispatched');

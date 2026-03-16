@@ -395,7 +395,7 @@ app.openapi(
       runAsUserId,
       createdBy: callerId || null,
       nextRunAt,
-    } as any);
+    });
 
     const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
 

@@ -12,7 +12,11 @@ import type { ProjectScopeConfig } from '../../types/utility';
 export const listEnabledScheduledTriggers =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return db
-      .select({ id: scheduledTriggers.id, name: scheduledTriggers.name })
+      .select({
+        id: scheduledTriggers.id,
+        name: scheduledTriggers.name,
+        nextRunAt: scheduledTriggers.nextRunAt,
+      })
       .from(scheduledTriggers)
       .where(
         and(
