@@ -2249,11 +2249,11 @@ function validateExecuteCode(val: string, ctx: z.RefinementCtx) {
 }
 
 export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
-  .openapi('FunctionCreate')
   .omit({
     createdAt: true,
     updatedAt: true,
-  });
+  })
+  .openapi('FunctionCreate');
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 

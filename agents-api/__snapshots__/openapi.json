@@ -471,30 +471,7 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "properties": {
-                    "dependencies": {
-                      "$ref": "#/components/schemas/StringRecord"
-                    },
-                    "executeCode": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "id": {
-                      "$ref": "#/components/schemas/ResourceId"
-                    },
-                    "inputSchema": {
-                      "additionalProperties": {
-                        "nullable": true
-                      },
-                      "nullable": true,
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "executeCode"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/FunctionCreate"
                 },
                 "type": "object"
               },
@@ -4829,30 +4806,7 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "properties": {
-                    "dependencies": {
-                      "$ref": "#/components/schemas/StringRecord"
-                    },
-                    "executeCode": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "id": {
-                      "$ref": "#/components/schemas/ResourceId"
-                    },
-                    "inputSchema": {
-                      "additionalProperties": {
-                        "nullable": true
-                      },
-                      "nullable": true,
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "executeCode"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/FunctionCreate"
                 },
                 "type": "object"
               },
@@ -5095,6 +5049,32 @@
           "dependencies",
           "createdAt",
           "updatedAt"
+        ],
+        "type": "object"
+      },
+      "FunctionCreate": {
+        "properties": {
+          "dependencies": {
+            "$ref": "#/components/schemas/StringRecord"
+          },
+          "executeCode": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "inputSchema": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "executeCode"
         ],
         "type": "object"
       },
@@ -34637,30 +34617,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "dependencies": {
-                    "$ref": "#/components/schemas/StringRecord"
-                  },
-                  "executeCode": {
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "id": {
-                    "$ref": "#/components/schemas/ResourceId"
-                  },
-                  "inputSchema": {
-                    "additionalProperties": {
-                      "nullable": true
-                    },
-                    "nullable": true,
-                    "type": "object"
-                  }
-                },
-                "required": [
-                  "id",
-                  "executeCode"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/FunctionCreate"
               }
             }
           }
