@@ -102,6 +102,10 @@ function Nodes() {
           // @ts-expect-error
           Tool: data,
         },
+        // @ts-expect-error
+        models: {
+          base: {}
+        }
       }}
     >
       <ReactFlowProvider>
