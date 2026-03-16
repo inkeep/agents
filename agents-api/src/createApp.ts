@@ -14,6 +14,8 @@ import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
+import inkeepMediaMcpRoutes from './mcp-media';
+import inkeepSearchMcpRoutes from './mcp-search';
 import {
   authCorsConfig,
   defaultCorsConfig,
@@ -301,6 +303,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount MCP routes at top level
   app.route('/mcp', mcpRoutes);
+
+  app.route('/inkeep-media', inkeepMediaMcpRoutes);
+  app.route('/inkeep-search', inkeepSearchMcpRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

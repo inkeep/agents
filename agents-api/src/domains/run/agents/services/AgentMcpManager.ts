@@ -3,6 +3,8 @@ import {
   type CredentialStuffer,
   configureComposioMCPServer,
   type FullExecutionContext,
+  getMcpServerUrl,
+  isBuiltInMcp,
   isGithubWorkAppTool,
   isSlackWorkAppTool,
   JsonTransformer,
@@ -12,7 +14,9 @@ import {
   McpClient,
   type McpServerConfig,
   type McpTool,
+  resolveBuiltInMcpUrl,
   resolveSlackUserContext,
+  signMcpAccessToken,
 } from '@inkeep/agents-core';
 import { jsonSchema, tool } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
@@ -115,7 +119,7 @@ export class AgentMcpManager {
       }
       serverConfig = {
         type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
-        url: tool.config.mcp.server.url,
+        url: getMcpServerUrl(tool.config.mcp.server) ?? '',
         activeTools: tool.config.mcp.activeTools,
         selectedTools,
         headers: agentToolRelationHeaders,
@@ -139,6 +143,25 @@ export class AgentMcpManager {
         'x-inkeep-tenant-id': this.config.tenantId,
         'x-inkeep-project-id': this.config.projectId,
         Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
+      };
+    }
+
+    if (isBuiltInMcp(tool)) {
+      const resolvedUrl = resolveBuiltInMcpUrl(tool, env.INKEEP_AGENTS_API_URL);
+      if (resolvedUrl) serverConfig.url = resolvedUrl;
+      const resolvedApiKey = tool.credentialReferenceId
+        ? await this.resolveCredentialApiKey(tool.credentialReferenceId)
+        : undefined;
+      const jwt = await signMcpAccessToken({
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+        resolvedApiKey,
+      });
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tenant-id': this.config.tenantId,
+        'x-inkeep-project-id': this.config.projectId,
+        Authorization: `Bearer ${jwt}`,
       };
     }
 
@@ -186,6 +209,7 @@ export class AgentMcpManager {
       try {
         client = await connectionPromise;
         this.mcpClientCache.set(cacheKey, client);
+        this.mcpConnectionLocks.delete(cacheKey);
       } catch (error) {
         this.mcpConnectionLocks.delete(cacheKey);
         logger.error(
@@ -235,7 +259,10 @@ export class AgentMcpManager {
     const streamRequestId = this.getStreamRequestId();
     if (!streamRequestId) return;
 
-    const serverUrl = mcpTool.config.type === 'mcp' ? mcpTool.config.mcp.server.url : 'unknown';
+    const serverUrl =
+      mcpTool.config.type === 'mcp'
+        ? (getMcpServerUrl(mcpTool.config.mcp.server) ?? 'built-in')
+        : 'unknown';
 
     tracer.startActiveSpan(
       'ai.toolCall',
@@ -281,21 +308,21 @@ export class AgentMcpManager {
       throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
     }
 
-    return {
+    const baseConfig = {
       id: tool.id,
       name: tool.name,
       description: tool.name,
-      serverUrl: tool.config.mcp.server.url,
       activeTools: tool.config.mcp.activeTools,
-      mcpType: tool.config.mcp.server.url.includes('api.nango.dev')
-        ? MCPServerType.nango
-        : MCPServerType.generic,
       transport: tool.config.mcp.transport,
-      headers: {
-        ...tool.headers,
-        ...agentToolRelationHeaders,
-      },
+      headers: { ...tool.headers, ...agentToolRelationHeaders },
       toolOverrides: tool.config.mcp.toolOverrides,
+    };
+
+    const serverUrl = getMcpServerUrl(tool.config.mcp.server) ?? tool.config.mcp.server.url;
+    return {
+      ...baseConfig,
+      serverUrl,
+      mcpType: serverUrl.includes('api.nango.dev') ? MCPServerType.nango : MCPServerType.generic,
     };
   }
 
@@ -323,6 +350,22 @@ export class AgentMcpManager {
       }
       throw error;
     }
+  }
+
+  private async resolveCredentialApiKey(
+    credentialReferenceId: string
+  ): Promise<string | undefined> {
+    if (!this.credentialStuffer) return undefined;
+    const credRef = this.executionContext.project.credentialReferences?.[credentialReferenceId];
+    if (!credRef) return undefined;
+    const credData = await this.credentialStuffer.getCredentials(
+      { tenantId: this.config.tenantId, projectId: this.config.projectId },
+      {
+        credentialStoreId: credRef.credentialStoreId,
+        retrievalParams: credRef.retrievalParams || {},
+      }
+    );
+    return credData?.headers.Authorization?.replace(/^Bearer /, '') || undefined;
   }
 
   private static errMsg(error: unknown): string {

@@ -1,5 +1,70 @@
+import jmespath from 'jmespath';
 import { getLogger } from '../../../logger';
 import { estimateTokens } from '../utils/token-estimator';
+
+export function sanitizeJMESPathSelector(selector: string): string {
+  let sanitized = selector.replace(/=="([^"]*)"/g, "=='$1'");
+  sanitized = sanitized.replace(
+    /\[\?(\w+)\s*~\s*contains\(@,\s*"([^"]*)"\)\]/g,
+    '[?contains($1, `$2`)]'
+  );
+  sanitized = sanitized.replace(
+    /\[\?(\w+)\s*~\s*contains\(@,\s*'([^']*)'\)\]/g,
+    '[?contains($1, `$2`)]'
+  );
+  sanitized = sanitized.replace(/\s*~\s*/g, ' ');
+  return sanitized;
+}
+
+export function queryJMESPath(data: unknown, selector: string): unknown {
+  try {
+    return jmespath.search(data, sanitizeJMESPathSelector(selector));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Invalid $path selector "${selector}": ${message}`);
+  }
+}
+
+export type NormalizedContentItem =
+  | { type: 'text'; text: unknown }
+  | { type: 'image'; data: string; encoding: 'base64'; mimeType: string };
+
+function normalizeContentItem(item: any): NormalizedContentItem | null {
+  if (item?.type === 'text') return { type: 'text', text: item.text };
+  if (item?.type === 'image')
+    return { type: 'image', data: item.data, encoding: 'base64', mimeType: item.mimeType };
+  return null;
+}
+
+/**
+ * Unwraps a raw tool result to the data payload that JMESPath selectors execute against.
+ * Single-item content is unwrapped directly. Multi-item content returns a normalized array
+ * so all content items are accessible for chaining and artifact creation.
+ */
+export function unwrapToolResult(result: any): unknown {
+  if (!result || typeof result !== 'object') return result;
+
+  const items = result?.content;
+
+  if (Array.isArray(items)) {
+    if (items.length === 0) return null;
+
+    if (items.length === 1) {
+      const first = items[0];
+      if (first?.type === 'text') return first.text;
+      if (first?.type === 'image')
+        return { data: first.data, encoding: 'base64', mimeType: first.mimeType };
+      return first;
+    }
+
+    return items.map(normalizeContentItem).filter(Boolean);
+  }
+
+  if (!Array.isArray(result) && result.type === 'text' && typeof result.value === 'string')
+    return result.value;
+
+  return result;
+}
 
 const logger = getLogger('artifact-utils');
 

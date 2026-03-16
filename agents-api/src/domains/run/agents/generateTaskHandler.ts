@@ -168,6 +168,7 @@ export const createTaskHandler = (
                 toolId: item.tool.id,
                 credentialStoreRegistry,
                 userId: config.userId,
+                baseUrl: config.baseUrl,
               });
 
               if (!mcpTool) {

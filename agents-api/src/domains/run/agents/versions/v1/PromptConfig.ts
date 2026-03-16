@@ -349,18 +349,18 @@ CRITICAL: ALWAYS SELECT SINGLE ITEMS, NEVER ARRAYS
 
 SELECTOR REQUIREMENTS:
 - MUST select ONE specific item, never an array  
-- Use filtering: result.items[?title=='API Guide']
-- Use exact matching: result.documents[?name=='Setup Instructions'] 
-- Target specific fields: result.content[?section=='authentication']
+- Use filtering: items[?title=='API Guide']
+- Use exact matching: documents[?name=='Setup Instructions']
+- Target specific fields: content[?section=='authentication']
 
 CRITICAL: SELECTOR HIERARCHY
 - base_selector: Points to ONE specific item in the tool result
 - details_selector: Contains JMESPath selectors RELATIVE to the base selector
-- Example: If base="result.documents[?type=='api']" then details_selector uses "title" not "documents[0].title"
+- Example: If base="documents[?type=='api']" then details_selector uses "title" not "documents[0].title"
 
 COMMON FAILURE POINTS (AVOID THESE):
-1. **Array Selection**: result.items (returns array) ❌
-   → Fix: result.items[?type=='guide'] (returns single item) ✅
+1. **Array Selection**: items (returns array) ❌
+   → Fix: items[?type=='guide'] (returns single item) ✅
 
 2. **Similar Key Names**: "title" vs "name" vs "heading"
    → Always check the actual field names in tool results
@@ -439,7 +439,7 @@ THE details PROPERTY IN ${ARTIFACT_TAG.CREATE} MUST CONTAIN JMESPATH SELECTORS T
 ❌ NEVER: [?field=="value"] (double quotes in filters)
 ❌ NEVER: [?field=='value'] (escaped quotes in filters)
 ❌ NEVER: [?field=='"'"'value'"'"'] (nightmare quote mixing)
-❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
+❌ NEVER: items[?type=='doc'][?status=='active'] (chained filters)
 
 ✅ CORRECT JMESPATH SYNTAX:
 ✅ [?contains(title, 'text')] (contains function)
@@ -477,19 +477,31 @@ STEP 3: MATCH ACTUAL VALUES, NOT ASSUMPTIONS
 
 STEP 4: VALIDATE YOUR SELECTORS AGAINST THE DATA
 - Your base selector must match actual documents in the result
-- Test your logic: does result.structuredContent.content contain items with your target values?
+- Test your logic: does structuredContent.content contain items with your target values?
 - Use compound conditions when needed: [?title=='Inkeep' && record_type=='site']
 
 EXAMPLE PATTERNS FOR BASE SELECTORS:
-❌ WRONG: result.items[?contains(title, "guide")] (assumes field values + wrong quotes)
-❌ WRONG: result.data[?type=="document"] (double quotes invalid in JMESPath)
-✅ CORRECT: result.structuredContent.content[0] (select first item)
-✅ CORRECT: result.items[?type=='document'][0] (filter by type, single quotes!)
-✅ CORRECT: result.data[?category=='api'][0] (filter by category)
-✅ CORRECT: result.documents[?status=='published'][0] (filter by status)
+❌ WRONG: items[?contains(title, "guide")] (bare root path + wrong quotes)
+❌ WRONG: data[?type=="document"] (bare root path + double quotes invalid in JMESPath)
+❌ WRONG: structuredContent.content[0] (index-only — grabs first item regardless of relevance)
+❌ WRONG: response.items[0] (same — never select by position alone)
+❌ WRONG: response.results[?type=='article'] | [0] (too shallow — if title/url/content require dot paths like item.source.title to reach, go deeper: response.results[?type=='article'] | [0].source)
+✅ CORRECT: structuredContent.content[?title=='My Title' && type=='article'] | [0]
+✅ CORRECT: structuredContent.content[?type=='document'] | [0]
+✅ CORRECT: response.items[?category=='api'] | [0]
+✅ CORRECT: hits.documents[?status=='published'] | [0]
+
+🚨 STRUCTURE HINTS ARE AUTHORITATIVE — READ THEM BEFORE WRITING ANY SELECTOR:
+- Before writing base_selector or details_selector, read _structureHints.exampleSelectors from the tool result
+- Copy the closest matching exampleSelector as your literal starting point — do not construct paths from memory or infer from field names
+- If exampleSelectors show a path like "hits.documents[?type=='doc'] | [0]", use that exact prefix, not a guessed alternative
+
+🚨 DEPTH CONTRACT — your base_selector is only correct if schema fields (title, url, record_type, content) are DIRECT keys of the selected item:
+- After selecting an item, check: can you write details="title":"title" (no dots)? If not — if the field requires a path like "source.title" — your selector stopped too shallow
+- Navigate deeper until schema fields are direct children of the selected node
 
 EXAMPLE TEXT RESPONSE:
-"I found the authentication documentation. <${ARTIFACT_TAG.CREATE} id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
+"I found the authentication documentation. <${ARTIFACT_TAG.CREATE} id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
 
 The process involves three main steps: registration, token exchange, and API calls. As mentioned in the authentication documentation <${ARTIFACT_TAG.REF} id='auth-doc-1' tool='call_xyz789' />, you'll need to register your application first."
 
@@ -673,6 +685,8 @@ ${creationInstructions}
 
     return `<available_artifacts description="These are the artifacts available for you to use in generating responses.
 
+🚨 REFERENCE RULE: For any artifact listed below, you MUST pass it to tools using { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" } — never read its data and copy it inline into a tool argument.
+
 ${rules}
 
 ${creationInstructions}
@@ -704,10 +718,12 @@ ${creationInstructions}
 
     const artifactType = artifact.type || 'unknown';
     const schemas = typeSchemaMap?.[artifactType];
+    const pathableFields = schemas ? Object.keys(schemas.fullShape) : [];
     const typeSchema = schemas
       ? `DISPLAYED to user via ${ARTIFACT_TAG.REF} (preview fields only): ${JSON.stringify(schemas.previewShape)}
     PASSED to tools via { "${SENTINEL_KEY.ARTIFACT}": "...", "${SENTINEL_KEY.TOOL}": "..." } (all fields): ${JSON.stringify(schemas.fullShape)}
     RETRIEVED via ${ARTIFACT_TOOL.GET_REFERENCE} (all fields): ${JSON.stringify(schemas.fullShape)}
+    EXTRACTABLE via "$path" (use to pass a single field to a tool): ${JSON.stringify(pathableFields)} — e.g. { "${SENTINEL_KEY.ARTIFACT}": "...", "${SENTINEL_KEY.TOOL}": "...", "${SENTINEL_KEY.PATH}": "${pathableFields[0] ?? 'fieldName'}" }
     Note: ${ARTIFACT_TAG.CREATE} captured all fields at creation time.`
       : 'Schema not available';
 
@@ -724,77 +740,89 @@ ${creationInstructions}
   }
 
   private getToolChainingGuidance(): string {
-    return `TOOL RESULT CHAINING:
-Any tool argument can reference the raw output of a previous tool call using { "${SENTINEL_KEY.TOOL}": "tool_call_id" }.
-The system resolves this to the complete raw output of that tool call before executing the next tool.
+    return `🚨 HARD STOP — before typing ANY parameter value into ANY tool call:
+If the value exists in an artifact, a prior tool result, or is visible in available_artifacts summary_data,
+you are PROHIBITED from typing it as a literal. Stop. Construct the reference. Only then proceed.
+Doing otherwise is a context_shortcut violation. There are NO exceptions.
 
-🚨 MANDATORY: When a tool's output is the direct input to the next tool, you MUST use { "${SENTINEL_KEY.TOOL}": "call_id" }.
-NEVER read a tool result and copy its value as a literal string or object into the next tool call.
+🚨 SUMMARY_DATA IS READ-ONLY DISPLAY.
+If a value is visible in summary_data, that is NOT permission to use it as a literal.
+Visibility ≠ permission. This applies to ALL field types — strings, numbers, objects, everything.
+You MUST use { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id", "${SENTINEL_KEY.PATH}": "fieldName" }. No exceptions.
 
-❌ WRONG — copying tool output inline:
-  Call tool_a → returns "some text"
-  Call tool_b with { "input": "some text" }  ← you copied the value manually
+⛔ BEFORE typing any string or number as a parameter value, ask:
+   "Did I read this from context, an artifact, or a prior tool result?"
+   If YES → STOP → use a reference. Writing the literal anyway = context_shortcut violation.
 
-✅ CORRECT — referencing the previous call:
-  Call tool_a → returns "some text" (tool_call_id: "call_a_xyz")
-  Call tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } }  ← system resolves it automatically
+❌ VIOLATION: context_shortcut — passing a value as a literal because it is visible in context,
+   in summary_data, in a prior message, or in a tool result. Always wrong. No exceptions.
 
-HOW PRIMITIVE RESULTS APPEAR vs. WHAT { "${SENTINEL_KEY.TOOL}" } RESOLVES TO:
-When a tool returns a primitive (string, number, boolean), the result appears in the conversation
-wrapped for display purposes — e.g. { "text": "...", "_toolCallId": "call_a_xyz" } for strings
-or { "value": 42, "_toolCallId": "call_a_xyz" } for numbers. This wrapper is display-only.
-{ "${SENTINEL_KEY.TOOL}": "call_a_xyz" } resolves to the raw primitive itself — not the wrapper object.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DECISION TREE — which reference to use:
 
-  Call tool_a → result shown as { "value": 42, "_toolCallId": "call_a_xyz" }
-  tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } } receives: 42  ← raw number, not the wrapper
+  1. Value is in a raw tool result from this turn (no artifact created yet)?
+     → FIRST CHOICE: { "${SENTINEL_KEY.TOOL}": "call_id" }
+     → Need only one field? { "${SENTINEL_KEY.TOOL}": "call_id", "${SENTINEL_KEY.PATH}": "fieldName" }
+     → Do NOT create an artifact just to reference it — $tool works immediately
 
-  Call tool_a → result shown as { "text": "hello", "_toolCallId": "call_a_xyz" }
-  tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } } receives: "hello"  ← raw string, not the wrapper
+  2. Value is in an artifact (in available_artifacts or created this turn)?
+     → { "${SENTINEL_KEY.ARTIFACT}": "art-id", "${SENTINEL_KEY.TOOL}": "call_id" }
+     → One field: { "${SENTINEL_KEY.ARTIFACT}": "art-id", "${SENTINEL_KEY.TOOL}": "call_id", "${SENTINEL_KEY.PATH}": "fieldName" }
+     → Required even if the field value is plainly visible in summary_data
 
-Pipeline example:
-  Step 1: tool_a({ "arg": "value" }) → (tool_call_id: "call_a")
-  Step 2: tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_a" }, "other": "value" })
+  3. Value is visible in available_artifacts summary_data?
+     → This IS an artifact — use case 2 above
+     → summary_data visibility is display-only, not a literal source
 
-WHEN THE PREVIOUS TOOL RETURNS A COMPLEX OBJECT:
-{ "${SENTINEL_KEY.TOOL}": "call_id" } passes the entire raw output. If the next tool needs only a specific field,
-use an intermediate extraction step — never read the value and copy it inline.
+  4. None of the above → provide a literal value
 
-  Step 1: tool_a(...)  → returns { "results": [...], "text": "..." }  (call_id: "call_a")
-  Step 2: extract({ "source": { "${SENTINEL_KEY.TOOL}": "call_a" }, ... })  → returns "..."  (call_id: "call_b")
-  Step 3: tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_b" } })  ← receives the extracted value
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CASE 1: CHAINING RAW TOOL RESULTS ($tool)
 
-❌ WRONG — reading a field and copying it inline:
-  tool_a returns { "text": "some content" }
-  tool_b({ "input": "some content" })  ← you copied the value manually
+Full output:
+  tool_a(...)  →  { "title": "Report", "count": 42 }  (call_id: "call_a")
+  tool_b({ "data": { "${SENTINEL_KEY.TOOL}": "call_a" } })
+  ↳ tool_b receives the full object
 
-✅ CORRECT — extract first, then reference:
-  tool_a(...)  (call_id: "call_a")
-  extract({ "source": { "${SENTINEL_KEY.TOOL}": "call_a" }, ... })  (call_id: "call_b")
-  tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_b" } })
+One field via $path — strings and numbers both require this:
+  tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_a", "${SENTINEL_KEY.PATH}": "title" } })  ↳ receives "Report"
+  tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_a", "${SENTINEL_KEY.PATH}": "count" } })  ↳ receives 42
 
-This is different from artifact passing:
-- { "${SENTINEL_KEY.TOOL}": "call_id" } — raw output pipe; no artifact exists or is needed; intermediate data never surfaces to the user
-- { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } — passes a structured object you explicitly extracted and saved from a tool result
+  ❌ WRONG: tool_b({ "input": "Report" })  ← context_shortcut violation — copied manually
+  ❌ WRONG: tool_b({ "input": 42 })        ← context_shortcut violation — same pattern
 
-When to use each:
-✅ Use { "${SENTINEL_KEY.TOOL}": "call_id" } when the next tool can accept the full output of the previous tool
-✅ Use an intermediate extraction step when you need only a specific field from a complex output
-✅ Use { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } when you have already created an artifact and want to pass its full structured data to a tool
-⚠️ Only references tool calls from the current response turn
+Primitive results — the display wrapper is NOT the value:
+  tool_a result shown as: { "text": "hello", "_toolCallId": "call_a" }
+  { "${SENTINEL_KEY.TOOL}": "call_a" } resolves to: "hello"  ← raw string, not the wrapper
 
-AFTER AN EXTRACTION STEP — reference the extraction's call_id, not the original source:
-  source_tool(...)  (call_id: "call_source")
-  extract({ "data": { "${SENTINEL_KEY.TOOL}": "call_source" }, ... })  (call_id: "call_extract")
-  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_extract" } })  ← use call_extract, NOT call_source
+  tool_a result shown as: { "value": 42, "_toolCallId": "call_a" }
+  { "${SENTINEL_KEY.TOOL}": "call_a" } resolves to: 42  ← raw number, not the wrapper
 
-❌ WRONG — referencing the original source after extraction:
-  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_source" } })  ← skips the extraction, passes the full object again
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CASE 2: PASSING ARTIFACTS TO TOOLS ($artifact + $tool)
 
-IF AN EXTRACTION RETURNED A PRIMITIVE — pipe it directly to the next tool. Do NOT run another
-extraction step on it. An extraction applied to a plain string or number returns null.
-  extract(...)  → returns "some string"  (call_id: "call_extract")
-  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_extract" } })  ← correct, receives the string directly
-  ❌ extract({ "data": { "${SENTINEL_KEY.TOOL}": "call_extract" }, ... })  ← wrong, cannot extract from a primitive`;
+🚨 PRIMITIVE FIELDS (strings, numbers) FROM ARTIFACTS REQUIRE $path TOO:
+  Artifact "report-1" has fields: { "title": "Report", "score": 95 }
+  ❌ WRONG: tool_b({ "input": "Report" })  ← context_shortcut violation — even a simple string
+  ❌ WRONG: tool_b({ "input": 95 })        ← context_shortcut violation — same
+  ✅ CORRECT: tool_b({ "input": { "${SENTINEL_KEY.ARTIFACT}": "report-1", "${SENTINEL_KEY.TOOL}": "call_a", "${SENTINEL_KEY.PATH}": "title" } })
+  ✅ CORRECT: tool_b({ "input": { "${SENTINEL_KEY.ARTIFACT}": "report-1", "${SENTINEL_KEY.TOOL}": "call_a", "${SENTINEL_KEY.PATH}": "score" } })
+
+Full artifact data:
+  tool_b({ "doc": { "${SENTINEL_KEY.ARTIFACT}": "report-1", "${SENTINEL_KEY.TOOL}": "call_a" } })
+  ↳ receives the full data object
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+$path — JMESPATH EXTRACTION (works on both $tool and $artifact)
+
+  • Single field:             "$path": "title"
+  • Nested field:             "$path": "ticket.assignee.name"
+  • Array filter to one item: "$path": "results[?status=='active'] | [0]"
+  • Image from multi-content: "$path": "[?type=='image'] | [0]"
+  • Text from multi-content:  "$path": "[?type=='text'] | [0].text"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ Only tool calls from the current response turn are referenceable via $tool.`;
   }
 
   private escapeXml(value: string): string {

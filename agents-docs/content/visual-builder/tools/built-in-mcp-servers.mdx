@@ -1,0 +1,48 @@
+---
+title: Built-in MCP Servers (Visual Builder)
+sidebarTitle: Built-in MCP Servers
+description: Pre-built MCP servers that are ready to add to your agents without any configuration.
+icon: LuPackage
+---
+
+Built-in MCP servers are pre-built tool collections that are hosted and maintained for you. They are ready to add to your agents without registering a URL or managing a server. Search servers require a credential to be configured.
+
+## Available servers
+
+### inkeep-media
+
+Image processing tools.
+
+| Tool | Description |
+|------|-------------|
+| `image_info` | Get metadata about an image (dimensions, format, size). |
+| `image_resize` | Resize an image to specified dimensions. |
+| `image_crop` | Crop an image to a specified region. |
+
+Image tools accept and return image data in a structured format, so they can be chained directly in a pipeline — for example, resize then crop in a single sequence of tool calls.
+
+### inkeep-search-exa / inkeep-search-tavily / inkeep-search-brave / inkeep-search-serpapi
+
+Web search tools. Each provider is a separate server — pick one per agent. Requires a credential.
+
+| Tool | Description |
+|------|-------------|
+| `web_search` | Search the web and return relevant results. |
+
+## Adding built-in servers to an agent
+
+### Media server
+
+1. Go to the **Tools** tab in the Visual Builder.
+2. Select **Built-in MCP Servers**.
+3. Click **Add** on the server you want to use.
+4. The server will appear in your tool list and can be connected to any agent.
+
+You can enable or disable individual tools from the server the same way as any other MCP server — see [Editing server settings](/visual-builder/tools/mcp-servers#editing-server-settings).
+
+### Search servers
+
+1. Go to the **Tools** tab in the Visual Builder.
+2. Select **Built-in MCP Servers**, then click **Add Web Search**.
+3. Choose a provider (Exa, Tavily, Brave, or SerpAPI) and enter your API key.
+4. The search server will appear in your tool list and can be connected to any agent.

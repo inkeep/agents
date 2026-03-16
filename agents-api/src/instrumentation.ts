@@ -1,3 +1,4 @@
+import type { Context } from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import {
   ALLOW_ALL_BAGGAGE_KEYS,
@@ -16,6 +17,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import {
   BatchSpanProcessor,
   NoopSpanProcessor,
+  type ReadableSpan,
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
@@ -40,6 +42,38 @@ function createSafeBatchProcessor(): SpanProcessor {
 }
 
 export const defaultBatchProcessor = createSafeBatchProcessor();
+
+const INTERNAL_TOOL_RESULT_KEYS = ['_structureHints', '_toolCallId'];
+
+class ToolResultSanitizingProcessor implements SpanProcessor {
+  onStart(_span: any, _parentContext: Context): void {}
+
+  onEnd(span: ReadableSpan): void {
+    const raw = span.attributes['ai.toolCall.result'];
+    if (typeof raw !== 'string') return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        for (const key of INTERNAL_TOOL_RESULT_KEYS) {
+          delete parsed[key];
+        }
+        // Direct mutation of span.attributes works in current OTEL SDK versions because the attributes
+        // object is a plain mutable reference. This may break in future SDK versions if attributes
+        // are snapshotted before onEnd. A safer long-term fix would be a custom exporter that
+        // sanitizes before export rather than a span processor.
+        (span.attributes as Record<string, unknown>)['ai.toolCall.result'] = JSON.stringify(parsed);
+      }
+    } catch {}
+  }
+
+  shutdown(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  forceFlush(): Promise<void> {
+    return Promise.resolve();
+  }
+}
 
 export const defaultResource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-api',
@@ -73,6 +107,7 @@ export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrume
 
 export const defaultSpanProcessors: SpanProcessor[] = [
   new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
+  new ToolResultSanitizingProcessor(),
   defaultBatchProcessor,
 ];
 

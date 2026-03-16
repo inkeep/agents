@@ -7,7 +7,7 @@ import {
   STREAM_PARSER_MAX_STREAMED_SIZE,
 } from '../constants/execution-limits';
 import { agentSessionManager } from '../session/AgentSession';
-import type { StreamHelper } from './stream-helpers';
+import { cleanArtifactForStream, type StreamHelper } from './stream-helpers';
 
 const logger = getLogger('IncrementalStreamParser');
 
@@ -543,7 +543,7 @@ export class IncrementalStreamParser {
       const isArtifact = part.data.artifactId && part.data.toolCallId;
 
       if (isArtifact) {
-        await this.streamHelper.writeData('data-artifact', part.data);
+        await this.streamHelper.writeData('data-artifact', cleanArtifactForStream(part.data));
       } else {
         await this.streamHelper.writeData('data-component', part.data);
       }

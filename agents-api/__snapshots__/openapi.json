@@ -5763,7 +5763,6 @@
                   "server": {
                     "properties": {
                       "url": {
-                        "format": "uri",
                         "type": "string"
                       }
                     },
@@ -9116,7 +9115,6 @@
                   "server": {
                     "properties": {
                       "url": {
-                        "format": "uri",
                         "type": "string"
                       }
                     },
@@ -9326,7 +9324,6 @@
                   "server": {
                     "properties": {
                       "url": {
-                        "format": "uri",
                         "type": "string"
                       }
                     },

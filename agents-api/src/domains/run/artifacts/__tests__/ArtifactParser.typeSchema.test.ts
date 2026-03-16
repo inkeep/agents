@@ -337,25 +337,33 @@ describe('ArtifactParser — typeSchema in data parts', () => {
     });
 
     describe('ephemeral {$tool} resolution (no $artifact)', () => {
-      it('resolves {$tool} to unwrapped text content from ToolSessionManager', async () => {
-        mockArtifactService.getToolResultRaw.mockReturnValue('fetched html content');
+      it('resolves {$tool} to wrapped result (text) from ToolSessionManager', async () => {
+        mockArtifactService.getToolResultRaw.mockReturnValue({
+          result: 'fetched html content',
+        });
         const result = await parser.resolveArgs({ $tool: 'call-abc' });
         expect(mockArtifactService.getToolResultRaw).toHaveBeenCalledWith('call-abc');
-        expect(result).toBe('fetched html content');
+        expect(result).toEqual({ result: 'fetched html content' });
       });
 
-      it('resolves {$tool} to unwrapped image object for image content', async () => {
-        const imageResult = { data: 'base64data==', encoding: 'base64', mimeType: 'image/png' };
+      it('resolves {$tool} to wrapped result (image) for image content', async () => {
+        const imageResult = {
+          result: {
+            data: 'base64data==',
+            encoding: 'base64',
+            mimeType: 'image/png',
+          },
+        };
         mockArtifactService.getToolResultRaw.mockReturnValue(imageResult);
         const result = await parser.resolveArgs({ $tool: 'call-img' });
         expect(result).toEqual(imageResult);
       });
 
-      it('resolves {$tool} to raw non-MCP result as-is', async () => {
+      it('resolves {$tool} to wrapped raw non-MCP result', async () => {
         const rawResult = { rows: [{ id: 1, name: 'Alice' }] };
-        mockArtifactService.getToolResultRaw.mockReturnValue(rawResult);
+        mockArtifactService.getToolResultRaw.mockReturnValue({ result: rawResult });
         const result = await parser.resolveArgs({ $tool: 'call-db' });
-        expect(result).toEqual(rawResult);
+        expect(result).toEqual({ result: rawResult });
       });
 
       it('throws ToolChainResolutionError when toolCallId not found', async () => {
@@ -366,12 +374,17 @@ describe('ArtifactParser — typeSchema in data parts', () => {
       });
 
       it('resolves nested {$tool} reference inside a larger args object', async () => {
-        mockArtifactService.getToolResultRaw.mockReturnValue('<html>page</html>');
+        mockArtifactService.getToolResultRaw.mockReturnValue({
+          result: '<html>page</html>',
+        });
         const result = await parser.resolveArgs({
           selector: 'h1',
           input: { $tool: 'call-fetch' },
         });
-        expect(result).toEqual({ selector: 'h1', input: '<html>page</html>' });
+        expect(result).toEqual({
+          selector: 'h1',
+          input: { result: '<html>page</html>' },
+        });
       });
 
       it('does not invoke getToolResultRaw when both $artifact and $tool are present', async () => {

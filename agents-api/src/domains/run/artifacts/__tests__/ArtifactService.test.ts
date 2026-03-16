@@ -258,7 +258,7 @@ describe('ArtifactService', () => {
       artifactId: 'test-artifact',
       toolCallId: 'test-tool-call',
       type: 'TestComponent',
-      baseSelector: 'result.data[0]',
+      baseSelector: 'data[0]',
       detailsSelector: {
         title: 'title',
         summary: 'summary',
@@ -371,7 +371,7 @@ describe('ArtifactService', () => {
 
       const result = await artifactService.createArtifact({
         ...mockRequest,
-        baseSelector: 'result.nonexistent[0]',
+        baseSelector: 'nonexistent[0]',
       });
 
       expect(result?.data).toEqual({});
@@ -392,7 +392,7 @@ describe('ArtifactService', () => {
 
       const result = await artifactService.createArtifact({
         ...mockRequest,
-        baseSelector: 'result.data[?title=="Test"]', // Double quotes should be sanitized
+        baseSelector: 'data[?title=="Test"]', // Double quotes should be sanitized
       });
 
       expect(result).not.toBeNull();
@@ -530,17 +530,17 @@ describe('ArtifactService', () => {
       expect(artifactService.getToolResultRaw('call-missing')).toBeUndefined();
     });
 
-    it('unwraps MCP-style text content', () => {
+    it('unwraps MCP-style text content and returns directly', () => {
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-1',
         toolName: 'fetch',
         result: { content: [{ type: 'text', text: '<html>page</html>' }] },
         timestamp: Date.now(),
       });
-      expect(artifactService.getToolResultRaw('call-1')).toBe('<html>page</html>');
+      expect(artifactService.getToolResultRaw('call-1')).toEqual('<html>page</html>');
     });
 
-    it('unwraps MCP-style image content', () => {
+    it('unwraps MCP-style image content and returns directly', () => {
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-img',
         toolName: 'screenshot',
@@ -556,17 +556,17 @@ describe('ArtifactService', () => {
       });
     });
 
-    it('unwraps AI SDK function tool text output', () => {
+    it('unwraps AI SDK function tool text output and returns directly', () => {
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-fn',
         toolName: 'citation_extract_text',
         result: { type: 'text', value: 'extracted text content' },
         timestamp: Date.now(),
       });
-      expect(artifactService.getToolResultRaw('call-fn')).toBe('extracted text content');
+      expect(artifactService.getToolResultRaw('call-fn')).toEqual('extracted text content');
     });
 
-    it('returns raw result for non-standard formats', () => {
+    it('returns raw result for non-standard formats directly', () => {
       const rawResult = { rows: [{ id: 1, name: 'Alice' }] };
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-db',
@@ -587,7 +587,7 @@ describe('ArtifactService', () => {
       expect(artifactService.getToolResultRaw('call-failed')).toBeUndefined();
     });
 
-    it('returns the result when failed is false', () => {
+    it('returns the result when failed is false directly', () => {
       const successResult = { data: 'ok' };
       toolSessionManagerMock.getToolResult.mockReturnValue({
         toolCallId: 'call-ok',
@@ -620,7 +620,7 @@ describe('ArtifactService', () => {
         artifactId: 'test',
         toolCallId: 'test',
         type: 'TestComponent',
-        baseSelector: 'result.data[?type=="test"]', // Should be sanitized to single quotes
+        baseSelector: 'data[?type=="test"]', // Should be sanitized to single quotes
         detailsSelector: { title: 'title' },
       };
 
@@ -647,7 +647,7 @@ describe('ArtifactService', () => {
         artifactId: 'test',
         toolCallId: 'test',
         type: 'TestComponent',
-        baseSelector: 'result.data[?content ~ contains(@, "test")]', // Should be sanitized
+        baseSelector: 'data[?content ~ contains(@, "test")]', // Should be sanitized
         detailsSelector: { title: 'title' },
       };
 
@@ -681,7 +681,7 @@ describe('ArtifactService', () => {
         artifactId: 'test-artifact',
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
-        baseSelector: 'result.data[0]',
+        baseSelector: 'data[0]',
         detailsSelector: {
           title: 'title',
           summary: 'summary',
@@ -726,7 +726,7 @@ describe('ArtifactService', () => {
         artifactId: 'test-artifact',
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
-        baseSelector: 'result.data[0]',
+        baseSelector: 'data[0]',
         detailsSelector: {
           title: 'title',
           summary: 'summary',
@@ -770,7 +770,7 @@ describe('ArtifactService', () => {
         artifactId: 'cache-key-test',
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
-        baseSelector: 'result.data[0]',
+        baseSelector: 'data[0]',
         detailsSelector: {
           title: 'title',
           summary: 'summary',
@@ -833,7 +833,7 @@ describe('ArtifactService', () => {
         artifactId: 'roundtrip-test',
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
-        baseSelector: 'result.data[0]',
+        baseSelector: 'data[0]',
         detailsSelector: {
           title: 'title',
           summary: 'summary',

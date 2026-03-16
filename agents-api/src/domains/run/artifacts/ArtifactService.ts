@@ -6,7 +6,6 @@ import {
   listTaskIdsByContextId,
   upsertLedgerArtifact,
 } from '@inkeep/agents-core';
-import jmespath from 'jmespath';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/services/ToolSessionManager';
@@ -16,7 +15,7 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { detectOversizedArtifact } from './artifact-utils';
+import { detectOversizedArtifact, queryJMESPath, unwrapToolResult } from './artifact-utils';
 
 const logger = getLogger('ArtifactService');
 
@@ -76,16 +75,13 @@ export interface ArtifactServiceContext {
  */
 export class ArtifactService {
   private createdArtifacts: Map<string, any> = new Map();
-  private static selectorCache = new Map<string, string>();
 
   constructor(private context: ArtifactServiceContext) {}
 
   /**
    * Clear static caches to prevent memory leaks between sessions
    */
-  static clearCaches(): void {
-    ArtifactService.selectorCache.clear();
-  }
+  static clearCaches(): void {}
 
   /**
    * Update artifact components in the context
@@ -96,7 +92,10 @@ export class ArtifactService {
 
   /**
    * Get raw tool result by toolCallId from the current session.
-   * Unwraps MCP-style content arrays; returns the value as-is for non-MCP results.
+   * Unwraps MCP-style content arrays and AI SDK text output, then returns
+   * the data directly so paths like structuredContent.content[?...] work
+   * consistently with _structureHints exampleSelectors shown to the agent.
+   * Strips system-added fields (_toolCallId, _structureHints, isError).
    */
   getToolResultRaw(toolCallId: string): unknown {
     if (!this.context.sessionId) return undefined;
@@ -114,17 +113,14 @@ export class ArtifactService {
 
     const result = record.result;
 
-    // Unwrap MCP-style content array
-    const first = result?.content?.[0];
-    if (first?.type === 'text') return first.text;
-    if (first?.type === 'image') {
-      return { data: first.data, encoding: 'base64', mimeType: first.mimeType };
+    const payload: unknown = unwrapToolResult(result);
+
+    if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+      const { _toolCallId, _structureHints, isError, ...rest } = payload as Record<string, unknown>;
+      return rest;
     }
 
-    // Unwrap AI SDK function tool output: { type: "text", value: "..." }
-    if (result?.type === 'text' && typeof result?.value === 'string') return result.value;
-
-    return result;
+    return payload;
   }
 
   /**
@@ -200,21 +196,25 @@ export class ArtifactService {
     const toolResult = toolResultRecord.result;
 
     try {
-      const toolResultData =
-        toolResult && typeof toolResult === 'object' && !Array.isArray(toolResult)
-          ? Object.fromEntries(
-              Object.entries(toolResult).filter(([key]) => key !== '_structureHints')
-            )
-          : toolResult;
-
-      let sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
-
-      // Strip 'result.' prefix if it exists (tool results don't have this wrapper)
-      if (sanitizedBaseSelector.startsWith('result.')) {
-        sanitizedBaseSelector = sanitizedBaseSelector.slice('result.'.length);
+      const unwrapped = unwrapToolResult(toolResult);
+      let parsed: unknown = unwrapped;
+      if (typeof unwrapped === 'string') {
+        try {
+          parsed = JSON.parse(unwrapped);
+        } catch {
+          parsed = unwrapped;
+        }
       }
+      const toolResultData =
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+          ? Object.fromEntries(
+              Object.entries(parsed as Record<string, unknown>).filter(
+                ([key]) => key !== '_structureHints'
+              )
+            )
+          : parsed;
 
-      let selectedData = jmespath.search(toolResultData, sanitizedBaseSelector);
+      let selectedData: any = queryJMESPath(toolResultData, request.baseSelector);
 
       if (Array.isArray(selectedData)) {
         selectedData = selectedData.length > 0 ? selectedData[0] : {};
@@ -746,7 +746,7 @@ export class ArtifactService {
       : summaryData;
 
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
-      await agentSessionManager.recordEvent(
+      agentSessionManager.recordEvent(
         this.context.streamRequestId,
         'artifact_saved',
         effectiveAgentId,
@@ -838,36 +838,6 @@ export class ArtifactService {
         artifactForCache
       );
     }
-  }
-
-  /**
-   * Sanitize JMESPath selector to fix common syntax issues (with caching)
-   */
-  private sanitizeJMESPathSelector(selector: string): string {
-    const cached = ArtifactService.selectorCache.get(selector);
-    if (cached !== undefined) {
-      return cached;
-    }
-
-    let sanitized = selector.replace(/=="([^"]*)"/g, "=='$1'");
-
-    sanitized = sanitized.replace(
-      /\[\?(\w+)\s*~\s*contains\(@,\s*"([^"]*)"\)\]/g,
-      '[?contains($1, `$2`)]'
-    );
-
-    sanitized = sanitized.replace(
-      /\[\?(\w+)\s*~\s*contains\(@,\s*'([^']*)'\)\]/g,
-      '[?contains($1, `$2`)]'
-    );
-
-    sanitized = sanitized.replace(/\s*~\s*/g, ' ');
-
-    if (ArtifactService.selectorCache.size < 1000) {
-      ArtifactService.selectorCache.set(selector, sanitized);
-    }
-
-    return sanitized;
   }
 
   /**
@@ -1036,8 +1006,7 @@ export class ArtifactService {
 
           if (customSelector) {
             // Use custom JMESPath selector
-            const sanitizedSelector = this.sanitizeJMESPathSelector(customSelector);
-            rawValue = jmespath.search(item, sanitizedSelector);
+            rawValue = queryJMESPath(item, customSelector);
           } else {
             // Default to direct field access
             rawValue = item[fieldName];

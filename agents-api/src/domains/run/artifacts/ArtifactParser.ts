@@ -13,6 +13,7 @@ import {
   type ArtifactServiceContext,
   type ArtifactSummaryData,
 } from './ArtifactService';
+import { queryJMESPath } from './artifact-utils';
 
 const logger = getLogger('ArtifactParser');
 
@@ -238,6 +239,18 @@ export class ArtifactParser {
           args[SENTINEL_KEY.TOOL]
         );
         if (fullData?.data) {
+          const path = args[SENTINEL_KEY.PATH];
+          if (typeof path === 'string') {
+            logger.debug(
+              {
+                artifactId: args[SENTINEL_KEY.ARTIFACT],
+                toolCallId: args[SENTINEL_KEY.TOOL],
+                path,
+              },
+              'Resolved artifact ref with $path in tool arg'
+            );
+            return queryJMESPath(fullData.data, path);
+          }
           logger.debug(
             { artifactId: args[SENTINEL_KEY.ARTIFACT], toolCallId: args[SENTINEL_KEY.TOOL] },
             'Resolved artifact ref in tool arg'
@@ -253,6 +266,14 @@ export class ArtifactParser {
       if (typeof args[SENTINEL_KEY.TOOL] === 'string' && !(SENTINEL_KEY.ARTIFACT in args)) {
         const raw = this.artifactService.getToolResultRaw(args[SENTINEL_KEY.TOOL]);
         if (raw !== undefined) {
+          const path = args[SENTINEL_KEY.PATH];
+          if (typeof path === 'string') {
+            logger.debug(
+              { toolCallId: args[SENTINEL_KEY.TOOL], path },
+              'Resolved ephemeral tool result ref with $path in tool arg'
+            );
+            return queryJMESPath(raw, path);
+          }
           logger.debug(
             { toolCallId: args[SENTINEL_KEY.TOOL] },
             'Resolved ephemeral tool result ref in tool arg'

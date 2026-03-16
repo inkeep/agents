@@ -94,7 +94,7 @@ export class ArtifactCreateSchema {
           base_selector: {
             type: 'string',
             description:
-              'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
+              'JMESPath selector to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "items[?type==\'guide\']").',
           },
           details_selector: enhancedSchema,
         },
@@ -148,7 +148,7 @@ export class ArtifactCreateSchema {
           base_selector: {
             type: 'string',
             description:
-              'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
+              'JMESPath selector to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "items[?type==\'guide\']").',
           },
           details_selector: enhancedSchema,
         },

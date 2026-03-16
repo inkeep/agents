@@ -1,5 +1,6 @@
 import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
+import { BUILT_IN_MCP_URL_PREFIX } from '../mcp/built-in-mcps';
 import type {
   ApiConfigSchema,
   AppConfigSchema,
@@ -190,13 +191,18 @@ export type ToolSimplifyConfig = {
   transformation?: Record<string, string> | string; // object mapping or JMESPath expression
 };
 
+export type ToolMcpServerConfig = {
+  url: string;
+  timeout?: number;
+  headers?: Record<string, string>;
+};
+
+export const getMcpServerUrl = (server: ToolMcpServerConfig): string | undefined =>
+  !server.url.startsWith(BUILT_IN_MCP_URL_PREFIX) ? server.url : undefined;
+
 export type ToolMcpConfig = {
   // Server connection details
-  server: {
-    url: string;
-    timeout?: number;
-    headers?: Record<string, string>;
-  };
+  server: ToolMcpServerConfig;
   // Transport configuration
   transport?: McpTransportConfig;
   // Active tools to enable from this MCP server

@@ -152,6 +152,17 @@ export { type OrgRole, OrgRoles, type ProjectRole, ProjectRoles } from './auth/a
 export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';
+export {
+  BUILT_IN_MCP_CONFIGS,
+  BUILT_IN_MCP_URL_PREFIX,
+  INKEEP_ICON_IMAGE_URL,
+  INKEEP_MEDIA_MCP,
+  INKEEP_SEARCH_BRAVE_MCP,
+  INKEEP_SEARCH_EXA_MCP,
+  INKEEP_SEARCH_MCPS,
+  INKEEP_SEARCH_SERPAPI_MCP,
+  INKEEP_SEARCH_TAVILY_MCP,
+} from './mcp/built-in-mcps';
 export { CredentialStoreType, MCPTransportType } from './types';
 export { detectAuthenticationRequired } from './utils/auth-detection';
 export * from './validation/extend-schemas';

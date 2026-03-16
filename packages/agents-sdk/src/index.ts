@@ -22,6 +22,12 @@ export {
 } from './builderFunctions';
 export { transfer } from './builders';
 export {
+  INKEEP_MEDIA,
+  INKEEP_MEDIA_TOOLS,
+  INKEEP_SEARCH,
+  INKEEP_SEARCH_TOOLS,
+} from './built-in-mcps';
+export {
   type CredentialProviderConfig,
   type CredentialProviderType,
   type CredentialStore,
