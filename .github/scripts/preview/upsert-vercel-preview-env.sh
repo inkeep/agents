@@ -34,11 +34,14 @@ if [ -z "${MANAGE_DB_URL:-}" ] || [ -z "${RUN_DB_URL:-}" ] || [ -z "${SPICEDB_EN
 
   RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
 
-  railway link \
+  if ! railway link \
     --project "${RAILWAY_PROJECT_ID}" \
     --service "${RAILWAY_OUTPUT_SERVICE}" \
     --environment "${RAILWAY_ENV_NAME}" \
-    >/dev/null
+    >/dev/null; then
+    echo "Failed to link Railway CLI to project ${RAILWAY_PROJECT_ID} service ${RAILWAY_OUTPUT_SERVICE} env ${RAILWAY_ENV_NAME}." >&2
+    exit 1
+  fi
 
   extract_runtime_var() {
     local key="$1"

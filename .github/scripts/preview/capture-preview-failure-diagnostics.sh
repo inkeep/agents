@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-require_env_vars() {
-  local required
-  for required in "$@"; do
-    if [ -z "${!required:-}" ]; then
-      echo "Missing required configuration: ${required}" >&2
-      exit 1
-    fi
-  done
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=.github/scripts/preview/common.sh
+source "${SCRIPT_DIR}/common.sh"
 
 require_env_vars API_URL UI_URL GITHUB_STEP_SUMMARY
 

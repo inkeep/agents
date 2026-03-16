@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Shared helpers for preview scripts. This file is sourced, so callers own shell strictness.
 
 require_env_vars() {
   local required
@@ -31,7 +32,11 @@ railway_env_exists_count() {
   local env_name="$2"
   local output_path="${3:-/tmp/railway-projects.json}"
 
-  railway project list --json > "${output_path}"
+  if ! railway project list --json > "${output_path}"; then
+    echo "Failed to list Railway environments for project ${project_id}." >&2
+    return 1
+  fi
+
   jq -r \
     --arg project_id "${project_id}" \
     --arg name "${env_name}" \

@@ -15,11 +15,14 @@ require_env_vars \
 
 RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
 
-railway link \
+if ! railway link \
   --project "${RAILWAY_PROJECT_ID}" \
   --service "${RAILWAY_OUTPUT_SERVICE}" \
   --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
-  >/dev/null
+  >/dev/null; then
+  echo "Failed to link Railway CLI to project ${RAILWAY_PROJECT_ID} service ${RAILWAY_OUTPUT_SERVICE} env ${RAILWAY_TEMPLATE_ENVIRONMENT}." >&2
+  exit 1
+fi
 
 ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
 if [ "${ENV_EXISTS}" = "0" ]; then
