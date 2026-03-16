@@ -3,8 +3,6 @@ import {
   commonGetErrorResponses,
   createApiError,
   createEvaluationRun,
-  type EvaluationSuiteFilterCriteria,
-  type Filter,
   generateId,
   getConversation,
   getEvaluatorsByIds,
@@ -25,23 +23,6 @@ import { evaluateConversationWorkflow } from '../workflow';
 
 const app = new OpenAPIHono<{ Variables: { resolvedRef: ResolvedRef } }>();
 const logger = getLogger('ConversationEvaluations');
-
-function extractSuiteFilterCriteria(
-  filter: Filter<EvaluationSuiteFilterCriteria> | null | undefined
-): EvaluationSuiteFilterCriteria | null {
-  if (!filter) return null;
-  if ('and' in filter || 'or' in filter) return null;
-  return filter;
-}
-
-function conversationMatchesSuiteFilter(
-  conversationAgentId: string | null | undefined,
-  filters: Filter<EvaluationSuiteFilterCriteria> | null | undefined
-): boolean {
-  const criteria = extractSuiteFilterCriteria(filters);
-  if (!criteria?.agentIds || criteria.agentIds.length === 0) return true;
-  return !!conversationAgentId && criteria.agentIds.includes(conversationAgentId);
-}
 
 const TriggerConversationSchema = z.object({
   conversationId: z.string(),
