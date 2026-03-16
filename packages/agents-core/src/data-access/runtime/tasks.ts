@@ -3,6 +3,7 @@ import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { tasks } from '../../db/runtime/runtime-schema';
 import type { TaskInsert, TaskSelect } from '../../types/index';
 import type { ProjectScopeConfig } from '../../types/utility';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 export const createTask = (db: AgentsRunDatabaseClient) => async (params: TaskInsert) => {
   const now = new Date().toISOString();
@@ -25,16 +26,10 @@ export const getTask =
     const result = await db
       .select()
       .from(tasks)
-      .where(
-        and(
-          eq(tasks.tenantId, params.scopes.tenantId),
-          eq(tasks.projectId, params.scopes.projectId),
-          eq(tasks.id, params.id)
-        )
-      )
+      .where(and(projectScopedWhere(tasks, params.scopes), eq(tasks.id, params.id)))
       .limit(1);
 
-    return result[0];
+    return result[0] ?? null;
   };
 
 export const updateTask =
@@ -55,13 +50,7 @@ export const updateTask =
         ...params.data,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(tasks.tenantId, params.scopes.tenantId),
-          eq(tasks.projectId, params.scopes.projectId),
-          eq(tasks.id, params.taskId)
-        )
-      )
+      .where(and(projectScopedWhere(tasks, params.scopes), eq(tasks.id, params.taskId)))
       .returning();
 
     return updated;
@@ -73,13 +62,7 @@ export const listTaskIdsByContextId =
     const result = await db
       .select({ id: tasks.id })
       .from(tasks)
-      .where(
-        and(
-          eq(tasks.tenantId, params.scopes.tenantId),
-          eq(tasks.projectId, params.scopes.projectId),
-          eq(tasks.contextId, params.contextId)
-        )
-      );
+      .where(and(projectScopedWhere(tasks, params.scopes), eq(tasks.contextId, params.contextId)));
 
     return result.map((r: { id: string }) => r.id);
   };

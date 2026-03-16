@@ -92,14 +92,13 @@ export function isRetryableError(
 }
 
 export function isForeignKeyViolation(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const err = error as Record<string, any>;
-  return err?.cause?.code === '23503' || err?.code === '23503';
+  return getPostgresErrorCode(error) === '23503';
 }
 
 export function isSerializationError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const err = error as Record<string, any>;
   const code = err?.cause?.code ?? err?.code;
+  // XX000 is PG's generic internal_error, but Doltgres uses it for serialization-like conflicts
   return code === '40001' || code === '40P01' || code === 'XX000';
 }

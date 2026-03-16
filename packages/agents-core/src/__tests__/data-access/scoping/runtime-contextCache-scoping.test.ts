@@ -10,6 +10,7 @@ describe('runtime contextCache scoping isolation', () => {
   const tenantA = 'tenant-a';
   const tenantB = 'tenant-b';
   const projectA = 'project-a';
+  const projectB = 'project-b';
   const conversationId = 'conv-1';
   const contextConfigId = 'config-1';
   const contextVariableKey = 'var-key';
@@ -56,5 +57,36 @@ describe('runtime contextCache scoping isolation', () => {
     });
     expect(correctTenant).not.toBeNull();
     expect(correctTenant?.conversationId).toBe(conversationId);
+  });
+
+  it('getCacheEntry should not return a cache entry belonging to a different project', async () => {
+    await setCacheEntry(db)({
+      id: generateId(),
+      tenantId: tenantA,
+      projectId: projectA,
+      conversationId,
+      contextConfigId,
+      contextVariableKey,
+      ref: { type: 'branch', name: 'main', hash: 'abc' },
+      value: { data: 'test' },
+      fetchedAt: new Date().toISOString(),
+    });
+
+    const wrongProject = await getCacheEntry(db)({
+      conversationId,
+      contextConfigId,
+      contextVariableKey,
+      scopes: { tenantId: tenantA, projectId: projectB },
+    });
+    expect(wrongProject).toBeNull();
+
+    const correctProject = await getCacheEntry(db)({
+      conversationId,
+      contextConfigId,
+      contextVariableKey,
+      scopes: { tenantId: tenantA, projectId: projectA },
+    });
+    expect(correctProject).not.toBeNull();
+    expect(correctProject?.conversationId).toBe(conversationId);
   });
 });

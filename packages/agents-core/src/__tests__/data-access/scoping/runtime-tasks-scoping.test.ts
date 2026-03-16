@@ -40,7 +40,7 @@ describe('runtime tasks scoping isolation', () => {
       id: taskId,
       scopes: { tenantId: tenantB, projectId: projectA },
     });
-    expect(result).toBeUndefined();
+    expect(result).toBeNull();
 
     const correctResult = await getTask(db)({
       id: taskId,
@@ -67,7 +67,7 @@ describe('runtime tasks scoping isolation', () => {
       id: taskId,
       scopes: { tenantId: tenantA, projectId: projectB },
     });
-    expect(result).toBeUndefined();
+    expect(result).toBeNull();
   });
 
   it('updateTask should not update a task belonging to a different tenant', async () => {
