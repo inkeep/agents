@@ -281,7 +281,6 @@ describe('createEntityEffectRegistry', () => {
 
       expect(result).toMatchObject({
         missingWorkflows: [{ triggerId: 'trigger-2', triggerName: 'Missing nextRunAt' }],
-        orphanedWorkflows: [],
       });
     });
 
@@ -299,10 +298,6 @@ describe('createEntityEffectRegistry', () => {
 
       expect(result).toEqual({
         missingWorkflows: [],
-        orphanedWorkflows: [],
-        staleWorkflows: [],
-        deadWorkflows: [],
-        verificationFailures: [],
       });
     });
 
