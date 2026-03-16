@@ -3,14 +3,17 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { useFormState } from 'react-hook-form';
+import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
 import { FlowButton } from '@/components/agent/flow-button';
+import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
+import { flatNestedFieldMessage } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn, isMacOs } from '@/lib/utils';
-import { ShipModal } from '../ship/ship-modal';
+import { ShipModal } from './ship/ship-modal';
 
 interface ToolbarProps {
   toggleSidePane: () => void;
@@ -19,10 +22,11 @@ interface ToolbarProps {
 
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
-  const form = useFullAgentFormContext();
+  const { control } = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty: rhfDirty, isSubmitting } = useFormState({ control: form.control });
-  const isDirty = agentDirtyState || rhfDirty;
+  const { isDirty: rhfDirtyState, isSubmitting } = useFormState({ control });
+  const isDirty = agentDirtyState || rhfDirtyState;
+  const { agentSettings } = useGroupedAgentErrors();
   const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{
@@ -53,6 +57,12 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
       window.removeEventListener('keydown', handleSaveShortcut);
     };
   }, []);
+
+  const agentSettingsErrors = Object.entries(agentSettings).map(([key, value]) => ({
+    field: key,
+    message: flatNestedFieldMessage(value),
+  }));
+  const hasErrors = agentSettingsErrors.length > 0;
 
   return (
     <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
@@ -101,9 +111,13 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
         </FlowButton>
       )}
       {canView && (
-        <FlowButton onClick={toggleSidePane}>
-          <Settings className="text-muted-foreground" />
+        <FlowButton
+          onClick={toggleSidePane}
+          className={cn(hasErrors && 'ring-2 text-red-300! border-current!')}
+        >
+          <Settings className={cn(!hasErrors && 'text-muted-foreground')} />
           Agent Settings
+          {hasErrors && <ErrorIndicator errors={agentSettingsErrors} />}
         </FlowButton>
       )}
     </div>

@@ -23,10 +23,10 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
   'use memo';
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
-  const form = useFullAgentFormContext();
+  const { control } = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty, isSubmitting, isValid } = useFormState({ control: form.control });
-  const dirty = agentDirtyState || isDirty;
+  const { isDirty: rhfDirtyState, isSubmitting, isValid } = useFormState({ control });
+  const isDirty = agentDirtyState || rhfDirtyState;
 
   const pendingNavigationRef = useRef<PendingNavigation>(null);
   const isNavigatingRef = useRef(false);
@@ -60,7 +60,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
   }
 
   useEffect(() => {
-    if (!dirty) {
+    if (!isDirty) {
       return;
     }
     const requestNavigationConfirmation = (navigate: PendingNavigation) => {
@@ -68,7 +68,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
       setShowUnsavedDialog(true);
     };
     const handleDocumentClick = (event: MouseEvent) => {
-      if (!dirty || isNavigatingRef.current) {
+      if (!isDirty || isNavigatingRef.current) {
         return;
       }
       const el = (event.target as HTMLElement | null)?.closest(
@@ -103,10 +103,10 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     return () => {
       document.removeEventListener('click', handleDocumentClick, true);
     };
-  }, [dirty, router]);
+  }, [isDirty, router]);
 
   useEffect(() => {
-    if (!dirty) {
+    if (!isDirty) {
       requestAnimationFrame(handleGoBack);
       return;
     }
@@ -123,7 +123,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [
-    dirty,
+    isDirty,
     // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
     handleGoBack,
   ]);

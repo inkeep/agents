@@ -1,5 +1,3 @@
-import type { SkillApiSelect } from '@inkeep/agents-core';
-import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
 import { Bot, Code, Globe, Hammer, Users } from 'lucide-react';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
@@ -7,7 +5,6 @@ import { MCPNode } from '../nodes/mcp-node';
 import { PlaceholderNode } from '../nodes/placeholder-node';
 import { SubAgentNode } from '../nodes/sub-agent-node';
 import { TeamAgentNode } from '../nodes/team-agent-node';
-import type { AgentModels } from './agent-types';
 
 export enum NodeType {
   SubAgentPlaceholder = 'sub-agent-placeholder',
@@ -29,7 +26,6 @@ export type PlaceholderType =
 
 interface NodeData extends Record<string, unknown> {
   name: string;
-  isDefault?: boolean;
   subAgentId?: string | null; // Optional for MCP nodes
   relationshipId?: string | null; // Optional for MCP nodes
   type?: PlaceholderType; // Optional for placeholder nodes
@@ -43,54 +39,26 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   toolId: string;
   subAgentId?: string | null; // null when unconnected, string when connected to specific agent
   relationshipId?: string | null; // null when unconnected, maps to specific DB agent_tool_relation row
-  name?: string;
-  imageUrl?: string;
-  provider?: string;
   tempSelectedTools?: string[] | null;
   tempHeaders?: Record<string, string> | null;
   tempToolPolicies?: Record<string, { needsApproval?: boolean }> | null;
 }
 
-export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
-  id: string;
-  name: string;
-  description?: string;
-  prompt?: string;
-  dataComponents?: string[];
-  artifactComponents?: string[];
-  skills: (SkillApiSelect & { index: number; alwaysLoaded: boolean })[];
-  models?: AgentModels; // Use same structure as agent
-  stopWhen?: SubAgentStopWhen;
-  isDefault?: boolean;
-}
+export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {}
 
 export interface ExternalAgentNodeData extends Record<string, unknown> {
   id: string;
-  name: string;
-  description?: string;
-  baseUrl: string;
   relationshipId?: string | null;
-  credentialReferenceId?: string | null;
   tempHeaders?: Record<string, string> | null;
 }
 
 export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedNode {
-  functionToolId: string;
   toolId?: string;
-  agentId?: string | null;
   relationshipId?: string;
-  tempToolPolicies?: Record<string, { needsApproval?: boolean }>;
-  name?: string;
-  description?: string;
-  code?: string;
-  inputSchema?: Record<string, unknown>;
-  dependencies?: Record<string, unknown>;
 }
 
 export interface TeamAgentNodeData extends Record<string, unknown> {
   id: string;
-  name: string;
-  description?: string;
   relationshipId?: string | null;
   tempHeaders?: Record<string, string> | null;
 }
@@ -120,7 +88,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
     type: NodeType.SubAgentPlaceholder,
   },
   [NodeType.SubAgent]: {
-    name: '',
+    name: 'Sub Agent',
   },
   [NodeType.ExternalAgent]: {
     name: '',

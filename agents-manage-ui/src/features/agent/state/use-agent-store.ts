@@ -2,13 +2,11 @@
 
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
-import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
-import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
@@ -19,8 +17,6 @@ interface AgentStateData {
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
-  errors: AgentErrorSummary | null;
-  showErrors: boolean;
   /**
    * Temporary state used to control whether the sidebar is open on the agents page.
    */
@@ -57,13 +53,6 @@ interface AgentActions {
   markSaved(): void;
   markUnsaved(): void;
   clearSelection(): void;
-  deleteSelected(): void;
-  setErrors(errors: AgentErrorSummary | null): void;
-  clearErrors(): void;
-  setShowErrors(show: boolean): void;
-  hasErrors(): boolean;
-  getNodeErrors(nodeId: string): AgentErrorSummary['allErrors'];
-  getEdgeErrors(edgeId: string): AgentErrorSummary['allErrors'];
   /**
    * Setter for `jsonSchemaMode` field.
    */
@@ -97,8 +86,6 @@ const initialAgentState: AgentStateData = {
   dirty: false,
   history: [],
   future: [],
-  errors: null,
-  showErrors: false,
   isSidebarSessionOpen: true,
   variableSuggestions: [],
   hasOpenModelConfig: false,
@@ -122,8 +109,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         dirty: false,
         history: [],
         future: [],
-        errors: null,
-        showErrors: false,
       });
     },
     reset() {
@@ -227,55 +212,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         edges: state.edges.map((e) => ({ ...e, selected: false })),
         dirty: state.dirty,
       }));
-    },
-    deleteSelected() {
-      set((state) => {
-        const nodesToDelete = new Set(
-          state.nodes.filter((n) => n.selected && (n.deletable ?? true)).map((n) => n.id)
-        );
-
-        const unDeletableNodes = state.nodes.filter((n) => n.selected && !n.deletable);
-        if (unDeletableNodes.length) {
-          const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
-          toast.error(
-            `Cannot delete default subagent ${formatter.format(unDeletableNodes.map((n) => n.id))}`
-          );
-        }
-
-        const edgesRemaining = state.edges.filter(
-          (e) => !e.selected && !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target)
-        );
-        const nodesRemaining = state.nodes.filter((n) => !nodesToDelete.has(n.id));
-        return {
-          history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-          nodes: nodesRemaining,
-          edges: edgesRemaining,
-          dirty: true,
-        };
-      });
-    },
-    setErrors(errors) {
-      set({ errors, showErrors: errors !== null });
-    },
-    clearErrors() {
-      set({ errors: null, showErrors: false });
-    },
-    setShowErrors(show) {
-      set({ showErrors: show });
-    },
-    hasErrors() {
-      const { errors } = get();
-      return errors !== null && errors.totalErrors > 0;
-    },
-    getNodeErrors(nodeId) {
-      const { errors } = get();
-      if (!errors || !errors.nodeErrors[nodeId]) return [];
-      return errors.nodeErrors[nodeId];
-    },
-    getEdgeErrors(edgeId) {
-      const { errors } = get();
-      if (!errors || !errors.edgeErrors[edgeId]) return [];
-      return errors.edgeErrors[edgeId];
     },
     setJsonSchemaMode(jsonSchemaMode) {
       set({ jsonSchemaMode });

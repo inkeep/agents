@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { type ComponentProps, type ReactNode, useId, useState } from 'react';
 import type { FieldPath, FieldValues } from 'react-hook-form';
+import { CodeEditor } from '@/components/editors/code-editor';
 import { Editor } from '@/components/editors/editor';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import type { FormFieldWrapperProps } from '@/components/form/form-field-wrapper';
 import {
   FormControl,
   FormDescription,
@@ -13,9 +14,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
-import type { FormFieldWrapperProps } from './form-field-wrapper';
+import { cn } from '@/lib/utils';
 
-export function GenericJsonEditor<
+export function GenericCodeEditor<
   FV extends FieldValues,
   TV extends FieldValues,
   TName extends FieldPath<FV>,
@@ -25,17 +26,21 @@ export function GenericJsonEditor<
   description,
   isRequired,
   label,
+  className,
   placeholder,
-  customTemplate = placeholder,
-  readOnly,
+  actions,
+  ...props
 }: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
+  className?: string;
   placeholder: string;
-  customTemplate?: string;
-  readOnly?: boolean;
+  uri?: ComponentProps<typeof CodeEditor>['uri'];
+  actions?: ReactNode;
 }) {
   'use memo';
   const [open, onOpenChange] = useState(false);
-  const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
+  const $uri = props.uri ?? `${name}.js`;
+  const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
+  const id = useId();
   const { getEditorByUri } = useMonacoActions();
 
   function focusEditor() {
@@ -49,18 +54,25 @@ export function GenericJsonEditor<
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <div className="flex">
-              <FormLabel isRequired={isRequired} className="inline-flex grow" onClick={focusEditor}>
+              <FormLabel
+                isRequired={isRequired}
+                className="inline-flex grow"
+                id={id}
+                onClick={focusEditor}
+              >
                 {label}
               </FormLabel>
+              {actions}
               {!open && <Editor.DialogTrigger />}
             </div>
             <FormControl>
-              <StandaloneJsonEditor
+              <CodeEditor
                 uri={uri}
-                placeholder={placeholder}
-                customTemplate={customTemplate}
+                autoFocus={open}
+                className={cn(!open && 'max-h-96', 'min-h-16', className)}
                 hasDynamicHeight={!open}
-                readOnly={readOnly}
+                placeholder={placeholder}
+                aria-labelledby={id}
                 {...field}
               />
             </FormControl>

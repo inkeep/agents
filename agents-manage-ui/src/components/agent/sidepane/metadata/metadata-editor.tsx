@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
 import { FullAgentUpdateSchema as schema } from '@/components/agent/form/validation';
+import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -12,14 +13,6 @@ import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { ExternalLink } from '@/components/ui/external-link';
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import {
   getExecutionLimitInheritanceStatus,
   getModelInheritanceStatus,
@@ -41,41 +34,30 @@ import {
 import { isRequired } from '@/lib/utils';
 import { GenericPromptEditor } from '../../../form/generic-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
-import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
 
-const ExecutionLimitInheritanceInfo: FC = () => {
-  return (
-    <ul className="space-y-1.5 list-disc list-outside pl-4">
-      <li>
-        <span className="font-medium">transferCountIs</span>: Project → Agent only (controls
-        transfers between sub agents)
-      </li>
-      <li>
-        <span className="font-medium">Explicit settings</span> always take precedence over inherited
-        values
-      </li>
-      <li>
-        <span className="font-medium">Default fallback</span>: transferCountIs = 10 if no value is
-        set anywhere
-      </li>
-      <li>
-        <span className="font-medium">Agent scope</span>: This limit applies to all sub agents
-        within this agent
-      </li>
-    </ul>
-  );
-};
+const executionLimitInheritanceInfo = (
+  <ul className="space-y-1.5 list-disc list-outside pl-4">
+    <li>
+      <b>transferCountIs</b>: Project → Agent only (controls transfers between sub agents)
+    </li>
+    <li>
+      <b>Explicit settings</b> always take precedence over inherited values
+    </li>
+    <li>
+      <b>Default fallback</b>: transferCountIs = 10 if no value is set anywhere
+    </li>
+    <li>
+      <b>Agent scope</b>: This limit applies to all sub agents within this agent
+    </li>
+  </ul>
+);
 
 export const MetadataEditor: FC = () => {
   'use memo';
-  const { agentId, tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { canUse } = useProjectPermissions();
   // Fetch project data for inheritance indicators
@@ -109,7 +91,7 @@ export const MetadataEditor: FC = () => {
         placeholder="My agent"
         isRequired={isRequired(schema, 'name')}
       />
-      <InputField id="id" name="id" label="Id" value={agentId} disabled isRequired />
+      <GenericInput control={form.control} name="id" label="Id" disabled isRequired />
       <GenericTextarea
         control={form.control}
         name="description"
@@ -181,9 +163,7 @@ export const MetadataEditor: FC = () => {
             inheritedProviderOptions={
               project?.models.structuredOutput?.model
                 ? project?.models.structuredOutput?.providerOptions
-                : models.base.model
-                  ? models.base.providerOptions
-                  : project?.models.base?.providerOptions
+                : undefined
             }
             label={
               <div className="flex items-center gap-2">
@@ -226,9 +206,7 @@ export const MetadataEditor: FC = () => {
             inheritedProviderOptions={
               project?.models.summarizer?.model
                 ? project?.models.summarizer?.providerOptions
-                : models.base.model
-                  ? models.base.providerOptions
-                  : project?.models.base?.providerOptions
+                : undefined
             }
             label={
               <div className="flex items-center gap-2">
@@ -272,7 +250,7 @@ export const MetadataEditor: FC = () => {
           titleTooltip={
             <div>
               <p>How execution limit inheritance works:</p>
-              <ExecutionLimitInheritanceInfo />
+              {executionLimitInheritanceInfo}
             </div>
           }
         />
@@ -312,25 +290,12 @@ export const MetadataEditor: FC = () => {
           description="Configure structured status updates for conversation progress tracking."
         />
         <div className="space-y-8">
-          <FormField
+          <GenericCheckbox
             control={form.control}
             name="statusUpdates.enabled"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <FormLabel isRequired={isRequired(schema, 'statusUpdates.enabled')}>
-                    Enable status updates
-                  </FormLabel>
-                </div>
-                <FormDescription>
-                  Send structured status updates during conversation execution
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Enable status updates"
+            isRequired={isRequired(schema, 'statusUpdates.enabled')}
+            description="Send structured status updates during conversation execution"
           />
 
           {isStatusUpdateEnabled && (

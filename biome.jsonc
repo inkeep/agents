@@ -123,6 +123,7 @@
               { "name": "useAgentActions", "stableResult": true },
               { "name": "useMonacoActions", "stableResult": true },
               { "name": "useProjectActions", "stableResult": true },
+              { "name": "useDefaultSubAgentIdRef", "stableResult": true },
               { "name": "useTheme", "stableResult": ["setTheme"] }
             ]
           }

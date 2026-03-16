@@ -153,13 +153,16 @@
             "type": "string"
           },
           "defaultSubAgentId": {
-            "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
-            "example": "my-default-subagent",
-            "maxLength": 255,
-            "minLength": 1,
-            "nullable": true,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceId"
+              },
+              {
+                "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
+                "example": "my-default-subagent",
+                "nullable": true
+              }
+            ]
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
@@ -327,13 +330,16 @@
             "type": "string"
           },
           "defaultSubAgentId": {
-            "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
-            "example": "my-default-subagent",
-            "maxLength": 255,
-            "minLength": 1,
-            "nullable": true,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceId"
+              },
+              {
+                "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
+                "example": "my-default-subagent",
+                "nullable": true
+              }
+            ]
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
@@ -465,7 +471,30 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/FunctionCreate"
+                  "properties": {
+                    "dependencies": {
+                      "$ref": "#/components/schemas/StringRecord"
+                    },
+                    "executeCode": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "id": {
+                      "$ref": "#/components/schemas/ResourceId"
+                    },
+                    "inputSchema": {
+                      "additionalProperties": {
+                        "nullable": true
+                      },
+                      "nullable": true,
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "executeCode"
+                  ],
+                  "type": "object"
                 },
                 "type": "object"
               },
@@ -4800,7 +4829,30 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/FunctionCreate"
+                  "properties": {
+                    "dependencies": {
+                      "$ref": "#/components/schemas/StringRecord"
+                    },
+                    "executeCode": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "id": {
+                      "$ref": "#/components/schemas/ResourceId"
+                    },
+                    "inputSchema": {
+                      "additionalProperties": {
+                        "nullable": true
+                      },
+                      "nullable": true,
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "executeCode"
+                  ],
+                  "type": "object"
                 },
                 "type": "object"
               },
@@ -5046,84 +5098,6 @@
         ],
         "type": "object"
       },
-      "FunctionCreate": {
-        "properties": {
-          "dependencies": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
-          "executeCode": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "id": {
-            "$ref": "#/components/schemas/ResourceId"
-          },
-          "inputSchema": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "executeCode"
-        ],
-        "type": "object"
-      },
       "FunctionListResponse": {
         "properties": {
           "data": {
@@ -5199,8 +5173,7 @@
       "FunctionToolCreate": {
         "properties": {
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "functionId": {
             "maxLength": 256,
@@ -5210,8 +5183,7 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           }
         },
         "required": [
@@ -5257,8 +5229,7 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "functionId": {
             "maxLength": 256,
@@ -5268,8 +5239,7 @@
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           }
         },
         "type": "object"
@@ -5280,72 +5250,21 @@
             "type": "string"
           },
           "dependencies": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "$ref": "#/components/schemas/StringRecord"
           },
           "executeCode": {
+            "minLength": 1,
             "type": "string"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
           },
           "updatedAt": {
             "type": "string"
@@ -5868,42 +5787,13 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "expiresAt": {
             "type": "string"
           },
           "headers": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "$ref": "#/components/schemas/StringRecord"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -5919,8 +5809,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "projectId": {
             "maxLength": 256,
@@ -7664,8 +7553,7 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -7674,8 +7562,7 @@
             "$ref": "#/components/schemas/Model"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "prompt": {
             "nullable": true,
@@ -8754,8 +8641,7 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -8764,8 +8650,7 @@
             "$ref": "#/components/schemas/Model"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "prompt": {
             "nullable": true,
@@ -8811,19 +8696,18 @@
       "TeamAgent": {
         "properties": {
           "description": {
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           }
         },
         "required": [
           "id",
-          "name",
-          "description"
+          "name"
         ],
         "type": "object"
       },
@@ -9221,39 +9105,10 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "headers": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "$ref": "#/components/schemas/StringRecord"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -9269,8 +9124,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           }
         },
         "required": [
@@ -9431,39 +9285,10 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "headers": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "$ref": "#/components/schemas/StringRecord"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -9479,8 +9304,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           }
         },
         "type": "object"
@@ -34813,7 +34637,30 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FunctionCreate"
+                "properties": {
+                  "dependencies": {
+                    "$ref": "#/components/schemas/StringRecord"
+                  },
+                  "executeCode": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "id": {
+                    "$ref": "#/components/schemas/ResourceId"
+                  },
+                  "inputSchema": {
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "nullable": true,
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "id",
+                  "executeCode"
+                ],
+                "type": "object"
               }
             }
           }

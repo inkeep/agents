@@ -1,9 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData, useReactFlow } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
-import { useMemo } from 'react';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
@@ -46,18 +43,14 @@ export function SidePane({
   backToAgent,
   disabled = false,
 }: SidePaneProps) {
+  'use memo';
   const selectedNode = useNodesData(selectedNodeId || '');
   const { updateNode } = useReactFlow();
   const edges = useEdges();
-  const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
-  const errors = useAgentStore((state) => state.errors);
 
-  const selectedEdge = useMemo(
-    () => (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null),
-    [selectedEdgeId, edges]
-  );
+  const selectedEdge = selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null;
 
-  const { heading, HeadingIcon } = useMemo(() => {
+  const { heading, HeadingIcon } = (() => {
     let heading = '';
     let HeadingIcon: LucideIcon | undefined;
 
@@ -77,10 +70,9 @@ export function SidePane({
     }
 
     return { heading, HeadingIcon };
-  }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
+  })();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes
-  const editorContent = useMemo(() => {
+  function renderContent() {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
     }
@@ -90,42 +82,21 @@ export function SidePane({
 
     if (selectedNode) {
       const nodeType = selectedNode?.type as keyof typeof nodeTypeMap;
-      // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-      const subAgentId = (selectedNode.data as any)?.id || selectedNode.id;
-      const errorHelpers = {
-        hasFieldError: (fieldName: string) => hasFieldError(subAgentId, fieldName),
-        getFieldErrorMessage: (fieldName: string) => getFieldErrorMessage(subAgentId, fieldName),
-        getFirstErrorField: () => getFirstErrorField(subAgentId),
-      };
-
       switch (nodeType) {
         case NodeType.SubAgentPlaceholder:
           return <SubAgentSelector selectedNode={selectedNode as Node} />;
         case NodeType.SubAgent:
-          return (
-            <SubAgentNodeEditor
-              selectedNode={selectedNode as Node<AgentNodeData>}
-              errorHelpers={errorHelpers}
-            />
-          );
+          return <SubAgentNodeEditor selectedNode={selectedNode as Node<AgentNodeData>} />;
         case NodeType.ExternalAgent: {
           return (
-            <ExternalAgentNodeEditor
-              selectedNode={selectedNode as Node<ExternalAgentNodeData>}
-              errorHelpers={errorHelpers}
-            />
+            <ExternalAgentNodeEditor selectedNode={selectedNode as Node<ExternalAgentNodeData>} />
           );
         }
         case NodeType.ExternalAgentPlaceholder: {
           return <ExternalAgentSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.TeamAgent: {
-          return (
-            <TeamAgentNodeEditor
-              selectedNode={selectedNode as Node<TeamAgentNodeData>}
-              errorHelpers={errorHelpers}
-            />
-          );
+          return <TeamAgentNodeEditor selectedNode={selectedNode as Node<TeamAgentNodeData>} />;
         }
         case NodeType.TeamAgentPlaceholder: {
           return <TeamAgentSelector selectedNode={selectedNode as Node} />;
@@ -149,16 +120,7 @@ export function SidePane({
       return <EdgeEditor selectedEdge={selectedEdge as Edge} />;
     }
     return <MetadataEditor />;
-  }, [
-    selectedNodeId,
-    selectedEdgeId,
-    selectedNode,
-    selectedEdge,
-    hasFieldError,
-    getFieldErrorMessage,
-    getFirstErrorField,
-    errors,
-  ]);
+  }
 
   const nodeType = selectedNode?.type as keyof typeof nodeTypeMap | undefined;
   const nodeConfig = nodeType ? nodeTypeMap[nodeType] : undefined;
@@ -176,6 +138,11 @@ export function SidePane({
       : backToAgent;
 
   const showBackButton = selectedNode || selectedEdge;
+  const editorContentKey = selectedNodeId
+    ? `node:${selectedNodeId}`
+    : selectedEdgeId
+      ? `edge:${selectedEdgeId}`
+      : 'agent';
 
   return (
     <SidePaneLayout.Root>
@@ -193,8 +160,13 @@ export function SidePane({
         <SidePaneLayout.CloseButton onClick={onClose} />
       </SidePaneLayout.Header>
       <SidePaneLayout.Content>
-        <fieldset disabled={disabled} className="contents">
-          {editorContent}
+        <fieldset
+          // Remount editor when selection changes to avoid a one-frame stale render from previous node/edge data.
+          key={editorContentKey}
+          disabled={disabled}
+          className="contents"
+        >
+          {renderContent()}
         </fieldset>
       </SidePaneLayout.Content>
     </SidePaneLayout.Root>

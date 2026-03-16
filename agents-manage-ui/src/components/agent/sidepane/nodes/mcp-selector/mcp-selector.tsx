@@ -1,5 +1,6 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { NodeType } from '../../../configuration/node-types';
@@ -9,20 +10,36 @@ import { MCPServerItem } from './mcp-server-item';
 export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   'use memo';
   const { updateNode } = useReactFlow();
+  const form = useFullAgentFormContext();
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
   const { data: tools } = useMcpToolsQuery({ skipDiscovery: true });
 
-  const handleSelect = (mcp: MCPTool) => {
+  function handleSelect(data: MCPTool) {
+    const nodeId = data.id;
+    form.setValue(
+      `tools.${nodeId}`,
+      {
+        id: nodeId,
+        name: data.name,
+        config: data.config,
+      },
+      { shouldDirty: true }
+    );
+
     updateNode(selectedNode.id, {
       type: NodeType.MCP,
-      data: { toolId: mcp.id, subAgentId: null, relationshipId: null },
+      data: {
+        toolId: nodeId,
+        subAgentId: null,
+        relationshipId: null,
+      },
     });
-  };
+  }
 
-  if (!tools?.length) {
+  if (!tools.length) {
     return (
       <EmptyState
         message="No MCP servers found."
@@ -33,14 +50,12 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   }
 
   return (
-    <div>
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium mb-2">Select MCP server</h3>
-        <div className="flex flex-col gap-2 min-w-0 min-h-0">
-          {tools.map((mcp: MCPTool) => (
-            <MCPServerItem key={mcp.id} mcp={mcp} onClick={handleSelect} />
-          ))}
-        </div>
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium mb-2">Select MCP server</h3>
+      <div className="flex flex-col gap-2 min-w-0 min-h-0">
+        {tools.map((mcp) => (
+          <MCPServerItem key={mcp.id} mcp={mcp} onClick={handleSelect} />
+        ))}
       </div>
     </div>
   );

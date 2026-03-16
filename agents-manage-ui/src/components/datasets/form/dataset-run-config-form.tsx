@@ -174,12 +174,9 @@ export function DatasetRunConfigForm({
                 <p className="text-sm text-muted-foreground">Loading agents...</p>
               ) : (
                 <ComponentSelector
-                  label=""
                   componentLookup={agentLookup}
                   selectedComponents={agentIds as string[]}
-                  onSelectionChange={(newSelection) => {
-                    setAgentIds(newSelection);
-                  }}
+                  onSelectionChange={setAgentIds}
                   emptyStateMessage="No agents available."
                   emptyStateActionText="Create agent"
                   emptyStateActionHref={`/${tenantId}/projects/${projectId}/agents`}
@@ -204,9 +201,7 @@ export function DatasetRunConfigForm({
                   label="Evaluators (Optional)"
                   componentLookup={evaluatorLookup}
                   selectedComponents={field.value || []}
-                  onSelectionChange={(newSelection) => {
-                    field.onChange(newSelection);
-                  }}
+                  onSelectionChange={field.onChange}
                   emptyStateMessage="No evaluators available."
                   emptyStateActionText="Create evaluator"
                   emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}

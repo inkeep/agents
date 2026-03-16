@@ -1,7 +1,9 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code, Shield } from 'lucide-react';
+import { useWatch } from 'react-hook-form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
 import { toolPoliciesNeedApproval } from '@/lib/utils/tool-policies';
 import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
@@ -9,22 +11,23 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
-export function FunctionToolNode({
-  data,
-  selected,
-  id,
-}: NodeProps & { data: FunctionToolNodeData }) {
-  const { name = 'Function Tool', description } = data;
+export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
+  'use memo';
+  const { control } = useFullAgentFormContext();
+  const { toolId = '', status } = data;
 
-  const { getNodeErrors, hasNodeErrors } = useAgentErrors();
+  const functionTool = useWatch({ control, name: `functionTools.${toolId}` });
+  const { tempToolPolicies: toolPolicies, name, description } = functionTool ?? {};
 
-  const functionToolId = data.toolId || data.functionToolId || id;
-  const nodeErrors = getNodeErrors(functionToolId);
-  const hasErrors = hasNodeErrors(functionToolId);
-  const isDelegating = data.status === 'delegating';
-  const isInvertedDelegating = data.status === 'inverted-delegating';
-  const isExecuting = data.status === 'executing';
-  const needsApproval = toolPoliciesNeedApproval(data.tempToolPolicies);
+  const processedErrors = [
+    ...useProcessedErrors('functionTools', toolId),
+    ...useProcessedErrors('functions', toolId),
+  ];
+  const hasErrors = processedErrors.length > 0;
+  const isDelegating = status === 'delegating';
+  const isInvertedDelegating = status === 'inverted-delegating';
+  const isExecuting = status === 'executing';
+  const needsApproval = toolPoliciesNeedApproval(toolPolicies);
   return (
     <div className="relative">
       <BaseNode
@@ -42,7 +45,9 @@ export function FunctionToolNode({
               <div className="w-5 h-5 rounded flex items-center justify-center shrink-0">
                 <Code className="w-4 h-4 text-foreground/70" />
               </div>
-              <BaseNodeHeaderTitle className="flex-1 truncate">{name}</BaseNodeHeaderTitle>
+              <BaseNodeHeaderTitle className="flex-1 truncate">
+                {name || <i className="text-muted-foreground/50">No name</i>}
+              </BaseNodeHeaderTitle>
               {needsApproval && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -58,13 +63,11 @@ export function FunctionToolNode({
                 </Tooltip>
               )}
             </div>
-            {description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 pl-7">{description}</p>
-            )}
+            <div className="text-xs text-muted-foreground line-clamp-2 pl-7">
+              {description || <i className="text-muted-foreground/50">No description</i>}
+            </div>
           </div>
-          {hasErrors && (
-            <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />
-          )}
+          {hasErrors && <ErrorIndicator errors={processedErrors} />}
         </BaseNodeHeader>
         <Handle id={functionToolNodeHandleId} type="target" position={Position.Top} isConnectable />
       </BaseNode>

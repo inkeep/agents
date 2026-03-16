@@ -3,9 +3,8 @@ import { GripVertical, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
 import { type FC, useState } from 'react';
-import type { AgentNodeData } from '@/components/agent/configuration/node-types';
+import type { AgentSkill } from '@/components/agent/form/validation';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
-import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-selector/component-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -18,25 +17,18 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSkillsQuery } from '@/lib/query/skills';
-import { cn } from '@/lib/utils';
-
-interface SkillSelection {
-  id: string;
-  index: number;
-  alwaysLoaded?: boolean;
-}
+import { cn, createLookup } from '@/lib/utils';
 
 interface SkillSelectorProps {
-  selectedSkills: AgentNodeData['skills'];
-  onChange: (skills: SkillSelection[]) => void;
-  error?: string;
+  selectedSkills: AgentSkill[];
+  onChange: (skills: AgentSkill[]) => void;
 }
 
 export function reorderSkills(
-  skills: SkillSelection[],
-  fromId: SkillSelection['id'],
-  toId: SkillSelection['id']
-): SkillSelection[] {
+  skills: AgentSkill[],
+  fromId: AgentSkill['id'],
+  toId: AgentSkill['id']
+): AgentSkill[] {
   if (fromId === toId) {
     return skills;
   }
@@ -52,47 +44,50 @@ export function reorderSkills(
 }
 
 export function updateSkillAlwaysLoaded(
-  skills: SkillSelection[],
-  id: SkillSelection['id'],
+  skills: AgentSkill[],
+  id: AgentSkill['id'],
   alwaysLoaded: boolean
-): SkillSelection[] {
+): AgentSkill[] {
   return skills.map((skill) => (skill.id === id ? { ...skill, alwaysLoaded } : skill));
 }
 
-export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange, error }) => {
+export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange }) => {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
   const { data: availableSkills } = useSkillsQuery();
+  const skillById = createLookup(availableSkills);
 
-  const handleDrop = (targetId: string) => {
+  function handleDrop(targetId: string): void {
     if (!draggingId) return;
     const next = reorderSkills(selectedSkills, draggingId, targetId);
     onChange(next);
     setDraggingId('');
     setDragOverId('');
-  };
+  }
 
-  const handleToggle = (id: string) => {
+  function handleToggle(id: string): void {
+    const availableSkill = availableSkills.find((skill) => skill.id === id);
     const newSelection = selectedSkills.some((skill) => skill.id === id)
       ? selectedSkills.filter((skill) => skill.id !== id)
       : [
           ...selectedSkills,
-          // biome-ignore lint/style/noNonNullAssertion: always exist
-          availableSkills.find((skill) => skill.id === id)!,
+          {
+            // biome-ignore lint/style/noNonNullAssertion: always exist
+            id: availableSkill!.id,
+          },
         ];
     onChange(newSelection.map((skill, index) => ({ ...skill, index })));
-  };
+  }
 
-  const handleAlwaysLoadedChange = (id: string, checked: CheckedState) => {
+  function handleAlwaysLoadedChange(id: string, checked: CheckedState): void {
     const nextChecked = checked === 'indeterminate' ? true : checked;
     onChange(updateSkillAlwaysLoaded(selectedSkills, id, nextChecked));
-  };
+  }
 
   return (
-    <div className="space-y-2">
-      <ComponentHeader label="Skill Configuration" count={selectedSkills.length} />
+    <>
       <ComponentDropdown
         selectedComponents={selectedSkills.map((skill) => skill.id)}
         handleToggle={handleToggle}
@@ -153,7 +148,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                 </div>
                 <div className="grow">
                   <div className="text-sm text-foreground font-medium line-clamp-1">{skill.id}</div>
-                  <div className="line-clamp-1">{skill.description}</div>
+                  <div className="line-clamp-1">{skillById[skill.id]?.description}</div>
                 </div>
                 <Checkbox
                   checked={skill.alwaysLoaded}
@@ -194,7 +189,6 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
           </ul>
         </div>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-    </div>
+    </>
   );
 };

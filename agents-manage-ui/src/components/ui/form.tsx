@@ -5,10 +5,8 @@ import { Slot } from '@radix-ui/react-slot';
 import { type ComponentProps, createContext, use, useId } from 'react';
 import type { ControllerProps, FieldPath, FieldValues } from 'react-hook-form';
 import { Controller, FormProvider, useFormContext, useFormState } from 'react-hook-form';
-import { Label } from '@/components/ui/label';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { cn } from '@/lib/utils';
-
-const Form = FormProvider;
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
@@ -75,25 +73,22 @@ function FormItem({ className, ...props }: ComponentProps<'div'>) {
 }
 
 function FormLabel({
-  className,
-  isRequired,
   children,
   ...props
 }: ComponentProps<typeof LabelPrimitive.Root> & {
   isRequired?: boolean;
+  tooltip?: string;
 }) {
   const { error, formItemId } = useFormField();
+
   return (
-    <Label
+    <FieldLabel
       data-slot="form-label"
-      data-error={!!error}
-      className={cn('data-[error=true]:text-destructive gap-1', className)}
-      htmlFor={formItemId}
+      error={!!error}
+      id={formItemId}
+      label={children}
       {...props}
-    >
-      {children}
-      {isRequired && <span className="text-red-500">*</span>}
-    </Label>
+    />
   );
 }
 
@@ -118,7 +113,7 @@ function FormDescription({ className, ...props }: ComponentProps<'p'>) {
     <p
       data-slot="form-description"
       id={formDescriptionId}
-      className={cn('text-muted-foreground text-sm', className)}
+      className={cn('text-muted-foreground text-xs', className)}
       {...props}
     />
   );
@@ -174,7 +169,7 @@ function FormMessage({ className, children, ...props }: ComponentProps<'p'>) {
 
 export {
   useFormField,
-  Form,
+  FormProvider as Form,
   FormItem,
   FormLabel,
   FormControl,

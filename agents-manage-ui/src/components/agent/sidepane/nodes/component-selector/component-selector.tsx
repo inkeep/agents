@@ -18,7 +18,7 @@ interface ComponentSelectorProps<T extends ComponentItem>
     | 'placeholder'
     | 'commandInputPlaceholder'
   > {
-  label: string;
+  label?: string;
   componentLookup: Record<string, T>;
   onSelectionChange: (newSelection: string[]) => void;
 }
