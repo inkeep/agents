@@ -229,7 +229,7 @@ export function ChatWidget({
             isChatHistoryButtonVisible: false,
             isViewOnly: hasHeadersError,
             conversationId,
-            baseUrl: `${PUBLIC_INKEEP_AGENTS_API_URL}`,
+            baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,

@@ -239,7 +239,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               light: '/assets/inkeep-icons/icon-blue.svg',
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
-            baseUrl: `${PUBLIC_INKEEP_AGENTS_API_URL}`,
+            baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
             headers: {
               'x-emit-operations': 'true',
               Authorization: `Bearer ${copilotToken}`,
