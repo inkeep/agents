@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { CredentialResourcesList } from '@/components/credentials/credential-resources-list';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
+import { ProviderIcon } from '@/components/icons/provider-icon';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -21,6 +22,7 @@ import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
+import type { NangoIntegrationWithMaskedCredentials } from '@/lib/mcp-tools/nango';
 import { setNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
 import { cn } from '@/lib/utils';
 import { keyValuePairsToRecord, metadataSchema } from './credential-form-validation';
@@ -42,6 +44,7 @@ interface EditCredentialFormProps {
   projectId: string;
   credential: Credential;
   initialFormData: EditCredentialFormData;
+  nangoIntegration?: NangoIntegrationWithMaskedCredentials | null;
   className?: string;
 }
 
@@ -51,6 +54,23 @@ const normalizeMetadata = (metadata: Record<string, string>): string =>
       .sort()
       .map((key) => [key, metadata[key]])
   );
+
+const NANGO_AUTH_MODE_LABELS: Record<string, string> = {
+  OAUTH2: 'OAuth 2.0',
+  OAUTH1: 'OAuth 1.0',
+  OAUTH2_CC: 'OAuth 2.0 (Client Credentials)',
+  TBA: 'Token-based authentication',
+  API_KEY: 'API Key',
+  APP: 'App authentication',
+  BASIC: 'Basic authentication',
+  CUSTOM: 'Custom authentication',
+  APP_STORE: 'App Store authentication',
+  BILL: 'Bill authentication',
+  SIGNATURE: 'Signature authentication',
+  JWT: 'JWT authentication',
+  TWO_STEP: 'Two-step authentication',
+  TABLEAU: 'Tableau authentication',
+};
 
 function getCredentialAuthenticationType(credential: Credential): string | undefined {
   if (
@@ -65,6 +85,11 @@ function getCredentialAuthenticationType(credential: Credential): string | undef
     credential.retrievalParams?.provider === 'mcp-generic'
   ) {
     return 'OAuth';
+  }
+
+  if (credential.type === CredentialStoreType.nango && credential.retrievalParams?.authMode) {
+    const authMode = credential.retrievalParams.authMode as string;
+    return NANGO_AUTH_MODE_LABELS[authMode] ?? authMode;
   }
 
   if (
@@ -87,6 +112,7 @@ export function EditCredentialForm({
   projectId,
   credential,
   initialFormData,
+  nangoIntegration,
   className,
 }: EditCredentialFormProps) {
   const router = useRouter();
@@ -193,6 +219,43 @@ export function EditCredentialForm({
                 </InfoCard>
               )}
             </div>
+
+            {/* Linked App Configuration */}
+            {nangoIntegration && (
+              <div className="space-y-3">
+                <Label>App configuration</Label>
+                <div className="rounded-lg border p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <ProviderIcon provider={nangoIntegration.provider} size={20} />
+                    <span className="text-sm font-medium">{nangoIntegration.provider}</span>
+                  </div>
+                  {nangoIntegration.maskedCredentials?.client_id && (
+                    <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
+                      <span className="shrink-0">Client ID:</span>
+                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded truncate">
+                        {nangoIntegration.maskedCredentials.client_id}
+                      </code>
+                    </div>
+                  )}
+                  {nangoIntegration.maskedCredentials?.client_secret && (
+                    <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
+                      <span className="shrink-0">Secret:</span>
+                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                        {nangoIntegration.maskedCredentials.client_secret}
+                      </code>
+                    </div>
+                  )}
+                  {nangoIntegration.maskedCredentials?.app_id && (
+                    <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
+                      <span className="shrink-0">App ID:</span>
+                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                        {nangoIntegration.maskedCredentials.app_id}
+                      </code>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Created By Display */}
             {credential.createdBy && (
