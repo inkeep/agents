@@ -71,7 +71,13 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
     const availableSkill = availableSkills.find((skill) => skill.id === id);
     const newSelection = selectedSkills.some((skill) => skill.id === id)
       ? selectedSkills.filter((skill) => skill.id !== id)
-      : [...selectedSkills, { id: availableSkill!.id }];
+      : [
+          ...selectedSkills,
+          {
+            // biome-ignore lint/style/noNonNullAssertion: always exist
+            id: availableSkill!.id,
+          },
+        ];
     onChange(newSelection.map((skill, index) => ({ ...skill, index })));
   }
 
