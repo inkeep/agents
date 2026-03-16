@@ -216,6 +216,74 @@ inkeep --version
 For more CLI setup options, see the CLI docs:
 https://docs.inkeep.com/guides/cli/overview
 
+
+## Database Error Handling
+
+### Retry Utilities
+
+The `@inkeep/agents-core` package provides retry utilities for handling transient database errors:
+
+```typescript
+import { withRetry, withRetryTransaction } from '@inkeep/agents-core';
+
+// Wrap a database operation with automatic retry
+const result = await withRetry(
+  () => db.select().from(users).where(eq(users.id, userId)),
+  { context: 'get-user', maxRetries: 3 }
+);
+
+// Wrap a transaction with automatic retry
+const result = await withRetryTransaction(
+  db,
+  async (tx) => {
+    await tx.insert(logs).values({ action: 'update' });
+    await tx.update(users).set({ name: 'New Name' });
+    return tx.select().from(users);
+  },
+  { context: 'update-user-tx' }
+);
+```
+
+### Retryable Errors
+
+The retry utilities automatically handle these PostgreSQL SQLSTATE errors:
+
+| Category | Codes | Description |
+|----------|-------|-------------|
+| Serialization | `40001`, `40P01` | Serialization failures and deadlocks |
+| Connection | `08000`, `08003`, `08006`, `57P01`, `57P03` | Connection issues and server shutdown |
+| Resources | `53000`, `53200`, `53300`, `55P03` | Resource limits (memory, connections, locks) |
+
+### Error Classification Helpers
+
+Use these helpers to handle specific error types:
+
+```typescript
+import { isForeignKeyViolation, isSerializationError } from '@inkeep/agents-core';
+
+try {
+  await db.insert(records).values(data);
+} catch (error) {
+  if (isForeignKeyViolation(error)) {
+    // Handle missing parent record
+  }
+  if (isSerializationError(error)) {
+    // Transaction conflict — already handled by withRetryTransaction
+  }
+  throw error;
+}
+```
+
+### DAL Boundary Enforcement
+
+A lint script prevents Drizzle ORM imports outside the data access layer:
+
+```bash
+pnpm lint:dal-boundary
+```
+
+This ensures all database operations go through the DAL, maintaining consistent error handling and scoping.
+
 ## Commit Messages
 
 We recommend conventional commit format (not enforced by tooling):
