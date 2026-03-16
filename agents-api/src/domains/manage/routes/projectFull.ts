@@ -45,11 +45,7 @@ import {
   type ManageRouteHandler,
   openapiRegisterPutPatchRoutesForLegacy,
 } from '../../../utils/openapiDualRoute';
-import {
-  onTriggerCreated,
-  onTriggerDeleted,
-  onTriggerUpdated,
-} from '../../run/services/ScheduledTriggerService';
+import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { validateTriggerPermissions } from './triggerHelpers';
 
 const logger = getLogger('projectFull');
@@ -178,7 +174,7 @@ app.openapi(
           logger.debug({ projectMainBranch }, 'Checked out project branch for config writes');
 
           // 2. Create full project config in the project branch
-          const project = await createFullProjectServerSide(configTx)({
+          const project = await createFullProjectServerSide(configTx, undefined, runDbClient)({
             scopes: { tenantId, projectId: validatedProjectData.id },
             projectData: validatedProjectData,
           });
@@ -421,7 +417,7 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
         Promise.all(
           agents.map(async (agentId) => ({
             agentId,
-            triggers: await listScheduledTriggers(configDb)({
+            triggers: await listScheduledTriggers(runDbClient)({
               scopes: { tenantId, projectId, agentId },
             }),
           }))
@@ -517,7 +513,7 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             });
 
             // Create the full project config
-            const project = await createFullProjectServerSide(configTx)({
+            const project = await createFullProjectServerSide(configTx, undefined, runDbClient)({
               scopes: { tenantId, projectId },
               projectData: validatedProjectData,
             });
@@ -538,7 +534,7 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             return project;
           });
         })
-      : await updateFullProjectServerSide(configDb)({
+      : await updateFullProjectServerSide(configDb, undefined, runDbClient)({
           scopes: { tenantId, projectId },
           projectData: validatedProjectData,
         });
@@ -552,11 +548,10 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
         'Starting scheduled trigger workflow reconciliation'
       );
 
-      // Process all agents in parallel
       await Promise.all(
         agents.map(async (agentId) => {
           const existingTriggersForAgent = existingTriggersByAgent.get(agentId) || [];
-          const newTriggersForAgent = await listScheduledTriggers(configDb)({
+          const newTriggersForAgent = await listScheduledTriggers(runDbClient)({
             scopes: { tenantId, projectId, agentId },
           });
 
@@ -572,7 +567,6 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
           );
 
           const existingTriggerMap = new Map(existingTriggersForAgent.map((t) => [t.id, t]));
-          const newTriggerMap = new Map(newTriggersForAgent.map((t) => [t.id, t]));
 
           // Collect all workflow operations to parallelize them
           const workflowOperations: Promise<void>[] = [];
@@ -580,26 +574,7 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
           // Handle created and updated triggers
           for (const trigger of newTriggersForAgent) {
             const existing = existingTriggerMap.get(trigger.id);
-
-            if (!existing) {
-              // New trigger
-              workflowOperations.push(
-                onTriggerCreated(trigger)
-                  .then(() =>
-                    logger.info(
-                      { tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                      'Started workflow for new scheduled trigger'
-                    )
-                  )
-                  .catch((err) =>
-                    logger.error(
-                      { err, tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                      'Failed to start workflow for new scheduled trigger'
-                    )
-                  )
-              );
-            } else {
-              // Updated trigger
+            if (existing) {
               const scheduleChanged =
                 existing.cronExpression !== trigger.cronExpression ||
                 String(existing.runAt) !== String(trigger.runAt);
@@ -625,28 +600,6 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             }
           }
 
-          // Handle deleted triggers
-          for (const existing of existingTriggersForAgent) {
-            if (!newTriggerMap.has(existing.id)) {
-              workflowOperations.push(
-                onTriggerDeleted(existing)
-                  .then(() =>
-                    logger.info(
-                      { tenantId, projectId, agentId, scheduledTriggerId: existing.id },
-                      'Stopped workflow for deleted scheduled trigger'
-                    )
-                  )
-                  .catch((err) =>
-                    logger.error(
-                      { err, tenantId, projectId, agentId, scheduledTriggerId: existing.id },
-                      'Failed to stop workflow for deleted scheduled trigger'
-                    )
-                  )
-              );
-            }
-          }
-
-          // Execute all workflow operations for this agent in parallel
           await Promise.allSettled(workflowOperations);
         })
       );
