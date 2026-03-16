@@ -1,24 +1,33 @@
 import { z } from '@hono/zod-openapi';
-import { DATA_URI_IMAGE_BASE64_REGEX } from '@inkeep/agents-core/constants/allowed-image-formats';
+import {
+  DATA_URI_IMAGE_BASE64_REGEX,
+  DATA_URI_PDF_BASE64_REGEX,
+} from '@inkeep/agents-core/constants/allowed-file-formats';
 
 export type TextContentItem = {
   type: 'text';
   text: string;
 };
 
-export const ImageUrlSchema = z.union([
-  z.httpUrl(),
-  z
-    .string()
-    .regex(
-      DATA_URI_IMAGE_BASE64_REGEX,
-      'Image must be PNG, JPEG, or WebP format (GIF not supported by all providers)'
-    )
-    .refine((val) => {
-      const base64Part = val.split(',')[1];
-      return /^[A-Za-z0-9+/]+={0,2}$/.test(base64Part ?? '');
-    }, 'Invalid base64 data in image data URI'),
-]);
+const hasValidBase64Payload = (val: string): boolean => {
+  const base64Part = val.split(',')[1];
+  return /^[A-Za-z0-9+/]+={0,2}$/.test(base64Part ?? '');
+};
+
+const ImageDataUriSchema = z
+  .string()
+  .regex(
+    DATA_URI_IMAGE_BASE64_REGEX,
+    'Image must be PNG, JPEG, or WebP format (GIF not supported by all providers)'
+  )
+  .refine(hasValidBase64Payload, 'Invalid base64 data in image data URI');
+
+const PdfDataUriSchema = z
+  .string()
+  .regex(DATA_URI_PDF_BASE64_REGEX, 'File must be a PDF data URI')
+  .refine(hasValidBase64Payload, 'Invalid base64 data in PDF data URI');
+
+export const ImageUrlSchema = z.union([z.httpUrl(), ImageDataUriSchema]);
 
 /** OpenAI-specific image detail level. Has no effect on other providers. */
 export const ImageDetailEnum = ['auto', 'low', 'high'] as const;
@@ -35,7 +44,17 @@ export const ImageContentItemSchema = z.object({
 
 export type ImageContentItem = z.infer<typeof ImageContentItemSchema>;
 
-export type ContentItem = TextContentItem | ImageContentItem;
+export const FileContentItemSchema = z.object({
+  type: z.literal('file'),
+  file: z.object({
+    file_data: PdfDataUriSchema,
+    filename: z.string().optional(),
+  }),
+});
+
+export type FileContentItem = z.infer<typeof FileContentItemSchema>;
+
+export type ContentItem = TextContentItem | ImageContentItem | FileContentItem;
 
 export type Message = {
   role: 'system' | 'user' | 'assistant' | 'function' | 'tool';

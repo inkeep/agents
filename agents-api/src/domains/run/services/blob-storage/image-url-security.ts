@@ -2,17 +2,17 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import * as ipaddr from 'ipaddr.js';
 import { getLogger } from '../../../../logger';
-import { ALLOWED_HTTP_PORTS } from './image-security-constants';
+import { ALLOWED_HTTP_PORTS } from './file-security-constants';
 import {
   BlockedDisallowedPortError,
   BlockedEmbeddedCredentialsError,
   BlockedUnsupportedSchemeError,
   BlockedUrlResolvingToPrivateIpError,
-  ImageSecurityError,
+  FileSecurityError,
   InvalidExternalImageUrlError,
   NoIpResolvedError,
   UnableToResolveHostError,
-} from './image-security-errors';
+} from './file-security-errors';
 
 const logger = getLogger('image-security');
 
@@ -44,7 +44,7 @@ export async function validateUrlResolvesToPublicIp(url: URL): Promise<void> {
   try {
     candidateIps = await resolveCandidateIps(hostname);
   } catch (error) {
-    if (error instanceof ImageSecurityError) {
+    if (error instanceof FileSecurityError) {
       throw error;
     }
     throw new UnableToResolveHostError(hostname, { cause: error });

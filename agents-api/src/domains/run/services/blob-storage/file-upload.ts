@@ -1,15 +1,15 @@
 import { createHash } from 'node:crypto';
 import type { DataPart, FilePart, MessageContent, Part, TextPart } from '@inkeep/agents-core';
-import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-image-formats';
+import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { getLogger } from '../../../../logger';
 import { downloadExternalImage } from './external-image-downloader';
-import { normalizeInlineImageBytes } from './image-content-security';
+import { normalizeInlineFileBytes } from './file-content-security';
 import { getBlobStorageProvider, toBlobUri } from './index';
 import { buildStorageKey } from './storage-keys';
 
 type MessageContentPart = NonNullable<MessageContent['parts']>[number];
 
-const logger = getLogger('image-upload');
+const logger = getLogger('file-upload');
 const FILE_UPLOAD_CONCURRENCY = 3;
 
 export interface UploadContext {
@@ -31,10 +31,13 @@ async function uploadFilePart(
   let mimeType: string;
 
   if ('bytes' in file && file.bytes) {
-    const normalized = await normalizeInlineImageBytes(file);
+    const normalized = await normalizeInlineFileBytes(file);
     data = normalized.data;
     mimeType = normalized.mimeType;
   } else if ('uri' in file && file.uri) {
+    if (file.mimeType?.toLowerCase().startsWith('application/pdf')) {
+      throw new Error('External PDF URLs are not supported in this pass');
+    }
     const downloaded = await downloadExternalImage(file.uri);
     data = downloaded.data;
     mimeType = downloaded.mimeType;
@@ -57,7 +60,7 @@ async function uploadFilePart(
 
   await storage.upload({ key, data, contentType: mimeType });
 
-  logger.debug({ key, mimeType, size: data.length }, 'Uploaded image to blob storage');
+  logger.debug({ key, mimeType, size: data.length }, 'Uploaded file to blob storage');
 
   return {
     kind: 'file',
@@ -69,7 +72,7 @@ async function uploadFilePart(
   };
 }
 
-export async function uploadPartsImages(parts: Part[], ctx: UploadContext): Promise<Part[]> {
+export async function uploadPartsFiles(parts: Part[], ctx: UploadContext): Promise<Part[]> {
   const results: Array<Part | null> = parts.map((part) => (part.kind === 'file' ? null : part));
   const fileIndices = parts.flatMap((part, index) => (part.kind === 'file' ? [index] : []));
 
@@ -93,7 +96,7 @@ export async function uploadPartsImages(parts: Part[], ctx: UploadContext): Prom
       } catch (error) {
         logger.error(
           { error: error instanceof Error ? error.message : String(error), index },
-          'Failed to upload image part, dropping from persisted message to avoid storing base64 in DB'
+          'Failed to upload file part, dropping from persisted message to avoid storing base64 in DB'
         );
       }
     }

@@ -1,4 +1,5 @@
 import type { FilePart } from '@inkeep/agents-core';
+import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
 import {
   createDefaultConversationHistoryConfig,
   getConversationHistoryWithCompression,
@@ -10,6 +11,35 @@ import {
 } from '../../utils/token-estimator';
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
+
+const PDF_MEDIA_TYPE = 'application/pdf';
+
+function mapFileToAiSdkContentPart(
+  fileValue: string | URL,
+  mimeType: string,
+  metadata: { detail?: string; filename?: string } | undefined
+): AiSdkContentPart | null {
+  if (mimeType.startsWith('image/')) {
+    return {
+      type: 'image',
+      image: fileValue,
+      ...(metadata?.detail && {
+        experimental_providerMetadata: { openai: { imageDetail: metadata.detail as any } },
+      }),
+    };
+  }
+
+  if (mimeType === PDF_MEDIA_TYPE) {
+    return {
+      type: 'file',
+      data: fileValue,
+      mediaType: PDF_MEDIA_TYPE,
+      ...(metadata?.filename ? { filename: metadata.filename } : {}),
+    };
+  }
+
+  return null;
+}
 
 export async function buildConversationHistory(
   ctx: AgentRunContext,
@@ -81,7 +111,7 @@ export function buildInitialMessages(
   systemPrompt: string,
   conversationHistory: string,
   userMessage: string,
-  imageParts?: FilePart[]
+  fileParts?: FilePart[]
 ): any[] {
   const messages: any[] = [];
   messages.push({ role: 'system', content: systemPrompt });
@@ -90,7 +120,7 @@ export function buildInitialMessages(
     messages.push({ role: 'user', content: conversationHistory });
   }
 
-  const userContent = buildUserMessageContent(userMessage, imageParts);
+  const userContent = buildUserMessageContent(userMessage, fileParts);
   messages.push({
     role: 'user',
     content: userContent,
@@ -101,30 +131,29 @@ export function buildInitialMessages(
 
 export function buildUserMessageContent(
   text: string,
-  imageParts?: FilePart[]
+  fileParts?: FilePart[]
 ): string | AiSdkContentPart[] {
-  if (!imageParts || imageParts.length === 0) {
+  if (!fileParts || fileParts.length === 0) {
     return text;
   }
 
   const content: AiSdkContentPart[] = [{ type: 'text', text }];
 
-  for (const part of imageParts) {
+  for (const part of fileParts) {
     const file = part.file;
-    const imageValue =
+    const fileValue =
       'uri' in file && file.uri
         ? new URL(file.uri)
-        : `data:${file.mimeType || 'image/*'};base64,${file.bytes}`;
+        : `data:${file.mimeType || ''};base64,${file.bytes}`;
+    const mimeType = normalizeMimeType(file.mimeType ?? '');
+    const mappedPart = mapFileToAiSdkContentPart(fileValue, mimeType, {
+      detail: typeof part.metadata?.detail === 'string' ? part.metadata.detail : undefined,
+      filename: typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined,
+    });
 
-    const imagePart: AiSdkContentPart = {
-      type: 'image',
-      image: imageValue,
-      ...(part.metadata?.detail && {
-        experimental_providerMetadata: { openai: { imageDetail: part.metadata.detail } },
-      }),
-    };
-
-    content.push(imagePart);
+    if (mappedPart) {
+      content.push(mappedPart);
+    }
   }
 
   return content;

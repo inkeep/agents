@@ -258,6 +258,34 @@ describe('Chat Routes', () => {
       expect(response.headers.get('content-type')).toBe('text/event-stream');
     });
 
+    it('should accept inline PDF content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this document' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'data:application/pdf;base64,JVBERi0xLjQK',
+                    filename: 'document.pdf',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
     it('should handle conversation creation', async () => {
       const response = await makeRequest('/run/v1/chat/completions', {
         method: 'POST',

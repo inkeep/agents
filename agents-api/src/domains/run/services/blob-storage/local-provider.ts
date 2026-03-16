@@ -1,6 +1,6 @@
 import { access, lstat, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { getMimeTypeFromExtension } from '@inkeep/agents-core/constants/allowed-image-formats';
+import { getMimeTypeFromExtension } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import type {

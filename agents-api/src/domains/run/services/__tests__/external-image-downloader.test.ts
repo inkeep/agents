@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadExternalImage } from '../blob-storage/external-image-downloader';
-import {
-  MAX_EXTERNAL_IMAGE_BYTES,
-  MAX_EXTERNAL_REDIRECTS,
-} from '../blob-storage/image-security-constants';
+import { MAX_EXTERNAL_REDIRECTS, MAX_FILE_BYTES } from '../blob-storage/file-security-constants';
 
 const VALID_PNG_BYTES = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+2wAAAABJRU5ErkJggg==',
@@ -152,7 +149,7 @@ describe('external-image-downloader', () => {
   });
 
   it('blocks response exceeding size limit', async () => {
-    const big = new Uint8Array(MAX_EXTERNAL_IMAGE_BYTES + 1);
+    const big = new Uint8Array(MAX_FILE_BYTES + 1);
     vi.mocked(globalThis.fetch).mockResolvedValue(
       new Response(big, {
         status: 200,
@@ -190,7 +187,7 @@ describe('external-image-downloader', () => {
   it('enforces streaming size limit when content-length under-reports', async () => {
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
-        controller.enqueue(new Uint8Array(MAX_EXTERNAL_IMAGE_BYTES));
+        controller.enqueue(new Uint8Array(MAX_FILE_BYTES));
         controller.enqueue(new Uint8Array(1));
         controller.close();
       },

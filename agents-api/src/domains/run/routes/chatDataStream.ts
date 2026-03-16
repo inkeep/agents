@@ -24,7 +24,7 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { buildPersistedMessageContent } from '../services/blob-storage/image-upload-helpers';
+import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
 import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
@@ -71,8 +71,15 @@ const chatDataStreamRoute = createProtectedRoute({
                         text: ImageUrlSchema,
                       }),
                       z.object({
+                        type: z.literal('file'),
+                        text: z.string(),
+                        mediaType: z.string().optional(),
+                        mimeType: z.string().optional(),
+                        filename: z.string().optional(),
+                      }),
+                      z.object({
                         type: z.union([
-                          z.enum(['audio', 'video', 'file']),
+                          z.enum(['audio', 'video']),
                           z.string().regex(/^data-/, 'Type must start with "data-"'),
                         ]),
                         text: z.string().optional(),
