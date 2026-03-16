@@ -277,11 +277,9 @@ export function serializeAgentForm(data: FullAgentResponse) {
         },
       ])
     ),
-    functionTools: Object.fromEntries(
-      Object.values(functionTools).map(({ createdAt, updatedAt, ...tool }) => [tool.id, tool])
-    ),
+    functionTools: Object.fromEntries(Object.values(functionTools).map((tool) => [tool.id, tool])),
     functions: Object.fromEntries(
-      Object.values(functions).map(({ createdAt, updatedAt, ...tool }) => [
+      Object.values(functions).map((tool) => [
         tool.id,
         {
           ...tool,

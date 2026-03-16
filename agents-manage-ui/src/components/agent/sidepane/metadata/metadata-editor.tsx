@@ -38,28 +38,22 @@ import { FieldLabel } from '../form-components/label';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
 
-const ExecutionLimitInheritanceInfo: FC = () => {
-  return (
-    <ul className="space-y-1.5 list-disc list-outside pl-4">
-      <li>
-        <span className="font-medium">transferCountIs</span>: Project → Agent only (controls
-        transfers between sub agents)
-      </li>
-      <li>
-        <span className="font-medium">Explicit settings</span> always take precedence over inherited
-        values
-      </li>
-      <li>
-        <span className="font-medium">Default fallback</span>: transferCountIs = 10 if no value is
-        set anywhere
-      </li>
-      <li>
-        <span className="font-medium">Agent scope</span>: This limit applies to all sub agents
-        within this agent
-      </li>
-    </ul>
-  );
-};
+const executionLimitInheritanceInfo = (
+  <ul className="space-y-1.5 list-disc list-outside pl-4">
+    <li>
+      <b>transferCountIs</b>: Project → Agent only (controls transfers between sub agents)
+    </li>
+    <li>
+      <b>Explicit settings</b> always take precedence over inherited values
+    </li>
+    <li>
+      <b>Default fallback</b>: transferCountIs = 10 if no value is set anywhere
+    </li>
+    <li>
+      <b>Agent scope</b>: This limit applies to all sub agents within this agent
+    </li>
+  </ul>
+);
 
 export const MetadataEditor: FC = () => {
   'use memo';
@@ -260,7 +254,7 @@ export const MetadataEditor: FC = () => {
           titleTooltip={
             <div>
               <p>How execution limit inheritance works:</p>
-              <ExecutionLimitInheritanceInfo />
+              {executionLimitInheritanceInfo}
             </div>
           }
         />

@@ -163,13 +163,20 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
         )}
       />
       <Separator />
-      <ModelSection
-        models={subAgent.models}
-        updatePath={(modelPath, value) => {
-          form.setValue(path(modelPath), value, { shouldDirty: true });
-        }}
-        projectModels={project?.models}
-        agentModels={models}
+      <FormField
+        control={form.control}
+        name={path('models')}
+        render={({ field }) => (
+          <FormItem>
+            <ModelSection
+              models={field.value}
+              updatePath={field.onChange}
+              projectModels={project?.models}
+              agentModels={models}
+            />
+            <FormMessage />
+          </FormItem>
+        )}
       />
       <Separator />
       {/* Agent Execution Limits */}
