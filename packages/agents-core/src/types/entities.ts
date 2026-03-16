@@ -122,6 +122,12 @@ import type {
   ExternalAgentUpdateSchema,
   ExternalSubAgentRelationApiInsertSchema,
   ExternalSubAgentRelationInsertSchema,
+  FeedbackApiInsertSchema,
+  FeedbackApiSelectSchema,
+  FeedbackApiUpdateSchema,
+  FeedbackInsertSchema,
+  FeedbackSelectSchema,
+  FeedbackUpdateSchema,
   FetchConfigSchema,
   FetchDefinitionSchema,
   FullAgentAgentInsertSchema,
@@ -460,6 +466,13 @@ export type MessageUpdate = z.infer<typeof MessageUpdateSchema>;
 export type MessageApiSelect = z.infer<typeof MessageApiSelectSchema>;
 export type MessageApiInsert = z.infer<typeof MessageApiInsertSchema>;
 export type MessageApiUpdate = z.infer<typeof MessageApiUpdateSchema>;
+
+export type FeedbackSelect = z.infer<typeof FeedbackSelectSchema>;
+export type FeedbackInsert = z.infer<typeof FeedbackInsertSchema>;
+export type FeedbackUpdate = z.infer<typeof FeedbackUpdateSchema>;
+export type FeedbackApiSelect = z.infer<typeof FeedbackApiSelectSchema>;
+export type FeedbackApiInsert = z.infer<typeof FeedbackApiInsertSchema>;
+export type FeedbackApiUpdate = z.infer<typeof FeedbackApiUpdateSchema>;
 
 export type ContextConfigSelect = z.infer<typeof ContextConfigSelectSchema>;
 export type ContextConfigInsert = z.infer<typeof ContextConfigInsertSchema>;
