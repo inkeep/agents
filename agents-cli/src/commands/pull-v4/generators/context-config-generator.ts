@@ -239,7 +239,7 @@ function isFetchDefinitionData(value: unknown): boolean {
   return value.fetchConfig !== undefined || value.responseSchema !== undefined;
 }
 
-function collectFetchDefinitionEntries(contextVariables?: Record<string, unknown>) {
+function collectFetchDefinitionEntries(contextVariables?: Record<string, unknown> | null) {
   if (!contextVariables) {
     return [];
   }
@@ -485,7 +485,9 @@ function collectCredentialReferenceNames(
   return credentialReferenceNames;
 }
 
-function collectTemplateHeaderVariables(contextVariables?: Record<string, unknown>): Set<string> {
+function collectTemplateHeaderVariables(
+  contextVariables?: Record<string, unknown> | null
+): Set<string> {
   const variables = new Set<string>();
   collectTemplateHeaderVariablesFromValue(contextVariables, variables);
   return variables;
