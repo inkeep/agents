@@ -11,7 +11,6 @@ import {
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
-import { createProviderOptionsHandler } from '@/lib/utils';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
 
@@ -31,45 +30,21 @@ export function ModelSection({
   projectModels,
   agentModels,
 }: ModelSectionProps) {
-  const hasAdvancedOptions = models?.structuredOutput || models?.summarizer;
+  'use memo';
+  const hasAdvancedOptions = models.structuredOutput?.model || models.summarizer?.model;
 
   // Helper to get inherited model and provider options from the same source
-  const getStructuredOutputInheritance = () => {
-    if (agentModels?.structuredOutput?.model) {
+  function getInheritance(key: 'structuredOutput' | 'summarizer') {
+    if (agentModels?.[key]?.model) {
       return {
-        model: agentModels.structuredOutput.model,
-        options: agentModels.structuredOutput.providerOptions,
+        model: agentModels[key].model,
+        options: agentModels[key].providerOptions,
       };
     }
-    if (projectModels?.structuredOutput?.model) {
+    if (projectModels?.[key]?.model) {
       return {
-        model: projectModels.structuredOutput.model,
-        options: projectModels.structuredOutput.providerOptions,
-      };
-    }
-    if (models?.base?.model) {
-      return { model: models.base.model, options: models.base.providerOptions };
-    }
-    if (agentModels?.base?.model) {
-      return { model: agentModels.base.model, options: agentModels.base.providerOptions };
-    }
-    if (projectModels?.base?.model) {
-      return { model: projectModels.base.model, options: projectModels.base.providerOptions };
-    }
-    return { model: undefined, options: undefined };
-  };
-
-  const getSummarizerInheritance = () => {
-    if (agentModels?.summarizer?.model) {
-      return {
-        model: agentModels.summarizer.model,
-        options: agentModels.summarizer.providerOptions,
-      };
-    }
-    if (projectModels?.summarizer?.model) {
-      return {
-        model: projectModels.summarizer.model,
-        options: projectModels.summarizer.providerOptions,
+        model: projectModels[key].model,
+        options: projectModels[key].providerOptions,
       };
     }
     if (models?.base?.model) {
@@ -82,11 +57,11 @@ export function ModelSection({
       return { model: projectModels.base.model, options: projectModels.base.providerOptions };
     }
     return { model: undefined, options: undefined };
-  };
+  }
 
-  const structuredOutputInheritance = getStructuredOutputInheritance();
-  const summarizerInheritance = getSummarizerInheritance();
-
+  const structuredOutputInheritance = getInheritance('structuredOutput');
+  const summarizerInheritance = getInheritance('summarizer');
+  console.log({ structuredOutputInheritance, summarizerInheritance });
   return (
     <div className="space-y-8">
       <SectionHeader
@@ -123,10 +98,10 @@ export function ModelSection({
           </div>
         }
         description="Primary model for general sub agent responses"
-        onModelChange={(value) => updatePath('models.base.model', value || undefined)}
-        onProviderOptionsChange={createProviderOptionsHandler((options) => {
+        onModelChange={(value) => updatePath('models.base.model', value)}
+        onProviderOptionsChange={(options) => {
           updatePath('models.base.providerOptions', options);
-        })}
+        }}
         editorNamePrefix="base"
       />
 
@@ -151,10 +126,10 @@ export function ModelSection({
             </div>
           }
           description="The model used for structured output and components (defaults to base model)"
-          onModelChange={(value) => updatePath('models.structuredOutput.model', value || undefined)}
-          onProviderOptionsChange={createProviderOptionsHandler((options) =>
-            updatePath('models.structuredOutput.providerOptions', options)
-          )}
+          onModelChange={(value) => updatePath('models.structuredOutput.model', value)}
+          onProviderOptionsChange={(options) => {
+            updatePath('models.structuredOutput.providerOptions', options);
+          }}
           editorNamePrefix="structured"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {
@@ -184,10 +159,10 @@ export function ModelSection({
             </div>
           }
           description="The model used for summarization tasks (defaults to base model)"
-          onModelChange={(value) => updatePath('models.summarizer.model', value || undefined)}
-          onProviderOptionsChange={createProviderOptionsHandler((options) =>
-            updatePath('models.summarizer.providerOptions', options)
-          )}
+          onModelChange={(value) => updatePath('models.summarizer.model', value)}
+          onProviderOptionsChange={(options) => {
+            updatePath('models.summarizer.providerOptions', options);
+          }}
           editorNamePrefix="summarizer"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {
