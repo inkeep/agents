@@ -194,7 +194,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       case 'popular':
         return 'Popular MCP Servers';
       case 'builtin':
-        return 'Built-in Tools';
+        return 'Built-in MCP Servers';
       case 'workapps':
         return 'Work Apps';
       case 'custom':
@@ -207,7 +207,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       case 'popular':
         return 'Connect to popular services with pre-configured servers. Click any server to set up with OAuth authentication.';
       case 'builtin':
-        return 'First-party tools built into Inkeep. Most are ready to use immediately; some require an API key.';
+        return 'Pre-built MCP servers hosted by Inkeep. Most are ready to use immediately; search servers require an API key.';
       case 'workapps':
         return 'First-party integrations with secure authentication. Configure access to specific repositories and resources.';
       case 'custom':
@@ -235,7 +235,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
               size="sm"
               onClick={() => setSelectedMode('builtin')}
             >
-              Built-in Tools
+              Built-in MCP Servers
             </Button>
             <Button
               variant={selectedMode === 'workapps' ? 'default' : 'ghost'}
