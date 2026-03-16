@@ -34,6 +34,8 @@ function makeCompressor(overrides: Partial<Record<string, any>> = {}): any {
       artifactIds: [],
       summary: {
         type: 'conversation_summary_v1',
+        session_id: null,
+        _fallback: null,
         high_level: 'summary',
         user_intent: 'intent',
         decisions: [],
@@ -177,6 +179,8 @@ describe('handlePrepareStepCompression', () => {
         artifactIds: ['art-1'],
         summary: {
           type: 'conversation_summary_v1',
+          session_id: null,
+          _fallback: null,
           high_level: 'findings',
           user_intent: 'intent',
           decisions: [],

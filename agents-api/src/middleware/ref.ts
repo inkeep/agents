@@ -237,7 +237,7 @@ async function resolveProjectRef(
 
   if (!refResult) {
     const method = c.req.method;
-    if (method === 'PUT') {
+    if (method === 'PUT' || method === 'PATCH') {
       const tenantMain = `${tenantId}_main`;
       let tenantRefResult = await resolveRef(db)(tenantMain);
       if (!tenantRefResult) {

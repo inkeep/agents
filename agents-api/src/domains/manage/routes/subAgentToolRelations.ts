@@ -23,6 +23,10 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -262,62 +266,70 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update SubAgent Tool Relation',
-    operationId: 'update-subagent-tool-relation',
-    tags: ['SubAgents', 'Tools'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectAgentIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: SubAgentToolRelationApiUpdateSchema,
-          },
+const updateSubAgentToolRelationRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update SubAgent Tool Relation',
+  tags: ['SubAgents', 'Tools'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectAgentIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: SubAgentToolRelationApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'SubAgent tool relation updated successfully',
-        content: {
-          'application/json': {
-            schema: SubAgentToolRelationResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'SubAgent tool relation updated successfully',
+      content: {
+        'application/json': {
+          schema: SubAgentToolRelationResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const body = await c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    if (Object.keys(body).length === 0) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'No fields to update',
-      });
-    }
+const updateSubAgentToolRelationHandler: ManageRouteHandler<
+  typeof updateSubAgentToolRelationRouteConfig
+> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, agentId, id } = c.req.valid('param');
+  const body = await c.req.valid('json');
 
-    const updatedAgentToolRelation = await updateAgentToolRelation(db)({
-      scopes: { tenantId, projectId, agentId },
-      relationId: id,
-      data: body,
+  if (Object.keys(body).length === 0) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'No fields to update',
     });
+  }
 
-    if (!updatedAgentToolRelation) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'SubAgent tool relation not found',
-      });
-    }
+  const updatedAgentToolRelation = await updateAgentToolRelation(db)({
+    scopes: { tenantId, projectId, agentId },
+    relationId: id,
+    data: body,
+  });
 
-    return c.json({ data: updatedAgentToolRelation });
+  if (!updatedAgentToolRelation) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'SubAgent tool relation not found',
+    });
+  }
+
+  return c.json({ data: updatedAgentToolRelation });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateSubAgentToolRelationRouteConfig,
+  updateSubAgentToolRelationHandler,
+  {
+    operationId: 'update-subagent-tool-relation',
   }
 );
 

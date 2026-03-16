@@ -159,6 +159,44 @@ The `agents-api` package contains all API domains under a single service:
 
 ## Key Implementation Details
 
+### CRUD HTTP Method Conventions (RFC 9110, RFC 5789)
+
+| Operation | Method | Path Pattern | Example |
+|-----------|--------|-------------|---------|
+| Create | POST | `/resources` | `POST /agents` |
+| Read (list) | GET | `/resources` | `GET /agents` |
+| Read (single) | GET | `/resources/{id}` | `GET /agents/{id}` |
+| Update (partial) | PATCH | `/resources/{id}` | `PATCH /agents/{id}` |
+| Delete | DELETE | `/resources/{id}` | `DELETE /agents/{id}` |
+
+- **PATCH** for partial updates (RFC 5789) — canonical method for standard CRUD update operations
+- **PUT** for full-resource replacement, upsert, and set/replace operations (RFC 9110 §9.3.4)
+- **POST** for creates and non-idempotent actions (sync, reconnect, cancel, etc.)
+- **GET** for reads — never mutates state
+- **DELETE** for resource removal
+
+#### Exceptions: PUT-canonical routes
+
+The following routes use **PUT as the canonical method** because they perform full-resource replacement or upsert semantics, not partial updates:
+
+| Route | Reason | OperationId |
+|-------|--------|-------------|
+| `PUT /project-full/{projectId}` | Upsert — creates or fully replaces a project | `update-full-project` |
+| `PUT /agents-full/{agentId}` | Upsert — creates or fully replaces an agent | `update-full-agent` |
+| `PUT /tools/{toolId}/github-access` | Set/replace — replaces entire GitHub access config | `set-mcp-tool-github-access` |
+| `PUT /tools/{toolId}/slack-access` | Set/replace — replaces entire Slack access config | `set-mcp-tool-slack-access` |
+| `PUT /projects/{projectId}/github-access` | Set/replace — replaces entire project GitHub access | `set-project-github-access` |
+
+These routes still register a PATCH method for backward compatibility (with `x-speakeasy-ignore: true`).
+
+#### Dual-registration helper
+
+All update routes register both PUT and PATCH methods using `openapiRegisterPutPatchRoutesForLegacy()` from `agents-api/src/utils/openapiDualRoute.ts`. The legacy method gets `x-speakeasy-ignore: true` and a suffixed operationId (e.g., `update-agent-put`). To find all legacy routes, search for usages of this helper. When legacy methods are no longer needed, remove the helper calls and replace with single `app.openapi()` registrations.
+
+#### Backward compatibility
+
+All existing PUT update routes remain functional — they share the same handler as PATCH. New update routes must use PATCH as canonical (or PUT for upsert/set-replace semantics). Do not remove existing PUT routes without a deprecation period.
+
 ### Database Migration Workflow
 
 #### Standard Workflow
