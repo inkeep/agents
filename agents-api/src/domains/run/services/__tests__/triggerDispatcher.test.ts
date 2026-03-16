@@ -219,8 +219,8 @@ describe('dispatchDueTriggers', () => {
     await dispatchDueTriggers();
 
     expect(capturedAdvanceArgs).toBeDefined();
-    expect(capturedAdvanceArgs!.nextRunAt).toBe('2026-03-13T10:01:00.000Z');
-    expect(capturedAdvanceArgs!.enabled).toBeUndefined();
+    expect(capturedAdvanceArgs?.nextRunAt).toBe('2026-03-13T10:01:00.000Z');
+    expect(capturedAdvanceArgs?.enabled).toBeUndefined();
   });
 
   it('does not advance nextRunAt when workflow start fails', async () => {
