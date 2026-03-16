@@ -234,15 +234,12 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
         scopes: { tenantId, projectId, agentId },
       });
       const existingTriggerMap = new Map(existingScheduledTriggers.map((t) => [t.id, t]));
-      const newTriggerMap = new Map(newScheduledTriggers.map((t) => [t.id, t]));
 
       // Handle created and updated triggers
       for (const trigger of newScheduledTriggers) {
         const existing = existingTriggerMap.get(trigger.id);
-        try {
-          if (!existing) {
-            await onTriggerCreated(trigger);
-          } else {
+        if (existing) {
+          try {
             const scheduleChanged =
               existing.cronExpression !== trigger.cronExpression ||
               String(existing.runAt) !== String(trigger.runAt);
@@ -250,49 +247,13 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
             if (scheduleChanged || previousEnabled !== trigger.enabled) {
               await onTriggerUpdated({ trigger, previousEnabled, scheduleChanged });
             }
-          }
-        } catch (err) {
-          logger.error(
-            { err, scheduledTriggerId: trigger.id },
-            'Failed to reconcile scheduled trigger workflow'
-          );
-        }
-      }
-
-      // Update/create the full agent using server-side data layer operations
-      const updatedAgent: FullAgentDefinition = isCreate
-        ? await createFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData)
-        : await updateFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData);
-
-      // Reconcile scheduled trigger workflows
-      try {
-        const newScheduledTriggers = await listScheduledTriggers(db)({
-          scopes: { tenantId, projectId, agentId },
-        });
-        const existingTriggerMap = new Map(existingScheduledTriggers.map((t) => [t.id, t]));
-
-        // Handle created and updated triggers
-        for (const trigger of newScheduledTriggers) {
-          const existing = existingTriggerMap.get(trigger.id);
-          if (existing) {
-            try {
-              const scheduleChanged =
-                existing.cronExpression !== trigger.cronExpression ||
-                String(existing.runAt) !== String(trigger.runAt);
-              const previousEnabled = existing.enabled;
-              if (scheduleChanged || previousEnabled !== trigger.enabled) {
-                await onTriggerUpdated({ trigger, previousEnabled, scheduleChanged });
-              }
-            } catch (err) {
-              logger.error(
-                { err, scheduledTriggerId: trigger.id },
-                'Failed to reconcile scheduled trigger workflow'
-              );
-            }
+          } catch (err) {
+            logger.error(
+              { err, scheduledTriggerId: trigger.id },
+              'Failed to reconcile scheduled trigger workflow'
+            );
           }
         }
-      } catch (err) {
-        logger.error({ err }, 'Failed to reconcile scheduled trigger workflows after update');
       }
     } catch (err) {
       logger.error({ err }, 'Failed to reconcile scheduled trigger workflows after update');
