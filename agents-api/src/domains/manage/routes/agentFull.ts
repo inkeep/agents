@@ -25,11 +25,7 @@ import {
   type ManageRouteHandler,
   openapiRegisterPutPatchRoutesForLegacy,
 } from '../../../utils/openapiDualRoute';
-import {
-  onTriggerCreated,
-  onTriggerDeleted,
-  onTriggerUpdated,
-} from '../../run/services/ScheduledTriggerService';
+import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 
 const logger = getLogger('agentFull');
 
@@ -86,25 +82,6 @@ app.openapi(
       { tenantId, projectId },
       validatedAgentData
     );
-
-    // Start workflows for any scheduled triggers created with the agent
-    try {
-      const triggers = await listScheduledTriggers(db)({
-        scopes: { tenantId, projectId, agentId: createdAgent.id },
-      });
-      for (const trigger of triggers) {
-        try {
-          await onTriggerCreated(trigger);
-        } catch (err) {
-          logger.error(
-            { err, scheduledTriggerId: trigger.id },
-            'Failed to start workflow for scheduled trigger during agent creation'
-          );
-        }
-      }
-    } catch (err) {
-      logger.error({ err }, 'Failed to reconcile scheduled trigger workflows after agent creation');
-    }
 
     return c.json({ data: createdAgent }, 201);
   }
@@ -257,15 +234,12 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
         scopes: { tenantId, projectId, agentId },
       });
       const existingTriggerMap = new Map(existingScheduledTriggers.map((t) => [t.id, t]));
-      const newTriggerMap = new Map(newScheduledTriggers.map((t) => [t.id, t]));
 
       // Handle created and updated triggers
       for (const trigger of newScheduledTriggers) {
         const existing = existingTriggerMap.get(trigger.id);
-        try {
-          if (!existing) {
-            await onTriggerCreated(trigger);
-          } else {
+        if (existing) {
+          try {
             const scheduleChanged =
               existing.cronExpression !== trigger.cronExpression ||
               String(existing.runAt) !== String(trigger.runAt);
@@ -273,24 +247,10 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
             if (scheduleChanged || previousEnabled !== trigger.enabled) {
               await onTriggerUpdated({ trigger, previousEnabled, scheduleChanged });
             }
-          }
-        } catch (err) {
-          logger.error(
-            { err, scheduledTriggerId: trigger.id },
-            'Failed to reconcile scheduled trigger workflow'
-          );
-        }
-      }
-
-      // Handle deleted triggers
-      for (const existing of existingScheduledTriggers) {
-        if (!newTriggerMap.has(existing.id)) {
-          try {
-            await onTriggerDeleted(existing);
           } catch (err) {
             logger.error(
-              { err, scheduledTriggerId: existing.id },
-              'Failed to stop workflow for deleted scheduled trigger'
+              { err, scheduledTriggerId: trigger.id },
+              'Failed to reconcile scheduled trigger workflow'
             );
           }
         }

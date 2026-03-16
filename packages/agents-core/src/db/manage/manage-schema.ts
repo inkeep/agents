@@ -179,6 +179,7 @@ export const scheduledTriggers = pgTable(
     timeoutSeconds: numeric('timeout_seconds', { mode: 'number' }).notNull().default(780),
     runAsUserId: varchar('run_as_user_id', { length: 256 }),
     createdBy: varchar('created_by', { length: 256 }),
+    nextRunAt: timestamp('next_run_at', { withTimezone: true, mode: 'string' }),
     ...timestamps,
   },
   (table) => [

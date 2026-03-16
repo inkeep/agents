@@ -2,22 +2,11 @@ import type { EntityEffectHandlers, ReconcileContext } from '@inkeep/agents-core
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../domains/run/services/ScheduledTriggerService', () => ({
-  onTriggerCreated: vi.fn().mockResolvedValue(undefined),
   onTriggerUpdated: vi.fn().mockResolvedValue(undefined),
-  onTriggerDeleted: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@inkeep/agents-work-apps/slack', () => ({
   clearWorkspaceConnectionCache: vi.fn(),
-}));
-
-const mockWorldRunsGet = vi.fn();
-vi.mock('../../workflow/world', () => ({
-  world: {
-    runs: {
-      get: (...args: unknown[]) => mockWorldRunsGet(...args),
-    },
-  },
 }));
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -30,8 +19,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     cascadeDeleteBySubAgent: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     isGithubWorkAppTool: vi.fn((tool) => tool.config?.mcp?.server?.url?.includes('/github/mcp')),
     isSlackWorkAppTool: vi.fn((tool) => tool.config?.mcp?.server?.url?.includes('/slack/mcp')),
-    listEnabledScheduledTriggers: vi.fn(() => vi.fn().mockResolvedValue([])),
-    listScheduledWorkflowsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listToolIdsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listGitHubToolAccessByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listGitHubToolAccessModeByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
@@ -41,6 +28,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     listAgentIdsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listApiKeysByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listSlackChannelAgentConfigsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
+    listEnabledScheduledTriggers: vi.fn(() => vi.fn().mockResolvedValue([])),
   };
 });
 
@@ -56,17 +44,12 @@ import {
   listEnabledScheduledTriggers,
   listGitHubToolAccessByProject,
   listGitHubToolAccessModeByProject,
-  listScheduledWorkflowsByProject,
   listSlackChannelAgentConfigsByProject,
   listSlackToolAccessConfigByProject,
   listToolIdsByProject,
 } from '@inkeep/agents-core';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
-import {
-  onTriggerCreated,
-  onTriggerDeleted,
-  onTriggerUpdated,
-} from '../../domains/run/services/ScheduledTriggerService';
+import { onTriggerUpdated } from '../../domains/run/services/ScheduledTriggerService';
 import { createEntityEffectRegistry } from '../registry';
 
 const mockCtx = {
@@ -95,13 +78,6 @@ describe('createEntityEffectRegistry', () => {
   });
 
   describe('scheduled_triggers', () => {
-    it('onCreated calls onTriggerCreated with the trigger row', async () => {
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const trigger = { id: 'trigger-1', name: 'test-trigger', enabled: true } as any;
-      await h.onCreated?.(trigger, mockCtx);
-      expect(onTriggerCreated).toHaveBeenCalledWith(trigger);
-    });
-
     it('onUpdated detects schedule change and calls onTriggerUpdated', async () => {
       const h = getHandlers(registry, 'scheduled_triggers');
       const before = {
@@ -172,13 +148,6 @@ describe('createEntityEffectRegistry', () => {
         previousEnabled: true,
         scheduleChanged: false,
       });
-    });
-
-    it('onDeleted calls onTriggerDeleted', async () => {
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const trigger = { id: 'trigger-1' } as any;
-      await h.onDeleted?.(trigger, mockCtx);
-      expect(onTriggerDeleted).toHaveBeenCalledWith(trigger);
     });
   });
 
@@ -299,190 +268,36 @@ describe('createEntityEffectRegistry', () => {
   });
 
   describe('check functions', () => {
-    it('scheduled_triggers check detects missing and orphaned workflows', async () => {
+    it('scheduled_triggers check detects enabled triggers without nextRunAt', async () => {
       vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
         vi.fn().mockResolvedValue([
-          { id: 'trigger-1', name: 'Active trigger' },
-          { id: 'trigger-2', name: 'Missing trigger' },
+          { id: 'trigger-1', name: 'Has nextRunAt', nextRunAt: '2026-03-13T00:00:00Z' },
+          { id: 'trigger-2', name: 'Missing nextRunAt' },
         ]) as any
       );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi.fn().mockResolvedValue([
-          { id: 'wf-1', workflowRunId: 'run-1', scheduledTriggerId: 'trigger-1' },
-          { id: 'wf-2', workflowRunId: 'run-2', scheduledTriggerId: 'trigger-deleted' },
-        ]) as any
-      );
-      mockWorldRunsGet.mockResolvedValue({ status: 'running' });
 
       const h = getHandlers(registry, 'scheduled_triggers');
       const result = await h.check?.(mockCtx);
 
       expect(result).toMatchObject({
-        missingWorkflows: [{ triggerId: 'trigger-2', triggerName: 'Missing trigger' }],
-        orphanedWorkflows: [{ workflowRunId: 'run-2', scheduledTriggerId: 'trigger-deleted' }],
-        staleWorkflows: [],
-        deadWorkflows: [],
-        verificationFailures: [],
+        missingWorkflows: [{ triggerId: 'trigger-2', triggerName: 'Missing nextRunAt' }],
       });
     });
 
-    it('scheduled_triggers check detects stale workflows (null workflowRunId)', async () => {
+    it('scheduled_triggers check returns clean when all triggers have nextRunAt', async () => {
       vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Stale trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
         vi
           .fn()
           .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: null, scheduledTriggerId: 'trigger-1' },
+            { id: 'trigger-1', name: 'Trigger', nextRunAt: '2026-03-13T00:00:00Z' },
           ]) as any
       );
 
       const h = getHandlers(registry, 'scheduled_triggers');
       const result = await h.check?.(mockCtx);
 
-      expect(result).toMatchObject({
+      expect(result).toEqual({
         missingWorkflows: [],
-        staleWorkflows: [
-          { triggerId: 'trigger-1', triggerName: 'Stale trigger', workflowId: 'wf-1' },
-        ],
-      });
-    });
-
-    it('scheduled_triggers check detects dead workflows via Workflow SDK', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Dead trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-dead', scheduledTriggerId: 'trigger-1' },
-          ]) as any
-      );
-      mockWorldRunsGet.mockResolvedValue({ status: 'failed' });
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        deadWorkflows: [
-          {
-            triggerId: 'trigger-1',
-            triggerName: 'Dead trigger',
-            workflowRunId: 'run-dead',
-            runStatus: 'failed',
-          },
-        ],
-        verificationFailures: [],
-      });
-    });
-
-    it('scheduled_triggers check detects cancelled workflows as dead', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Cancelled trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-cancelled', scheduledTriggerId: 'trigger-1' },
-          ]) as any
-      );
-      mockWorldRunsGet.mockResolvedValue({ status: 'cancelled' });
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        deadWorkflows: [
-          {
-            triggerId: 'trigger-1',
-            triggerName: 'Cancelled trigger',
-            workflowRunId: 'run-cancelled',
-            runStatus: 'cancelled',
-          },
-        ],
-        verificationFailures: [],
-      });
-    });
-
-    it('scheduled_triggers check detects completed workflows as dead', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Completed trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-completed', scheduledTriggerId: 'trigger-1' },
-          ]) as any
-      );
-      mockWorldRunsGet.mockResolvedValue({ status: 'completed' });
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        deadWorkflows: [
-          {
-            triggerId: 'trigger-1',
-            triggerName: 'Completed trigger',
-            workflowRunId: 'run-completed',
-            runStatus: 'completed',
-          },
-        ],
-        verificationFailures: [],
-      });
-    });
-
-    it('scheduled_triggers check handles Workflow SDK errors gracefully', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-1', scheduledTriggerId: 'trigger-1' },
-          ]) as any
-      );
-      mockWorldRunsGet.mockRejectedValue(new Error('Workflow service unavailable'));
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        deadWorkflows: [],
-        verificationFailures: [{ workflowRunId: 'run-1', error: 'Workflow service unavailable' }],
-      });
-    });
-
-    it('scheduled_triggers check treats not-found runs as dead', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([{ id: 'trigger-1', name: 'Ghost trigger' }]) as any
-      );
-      vi.mocked(listScheduledWorkflowsByProject).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'wf-1', workflowRunId: 'run-gone', scheduledTriggerId: 'trigger-1' },
-          ]) as any
-      );
-      mockWorldRunsGet.mockResolvedValue(null);
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        deadWorkflows: [
-          {
-            triggerId: 'trigger-1',
-            triggerName: 'Ghost trigger',
-            workflowRunId: 'run-gone',
-            runStatus: 'not_found',
-          },
-        ],
       });
     });
 

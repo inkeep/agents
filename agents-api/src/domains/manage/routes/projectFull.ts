@@ -45,11 +45,7 @@ import {
   type ManageRouteHandler,
   openapiRegisterPutPatchRoutesForLegacy,
 } from '../../../utils/openapiDualRoute';
-import {
-  onTriggerCreated,
-  onTriggerDeleted,
-  onTriggerUpdated,
-} from '../../run/services/ScheduledTriggerService';
+import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { validateTriggerPermissions } from './triggerHelpers';
 
 const logger = getLogger('projectFull');
@@ -552,7 +548,6 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
         'Starting scheduled trigger workflow reconciliation'
       );
 
-      // Process all agents in parallel
       await Promise.all(
         agents.map(async (agentId) => {
           const existingTriggersForAgent = existingTriggersByAgent.get(agentId) || [];
@@ -560,46 +555,14 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             scopes: { tenantId, projectId, agentId },
           });
 
-          logger.info(
-            {
-              tenantId,
-              projectId,
-              agentId,
-              existingCount: existingTriggersForAgent.length,
-              newCount: newTriggersForAgent.length,
-            },
-            'Reconciling scheduled triggers for agent'
-          );
-
           const existingTriggerMap = new Map(existingTriggersForAgent.map((t) => [t.id, t]));
-          const newTriggerMap = new Map(newTriggersForAgent.map((t) => [t.id, t]));
 
-          // Collect all workflow operations to parallelize them
           const workflowOperations: Promise<void>[] = [];
 
-          // Handle created and updated triggers
           for (const trigger of newTriggersForAgent) {
             const existing = existingTriggerMap.get(trigger.id);
 
-            if (!existing) {
-              // New trigger
-              workflowOperations.push(
-                onTriggerCreated(trigger)
-                  .then(() =>
-                    logger.info(
-                      { tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                      'Started workflow for new scheduled trigger'
-                    )
-                  )
-                  .catch((err) =>
-                    logger.error(
-                      { err, tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                      'Failed to start workflow for new scheduled trigger'
-                    )
-                  )
-              );
-            } else {
-              // Updated trigger
+            if (existing) {
               const scheduleChanged =
                 existing.cronExpression !== trigger.cronExpression ||
                 String(existing.runAt) !== String(trigger.runAt);
@@ -625,41 +588,11 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             }
           }
 
-          // Handle deleted triggers
-          for (const existing of existingTriggersForAgent) {
-            if (!newTriggerMap.has(existing.id)) {
-              workflowOperations.push(
-                onTriggerDeleted(existing)
-                  .then(() =>
-                    logger.info(
-                      { tenantId, projectId, agentId, scheduledTriggerId: existing.id },
-                      'Stopped workflow for deleted scheduled trigger'
-                    )
-                  )
-                  .catch((err) =>
-                    logger.error(
-                      { err, tenantId, projectId, agentId, scheduledTriggerId: existing.id },
-                      'Failed to stop workflow for deleted scheduled trigger'
-                    )
-                  )
-              );
-            }
-          }
-
-          // Execute all workflow operations for this agent in parallel
           await Promise.allSettled(workflowOperations);
         })
       );
-
-      logger.info(
-        { tenantId, projectId, agentCount: agents.length },
-        'Completed scheduled trigger workflow reconciliation'
-      );
     } catch (err) {
-      logger.error(
-        { err, tenantId, projectId },
-        'Failed to reconcile scheduled trigger workflows after project update'
-      );
+      logger.error({ err }, 'Failed to reconcile scheduled trigger workflows');
     }
 
     return c.json({ data: updatedProject }, isCreate ? 201 : 200);

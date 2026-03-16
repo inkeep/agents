@@ -937,6 +937,12 @@ export const workAppGitHubMcpToolRepositoryAccessRelations = relations(
   })
 );
 
+export const schedulerState = pgTable('scheduler_state', {
+  id: varchar('id', { length: 64 }).primaryKey().default('singleton'),
+  currentRunId: varchar('current_run_id', { length: 256 }),
+  ...timestamps,
+});
+
 // ============================================================================
 // SLACK WORK APP MCP ACCESS CONFIG
 // ============================================================================
