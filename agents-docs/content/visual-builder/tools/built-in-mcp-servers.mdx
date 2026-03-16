@@ -15,12 +15,12 @@ Core text and data processing tools.
 
 | Tool | Description |
 |------|-------------|
-| `grep` | Search for a pattern in text. Supports regex, case control, context lines, invert match, and count mode. |
-| `sed` | Transform text with substitutions or extract line/character/pattern ranges. |
-| `diff` | Generate a unified diff between two strings. |
-| `patch` | Apply a unified diff patch to a string. |
-| `head` | Return the first N lines of text. |
-| `tail` | Return the last N lines of text. |
+| `text_search` | Search for a pattern in text. Supports regex, case control, context lines, invert match, and count mode. |
+| `text_replace` | Find and replace text. Supports literal or regex patterns, global or single replacement, and capture group references. |
+| `text_slice` | Extract a contiguous portion of text by line range, character range, or pattern-bounded range. |
+| `text_diff` | Generate a unified diff between two strings. |
+| `text_patch` | Apply a unified diff patch to a string. |
+| `text_window` | Return the first N lines, last N lines, or both from text. |
 | `json_format` | Pretty-print a JSON string or object. |
 | `json_query` | Extract a value from a JSON object using a JMESPath expression. |
 | `json_merge` | Deep or shallow merge two JSON objects. |

@@ -3,7 +3,12 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import sharp from 'sharp';
 import { z } from 'zod';
 
+const MAX_IMAGE_BASE64_BYTES = 25 * 1024 * 1024;
+
 function decodeBase64Image(imageBase64: string): Buffer {
+  if (imageBase64.length > MAX_IMAGE_BASE64_BYTES) {
+    throw new Error(`Image exceeds maximum allowed size of 25MB.`);
+  }
   const data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
   return Buffer.from(data, 'base64');
 }
@@ -27,7 +32,7 @@ export function registerImageTools(server: McpServer): void {
           format: metadata.format,
           channels: metadata.channels,
           hasAlpha: metadata.hasAlpha,
-          sizeByes: buffer.byteLength,
+          sizeBytes: buffer.byteLength,
         };
         return { content: [{ type: 'text', text: JSON.stringify(info, null, 2) }] };
       } catch (err) {

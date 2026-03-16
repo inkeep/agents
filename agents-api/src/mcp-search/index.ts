@@ -1,32 +1,53 @@
-import { randomUUID } from 'node:crypto';
 import { StreamableHTTPTransport } from '@hono/mcp';
+import {
+  createBraveProvider,
+  createExaProvider,
+  createSerpApiProvider,
+  createTavilyProvider,
+  type SearchProvider,
+} from '@plust/search-sdk';
 import { Hono } from 'hono';
-import { env } from '../env';
 import { mcpAuth } from '../middleware/mcpAuth';
-import { createDevToolsSearchServer } from './server';
+import { createSearchServer } from './server';
 
-type DevToolsSearchVariables = {
+type SearchMcpVariables = {
   Variables: {
     tenantId: string;
     projectId: string;
+    resolvedApiKey: string | undefined;
   };
 };
 
-const app = new Hono<DevToolsSearchVariables>();
+type ProviderFactory = (apiKey: string) => SearchProvider;
 
-app.use('/mcp', mcpAuth());
+const PROVIDER_FACTORIES: Record<string, ProviderFactory> = {
+  exa: (apiKey) => createExaProvider({ apiKey }),
+  tavily: (apiKey) => createTavilyProvider({ apiKey }),
+  brave: (apiKey) => createBraveProvider({ apiKey }),
+  serpapi: (apiKey) => createSerpApiProvider({ apiKey }),
+};
 
-app.all('/mcp', async (c) => {
-  if (!env.EXA_API_KEY) {
-    return c.json({ error: 'EXA_API_KEY is not configured' }, 503);
+const app = new Hono<SearchMcpVariables>();
+
+app.use('/:provider/mcp', mcpAuth());
+
+app.all('/:provider/mcp', async (c) => {
+  const providerName = c.req.param('provider');
+  const createProvider = PROVIDER_FACTORIES[providerName];
+
+  if (!createProvider) {
+    return c.json({ error: `Unknown search provider: ${providerName}` }, 400);
   }
 
-  const sessionId = c.req.header('mcp-session-id') ?? randomUUID();
+  const apiKey = c.get('resolvedApiKey') ?? '';
+
+  if (!apiKey) {
+    return c.json({ error: 'Search credential not configured for this project' }, 503);
+  }
+
+  const provider = createProvider(apiKey);
   const transport = new StreamableHTTPTransport();
-  const server = createDevToolsSearchServer(sessionId, env.EXA_API_KEY, {
-    tenantId: c.get('tenantId'),
-    projectId: c.get('projectId'),
-  });
+  const server = createSearchServer(provider);
 
   await server.connect(transport);
   return transport.handleRequest(c);

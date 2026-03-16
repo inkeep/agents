@@ -1,19 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { Parser } from 'expr-eval';
 import { z } from 'zod';
 
-const ALLOWED_CALC_CHARS = /^[\d\s+\-*/.()%eE]+$/;
+const parser = new Parser();
 
 function safeEval(expression: string): number {
-  const trimmed = expression.trim();
-  if (!ALLOWED_CALC_CHARS.test(trimmed)) {
-    throw new Error(
-      'Expression contains disallowed characters. Only numeric arithmetic (+, -, *, /, %, parentheses) is supported.'
-    );
-  }
-  // biome-ignore lint/security/noGlobalEval: expression is strictly validated to contain only numeric operators
-  const result = eval(trimmed);
+  const result = parser.parse(expression.trim()).evaluate();
   if (typeof result !== 'number' || !Number.isFinite(result)) {
     throw new Error('Expression did not evaluate to a finite number.');
   }

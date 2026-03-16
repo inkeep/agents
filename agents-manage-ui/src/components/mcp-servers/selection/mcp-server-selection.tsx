@@ -16,11 +16,16 @@ import { useScopeSelection } from '@/hooks/use-scope-selection';
 import type { Credential } from '@/lib/api/credentials';
 import { getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { createMCPTool } from '@/lib/api/tools';
-import { BUILT_IN_MCP_URL_PREFIX, BUILT_IN_MCPS } from '@/lib/data/built-in-mcps';
+import {
+  BUILT_IN_MCP_URL_PREFIX,
+  BUILT_IN_MCPS,
+  INKEEP_ICON_IMAGE_URL,
+} from '@/lib/data/built-in-mcps';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
 import { BuiltInMcpCard } from './built-in-mcp-card';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
+import { WebSearchDialog } from './web-search-dialog';
 import { WorkAppGitHubCard } from './work-app-github-card';
 import { WorkAppGitHubRepositoryConfigDialog } from './work-app-github-repository-config-dialog';
 import { WorkAppSlackCard } from './work-app-slack-card';
@@ -57,6 +62,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const [searchQuery, setSearchQuery] = useState('');
   const [gitHubDialogOpen, setGitHubDialogOpen] = useState(false);
   const [slackDialogOpen, setSlackDialogOpen] = useState(false);
+  const [webSearchDialogOpen, setWebSearchDialogOpen] = useState(false);
   const router = useRouter();
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
@@ -201,7 +207,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       case 'popular':
         return 'Connect to popular services with pre-configured servers. Click any server to set up with OAuth authentication.';
       case 'builtin':
-        return 'First-party tools built into Inkeep. No configuration needed — authentication is handled automatically.';
+        return 'First-party tools built into Inkeep. Most are ready to use immediately; some require an API key.';
       case 'workapps':
         return 'First-party integrations with secure authentication. Configure access to specific repositories and resources.';
       case 'custom':
@@ -284,6 +290,16 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
               disabled={!!loadingBuiltInId && loadingBuiltInId !== mcp.id}
             />
           ))}
+          <BuiltInMcpCard
+            id="web-search"
+            name="Web Search"
+            description="Search the web using your choice of provider — Exa, Tavily, Brave, or SerpAPI."
+            imageUrl={INKEEP_ICON_IMAGE_URL}
+            tools={['web_search']}
+            onSelect={() => setWebSearchDialogOpen(true)}
+            isLoading={false}
+            disabled={!!loadingBuiltInId}
+          />
         </div>
       )}
 
@@ -310,6 +326,18 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
         open={gitHubDialogOpen}
         onOpenChange={setGitHubDialogOpen}
         onSuccess={(toolId: string) => {
+          router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
+        }}
+      />
+
+      {/* Web Search provider + credential dialog */}
+      <WebSearchDialog
+        open={webSearchDialogOpen}
+        onOpenChange={setWebSearchDialogOpen}
+        credentials={credentials}
+        tenantId={tenantId}
+        projectId={projectId}
+        onSuccess={(toolId) => {
           router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
         }}
       />

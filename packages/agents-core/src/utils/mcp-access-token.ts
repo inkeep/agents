@@ -22,6 +22,7 @@ export const McpAccessTokenPayloadSchema = z.object({
   }),
   tenantId: z.string().min(1),
   projectId: z.string().min(1),
+  resolvedApiKey: z.string().optional(),
 });
 
 export type McpAccessTokenPayload = z.infer<typeof McpAccessTokenPayloadSchema>;
@@ -29,6 +30,7 @@ export type McpAccessTokenPayload = z.infer<typeof McpAccessTokenPayloadSchema>;
 export interface SignMcpAccessTokenParams {
   tenantId: string;
   projectId: string;
+  resolvedApiKey?: string;
 }
 
 export type McpAccessTokenVerifyResult = JwtVerifyResult<McpAccessTokenPayload>;
@@ -47,6 +49,7 @@ export async function signMcpAccessToken(params: SignMcpAccessTokenParams): Prom
         },
         tenantId: params.tenantId,
         projectId: params.projectId,
+        ...(params.resolvedApiKey && { resolvedApiKey: params.resolvedApiKey }),
       },
     });
 

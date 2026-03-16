@@ -149,9 +149,13 @@ export class AgentMcpManager {
     if (isBuiltInMcp(tool)) {
       const resolvedUrl = resolveBuiltInMcpUrl(tool, env.INKEEP_AGENTS_API_URL);
       if (resolvedUrl) serverConfig.url = resolvedUrl;
+      const resolvedApiKey = tool.credentialReferenceId
+        ? await this.resolveCredentialApiKey(tool.credentialReferenceId)
+        : undefined;
       const jwt = await signMcpAccessToken({
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
+        resolvedApiKey,
       });
       serverConfig.headers = {
         ...serverConfig.headers,
@@ -346,6 +350,22 @@ export class AgentMcpManager {
       }
       throw error;
     }
+  }
+
+  private async resolveCredentialApiKey(
+    credentialReferenceId: string
+  ): Promise<string | undefined> {
+    if (!this.credentialStuffer) return undefined;
+    const credRef = this.executionContext.project.credentialReferences?.[credentialReferenceId];
+    if (!credRef) return undefined;
+    const credData = await this.credentialStuffer.getCredentials(
+      { tenantId: this.config.tenantId, projectId: this.config.projectId },
+      {
+        credentialStoreId: credRef.credentialStoreId,
+        retrievalParams: credRef.retrievalParams || {},
+      }
+    );
+    return credData?.headers['Authorization']?.replace(/^Bearer /, '') || undefined;
   }
 
   private static errMsg(error: unknown): string {

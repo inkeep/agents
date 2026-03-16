@@ -8,6 +8,8 @@ import { estimateTokens } from '../utils/token-estimator';
 export function unwrapToolResult(result: any): unknown {
   if (!result || typeof result !== 'object') return result;
 
+  if (Array.isArray(result?.content) && result.content.length === 0) return null;
+
   const first = result?.content?.[0];
 
   if (first?.type === 'text') return first.text;

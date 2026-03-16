@@ -31,16 +31,16 @@ function text(result: CallToolResult): string {
 const registry = createToolRegistry();
 registerTextTools(registry.server);
 
-describe('grep', () => {
+describe('text_search', () => {
   const content = 'apple\nBanana\ncherry\napricot\ndate';
 
   it('returns matching lines with line numbers', async () => {
-    const result = await registry.call('grep', { pattern: 'apple', content });
+    const result = await registry.call('text_search', { pattern: 'apple', content });
     expect(text(result)).toBe('1: apple');
   });
 
   it('case insensitive when caseSensitive is false', async () => {
-    const result = await registry.call('grep', {
+    const result = await registry.call('text_search', {
       pattern: 'banana',
       content,
       caseSensitive: false,
@@ -49,19 +49,27 @@ describe('grep', () => {
   });
 
   it('invertMatch returns non-matching lines', async () => {
-    const result = await registry.call('grep', { pattern: 'apple', content, invertMatch: true });
+    const result = await registry.call('text_search', {
+      pattern: 'apple',
+      content,
+      invertMatch: true,
+    });
     const output = text(result);
     expect(output).not.toContain('apple');
     expect(output).toContain('Banana');
   });
 
   it('countOnly returns count string', async () => {
-    const result = await registry.call('grep', { pattern: 'a', content, countOnly: true });
+    const result = await registry.call('text_search', { pattern: 'a', content, countOnly: true });
     expect(text(result)).toBe('4');
   });
 
   it('onlyMatching returns only matched portion', async () => {
-    const result = await registry.call('grep', { pattern: 'ap', content, onlyMatching: true });
+    const result = await registry.call('text_search', {
+      pattern: 'ap',
+      content,
+      onlyMatching: true,
+    });
     const output = text(result);
     expect(output).toContain('ap');
     expect(output).not.toContain('apple');
@@ -70,7 +78,7 @@ describe('grep', () => {
 
   it('beforeContext includes lines before match with -- separator', async () => {
     const multiline = 'line1\nline2\nline3\nline4\nline5';
-    const result = await registry.call('grep', {
+    const result = await registry.call('text_search', {
       pattern: 'line3',
       content: multiline,
       beforeContext: 1,
@@ -82,7 +90,7 @@ describe('grep', () => {
 
   it('afterContext includes lines after match with -- separator', async () => {
     const multiline = 'one\ntwo\nthree\nfour\nfive';
-    const result = await registry.call('grep', {
+    const result = await registry.call('text_search', {
       pattern: 'one',
       content: multiline,
       afterContext: 1,
@@ -94,7 +102,7 @@ describe('grep', () => {
 
   it('context adds separator -- between non-adjacent match groups', async () => {
     const multiline = 'a\nb\nc\nd\ne\nf\ng';
-    const result = await registry.call('grep', {
+    const result = await registry.call('text_search', {
       pattern: '[ag]',
       content: multiline,
       isRegex: true,
@@ -105,25 +113,33 @@ describe('grep', () => {
 
   it('wholeWord only matches whole words', async () => {
     const c = 'app\napple\napplication';
-    const result = await registry.call('grep', { pattern: 'apple', content: c, wholeWord: true });
+    const result = await registry.call('text_search', {
+      pattern: 'apple',
+      content: c,
+      wholeWord: true,
+    });
     expect(text(result)).toContain('apple');
     expect(text(result)).not.toContain('application');
   });
 
   it('isRegex supports regex patterns', async () => {
-    const result = await registry.call('grep', { pattern: 'ch.rry', content, isRegex: true });
+    const result = await registry.call('text_search', {
+      pattern: 'ch.rry',
+      content,
+      isRegex: true,
+    });
     expect(text(result)).toContain('cherry');
   });
 
   it('returns "No matches found." when no matches', async () => {
-    const result = await registry.call('grep', { pattern: 'zzz', content });
+    const result = await registry.call('text_search', { pattern: 'zzz', content });
     expect(text(result)).toBe('No matches found.');
   });
 });
 
-describe('sed substitution mode', () => {
+describe('text_replace', () => {
   it('replaces first occurrence when replaceAll is false', async () => {
-    const result = await registry.call('sed', {
+    const result = await registry.call('text_replace', {
       content: 'foo foo foo',
       find: 'foo',
       replace: 'bar',
@@ -133,7 +149,7 @@ describe('sed substitution mode', () => {
   });
 
   it('replaces all occurrences by default (replaceAll defaults true)', async () => {
-    const result = await registry.call('sed', {
+    const result = await registry.call('text_replace', {
       content: 'foo foo foo',
       find: 'foo',
       replace: 'bar',
@@ -142,7 +158,7 @@ describe('sed substitution mode', () => {
   });
 
   it('supports regex with capture groups when isRegex is true', async () => {
-    const result = await registry.call('sed', {
+    const result = await registry.call('text_replace', {
       content: 'hello world',
       find: '(hello) (world)',
       replace: '$2 $1',
@@ -152,7 +168,7 @@ describe('sed substitution mode', () => {
   });
 
   it('case insensitive when caseSensitive is false', async () => {
-    const result = await registry.call('sed', {
+    const result = await registry.call('text_replace', {
       content: 'Hello HELLO hello',
       find: 'hello',
       replace: 'hi',
@@ -162,21 +178,29 @@ describe('sed substitution mode', () => {
   });
 });
 
-describe('sed address/extraction mode', () => {
+describe('text_slice', () => {
   const multiline = 'line1\nline2\nline3\nline4\nline5';
 
   it('startLine/endLine extracts line range', async () => {
-    const result = await registry.call('sed', { content: multiline, startLine: 2, endLine: 4 });
+    const result = await registry.call('text_slice', {
+      content: multiline,
+      startLine: 2,
+      endLine: 4,
+    });
     expect(text(result)).toBe('line2\nline3\nline4');
   });
 
   it('startChar/endChar extracts character slice', async () => {
-    const result = await registry.call('sed', { content: 'abcdef', startChar: 2, endChar: 5 });
+    const result = await registry.call('text_slice', {
+      content: 'abcdef',
+      startChar: 2,
+      endChar: 5,
+    });
     expect(text(result)).toBe('cde');
   });
 
   it('startPattern/endPattern extracts matching range inclusive', async () => {
-    const result = await registry.call('sed', {
+    const result = await registry.call('text_slice', {
       content: multiline,
       startPattern: 'line2',
       endPattern: 'line4',
@@ -185,7 +209,7 @@ describe('sed address/extraction mode', () => {
   });
 
   it('startPattern alone with invertMatch deletes matching lines', async () => {
-    const result = await registry.call('sed', {
+    const result = await registry.call('text_slice', {
       content: multiline,
       startPattern: 'line3',
       invertMatch: true,
@@ -197,34 +221,34 @@ describe('sed address/extraction mode', () => {
   });
 });
 
-describe('diff', () => {
+describe('text_diff', () => {
   it('returns unified diff output containing --- and +++ lines', async () => {
-    const result = await registry.call('diff', { a: 'foo\nbar', b: 'foo\nbaz' });
+    const result = await registry.call('text_diff', { a: 'foo\nbar', b: 'foo\nbaz' });
     const output = text(result);
     expect(output).toContain('---');
     expect(output).toContain('+++');
   });
 
   it('identical inputs produce minimal diff with no + or - change lines', async () => {
-    const result = await registry.call('diff', { a: 'same text', b: 'same text' });
+    const result = await registry.call('text_diff', { a: 'same text', b: 'same text' });
     const output = text(result);
     const changeLines = output.split('\n').filter((l) => /^[+-]/.test(l) && !/^[+-]{3}/.test(l));
     expect(changeLines).toHaveLength(0);
   });
 });
 
-describe('patch', () => {
+describe('text_patch', () => {
   it('applies a valid unified diff and returns patched text', async () => {
     const { createPatch } = await import('diff');
     const original = 'foo\nbar\nbaz\n';
     const modified = 'foo\nqux\nbaz\n';
     const patchStr = createPatch('file', original, modified);
-    const result = await registry.call('patch', { original, patch: patchStr });
+    const result = await registry.call('text_patch', { original, patch: patchStr });
     expect(text(result)).toBe(modified);
   });
 
   it('returns isError true when patch does not apply', async () => {
-    const result = await registry.call('patch', {
+    const result = await registry.call('text_patch', {
       original: 'completely different content',
       patch: '--- a\n+++ b\n@@ -1,1 +1,1 @@\n-old line\n+new line\n',
     });
@@ -232,30 +256,21 @@ describe('patch', () => {
   });
 });
 
-describe('head', () => {
+describe('text_window', () => {
   const content = 'a\nb\nc\nd\ne';
 
   it('returns first N lines', async () => {
-    const result = await registry.call('head', { content, n: 3 });
+    const result = await registry.call('text_window', { content, first: 3 });
     expect(text(result)).toBe('a\nb\nc');
   });
-
-  it('negative n returns all but last N lines', async () => {
-    const result = await registry.call('head', { content, n: -2 });
-    expect(text(result)).toBe('a\nb\nc');
-  });
-});
-
-describe('tail', () => {
-  const content = 'a\nb\nc\nd\ne';
 
   it('returns last N lines', async () => {
-    const result = await registry.call('tail', { content, n: 3 });
+    const result = await registry.call('text_window', { content, last: 3 });
     expect(text(result)).toBe('c\nd\ne');
   });
 
-  it('negative n returns all but first N lines', async () => {
-    const result = await registry.call('tail', { content, n: -2 });
-    expect(text(result)).toBe('c\nd\ne');
+  it('returns first and last lines combined', async () => {
+    const result = await registry.call('text_window', { content, first: 2, last: 2 });
+    expect(text(result)).toBe('a\nb\nd\ne');
   });
 });

@@ -23,6 +23,7 @@ function deepMerge(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = { ...base };
   for (const key of Object.keys(override)) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
     if (
       override[key] !== null &&
       typeof override[key] === 'object' &&

@@ -6,6 +6,7 @@ export const mcpAuth = () =>
     Variables: {
       tenantId: string;
       projectId: string;
+      resolvedApiKey: string | undefined;
     };
   }>(async (c, next) => {
     const tenantId = c.req.header('x-inkeep-tenant-id');
@@ -77,5 +78,6 @@ export const mcpAuth = () =>
 
     c.set('tenantId', tenantId);
     c.set('projectId', projectId);
+    c.set('resolvedApiKey', result.payload.resolvedApiKey);
     await next();
   });

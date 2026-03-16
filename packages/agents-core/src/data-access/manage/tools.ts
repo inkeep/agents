@@ -188,16 +188,19 @@ const discoverToolsFromServer = async (
   try {
     let serverConfig: McpServerConfig;
 
-    if (credentialReference) {
+    const credentialStuffer = credentialStoreRegistry
+      ? new CredentialStuffer(credentialStoreRegistry)
+      : undefined;
+
+    if (credentialReference && !isBuiltInMcp(tool)) {
       const storeReference = {
         credentialStoreId: credentialReference.credentialStoreId,
         retrievalParams: credentialReference.retrievalParams || {},
       };
 
-      if (!credentialStoreRegistry) {
+      if (!credentialStuffer) {
         throw new Error('CredentialStoreRegistry is required for authenticated tools');
       }
-      const credentialStuffer = new CredentialStuffer(credentialStoreRegistry);
       serverConfig = await credentialStuffer.buildMcpServerConfig(
         { tenantId: tool.tenantId, projectId: tool.projectId },
         convertToMCPToolConfig(tool),
@@ -213,14 +216,28 @@ const discoverToolsFromServer = async (
         return getMcpServerUrl(tool.config.mcp.server) ?? '';
       })();
 
+      let resolvedApiKey: string | undefined;
+      if (isBuiltInMcp(tool) && credentialReference && credentialStuffer) {
+        const credData = await credentialStuffer.getCredentials(
+          { tenantId: tool.tenantId, projectId: tool.projectId },
+          {
+            credentialStoreId: credentialReference.credentialStoreId,
+            retrievalParams: credentialReference.retrievalParams || {},
+          }
+        );
+        resolvedApiKey = credData?.headers['Authorization']?.replace(/^Bearer /, '') || undefined;
+      }
+
       const builtInHeaders = isBuiltInMcp(tool)
-        ? await signMcpAccessToken({ tenantId: tool.tenantId, projectId: tool.projectId }).then(
-            (jwt) => ({
-              'x-inkeep-tenant-id': tool.tenantId,
-              'x-inkeep-project-id': tool.projectId,
-              Authorization: `Bearer ${jwt}`,
-            })
-          )
+        ? await signMcpAccessToken({
+            tenantId: tool.tenantId,
+            projectId: tool.projectId,
+            resolvedApiKey,
+          }).then((jwt) => ({
+            'x-inkeep-tenant-id': tool.tenantId,
+            'x-inkeep-project-id': tool.projectId,
+            Authorization: `Bearer ${jwt}`,
+          }))
         : undefined;
 
       const transportType = tool.config.mcp.transport?.type || MCPTransportType.streamableHttp;
@@ -526,6 +543,7 @@ export const getMcpToolById =
     relationshipId?: string;
     credentialStoreRegistry?: CredentialStoreRegistry;
     userId?: string;
+    baseUrl?: string;
   }): Promise<McpTool | null> => {
     const tool = await getToolById(db)({ scopes: params.scopes, toolId: params.toolId });
     if (!tool) {
@@ -536,7 +554,8 @@ export const getMcpToolById =
       db,
       params.credentialStoreRegistry,
       params.relationshipId,
-      params.userId
+      params.userId,
+      { baseUrl: params.baseUrl }
     );
   };
 

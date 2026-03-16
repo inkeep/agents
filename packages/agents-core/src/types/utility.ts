@@ -1,5 +1,6 @@
 import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
+import { BUILT_IN_MCP_URL_PREFIX } from '../mcp/built-in-mcps';
 import type {
   ApiConfigSchema,
   AppConfigSchema,
@@ -197,7 +198,7 @@ export type ToolMcpServerConfig = {
 };
 
 export const getMcpServerUrl = (server: ToolMcpServerConfig): string | undefined =>
-  !server.url.startsWith('inkeepBuiltIn:') ? server.url : undefined;
+  !server.url.startsWith(BUILT_IN_MCP_URL_PREFIX) ? server.url : undefined;
 
 export type ToolMcpConfig = {
   // Server connection details

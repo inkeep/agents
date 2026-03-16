@@ -64,6 +64,7 @@ import {
   workAppSlackMcpToolAccessConfig,
   workAppSlackWorkspaces,
 } from '../db/runtime/runtime-schema';
+import { BUILT_IN_MCP_CONFIGS, BUILT_IN_MCP_URL_PREFIX } from '../mcp/built-in-mcps';
 import {
   CredentialStoreType,
   MCPServerType,
@@ -1221,13 +1222,19 @@ export const ToolInsertSchema = createInsertSchema(tools)
       type: z.literal('mcp'),
       mcp: z.object({
         server: z.object({
-          url: z.union([
-            z.string().url(),
-            z.literal('inkeepBuiltIn:inkeep-coreutils'),
-            z.literal('inkeepBuiltIn:inkeep-http'),
-            z.literal('inkeepBuiltIn:inkeep-media'),
-            z.literal('inkeepBuiltIn:inkeep-search'),
-          ]),
+          url: z.string().refine(
+            (val) => {
+              if (BUILT_IN_MCP_CONFIGS.some((c) => val === `${BUILT_IN_MCP_URL_PREFIX}${c.id}`))
+                return true;
+              try {
+                new URL(val);
+                return true;
+              } catch {
+                return false;
+              }
+            },
+            { message: 'Must be a valid URL or a recognized built-in MCP identifier' }
+          ),
         }),
         transport: z
           .object({

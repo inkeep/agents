@@ -492,7 +492,7 @@ EXAMPLE PATTERNS FOR BASE SELECTORS:
 ✅ CORRECT: hits.documents[?status=='published'] | [0]
 
 🚨 STRUCTURE HINTS ARE AUTHORITATIVE — READ THEM BEFORE WRITING ANY SELECTOR:
-- Before writing base_selector or details_selector, read _structureHints.exampleSelectors and _structureHints.terminalPaths from the tool result
+- Before writing base_selector or details_selector, read _structureHints.exampleSelectors from the tool result
 - Copy the closest matching exampleSelector as your literal starting point — do not construct paths from memory or infer from field names
 - If exampleSelectors show a path like "hits.documents[?type=='doc'] | [0]", use that exact prefix, not a guessed alternative
 

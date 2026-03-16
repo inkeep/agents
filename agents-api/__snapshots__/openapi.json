@@ -5763,36 +5763,7 @@
                   "server": {
                     "properties": {
                       "url": {
-                        "anyOf": [
-                          {
-                            "format": "uri",
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-coreutils"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-http"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-media"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-search"
-                            ],
-                            "type": "string"
-                          }
-                        ]
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -9144,36 +9115,7 @@
                   "server": {
                     "properties": {
                       "url": {
-                        "anyOf": [
-                          {
-                            "format": "uri",
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-coreutils"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-http"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-media"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-search"
-                            ],
-                            "type": "string"
-                          }
-                        ]
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -9382,36 +9324,7 @@
                   "server": {
                     "properties": {
                       "url": {
-                        "anyOf": [
-                          {
-                            "format": "uri",
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-coreutils"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-http"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-media"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "inkeepBuiltIn:inkeep-search"
-                            ],
-                            "type": "string"
-                          }
-                        ]
+                        "type": "string"
                       }
                     },
                     "required": [

@@ -157,8 +157,13 @@ export {
   BUILT_IN_MCP_URL_PREFIX,
   INKEEP_COREUTILS_MCP,
   INKEEP_HTTP_MCP,
+  INKEEP_ICON_IMAGE_URL,
   INKEEP_MEDIA_MCP,
-  INKEEP_SEARCH_MCP,
+  INKEEP_SEARCH_BRAVE_MCP,
+  INKEEP_SEARCH_EXA_MCP,
+  INKEEP_SEARCH_MCPS,
+  INKEEP_SEARCH_SERPAPI_MCP,
+  INKEEP_SEARCH_TAVILY_MCP,
 } from './mcp/built-in-mcps';
 export { CredentialStoreType, MCPTransportType } from './types';
 export { detectAuthenticationRequired } from './utils/auth-detection';

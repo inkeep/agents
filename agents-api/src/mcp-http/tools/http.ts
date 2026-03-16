@@ -10,7 +10,17 @@ export function registerHttpTools(server: McpServer): void {
     {
       description: 'Make an HTTP request and return the response status and body, like Unix curl.',
       inputSchema: z.object({
-        url: z.string().describe('URL to fetch'),
+        url: z
+          .string()
+          .url()
+          .refine(
+            (u) => {
+              const scheme = new URL(u).protocol;
+              return scheme === 'http:' || scheme === 'https:';
+            },
+            { message: 'Only http and https URLs are allowed.' }
+          )
+          .describe('URL to fetch (http/https only)'),
         method: z
           .enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
           .optional()
@@ -24,6 +34,10 @@ export function registerHttpTools(server: McpServer): void {
           .number()
           .optional()
           .describe('Request timeout in milliseconds (default: 10000)'),
+        maxResponseBytes: z
+          .number()
+          .optional()
+          .describe('Maximum response body size in bytes (default: 10485760 = 10MB)'),
       }),
     },
     async ({
@@ -32,6 +46,7 @@ export function registerHttpTools(server: McpServer): void {
       body,
       headers = {},
       timeoutMs = 10_000,
+      maxResponseBytes = 10 * 1024 * 1024,
     }): Promise<CallToolResult> => {
       try {
         const isJsonBody = body !== null && body !== undefined && typeof body === 'object';
@@ -47,6 +62,8 @@ export function registerHttpTools(server: McpServer): void {
           headers: requestHeaders,
           data: body !== undefined ? (isJsonBody ? body : String(body)) : undefined,
           timeout: timeoutMs,
+          maxRedirects: 0,
+          maxContentLength: maxResponseBytes,
           httpAgent: agent,
           httpsAgent: agent,
           responseType: 'text',

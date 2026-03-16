@@ -538,6 +538,7 @@ export async function buildTransferRelationConfig(
             toolId: item.tool.id,
             credentialStoreRegistry,
             userId: getUserIdFromContext(executionContext),
+            baseUrl,
           });
           if (!mcpTool) {
             throw new Error(`Tool not found: ${item.tool.id}`);
