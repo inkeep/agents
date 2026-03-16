@@ -87,10 +87,10 @@ function isCredentialAuthMode(value: string): value is CredentialAuthMode {
   return (CREDENTIAL_AUTH_MODES as readonly string[]).includes(value);
 }
 
-export function buildCredentialsPayload(
+export async function buildCredentialsPayload(
   credentials: Record<string, unknown> | undefined,
   authMode: AuthModeType | undefined
-): ApiPublicIntegrationCredentials | undefined {
+): Promise<ApiPublicIntegrationCredentials | undefined> {
   if (!credentials || !authMode) return undefined;
 
   if (!isCredentialAuthMode(authMode)) {

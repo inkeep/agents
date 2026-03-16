@@ -138,7 +138,7 @@ function ProviderSetupPage({
           providerName: provider.name,
           uniqueKey: integrationKey,
           displayName: provider.name,
-          credentials: buildCredentialsPayload(credentials, provider.auth_mode),
+          credentials: await buildCredentialsPayload(credentials, provider.auth_mode),
           endUserId: user?.id,
           endUserEmail: user?.email,
           endUserDisplayName: user?.name,
@@ -195,7 +195,7 @@ function ProviderSetupPage({
 
       setLoading(true);
       try {
-        const payload = buildCredentialsPayload(credentials, provider.auth_mode);
+        const payload = await buildCredentialsPayload(credentials, provider.auth_mode);
         if (!payload) {
           toast.error(`Unsupported authentication mode: ${provider.auth_mode}`);
           return;
@@ -448,8 +448,10 @@ function ProviderSetupPage({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={() => {
-                if (deleteTarget) handleDeleteIntegration(deleteTarget);
+              onClick={async () => {
+                if (deleteTarget) {
+                  await handleDeleteIntegration(deleteTarget);
+                }
                 setDeleteTarget(null);
               }}
             >
