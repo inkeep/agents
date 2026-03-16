@@ -915,7 +915,9 @@ export const TriggerWithWebhookUrlSchema = TriggerApiSelectSchema.extend({
 }).openapi('TriggerWithWebhookUrl');
 
 // Trigger Invocation schemas
-export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
+export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations).extend({
+  ref: ResolvedRefSchema,
+});
 
 export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocations, {
   id: () => ResourceIdSchema,
@@ -926,6 +928,7 @@ export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocatio
   transformedPayload: () =>
     z.record(z.string(), z.unknown()).optional().describe('Transformed payload'),
   errorMessage: () => z.string().optional().describe('Error message if status is failed'),
+  ref: () => ResolvedRefSchema,
 });
 
 export const TriggerInvocationUpdateSchema = TriggerInvocationInsertSchema.partial();
@@ -1093,6 +1096,7 @@ export const ScheduledTriggerInvocationSelectSchema = createSelectSchema(
 ).extend({
   resolvedPayload: z.record(z.string(), z.unknown()).nullable().optional(),
   status: ScheduledTriggerInvocationStatusEnum,
+  ref: ResolvedRefSchema,
 });
 
 export const ScheduledTriggerInvocationInsertSchema = createInsertSchema(
@@ -1114,6 +1118,7 @@ export const ScheduledTriggerInvocationInsertSchema = createInsertSchema(
       z.array(ResourceIdSchema).default([]).describe('Conversation IDs created during execution'),
     attemptNumber: () => z.number().int().min(1).default(1),
     idempotencyKey: () => z.string().describe('Idempotency key for deduplication'),
+    ref: () => ResolvedRefSchema,
   }
 );
 
@@ -1303,6 +1308,7 @@ export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpd
 export const DatasetRunSelectSchema = createSelectSchema(datasetRun);
 export const DatasetRunInsertSchema = createInsertSchema(datasetRun).extend({
   id: ResourceIdSchema,
+  ref: ResolvedRefSchema,
 });
 export const DatasetRunUpdateSchema = DatasetRunInsertSchema.partial();
 
@@ -1359,6 +1365,7 @@ export const EvaluationResultApiUpdateSchema = createApiUpdateSchema(EvaluationR
 export const EvaluationRunSelectSchema = createSelectSchema(evaluationRun);
 export const EvaluationRunInsertSchema = createInsertSchema(evaluationRun).extend({
   id: ResourceIdSchema,
+  ref: ResolvedRefSchema,
 });
 export const EvaluationRunUpdateSchema = EvaluationRunInsertSchema.partial();
 
