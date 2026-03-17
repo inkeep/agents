@@ -53,6 +53,7 @@ import {
 import type { ScheduledTrigger } from '@/lib/api/scheduled-triggers';
 import { DateTimePicker } from './date-time-picker';
 import { FriendlyScheduleBuilder } from './friendly-schedule-builder';
+import { reportTriggerPresets } from './report-trigger-presets';
 
 const scheduleTypeOptions: SelectOption[] = [
   { value: 'cron', label: 'Recurring (Cron)' },
@@ -123,6 +124,7 @@ export function ScheduledTriggerForm({
 
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [multiUserOpen, setMultiUserOpen] = useState(false);
+  const [selectedReportPreset, setSelectedReportPreset] = useState<string | null>(null);
 
   const getDefaultValues = (): ScheduledTriggerFormData => {
     // Get browser's timezone for new triggers
@@ -183,6 +185,24 @@ export function ScheduledTriggerForm({
   const getMemberDisplayName = (userId: string): string => {
     const member = orgMembers.find((m) => m.id === userId);
     return member?.name || member?.email || userId;
+  };
+
+  const applyReportPreset = (presetId: string) => {
+    const preset = reportTriggerPresets.find((item) => item.id === presetId);
+    if (!preset) return;
+
+    form.setValue('name', preset.triggerName, { shouldDirty: true });
+    form.setValue('description', preset.triggerDescription, { shouldDirty: true });
+    form.setValue('scheduleType', 'cron', { shouldDirty: true });
+    form.setValue('cronExpression', preset.cronExpression, { shouldDirty: true });
+    form.setValue('messageTemplate', preset.messageTemplate, { shouldDirty: true });
+    form.setValue('payloadJson', preset.payloadJson, { shouldDirty: true });
+    form.setValue('maxRetries', preset.maxRetries, { shouldDirty: true });
+    form.setValue('retryDelaySeconds', preset.retryDelaySeconds, { shouldDirty: true });
+    form.setValue('timeoutSeconds', preset.timeoutSeconds, { shouldDirty: true });
+    setSelectedReportPreset(preset.id);
+
+    toast.success(`Applied ${preset.label} preset`);
   };
 
   const onSubmit = async (data: ScheduledTriggerFormData) => {
@@ -422,7 +442,8 @@ export function ScheduledTriggerForm({
                   </div>
                 )}
                 <FormDescription>
-                  Select multiple users to create one trigger per user.
+                  Select multiple users to create one trigger per user. Use real user identities
+                  when these report runs need that user's Slack or Jira credentials.
                 </FormDescription>
               </FormItem>
             ) : (
@@ -449,7 +470,8 @@ export function ScheduledTriggerForm({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Choose whose identity and credentials this trigger uses when running.
+                      Choose whose identity and credentials this trigger uses when running. Report
+                      agents should usually run as a real user when they need Slack or Jira access.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -458,6 +480,36 @@ export function ScheduledTriggerForm({
             )}
           </CardContent>
         </Card>
+
+        {mode === 'create' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Report Presets</CardTitle>
+              <CardDescription>
+                Start from a report-oriented preset when this trigger should generate recurring
+                summaries, charts, and tracked follow-up actions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-3">
+              {reportTriggerPresets.map((preset) => (
+                <Button
+                  key={preset.id}
+                  type="button"
+                  variant={selectedReportPreset === preset.id ? 'secondary' : 'outline'}
+                  className="h-auto items-start justify-start text-left"
+                  onClick={() => applyReportPreset(preset.id)}
+                >
+                  <div className="space-y-1">
+                    <div className="font-medium">{preset.label}</div>
+                    <div className="text-xs text-muted-foreground whitespace-normal">
+                      {preset.description}
+                    </div>
+                  </div>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Schedule Configuration */}
         <Card>
@@ -525,7 +577,8 @@ export function ScheduledTriggerForm({
             <CardTitle>Message Template (Optional)</CardTitle>
             <CardDescription>
               Define an optional text message sent to the agent. Use {'{{placeholder}}'} syntax to
-              reference fields from the payload.
+              reference fields from the payload. Report presets use this to tell the agent what kind
+              of summary or follow-up to produce.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -544,7 +597,8 @@ export function ScheduledTriggerForm({
           <CardHeader>
             <CardTitle>Payload (Optional)</CardTitle>
             <CardDescription>
-              Static JSON payload to pass to the agent when the trigger runs.
+              Static JSON payload to pass to the agent when the trigger runs. Report presets use the
+              payload to describe delivery targets, time ranges, and chart expectations.
             </CardDescription>
           </CardHeader>
           <CardContent>

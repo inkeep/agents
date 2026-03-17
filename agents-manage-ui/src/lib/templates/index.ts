@@ -25,6 +25,6 @@ export {
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from './model-templates';
-
+export { reportAgentStarterTemplate } from './report-agent-templates';
 // JSON Schema templates
 export { basicSchemaTemplate, evaluatorSchemaTemplate } from './schema-templates';

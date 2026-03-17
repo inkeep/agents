@@ -6,6 +6,7 @@ import { useCallback } from 'react';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -27,6 +28,7 @@ import { useProjectData } from '@/hooks/use-project-data';
 import {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
+  reportAgentStarterTemplate,
   statusUpdatesComponentsTemplate,
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
@@ -85,6 +87,13 @@ export function MetadataEditor() {
   const getCurrentModels = useCallback(() => {
     return agentStore.getState().metadata.models;
   }, []);
+
+  const applyReportStarter = useCallback(() => {
+    if (!description) {
+      updateMetadata('description', reportAgentStarterTemplate.description);
+    }
+    updateMetadata('prompt', reportAgentStarterTemplate.prompt);
+  }, [description, updateMetadata]);
 
   const handleIdChange = useCallback(
     (generatedId: string) => {
@@ -159,6 +168,20 @@ export function MetadataEditor() {
         placeholder="This agent is used to..."
         className="max-h-96"
       />
+      <div className="space-y-2 rounded-lg border p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-medium">Starter template</div>
+            <p className="text-xs text-muted-foreground">
+              Use a report-agent starter when this agent should generate recurring summaries,
+              charts, and follow-up actions.
+            </p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={applyReportStarter}>
+            Apply {reportAgentStarterTemplate.label}
+          </Button>
+        </div>
+      </div>
       <div className="space-y-2">
         <ExpandablePromptEditor
           name="agent-prompt"
