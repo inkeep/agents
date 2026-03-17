@@ -2553,7 +2553,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   stopWhen: SubAgentStopWhenSchema.optional(),
 }).openapi('FullAgentAgentInsert');
 
-export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
+export const AgentWithinContextOfProjectSchemaBase = AgentApiInsertSchema.extend({
   contextConfig: ContextConfigApiInsertSchema.optional(),
   statusUpdates: StatusUpdateSchema.optional(),
   models: ModelSchema.optional(),
@@ -2575,7 +2575,19 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   //
   triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
   scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
-}).openapi('AgentWithinContextOfProject');
+});
+
+export const AgentWithinContextOfProjectSchema = AgentWithinContextOfProjectSchemaBase.superRefine(
+  ({ defaultSubAgentId, subAgents }, ctx) => {
+    if (defaultSubAgentId && !subAgents[defaultSubAgentId]) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['defaultSubAgentId'],
+        message: `Default agent '${defaultSubAgentId}' does not exist in agents`,
+      });
+    }
+  }
+).openapi('AgentWithinContextOfProject');
 
 export const PaginationSchema = z
   .object({
