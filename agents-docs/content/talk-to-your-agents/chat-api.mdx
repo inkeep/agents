@@ -64,25 +64,25 @@ The chat endpoint supports files in message content parts with different rules b
   "messages": [
     {
       "role": "user",
-      "content": [
+      "content": "Summarize these attachments",
+      "parts": [
         {
-          "type": "image_url",
-          "image_url": {
-            "url": "https://example.com/image.png"
-          }
+          "type": "text",
+          "text": "Summarize these attachments"
         },
         {
-          "type": "image_url",
-          "image_url": {
-            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
-          }
+          "type": "image",
+          "text": "https://example.com/image.png"
+        },
+        {
+          "type": "image",
+          "text": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
         },
         {
           "type": "file",
-          "file": {
-            "file_data": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...",
-            "filename": "report.pdf"
-          }
+          "text": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...",
+          "mediaType": "application/pdf",
+          "filename": "report.pdf"
         }
       ]
     }
@@ -101,8 +101,8 @@ The chat endpoint supports files in message content parts with different rules b
   - PDFs must start with the `%PDF-` signature bytes
 
 <Note>
-  This is intentionally asymmetric: `image_url` accepts both remote URLs and data URIs, while
-  `file.file_data` accepts PDF data URIs only.
+  This is intentionally asymmetric: image parts accept both remote URLs and data URIs, while file
+  parts accept PDF data URIs only.
 </Note>
 
 ### Optional Headers
