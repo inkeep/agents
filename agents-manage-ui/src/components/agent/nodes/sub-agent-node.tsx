@@ -56,7 +56,11 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();
   if (!subAgent) {
-    return null;
+    return (
+      <BaseNode>
+        <BaseNodeContent className="text-sm text-destructive">{`Sub Agent "${id}" not found.`}</BaseNodeContent>
+      </BaseNode>
+    );
   }
   const hasErrors = processedErrors.length > 0;
   const {

@@ -18,7 +18,11 @@ export function ExternalAgentNode({ data, selected }: NodeProps & { data: Extern
   const externalAgent = useWatch({ control, name: `externalAgents.${data.id}` });
   const processedErrors = useProcessedErrors('externalAgents', data.id);
   if (!externalAgent) {
-    return;
+    return (
+      <BaseNode>
+        <BaseNodeContent className="text-sm text-destructive">{`External Agent "${data.id}" not found.`}</BaseNodeContent>
+      </BaseNode>
+    );
   }
   const { name, description } = externalAgent;
   const hasErrors = processedErrors.length > 0;

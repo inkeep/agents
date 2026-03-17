@@ -90,7 +90,11 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
     ...useProcessedErrors('mcpRelations', relationKey),
   ];
   if (!tool) {
-    return;
+    return (
+      <BaseNode>
+        <BaseNodeContent className="text-sm text-destructive">{`MCP tool "${data.toolId}" not found.`}</BaseNodeContent>
+      </BaseNode>
+    );
   }
 
   const activeTools = getActiveTools({

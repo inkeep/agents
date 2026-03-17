@@ -18,7 +18,11 @@ export function TeamAgentNode({ data, selected }: NodeProps & { data: TeamAgentN
   const teamAgent = useWatch({ control, name: `teamAgents.${data.id}` });
   const processedErrors = useProcessedErrors('teamAgents', data.id);
   if (!teamAgent) {
-    return;
+    return (
+      <BaseNode>
+        <BaseNodeContent className="text-sm text-destructive">{`Team Agent "${data.id}" not found.`}</BaseNodeContent>
+      </BaseNode>
+    );
   }
   const { name, description } = teamAgent;
   const hasErrors = processedErrors.length > 0;

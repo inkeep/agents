@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { toolPoliciesNeedApproval } from '@/lib/utils/tool-policies';
 import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
-import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
+import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
@@ -17,12 +17,18 @@ export function FunctionToolNode({ data, selected }: NodeProps & { data: Functio
   const { toolId = '', status } = data;
 
   const functionTool = useWatch({ control, name: `functionTools.${toolId}` });
-  const { tempToolPolicies: toolPolicies, name, description } = functionTool ?? {};
-
   const processedErrors = [
     ...useProcessedErrors('functionTools', toolId),
     ...useProcessedErrors('functions', toolId),
   ];
+  if (!functionTool) {
+    return (
+      <BaseNode>
+        <BaseNodeContent className="text-sm text-destructive">{`Function Tool "${toolId}" not found.`}</BaseNodeContent>
+      </BaseNode>
+    );
+  }
+  const { tempToolPolicies: toolPolicies, name, description } = functionTool;
   const hasErrors = processedErrors.length > 0;
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
