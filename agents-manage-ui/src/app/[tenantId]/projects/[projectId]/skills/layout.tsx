@@ -10,6 +10,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { fetchSkillsPageData } from './skills-data';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 export const metadata = {
   title: STATIC_LABELS.skills,
@@ -46,19 +47,24 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
     return (
       <>
         <PageHeader title={metadata.title} description={description} action={action} />
-        <div className="overflow-hidden rounded-lg border bg-background">
-          <div className="grid lg:grid-cols-[18rem_minmax(0,1fr)]">
-            <aside className="border-b bg-muted/20 lg:border-r lg:border-b-0">
-              <SkillsSidebar
-                treeNodes={treeNodes}
-                defaultSelectedRoutePath={defaultSelectedRoutePath}
-                fileRouteAliases={fileRouteAliases}
-                canEdit={permissions.canEdit}
-              />
-            </aside>
+        <SidebarProvider
+          style={{
+            // @ts-expect-error
+            '--sidebar-width': 'calc(var(--spacing) * 62)',
+            '--header-height': 'calc(var(--spacing) * 12)',
+          }}
+          className="min-h-auto"
+        >
+          <SkillsSidebar
+            treeNodes={treeNodes}
+            defaultSelectedRoutePath={defaultSelectedRoutePath}
+            fileRouteAliases={fileRouteAliases}
+            canEdit={permissions.canEdit}
+          />
+          <SidebarInset>
             <section className="min-w-0 overflow-auto p-6">{children}</section>
-          </div>
-        </div>
+          </SidebarInset>
+        </SidebarProvider>
       </>
     );
   } catch (error) {

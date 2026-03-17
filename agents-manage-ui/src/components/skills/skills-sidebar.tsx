@@ -40,9 +40,7 @@ export const SkillsSidebar: FC<SkillsSidebarProps> = ({
   const selectedRoutePath = selectedNode?.routePath ?? defaultSelectedRoutePath;
 
   return (
-    <Sidebar
-    // collapsible="icon" variant="inset"
-    >
+    <Sidebar className="relative h-full" variant="sidebar">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Library</SidebarGroupLabel>

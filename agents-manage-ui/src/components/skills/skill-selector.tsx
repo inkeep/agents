@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSkillsQuery } from '@/lib/query/skills';
 import { cn } from '@/lib/utils';
-import { buildSkillFileEditHref, SKILL_ENTRY_FILE_PATH } from '@/lib/utils/skill-files';
+import { buildSkillFileViewHref, SKILL_ENTRY_FILE_PATH } from '@/lib/utils/skill-files';
 
 interface SkillSelection {
   id: string;
@@ -174,7 +174,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
                       <NextLink
-                        href={buildSkillFileEditHref(
+                        href={buildSkillFileViewHref(
                           tenantId,
                           projectId,
                           skill.id,
