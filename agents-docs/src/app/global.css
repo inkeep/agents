@@ -114,6 +114,38 @@
   text-decoration-style: solid;
 }
 
+/* numbered step indicators in TOC */
+#nd-toc .numbered-step-toc-item {
+  position: relative !important;
+  padding-inline-start: 24px !important;
+}
+
+#nd-toc .numbered-step-toc-item::before {
+  content: attr(data-step-number);
+  position: absolute;
+  inset-inline-start: 0;
+  top: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background-color: var(--color-fd-primary);
+  color: white;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dark #nd-toc .numbered-step-toc-item::before {
+  background-color: var(--color-fd-primary);
+}
+
+#nd-toc .numbered-step-toc-item[data-active='true']::before {
+  background-color: var(--color-fd-primary);
+  box-shadow: 0 0 0 2px var(--color-fd-primary), 0 0 0 4px color-mix(in srgb, var(--color-fd-primary) 20%, transparent);
+}
+
 /* tailwind typography overrides */
 @utility prose {
   th {
