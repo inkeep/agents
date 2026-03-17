@@ -95,9 +95,12 @@ export function startOpenTelemetrySDK(): void {
     defaultSDK.start();
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
+    const allowDuplicateStartErrors =
+      env.ENVIRONMENT === 'development' || env.NODE_ENV === 'development';
     if (
-      (msg.includes('MetricReader') && msg.includes('can not be bound')) ||
-      msg.includes('Attempted duplicate registration of API')
+      allowDuplicateStartErrors &&
+      ((msg.includes('MetricReader') && msg.includes('can not be bound')) ||
+        msg.includes('Attempted duplicate registration of API'))
     ) {
       logger.debug({}, 'OpenTelemetry SDK already started');
       return;
