@@ -28,6 +28,22 @@ Host (interactive)                    Docker (autonomous)
 - **Execution** (Docker) — ralph.sh iterates autonomously. This is where it works.
 - **Coordination** (host) — push, PR, review. This is where you ship.
 
+## Running multiple sandboxes
+
+The compose file intentionally does not pin `container_name`. If you need multiple `.ai-dev` sandboxes at once, start each one with its own Compose project name:
+
+```bash
+docker compose -p ai-dev-auth -f .ai-dev/docker-compose.yml up -d
+docker compose -p ai-dev-billing -f .ai-dev/docker-compose.yml up -d
+```
+
+Use the same `-p <name>` value for follow-up commands like `exec`, `logs`, and `down`:
+
+```bash
+docker compose -p ai-dev-auth -f .ai-dev/docker-compose.yml exec sandbox bash
+docker compose -p ai-dev-auth -f .ai-dev/docker-compose.yml down
+```
+
 ## When to use Docker vs host execution
 
 | Scenario | Recommended | Why |
