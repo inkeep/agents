@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.58.16
+
+### Patch Changes
+
+- 5065552: Fix GET /conversations to return all message part types matching the streaming protocol
+
 ## 0.58.15
 
 ### Patch Changes
