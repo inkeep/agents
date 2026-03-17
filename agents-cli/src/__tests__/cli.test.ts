@@ -149,6 +149,7 @@ describe('Inkeep CLI', () => {
       expect(result.stdout).toContain('push');
       expect(result.stdout).toContain('config');
       expect(result.stdout).toContain('list-agent');
+      expect(result.stdout).toContain('code-node');
     });
 
     it('should display help for push command', () => {

@@ -45,9 +45,37 @@ const technicalSupportAgent = externalAgent({
   id: "technical-support-agent",
   name: "Technical Support Team",
   description: "External technical support specialists for complex issues",
-  baseUrl: "https://api.example.com/agents/technical-support", // A2A endpoint
+  baseUrl: "https://api.example.com/agents/technical-support", // Base URL used for Agent Card discovery
 });
 ```
+
+The `baseUrl` should point at the agent's A2A base URL, not the raw RPC route. Inkeep fetches `/.well-known/agent.json` from that base URL and then uses the Agent Card's `url` field for RPC.
+
+## Local Code Node for Development
+
+For local development, you can expose a checked-out repository as an external coding agent with `inkeep code-node`:
+
+```bash
+inkeep code-node \
+  --workspace /absolute/path/to/your/repo \
+  --write \
+  --verification-command "pnpm test -- --runInBand"
+```
+
+Then register the local bridge like any other external agent:
+
+```typescript
+import { externalAgent } from "@inkeep/agents-sdk";
+
+export const localCodeNode = externalAgent({
+  id: "local-code-node",
+  name: "Local Code Node",
+  description: "Delegates coding tasks into a local workspace during development",
+  baseUrl: "http://127.0.0.1:4318",
+});
+```
+
+The local code node publishes its Agent Card at `/.well-known/agent.json` and serves A2A requests from the service URL advertised by that card. Start the bridge with `--write` only if you want it to accept write-enabled coding requests.
 
 ## External Agent Relationships
 
@@ -86,7 +114,7 @@ const myExternalAgent = externalAgent({
   id: "external-support-agent",
   name: "External Support Agent", // Human-readable agent name
   description: "External AI agent for specialized support", // Agent's purpose
-  baseUrl: "https://api.example.com/agents/support", // A2A endpoint URL
+  baseUrl: "https://api.example.com/agents/support", // A2A base URL
   // Optional - Credential Reference
   credentialReference: myCredentialReference,
 });
@@ -110,7 +138,7 @@ const supportSubAgent = subAgent({
 | `id`                  | string              | Yes      | Stable agent identifier used for consistency and persistence                                                                                                    |
 | `name`                | string              | Yes      | Human-readable name for the external agent                                                                                                                      |
 | `description`         | string              | Yes      | Brief description of the agent's purpose and capabilities                                                                                                       |
-| `baseUrl`             | string              | Yes      | The A2A endpoint URL where the external agent can be reached                                                                                                    |
+| `baseUrl`             | string              | Yes      | Base URL of the external A2A agent. Inkeep fetches `/.well-known/agent.json` from this URL and then uses the Agent Card's `url` field for RPC.              |
 | `credentialReference` | CredentialReference | No       | Reference to dynamic credentials for authentication. See [Credentials](/typescript-sdk/credentials/overview) for details                                                 |
 
 </SkillRule>

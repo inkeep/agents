@@ -5,6 +5,7 @@ import { invalidMcpWeatherAgent } from './agents/invalid-mcp';
 import { llmBadRequestAgent } from './agents/llm-bad-request-agent';
 import { llm404Agent } from './agents/llm-invalid-endpoint';
 import { llmTimeoutAgent } from './agents/llm-timeout-agent';
+import { localCodeNodeAgent } from './agents/local-code-node-agent';
 import { parallelDelegationsAgent } from './agents/parallel-delegations-agent';
 import { parallelToolCallsAgent } from './agents/parallel-tool-calls-agent';
 import { slowToolWeatherAgent } from './agents/slow-tool-agent';
@@ -24,6 +25,7 @@ export const testAgentsProject = project({
     llmTimeoutAgent,
     llm404Agent,
     llmBadRequestAgent,
+    localCodeNodeAgent,
     parallelToolCallsAgent,
     parallelDelegationsAgent,
   ],

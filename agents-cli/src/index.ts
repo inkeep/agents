@@ -10,6 +10,7 @@ configLogger.updateOptions({ level: 'silent' });
 
 import { Command } from 'commander';
 import { addCommand } from './commands/add';
+import { codeNodeCommand } from './commands/code-node';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
@@ -33,6 +34,28 @@ import { PACKAGE_VERSION } from './utils/version-check';
 const program = new Command();
 
 program.name('inkeep').description('CLI tool for Inkeep Agent Framework').version(PACKAGE_VERSION);
+
+program
+  .command('code-node')
+  .description('Start a local A2A coding-agent node for local development')
+  .requiredOption('--workspace <path>', 'Workspace root the node may access')
+  .option('--host <host>', 'Host to bind the local server to', '127.0.0.1')
+  .option('--port <port>', 'Port to run the local server on', '4318')
+  .option('--runner-command <command>', 'Executable used to run coding tasks', 'claude')
+  .option(
+    '--runner-arg <arg>',
+    'Runner argument. Repeatable, supports {prompt} and {workspace} placeholders.',
+    (value, previous: string[]) => [...previous, value],
+    []
+  )
+  .option('--timeout-ms <ms>', 'Maximum runtime per task in milliseconds', '120000')
+  .option('--verification-command <command>', 'Optional command to run after a successful task')
+  .option('--name <name>', 'Agent card name for discovery')
+  .option('--description <description>', 'Agent card description for discovery')
+  .option('--write', 'Allow the node to service write-enabled requests', false)
+  .action(async (options) => {
+    await codeNodeCommand(options);
+  });
 
 program
   .command('add [template]')

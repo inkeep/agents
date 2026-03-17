@@ -90,3 +90,13 @@ Inkeep is designed to be extensible and open: use the LLM provider of your choic
 If you'd like to contribute, follow our [contribution guide](https://docs.inkeep.com/community/contributing/overview).
 
 [Join our community](https://docs.inkeep.com/community/inkeep-community) to get support, stay up to date, and share feedback.
+
+## Experimental: Local Code Node
+
+You can start a local A2A coding-agent bridge from the CLI:
+
+```bash
+inkeep code-node --workspace /absolute/path/to/your/repo
+```
+
+By default this starts a local node backed by `claude -p {prompt}` and exposes an Agent Card at `http://127.0.0.1:4318/.well-known/agent.json`. You can override the runner with `--runner-command` and repeatable `--runner-arg` flags, and enable write-capable runs with `--write`.
