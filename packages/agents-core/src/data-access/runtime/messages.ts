@@ -171,3 +171,27 @@ export const countMessagesByConversation =
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
   };
+
+export const countVisibleMessages =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId: string;
+    visibility?: MessageVisibility[];
+  }) => {
+    const visibilityFilter = params.visibility || ['user-facing'];
+
+    const result = await db
+      .select({ count: count() })
+      .from(messages)
+      .where(
+        and(
+          projectScopedWhere(messages, params.scopes),
+          eq(messages.conversationId, params.conversationId),
+          inArray(messages.visibility, visibilityFilter)
+        )
+      );
+
+    const total = result[0]?.count || 0;
+    return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
+  };

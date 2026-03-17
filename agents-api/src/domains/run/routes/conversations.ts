@@ -4,7 +4,7 @@ import {
   ConversationApiSelectSchema,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
-  countMessagesByConversation,
+  countVisibleMessages,
   createApiError,
   getConversation,
   getVisibleMessages,
@@ -321,9 +321,10 @@ app.openapi(
         visibility: ['user-facing'],
         pagination: { page, limit },
       }),
-      countMessagesByConversation(runDbClient)({
+      countVisibleMessages(runDbClient)({
         scopes: { tenantId, projectId },
         conversationId,
+        visibility: ['user-facing'],
       }),
     ]);
 

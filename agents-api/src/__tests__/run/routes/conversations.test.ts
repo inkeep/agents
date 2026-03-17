@@ -355,6 +355,19 @@ describe('Run API - End-User Conversation History', () => {
       );
     });
 
+    it('should have pagination total matching visible message count', async () => {
+      const { appId, token, conv } = await setupConversationWithMessages('conv-get-total');
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.messages).toHaveLength(2);
+      expect(body.pagination.total).toBe(2);
+    });
+
     it('should return 404 for another users conversation', async () => {
       const tenantId = await createTestTenantWithOrg('conv-get-cross-user');
       const projectId = 'default-project';
