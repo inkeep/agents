@@ -71,4 +71,31 @@ describe('pull-v4 introspect generator', () => {
     const { default: subAgentContent } = await import(`${subAgentFilePath}?raw`);
     expect(subAgentContent).toContain('export const supportAgent = subAgent({');
   });
+
+  it('generates skills through the shared generation pipeline', async () => {
+    const project = createProjectFixture();
+    project.skills = {
+      'general-gameplan': {
+        name: 'General Gameplan',
+        description: 'Create a general plan.',
+        metadata: {
+          tools: ['planner'],
+        },
+        content: 'Use this skill for planning.',
+      },
+    };
+
+    await introspectGenerate({ project, paths: projectPaths });
+
+    const skillFilePath = join(testDir, 'skills', 'general-gameplan', 'SKILL.md');
+    expect(fs.existsSync(skillFilePath)).toBe(true);
+
+    const { default: skillContent } = await import(`${skillFilePath}?raw`);
+    expect(skillContent).toContain('name: "General Gameplan"');
+    expect(skillContent).toContain('description: "Create a general plan."');
+    expect(skillContent).toContain('metadata:');
+    expect(skillContent).toContain('  tools:');
+    expect(skillContent).toContain('  - planner');
+    expect(skillContent).toContain('Use this skill for planning.');
+  });
 });
