@@ -1670,7 +1670,7 @@ export const SkillFrontmatterSchema = z.object({
     .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)')
     .refine((v) => v !== 'new', 'Must not use a reserved name "new"'),
   description: z.string().trim().nonempty().max(1024),
-  metadata: StringRecordSchema.nullish().default(null),
+  metadata: StringRecordSchema.nullish(),
 });
 export const SkillSelectSchema = createSelectSchema(skills).extend({
   metadata: StringRecordSchema.nullable(),

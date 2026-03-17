@@ -13,8 +13,8 @@ describe('Skill Generator', () => {
     });
 
     expect(content).toContain('---');
-    expect(content).toContain('name: "general-gameplan"');
-    expect(content).toContain('description: "Create a general plan."');
+    expect(content).toContain('name: general-gameplan');
+    expect(content).toContain('description: Create a general plan.');
     expect(content).toContain('metadata:');
     expect(content).toContain('  tools: "true"');
     expect(content).toContain('  priority: high');
@@ -29,7 +29,7 @@ describe('Skill Generator', () => {
       content: 'Simple content.',
     });
 
-    expect(content).toContain('name: "simple-skill"');
+    expect(content).toContain('name: simple-skill');
     expect(content).not.toContain('metadata:');
     expect(content).toContain('Simple content.');
   });
