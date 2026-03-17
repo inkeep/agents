@@ -435,7 +435,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       // Create UI Message Stream using AI SDK V5
       const dataStream = createUIMessageStream({
         execute: async ({ writer }) => {
-          writer.write({ type: 'start', messageId: responseMessageId } as any);
+          writer.write({ type: 'start', messageId: responseMessageId });
 
           const streamHelper = createVercelStreamHelper(writer);
           let unsubscribe: (() => void) | undefined;
