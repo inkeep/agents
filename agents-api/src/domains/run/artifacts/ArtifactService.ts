@@ -9,6 +9,7 @@ import {
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/services/ToolSessionManager';
+import { fromBlobUri, getBlobStorageProvider, isBlobUri } from '../services/blob-storage';
 import { agentSessionManager } from '../session/AgentSession';
 import {
   type ExtendedJsonSchema,
@@ -452,7 +453,12 @@ export class ArtifactService {
       });
 
       if (artifacts.length > 0) {
-        return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
+        const resolved = await this.resolveContentPartFromBlob(
+          artifacts[0],
+          artifactId,
+          toolCallId
+        );
+        return resolved ?? this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
       }
 
       artifacts = await getLedgerArtifacts(runDbClient)({
@@ -462,7 +468,12 @@ export class ArtifactService {
       });
 
       if (artifacts.length > 0) {
-        return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
+        const resolved = await this.resolveContentPartFromBlob(
+          artifacts[0],
+          artifactId,
+          toolCallId
+        );
+        return resolved ?? this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
       }
     } catch (error) {
       logger.warn(
@@ -472,6 +483,43 @@ export class ArtifactService {
     }
 
     return null;
+  }
+
+  /**
+   * If artifact is a content-part with a blob URI, download and return reconstructed content item.
+   * Returns null if not applicable (not a content-part, or no blob URI).
+   */
+  private async resolveContentPartFromBlob(
+    artifact: any,
+    artifactId: string,
+    toolCallId: string
+  ): Promise<ArtifactFullData | null> {
+    if (artifact.type !== 'content-part') return null;
+
+    const partData = artifact.parts?.[0]?.data;
+    if (!partData?.uri || !isBlobUri(partData.uri)) return null;
+
+    try {
+      const key = fromBlobUri(partData.uri);
+      const { data, contentType } = await getBlobStorageProvider().download(key);
+      const base64 = Buffer.from(data).toString('base64');
+      return {
+        artifactId,
+        toolCallId,
+        name: artifact.name || 'Content part',
+        description: artifact.description || '',
+        type: artifact.type,
+        data: {
+          type: partData.type ?? 'image',
+          data: base64,
+          mimeType: contentType || partData.mimeType,
+        },
+        metadata: artifact.metadata,
+      };
+    } catch (error) {
+      logger.warn({ error, artifactId }, 'Failed to download content part from blob');
+      return null;
+    }
   }
 
   /**
@@ -836,6 +884,66 @@ export class ArtifactService {
         this.context.streamRequestId,
         cacheKey,
         artifactForCache
+      );
+    }
+  }
+
+  /**
+   * Persist a content part artifact (non-text MCP content) to the ledger after blob upload.
+   * The blobUri is stored in parts[0].data so getArtifactFull can resolve it cross-session.
+   */
+  async persistContentPartArtifact(params: {
+    artifactId: string;
+    toolCallId: string;
+    blobUri: string;
+    contentType: string;
+    mimeType?: string;
+    toolName: string;
+    contentIndex: number;
+  }): Promise<void> {
+    const { tenantId, projectId } = this.context.executionContext;
+
+    if (!this.context.taskId || !this.context.contextId) {
+      logger.warn(
+        { artifactId: params.artifactId },
+        'Skipping content part artifact persistence - missing taskId or contextId'
+      );
+      return;
+    }
+
+    try {
+      await upsertLedgerArtifact(runDbClient)({
+        scopes: { tenantId, projectId },
+        contextId: this.context.contextId,
+        taskId: this.context.taskId,
+        toolCallId: params.toolCallId,
+        artifact: {
+          artifactId: params.artifactId,
+          type: 'content-part',
+          name: `${params.contentType} from ${params.toolName}`,
+          description: `${params.contentType} content part (index ${params.contentIndex}) from ${params.toolName}`,
+          parts: [
+            {
+              kind: 'data',
+              data: {
+                type: params.contentType,
+                uri: params.blobUri,
+                ...(params.mimeType ? { mimeType: params.mimeType } : {}),
+              },
+            },
+          ],
+          metadata: {
+            toolCallId: params.toolCallId,
+            toolName: params.toolName,
+            contentIndex: params.contentIndex,
+          },
+          createdAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      logger.warn(
+        { error, artifactId: params.artifactId },
+        'Failed to persist content part artifact to ledger'
       );
     }
   }

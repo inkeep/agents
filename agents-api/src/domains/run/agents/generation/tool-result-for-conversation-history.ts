@@ -1,8 +1,14 @@
-import type { MessageContent, Part } from '@inkeep/agents-core';
-import { makeMessageContentParts } from '../../services/blob-storage/image-upload';
-import { buildPersistedMessageContent } from '../../services/blob-storage/image-upload-helpers';
+import type { FilePart, MessageContent, Part } from '@inkeep/agents-core';
+import { getLogger } from '../../../../logger';
+import {
+  makeMessageContentParts,
+  type UploadContext,
+  uploadFilePart,
+} from '../../services/blob-storage/image-upload';
 import { isToolResultDenied } from '../../utils/tool-result';
 import type { AgentRunContext } from '../agent-types';
+
+const logger = getLogger('tool-result-for-conversation-history');
 
 function filterNonTextToolResultContentForConversationHistory(result: any): any {
   if (!result || typeof result !== 'object' || Array.isArray(result)) {
@@ -124,16 +130,22 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
   };
 }
 
-function getToolResultPartsForConversationHistory(result: any): Array<Part> | undefined {
+function getIndexedPartsForConversationHistory(
+  result: any
+): Array<{ originalIndex: number; part: Part }> {
   if (!result || typeof result !== 'object' || !Array.isArray(result.content)) {
-    return undefined;
+    return [];
   }
 
-  const parts = result.content
-    .map((item: any) => mapMcpContentItemToConversationHistoryPart(item))
-    .filter((part: Part | null): part is Part => part !== null);
-
-  return parts.length > 0 ? parts : undefined;
+  const indexedParts: Array<{ originalIndex: number; part: Part }> = [];
+  for (let i = 0; i < result.content.length; i++) {
+    const item = result.content[i];
+    const part = mapMcpContentItemToConversationHistoryPart(item);
+    if (part !== null) {
+      indexedParts.push({ originalIndex: i, part });
+    }
+  }
+  return indexedParts;
 }
 
 export async function buildToolResultForConversationHistory(
@@ -144,23 +156,60 @@ export async function buildToolResultForConversationHistory(
   toolCallId: string,
   conversationId: string,
   messageId: string
-): Promise<MessageContent> {
+): Promise<{ messageContent: MessageContent; indexToBlobUri: Map<number, string> }> {
   const text = formatToolResultForConversationHistory(toolName, args, result, toolCallId);
-  const parts = getToolResultPartsForConversationHistory(result);
+  const indexedParts = getIndexedPartsForConversationHistory(result);
 
-  if (!parts || parts.length === 0) {
-    return { text };
+  if (indexedParts.length === 0) {
+    return { messageContent: { text }, indexToBlobUri: new Map() };
   }
 
-  const hasFileParts = parts.some((part) => part.kind === 'file');
+  const hasFileParts = indexedParts.some(({ part }) => part.kind === 'file');
   if (!hasFileParts) {
-    return { text, parts: makeMessageContentParts(parts) };
+    return {
+      messageContent: {
+        text,
+        parts: makeMessageContentParts(indexedParts.map(({ part }) => part)),
+      },
+      indexToBlobUri: new Map(),
+    };
   }
 
-  return buildPersistedMessageContent(text, parts, {
+  const uploadCtx: UploadContext = {
     tenantId: ctx.config.tenantId,
     projectId: ctx.config.projectId,
     conversationId,
     messageId,
-  });
+  };
+
+  const indexToBlobUri = new Map<number, string>();
+  const uploadedParts: (Part | null)[] = new Array(indexedParts.length).fill(null);
+
+  await Promise.all(
+    indexedParts.map(async ({ originalIndex, part }, arrayIndex) => {
+      if (part.kind !== 'file') {
+        uploadedParts[arrayIndex] = part;
+        return;
+      }
+      try {
+        const uploaded = await uploadFilePart(part as FilePart, uploadCtx, originalIndex);
+        const file = uploaded.file;
+        if ('uri' in file && file.uri) {
+          indexToBlobUri.set(originalIndex, file.uri);
+        }
+        uploadedParts[arrayIndex] = uploaded;
+      } catch (error) {
+        logger.error(
+          { error: error instanceof Error ? error.message : String(error), originalIndex },
+          'Failed to upload file part, dropping from persisted message'
+        );
+      }
+    })
+  );
+
+  const finalParts = uploadedParts.filter((p): p is Part => p !== null);
+  return {
+    messageContent: { text, parts: makeMessageContentParts(finalParts) },
+    indexToBlobUri,
+  };
 }

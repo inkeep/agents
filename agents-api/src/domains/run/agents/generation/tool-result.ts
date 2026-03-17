@@ -1,8 +1,33 @@
+import { randomUUID } from 'node:crypto';
 import { parseEmbeddedJson } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
 import { unwrapToolResult } from '../../artifacts/artifact-utils';
 import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import type { AgentRunContext } from '../agent-types';
+
+export type ContentPartArtifact = {
+  artifactId: string;
+  toolCallId: string;
+  index: number;
+  contentItem: Record<string, unknown>;
+};
+
+export function buildContentPartArtifacts(result: any, toolCallId: string): ContentPartArtifact[] {
+  if (!result || !Array.isArray(result.content)) return [];
+
+  const artifacts: ContentPartArtifact[] = [];
+  for (let i = 0; i < result.content.length; i++) {
+    const item = result.content[i];
+    if (!item || item.type === 'text') continue;
+    artifacts.push({
+      artifactId: randomUUID(),
+      toolCallId,
+      index: i,
+      contentItem: item,
+    });
+  }
+  return artifacts;
+}
 
 const logger = getLogger('Agent');
 
@@ -66,11 +91,22 @@ const ARTIFACT_GUIDANCE = {
 export function enhanceToolResultWithStructureHints(
   ctx: AgentRunContext,
   result: any,
-  toolCallId?: string
+  toolCallId?: string,
+  contentPartArtifacts?: ContentPartArtifact[]
 ): any {
   if (result === undefined) {
     return result;
   }
+
+  const contentPartsHints =
+    contentPartArtifacts && contentPartArtifacts.length > 0
+      ? contentPartArtifacts.map((cpa) => ({
+          index: cpa.index,
+          type: (cpa.contentItem.type as string) ?? 'unknown',
+          artifactId: cpa.artifactId,
+          hint: `Pass to a tool: { "${SENTINEL_KEY.ARTIFACT}": "${cpa.artifactId}", "${SENTINEL_KEY.TOOL}": "${cpa.toolCallId}" }`,
+        }))
+      : undefined;
 
   const hasArtifacts = !!(ctx.artifactComponents && ctx.artifactComponents.length > 0);
 
@@ -86,6 +122,7 @@ export function enhanceToolResultWithStructureHints(
         exampleSelectors: [],
         chainingGuidance: CHAINING_GUIDANCE,
         ...(hasArtifacts ? { artifactGuidance: ARTIFACT_GUIDANCE } : {}),
+        ...(contentPartsHints ? { contentParts: contentPartsHints } : {}),
         note: `Plain ${typeof result} result.`,
       },
     };
@@ -111,6 +148,7 @@ export function enhanceToolResultWithStructureHints(
         exampleSelectors: [],
         chainingGuidance: CHAINING_GUIDANCE,
         ...(hasArtifacts ? { artifactGuidance: ARTIFACT_GUIDANCE } : {}),
+        ...(contentPartsHints ? { contentParts: contentPartsHints } : {}),
         note: `Plain ${typeof parsedForAnalysis} result — no nested structure to navigate.`,
       },
     };
@@ -296,6 +334,7 @@ export function enhanceToolResultWithStructureHints(
               },
             }
           : {}),
+        ...(contentPartsHints ? { contentParts: contentPartsHints } : {}),
         note: `Structure analysis: ${allPaths.length} paths found, ${maxDepth} levels deep.`,
       },
     };

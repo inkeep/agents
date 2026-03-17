@@ -5,7 +5,10 @@ import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
 import type { AgentRunContext } from '../agent-types';
 import { isValidTool } from '../agent-types';
-import { enhanceToolResultWithStructureHints } from '../generation/tool-result';
+import {
+  buildContentPartArtifacts,
+  enhanceToolResultWithStructureHints,
+} from '../generation/tool-result';
 import { toolSessionManager } from '../services/ToolSessionManager';
 import { parseAndCheckApproval } from './tool-approval';
 import { getRelationshipIdForTool } from './tool-utils';
@@ -150,11 +153,33 @@ export async function getMcpTools(
 
             const parsedResult = parseEmbeddedJson(rawResult);
 
+            const contentPartArtifacts = buildContentPartArtifacts(parsedResult, toolCallId);
             const enhancedResult = enhanceToolResultWithStructureHints(
               ctx,
               parsedResult,
-              toolCallId
+              toolCallId,
+              contentPartArtifacts
             );
+
+            if (streamRequestId) {
+              for (const cpa of contentPartArtifacts) {
+                const cacheEntry = {
+                  data: cpa.contentItem,
+                  name: `Content part from ${toolName}`,
+                  description: `Content part ${cpa.index} (type: ${cpa.contentItem.type ?? 'unknown'}) from tool call ${cpa.toolCallId}`,
+                };
+                await agentSessionManager.setArtifactCache(
+                  streamRequestId,
+                  `${cpa.artifactId}:${cpa.toolCallId}`,
+                  cacheEntry
+                );
+                await agentSessionManager.setArtifactCache(
+                  streamRequestId,
+                  `${cpa.toolCallId}:${cpa.index}`,
+                  { ...cacheEntry, artifactId: cpa.artifactId }
+                );
+              }
+            }
 
             toolSessionManager.recordToolResult(sessionId, {
               toolCallId,

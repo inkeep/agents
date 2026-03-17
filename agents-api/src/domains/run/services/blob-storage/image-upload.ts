@@ -19,7 +19,7 @@ export interface UploadContext {
   messageId: string;
 }
 
-async function uploadFilePart(
+export async function uploadFilePart(
   part: FilePart,
   ctx: UploadContext,
   index: number

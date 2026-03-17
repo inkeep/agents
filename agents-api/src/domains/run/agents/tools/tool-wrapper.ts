@@ -178,7 +178,7 @@ export function wrapToolWithStreaming(
         if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
           try {
             const messageId = generateId();
-            const messageContent = await buildToolResultForConversationHistory(
+            const { messageContent, indexToBlobUri } = await buildToolResultForConversationHistory(
               ctx,
               toolName,
               args,
@@ -211,6 +211,29 @@ export function wrapToolWithStreaming(
             };
 
             await createMessage(runDbClient)(messagePayload);
+
+            if (indexToBlobUri.size > 0) {
+              const artifactService = agentSessionManager.getArtifactService(streamRequestId);
+              if (artifactService) {
+                for (const [index, blobUri] of indexToBlobUri) {
+                  const cached = await agentSessionManager.getArtifactCache(
+                    streamRequestId,
+                    `${toolCallId}:${index}`
+                  );
+                  if (!cached?.artifactId) continue;
+                  const contentItem = result?.content?.[index];
+                  await artifactService.persistContentPartArtifact({
+                    artifactId: cached.artifactId,
+                    toolCallId,
+                    blobUri,
+                    contentType: cached.data?.type ?? 'unknown',
+                    mimeType: contentItem?.mimeType,
+                    toolName,
+                    contentIndex: index,
+                  });
+                }
+              }
+            }
           } catch (error) {
             logger.warn(
               { error, toolName, toolCallId, conversationId: toolResultConversationId },
