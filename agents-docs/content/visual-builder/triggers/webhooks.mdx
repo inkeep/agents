@@ -8,6 +8,18 @@ Triggers create webhook endpoints that allow external services to invoke your Ag
 
 Triggers are HTTP URLs you create that you can send POST requests to, to invoke the agent. Once you create the webhook URL in the dashboard, you can hook it up to external services like GitHub, Slack, Zendesk, or Stripe to trigger your agent. For example in Zendesk, you can go into Zendesk's configuration settings and input the webhook URL you created in the Inkeep dashboard to trigger your agent when a new ticket is created or updated. The same can be applied to other services like GitHub, PagerDuty, or Stripe.
 
+## How to Create a Webhook Trigger
+
+### Step 1: Go to the Triggers menu item in the left sidebar.
+
+<Image src="/images/vb-triggers-webhooks/step-1.png" alt="Triggers menu item in the left sidebar" />
+
+### Step 2: Click on the Webhooks tab
+
+<Image src="/images/vb-triggers-webhooks/step-2.png" alt="Webhooks tab in the Triggers page" />
+
+### Step 3: Click on new webhook trigger
+
 ## How Triggers Work
 
 1. **External service sends a webhook** to your trigger's URL
@@ -47,15 +59,6 @@ Triggers support flexible header-based authentication:
 | Multiple headers | Multi-factor authentication |
 | Signing secret only | Webhooks from services that sign requests |
 | No authentication | Public webhooks (use with caution) |
-
-```typescript
-// Example: Require a custom API key header
-authentication: {
-  headers: [
-    { name: "X-API-Key", value: process.env.MY_API_KEY },
-  ],
-}
-```
 
 <Note>
 Header values are securely hashed before storage. For services that sign webhooks (GitHub, Stripe, Slack), you can rely on `signingSecret` alone for security.
