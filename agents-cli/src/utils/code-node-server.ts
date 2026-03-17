@@ -23,6 +23,7 @@ type CodeNodeRequestMetadata = {
   workspace?: string;
   timeoutMs?: number;
   mode?: ExecutionMode;
+  runnerArgs?: string[];
 };
 
 type TaskRecord = {
@@ -353,7 +354,8 @@ async function runTask(
   const beforeStatus = snapshotGitStatus(workspace);
   const rawPrompt = getPromptText(params.message);
   const prompt = buildPrompt(rawPrompt, workspace, mode);
-  const { args, stdinPrompt } = buildRunnerInvocation(options.runnerArgs, prompt, workspace);
+  const runnerArgs = metadata.runnerArgs?.length ? metadata.runnerArgs : options.runnerArgs;
+  const { args, stdinPrompt } = buildRunnerInvocation(runnerArgs, prompt, workspace);
 
   const workingEvent = setTaskState(record.task, TaskState.Working, 'Running coding agent');
   events?.onStatus?.(workingEvent);

@@ -181,6 +181,11 @@ describe('code node server', () => {
           role: 'user',
           contextId: 'ctx-1',
           parts: [{ kind: 'text', text: 'Say hello' }],
+          metadata: {
+            codeNode: {
+              runnerArgs: ['-e', 'process.stdout.write(process.argv[1])', 'override {prompt}'],
+            },
+          },
         },
         configuration: {
           blocking: true,
@@ -192,6 +197,7 @@ describe('code node server', () => {
     expect(result.result.status.state).toBe('completed');
     expect(result.result.artifacts[0].parts[0].text).toContain('Runner finished');
     expect(mockChildProcessState.spawnCalls[0].command).toBe('node');
+    expect(mockChildProcessState.spawnCalls[0].args[2]).toContain('override');
     expect(mockChildProcessState.spawnCalls[0].args[2]).toContain('Task:\n\nSay hello');
   });
 
