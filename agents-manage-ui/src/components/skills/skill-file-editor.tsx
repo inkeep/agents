@@ -1,10 +1,10 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
-import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FC, useState } from 'react';
+import { type FC, useEffect, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
+import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import { DeleteSkillConfirmation } from '@/components/skills/delete-skill-confirmation';
 import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-file-confirmation';
@@ -17,6 +17,7 @@ import {
   isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
+import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 
 interface SkillFileEditorProps {
   tenantId: string;
@@ -59,69 +60,65 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            Edit
-          </p>
-          <h2 className="text-xl font-semibold">{filePath}</h2>
-          <p className="text-sm text-muted-foreground">{skillName}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button asChild variant="outline">
-            <NextLink href={viewHref}>
-              <ArrowLeft />
-              Back
-            </NextLink>
-          </Button>
-          <Button type="button" variant="destructive-outline" onClick={() => setIsDeleteOpen(true)}>
-            {getSkillFileRemovalLabel(filePath)}
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving || content === initialContent}
-          >
-            Save changes
-          </Button>
-        </div>
+    <>
+      <BreadcrumbNav className="h-(--header-height) border-b flex px-4">
+        {filePath.split('/').map((slug, idx, arr) => (
+          <BreadcrumbNav.Item key={idx} href="" label={slug} isLast={idx === arr.length - 1} />
+        ))}
+      </BreadcrumbNav>
+      <div className="p-6 flex flex-col gap-6">
+        <PromptEditor
+          uri={getSkillFileEditorUri(filePath)}
+          value={content ?? ''}
+          onChange={(value) => {
+            form.setValue('content', value ?? '', { shouldDirty: true });
+          }}
+          readOnly={!canEdit}
+        />
+
+        {canEdit && (
+          <div className="flex gap-2 self-end">
+            <Button
+              type="button"
+              variant="destructive-outline"
+              onClick={() => setIsDeleteOpen(true)}
+            >
+              {getSkillFileRemovalLabel(filePath)}
+            </Button>
+            <Button type="button" onClick={() => void handleSave()} disabled={isSaving || !isDirty}>
+              Save changes
+            </Button>
+            <UnsavedChangesDialog dirty={isDirty} onSubmit={handleSave} />
+            {isDeleteOpen && (
+              <>
+                {isEntryFile ? (
+                  <DeleteSkillConfirmation
+                    tenantId={tenantId}
+                    projectId={projectId}
+                    skillId={skillId}
+                    skillName={skillName}
+                    setIsOpen={setIsDeleteOpen}
+                  />
+                ) : (
+                  <DeleteSkillFileConfirmation
+                    tenantId={tenantId}
+                    projectId={projectId}
+                    skillId={skillId}
+                    filePath={filePath}
+                    redirectPath={buildSkillFileViewHref(
+                      tenantId,
+                      projectId,
+                      skillId,
+                      SKILL_ENTRY_FILE_PATH
+                    )}
+                    setIsOpen={setIsDeleteOpen}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
-
-      <PromptEditor
-        uri={getSkillFileEditorUri(filePath)}
-        value={content}
-        onChange={(value) => setContent(value ?? '')}
-        className="min-h-[32rem]"
-      />
-
-      {isDeleteOpen && (
-        <>
-          {isEntryFile ? (
-            <DeleteSkillConfirmation
-              tenantId={tenantId}
-              projectId={projectId}
-              skillId={skillId}
-              skillName={skillName}
-              setIsOpen={setIsDeleteOpen}
-            />
-          ) : (
-            <DeleteSkillFileConfirmation
-              tenantId={tenantId}
-              projectId={projectId}
-              skillId={skillId}
-              filePath={filePath}
-              redirectPath={buildSkillFileViewHref(
-                tenantId,
-                projectId,
-                skillId,
-                SKILL_ENTRY_FILE_PATH
-              )}
-              setIsOpen={setIsDeleteOpen}
-            />
-          )}
-        </>
-      )}
-    </div>
+    </>
   );
 };
