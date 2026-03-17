@@ -210,9 +210,7 @@ export async function handleApiError(
   );
 
   const sanitizedErrorMessage =
-    error instanceof Error
-      ? error.message.replace(/\b(password|token|key|secret|auth)\b/gi, '[REDACTED]')
-      : 'Unknown error';
+    error instanceof Error ? sanitizeErrorMessage(error.message) : 'Unknown error';
 
   const problemDetails: ProblemDetails & { error: { code: ErrorCodes; message: string } } = {
     // type: `${ERROR_DOCS_BASE_URL}#internal_server_error`,
