@@ -21,6 +21,7 @@ import type {
   EvaluationRunUpdate,
 } from '../../types/entities';
 import type { EvaluationJobFilterCriteria, Filter, ProjectScopeConfig } from '../../types/utility';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 // ============================================================================
 // DATASET RUN
@@ -36,8 +37,7 @@ export const getDatasetRunById =
       .from(datasetRun)
       .where(
         and(
-          eq(datasetRun.tenantId, params.scopes.tenantId),
-          eq(datasetRun.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRun, params.scopes),
           eq(datasetRun.id, params.scopes.datasetRunId)
         )
       )
@@ -51,12 +51,7 @@ export const listDatasetRuns =
     return await db
       .select()
       .from(datasetRun)
-      .where(
-        and(
-          eq(datasetRun.tenantId, params.scopes.tenantId),
-          eq(datasetRun.projectId, params.scopes.projectId)
-        )
-      )
+      .where(projectScopedWhere(datasetRun, params.scopes))
       .orderBy(desc(datasetRun.createdAt));
   };
 
@@ -70,8 +65,7 @@ export const listDatasetRunsByConfig =
       .from(datasetRun)
       .where(
         and(
-          eq(datasetRun.tenantId, params.scopes.tenantId),
-          eq(datasetRun.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRun, params.scopes),
           eq(datasetRun.datasetRunConfigId, params.scopes.datasetRunConfigId)
         )
       )
@@ -102,8 +96,7 @@ export const deleteDatasetRun =
       .delete(datasetRun)
       .where(
         and(
-          eq(datasetRun.tenantId, params.scopes.tenantId),
-          eq(datasetRun.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRun, params.scopes),
           eq(datasetRun.id, params.scopes.datasetRunId)
         )
       )
@@ -126,8 +119,7 @@ export const getDatasetRunConversationRelations =
       .from(datasetRunConversationRelations)
       .where(
         and(
-          eq(datasetRunConversationRelations.tenantId, params.scopes.tenantId),
-          eq(datasetRunConversationRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRunConversationRelations, params.scopes),
           eq(datasetRunConversationRelations.datasetRunId, params.scopes.datasetRunId)
         )
       );
@@ -179,8 +171,7 @@ export const deleteDatasetRunConversationRelation =
       .delete(datasetRunConversationRelations)
       .where(
         and(
-          eq(datasetRunConversationRelations.tenantId, params.scopes.tenantId),
-          eq(datasetRunConversationRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRunConversationRelations, params.scopes),
           eq(datasetRunConversationRelations.datasetRunId, params.scopes.datasetRunId),
           eq(datasetRunConversationRelations.conversationId, params.scopes.conversationId)
         )
@@ -197,8 +188,7 @@ export const deleteDatasetRunConversationRelationsByRun =
       .delete(datasetRunConversationRelations)
       .where(
         and(
-          eq(datasetRunConversationRelations.tenantId, params.scopes.tenantId),
-          eq(datasetRunConversationRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRunConversationRelations, params.scopes),
           eq(datasetRunConversationRelations.datasetRunId, params.scopes.datasetRunId)
         )
       )
@@ -217,8 +207,7 @@ export const getDatasetRunConversationRelationByConversation =
       .from(datasetRunConversationRelations)
       .where(
         and(
-          eq(datasetRunConversationRelations.tenantId, params.scopes.tenantId),
-          eq(datasetRunConversationRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRunConversationRelations, params.scopes),
           eq(datasetRunConversationRelations.conversationId, params.scopes.conversationId)
         )
       )
@@ -241,8 +230,7 @@ export const getEvaluationRunById =
       .from(evaluationRun)
       .where(
         and(
-          eq(evaluationRun.tenantId, params.scopes.tenantId),
-          eq(evaluationRun.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRun, params.scopes),
           eq(evaluationRun.id, params.scopes.evaluationRunId)
         )
       )
@@ -256,12 +244,7 @@ export const listEvaluationRuns =
     return await db
       .select()
       .from(evaluationRun)
-      .where(
-        and(
-          eq(evaluationRun.tenantId, params.scopes.tenantId),
-          eq(evaluationRun.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(evaluationRun, params.scopes));
   };
 
 export const listEvaluationRunsByJobConfigId =
@@ -275,8 +258,7 @@ export const listEvaluationRunsByJobConfigId =
       .from(evaluationRun)
       .where(
         and(
-          eq(evaluationRun.tenantId, params.scopes.tenantId),
-          eq(evaluationRun.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRun, params.scopes),
           eq(evaluationRun.evaluationJobConfigId, params.evaluationJobConfigId)
         )
       );
@@ -293,8 +275,7 @@ export const getEvaluationRunByJobConfigId =
       .from(evaluationRun)
       .where(
         and(
-          eq(evaluationRun.tenantId, params.scopes.tenantId),
-          eq(evaluationRun.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRun, params.scopes),
           eq(evaluationRun.evaluationJobConfigId, params.evaluationJobConfigId)
         )
       )
@@ -342,8 +323,7 @@ export const updateEvaluationRun =
       .set(updateData)
       .where(
         and(
-          eq(evaluationRun.tenantId, params.scopes.tenantId),
-          eq(evaluationRun.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRun, params.scopes),
           eq(evaluationRun.id, params.scopes.evaluationRunId)
         )
       )
@@ -361,8 +341,7 @@ export const deleteEvaluationRun =
       .delete(evaluationRun)
       .where(
         and(
-          eq(evaluationRun.tenantId, params.scopes.tenantId),
-          eq(evaluationRun.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRun, params.scopes),
           eq(evaluationRun.id, params.scopes.evaluationRunId)
         )
       )
@@ -382,8 +361,7 @@ export const getEvaluationResultById =
   }): Promise<EvaluationResultSelect | null> => {
     const result = await db.query.evaluationResult.findFirst({
       where: and(
-        eq(evaluationResult.tenantId, params.scopes.tenantId),
-        eq(evaluationResult.projectId, params.scopes.projectId),
+        projectScopedWhere(evaluationResult, params.scopes),
         eq(evaluationResult.id, params.scopes.evaluationResultId)
       ),
     });
@@ -394,10 +372,7 @@ export const listEvaluationResults =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<EvaluationResultSelect[]> => {
     return await db.query.evaluationResult.findMany({
-      where: and(
-        eq(evaluationResult.tenantId, params.scopes.tenantId),
-        eq(evaluationResult.projectId, params.scopes.projectId)
-      ),
+      where: projectScopedWhere(evaluationResult, params.scopes),
     });
   };
 
@@ -408,8 +383,7 @@ export const listEvaluationResultsByRun =
   }): Promise<EvaluationResultSelect[]> => {
     return await db.query.evaluationResult.findMany({
       where: and(
-        eq(evaluationResult.tenantId, params.scopes.tenantId),
-        eq(evaluationResult.projectId, params.scopes.projectId),
+        projectScopedWhere(evaluationResult, params.scopes),
         eq(evaluationResult.evaluationRunId, params.scopes.evaluationRunId)
       ),
     });
@@ -422,8 +396,7 @@ export const listEvaluationResultsByConversation =
   }): Promise<EvaluationResultSelect[]> => {
     return await db.query.evaluationResult.findMany({
       where: and(
-        eq(evaluationResult.tenantId, params.scopes.tenantId),
-        eq(evaluationResult.projectId, params.scopes.projectId),
+        projectScopedWhere(evaluationResult, params.scopes),
         eq(evaluationResult.conversationId, params.scopes.conversationId)
       ),
     });
@@ -485,8 +458,7 @@ export const updateEvaluationResult =
       .set(updateData)
       .where(
         and(
-          eq(evaluationResult.tenantId, params.scopes.tenantId),
-          eq(evaluationResult.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationResult, params.scopes),
           eq(evaluationResult.id, params.scopes.evaluationResultId)
         )
       )
@@ -504,8 +476,7 @@ export const deleteEvaluationResult =
       .delete(evaluationResult)
       .where(
         and(
-          eq(evaluationResult.tenantId, params.scopes.tenantId),
-          eq(evaluationResult.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationResult, params.scopes),
           eq(evaluationResult.id, params.scopes.evaluationResultId)
         )
       )
@@ -521,8 +492,7 @@ export const deleteEvaluationResultsByRun =
       .delete(evaluationResult)
       .where(
         and(
-          eq(evaluationResult.tenantId, params.scopes.tenantId),
-          eq(evaluationResult.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationResult, params.scopes),
           eq(evaluationResult.evaluationRunId, params.scopes.evaluationRunId)
         )
       )
@@ -564,10 +534,7 @@ export const filterConversationsForJob =
     const jobFilters = extractPlainFilterCriteria(rawJobFilters);
     const { tenantId, projectId } = scopes;
 
-    const whereConditions = [
-      eq(conversations.tenantId, tenantId),
-      eq(conversations.projectId, projectId),
-    ];
+    const whereConditions = [projectScopedWhere(conversations, scopes)];
 
     // Filter by conversation IDs if specified
     if (

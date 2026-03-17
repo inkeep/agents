@@ -205,7 +205,10 @@ export class ExecutionHandler {
             'Task already exists, fetching existing task'
           );
 
-          const existingTask = await getTask(runDbClient)({ id: taskId });
+          const existingTask = await getTask(runDbClient)({
+            id: taskId,
+            scopes: { tenantId, projectId },
+          });
           if (existingTask) {
             task = existingTask;
             logger.info(
@@ -368,6 +371,7 @@ export class ExecutionHandler {
                 if (task) {
                   await updateTask(runDbClient)({
                     taskId: task.id,
+                    scopes: { tenantId, projectId },
                     data: {
                       status: 'failed',
                       metadata: {
@@ -536,6 +540,7 @@ export class ExecutionHandler {
               const updateTaskStart = Date.now();
               await updateTask(runDbClient)({
                 taskId: task.id,
+                scopes: { tenantId, projectId },
                 data: {
                   status: 'completed',
                   metadata: {
@@ -636,6 +641,7 @@ export class ExecutionHandler {
               if (task) {
                 await updateTask(runDbClient)({
                   taskId: task.id,
+                  scopes: { tenantId, projectId },
                   data: {
                     status: 'failed',
                     metadata: {
@@ -699,6 +705,7 @@ export class ExecutionHandler {
           if (task) {
             await updateTask(runDbClient)({
               taskId: task.id,
+              scopes: { tenantId, projectId },
               data: {
                 status: 'failed',
                 metadata: {
@@ -747,6 +754,7 @@ export class ExecutionHandler {
           if (task) {
             await updateTask(runDbClient)({
               taskId: task.id,
+              scopes: { tenantId, projectId },
               data: {
                 status: 'failed',
                 metadata: {

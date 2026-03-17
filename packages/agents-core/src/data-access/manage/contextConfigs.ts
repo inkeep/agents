@@ -4,27 +4,19 @@ import { contextConfigs } from '../../db/manage/manage-schema';
 import type { ContextConfigInsert, ContextConfigUpdate } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
+import { agentScopedWhere } from './scope-helpers';
 
 export const getContextConfigById =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; id: string }) => {
     return await db.query.contextConfigs.findFirst({
-      where: and(
-        eq(contextConfigs.tenantId, params.scopes.tenantId),
-        eq(contextConfigs.projectId, params.scopes.projectId),
-        eq(contextConfigs.agentId, params.scopes.agentId),
-        eq(contextConfigs.id, params.id)
-      ),
+      where: and(agentScopedWhere(contextConfigs, params.scopes), eq(contextConfigs.id, params.id)),
     });
   };
 
 export const listContextConfigs =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.contextConfigs.findMany({
-      where: and(
-        eq(contextConfigs.tenantId, params.scopes.tenantId),
-        eq(contextConfigs.projectId, params.scopes.projectId),
-        eq(contextConfigs.agentId, params.scopes.agentId)
-      ),
+      where: agentScopedWhere(contextConfigs, params.scopes),
       orderBy: [desc(contextConfigs.createdAt)],
     });
   };
@@ -42,11 +34,7 @@ export const listContextConfigsPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(contextConfigs.tenantId, params.scopes.tenantId),
-      eq(contextConfigs.projectId, params.scopes.projectId),
-      eq(contextConfigs.agentId, params.scopes.agentId)
-    );
+    const whereClause = agentScopedWhere(contextConfigs, params.scopes);
 
     const [contextConfigList, totalResult] = await Promise.all([
       db
@@ -137,14 +125,7 @@ export const updateContextConfig =
         ...(processedData as any),
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(contextConfigs.tenantId, params.scopes.tenantId),
-          eq(contextConfigs.projectId, params.scopes.projectId),
-          eq(contextConfigs.agentId, params.scopes.agentId),
-          eq(contextConfigs.id, params.id)
-        )
-      )
+      .where(and(agentScopedWhere(contextConfigs, params.scopes), eq(contextConfigs.id, params.id)))
       .returning();
 
     return updated[0];
@@ -157,12 +138,7 @@ export const deleteContextConfig =
       const result = await db
         .delete(contextConfigs)
         .where(
-          and(
-            eq(contextConfigs.tenantId, params.scopes.tenantId),
-            eq(contextConfigs.projectId, params.scopes.projectId),
-            eq(contextConfigs.agentId, params.scopes.agentId),
-            eq(contextConfigs.id, params.id)
-          )
+          and(agentScopedWhere(contextConfigs, params.scopes), eq(contextConfigs.id, params.id))
         )
         .returning();
 
@@ -186,13 +162,7 @@ export const countContextConfigs =
     const result = await db
       .select({ count: count() })
       .from(contextConfigs)
-      .where(
-        and(
-          eq(contextConfigs.tenantId, params.scopes.tenantId),
-          eq(contextConfigs.projectId, params.scopes.projectId),
-          eq(contextConfigs.agentId, params.scopes.agentId)
-        )
-      );
+      .where(agentScopedWhere(contextConfigs, params.scopes));
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);

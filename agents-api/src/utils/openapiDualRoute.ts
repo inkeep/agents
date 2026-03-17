@@ -60,6 +60,7 @@ export function openapiRegisterPutPatchRoutesForLegacy<H extends (...args: any[]
       method: legacy,
       operationId: `${operationId}-${legacy}`,
       'x-speakeasy-ignore': true,
+      hide: true,
     } as any),
     handler as any
   );

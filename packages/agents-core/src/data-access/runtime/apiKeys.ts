@@ -14,18 +14,17 @@ import {
   isApiKeyExpired,
   validateApiKey,
 } from '../../utils/apiKeys';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 export const getApiKeyById =
   (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.apiKeys.findFirst({
-      where: and(
-        eq(apiKeys.tenantId, params.scopes.tenantId),
-        eq(apiKeys.projectId, params.scopes.projectId),
-        eq(apiKeys.id, params.id)
-      ),
+      where: and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)),
     });
   };
 
+// Intentionally unscoped: auth discovery function that looks up API keys by publicId
+// to determine tenantId/projectId. Scoping would create a circular dependency.
 export const getApiKeyByPublicId = (db: AgentsRunDatabaseClient) => async (publicId: string) => {
   return await db.query.apiKeys.findFirst({
     where: eq(apiKeys.publicId, publicId),
@@ -35,10 +34,7 @@ export const getApiKeyByPublicId = (db: AgentsRunDatabaseClient) => async (publi
 export const listApiKeys =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; agentId?: string }) => {
-    const conditions = [
-      eq(apiKeys.tenantId, params.scopes.tenantId),
-      eq(apiKeys.projectId, params.scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(apiKeys, params.scopes)];
 
     if (params.agentId) {
       conditions.push(eq(apiKeys.agentId, params.agentId));
@@ -64,10 +60,7 @@ export const listApiKeysPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const conditions = [
-      eq(apiKeys.tenantId, params.scopes.tenantId),
-      eq(apiKeys.projectId, params.scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(apiKeys, params.scopes)];
     if (params.agentId) {
       conditions.push(eq(apiKeys.agentId, params.agentId));
     }
@@ -130,13 +123,7 @@ export const updateApiKey =
         expiresAt: params.data.expiresAt,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(apiKeys.tenantId, params.scopes.tenantId),
-          eq(apiKeys.projectId, params.scopes.projectId),
-          eq(apiKeys.id, params.id)
-        )
-      )
+      .where(and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)))
       .returning();
 
     return updatedKey;
@@ -158,13 +145,7 @@ export const deleteApiKey =
 
       await db
         .delete(apiKeys)
-        .where(
-          and(
-            eq(apiKeys.tenantId, params.scopes.tenantId),
-            eq(apiKeys.projectId, params.scopes.projectId),
-            eq(apiKeys.id, params.id)
-          )
-        );
+        .where(and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)));
 
       return true;
     } catch (error) {
@@ -182,20 +163,17 @@ export const hasApiKey =
 
 export const updateApiKeyLastUsed =
   (db: AgentsRunDatabaseClient) =>
-  async (id: string): Promise<void> => {
+  async (params: { id: string; scopes: ProjectScopeConfig }): Promise<void> => {
     await db
       .update(apiKeys)
       .set({ lastUsedAt: new Date().toISOString() })
-      .where(eq(apiKeys.id, id));
+      .where(and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)));
   };
 
 export const countApiKeys =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; agentId?: string }): Promise<number> => {
-    const conditions = [
-      eq(apiKeys.tenantId, params.scopes.tenantId),
-      eq(apiKeys.projectId, params.scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(apiKeys, params.scopes)];
 
     if (params.agentId) {
       conditions.push(eq(apiKeys.agentId, params.agentId));
@@ -239,9 +217,8 @@ export const generateAndCreateApiKey = async (
   };
 };
 
-/**
- * Validate an API key and return the associated record if valid
- */
+// Intentionally unscoped: auth discovery function that validates a raw API key
+// and returns the associated record. Scoping would create a circular dependency.
 export const validateAndGetApiKey = async (
   key: string,
   db: AgentsRunDatabaseClient
@@ -268,7 +245,10 @@ export const validateAndGetApiKey = async (
     return null;
   }
 
-  await updateApiKeyLastUsed(db)(apiKey.id);
+  await updateApiKeyLastUsed(db)({
+    id: apiKey.id,
+    scopes: { tenantId: apiKey.tenantId, projectId: apiKey.projectId },
+  });
 
   return apiKey;
 };
