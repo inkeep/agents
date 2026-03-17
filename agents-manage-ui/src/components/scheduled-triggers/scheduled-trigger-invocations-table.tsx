@@ -272,6 +272,7 @@ export function ScheduledTriggerInvocationsTable({
         data={invocations}
         defaultSort={[{ id: 'scheduledFor', desc: true }]}
         emptyState="No invocations yet. The scheduled trigger will create invocations when it runs."
+        getRowId={(row) => row.id}
       />
     </div>
   );

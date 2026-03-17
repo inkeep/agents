@@ -150,6 +150,7 @@ export function DatasetItemsTable({
           columns={columns}
           data={items}
           defaultSort={[{ id: 'updatedAt', desc: true }]}
+          getRowId={(row) => row.id}
           emptyState={
             <div className="flex flex-col items-center gap-4">
               <span>No items yet</span>

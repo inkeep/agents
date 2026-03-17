@@ -96,7 +96,7 @@ export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTable
               {agentLookup[row.original.defaultAgentId]?.name ?? row.original.defaultAgentId}
             </Link>
           ) : (
-            <span className="text-sm text-muted-foreground">None</span>
+            <span className="text-sm text-muted-foreground italic">None</span>
           ),
       },
       {
@@ -145,6 +145,7 @@ export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTable
         data={apps}
         defaultSort={[{ id: 'name', desc: false }]}
         emptyState="No apps yet."
+        getRowId={(row) => row.id}
       />
     </div>
   );

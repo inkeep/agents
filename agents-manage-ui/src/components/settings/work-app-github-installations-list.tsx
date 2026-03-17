@@ -313,6 +313,7 @@ export function WorkAppGitHubInstallationsList({
         columns={columns}
         data={installations}
         defaultSort={[{ id: 'accountLogin', desc: false }]}
+        getRowId={(row) => row.id}
       />
 
       {selectedInstallation && (

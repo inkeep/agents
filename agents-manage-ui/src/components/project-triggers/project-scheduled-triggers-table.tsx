@@ -459,6 +459,7 @@ export function ProjectScheduledTriggersTable({
         data={triggers}
         defaultSort={[{ id: 'name', desc: false }]}
         emptyState="No scheduled triggers configured yet. Create a scheduled trigger to run your agents on a schedule."
+        getRowId={(row) => row.id}
       />
     </div>
   );

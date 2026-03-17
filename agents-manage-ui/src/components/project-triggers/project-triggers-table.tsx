@@ -294,6 +294,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
         data={triggers}
         defaultSort={[{ id: 'name', desc: false }]}
         emptyState="No webhook triggers configured yet. Create a trigger to enable webhook-based agent invocation."
+        getRowId={(row) => row.id}
       />
     </div>
   );

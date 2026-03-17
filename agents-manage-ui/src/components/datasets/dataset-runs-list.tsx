@@ -168,6 +168,7 @@ export function DatasetRunsList({
         onRowClick={(run) =>
           router.push(`/${tenantId}/projects/${projectId}/datasets/${datasetId}/runs/${run.id}`)
         }
+        getRowId={(row) => row.id}
       />
     </div>
   );

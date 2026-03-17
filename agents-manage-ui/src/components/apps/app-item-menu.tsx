@@ -43,7 +43,7 @@ export function AppItemMenu({ app, agentOptions }: AppItemMenuProps) {
             Edit
           </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={() => setOpenDialog('delete')}>
-            <Trash2 className="size-4 text-destructive" />
+            <Trash2 className="size-4" />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

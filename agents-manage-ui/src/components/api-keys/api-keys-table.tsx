@@ -91,6 +91,7 @@ export function ApiKeysTable({ apiKeys, agentLookup, canUse }: ApiKeysTableProps
         data={apiKeys}
         defaultSort={[{ id: 'name', desc: false }]}
         emptyState="No API keys yet."
+        getRowId={(row) => row.id}
       />
     </div>
   );

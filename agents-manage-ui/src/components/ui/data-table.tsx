@@ -27,6 +27,7 @@ interface DataTableProps<TData> {
   onRowClick?: (row: TData) => void;
   containerClassName?: string;
   emptyState?: React.ReactNode;
+  getRowId?: (row: TData) => string;
 }
 
 export function DataTable<TData>({
@@ -36,6 +37,7 @@ export function DataTable<TData>({
   onRowClick,
   containerClassName,
   emptyState,
+  getRowId,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>(defaultSort);
 
@@ -46,6 +48,7 @@ export function DataTable<TData>({
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     state: { sorting },
+    ...(getRowId && { getRowId }),
   });
 
   return (
@@ -58,6 +61,13 @@ export function DataTable<TData>({
                 key={header.id}
                 colSpan={header.colSpan}
                 className={header.column.columnDef.meta?.className}
+                aria-sort={
+                  header.column.getIsSorted() === 'asc'
+                    ? 'ascending'
+                    : header.column.getIsSorted() === 'desc'
+                      ? 'descending'
+                      : undefined
+                }
               >
                 {header.isPlaceholder
                   ? null

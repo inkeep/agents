@@ -124,6 +124,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
           columns={columns}
           data={evaluators}
           defaultSort={[{ id: 'name', desc: false }]}
+          getRowId={(row) => row.id}
           emptyState={
             <div className="flex flex-col items-center gap-4">
               <span>No evaluators yet</span>

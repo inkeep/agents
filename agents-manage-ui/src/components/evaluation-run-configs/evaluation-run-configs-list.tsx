@@ -158,6 +158,7 @@ export function EvaluationRunConfigsList({
           columns={columns}
           data={runConfigs}
           defaultSort={[{ id: 'name', desc: false }]}
+          getRowId={(row) => row.id}
           onRowClick={(runConfig) =>
             router.push(
               `/${tenantId}/projects/${projectId}/evaluations/run-configs/${runConfig.id}`

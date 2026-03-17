@@ -195,6 +195,7 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
           columns={columns}
           data={jobConfigs}
           defaultSort={[{ id: 'updatedAt', desc: true }]}
+          getRowId={(row) => row.id}
           onRowClick={(jobConfig) =>
             router.push(`/${tenantId}/projects/${projectId}/evaluations/jobs/${jobConfig.id}`)
           }

@@ -390,6 +390,7 @@ export function ProjectScheduledTriggerInvocationsTable({
           columns={columns}
           data={filteredInvocations}
           defaultSort={[{ id: 'scheduledFor', desc: true }]}
+          getRowId={(row) => row.id}
           emptyState={
             <div className="flex flex-col items-center gap-2">
               <p>
