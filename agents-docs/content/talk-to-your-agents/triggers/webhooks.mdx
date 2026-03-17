@@ -6,25 +6,9 @@ icon: LuZap
 
 Triggers create webhook endpoints that allow external services to invoke your Agents via HTTP. When a service like GitHub, Slack, Zendesk, or Stripe sends a webhook, the payload is validated, transformed, and used to start a new conversation with your Agent.
 
+Triggers simply put are HTTP URLs you create that you can send POST requests to, to invoke the agent. Once you create the webhook URL in the dashboard, you can hook it up to external services like GitHub, Slack, Zendesk, or Stripe to trigger your agent. An example of when a webhook URL comes in handy for example in Zendesk, you can go into Zendesk's configuration settings and input the webhook URL you created in the Inkeep dashboard to trigger your agent when a new ticket is created or updated. The same can be applied to other services like GitHub, PagerDuty, or Stripe.
+
 ## How Triggers Work
-
-```mermaid
-sequenceDiagram
-    participant Service as External Service
-    participant Webhook as Trigger Endpoint
-    participant Agent as Your Agent
-    participant DB as Invocation Log
-
-    Service->>Webhook: POST webhook payload
-    Webhook->>Webhook: Validate auth & signature
-    Webhook->>Webhook: Validate payload schema
-    Webhook->>Webhook: Transform payload → message
-    Webhook->>DB: Create invocation (pending)
-    Webhook-->>Service: 202 Accepted + invocationId
-    Webhook->>Agent: Start conversation (async)
-    Agent->>Agent: Process message
-    Agent->>DB: Update invocation (success/failed)
-```
 
 1. **External service sends a webhook** to your trigger's URL
 2. **Authentication is verified** (custom headers or signature)
@@ -32,21 +16,6 @@ sequenceDiagram
 4. **Payload is transformed** using the message template
 5. **Invocation is logged** and the webhook returns immediately with `202 Accepted`
 6. **Agent processes the message** asynchronously in a new conversation
-
-## When to Use Triggers
-
-Triggers are ideal for:
-
-| Use Case | Example |
-| --- | --- |
-| **CI/CD pipelines** | Trigger code review agents on PR creation |
-| **Customer events** | Respond to Stripe payment webhooks |
-| **DevOps alerts** | Process PagerDuty or Datadog alerts |
-| **Chat integrations** | Handle Slack or Discord messages |
-| **Form submissions** | Process Typeform or webhook-enabled forms |
-| **Scheduled tasks** | Invoke agents from cron jobs or schedulers |
-
-<Snippet file="user-scoped-mcp-triggers-warning.mdx" />
 
 ## Trigger Configuration
 
@@ -121,24 +90,3 @@ Every webhook invocation is tracked with:
 - **Error Message**: Details if the invocation failed
 
 This allows you to monitor webhook activity, debug failures, and audit trigger usage.
-
-## Example: GitHub Issue Handler
-
-Here's a conceptual example of a trigger that responds to GitHub issues:
-
-```typescript
-// When GitHub sends: { action: "opened", issue: { title: "Bug report", body: "..." }, ... }
-// The trigger creates a message like:
-// "New GitHub issue opened: Bug report\n\nDescription: ..."
-// And starts a conversation with your support agent
-```
-
-## Example: Zendesk Ticket
-
-Here's a conceptual example of a trigger that responds to Zendesk tickets:
-
-```typescript
-// Create a webhook from Zendesk when a ticket is created or updated
-// The webhook triggers your Zendesk support ticket agent
-// The agent can draft a reply to the ticket, write summaries as internal notes, add tags & custom fields, etc
-```
