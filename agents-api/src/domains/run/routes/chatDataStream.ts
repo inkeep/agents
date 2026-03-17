@@ -29,6 +29,7 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { buildPersistedMessageContent } from '../services/blob-storage/image-upload-helpers';
 import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
+import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
 import { ImageUrlSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
@@ -471,12 +472,16 @@ app.openapi(chatDataStreamRoute, async (c) => {
         c.header('connection', 'keep-alive');
         c.header('x-vercel-ai-data-stream', 'v2');
         c.header('x-accel-buffering', 'no');
+        streamBufferRegistry.register(conversationId);
         return stream(c, async (s) => {
           try {
+            const encoder = new TextEncoder();
             const reader = run.readable.getReader();
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
+              const encoded = typeof value === 'string' ? encoder.encode(value) : value;
+              streamBufferRegistry.push(conversationId, encoded);
               await s.write(value);
             }
           } catch (error) {
@@ -485,6 +490,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
               'Error streaming durable execution via /chat'
             );
             await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+          } finally {
+            streamBufferRegistry.complete(conversationId);
           }
         });
       }
@@ -645,13 +652,29 @@ app.openapi(chatDataStreamRoute, async (c) => {
       c.header('x-vercel-ai-data-stream', 'v2');
       c.header('x-accel-buffering', 'no'); // disable nginx buffering
 
-      return stream(c, (stream) =>
-        stream.pipe(
-          dataStream
-            .pipeThrough(new JsonToSseTransformStream())
-            .pipeThrough(new TextEncoderStream())
-        )
-      );
+      const encodedStream = dataStream
+        .pipeThrough(new JsonToSseTransformStream())
+        .pipeThrough(new TextEncoderStream());
+
+      const [clientStream, bufferStream] = encodedStream.tee();
+
+      streamBufferRegistry.register(conversationId);
+      (async () => {
+        const reader = bufferStream.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            streamBufferRegistry.push(conversationId, value);
+          }
+        } catch (error) {
+          logger.error({ error, conversationId }, 'Error buffering stream for resumption');
+        } finally {
+          streamBufferRegistry.complete(conversationId);
+        }
+      })();
+
+      return stream(c, (s) => s.pipe(clientStream));
     });
   } catch (error) {
     if (error instanceof HTTPException) {

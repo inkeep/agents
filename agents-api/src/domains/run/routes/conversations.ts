@@ -14,8 +14,10 @@ import {
   toISODateString,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
+import { stream } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 
 const logger = getLogger('run-conversations');
 
@@ -347,5 +349,69 @@ app.openapi(
     });
   }
 );
+
+const resumeConversationStreamRoute = createProtectedRoute({
+  method: 'get',
+  path: '/{conversationId}/stream',
+  summary: 'Resume Conversation Stream',
+  description:
+    'Reconnects to an active in-progress stream for the conversation. Returns 204 if no active stream exists.',
+  operationId: 'resume-conversation-stream',
+  tags: ['Conversations'],
+  security: [{ bearerAuth: [] }],
+  permission: inheritedRunApiKeyAuth(),
+  request: {
+    params: z.object({ conversationId: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Active stream — replays from beginning',
+      content: { 'text/event-stream': { schema: z.string() } },
+    },
+    204: { description: 'No active stream' },
+    ...commonGetErrorResponses,
+  },
+});
+
+app.openapi(resumeConversationStreamRoute, async (c) => {
+  const executionContext = c.get('executionContext');
+  const { tenantId, projectId } = executionContext;
+  const endUserId = requireEndUserId(executionContext);
+  const { conversationId } = c.req.valid('param');
+
+  const readable = streamBufferRegistry.createReadable(conversationId);
+
+  if (readable) {
+    const conversation = await getConversation(runDbClient)({
+      scopes: { tenantId, projectId },
+      conversationId,
+    });
+
+    if (conversation && conversation.userId !== endUserId) {
+      return new Response(null, { status: 204 });
+    }
+
+    logger.debug({ conversationId }, 'Resuming conversation stream');
+
+    c.header('content-type', 'text/event-stream');
+    c.header('cache-control', 'no-cache');
+    c.header('connection', 'keep-alive');
+    c.header('x-vercel-ai-data-stream', 'v2');
+    c.header('x-accel-buffering', 'no');
+
+    return stream(c, (s) => s.pipe(readable));
+  }
+
+  const conversation = await getConversation(runDbClient)({
+    scopes: { tenantId, projectId },
+    conversationId,
+  });
+
+  if (!conversation || conversation.userId !== endUserId) {
+    return new Response(null, { status: 204 });
+  }
+
+  return new Response(null, { status: 204 });
+});
 
 export default app;
