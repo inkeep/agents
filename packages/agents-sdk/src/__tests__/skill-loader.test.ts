@@ -8,14 +8,23 @@ const createdDirs: string[] = [];
 async function createSkill({
   dirName,
   content,
+  files = {},
 }: {
   dirName: string;
   content: string;
+  files?: Record<string, string>;
 }): Promise<string> {
   const root = await mkdtemp(path.join(os.tmpdir(), 'skill-loader-'));
   const skillDir = path.join(root, dirName);
   await mkdir(skillDir, { recursive: true });
-  await writeFile(path.join(skillDir, 'SKILL.md'), content, 'utf8');
+  await writeFile(path.join(skillDir, 'SKILL.md'), content);
+  await Promise.all(
+    Object.entries(files).map(async ([filePath, fileContent]) => {
+      const resolvedPath = path.join(skillDir, filePath);
+      await mkdir(path.dirname(resolvedPath), { recursive: true });
+      await writeFile(resolvedPath, fileContent);
+    })
+  );
   createdDirs.push(root);
   return root;
 }
@@ -39,9 +48,53 @@ description: Extracts PDFs.
       id: 'pdf-processing',
       name: 'pdf-processing',
       description: 'Extracts PDFs.',
-      metadata: null,
       content: '',
+      files: [
+        {
+          filePath: 'SKILL.md',
+          content: `---
+name: pdf-processing
+description: Extracts PDFs.
+---`,
+        },
+      ],
     });
+  });
+
+  it('loads nested files relative to the skill root', async () => {
+    const root = await createSkill({
+      dirName: 'weather-safety-guardrails',
+      content: `---
+name: weather-safety-guardrails
+description: Safety rules.
+---
+Always check the weather.`,
+      files: {
+        'reference/safety-checklist.txt': 'Check weather alerts',
+        'templates/day/itinerary-card.html': '<article>Plan</article>',
+      },
+    });
+
+    const [skill] = loadSkills(root);
+
+    expect(skill.files).toEqual([
+      {
+        filePath: 'SKILL.md',
+        content: `---
+name: weather-safety-guardrails
+description: Safety rules.
+---
+Always check the weather.`,
+      },
+      {
+        filePath: 'templates/day/itinerary-card.html',
+        content: '<article>Plan</article>',
+      },
+      {
+        filePath: 'reference/safety-checklist.txt',
+        content: 'Check weather alerts',
+      },
+    ]);
   });
 
   /**
@@ -156,6 +209,18 @@ metadata:
         author: ' example-org ',
         version: '1.0.0',
       });
+      expect(skill.files).toEqual([
+        {
+          filePath: 'SKILL.md',
+          content: `---
+name: x
+description: x
+metadata:
+  author: " example-org "
+  version: 1.0.0
+---`,
+        },
+      ]);
     });
   });
 });
