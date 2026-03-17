@@ -126,6 +126,12 @@ export class BlockedExternalUnsupportedBytesError extends FileSecurityError {
   }
 }
 
+export class BlockedExternalPdfUrlNotSupportedError extends FileSecurityError {
+  constructor() {
+    super('External PDF URLs are not supported; provide PDFs as data URIs');
+  }
+}
+
 export class InvalidInlineFileMalformedBase64Error extends FileSecurityError {
   constructor() {
     super('Invalid inline file: malformed base64 payload');

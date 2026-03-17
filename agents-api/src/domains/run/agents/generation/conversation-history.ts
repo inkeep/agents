@@ -1,5 +1,6 @@
 import type { FilePart } from '@inkeep/agents-core';
 import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
+import { getLogger } from '../../../../logger';
 import {
   createDefaultConversationHistoryConfig,
   getConversationHistoryWithCompression,
@@ -13,6 +14,7 @@ import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 
 const PDF_MEDIA_TYPE = 'application/pdf';
+const logger = getLogger('conversation-history');
 
 function mapFileToAiSdkContentPart(
   fileValue: string | URL,
@@ -153,6 +155,8 @@ export function buildUserMessageContent(
 
     if (mappedPart) {
       content.push(mappedPart);
+    } else {
+      logger.warn({ mimeType, source: 'user-message' }, 'Dropping unsupported file content part');
     }
   }
 

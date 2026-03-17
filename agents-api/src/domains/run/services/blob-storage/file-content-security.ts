@@ -71,7 +71,7 @@ async function sniffAllowedInlineFileMimeType(
 ): Promise<string | null> {
   if (requestedMimeType === 'application/pdf') {
     if (!looksLikePdf(data)) {
-      throw new Error('Inline PDF content does not match PDF signature');
+      throw new BlockedInlineUnsupportedFileBytesError(requestedMimeType);
     }
     return 'application/pdf';
   }

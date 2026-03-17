@@ -40,6 +40,17 @@ type AppVariables = {
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('chatDataStream');
+const filePartSchema = z
+  .object({
+    type: z.literal('file'),
+    text: z.string(),
+    mediaType: z.string().optional(),
+    mimeType: z.string().optional(),
+    filename: z.string().optional(),
+  })
+  .refine((value) => Boolean(value.mediaType || value.mimeType), {
+    message: 'Either mediaType or mimeType is required for file parts',
+  });
 
 const chatDataStreamRoute = createProtectedRoute({
   method: 'post',
@@ -70,13 +81,7 @@ const chatDataStreamRoute = createProtectedRoute({
                         type: z.literal('image'),
                         text: ImageUrlSchema,
                       }),
-                      z.object({
-                        type: z.literal('file'),
-                        text: z.string(),
-                        mediaType: z.string().optional(),
-                        mimeType: z.string().optional(),
-                        filename: z.string().optional(),
-                      }),
+                      filePartSchema,
                       z.object({
                         type: z.union([
                           z.enum(['audio', 'video']),

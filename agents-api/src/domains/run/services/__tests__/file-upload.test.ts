@@ -4,7 +4,18 @@ import { downloadExternalImage } from '../blob-storage/external-image-downloader
 import { normalizeInlineFileBytes } from '../blob-storage/file-content-security';
 import { makeMessageContentParts, uploadPartsFiles } from '../blob-storage/file-upload';
 
+const logger = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+}));
+
 const mockUpload = vi.fn();
+
+vi.mock('../../../../logger', () => ({
+  getLogger: () => logger,
+}));
 
 vi.mock('../blob-storage/index', () => ({
   getBlobStorageProvider: () => ({
@@ -163,6 +174,38 @@ describe('uploadPartsFiles', () => {
 
     expect(mockUpload).not.toHaveBeenCalled();
     expect(uploaded).toEqual([]);
+  });
+
+  it('drops external PDF URLs and logs correlation context', async () => {
+    const parts: Part[] = [
+      {
+        kind: 'file',
+        file: {
+          uri: 'https://example.com/report.pdf',
+          mimeType: 'application/pdf',
+        },
+      },
+    ];
+
+    const uploaded = await uploadPartsFiles(parts, uploadContext);
+
+    expect(uploaded).toEqual([]);
+    expect(downloadExternalImage).not.toHaveBeenCalled();
+    expect(mockUpload).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        index: 0,
+        tenantId: uploadContext.tenantId,
+        projectId: uploadContext.projectId,
+        conversationId: uploadContext.conversationId,
+        messageId: uploadContext.messageId,
+        file: expect.objectContaining({
+          uri: 'https://example.com/report.pdf',
+          mimeType: 'application/pdf',
+        }),
+      }),
+      'Failed to upload file part, dropping from persisted message to avoid storing base64 in DB'
+    );
   });
 
   it('drops inline byte file part when normalizeInlineFileBytes throws', async () => {

@@ -4,6 +4,7 @@ import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-
 import { getLogger } from '../../../../logger';
 import { downloadExternalImage } from './external-image-downloader';
 import { normalizeInlineFileBytes } from './file-content-security';
+import { BlockedExternalPdfUrlNotSupportedError } from './file-security-errors';
 import { getBlobStorageProvider, toBlobUri } from './index';
 import { buildStorageKey } from './storage-keys';
 
@@ -36,7 +37,7 @@ async function uploadFilePart(
     mimeType = normalized.mimeType;
   } else if ('uri' in file && file.uri) {
     if (file.mimeType?.toLowerCase().startsWith('application/pdf')) {
-      throw new Error('External PDF URLs are not supported in this pass');
+      throw new BlockedExternalPdfUrlNotSupportedError();
     }
     const downloaded = await downloadExternalImage(file.uri);
     data = downloaded.data;
@@ -94,8 +95,26 @@ export async function uploadPartsFiles(parts: Part[], ctx: UploadContext): Promi
         const uploaded = await uploadFilePart(part, ctx, index);
         results[index] = uploaded;
       } catch (error) {
+        const file =
+          part.kind === 'file'
+            ? {
+                ...(part.file.mimeType ? { mimeType: part.file.mimeType } : {}),
+                ...('uri' in part.file && part.file.uri ? { uri: part.file.uri } : {}),
+                ...('bytes' in part.file && part.file.bytes
+                  ? { bytesLength: part.file.bytes.length }
+                  : {}),
+              }
+            : undefined;
         logger.error(
-          { error: error instanceof Error ? error.message : String(error), index },
+          {
+            error: error instanceof Error ? error.message : String(error),
+            index,
+            tenantId: ctx.tenantId,
+            projectId: ctx.projectId,
+            conversationId: ctx.conversationId,
+            messageId: ctx.messageId,
+            file,
+          },
           'Failed to upload file part, dropping from persisted message to avoid storing base64 in DB'
         );
       }

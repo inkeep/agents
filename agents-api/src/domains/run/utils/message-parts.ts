@@ -109,7 +109,7 @@ const buildFilePart = (
 
   return FilePartSchema.parse({
     kind: 'file',
-    file: { uri, mimeType: options?.mimeType || 'image/*' },
+    file: { uri, mimeType: options?.mimeType || 'application/octet-stream' },
     ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
   });
 };
