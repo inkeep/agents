@@ -117,33 +117,40 @@
 /* numbered step indicators in TOC */
 #nd-toc .numbered-step-toc-item {
   position: relative !important;
-  padding-inline-start: 24px !important;
+  padding-inline-start: 22px !important;
 }
 
 #nd-toc .numbered-step-toc-item::before {
   content: attr(data-step-number);
   position: absolute;
-  inset-inline-start: 0;
-  top: 6px;
-  width: 16px;
-  height: 16px;
+  inset-inline-start: 2px;
+  top: 8px;
+  width: 15px;
+  height: 15px;
   border-radius: 9999px;
-  background-color: var(--color-fd-primary);
-  color: white;
-  font-size: 10px;
-  line-height: 16px;
+  background-color: hsl(0 0% 88%);
+  color: hsl(0 0% 20%);
+  font-size: 9px;
+  line-height: 15px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .dark #nd-toc .numbered-step-toc-item::before {
-  background-color: var(--color-fd-primary);
+  background-color: hsl(0 0% 22%);
+  color: hsl(0 0% 85%);
 }
 
 #nd-toc .numbered-step-toc-item[data-active='true']::before {
-  background-color: var(--color-fd-primary);
-  box-shadow: 0 0 0 2px var(--color-fd-primary), 0 0 0 4px color-mix(in srgb, var(--color-fd-primary) 20%, transparent);
+  background-color: hsl(0 0% 15%);
+  color: white;
+}
+
+.dark #nd-toc .numbered-step-toc-item[data-active='true']::before {
+  background-color: hsl(0 0% 90%);
+  color: hsl(0 0% 10%);
 }
 
 /* tailwind typography overrides */
