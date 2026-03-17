@@ -1,4 +1,3 @@
-import { z } from '@hono/zod-openapi';
 import {
   type FilePart,
   FilePartSchema,
@@ -12,6 +11,7 @@ import {
   type FileContentItem,
   type ImageContentItem,
   ImageUrlSchema,
+  VercelContentPartSchema,
 } from '../types/chat';
 
 const logger = getLogger('message-parts');
@@ -34,27 +34,6 @@ const isImageContentItem = (item: ContentItem): item is ImageContentItem => {
 const isFileContentItem = (item: ContentItem): item is FileContentItem => {
   return item.type === 'file';
 };
-
-const textContentPartSchema = z.object({
-  type: z.literal('text'),
-  text: z.string(),
-});
-const imageContentPartSchema = z.object({
-  type: z.literal('image'),
-  text: ImageUrlSchema,
-});
-const fileContentPartSchema = z.object({
-  type: z.literal('file'),
-  text: z.string(),
-  mediaType: z.string().optional(),
-  mimeType: z.string().optional(),
-  filename: z.string().optional(),
-});
-const vercelMessageContentPartSchema = z.union([
-  textContentPartSchema,
-  imageContentPartSchema,
-  fileContentPartSchema,
-]);
 
 const buildTextPart = (text: string): TextPart => {
   return TextPartSchema.parse({ kind: 'text', text });
@@ -155,7 +134,7 @@ export const getMessagePartsFromOpenAIContent = (content: string | ContentItem[]
 export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unknown[]): Part[] => {
   const rawParts = parts ?? [];
   const parsedParts = rawParts
-    .map((part) => vercelMessageContentPartSchema.safeParse(part))
+    .map((part) => VercelContentPartSchema.safeParse(part))
     .filter((result) => result.success)
     .map((result) => result.data);
 

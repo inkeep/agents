@@ -28,7 +28,7 @@ import { buildPersistedMessageContent } from '../services/blob-storage/file-uplo
 import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
-import { ImageUrlSchema } from '../types/chat';
+import { VercelMessageSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
 
@@ -40,17 +40,6 @@ type AppVariables = {
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('chatDataStream');
-const filePartSchema = z
-  .object({
-    type: z.literal('file'),
-    text: z.string(),
-    mediaType: z.string().optional(),
-    mimeType: z.string().optional(),
-    filename: z.string().optional(),
-  })
-  .refine((value) => Boolean(value.mediaType || value.mimeType), {
-    message: 'Either mediaType or mimeType is required for file parts',
-  });
 
 const chatDataStreamRoute = createProtectedRoute({
   method: 'post',
@@ -66,53 +55,7 @@ const chatDataStreamRoute = createProtectedRoute({
         'application/json': {
           schema: z.object({
             model: z.string().optional(),
-            messages: z.array(
-              z.object({
-                role: z.enum(['system', 'user', 'assistant', 'function', 'tool']),
-                content: z.any(),
-                parts: z
-                  .array(
-                    z.union([
-                      z.object({
-                        type: z.literal('text'),
-                        text: z.string(),
-                      }),
-                      z.object({
-                        type: z.literal('image'),
-                        text: ImageUrlSchema,
-                      }),
-                      filePartSchema,
-                      z.object({
-                        type: z.union([
-                          z.enum(['audio', 'video']),
-                          z.string().regex(/^data-/, 'Type must start with "data-"'),
-                        ]),
-                        text: z.string().optional(),
-                      }),
-                      // Special-case: tool approval response part (sent by client)
-                      z.object({
-                        type: z.string().regex(/^tool-/, 'Type must start with "tool-"'),
-                        toolCallId: z.string(),
-                        state: z.any(),
-                        approval: z
-                          .object({
-                            id: z.string(),
-                            approved: z.boolean().optional(),
-                            reason: z.string().optional(),
-                          })
-                          .optional(),
-                        input: z.any().optional(),
-                        callProviderMetadata: z.any().optional(),
-                      }),
-                      // Allow step markers used by client payloads
-                      z.object({
-                        type: z.literal('step-start'),
-                      }),
-                    ])
-                  )
-                  .optional(),
-              })
-            ),
+            messages: z.array(VercelMessageSchema),
             id: z.string().optional(),
             conversationId: z.string().optional(),
             stream: z.boolean().optional().describe('Whether to stream the response').default(true),

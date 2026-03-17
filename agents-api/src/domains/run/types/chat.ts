@@ -62,6 +62,79 @@ export type Message = {
   name?: string;
 };
 
+// --- Vercel data-stream content part schemas ---
+
+export const VercelTextPartSchema = z.object({
+  type: z.literal('text'),
+  text: z.string(),
+});
+
+export const VercelImagePartSchema = z.object({
+  type: z.literal('image'),
+  text: ImageUrlSchema,
+});
+
+const VercelFilePartBaseSchema = z.object({
+  type: z.literal('file'),
+  text: z.string(),
+  mediaType: z.string().optional(),
+  mimeType: z.string().optional(),
+  filename: z.string().optional(),
+});
+
+export const VercelFilePartSchema = VercelFilePartBaseSchema.refine(
+  (value) => Boolean(value.mediaType || value.mimeType),
+  { message: 'Either mediaType or mimeType is required for file parts' }
+);
+
+export const VercelAudioVideoPartSchema = z.object({
+  type: z.union([
+    z.enum(['audio', 'video']),
+    z.string().regex(/^data-/, 'Type must start with "data-"'),
+  ]),
+  text: z.string().optional(),
+});
+
+export const VercelToolApprovalPartSchema = z.object({
+  type: z.string().regex(/^tool-/, 'Type must start with "tool-"'),
+  toolCallId: z.string(),
+  state: z.any(),
+  approval: z
+    .object({
+      id: z.string(),
+      approved: z.boolean().optional(),
+      reason: z.string().optional(),
+    })
+    .optional(),
+  input: z.any().optional(),
+  callProviderMetadata: z.any().optional(),
+});
+
+export const VercelStepStartPartSchema = z.object({
+  type: z.literal('step-start'),
+});
+
+export const VercelMessagePartSchema = z.union([
+  VercelTextPartSchema,
+  VercelImagePartSchema,
+  VercelFilePartSchema,
+  VercelAudioVideoPartSchema,
+  VercelToolApprovalPartSchema,
+  VercelStepStartPartSchema,
+]);
+
+export const VercelMessageSchema = z.object({
+  role: z.enum(['system', 'user', 'assistant', 'function', 'tool']),
+  content: z.any(),
+  parts: z.array(VercelMessagePartSchema).optional(),
+});
+
+export const VercelContentPartSchema = z.union([
+  VercelTextPartSchema,
+  VercelImagePartSchema,
+  VercelFilePartBaseSchema,
+]);
+
 export type ChatCompletionRequest = {
   model: string;
   messages: Message[];
