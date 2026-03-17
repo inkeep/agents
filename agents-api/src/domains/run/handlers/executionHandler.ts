@@ -525,7 +525,7 @@ export class ExecutionHandler {
                 content: {
                   text: textContent || undefined,
                   parts: responseParts.map((part: any) => ({
-                    type: part.kind === 'text' ? 'text' : 'data',
+                    kind: part.kind === 'text' ? 'text' : 'data',
                     text: part.kind === 'text' ? part.text : undefined,
                     data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
                   })),
