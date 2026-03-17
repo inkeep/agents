@@ -3,7 +3,7 @@
 import { ChevronRight, File, Folder, FolderOpenIcon } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
-import { type FC, useState } from 'react';
+import { type FC, type MouseEvent, useState } from 'react';
 import {
   SidebarMenuAction,
   SidebarMenuButton,
@@ -55,25 +55,37 @@ export const TreeNode: FC<{
   const href = node.kind === 'file' ? buildFileHref(node.path) : buildFolderHref();
   const ComponentToUse = nested ? SidebarMenuSubItem : SidebarMenuItem;
   const ButtonToUse = nested ? SidebarMenuSubButton : SidebarMenuButton;
-  console.log(node.children);
+
+  const content = (
+    <>
+      <IconToUse />
+      <span className="min-w-0 flex-1 truncate">{node.name}</span>
+    </>
+  );
+
+  function handleCollapse(event: MouseEvent<HTMLElement>) {
+    event.preventDefault();
+    setCollapsed((v) => !v);
+  }
+
   return (
     <ComponentToUse key={node.path}>
-      <ButtonToUse asChild isActive={isActive}>
-        <NextLink href={href}>
-          <IconToUse />
-          <span className="min-w-0 flex-1 truncate">{node.name}</span>
-        </NextLink>
-      </ButtonToUse>
+      {node.kind === 'file' ? (
+        <SidebarMenuButton className="px-0!">
+          <ButtonToUse asChild isActive={isActive} className="w-full">
+            <NextLink href={href}>{content}</NextLink>
+          </ButtonToUse>
+        </SidebarMenuButton>
+      ) : (
+        <SidebarMenuSubButton onClick={handleCollapse}>{content}</SidebarMenuSubButton>
+      )}
       {node.kind === 'folder' && (
-        <SidebarMenuAction
-          className={cn(!isCollapsed && 'rotate-90')}
-          onClick={() => setCollapsed((v) => !v)}
-        >
+        <SidebarMenuAction className={cn(!isCollapsed && 'rotate-90')} onClick={handleCollapse}>
           <ChevronRight className="size-4" />
         </SidebarMenuAction>
       )}
       {node.children.length > 0 && !isCollapsed && (
-        <SidebarMenuSub>
+        <SidebarMenuSub className="pr-0 mr-0">
           {node.children.map((child) => (
             <TreeNode key={child.path} node={child} selectedPath={selectedPath} nested />
           ))}
