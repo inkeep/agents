@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadExternalImage } from '../blob-storage/external-image-downloader';
+import { downloadExternalFile } from '../blob-storage/external-file-downloader';
 import { MAX_EXTERNAL_REDIRECTS, MAX_FILE_BYTES } from '../blob-storage/file-security-constants';
 
 const VALID_PNG_BYTES = Buffer.from(
@@ -11,7 +11,7 @@ vi.mock('node:dns/promises', () => ({
   lookup: vi.fn(),
 }));
 
-describe('external-image-downloader', () => {
+describe('external-file-downloader', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', vi.fn());
@@ -42,7 +42,7 @@ describe('external-image-downloader', () => {
       })
     );
 
-    const result = await downloadExternalImage('https://example.com/image.jpg');
+    const result = await downloadExternalFile('https://example.com/image.jpg');
     expect(result.mimeType).toBe('image/png');
     expect(result.data).toBeInstanceOf(Uint8Array);
     expect(result.data.length).toBe(VALID_PNG_BYTES.length);
@@ -61,8 +61,8 @@ describe('external-image-downloader', () => {
       return Promise.resolve(isAll ? [result] : result) as Promise<never>;
     });
 
-    await expect(downloadExternalImage('http://localhost/image.png')).rejects.toThrow(
-      /Blocked external image URL resolving to private/
+    await expect(downloadExternalFile('http://localhost/image.png')).rejects.toThrow(
+      /Blocked external file URL resolving to private/
     );
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
@@ -80,15 +80,15 @@ describe('external-image-downloader', () => {
       return Promise.resolve(isAll ? [result] : result) as Promise<never>;
     });
 
-    await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
-      /Blocked external image URL resolving to private/
+    await expect(downloadExternalFile('https://example.com/image.png')).rejects.toThrow(
+      /Blocked external file URL resolving to private/
     );
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it('blocks cloud metadata address path', async () => {
-    await expect(downloadExternalImage('http://169.254.169.254/latest/meta-data')).rejects.toThrow(
-      /Blocked external image URL resolving to private/
+    await expect(downloadExternalFile('http://169.254.169.254/latest/meta-data')).rejects.toThrow(
+      /Blocked external file URL resolving to private/
     );
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
@@ -106,8 +106,8 @@ describe('external-image-downloader', () => {
       return Promise.resolve(isAll ? [result] : result) as Promise<never>;
     });
 
-    await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
-      /Blocked external image URL resolving to private/
+    await expect(downloadExternalFile('https://example.com/image.png')).rejects.toThrow(
+      /Blocked external file URL resolving to private/
     );
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
@@ -120,8 +120,8 @@ describe('external-image-downloader', () => {
       })
     );
 
-    await expect(downloadExternalImage('https://example.com/redirect')).rejects.toThrow(
-      /Blocked external image URL resolving to private/
+    await expect(downloadExternalFile('https://example.com/redirect')).rejects.toThrow(
+      /Blocked external file URL resolving to private/
     );
   });
 
@@ -137,14 +137,14 @@ describe('external-image-downloader', () => {
       })
     );
 
-    await expect(downloadExternalImage('https://example.com/fake.png')).rejects.toThrow(
-      /Blocked external image with unsupported bytes signature/
+    await expect(downloadExternalFile('https://example.com/fake.png')).rejects.toThrow(
+      /Blocked external file with unsupported bytes signature/
     );
   });
 
   it('rejects URL with disallowed port', async () => {
-    await expect(downloadExternalImage('https://example.com:444/image.png')).rejects.toThrow(
-      /Blocked external image URL with disallowed port/
+    await expect(downloadExternalFile('https://example.com:444/image.png')).rejects.toThrow(
+      /Blocked external file URL with disallowed port/
     );
   });
 
@@ -157,13 +157,13 @@ describe('external-image-downloader', () => {
       })
     );
 
-    await expect(downloadExternalImage('https://example.com/huge.png')).rejects.toThrow(
-      /Blocked external image larger than/
+    await expect(downloadExternalFile('https://example.com/huge.png')).rejects.toThrow(
+      /Blocked external file larger than/
     );
   });
 
   it('rejects invalid URL', async () => {
-    await expect(downloadExternalImage('not-a-url')).rejects.toThrow(/Invalid external image URL/);
+    await expect(downloadExternalFile('not-a-url')).rejects.toThrow(/Invalid external file URL/);
   });
 
   it('enforces redirect limit', async () => {
@@ -178,8 +178,8 @@ describe('external-image-downloader', () => {
     }
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(downloadExternalImage('https://example.com/r0')).rejects.toThrow(
-      /Too many redirects while downloading image/
+    await expect(downloadExternalFile('https://example.com/r0')).rejects.toThrow(
+      /Too many redirects while downloading file/
     );
     expect(fetchMock).toHaveBeenCalledTimes(MAX_EXTERNAL_REDIRECTS + 1);
   });
@@ -202,8 +202,8 @@ describe('external-image-downloader', () => {
       })
     );
 
-    await expect(downloadExternalImage('https://example.com/under-reported.png')).rejects.toThrow(
-      /Blocked external image exceeding/
+    await expect(downloadExternalFile('https://example.com/under-reported.png')).rejects.toThrow(
+      /Blocked external file exceeding/
     );
   });
 
@@ -211,20 +211,20 @@ describe('external-image-downloader', () => {
     const { lookup } = vi.mocked(await import('node:dns/promises'));
     lookup.mockRejectedValueOnce(new Error('ENOTFOUND'));
 
-    await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
-      /Unable to resolve external image host: example\.com/
+    await expect(downloadExternalFile('https://example.com/image.png')).rejects.toThrow(
+      /Unable to resolve external file host: example\.com/
     );
   });
 
   it('rejects unsupported scheme', async () => {
-    await expect(downloadExternalImage('ftp://example.com/image.png')).rejects.toThrow(
-      /Blocked external image URL with unsupported scheme/
+    await expect(downloadExternalFile('ftp://example.com/image.png')).rejects.toThrow(
+      /Blocked external file URL with unsupported scheme/
     );
   });
 
   it('rejects URL with embedded credentials', async () => {
-    await expect(downloadExternalImage('https://user:pass@example.com/image.png')).rejects.toThrow(
-      /Blocked external image URL with embedded credentials/
+    await expect(downloadExternalFile('https://user:pass@example.com/image.png')).rejects.toThrow(
+      /Blocked external file URL with embedded credentials/
     );
   });
 
@@ -237,11 +237,11 @@ describe('external-image-downloader', () => {
     );
 
     await expect(
-      downloadExternalImage('https://example.com/image.png?token=super-secret#hash')
+      downloadExternalFile('https://example.com/image.png?token=super-secret#hash')
     ).rejects.toThrow(/https:\/\/example\.com\/image\.png/);
 
     await expect(
-      downloadExternalImage('https://example.com/image.png?token=super-secret#hash')
+      downloadExternalFile('https://example.com/image.png?token=super-secret#hash')
     ).rejects.not.toThrow(/super-secret|#hash|\?/);
   });
 
@@ -259,8 +259,8 @@ describe('external-image-downloader', () => {
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
-      /Failed to download image/
+    await expect(downloadExternalFile('https://example.com/image.png')).rejects.toThrow(
+      /Failed to download file/
     );
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
@@ -282,7 +282,7 @@ describe('external-image-downloader', () => {
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    const result = await downloadExternalImage('https://example.com/image.png');
+    const result = await downloadExternalFile('https://example.com/image.png');
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(result.mimeType).toBe('image/png');
     expect(result.data).toBeInstanceOf(Uint8Array);
@@ -295,8 +295,8 @@ describe('external-image-downloader', () => {
       .mockResolvedValueOnce(new Response('nope', { status: 400, statusText: 'Bad Request' }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(downloadExternalImage('https://example.com/image.png')).rejects.toThrow(
-      /Failed to download image/
+    await expect(downloadExternalFile('https://example.com/image.png')).rejects.toThrow(
+      /Failed to download file/
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

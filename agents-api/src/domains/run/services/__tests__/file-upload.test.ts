@@ -1,6 +1,6 @@
 import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadExternalImage } from '../blob-storage/external-image-downloader';
+import { downloadExternalFile } from '../blob-storage/external-file-downloader';
 import { normalizeInlineFileBytes } from '../blob-storage/file-content-security';
 import { makeMessageContentParts, uploadPartsFiles } from '../blob-storage/file-upload';
 
@@ -24,8 +24,8 @@ vi.mock('../blob-storage/index', () => ({
   toBlobUri: (key: string) => `blob://${key}`,
 }));
 
-vi.mock('../blob-storage/external-image-downloader', () => ({
-  downloadExternalImage: vi.fn(),
+vi.mock('../blob-storage/external-file-downloader', () => ({
+  downloadExternalFile: vi.fn(),
 }));
 
 vi.mock('../blob-storage/file-content-security', () => ({
@@ -49,7 +49,7 @@ describe('uploadPartsFiles', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUpload.mockResolvedValue(undefined);
-    vi.mocked(downloadExternalImage).mockResolvedValue({
+    vi.mocked(downloadExternalFile).mockResolvedValue({
       data: Uint8Array.from(PNG_BYTES),
       mimeType: 'image/png',
     });
@@ -63,8 +63,8 @@ describe('uploadPartsFiles', () => {
     const parts: Part[] = [{ kind: 'file', file: { uri: 'https://example.com/image.jpg' } }];
     const uploaded = await uploadPartsFiles(parts, uploadContext);
 
-    expect(downloadExternalImage).toHaveBeenCalledTimes(1);
-    expect(downloadExternalImage).toHaveBeenCalledWith('https://example.com/image.jpg');
+    expect(downloadExternalFile).toHaveBeenCalledTimes(1);
+    expect(downloadExternalFile).toHaveBeenCalledWith('https://example.com/image.jpg');
     expect(normalizeInlineFileBytes).not.toHaveBeenCalled();
     expect(mockUpload).toHaveBeenCalledTimes(1);
     const expectedKeyPrefix = 'v1/t_tenant/media/p_project/conv/c_conversation/m_message/sha256-';
@@ -95,7 +95,7 @@ describe('uploadPartsFiles', () => {
       bytes: PNG_BYTES.toString('base64'),
       mimeType: 'image/jpeg',
     });
-    expect(downloadExternalImage).not.toHaveBeenCalled();
+    expect(downloadExternalFile).not.toHaveBeenCalled();
     expect(mockUpload).toHaveBeenCalledTimes(1);
     expect(uploaded).toHaveLength(1);
     expect(uploaded[0]).toMatchObject({
@@ -166,8 +166,8 @@ describe('uploadPartsFiles', () => {
     });
   });
 
-  it('drops URI file part when downloadExternalImage throws', async () => {
-    vi.mocked(downloadExternalImage).mockRejectedValueOnce(new Error('blocked external image'));
+  it('drops URI file part when downloadExternalFile throws', async () => {
+    vi.mocked(downloadExternalFile).mockRejectedValueOnce(new Error('blocked external file'));
 
     const parts: Part[] = [{ kind: 'file', file: { uri: 'https://example.com/blocked.jpg' } }];
     const uploaded = await uploadPartsFiles(parts, uploadContext);
@@ -190,7 +190,7 @@ describe('uploadPartsFiles', () => {
     const uploaded = await uploadPartsFiles(parts, uploadContext);
 
     expect(uploaded).toEqual([]);
-    expect(downloadExternalImage).not.toHaveBeenCalled();
+    expect(downloadExternalFile).not.toHaveBeenCalled();
     expect(mockUpload).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -216,7 +216,7 @@ describe('uploadPartsFiles', () => {
     ];
     const uploaded = await uploadPartsFiles(parts, uploadContext);
 
-    expect(downloadExternalImage).not.toHaveBeenCalled();
+    expect(downloadExternalFile).not.toHaveBeenCalled();
     expect(mockUpload).not.toHaveBeenCalled();
     expect(uploaded).toEqual([]);
   });

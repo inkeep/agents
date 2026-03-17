@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { DataPart, FilePart, MessageContent, Part, TextPart } from '@inkeep/agents-core';
 import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { getLogger } from '../../../../logger';
-import { downloadExternalImage } from './external-image-downloader';
+import { downloadExternalFile } from './external-file-downloader';
 import { normalizeInlineFileBytes } from './file-content-security';
 import { BlockedExternalPdfUrlNotSupportedError } from './file-security-errors';
 import { getBlobStorageProvider, toBlobUri } from './index';
@@ -39,7 +39,7 @@ async function uploadFilePart(
     if (file.mimeType?.toLowerCase().startsWith('application/pdf')) {
       throw new BlockedExternalPdfUrlNotSupportedError();
     }
-    const downloaded = await downloadExternalImage(file.uri);
+    const downloaded = await downloadExternalFile(file.uri);
     data = downloaded.data;
     mimeType = downloaded.mimeType;
   } else {
