@@ -875,19 +875,20 @@ export async function executeAgentAsync(params: {
         });
 
         await createMessage(runDbClient)({
-          id: generateId(),
-          tenantId,
-          projectId,
-          conversationId,
-          role: 'user',
-          content: {
-            text: userMessage,
-            parts: messageParts,
-          },
-          metadata: {
-            a2a_metadata: {
-              triggerId,
-              invocationId,
+          scopes: { tenantId, projectId },
+          data: {
+            id: generateId(),
+            conversationId,
+            role: 'user',
+            content: {
+              text: userMessage,
+              parts: messageParts,
+            },
+            metadata: {
+              a2a_metadata: {
+                triggerId,
+                invocationId,
+              },
             },
           },
         });

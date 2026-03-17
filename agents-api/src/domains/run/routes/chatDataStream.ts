@@ -368,14 +368,15 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
 
       await createMessage(runDbClient)({
-        id: userMessageId,
-        tenantId,
-        projectId,
-        conversationId,
-        role: 'user',
-        content: messageContent,
-        visibility: 'user-facing',
-        messageType: 'chat',
+        scopes: { tenantId, projectId },
+        data: {
+          id: userMessageId,
+          conversationId,
+          role: 'user',
+          content: messageContent,
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
       });
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
@@ -391,6 +392,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
         const emitOperations = emitOperationsHeader === 'true';
 
         const bufferingHelper = createBufferingStreamHelper();
+        const responseMessageId = generateId();
 
         const executionHandler = new ExecutionHandler();
         const result = await executionHandler.execute({
@@ -403,6 +405,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           sseHelper: bufferingHelper,
           emitOperations,
           forwardedHeaders,
+          responseMessageId,
         });
 
         const captured = bufferingHelper.getCapturedResponse();
@@ -430,9 +433,13 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
+      const responseMessageId = generateId();
+
       // Create UI Message Stream using AI SDK V5
       const dataStream = createUIMessageStream({
         execute: async ({ writer }) => {
+          writer.write({ type: 'start', messageId: responseMessageId });
+
           const streamHelper = createVercelStreamHelper(writer);
           let unsubscribe: (() => void) | undefined;
           try {
@@ -513,6 +520,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               emitOperations,
               datasetRunId: datasetRunId || undefined,
               forwardedHeaders,
+              responseMessageId,
             });
 
             if (!result.success) {
