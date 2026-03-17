@@ -89,6 +89,10 @@ export interface SkillDefinition {
   description: string;
   content: string;
   metadata: Record<string, string> | null;
+  files?: Array<{
+    filePath: string;
+    content: string;
+  }>;
   createdAt?: string;
   updatedAt?: string;
 }
