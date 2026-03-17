@@ -117,13 +117,13 @@
 /* numbered step indicators in TOC */
 #nd-toc .numbered-step-toc-item {
   position: relative !important;
-  padding-inline-start: 22px !important;
+  padding-inline-start: 46px !important;
 }
 
 #nd-toc .numbered-step-toc-item::before {
   content: attr(data-step-number);
   position: absolute;
-  inset-inline-start: 2px;
+  inset-inline-start: 26px;
   top: 8px;
   width: 15px;
   height: 15px;
