@@ -1,9 +1,9 @@
 import type { FC } from 'react';
-import { PromptEditor } from '@/components/editors/prompt-editor';
 import FullPageError from '@/components/errors/full-page-error';
 import { findFirstFile, findNodeByPath } from '@/components/skills/tree-utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { fetchSkillsPageData } from './skills-data';
+import { MonacoEditor } from '@/components/editors/monaco-editor';
 
 const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({
   params,
@@ -39,7 +39,17 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
           </p>
           <h2 className="text-xl font-semibold">{selectedNode.name}</h2>
         </div>
-        <PromptEditor value={selectedNode.content} uri="test.md" />
+        <MonacoEditor
+          uri={selectedNode.path}
+          value={selectedNode.content}
+          readOnly
+          editorOptions={{
+            unicodeHighlight: {
+              // Disable warnings for – ’ characters
+              ambiguousCharacters: false,
+            },
+          }}
+        />
       </div>
     );
   } catch (error) {
