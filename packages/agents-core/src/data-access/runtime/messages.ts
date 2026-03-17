@@ -112,20 +112,28 @@ export const getVisibleMessages =
     return await query;
   };
 
-export const createMessage = (db: AgentsRunDatabaseClient) => async (params: MessageInsert) => {
-  const now = new Date().toISOString();
+export const createMessage =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    data: Omit<MessageInsert, 'tenantId' | 'projectId'>;
+  }) => {
+    const { scopes, data } = params;
+    const now = new Date().toISOString();
 
-  const [created] = await db
-    .insert(messages)
-    .values({
-      ...params,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
+    const [created] = await db
+      .insert(messages)
+      .values({
+        ...data,
+        tenantId: scopes.tenantId,
+        projectId: scopes.projectId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
 
-  return created;
-};
+    return created;
+  };
 
 export const updateMessage =
   (db: AgentsRunDatabaseClient) =>
