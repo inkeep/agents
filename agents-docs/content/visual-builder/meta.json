@@ -4,6 +4,7 @@
     "tools",
     "headers",
     "structured-outputs",
+    "triggers",
     "context-fetchers",
     "access-control",
     "skills",

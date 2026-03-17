@@ -1,12 +1,12 @@
 ---
 title: Webhook Triggers
 description: Create webhook endpoints for external services to invoke your Agents
-icon: LuZap
+icon: LuWebhook
 ---
 
 Triggers create webhook endpoints that allow external services to invoke your Agents via HTTP. When a service like GitHub, Slack, Zendesk, or Stripe sends a webhook, the payload is validated, transformed, and used to start a new conversation with your Agent.
 
-Triggers simply put are HTTP URLs you create that you can send POST requests to, to invoke the agent. Once you create the webhook URL in the dashboard, you can hook it up to external services like GitHub, Slack, Zendesk, or Stripe to trigger your agent. An example of when a webhook URL comes in handy for example in Zendesk, you can go into Zendesk's configuration settings and input the webhook URL you created in the Inkeep dashboard to trigger your agent when a new ticket is created or updated. The same can be applied to other services like GitHub, PagerDuty, or Stripe.
+Triggers are HTTP URLs you create that you can send POST requests to, to invoke the agent. Once you create the webhook URL in the dashboard, you can hook it up to external services like GitHub, Slack, Zendesk, or Stripe to trigger your agent. For example in Zendesk, you can go into Zendesk's configuration settings and input the webhook URL you created in the Inkeep dashboard to trigger your agent when a new ticket is created or updated. The same can be applied to other services like GitHub, PagerDuty, or Stripe.
 
 ## How Triggers Work
 
@@ -90,3 +90,17 @@ Every webhook invocation is tracked with:
 - **Error Message**: Details if the invocation failed
 
 This allows you to monitor webhook activity, debug failures, and audit trigger usage.
+
+## Next Steps
+
+<Cards>
+  <Card title="Define in Code" icon="LuCode" href="/typescript-sdk/triggers/webhooks">
+    Create webhook triggers using the TypeScript SDK.
+  </Card>
+  <Card title="Scheduled Triggers" icon="LuClock" href="/visual-builder/triggers/scheduled">
+    Run agents on a recurring schedule or at a specific future time.
+  </Card>
+  <Card title="Chat API" icon="LuNetwork" href="/talk-to-your-agents/chat-api">
+    For synchronous conversations, use the Chat API.
+  </Card>
+</Cards>
