@@ -16,8 +16,11 @@ import { NodeTab } from './node-tab';
 export function ExternalAgentNode({ data, selected }: NodeProps & { data: ExternalAgentNodeData }) {
   const { control } = useFullAgentFormContext();
   const externalAgent = useWatch({ control, name: `externalAgents.${data.id}` });
-  const { name, description } = externalAgent;
   const processedErrors = useProcessedErrors('externalAgents', data.id);
+  if (!externalAgent) {
+    return;
+  }
+  const { name, description } = externalAgent;
   const hasErrors = processedErrors.length > 0;
   return (
     <div className="relative">

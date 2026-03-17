@@ -16,10 +16,11 @@ import { NodeTab } from './node-tab';
 export function TeamAgentNode({ data, selected }: NodeProps & { data: TeamAgentNodeData }) {
   const { control } = useFullAgentFormContext();
   const teamAgent = useWatch({ control, name: `teamAgents.${data.id}` });
-  const { name, description } = teamAgent;
-
-  // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
   const processedErrors = useProcessedErrors('teamAgents', data.id);
+  if (!teamAgent) {
+    return;
+  }
+  const { name, description } = teamAgent;
   const hasErrors = processedErrors.length > 0;
 
   return (

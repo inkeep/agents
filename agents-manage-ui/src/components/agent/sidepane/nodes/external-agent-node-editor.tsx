@@ -81,7 +81,7 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
       />
       <GenericJsonEditor
         control={form.control}
-        name={path('headers')}
+        name={headersPath}
         label="Headers"
         placeholder="{}"
         customTemplate={externalAgentHeadersTemplate}

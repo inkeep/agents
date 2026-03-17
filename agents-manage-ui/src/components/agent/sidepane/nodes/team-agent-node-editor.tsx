@@ -75,7 +75,7 @@ export function TeamAgentNodeEditor({ selectedNode }: TeamAgentNodeEditorProps) 
       />
       <GenericJsonEditor
         control={form.control}
-        name={path('headers')}
+        name={headersPath}
         label="Headers"
         placeholder="{}"
         customTemplate={teamAgentHeadersTemplate}
