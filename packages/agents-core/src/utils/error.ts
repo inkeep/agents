@@ -83,8 +83,11 @@ export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
 function sanitizeErrorMessage(message: string): string {
   return message
+    .replace(
+      /(?:postgresql|postgres|mysql|mongodb(?:\+srv)?|redis|rediss|amqp):\/\/[^\s,)]+/gi,
+      '[REDACTED_CONNECTION]'
+    )
     .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?\b/g, '[REDACTED_HOST]')
-    .replace(/postgresql:\/\/[^\s,)]+/gi, '[REDACTED_CONNECTION]')
     .replace(/\/(?:var|tmp|home|usr|etc|opt)\/\S+/g, '[REDACTED_PATH]')
     .replace(/\b(password|token|key|secret|auth|credential)\b/gi, '[REDACTED]');
 }

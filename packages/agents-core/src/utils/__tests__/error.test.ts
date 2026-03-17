@@ -28,6 +28,27 @@ describe('sanitizeErrorMessage (via createApiError)', () => {
     expect(body.detail).not.toContain('appuser');
   });
 
+  it('redacts connection string containing IP without leaking credentials', async () => {
+    const body = await getResponseBody(
+      'postgresql://admin:s3cret@10.0.0.5:5432/mydb connection failed'
+    );
+    expect(body.detail).toBe('[REDACTED_CONNECTION] connection failed');
+    expect(body.detail).not.toContain('admin');
+    expect(body.detail).not.toContain('s3cret');
+    expect(body.detail).not.toContain('10.0.0.5');
+  });
+
+  it('redacts other database connection schemes', async () => {
+    const mysql = await getResponseBody('mysql://root:pass@db:3306/app failed');
+    expect(mysql.detail).toBe('[REDACTED_CONNECTION] failed');
+
+    const redis = await getResponseBody('redis://default:pass@cache:6379 timeout');
+    expect(redis.detail).toBe('[REDACTED_CONNECTION] timeout');
+
+    const mongo = await getResponseBody('mongodb+srv://user:pass@cluster.example.com/db error');
+    expect(mongo.detail).toBe('[REDACTED_CONNECTION] error');
+  });
+
   it('redacts server file paths', async () => {
     const body = await getResponseBody('Error at /var/task/packages/agents-core/dist/index.js:42');
     expect(body.detail).not.toContain('/var/task');
