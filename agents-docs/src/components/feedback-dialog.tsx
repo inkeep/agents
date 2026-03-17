@@ -75,11 +75,28 @@ export function FeedbackDialog() {
 
       <dialog ref={dialogRef} className="feedback-dialog">
         {status === 'success' ? (
-          <div className="feedback-dialog-inner">
-            <button type="button" onClick={close} className="feedback-close" aria-label="Close">
-              &times;
+          <div className="feedback-dialog-inner feedback-success-pane">
+            <div className="feedback-success-icon" aria-hidden="true">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                role="img"
+              >
+                <title>Success</title>
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+            <p className="feedback-success-heading">Thank you!</p>
+            <p className="feedback-success-body">Your feedback helps us improve the docs.</p>
+            <button type="button" onClick={close} className="feedback-done-button">
+              Done
             </button>
-            <p className="feedback-success-text">Thanks for your feedback!</p>
           </div>
         ) : (
           <div className="feedback-dialog-inner">

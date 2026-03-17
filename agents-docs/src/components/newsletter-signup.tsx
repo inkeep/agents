@@ -2,8 +2,7 @@
 
 import { type FormEvent, useId, useState } from 'react';
 
-const SUBSCRIBE_URL =
-  process.env.NEXT_PUBLIC_NEWSLETTER_SUBSCRIBE_URL ?? 'https://inkeep.com/api/newsletter/subscribe';
+const SUBSCRIBE_URL = '/api/newsletter/subscribe';
 
 type Status = 'idle' | 'submitting' | 'success' | 'error';
 
