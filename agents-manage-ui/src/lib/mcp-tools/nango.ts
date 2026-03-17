@@ -415,7 +415,7 @@ export async function createProviderConnectSession({
       console.debug(`Integration '${providerName}' not found, will create new one`);
     }
 
-    if (existingIntegration?.areCredentialsSet) {
+    if (existingIntegration) {
       integration = existingIntegration;
     } else {
       try {
