@@ -166,7 +166,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Invalid team agent token: Invalid token');
+      expect(body).toContain('Invalid Token');
       expect(validateAndGetApiKeyMock).toHaveBeenCalledWith(
         'sk_test_1234567890abcdef.verylongsecretkey',
         expect.any(Object)
@@ -380,7 +380,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Invalid team agent token: Invalid token');
+      expect(body).toContain('Invalid Token');
       expect(validateAndGetApiKey).toHaveBeenCalledWith(
         'invalid_key_not_matching_bypass',
         expect.any(Object)
@@ -480,7 +480,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Invalid team agent token: Invalid signature');
+      expect(body).toContain('Invalid Token');
     });
 
     it('should reject team agent JWT tokens with target agent mismatch', async () => {
@@ -954,7 +954,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('insufficient permissions');
+      expect(body).toContain('Invalid Token');
     });
 
     it('should reject when missing required headers', async () => {
@@ -976,7 +976,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('requires x-inkeep-project-id and x-inkeep-agent-id');
+      expect(body).toContain('Invalid Token');
     });
 
     it('should return 503 when SpiceDB is unavailable', async () => {

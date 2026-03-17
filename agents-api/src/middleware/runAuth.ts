@@ -720,9 +720,12 @@ async function runApiKeyAuthHandler(
   }
 
   if (!attempt.authResult) {
-    logger.error({}, 'API key authentication error - no valid auth method found');
+    logger.error(
+      { failureMessage: attempt.failureMessage },
+      'API key authentication error - no valid auth method found'
+    );
     throw new HTTPException(401, {
-      message: attempt.failureMessage || 'Invalid Token',
+      message: 'Invalid Token',
     });
   }
 
