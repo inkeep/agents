@@ -1,5 +1,20 @@
 # @inkeep/agents-work-apps
 
+## 0.58.15
+
+### Patch Changes
+
+- b10c96f: Fix tenant path injection in Slack OAuth callback by validating tenantId against allowed characters
+- 1ca09cd: Remove unwanted im:\* OAuth scopes and derive bot scopes from manifest as single source of truth
+- Updated dependencies [abaefda]
+  - @inkeep/agents-core@0.58.15
+
+## 0.58.14
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.14
+
 ## 0.58.13
 
 ### Patch Changes

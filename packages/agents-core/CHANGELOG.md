@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.58.15
+
+### Patch Changes
+
+- abaefda: Add defense-in-depth tenant scoping to runtime DAL functions and migrate all DAL files to type-safe scope helpers
+
+## 0.58.14
+
 ## 0.58.13
 
 ## 0.58.12

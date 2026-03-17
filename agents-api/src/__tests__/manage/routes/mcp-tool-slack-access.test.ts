@@ -394,4 +394,19 @@ describe('MCP Tool Slack Access Routes', () => {
       expect(response.status).toBe(500);
     });
   });
+
+  describe('PATCH /tools/:toolId/slack-access (backward compatibility)', () => {
+    it('should update slack access via PATCH', async () => {
+      const response = await app.request(
+        `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/slack-access`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelAccessMode: 'all', dmEnabled: true }),
+        }
+      );
+
+      expect(response.status).toBe(200);
+    });
+  });
 });

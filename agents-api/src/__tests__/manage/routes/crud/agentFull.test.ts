@@ -717,6 +717,29 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('PATCH /{agentId} (backward compatibility)', () => {
+    it('should update an existing agent via PATCH', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-full-patch-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentData } = await createTestAgent(tenantId);
+
+      const updatedAgentData = {
+        ...agentData,
+        name: 'PATCH Updated Agent',
+      };
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(updatedAgentData),
+        }
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('DELETE /{agentId}', () => {
     it('should delete an agent and its relationships', async () => {
       const tenantId = await createTestTenantWithOrg('agent-delete');
@@ -2063,6 +2086,42 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       expect(tool).toHaveProperty('capabilities');
       expect(tool).toHaveProperty('lastError');
       expect(tool).toHaveProperty('availableTools');
+    });
+  });
+
+  describe('Error Handling - static error messages', () => {
+    it('should return static message on 404 for non-existent agent', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-err');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const response = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent/non-existent-agent`,
+        {
+          method: 'GET',
+          expectError: true,
+        }
+      );
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+      expect(body.detail).toBe('Agent not found');
+    });
+
+    it('should return static message on 404 for delete of non-existent agent', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-err');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const response = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent/non-existent-agent`,
+        {
+          method: 'DELETE',
+          expectError: true,
+        }
+      );
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+      expect(body.detail).toBe('Agent not found');
     });
   });
 });

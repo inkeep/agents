@@ -18,6 +18,10 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -148,57 +152,58 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Skill',
-    operationId: 'update-skill',
-    tags: ['Skills'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: SkillApiUpdateSchema,
-          },
+const updateSkillRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Skill',
+  tags: ['Skills'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: SkillApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Skill updated successfully',
-        content: {
-          'application/json': {
-            schema: SkillResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Skill updated successfully',
+      content: {
+        'application/json': {
+          schema: SkillResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    const skill = await updateSkill(db)({
-      scopes: { tenantId, projectId },
-      skillId: id,
-      data: body,
+const updateSkillHandler: ManageRouteHandler<typeof updateSkillRouteConfig> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const skill = await updateSkill(db)({
+    scopes: { tenantId, projectId },
+    skillId: id,
+    data: body,
+  });
+
+  if (!skill) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Skill not found',
     });
-
-    if (!skill) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Skill not found',
-      });
-    }
-
-    return c.json({ data: skill });
   }
-);
+
+  return c.json({ data: skill });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateSkillRouteConfig, updateSkillHandler, {
+  operationId: 'update-skill',
+});
 
 app.openapi(
   createProtectedRoute({

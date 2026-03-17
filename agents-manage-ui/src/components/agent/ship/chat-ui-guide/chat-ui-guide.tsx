@@ -18,16 +18,17 @@ interface ChatUIProps {
 
 export function ChatUIGuide() {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-  const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
   const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
   const form = useForm<Partial<ChatUIProps>>({
     defaultValues: {
       component: ChatUIComponent.EMBEDDED_CHAT,
       baseSettings: {
         primaryBrandColor: INKEEP_BRAND_COLOR,
+        shouldBypassCaptcha: true,
       },
       aiChatSettings: {
-        agentUrl,
+        baseUrl,
+        isChatHistoryButtonVisible: false,
         aiAssistantAvatar: '',
         introMessage: 'Hi! How can I help?',
         placeholder: 'How do I get started?',
@@ -39,7 +40,7 @@ export function ChatUIGuide() {
   const component = allValues.component ?? ChatUIComponent.EMBEDDED_CHAT;
   const baseSettings = allValues.baseSettings ?? { primaryBrandColor: INKEEP_BRAND_COLOR };
   const aiChatSettings = allValues.aiChatSettings ?? {
-    agentUrl,
+    baseUrl,
   };
   const shouldEmitDataOperations = allValues.shouldEmitDataOperations ?? true;
 

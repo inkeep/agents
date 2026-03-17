@@ -39,11 +39,14 @@ class TestCompressor extends BaseCompressor {
       artifactIds: ['artifact-1', 'artifact-2'],
       summary: {
         type: 'conversation_summary_v1' as const,
+        session_id: null,
+        _fallback: null,
         high_level: 'Test compression summary',
         user_intent: 'test',
         decisions: [],
         open_questions: [],
         next_steps: { for_agent: [], for_user: [] },
+        related_artifacts: null,
       },
     };
   }
@@ -105,6 +108,8 @@ describe('BaseCompressor', () => {
       // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       compressor['cumulativeSummary'] = {
         type: 'conversation_summary_v1',
+        session_id: null,
+        _fallback: null,
         high_level: 'test summary',
         user_intent: 'test intent',
         decisions: ['decision1'],
@@ -113,6 +118,7 @@ describe('BaseCompressor', () => {
           for_agent: ['step1'],
           for_user: ['step2'],
         },
+        related_artifacts: null,
       };
 
       // Full cleanup should reset everything

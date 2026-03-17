@@ -28,6 +28,7 @@ import {
   setBotTokenForTeam,
   storeWorkspaceInstallation,
 } from '../services';
+import { BOT_SCOPES_CSV } from '../slack-scopes';
 import type { WorkAppsVariables } from '../types';
 
 const logger = getLogger('slack-oauth');
@@ -115,6 +116,10 @@ export function parseOAuthState(stateStr: string): OAuthState | null {
   }
 }
 
+export function sanitizeTenantId(raw: string): string {
+  return /^[a-zA-Z0-9_-]+$/.test(raw) ? raw : '';
+}
+
 const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 
 export { getBotTokenForTeam, setBotTokenForTeam };
@@ -144,32 +149,11 @@ app.openapi(
     const clientId = env.SLACK_CLIENT_ID;
     const redirectUri = `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`;
 
-    const botScopes = [
-      'app_mentions:read',
-      'channels:history',
-      'channels:read',
-      'chat:write',
-      'chat:write.public',
-      'commands',
-      'files:write',
-      'groups:history',
-      'groups:read',
-      'im:history',
-      'im:read',
-      'im:write',
-      'team:read',
-      'users:read',
-      'users:read.email',
-      'search:read.public',
-      'search:read.files',
-      'search:read.users',
-    ].join(',');
-
     const state = createOAuthState(tenantId);
 
     const slackAuthUrl = new URL('https://slack.com/oauth/v2/authorize');
     slackAuthUrl.searchParams.set('client_id', clientId || '');
-    slackAuthUrl.searchParams.set('scope', botScopes);
+    slackAuthUrl.searchParams.set('scope', BOT_SCOPES_CSV);
     slackAuthUrl.searchParams.set('redirect_uri', redirectUri);
     slackAuthUrl.searchParams.set('state', state);
 
@@ -205,7 +189,14 @@ app.openapi(
     const { code, error, state: stateParam } = c.req.valid('query');
 
     const parsedState = stateParam ? parseOAuthState(stateParam) : null;
-    const tenantId = parsedState?.tenantId || '';
+    const rawTenantId = parsedState?.tenantId || '';
+    const tenantId = sanitizeTenantId(rawTenantId);
+    if (rawTenantId && !tenantId) {
+      logger.warn(
+        { rawTenantId: rawTenantId.slice(0, 50) },
+        'Rejected invalid tenantId from OAuth state'
+      );
+    }
     const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
     if (!stateParam || !parsedState) {

@@ -550,7 +550,7 @@ export function serializeAgentData(
   const result: FullAgentDefinition = {
     id: metadata?.id || generateId(),
     name: metadata?.name ?? '',
-    description: metadata?.description || undefined,
+    description: metadata?.description,
     defaultSubAgentId,
     subAgents: subAgents,
     ...(Object.keys(functionTools).length > 0 && { functionTools }),

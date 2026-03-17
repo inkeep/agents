@@ -326,9 +326,6 @@
             "nullable": true,
             "type": "string"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "defaultSubAgentId": {
             "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
             "example": "my-default-subagent",
@@ -340,9 +337,6 @@
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
-          },
-          "id": {
-            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "anyOf": [
@@ -443,9 +437,6 @@
                 "nullable": true
               }
             ]
-          },
-          "updatedAt": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -10547,21 +10538,6 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/api/workflow/process": {
-      "get": {
-        "description": "Keeps the workflow worker active to process queued jobs (called by cron)",
-        "responses": {
-          "200": {
-            "description": "Processing complete"
-          }
-        },
-        "security": [],
-        "summary": "Process workflow jobs",
-        "tags": [
-          "Workflows"
-        ]
-      }
-    },
     "/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversation": {
       "post": {
         "operationId": "evaluate-conversation",
@@ -11263,7 +11239,7 @@
           "resource": "organization"
         }
       },
-      "put": {
+      "patch": {
         "description": "Create or update the profile for a specific user. Users can only update their own profile.",
         "operationId": "upsert-user-profile",
         "parameters": [
@@ -15215,7 +15191,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-context-config",
         "parameters": [
           {
@@ -15971,7 +15947,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-function-tool",
         "parameters": [
           {
@@ -20158,7 +20134,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-relation",
         "parameters": [
           {
@@ -21281,7 +21257,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-subagent-tool-relation",
         "parameters": [
           {
@@ -21883,7 +21859,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-subagent",
         "parameters": [
           {
@@ -22514,7 +22490,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-external-agent-relation",
         "parameters": [
           {
@@ -23275,7 +23251,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-team-agent-relation",
         "parameters": [
           {
@@ -24731,7 +24707,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-agent",
         "parameters": [
           {
@@ -25312,7 +25288,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Update an API key (currently only expiration date can be changed)",
         "operationId": "update-api-key",
         "parameters": [
@@ -25893,7 +25869,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Update an app credential configuration",
         "operationId": "update-app",
         "parameters": [
@@ -26440,7 +26416,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-artifact-component",
         "parameters": [
           {
@@ -28312,7 +28288,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-credential",
         "parameters": [
           {
@@ -28858,7 +28834,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-data-component",
         "parameters": [
           {
@@ -34625,7 +34601,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-external-agent",
         "parameters": [
           {
@@ -35221,7 +35197,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-function",
         "parameters": [
           {
@@ -37061,7 +37037,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-skill",
         "parameters": [
           {
@@ -37972,7 +37948,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-tool",
         "parameters": [
           {
@@ -39533,7 +39509,7 @@
     },
     "/run/auth/apps/{appId}/anonymous-session": {
       "post": {
-        "description": "Issue an anonymous session JWT for a web_client app. The app must have anonymous access enabled and the Origin must match an allowed domain.",
+        "description": "Issue an anonymous session JWT for a web_client app. If a valid Bearer token for the same app is provided, the existing anonymous identity is preserved with a fresh expiry (rolling refresh). Otherwise a new identity is created.",
         "operationId": "create-anonymous-session",
         "parameters": [
           {

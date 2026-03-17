@@ -9,6 +9,7 @@ import type {
   ProjectScopeConfig,
 } from '../../types/index';
 import type { WithTimestamps } from '../../validation/extend-schemas';
+import { projectScopedWhere } from './scope-helpers';
 
 /**
  * Create a new external agent
@@ -32,8 +33,7 @@ export const getExternalAgent =
   }): Promise<ExternalAgentSelect | null> => {
     const result = await db.query.externalAgents.findFirst({
       where: and(
-        eq(externalAgents.tenantId, params.scopes.tenantId),
-        eq(externalAgents.projectId, params.scopes.projectId),
+        projectScopedWhere(externalAgents, params.scopes),
         eq(externalAgents.id, params.externalAgentId)
       ),
     });
@@ -52,8 +52,7 @@ export const getExternalAgentByUrl =
   }): Promise<ExternalAgentSelect | null> => {
     const result = await db.query.externalAgents.findFirst({
       where: and(
-        eq(externalAgents.tenantId, params.scopes.tenantId),
-        eq(externalAgents.projectId, params.scopes.projectId),
+        projectScopedWhere(externalAgents, params.scopes),
         eq(externalAgents.baseUrl, params.baseUrl)
       ),
     });
@@ -68,10 +67,7 @@ export const listExternalAgents =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<ExternalAgentSelect[]> => {
     return await db.query.externalAgents.findMany({
-      where: and(
-        eq(externalAgents.tenantId, params.scopes.tenantId),
-        eq(externalAgents.projectId, params.scopes.projectId)
-      ),
+      where: projectScopedWhere(externalAgents, params.scopes),
       orderBy: [asc(externalAgents.name)],
     });
   };
@@ -96,24 +92,14 @@ export const listExternalAgentsPaginated =
       db
         .select()
         .from(externalAgents)
-        .where(
-          and(
-            eq(externalAgents.tenantId, params.scopes.tenantId),
-            eq(externalAgents.projectId, params.scopes.projectId)
-          )
-        )
+        .where(projectScopedWhere(externalAgents, params.scopes))
         .limit(limit)
         .offset(offset)
         .orderBy(desc(externalAgents.createdAt)),
       db
         .select({ count: count() })
         .from(externalAgents)
-        .where(
-          and(
-            eq(externalAgents.tenantId, params.scopes.tenantId),
-            eq(externalAgents.projectId, params.scopes.projectId)
-          )
-        ),
+        .where(projectScopedWhere(externalAgents, params.scopes)),
     ]);
 
     const total =
@@ -157,8 +143,7 @@ export const updateExternalAgent =
       .set(updateData)
       .where(
         and(
-          eq(externalAgents.tenantId, params.scopes.tenantId),
-          eq(externalAgents.projectId, params.scopes.projectId),
+          projectScopedWhere(externalAgents, params.scopes),
           eq(externalAgents.id, params.externalAgentId)
         )
       )
@@ -213,8 +198,7 @@ export const deleteExternalAgent =
         .delete(externalAgents)
         .where(
           and(
-            eq(externalAgents.tenantId, params.scopes.tenantId),
-            eq(externalAgents.projectId, params.scopes.projectId),
+            projectScopedWhere(externalAgents, params.scopes),
             eq(externalAgents.id, params.externalAgentId)
           )
         )
@@ -256,12 +240,7 @@ export const countExternalAgents =
     const result = await db
       .select({ count: count() })
       .from(externalAgents)
-      .where(
-        and(
-          eq(externalAgents.tenantId, params.scopes.tenantId),
-          eq(externalAgents.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(externalAgents, params.scopes));
 
     const countValue = result[0]?.count;
     return typeof countValue === 'string' ? parseInt(countValue, 10) : countValue || 0;

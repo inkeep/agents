@@ -4,7 +4,7 @@ import {
   ConversationApiSelectSchema,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
-  countMessagesByConversation,
+  countVisibleMessages,
   createApiError,
   getConversation,
   getVisibleMessages,
@@ -44,11 +44,15 @@ function normalizeRole(role: string): string {
   return role;
 }
 
+function getPartKind(p: { kind?: string; type?: string }): string | undefined {
+  return p.kind ?? (p as any).type;
+}
+
 function extractText(content: MessageContent): string {
   if (content.text) return content.text;
   if (content.parts) {
     return content.parts
-      .filter((p) => p.kind === 'text' && p.text)
+      .filter((p) => getPartKind(p) === 'text' && p.text)
       .map((p) => p.text as string)
       .join('');
   }
@@ -67,6 +71,32 @@ function toVercelMessage(msg: {
 
   if (text) {
     parts.push({ type: 'text', text });
+  }
+
+  if (msg.content.parts) {
+    for (const p of msg.content.parts) {
+      const kind = getPartKind(p);
+      if (kind === 'text') {
+      } else if (kind === 'data') {
+        let parsed = p.data;
+        if (typeof parsed === 'string') {
+          try {
+            parsed = JSON.parse(parsed);
+          } catch {
+            // keep as string
+          }
+        }
+        const isArtifact =
+          parsed &&
+          typeof parsed === 'object' &&
+          (parsed as Record<string, unknown>).artifactId &&
+          (parsed as Record<string, unknown>).toolCallId;
+        parts.push({ type: isArtifact ? 'data-artifact' : 'data-component', data: parsed });
+      } else if (kind === 'file') {
+        const { kind: _k, type: _t, ...rest } = p as Record<string, unknown>;
+        parts.push({ type: 'file', ...rest });
+      }
+    }
   }
 
   if (msg.content.tool_calls) {
@@ -296,9 +326,10 @@ app.openapi(
         visibility: ['user-facing'],
         pagination: { page, limit },
       }),
-      countMessagesByConversation(runDbClient)({
+      countVisibleMessages(runDbClient)({
         scopes: { tenantId, projectId },
         conversationId,
+        visibility: ['user-facing'],
       }),
     ]);
 
