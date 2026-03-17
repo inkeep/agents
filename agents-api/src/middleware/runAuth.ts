@@ -162,9 +162,13 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
  * Throws HTTPException(403) if the JWT is valid but the user lacks permission.
  * Returns null if the token is not a temp JWT (allowing fallback to other auth methods).
  */
-async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
-  if (!apiKey.startsWith('eyJ') || !env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
-    return null;
+async function tryTempJwtAuth(apiKey: string): Promise<AuthAttempt> {
+  if (!apiKey.startsWith('eyJ')) {
+    return { authResult: null, failureMessage: 'not a JWT' };
+  }
+
+  if (!env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
+    return { authResult: null, failureMessage: 'no public key configured' };
   }
 
   try {
@@ -184,7 +188,6 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
       });
     }
 
-    // Copilot bypass — skip SpiceDB when the token targets the copilot agent.
     const isCopilotToken = isCopilotAgent({
       tenantId: payload.tenantId,
       projectId,
@@ -217,32 +220,32 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
     logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');
 
     return {
-      apiKey,
-      tenantId: payload.tenantId,
-      projectId,
-      agentId,
-      apiKeyId: 'temp-jwt',
-      metadata: { initiatedBy: payload.initiatedBy },
+      authResult: {
+        apiKey,
+        tenantId: payload.tenantId,
+        projectId,
+        agentId,
+        apiKeyId: 'temp-jwt',
+        metadata: { initiatedBy: payload.initiatedBy },
+      },
     };
   } catch (error) {
-    // Re-throw HTTPExceptions (like our 403 above)
     if (error instanceof HTTPException) {
       throw error;
     }
-    // Other errors (JWT verification failed) - allow fallback to other auth methods
     logger.debug({ error }, 'JWT verification failed');
-    return null;
+    return { authResult: null, failureMessage: 'JWT verification failed' };
   }
 }
 
 /**
  * Authenticate using a regular API key
  */
-async function tryApiKeyAuth(apiKey: string): Promise<AuthResult | null> {
+async function tryApiKeyAuth(apiKey: string): Promise<AuthAttempt> {
   const apiKeyRecord = await validateAndGetApiKey(apiKey, runDbClient);
 
   if (!apiKeyRecord) {
-    return null;
+    return { authResult: null, failureMessage: 'not found' };
   }
 
   logger.debug(
@@ -255,11 +258,13 @@ async function tryApiKeyAuth(apiKey: string): Promise<AuthResult | null> {
   );
 
   return {
-    apiKey,
-    tenantId: apiKeyRecord.tenantId,
-    projectId: apiKeyRecord.projectId,
-    agentId: apiKeyRecord.agentId,
-    apiKeyId: apiKeyRecord.id,
+    authResult: {
+      apiKey,
+      tenantId: apiKeyRecord.tenantId,
+      projectId: apiKeyRecord.projectId,
+      agentId: apiKeyRecord.agentId,
+      apiKeyId: apiKeyRecord.id,
+    },
   };
 }
 
@@ -444,13 +449,13 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
 /**
  * Authenticate using bypass secret (production mode bypass)
  */
-function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null {
+function tryBypassAuth(apiKey: string, reqData: RequestData): AuthAttempt {
   if (!env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
-    return null;
+    return { authResult: null, failureMessage: 'no bypass secret configured' };
   }
 
   if (apiKey !== env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
-    return null;
+    return { authResult: null, failureMessage: 'no match' };
   }
 
   if (!reqData.tenantId || !reqData.projectId || !reqData.agentId) {
@@ -462,14 +467,16 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
   logger.info({}, 'Bypass secret authenticated successfully');
 
   return {
-    apiKey,
-    tenantId: reqData.tenantId,
-    projectId: reqData.projectId,
-    agentId: reqData.agentId,
-    apiKeyId: 'bypass',
-    ...(reqData.runAsUserId
-      ? { metadata: { initiatedBy: { type: 'user' as const, id: reqData.runAsUserId } } }
-      : {}),
+    authResult: {
+      apiKey,
+      tenantId: reqData.tenantId,
+      projectId: reqData.projectId,
+      agentId: reqData.agentId,
+      apiKeyId: 'bypass',
+      ...(reqData.runAsUserId
+        ? { metadata: { initiatedBy: { type: 'user' as const, id: reqData.runAsUserId } } }
+        : {}),
+    },
   };
 }
 
@@ -615,8 +622,6 @@ function createDevContext(reqData: RequestData): AuthResult {
 async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
-  // App credential auth: triggered by X-Inkeep-App-Id header.
-  // When present, exclusively use app credential auth (no fallback to API key).
   if (reqData.appId) {
     if (!apiKey) {
       return { authResult: null, failureMessage: 'Bearer token required for app credential auth' };
@@ -625,31 +630,43 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   }
 
   if (!apiKey) {
-    return { authResult: null };
+    return { authResult: null, failureMessage: 'No API key provided' };
   }
 
-  // 1. Try JWT temp token
-  const jwtResult = await tryTempJwtAuth(apiKey);
-  if (jwtResult) return { authResult: jwtResult };
+  const failures: Array<{ strategy: string; reason: string }> = [];
 
-  // 2. Try bypass secret
-  const bypassResult = tryBypassAuth(apiKey, reqData);
-  if (bypassResult) return { authResult: bypassResult };
+  const jwtAttempt = await tryTempJwtAuth(apiKey);
+  if (jwtAttempt.authResult) return jwtAttempt;
+  if (jwtAttempt.failureMessage) {
+    failures.push({ strategy: 'JWT temp token', reason: jwtAttempt.failureMessage });
+  }
 
-  // 3. Try Slack user JWT token
+  const bypassAttempt = tryBypassAuth(apiKey, reqData);
+  if (bypassAttempt.authResult) return bypassAttempt;
+  if (bypassAttempt.failureMessage) {
+    failures.push({ strategy: 'bypass secret', reason: bypassAttempt.failureMessage });
+  }
+
   const slackAttempt = await trySlackUserJwtAuth(apiKey, reqData);
-  if (slackAttempt.authResult) return { authResult: slackAttempt.authResult };
+  if (slackAttempt.authResult) return slackAttempt;
   if (slackAttempt.failureMessage) return slackAttempt;
+  failures.push({ strategy: 'Slack user JWT', reason: 'not a Slack token' });
 
-  // 4. Try regular API key (fallback for requests without X-Inkeep-App-Id)
-  const apiKeyResult = await tryApiKeyAuth(apiKey);
-  if (apiKeyResult) return { authResult: apiKeyResult };
+  const apiKeyAttempt = await tryApiKeyAuth(apiKey);
+  if (apiKeyAttempt.authResult) return apiKeyAttempt;
+  if (apiKeyAttempt.failureMessage) {
+    failures.push({ strategy: 'API key', reason: apiKeyAttempt.failureMessage });
+  }
 
-  // 5. Try team agent token
   const teamAttempt = await tryTeamAgentAuth(apiKey, subAgentId);
-  if (teamAttempt.authResult) return { authResult: teamAttempt.authResult };
+  if (teamAttempt.authResult) return teamAttempt;
+  if (teamAttempt.failureMessage) {
+    failures.push({ strategy: 'team agent token', reason: teamAttempt.failureMessage });
+  }
 
-  return { authResult: null, failureMessage: teamAttempt.failureMessage };
+  logger.debug({ failures }, 'All auth strategies exhausted');
+
+  return { authResult: null };
 }
 
 /**
@@ -720,9 +737,12 @@ async function runApiKeyAuthHandler(
   }
 
   if (!attempt.authResult) {
-    logger.error({}, 'API key authentication error - no valid auth method found');
+    logger.error(
+      { failureMessage: attempt.failureMessage },
+      'API key authentication error - no valid auth method found'
+    );
     throw new HTTPException(401, {
-      message: attempt.failureMessage || 'Invalid Token',
+      message: 'Invalid Token',
     });
   }
 

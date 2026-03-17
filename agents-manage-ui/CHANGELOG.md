@@ -1,5 +1,26 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.15
+
+### Patch Changes
+
+- 2a50786: Bump agents-ui package to 0.15.18 and remove lingering references to the deprecated agentUrl prop
+- 36430ee: Reuse createLookup utility instead of inline reduce patterns
+- 5394245: Improve OAuth credentials CRUD with multi-app configuration support, integration visibility on credential detail pages, and accurate auth type labels
+- 0e1011b: Refactor evaluator selection to use idiomatic react-hook-form field render props and adopt createLookup utility
+- Updated dependencies [abaefda]
+  - @inkeep/agents-core@0.58.15
+
+## 0.58.14
+
+### Patch Changes
+
+- ed39b41: Improve app creation flow with searchable agent selection and streamlined type picker
+- 14e415c: Fix unable to clear agent settings description, show inherited model on sub-agent nodes, and extract shared URLDisplay component
+- 09e270a: Fix inconsistent timezone display on triggers page by showing all run times in browser local timezone with timezone labels in column headers
+- e10649a: Fix MCP server name and URL truncation in card view
+  - @inkeep/agents-core@0.58.14
+
 ## 0.58.13
 
 ### Patch Changes

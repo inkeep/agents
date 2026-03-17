@@ -41,7 +41,8 @@ function buildImportAndRegistrationSnippet(
 
 <InkeepSidebarChat
   aiChatSettings={{
-    agentUrl: "your-agent-url",
+    baseUrl: "your-base-url",
+    appId: "your-app-id",
     ${prop}: {
       ${key}: ${importedName},
     },

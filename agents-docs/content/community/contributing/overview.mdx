@@ -48,6 +48,8 @@ Safe to re-run at any time. Each step is additive — it won't drop tables, dele
 
 If another Docker Compose project is using the required ports, setup tells you exactly which project is blocking and the command to stop it.
 
+Need to run multiple dev environments in parallel (e.g., working on two features, or running AI agent sessions side-by-side)? See [Isolated Environments](/community/contributing/isolated-environments).
+
 Add API keys for the AI providers you want to use in the root `.env` or `~/.inkeep/config`. `ANTHROPIC_API_KEY` is required.
 
 ```dotenv

@@ -1,8 +1,10 @@
 import { and, count, eq, inArray } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { ledgerArtifacts } from '../../db/runtime/runtime-schema';
+import { isRetryableError } from '../../retry/retryable-errors';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../../types/index';
 import { generateId } from '../../utils/conversations';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 /**
  * Validate artifact data before database insertion
@@ -171,8 +173,7 @@ export const upsertLedgerArtifact =
           .from(ledgerArtifacts)
           .where(
             and(
-              eq(ledgerArtifacts.tenantId, scopes.tenantId),
-              eq(ledgerArtifacts.projectId, scopes.projectId),
+              projectScopedWhere(ledgerArtifacts, scopes),
               eq(ledgerArtifacts.id, artifactRow.id),
               eq(ledgerArtifacts.taskId, taskId)
             )
@@ -190,18 +191,6 @@ export const upsertLedgerArtifact =
       );
       sanitizedError.name = error.name;
       sanitizedError.cause = error.code || error.errno;
-
-      // TEMPORARY DEBUG: Log full error for debugging compression artifacts
-      if (artifactRow.id?.includes('compress_')) {
-        console.error('COMPRESSION ARTIFACT FULL ERROR:', {
-          artifactId: artifactRow.id,
-          errorMessage: error.message,
-          errorCode: error.code,
-          errorName: error.name,
-          errorStack: error.stack,
-          fullError: error,
-        });
-      }
 
       throw sanitizedError;
     }
@@ -268,17 +257,7 @@ export const addLedgerArtifacts =
       } catch (error: any) {
         lastError = error;
 
-        const isRetryable =
-          error.cause.code === '40P01' ||
-          error.cause.code === '40001' ||
-          error.cause.code === '55P03' ||
-          error.message?.includes('database is locked') ||
-          error.message?.includes('busy') ||
-          error.message?.includes('timeout') ||
-          error.message?.includes('deadlock') ||
-          error.message?.includes('serialization failure');
-
-        if (!isRetryable || attempt === maxRetries) {
+        if (!isRetryableError(error) || attempt === maxRetries) {
           await tryFallbackInsert(db, rows, error);
           return;
         }
@@ -294,22 +273,6 @@ export const addLedgerArtifacts =
     );
     sanitizedError.name = lastError?.name;
     sanitizedError.cause = lastError?.code || lastError?.errno;
-
-    // TEMPORARY DEBUG: Log full error for debugging compression artifacts
-    const hasCompressionArtifacts = rows.some((row) => row.id?.includes('compress_'));
-    if (hasCompressionArtifacts) {
-      console.error('COMPRESSION ARTIFACTS BULK INSERT FULL ERROR:', {
-        artifactCount: rows.length,
-        compressionArtifacts: rows
-          .filter((row) => row.id?.includes('compress_'))
-          .map((row) => row.id),
-        errorMessage: lastError?.message,
-        errorCode: lastError?.code,
-        errorName: lastError?.name,
-        errorStack: lastError?.stack,
-        fullError: lastError,
-      });
-    }
 
     throw sanitizedError;
   };
@@ -343,10 +306,7 @@ export const getLedgerArtifacts =
       );
     }
 
-    const conditions = [
-      eq(ledgerArtifacts.tenantId, scopes.tenantId),
-      eq(ledgerArtifacts.projectId, scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(ledgerArtifacts, scopes)];
 
     if (artifactId) {
       conditions.push(eq(ledgerArtifacts.id, artifactId));
@@ -400,8 +360,7 @@ export const getLedgerArtifactsByContext =
       .from(ledgerArtifacts)
       .where(
         and(
-          eq(ledgerArtifacts.tenantId, params.scopes.tenantId),
-          eq(ledgerArtifacts.projectId, params.scopes.projectId),
+          projectScopedWhere(ledgerArtifacts, params.scopes),
           eq(ledgerArtifacts.contextId, params.contextId)
         )
       );
@@ -417,8 +376,7 @@ export const deleteLedgerArtifactsByTask =
       .delete(ledgerArtifacts)
       .where(
         and(
-          eq(ledgerArtifacts.tenantId, params.scopes.tenantId),
-          eq(ledgerArtifacts.projectId, params.scopes.projectId),
+          projectScopedWhere(ledgerArtifacts, params.scopes),
           eq(ledgerArtifacts.taskId, params.taskId)
         )
       )
@@ -437,8 +395,7 @@ export const deleteLedgerArtifactsByContext =
       .delete(ledgerArtifacts)
       .where(
         and(
-          eq(ledgerArtifacts.tenantId, params.scopes.tenantId),
-          eq(ledgerArtifacts.projectId, params.scopes.projectId),
+          projectScopedWhere(ledgerArtifacts, params.scopes),
           eq(ledgerArtifacts.contextId, params.contextId)
         )
       )
@@ -458,8 +415,7 @@ export const countLedgerArtifactsByTask =
       .from(ledgerArtifacts)
       .where(
         and(
-          eq(ledgerArtifacts.tenantId, params.scopes.tenantId),
-          eq(ledgerArtifacts.projectId, params.scopes.projectId),
+          projectScopedWhere(ledgerArtifacts, params.scopes),
           eq(ledgerArtifacts.taskId, params.taskId)
         )
       );

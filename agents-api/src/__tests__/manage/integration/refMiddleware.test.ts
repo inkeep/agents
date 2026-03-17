@@ -348,7 +348,7 @@ describe('Ref Middleware - Integration Tests', () => {
       expect(body.error.message).toContain('immutable');
     });
 
-    it('should block PUT requests to commits', async () => {
+    it('should block write requests to commits', async () => {
       const tenantId = await createTestTenantWithOrg('write-commit-put');
       const projectId = await createTestProject(tenantId);
 
@@ -361,7 +361,7 @@ describe('Ref Middleware - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}?ref=${commitHash}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated' }),
         }
       );

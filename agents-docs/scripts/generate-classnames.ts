@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   // aiSearchComponentIds,
   aiChatComponentIds,
+  aiChatHistoryComponentIds,
   chatButtonComponentIds,
   markDownComponentIds,
   miscellanousComponentIds,
@@ -19,6 +20,10 @@ const categories = [
   {
     name: 'Chat Components',
     ids: aiChatComponentIds,
+  },
+  {
+    name: 'Chat History Components',
+    ids: aiChatHistoryComponentIds,
   },
   {
     name: 'Markdown Components',

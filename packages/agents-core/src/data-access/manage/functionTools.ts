@@ -5,6 +5,7 @@ import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../../types/e
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
+import { agentScopedWhere } from './scope-helpers';
 
 const logger = getLogger('functionTools');
 
@@ -19,9 +20,7 @@ export const getFunctionToolById =
       .from(functionTools)
       .where(
         and(
-          eq(functionTools.tenantId, params.scopes.tenantId),
-          eq(functionTools.projectId, params.scopes.projectId),
-          eq(functionTools.agentId, params.scopes.agentId),
+          agentScopedWhere(functionTools, params.scopes),
           eq(functionTools.id, params.functionToolId)
         )
       )
@@ -40,11 +39,7 @@ export const listFunctionTools =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(functionTools.tenantId, params.scopes.tenantId),
-      eq(functionTools.projectId, params.scopes.projectId),
-      eq(functionTools.agentId, params.scopes.agentId)
-    );
+    const whereClause = agentScopedWhere(functionTools, params.scopes);
 
     const [functionToolsDbResults, totalResult] = await Promise.all([
       db
@@ -73,14 +68,11 @@ export const createFunctionTool =
   (db: AgentsManageDatabaseClient) =>
   async (params: { data: FunctionToolApiInsert; scopes: AgentScopeConfig }) => {
     const { data, scopes } = params;
-    const { tenantId, projectId, agentId } = scopes;
 
     const [created] = await db
       .insert(functionTools)
       .values({
-        tenantId,
-        projectId,
-        agentId,
+        ...scopes,
         id: data.id,
         name: data.name,
         description: data.description,
@@ -113,9 +105,7 @@ export const updateFunctionTool =
       })
       .where(
         and(
-          eq(functionTools.tenantId, params.scopes.tenantId),
-          eq(functionTools.projectId, params.scopes.projectId),
-          eq(functionTools.agentId, params.scopes.agentId),
+          agentScopedWhere(functionTools, params.scopes),
           eq(functionTools.id, params.functionToolId)
         )
       )
@@ -134,9 +124,7 @@ export const deleteFunctionTool =
       .delete(functionTools)
       .where(
         and(
-          eq(functionTools.tenantId, params.scopes.tenantId),
-          eq(functionTools.projectId, params.scopes.projectId),
-          eq(functionTools.agentId, params.scopes.agentId),
+          agentScopedWhere(functionTools, params.scopes),
           eq(functionTools.id, params.functionToolId)
         )
       )
@@ -151,20 +139,14 @@ export const deleteFunctionTool =
 export const upsertFunctionTool =
   (db: AgentsManageDatabaseClient) =>
   async (params: { data: FunctionToolApiInsert; scopes: AgentScopeConfig }) => {
-    const scopes = {
-      tenantId: params.scopes.tenantId,
-      projectId: params.scopes.projectId,
-      agentId: params.scopes.agentId,
-    };
-
     const existing = await getFunctionToolById(db)({
-      scopes,
+      scopes: params.scopes,
       functionToolId: params.data.id,
     });
 
     if (existing) {
       return await updateFunctionTool(db)({
-        scopes,
+        scopes: params.scopes,
         functionToolId: params.data.id,
         data: {
           name: params.data.name,
@@ -175,13 +157,13 @@ export const upsertFunctionTool =
     }
     return await createFunctionTool(db)({
       data: params.data,
-      scopes,
+      scopes: params.scopes,
     });
   };
 
 export const getFunctionToolsForSubAgent = (db: AgentsManageDatabaseClient) => {
   return async (params: {
-    scopes: { tenantId: string; projectId: string; agentId: string };
+    scopes: AgentScopeConfig;
     subAgentId: string;
     pagination?: PaginationConfig;
   }) => {
@@ -189,13 +171,9 @@ export const getFunctionToolsForSubAgent = (db: AgentsManageDatabaseClient) => {
     const limit = Math.min(params.pagination?.limit || 1000, 1000);
     const offset = (page - 1) * limit;
 
-    const { tenantId, projectId, agentId } = params.scopes;
-
     try {
       const whereClause = and(
-        eq(subAgentFunctionToolRelations.tenantId, tenantId),
-        eq(subAgentFunctionToolRelations.projectId, projectId),
-        eq(subAgentFunctionToolRelations.agentId, agentId),
+        agentScopedWhere(subAgentFunctionToolRelations, params.scopes),
         eq(subAgentFunctionToolRelations.subAgentId, params.subAgentId)
       );
 
@@ -240,7 +218,7 @@ export const getFunctionToolsForSubAgent = (db: AgentsManageDatabaseClient) => {
       };
     } catch (error) {
       logger.error(
-        { tenantId, projectId, agentId, subAgentId: params.subAgentId, error },
+        { ...params.scopes, subAgentId: params.subAgentId, error },
         'Failed to get function tools for agent'
       );
       throw error;
@@ -261,7 +239,6 @@ export const upsertSubAgentFunctionToolRelation =
     relationId?: string; // Optional: if provided, update specific relationship
   }) => {
     const { scopes, subAgentId, functionToolId, toolPolicies, relationId } = params;
-    const { tenantId, projectId, agentId } = scopes;
 
     // If relationId is provided, update that specific relationship
     if (relationId) {
@@ -283,9 +260,7 @@ export const upsertSubAgentFunctionToolRelation =
         .from(subAgentFunctionToolRelations)
         .where(
           and(
-            eq(subAgentFunctionToolRelations.tenantId, tenantId),
-            eq(subAgentFunctionToolRelations.projectId, projectId),
-            eq(subAgentFunctionToolRelations.agentId, agentId),
+            agentScopedWhere(subAgentFunctionToolRelations, scopes),
             eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
             eq(subAgentFunctionToolRelations.functionToolId, functionToolId)
           )
@@ -296,9 +271,7 @@ export const upsertSubAgentFunctionToolRelation =
       if (existingRelations.length > 0) {
         logger.info(
           {
-            tenantId,
-            projectId,
-            agentId,
+            ...scopes,
             subAgentId,
             functionToolId,
             relationId: existingRelations[0].id,
@@ -312,7 +285,7 @@ export const upsertSubAgentFunctionToolRelation =
       return await addFunctionToolToSubAgent(db)(params);
     } catch (error) {
       logger.error(
-        { tenantId, projectId, agentId, subAgentId, functionToolId, error },
+        { ...scopes, subAgentId, functionToolId, error },
         'Failed to upsert sub_agent-function tool relation'
       );
       throw error;
@@ -330,7 +303,6 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
     toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
   }) => {
     const { scopes, subAgentId, functionToolId, toolPolicies } = params;
-    const { tenantId, projectId, agentId } = scopes;
 
     try {
       const relationId = generateId();
@@ -339,9 +311,7 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
         .insert(subAgentFunctionToolRelations)
         .values({
           id: relationId,
-          tenantId,
-          projectId,
-          agentId,
+          ...scopes,
           subAgentId,
           functionToolId,
           ...(toolPolicies !== undefined ? { toolPolicies } : {}),
@@ -349,14 +319,14 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
         .returning();
 
       logger.info(
-        { tenantId, projectId, agentId, subAgentId, functionToolId, relationId },
+        { ...scopes, subAgentId, functionToolId, relationId },
         'Function tool added to sub_agent'
       );
 
       return result;
     } catch (error) {
       logger.error(
-        { tenantId, projectId, agentId, subAgentId, functionToolId, error },
+        { ...scopes, subAgentId, functionToolId, error },
         'Failed to add function tool to agent'
       );
       throw error;
@@ -378,7 +348,6 @@ export const updateSubAgentFunctionToolRelation = (db: AgentsManageDatabaseClien
     };
   }) => {
     const { scopes, relationId, data } = params;
-    const { tenantId, projectId, agentId } = scopes;
 
     try {
       await db
@@ -390,22 +359,17 @@ export const updateSubAgentFunctionToolRelation = (db: AgentsManageDatabaseClien
         })
         .where(
           and(
-            eq(subAgentFunctionToolRelations.id, relationId),
-            eq(subAgentFunctionToolRelations.tenantId, tenantId),
-            eq(subAgentFunctionToolRelations.projectId, projectId),
-            eq(subAgentFunctionToolRelations.agentId, agentId)
+            agentScopedWhere(subAgentFunctionToolRelations, scopes),
+            eq(subAgentFunctionToolRelations.id, relationId)
           )
         );
 
-      logger.info(
-        { tenantId, projectId, agentId, relationId, data },
-        'SubAgent-function tool relation updated'
-      );
+      logger.info({ ...scopes, relationId, data }, 'SubAgent-function tool relation updated');
 
       return { id: relationId };
     } catch (error) {
       logger.error(
-        { tenantId, projectId, agentId, relationId, data, error },
+        { ...scopes, relationId, data, error },
         'Failed to update agent-function tool relation'
       );
       throw error;
@@ -419,7 +383,6 @@ export const updateSubAgentFunctionToolRelation = (db: AgentsManageDatabaseClien
 export const getSubAgentsUsingFunctionTool = (db: AgentsManageDatabaseClient) => {
   return async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
     const { scopes, functionToolId } = params;
-    const { tenantId, projectId, agentId } = scopes;
 
     try {
       const relations = await db
@@ -430,9 +393,7 @@ export const getSubAgentsUsingFunctionTool = (db: AgentsManageDatabaseClient) =>
         .from(subAgentFunctionToolRelations)
         .where(
           and(
-            eq(subAgentFunctionToolRelations.tenantId, tenantId),
-            eq(subAgentFunctionToolRelations.projectId, projectId),
-            eq(subAgentFunctionToolRelations.agentId, agentId),
+            agentScopedWhere(subAgentFunctionToolRelations, scopes),
             eq(subAgentFunctionToolRelations.functionToolId, functionToolId)
           )
         );
@@ -440,7 +401,7 @@ export const getSubAgentsUsingFunctionTool = (db: AgentsManageDatabaseClient) =>
       return relations;
     } catch (error) {
       logger.error(
-        { tenantId, projectId, agentId, functionToolId, error },
+        { ...scopes, functionToolId, error },
         'Failed to get sub-agents using function tool'
       );
       throw error;
@@ -458,16 +419,13 @@ export const removeFunctionToolFromSubAgent = (db: AgentsManageDatabaseClient) =
     functionToolId: string;
   }): Promise<boolean> => {
     const { scopes, subAgentId, functionToolId } = params;
-    const { tenantId, projectId, agentId } = scopes;
 
     try {
       const result = await db
         .delete(subAgentFunctionToolRelations)
         .where(
           and(
-            eq(subAgentFunctionToolRelations.tenantId, tenantId),
-            eq(subAgentFunctionToolRelations.projectId, projectId),
-            eq(subAgentFunctionToolRelations.agentId, agentId),
+            agentScopedWhere(subAgentFunctionToolRelations, scopes),
             eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
             eq(subAgentFunctionToolRelations.functionToolId, functionToolId)
           )
@@ -477,7 +435,7 @@ export const removeFunctionToolFromSubAgent = (db: AgentsManageDatabaseClient) =
       const removed = result.length > 0;
       if (removed) {
         logger.info(
-          { tenantId, projectId, agentId, subAgentId, functionToolId },
+          { ...scopes, subAgentId, functionToolId },
           'Function tool removed from sub-agent'
         );
       }
@@ -485,7 +443,7 @@ export const removeFunctionToolFromSubAgent = (db: AgentsManageDatabaseClient) =
       return removed;
     } catch (error) {
       logger.error(
-        { tenantId, projectId, agentId, subAgentId, functionToolId, error },
+        { ...scopes, subAgentId, functionToolId, error },
         'Failed to remove function tool from sub-agent'
       );
       throw error;
@@ -503,7 +461,6 @@ export const isFunctionToolAssociatedWithSubAgent = (db: AgentsManageDatabaseCli
     functionToolId: string;
   }): Promise<boolean> => {
     const { scopes, subAgentId, functionToolId } = params;
-    const { tenantId, projectId, agentId } = scopes;
 
     try {
       const result = await db
@@ -511,9 +468,7 @@ export const isFunctionToolAssociatedWithSubAgent = (db: AgentsManageDatabaseCli
         .from(subAgentFunctionToolRelations)
         .where(
           and(
-            eq(subAgentFunctionToolRelations.tenantId, tenantId),
-            eq(subAgentFunctionToolRelations.projectId, projectId),
-            eq(subAgentFunctionToolRelations.agentId, agentId),
+            agentScopedWhere(subAgentFunctionToolRelations, scopes),
             eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
             eq(subAgentFunctionToolRelations.functionToolId, functionToolId)
           )
@@ -523,7 +478,7 @@ export const isFunctionToolAssociatedWithSubAgent = (db: AgentsManageDatabaseCli
       return result.length > 0;
     } catch (error) {
       logger.error(
-        { tenantId, projectId, agentId, subAgentId, functionToolId, error },
+        { ...scopes, subAgentId, functionToolId, error },
         'Failed to check function tool association with sub-agent'
       );
       throw error;

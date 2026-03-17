@@ -1,5 +1,33 @@
 # @inkeep/agents-api
 
+## 0.58.15
+
+### Patch Changes
+
+- 644afb3: Fix agent ID filtering for continuous evaluation tests
+- 6e8e655: Standardize CRUD HTTP method conventions: PATCH for partial updates, PUT for upsert/set-replace; hide legacy dual-method routes from OpenAPI spec and SDK generation
+- 4b46b9e: Updating Signoz service name from inkeep-agents-run-api to inkeep-agents-api
+- 3b02868: removes unused workflowProcessHandler
+- Updated dependencies [b10c96f]
+- Updated dependencies [1ca09cd]
+- Updated dependencies [abaefda]
+  - @inkeep/agents-work-apps@0.58.15
+  - @inkeep/agents-core@0.58.15
+  - @inkeep/agents-email@0.58.15
+  - @inkeep/agents-mcp@0.58.15
+
+## 0.58.14
+
+### Patch Changes
+
+- 36e80be: Add rolling token refresh for anonymous session endpoints
+- c9a4890: Fix route handlers to forward all validated body fields to the data access layer using spread pattern
+- d147f0e: Fix agent create/update handlers to forward all schema fields (models, statusUpdates, prompt, stopWhen)
+  - @inkeep/agents-core@0.58.14
+  - @inkeep/agents-email@0.58.14
+  - @inkeep/agents-mcp@0.58.14
+  - @inkeep/agents-work-apps@0.58.14
+
 ## 0.58.13
 
 ### Patch Changes

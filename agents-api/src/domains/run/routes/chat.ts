@@ -13,6 +13,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
+import { HTTPException } from 'hono/http-exception';
 import { streamSSE } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
 import { flushBatchProcessor } from '../../../instrumentation';
@@ -544,6 +545,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
       });
     });
   } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
     logger.error(
       {
         error: error instanceof Error ? error.message : error,
@@ -552,13 +556,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
       'Error in chat completions endpoint before streaming'
     );
 
-    if (error && typeof error === 'object' && 'status' in error) {
-      throw error;
-    }
-
     throw createApiError({
       code: 'internal_server_error',
-      message: error instanceof Error ? error.message : 'Failed to process chat completion',
+      message: 'Failed to process chat completion',
     });
   }
 });

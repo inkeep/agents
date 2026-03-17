@@ -355,6 +355,19 @@ describe('Run API - End-User Conversation History', () => {
       );
     });
 
+    it('should have pagination total matching visible message count', async () => {
+      const { appId, token, conv } = await setupConversationWithMessages('conv-get-total');
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.messages).toHaveLength(2);
+      expect(body.pagination.total).toBe(2);
+    });
+
     it('should return 404 for another users conversation', async () => {
       const tenantId = await createTestTenantWithOrg('conv-get-cross-user');
       const projectId = 'default-project';
@@ -453,6 +466,274 @@ describe('Run API - End-User Conversation History', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data.title).toBe('What is the weather like today?');
+    });
+
+    it('should return data parts from agent messages', async () => {
+      const tenantId = await createTestTenantWithOrg('conv-get-data-parts');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appId = appRecord.id;
+
+      const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      const anonUserId = payload.sub as string;
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'Data parts conversation',
+      });
+
+      await createMessage(runDbClient)({
+        id: `msg-${crypto.randomUUID()}`,
+        tenantId,
+        projectId,
+        conversationId: conv.id,
+        role: 'agent',
+        content: {
+          text: 'Here is the result',
+          parts: [
+            { kind: 'text', text: 'Here is the result' },
+            {
+              kind: 'data',
+              data: JSON.stringify({
+                type: 'artifact',
+                title: 'Code Example',
+                content: 'console.log("hello")',
+              }),
+            },
+          ],
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages[0];
+      expect(msg.content).toBe('Here is the result');
+      expect(msg.parts).toHaveLength(2);
+      expect(msg.parts[0]).toEqual({ type: 'text', text: 'Here is the result' });
+      expect(msg.parts[1]).toEqual({
+        type: 'data-component',
+        data: { type: 'artifact', title: 'Code Example', content: 'console.log("hello")' },
+      });
+    });
+
+    it('should return artifact data parts as data-artifact type', async () => {
+      const tenantId = await createTestTenantWithOrg('conv-get-artifact-parts');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appId = appRecord.id;
+
+      const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      const anonUserId = payload.sub as string;
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'Artifact parts conversation',
+      });
+
+      await createMessage(runDbClient)({
+        id: `msg-${crypto.randomUUID()}`,
+        tenantId,
+        projectId,
+        conversationId: conv.id,
+        role: 'agent',
+        content: {
+          text: 'Here is the artifact',
+          parts: [
+            { kind: 'text', text: 'Here is the artifact' },
+            {
+              kind: 'data',
+              data: JSON.stringify({
+                artifactId: 'art-123',
+                toolCallId: 'call-456',
+                content: 'some artifact content',
+              }),
+            },
+          ],
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages[0];
+      expect(msg.parts).toHaveLength(2);
+      expect(msg.parts[1]).toEqual({
+        type: 'data-artifact',
+        data: { artifactId: 'art-123', toolCallId: 'call-456', content: 'some artifact content' },
+      });
+    });
+
+    it('should handle legacy type property for backward compatibility', async () => {
+      const tenantId = await createTestTenantWithOrg('conv-get-legacy-type');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appId = appRecord.id;
+
+      const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      const anonUserId = payload.sub as string;
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'Legacy type conversation',
+      });
+
+      await createMessage(runDbClient)({
+        id: `msg-${crypto.randomUUID()}`,
+        tenantId,
+        projectId,
+        conversationId: conv.id,
+        role: 'agent',
+        content: {
+          text: 'Legacy response',
+          parts: [
+            { type: 'text', text: 'Legacy response' } as any,
+            { type: 'data', data: JSON.stringify({ component: 'chart' }) } as any,
+          ],
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages[0];
+      expect(msg.parts).toHaveLength(2);
+      expect(msg.parts[0]).toEqual({ type: 'text', text: 'Legacy response' });
+      expect(msg.parts[1]).toEqual({ type: 'data-component', data: { component: 'chart' } });
+    });
+
+    it('should return file parts from user messages', async () => {
+      const tenantId = await createTestTenantWithOrg('conv-get-file-parts');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appId = appRecord.id;
+
+      const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      const anonUserId = payload.sub as string;
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'File parts conversation',
+      });
+
+      await createMessage(runDbClient)({
+        id: `msg-${crypto.randomUUID()}`,
+        tenantId,
+        projectId,
+        conversationId: conv.id,
+        role: 'user',
+        content: {
+          text: 'Check this image',
+          parts: [
+            { kind: 'text', text: 'Check this image' },
+            { kind: 'file', data: 'base64data', metadata: { mimeType: 'image/png' } },
+          ],
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages[0];
+      expect(msg.parts).toHaveLength(2);
+      expect(msg.parts[0]).toEqual({ type: 'text', text: 'Check this image' });
+      expect(msg.parts[1]).toEqual({
+        type: 'file',
+        data: 'base64data',
+        metadata: { mimeType: 'image/png' },
+      });
+    });
+
+    it('should keep malformed JSON data as string', async () => {
+      const tenantId = await createTestTenantWithOrg('conv-get-malformed-json');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appId = appRecord.id;
+
+      const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      const anonUserId = payload.sub as string;
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'Malformed JSON conversation',
+      });
+
+      await createMessage(runDbClient)({
+        id: `msg-${crypto.randomUUID()}`,
+        tenantId,
+        projectId,
+        conversationId: conv.id,
+        role: 'agent',
+        content: {
+          text: 'Response with bad data',
+          parts: [
+            { kind: 'text', text: 'Response with bad data' },
+            { kind: 'data', data: '{invalid json' },
+          ],
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages[0];
+      expect(msg.parts).toHaveLength(2);
+      expect(msg.parts[1]).toEqual({ type: 'data-component', data: '{invalid json' });
     });
   });
 });

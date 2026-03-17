@@ -19,6 +19,7 @@ import type {
 } from '../../types/entities';
 import type { WorkAppGitHubInstallationStatus } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
+import { projectScopedWhere, tenantScopedWhere, toolScopedWhere } from '../manage/scope-helpers';
 
 // ============================================================================
 // Installation Management Functions
@@ -68,7 +69,7 @@ export const getInstallationById =
   }): Promise<WorkAppGitHubInstallationSelect | null> => {
     const result = await db.query.workAppGitHubInstallations.findFirst({
       where: and(
-        eq(workAppGitHubInstallations.tenantId, params.tenantId),
+        tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
         eq(workAppGitHubInstallations.id, params.id)
       ),
     });
@@ -85,7 +86,9 @@ export const getInstallationsByTenantId =
     tenantId: string;
     includeDisconnected?: boolean;
   }): Promise<WorkAppGitHubInstallationSelect[]> => {
-    const conditions = [eq(workAppGitHubInstallations.tenantId, params.tenantId)];
+    const conditions = [
+      tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
+    ];
 
     if (!params.includeDisconnected) {
       conditions.push(ne(workAppGitHubInstallations.status, 'disconnected'));
@@ -120,7 +123,7 @@ export const updateInstallationStatus =
       })
       .where(
         and(
-          eq(workAppGitHubInstallations.tenantId, params.tenantId),
+          tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
           eq(workAppGitHubInstallations.id, params.id)
         )
       )
@@ -185,7 +188,7 @@ export const disconnectInstallation =
       })
       .where(
         and(
-          eq(workAppGitHubInstallations.tenantId, params.tenantId),
+          tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
           eq(workAppGitHubInstallations.id, params.id)
         )
       )
@@ -208,7 +211,7 @@ export const deleteInstallation =
       .delete(workAppGitHubInstallations)
       .where(
         and(
-          eq(workAppGitHubInstallations.tenantId, params.tenantId),
+          tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
           eq(workAppGitHubInstallations.id, params.id)
         )
       )
@@ -473,7 +476,7 @@ export const getRepositoriesByTenantId =
       )
       .where(
         and(
-          eq(workAppGitHubInstallations.tenantId, tenantId),
+          tenantScopedWhere(workAppGitHubInstallations, { tenantId }),
           ne(workAppGitHubInstallations.status, 'disconnected')
         )
       )
@@ -534,8 +537,10 @@ export const setProjectRepositoryAccess =
       .from(workAppGitHubMcpToolAccessMode)
       .where(
         and(
-          eq(workAppGitHubMcpToolAccessMode.tenantId, params.tenantId),
-          eq(workAppGitHubMcpToolAccessMode.projectId, params.projectId),
+          projectScopedWhere(workAppGitHubMcpToolAccessMode, {
+            tenantId: params.tenantId,
+            projectId: params.projectId,
+          }),
           eq(workAppGitHubMcpToolAccessMode.mode, 'selected')
         )
       );
@@ -661,10 +666,10 @@ export const checkProjectRepositoryAccess =
       .select({ mode: workAppGitHubProjectAccessMode.mode })
       .from(workAppGitHubProjectAccessMode)
       .where(
-        and(
-          eq(workAppGitHubProjectAccessMode.tenantId, params.tenantId),
-          eq(workAppGitHubProjectAccessMode.projectId, params.projectId)
-        )
+        projectScopedWhere(workAppGitHubProjectAccessMode, {
+          tenantId: params.tenantId,
+          projectId: params.projectId,
+        })
       )
       .limit(1);
 
@@ -683,7 +688,7 @@ export const checkProjectRepositoryAccess =
         .where(
           and(
             eq(workAppGitHubRepositories.repositoryFullName, params.repositoryFullName),
-            eq(workAppGitHubInstallations.tenantId, params.tenantId),
+            tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
             ne(workAppGitHubInstallations.status, 'disconnected')
           )
         )
@@ -718,7 +723,7 @@ export const checkProjectRepositoryAccess =
         and(
           eq(workAppGitHubProjectRepositoryAccess.projectId, params.projectId),
           eq(workAppGitHubRepositories.repositoryFullName, params.repositoryFullName),
-          eq(workAppGitHubInstallations.tenantId, params.tenantId),
+          tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
           ne(workAppGitHubInstallations.status, 'disconnected')
         )
       )
@@ -772,7 +777,7 @@ export const validateRepositoryOwnership =
       )
       .where(
         and(
-          eq(workAppGitHubInstallations.tenantId, params.tenantId),
+          tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
           ne(workAppGitHubInstallations.status, 'disconnected'),
           inArray(workAppGitHubRepositories.id, params.repositoryIds)
         )
@@ -806,7 +811,9 @@ export const getRepositoryCountsByTenantId =
     tenantId: string;
     includeDisconnected?: boolean;
   }): Promise<Map<string, number>> => {
-    const conditions = [eq(workAppGitHubInstallations.tenantId, params.tenantId)];
+    const conditions = [
+      tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
+    ];
 
     if (!params.includeDisconnected) {
       conditions.push(ne(workAppGitHubInstallations.status, 'disconnected'));
@@ -855,15 +862,13 @@ export const setMcpToolRepositoryAccess =
     const now = new Date().toISOString();
 
     // Remove all existing access for this tool
-    await db
-      .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, params.tenantId),
-          eq(workAppGitHubMcpToolRepositoryAccess.projectId, params.projectId),
-          eq(workAppGitHubMcpToolRepositoryAccess.toolId, params.toolId)
-        )
-      );
+    await db.delete(workAppGitHubMcpToolRepositoryAccess).where(
+      toolScopedWhere(workAppGitHubMcpToolRepositoryAccess, {
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        toolId: params.toolId,
+      })
+    );
 
     // Add new access entries
     if (params.repositoryIds.length > 0) {
@@ -905,13 +910,7 @@ export const getMcpToolRepositoryAccess =
     const result = await db
       .select()
       .from(workAppGitHubMcpToolRepositoryAccess)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, scope.tenantId),
-          eq(workAppGitHubMcpToolRepositoryAccess.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId)
-        )
-      );
+      .where(toolScopedWhere(workAppGitHubMcpToolRepositoryAccess, scope));
 
     return result;
   };
@@ -941,13 +940,7 @@ export const getMcpToolRepositoryAccessWithDetails =
         tenantId: workAppGitHubMcpToolAccessMode.tenantId,
       })
       .from(workAppGitHubMcpToolAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolAccessMode.tenantId, scope.tenantId),
-          eq(workAppGitHubMcpToolAccessMode.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId)
-        )
-      )
+      .where(toolScopedWhere(workAppGitHubMcpToolAccessMode, scope))
       .limit(1);
 
     const accessMode = modeResult[0];
@@ -982,13 +975,7 @@ export const getMcpToolRepositoryAccessWithDetails =
         workAppGitHubInstallations,
         eq(workAppGitHubRepositories.installationDbId, workAppGitHubInstallations.id)
       )
-      .where(
-        and(
-          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, scope.tenantId),
-          eq(workAppGitHubMcpToolRepositoryAccess.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId)
-        )
-      );
+      .where(toolScopedWhere(workAppGitHubMcpToolRepositoryAccess, scope));
 
     return result as (WorkAppGitHubRepositorySelect & {
       accessId: string;
@@ -1005,13 +992,7 @@ export const clearMcpToolRepositoryAccess =
   async (scope: { tenantId: string; projectId: string; toolId: string }): Promise<number> => {
     const deleted = await db
       .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, scope.tenantId),
-          eq(workAppGitHubMcpToolRepositoryAccess.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolRepositoryAccess.toolId, scope.toolId)
-        )
-      )
+      .where(toolScopedWhere(workAppGitHubMcpToolRepositoryAccess, scope))
       .returning();
 
     return deleted.length;
@@ -1068,12 +1049,7 @@ export const getProjectAccessMode =
     const result = await db
       .select({ mode: workAppGitHubProjectAccessMode.mode })
       .from(workAppGitHubProjectAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubProjectAccessMode.tenantId, params.tenantId),
-          eq(workAppGitHubProjectAccessMode.projectId, params.projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubProjectAccessMode, params))
       .limit(1);
 
     // Default to 'selected' if no mode is set (fail-safe)
@@ -1088,12 +1064,7 @@ export const deleteProjectAccessMode =
   async (params: { tenantId: string; projectId: string }): Promise<boolean> => {
     const deleted = await db
       .delete(workAppGitHubProjectAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubProjectAccessMode.tenantId, params.tenantId),
-          eq(workAppGitHubProjectAccessMode.projectId, params.projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubProjectAccessMode, params))
       .returning();
 
     return deleted.length > 0;
@@ -1155,13 +1126,7 @@ export const getMcpToolAccessMode =
     const result = await db
       .select({ mode: workAppGitHubMcpToolAccessMode.mode })
       .from(workAppGitHubMcpToolAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolAccessMode.tenantId, scope.tenantId),
-          eq(workAppGitHubMcpToolAccessMode.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId)
-        )
-      )
+      .where(toolScopedWhere(workAppGitHubMcpToolAccessMode, scope))
       .limit(1);
 
     // Default to 'selected' if no mode is set (fail-safe)
@@ -1176,13 +1141,7 @@ export const deleteMcpToolAccessMode =
   async (scope: { tenantId: string; projectId: string; toolId: string }): Promise<boolean> => {
     const deleted = await db
       .delete(workAppGitHubMcpToolAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolAccessMode.tenantId, scope.tenantId),
-          eq(workAppGitHubMcpToolAccessMode.projectId, scope.projectId),
-          eq(workAppGitHubMcpToolAccessMode.toolId, scope.toolId)
-        )
-      )
+      .where(toolScopedWhere(workAppGitHubMcpToolAccessMode, scope))
       .returning();
 
     return deleted.length > 0;

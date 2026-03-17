@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { ToolScopeConfig } from '../../db/manage/scope-definitions';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
@@ -6,6 +6,7 @@ import {
   workAppSlackUserMappings,
 } from '../../db/runtime/runtime-schema';
 import type { McpTool, ToolSelect } from '../../types/entities';
+import { tenantScopedWhere, toolScopedWhere } from '../manage/scope-helpers';
 
 export type SlackMcpToolAccessConfig = {
   channelAccessMode: 'all' | 'selected';
@@ -23,13 +24,7 @@ export const getSlackMcpToolAccessConfig =
         channelIds: workAppSlackMcpToolAccessConfig.channelIds,
       })
       .from(workAppSlackMcpToolAccessConfig)
-      .where(
-        and(
-          eq(workAppSlackMcpToolAccessConfig.tenantId, scope.tenantId),
-          eq(workAppSlackMcpToolAccessConfig.projectId, scope.projectId),
-          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId)
-        )
-      )
+      .where(toolScopedWhere(workAppSlackMcpToolAccessConfig, scope))
       .limit(1);
 
     return (
@@ -89,13 +84,7 @@ export const updateSlackMcpToolAccessChannelIds =
         channelIds,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(workAppSlackMcpToolAccessConfig.tenantId, scope.tenantId),
-          eq(workAppSlackMcpToolAccessConfig.projectId, scope.projectId),
-          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId)
-        )
-      );
+      .where(toolScopedWhere(workAppSlackMcpToolAccessConfig, scope));
   };
 
 export const deleteSlackMcpToolAccessConfig =
@@ -103,13 +92,7 @@ export const deleteSlackMcpToolAccessConfig =
   async (scope: ToolScopeConfig): Promise<boolean> => {
     const result = await db
       .delete(workAppSlackMcpToolAccessConfig)
-      .where(
-        and(
-          eq(workAppSlackMcpToolAccessConfig.tenantId, scope.tenantId),
-          eq(workAppSlackMcpToolAccessConfig.projectId, scope.projectId),
-          eq(workAppSlackMcpToolAccessConfig.toolId, scope.toolId)
-        )
-      )
+      .where(toolScopedWhere(workAppSlackMcpToolAccessConfig, scope))
       .returning();
 
     return result.length > 0;
@@ -120,7 +103,7 @@ export const deleteAllSlackMcpToolAccessConfigsByTenant =
   async (tenantId: string): Promise<number> => {
     const result = await db
       .delete(workAppSlackMcpToolAccessConfig)
-      .where(eq(workAppSlackMcpToolAccessConfig.tenantId, tenantId))
+      .where(tenantScopedWhere(workAppSlackMcpToolAccessConfig, { tenantId }))
       .returning();
 
     return result.length;

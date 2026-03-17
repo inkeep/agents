@@ -3,6 +3,7 @@ import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { apps } from '../../db/runtime/runtime-schema';
 import type { AppInsert, AppSelect, AppUpdate } from '../../types/entities';
 import type { AppType, PaginationConfig, TenantScopeConfig } from '../../types/utility';
+import { tenantScopedWhere } from '../manage/scope-helpers';
 
 // ── Unscoped (for runtime auth lookups — no tenant/project gating) ───────────
 
@@ -24,7 +25,7 @@ export const getAppByIdForTenant =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: TenantScopeConfig; id: string }): Promise<AppSelect | undefined> => {
     return db.query.apps.findFirst({
-      where: and(eq(apps.id, params.id), eq(apps.tenantId, params.scopes.tenantId)),
+      where: and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)),
     });
   };
 
@@ -42,7 +43,7 @@ export const listAppsPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const conditions = [eq(apps.tenantId, params.scopes.tenantId)];
+    const conditions = [tenantScopedWhere(apps, params.scopes)];
     if (params.scopes.projectId) {
       conditions.push(eq(apps.projectId, params.scopes.projectId));
     }
@@ -103,7 +104,7 @@ export const updateAppForTenant =
         ...params.data,
         updatedAt: now,
       })
-      .where(and(eq(apps.id, params.id), eq(apps.tenantId, params.scopes.tenantId)))
+      .where(and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)))
       .returning();
 
     return updatedApp;
@@ -114,7 +115,7 @@ export const deleteAppForTenant =
   async (params: { scopes: TenantScopeConfig; id: string }): Promise<boolean> => {
     const result = await db
       .delete(apps)
-      .where(and(eq(apps.id, params.id), eq(apps.tenantId, params.scopes.tenantId)))
+      .where(and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)))
       .returning();
 
     return result.length > 0;
@@ -127,7 +128,7 @@ export const deleteAppsByProject =
   async (tenantId: string, projectId: string): Promise<number> => {
     const result = await db
       .delete(apps)
-      .where(and(eq(apps.tenantId, tenantId), eq(apps.projectId, projectId)))
+      .where(and(tenantScopedWhere(apps, { tenantId }), eq(apps.projectId, projectId)))
       .returning();
     return result.length;
   };
@@ -142,7 +143,7 @@ export const clearAppDefaultsByProject =
         defaultAgentId: null,
         updatedAt: new Date().toISOString(),
       })
-      .where(and(eq(apps.tenantId, tenantId), eq(apps.defaultProjectId, projectId)))
+      .where(and(tenantScopedWhere(apps, { tenantId }), eq(apps.defaultProjectId, projectId)))
       .returning();
     return result.length;
   };
@@ -156,7 +157,7 @@ export const clearAppDefaultsByAgent =
         defaultAgentId: null,
         updatedAt: new Date().toISOString(),
       })
-      .where(and(eq(apps.tenantId, tenantId), eq(apps.defaultAgentId, agentId)))
+      .where(and(tenantScopedWhere(apps, { tenantId }), eq(apps.defaultAgentId, agentId)))
       .returning();
     return result.length;
   };

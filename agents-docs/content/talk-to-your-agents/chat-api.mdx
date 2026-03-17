@@ -3,7 +3,7 @@ title: How to call your AI Agent using the Chat API
 sidebarTitle: Chat API
 description: Learn about details of the Vercel AI SDK data stream protocol that powers the `/run/api/chat` API endpoint.
 icon: LuMessagesSquare
-keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat
+keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat, images, multi-part content
 ---
 
 ## Overview
@@ -13,7 +13,7 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 <Tip>
   If you are building a React UI, consider our prebuilt components under [React
   UI Components](/talk-to-your-agents/react/chat-button) or [Vercel AI
-  Elements](/talk-to-your-agents/vercel-ai-sdk/ai-elements) headless primatives.
+  Elements](/talk-to-your-agents/vercel-ai-sdk/ai-elements) headless primitives.
   This page is for the low-level streaming API.
 </Tip>
 
@@ -44,8 +44,41 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 **Field Notes:**
 
 - **`messages`** — Must include at least one `user` message
-- **`content`** — Can be a string or an object with `parts` for multi-part content
+- **`content`** — Optional string message text (legacy-compatible)
+- **`parts`** — Optional multi-part content array (text + images)
+- **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
 - **`conversationId`** — Optional; server generates one if omitted
+
+
+### Sending Images
+
+Images can be included as part of multi-part message content. Supported formats are **PNG**, **JPEG**, and **WebP**.
+
+There are two ways to include images:
+
+- **Inline data URIs** — Base64-encoded images with the format `data:image/{png|jpeg|jpg|webp};base64,{data}`
+- **External URLs** — HTTP/HTTPS URLs pointing to hosted images
+
+When both `content` and `parts` are provided, the server keeps all valid `parts` and also includes `content` as text input. If text in `content` and `parts` does not match, the server logs a warning to help identify payload-construction bugs.
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "What's in this image?",
+      "parts": [
+        { "type": "text", "text": "What's in this image?" },
+        { "type": "image", "text": "data:image/png;base64,iVBORw0KGgo..." }
+      ]
+    }
+  ]
+}
+```
+
+<Note>
+  Images are validated server-side: MIME types are verified against actual content via byte-sniffing, a 10 MB size limit is enforced, and external URLs must use HTTP/HTTPS with no embedded credentials. DNS checks block requests to private/internal IP addresses.
+</Note>
 
 ### Optional Headers
 

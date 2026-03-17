@@ -861,5 +861,78 @@ describe('Relationship Tools', () => {
         })
       );
     });
+
+    it('should pass initiatedBy to generateServiceToken for internal delegation', async () => {
+      mockExecutionContext = createMockExecutionContext();
+      mockExecutionContext.metadata = {
+        initiatedBy: { type: 'user', id: 'user_abc123' },
+      };
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'User delegation test' }, mockToolCallOptions);
+
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: { type: 'user', id: 'user_abc123' },
+      });
+    });
+
+    it('should pass initiatedBy when metadata includes teamDelegation flag', async () => {
+      mockExecutionContext = createMockExecutionContext();
+      mockExecutionContext.metadata = {
+        teamDelegation: true,
+        initiatedBy: { type: 'user', id: 'user_xyz789' },
+      };
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Team delegation with user test' }, mockToolCallOptions);
+
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: { type: 'user', id: 'user_xyz789' },
+      });
+    });
+
+    it('should not include initiatedBy when metadata has no initiatedBy', async () => {
+      mockExecutionContext = createMockExecutionContext();
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'No user test' }, mockToolCallOptions);
+
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: undefined,
+      });
+    });
   });
 });
