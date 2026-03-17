@@ -1,5 +1,69 @@
 import { describe, expect, it } from 'vitest';
-import { isUniqueConstraintError, throwIfUniqueConstraintError } from '../error';
+import { createApiError, isUniqueConstraintError, throwIfUniqueConstraintError } from '../error';
+
+describe('sanitizeErrorMessage (via createApiError)', () => {
+  async function getResponseBody(
+    message: string,
+    code: 'internal_server_error' | 'bad_request' = 'internal_server_error'
+  ) {
+    const exception = createApiError({ code, message });
+    return JSON.parse(await exception.getResponse().text());
+  }
+
+  it('redacts IPv4 addresses with port', async () => {
+    const body = await getResponseBody('connect ECONNREFUSED 10.0.0.5:5432');
+    expect(body.detail).toBe('connect ECONNREFUSED [REDACTED_HOST]');
+    expect(body.detail).not.toContain('10.0.0.5');
+  });
+
+  it('redacts IPv4 addresses without port', async () => {
+    const body = await getResponseBody('could not connect to 192.168.1.1');
+    expect(body.detail).not.toContain('192.168.1.1');
+    expect(body.detail).toContain('[REDACTED_HOST]');
+  });
+
+  it('redacts PostgreSQL connection strings', async () => {
+    const body = await getResponseBody('postgresql://appuser:pass@host:5432/db failed');
+    expect(body.detail).toBe('[REDACTED_CONNECTION] failed');
+    expect(body.detail).not.toContain('appuser');
+  });
+
+  it('redacts server file paths', async () => {
+    const body = await getResponseBody('Error at /var/task/packages/agents-core/dist/index.js:42');
+    expect(body.detail).not.toContain('/var/task');
+    expect(body.detail).toContain('[REDACTED_PATH]');
+  });
+
+  it('redacts /tmp paths', async () => {
+    const body = await getResponseBody('Cannot read /tmp/secrets.json');
+    expect(body.detail).not.toContain('/tmp/secrets.json');
+    expect(body.detail).toContain('[REDACTED_PATH]');
+  });
+
+  it('redacts sensitive keywords', async () => {
+    const body = await getResponseBody('Invalid auth token');
+    expect(body.detail).toBe('Invalid [REDACTED] [REDACTED]');
+  });
+
+  it('redacts credential keyword', async () => {
+    const body = await getResponseBody('Failed to fetch credential');
+    expect(body.detail).toBe('Failed to fetch [REDACTED]');
+  });
+
+  it('preserves safe messages unchanged', async () => {
+    const body = await getResponseBody('Failed to retrieve project');
+    expect(body.detail).toBe('Failed to retrieve project');
+  });
+
+  it('handles multiple patterns in one message', async () => {
+    const body = await getResponseBody(
+      'connect to 10.0.0.5:5432 at /var/log/app.log with password'
+    );
+    expect(body.detail).not.toContain('10.0.0.5');
+    expect(body.detail).not.toContain('/var/log');
+    expect(body.detail).not.toContain('password');
+  });
+});
 
 describe('isUniqueConstraintError', () => {
   describe('PostgreSQL unique violation (23505)', () => {
