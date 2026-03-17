@@ -45,7 +45,7 @@ export function ApiKeysTable({ apiKeys, agentLookup, canUse }: ApiKeysTableProps
       },
       {
         id: 'lastUsedAt',
-        accessorFn: (row) => (row.lastUsedAt ? new Date(row.lastUsedAt) : null),
+        accessorFn: (row) => (row.lastUsedAt ? new Date(row.lastUsedAt) : undefined),
         header: ({ column }) => <DataTableColumnHeader column={column} title="Last Used" />,
         sortingFn: 'datetime',
         sortUndefined: 'last',
@@ -63,7 +63,7 @@ export function ApiKeysTable({ apiKeys, agentLookup, canUse }: ApiKeysTableProps
       },
       {
         id: 'createdAt',
-        accessorFn: (row) => (row.createdAt ? new Date(row.createdAt) : null),
+        accessorFn: (row) => (row.createdAt ? new Date(row.createdAt) : undefined),
         header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
         sortingFn: 'datetime',
         sortUndefined: 'last',

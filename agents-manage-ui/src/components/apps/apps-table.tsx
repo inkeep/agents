@@ -117,7 +117,7 @@ export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTable
       },
       {
         id: 'createdAt',
-        accessorFn: (row) => (row.createdAt ? new Date(row.createdAt) : null),
+        accessorFn: (row) => (row.createdAt ? new Date(row.createdAt) : undefined),
         header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
         sortingFn: 'datetime',
         sortUndefined: 'last',

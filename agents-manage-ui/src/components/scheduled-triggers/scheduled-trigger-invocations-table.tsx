@@ -168,7 +168,7 @@ export function ScheduledTriggerInvocationsTable({
     },
     {
       id: 'startedAt',
-      accessorFn: (row) => (row.startedAt ? new Date(row.startedAt) : null),
+      accessorFn: (row) => (row.startedAt ? new Date(row.startedAt) : undefined),
       header: ({ column }) => <DataTableColumnHeader column={column} title="Started At" />,
       sortingFn: 'datetime',
       sortUndefined: 'last',

@@ -281,7 +281,7 @@ export function ProjectScheduledTriggersTable({
     },
     {
       id: 'lastRunAt',
-      accessorFn: (row) => (row.lastRunAt ? new Date(row.lastRunAt) : null),
+      accessorFn: (row) => (row.lastRunAt ? new Date(row.lastRunAt) : undefined),
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
@@ -320,7 +320,7 @@ export function ProjectScheduledTriggersTable({
     },
     {
       id: 'nextRunAt',
-      accessorFn: (row) => (row.nextRunAt ? new Date(row.nextRunAt) : null),
+      accessorFn: (row) => (row.nextRunAt ? new Date(row.nextRunAt) : undefined),
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
