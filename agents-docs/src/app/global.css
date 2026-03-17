@@ -153,6 +153,90 @@
   color: hsl(0 0% 10%);
 }
 
+/* newsletter signup in TOC sidebar */
+.newsletter-signup {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+
+.newsletter-signup-title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-fd-foreground);
+  margin-bottom: 0.5rem;
+}
+
+.newsletter-signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.newsletter-signup-input {
+  width: 100%;
+  height: 2rem;
+  padding: 0 0.625rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.375rem;
+  background: hsl(var(--background));
+  color: var(--color-fd-foreground);
+  font-size: 0.75rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.newsletter-signup-input::placeholder {
+  color: var(--color-fd-muted-foreground, hsl(var(--muted-foreground)));
+  opacity: 0.7;
+}
+
+.newsletter-signup-input:focus {
+  border-color: var(--color-fd-primary);
+}
+
+.newsletter-signup-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.newsletter-signup-button {
+  width: 100%;
+  height: 2rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: var(--color-fd-primary);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.newsletter-signup-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.newsletter-signup-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.newsletter-signup-success {
+  text-align: center;
+}
+
+.newsletter-signup-success-text {
+  font-size: 0.8125rem;
+  color: var(--color-fd-primary);
+  font-weight: 500;
+}
+
+.newsletter-signup-error {
+  font-size: 0.6875rem;
+  color: hsl(0 84% 60%);
+  margin-top: 0.25rem;
+}
+
 /* tailwind typography overrides */
 @utility prose {
   th {
