@@ -517,8 +517,9 @@ export class ExecutionHandler {
               });
 
               // Store the agent response in the database with both text and parts
+              const messageId = params.responseMessageId || generateId();
               await createMessage(runDbClient)({
-                id: params.responseMessageId || generateId(),
+                id: messageId,
                 tenantId,
                 projectId,
                 conversationId,
