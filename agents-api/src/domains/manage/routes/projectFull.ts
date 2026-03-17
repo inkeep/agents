@@ -38,6 +38,7 @@ import { HTTPException } from 'hono/http-exception';
 import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
+import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
@@ -705,7 +706,10 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
 
     throw createApiError({
       code: 'internal_server_error',
-      message: 'Failed to update project',
+      message:
+        env.ENVIRONMENT === 'development' && error instanceof Error
+          ? error.message
+          : 'Failed to update project',
     });
   }
 };
