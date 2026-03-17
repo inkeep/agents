@@ -61,9 +61,7 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
             fileRouteAliases={fileRouteAliases}
             canEdit={permissions.canEdit}
           />
-          <SidebarInset>
-            <section className="min-w-0 overflow-auto p-6">{children}</section>
-          </SidebarInset>
+          <SidebarInset className="min-w-0">{children}</SidebarInset>
         </SidebarProvider>
       </>
     );

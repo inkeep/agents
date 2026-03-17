@@ -6,18 +6,26 @@ const BreadcrumbNavItem: FC<{
   href: string;
   isLast: boolean;
   label: string;
-}> = ({ href, isLast, label }) => {
+  /** @default "/"  */
+  separator?: '›' | '/' | string;
+}> = ({ href, isLast, label, separator = '/' }) => {
+  'use memo';
+
   return (
     <li
       aria-current={isLast ? 'page' : undefined}
+      style={{
+        // @ts-expect-error
+        '--sep': `"${separator}"`,
+      }}
       className={cn(
         'shrink-0',
         isLast
           ? 'font-medium text-foreground'
-          : 'after:ml-2 after:content-["›"] after:text-muted-foreground/60'
+          : 'after:ml-2 after:content-(--sep) after:text-muted-foreground/60'
       )}
     >
-      {isLast ? (
+      {isLast || !href ? (
         label
       ) : (
         <Link href={href} className="hover:text-foreground">
@@ -28,10 +36,19 @@ const BreadcrumbNavItem: FC<{
   );
 };
 
-const BreadcrumbNav$: FC<{ children: ReactNode }> = ({ children }) => {
+const BreadcrumbNav$: FC<{ children: ReactNode; className?: string }> = ({
+  children,
+  className,
+}) => {
+  'use memo';
   return (
     <nav aria-label="Breadcrumb">
-      <ol className="text-sm text-muted-foreground flex items-center gap-2 overflow-y-auto">
+      <ol
+        className={cn(
+          'text-sm text-muted-foreground flex items-center gap-2 overflow-y-auto',
+          className
+        )}
+      >
         {children}
       </ol>
     </nav>

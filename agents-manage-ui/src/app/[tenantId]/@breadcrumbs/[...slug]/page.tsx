@@ -169,7 +169,13 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
 const BreadcrumbSlot: FC<BreadcrumbsProps> = async ({ params }) => {
   const crumbs = await getCrumbs(params);
   return crumbs.map(({ label, href }, idx, arr) => (
-    <BreadcrumbNav.Item key={href} href={href} label={label} isLast={idx === arr.length - 1} />
+    <BreadcrumbNav.Item
+      key={href}
+      href={href}
+      label={label}
+      isLast={idx === arr.length - 1}
+      separator="›"
+    />
   ));
 };
 
