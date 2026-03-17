@@ -3,54 +3,49 @@ import { generateSkillDefinition } from '../generators/skill-generator';
 describe('Skill Generator', () => {
   it('generates skill markdown with metadata', () => {
     const content = generateSkillDefinition({
-      skillId: 'general-gameplan',
-      name: 'General Gameplan',
+      name: 'general-gameplan',
       description: 'Create a general plan.',
       metadata: {
-        tools: ['planner', 'search'],
+        tools: 'true',
         priority: 'high',
       },
       content: 'Use this skill for planning.',
     });
 
     expect(content).toContain('---');
-    expect(content).toContain('name: "General Gameplan"');
+    expect(content).toContain('name: "general-gameplan"');
     expect(content).toContain('description: "Create a general plan."');
     expect(content).toContain('metadata:');
-    expect(content).toContain('  tools:');
-    expect(content).toContain('  - planner');
-    expect(content).toContain('  - search');
+    expect(content).toContain('  tools: "true"');
     expect(content).toContain('  priority: high');
     expect(content).toContain('Use this skill for planning.');
   });
 
   it('omits metadata when it is empty', () => {
     const content = generateSkillDefinition({
-      skillId: 'simple-skill',
-      name: 'Simple Skill',
-      description: '',
+      name: 'simple-skill',
+      description: '#',
       metadata: {},
       content: 'Simple content.',
     });
 
-    expect(content).toContain('name: "Simple Skill"');
+    expect(content).toContain('name: "simple-skill"');
     expect(content).not.toContain('metadata:');
     expect(content).toContain('Simple content.');
   });
 
   it('throws for invalid skill input', () => {
     expect(() => {
-      generateSkillDefinition({
-        skillId: '',
-        // @ts-expect-error testing validation
-        name: undefined,
-      });
+      // @ts-expect-error testing validation
+      generateSkillDefinition({});
     }).toThrow(
       new Error(`Validation failed for skill:
-✖ Invalid input: expected a nonempty string
-  → at skillId
 ✖ Invalid input: expected string, received undefined
-  → at name`)
+  → at name
+✖ Invalid input: expected string, received undefined
+  → at description
+✖ Invalid input: expected string, received undefined
+  → at content`)
     );
   });
 });

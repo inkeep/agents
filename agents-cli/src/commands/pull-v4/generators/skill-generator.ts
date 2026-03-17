@@ -1,15 +1,11 @@
 import { join } from 'node:path';
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { stringify } from 'yaml';
-import { z } from 'zod';
+import type { z } from 'zod';
 import type { GenerationTask } from '../generation-types';
 import { validateGeneratorInput } from '../simple-factory-generator';
 
-const SkillDefinitionSchema = FullProjectDefinitionSchema.shape.skills.unwrap().valueType;
-const SkillSchema = z.strictObject({
-  skillId: z.string().nonempty(),
-  ...SkillDefinitionSchema.shape,
-});
+const SkillSchema = FullProjectDefinitionSchema.shape.skills.unwrap().valueType;
 
 type SkillInput = z.input<typeof SkillSchema>;
 
