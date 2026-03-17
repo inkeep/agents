@@ -898,6 +898,7 @@ export class Project implements ProjectInterface {
         description: skill.description,
         content: skill.content,
         metadata: skill.metadata ?? null,
+        files: skill.files,
         createdAt: skill.createdAt ?? skillTimestamp,
         updatedAt: skill.updatedAt ?? skillTimestamp,
       };
