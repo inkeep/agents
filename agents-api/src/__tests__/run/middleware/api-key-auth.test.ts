@@ -165,12 +165,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Authentication failed. Tried:');
-      expect(body).toContain('JWT temp token (not a JWT)');
-      expect(body).toContain('bypass secret (no bypass secret configured)');
-      expect(body).toContain('Slack user JWT (not a Slack token)');
-      expect(body).toContain('API key (not found)');
-      expect(body).toContain('team agent token (Invalid team agent token: Invalid token)');
+      expect(body).toContain('Invalid Token');
       expect(validateAndGetApiKeyMock).toHaveBeenCalledWith(
         'sk_test_1234567890abcdef.verylongsecretkey',
         expect.any(Object)
@@ -383,10 +378,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Authentication failed. Tried:');
-      expect(body).toContain('bypass secret (no match)');
-      expect(body).toContain('API key (not found)');
-      expect(body).toContain('team agent token (Invalid team agent token: Invalid token)');
+      expect(body).toContain('Invalid Token');
       expect(validateAndGetApiKey).toHaveBeenCalledWith(
         'invalid_key_not_matching_bypass',
         expect.any(Object)
@@ -486,8 +478,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Authentication failed. Tried:');
-      expect(body).toContain('team agent token (Invalid team agent token: Invalid signature)');
+      expect(body).toContain('Invalid Token');
     });
 
     it('should reject team agent JWT tokens with target agent mismatch', async () => {
@@ -961,7 +952,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('insufficient permissions');
+      expect(body).toContain('Invalid Token');
     });
 
     it('should reject when missing required headers', async () => {
@@ -983,7 +974,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('requires x-inkeep-project-id and x-inkeep-agent-id');
+      expect(body).toContain('Invalid Token');
     });
 
     it('should return 503 when SpiceDB is unavailable', async () => {
@@ -1072,8 +1063,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Invalid Slack user token');
-      expect(body).not.toContain('Authentication failed. Tried:');
+      expect(body).toContain('Invalid Token');
       expect(validateAndGetApiKeyMock).not.toHaveBeenCalled();
       expect(verifyServiceTokenMock).not.toHaveBeenCalled();
     });

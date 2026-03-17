@@ -664,14 +664,9 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
     failures.push({ strategy: 'team agent token', reason: teamAttempt.failureMessage });
   }
 
-  const summary =
-    failures.length > 0
-      ? `Authentication failed. Tried: ${failures.map((f) => `${f.strategy} (${f.reason})`).join(', ')}`
-      : 'Authentication failed: no valid credentials found';
-
   logger.debug({ failures }, 'All auth strategies exhausted');
 
-  return { authResult: null, failureMessage: summary };
+  return { authResult: null };
 }
 
 /**
@@ -742,9 +737,12 @@ async function runApiKeyAuthHandler(
   }
 
   if (!attempt.authResult) {
-    logger.error({}, 'API key authentication error - no valid auth method found');
+    logger.error(
+      { failureMessage: attempt.failureMessage },
+      'API key authentication error - no valid auth method found'
+    );
     throw new HTTPException(401, {
-      message: attempt.failureMessage || 'Invalid Token',
+      message: 'Invalid Token',
     });
   }
 
