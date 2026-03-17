@@ -31,10 +31,8 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
   const { tenantId, projectId } = await params;
 
   try {
-    const { permissions, treeNodes, defaultSelectedPath } = await fetchSkillsPageData(
-      tenantId,
-      projectId
-    );
+    const { permissions, treeNodes, defaultSelectedRoutePath, fileRouteAliases } =
+      await fetchSkillsPageData(tenantId, projectId);
 
     const action = permissions.canEdit && (
       <Button asChild className="flex items-center gap-2">
@@ -51,7 +49,11 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
         <div className="overflow-hidden rounded-lg border bg-background">
           <div className="grid lg:grid-cols-[18rem_minmax(0,1fr)]">
             <aside className="border-b bg-muted/20 lg:border-r lg:border-b-0">
-              <SkillsSidebar treeNodes={treeNodes} defaultSelectedPath={defaultSelectedPath} />
+              <SkillsSidebar
+                treeNodes={treeNodes}
+                defaultSelectedRoutePath={defaultSelectedRoutePath}
+                fileRouteAliases={fileRouteAliases}
+              />
             </aside>
             <section className="min-w-0 overflow-auto p-6">{children}</section>
           </div>
