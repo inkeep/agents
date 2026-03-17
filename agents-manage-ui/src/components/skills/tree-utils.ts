@@ -1,21 +1,22 @@
+import type { SkillFileRecord } from '@/lib/utils/skill-files';
+
 export interface DemoTreeNode {
   name: string;
   path: string;
+  routePath?: string;
+  skillId?: string;
+  filePath?: string;
+  fileId?: string;
   kind: 'folder' | 'file';
   content?: string;
   children: DemoTreeNode[];
 }
 
-export type SkillFileTreeItem = {
-  filePath: string;
-  content: string;
-};
-
-export function buildTree(files: readonly SkillFileTreeItem[]): DemoTreeNode[] {
+export function buildTree(files: readonly SkillFileRecord[]): DemoTreeNode[] {
   const root: DemoTreeNode[] = [];
 
   for (const file of files) {
-    const segments = file.filePath.split('/').filter(Boolean);
+    const segments = file.treePath.split('/').filter(Boolean);
     let children = root;
 
     for (const [index, segment] of segments.entries()) {
@@ -27,6 +28,10 @@ export function buildTree(files: readonly SkillFileTreeItem[]): DemoTreeNode[] {
         node = {
           name: segment,
           path,
+          routePath: isFile ? file.routePath : undefined,
+          skillId: isFile ? file.skillId : undefined,
+          filePath: isFile ? file.filePath : undefined,
+          fileId: isFile ? file.fileId : undefined,
           kind: isFile ? 'file' : 'folder',
           content: isFile ? file.content : undefined,
           children: [],
@@ -35,6 +40,10 @@ export function buildTree(files: readonly SkillFileTreeItem[]): DemoTreeNode[] {
       }
 
       if (isFile) {
+        node.routePath = file.routePath;
+        node.skillId = file.skillId;
+        node.filePath = file.filePath;
+        node.fileId = file.fileId;
         node.content = file.content;
       }
 
@@ -45,33 +54,16 @@ export function buildTree(files: readonly SkillFileTreeItem[]): DemoTreeNode[] {
   return root;
 }
 
-export function getSkillFiles(
-  skills: Array<{
-    id: string;
-    files?: Array<{
-      filePath: string;
-      content: string;
-    }>;
-  }>
-): SkillFileTreeItem[] {
-  return skills.flatMap((skill) =>
-    (skill.files ?? []).map((file) => ({
-      filePath: `${skill.id}/${file.filePath}`,
-      content: file.content,
-    }))
-  );
-}
-
-export function findNodeByPath(
+export function findNodeByRoutePath(
   nodes: readonly DemoTreeNode[],
-  targetPath: string
+  targetRoutePath: string
 ): DemoTreeNode | null {
   for (const node of nodes) {
-    if (node.path === targetPath) {
+    if (node.routePath === targetRoutePath) {
       return node;
     }
 
-    const childMatch = findNodeByPath(node.children, targetPath);
+    const childMatch = findNodeByRoutePath(node.children, targetRoutePath);
     if (childMatch) {
       return childMatch;
     }

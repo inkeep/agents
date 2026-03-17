@@ -3,7 +3,12 @@
  */
 'use server';
 
-import type { SkillApiInsert, SkillApiSelect, SkillApiUpdate } from '@inkeep/agents-core';
+import type {
+  SkillApiInsert,
+  SkillApiSelect,
+  SkillApiUpdate,
+  SkillWithFilesApiSelect,
+} from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
@@ -11,6 +16,7 @@ import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export type Skill = SkillApiSelect;
+export type SkillDetail = SkillWithFilesApiSelect;
 
 export async function fetchSkills(
   tenantId: string,
@@ -24,11 +30,15 @@ export async function fetchSkills(
   );
 }
 
-async function $fetchSkill(tenantId: string, projectId: string, skillId: string): Promise<Skill> {
+async function $fetchSkill(
+  tenantId: string,
+  projectId: string,
+  skillId: string
+): Promise<SkillDetail> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Skill>>(
+  const response = await makeManagementApiRequest<SingleResponse<SkillDetail>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}`
   );
 
@@ -40,11 +50,11 @@ export async function createSkill(
   tenantId: string,
   projectId: string,
   skill: SkillApiInsert
-): Promise<Skill> {
+): Promise<SkillDetail> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Skill>>(
+  const response = await makeManagementApiRequest<SingleResponse<SkillDetail>>(
     `tenants/${tenantId}/projects/${projectId}/skills`,
     {
       method: 'POST',
@@ -61,11 +71,11 @@ export async function updateSkill(
   projectId: string,
   skillId: string,
   skill: SkillApiUpdate
-): Promise<Skill> {
+): Promise<SkillDetail> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Skill>>(
+  const response = await makeManagementApiRequest<SingleResponse<SkillDetail>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}`,
     {
       method: 'PUT',

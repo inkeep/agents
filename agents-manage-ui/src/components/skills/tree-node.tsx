@@ -14,12 +14,13 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import { buildSkillFileViewHref } from '@/lib/utils/skill-files';
 
 export const TreeNode: FC<{
   node: DemoTreeNode;
-  selectedPath: string;
+  selectedRoutePath: string;
   nested?: boolean;
-}> = ({ node, nested = false, selectedPath }) => {
+}> = ({ node, nested = false, selectedRoutePath }) => {
   'use memo';
 
   const { tenantId, projectId } = useParams<{
@@ -27,25 +28,13 @@ export const TreeNode: FC<{
     projectId: string;
   }>();
 
-  function buildSearch(nextPath: string) {
-    const nextSearchParams = new URLSearchParams();
-    if (nextPath) {
-      nextSearchParams.set('path', nextPath);
-    }
-    return nextSearchParams.toString();
-  }
-
-  function buildFileHref(targetPath: string) {
-    return `/${tenantId}/projects/${projectId}/skills?${buildSearch(targetPath)}`;
-  }
-  function buildFolderHref() {
-    return `/${tenantId}/projects/${projectId}/skills?${buildSearch(selectedPath)}`;
-  }
-
   const [isCollapsed, setCollapsed] = useState(false);
-  const isActive = node.kind === 'file' && node.path === selectedPath;
+  const isActive = node.kind === 'file' && node.routePath === selectedRoutePath;
   const IconToUse = node.kind === 'file' ? File : isCollapsed ? Folder : FolderOpenIcon;
-  const href = node.kind === 'file' ? buildFileHref(node.path) : buildFolderHref();
+  const href =
+    node.kind === 'file' && node.skillId && node.filePath
+      ? buildSkillFileViewHref(tenantId, projectId, node.skillId, node.filePath)
+      : '';
   const ComponentToUse = nested ? SidebarMenuSubItem : SidebarMenuItem;
   const ButtonToUse = nested ? SidebarMenuSubButton : SidebarMenuButton;
 
@@ -80,7 +69,7 @@ export const TreeNode: FC<{
       {node.children.length > 0 && !isCollapsed && (
         <SidebarMenuSub className="pr-0 mr-0">
           {node.children.map((child) => (
-            <TreeNode key={child.path} node={child} selectedPath={selectedPath} nested />
+            <TreeNode key={child.path} node={child} selectedRoutePath={selectedRoutePath} nested />
           ))}
         </SidebarMenuSub>
       )}

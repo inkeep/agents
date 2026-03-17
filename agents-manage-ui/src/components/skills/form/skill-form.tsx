@@ -16,7 +16,7 @@ import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
-import type { Skill } from '@/lib/types/skills';
+import type { SkillDetail } from '@/lib/types/skills';
 import { isRequired, serializeJson } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
@@ -29,7 +29,7 @@ interface SkillFormProps {
 
 const resolver = zodResolver(schema);
 
-function formatFormData(data: Skill | null): SkillInput {
+function formatFormData(data: SkillDetail | null): SkillInput {
   if (data) {
     return {
       ...data,
