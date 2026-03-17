@@ -1,5 +1,14 @@
 # @inkeep/agents-cli
 
+## 0.58.18
+
+### Patch Changes
+
+- Updated dependencies [ad867c5]
+  - @inkeep/agents-manage-ui@0.58.18
+  - @inkeep/agents-core@0.58.18
+  - @inkeep/agents-sdk@0.58.18
+
 ## 0.58.17
 
 ### Patch Changes

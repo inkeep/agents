@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.58.18
+
+### Patch Changes
+
+- 128845e: Fix message ID mismatch between server and client for feedback records
+  - @inkeep/agents-core@0.58.18
+  - @inkeep/agents-email@0.58.18
+  - @inkeep/agents-mcp@0.58.18
+  - @inkeep/agents-work-apps@0.58.18
+
 ## 0.58.17
 
 ### Patch Changes

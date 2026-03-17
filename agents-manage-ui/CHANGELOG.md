@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.18
+
+### Patch Changes
+
+- ad867c5: Fix Nango MCP integration reuse regression causing 'integration already exists' error on OAuth login
+  - @inkeep/agents-core@0.58.18
+
 ## 0.58.17
 
 ### Patch Changes
