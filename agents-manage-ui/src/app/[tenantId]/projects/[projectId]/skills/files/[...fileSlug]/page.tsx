@@ -8,15 +8,9 @@ import { getErrorCode } from '@/lib/utils/error-serialization';
 import { buildSkillFileEditHref, getSkillFileEditorUri } from '@/lib/utils/skill-files';
 import { resolveSkillFilePageData } from '../../skills-data';
 
-interface SkillFilePageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    fileSlug: string[];
-  }>;
-}
-
-const SkillFilePage: FC<SkillFilePageProps> = async ({ params }) => {
+const SkillFilePage: FC<
+  PageProps<'/[tenantId]/projects/[projectId]/skills/files/[...fileSlug]'>
+> = async ({ params }) => {
   const { tenantId, projectId, fileSlug } = await params;
 
   try {

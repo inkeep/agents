@@ -5,15 +5,9 @@ import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { resolveSkillFilePageData } from '../../skills-data';
 
-interface EditSkillFilePageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    fileSlug: string[];
-  }>;
-}
-
-const EditSkillFilePage: FC<EditSkillFilePageProps> = async ({ params }) => {
+const EditSkillFilePage: FC<
+  PageProps<'/[tenantId]/projects/[projectId]/skills/edit/[...fileSlug]'>
+> = async ({ params }) => {
   const { tenantId, projectId, fileSlug } = await params;
 
   await checkProjectPermissionOrRedirect(
