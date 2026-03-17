@@ -165,9 +165,13 @@ import type {
   SkillApiInsertSchema,
   SkillApiSelectSchema,
   SkillApiUpdateSchema,
+  SkillFileApiSelectSchema,
+  SkillFileInsertSchema,
+  SkillFileSelectSchema,
   SkillInsertSchema,
   SkillSelectSchema,
   SkillUpdateSchema,
+  SkillWithFilesApiSelectSchema,
   SubAgentApiInsertSchema,
   SubAgentApiSelectSchema,
   SubAgentApiUpdateSchema,
@@ -483,6 +487,10 @@ export type SkillUpdate = z.infer<typeof SkillUpdateSchema>;
 export type SkillApiSelect = z.infer<typeof SkillApiSelectSchema>;
 export type SkillApiInsert = z.infer<typeof SkillApiInsertSchema>;
 export type SkillApiUpdate = z.infer<typeof SkillApiUpdateSchema>;
+export type SkillFileSelect = z.infer<typeof SkillFileSelectSchema>;
+export type SkillFileInsert = z.infer<typeof SkillFileInsertSchema>;
+export type SkillFileApiSelect = z.infer<typeof SkillFileApiSelectSchema>;
+export type SkillWithFilesApiSelect = z.infer<typeof SkillWithFilesApiSelectSchema>;
 
 export type DataComponentSelect = z.infer<typeof DataComponentSelectSchema>;
 export type DataComponentInsert = z.infer<typeof DataComponentInsertSchema>;
