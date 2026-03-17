@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.58.17
+
+### Patch Changes
+
+- f94a089: service name filtering added to signoz queries
+  - @inkeep/agents-core@0.58.17
+  - @inkeep/agents-email@0.58.17
+  - @inkeep/agents-mcp@0.58.17
+  - @inkeep/agents-work-apps@0.58.17
+
 ## 0.58.16
 
 ### Patch Changes
