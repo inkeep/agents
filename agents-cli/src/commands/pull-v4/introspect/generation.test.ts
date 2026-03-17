@@ -76,10 +76,10 @@ describe('pull-v4 introspect generator', () => {
     const project = createProjectFixture();
     project.skills = {
       'general-gameplan': {
-        name: 'General Gameplan',
+        name: 'general-gameplan',
         description: 'Create a general plan.',
         metadata: {
-          tools: ['planner'],
+          tools: 'planner',
         },
         content: 'Use this skill for planning.',
       },
@@ -91,11 +91,10 @@ describe('pull-v4 introspect generator', () => {
     expect(fs.existsSync(skillFilePath)).toBe(true);
 
     const { default: skillContent } = await import(`${skillFilePath}?raw`);
-    expect(skillContent).toContain('name: "General Gameplan"');
-    expect(skillContent).toContain('description: "Create a general plan."');
+    expect(skillContent).toContain('name: general-gameplan');
+    expect(skillContent).toContain('description: Create a general plan.');
     expect(skillContent).toContain('metadata:');
-    expect(skillContent).toContain('  tools:');
-    expect(skillContent).toContain('  - planner');
+    expect(skillContent).toContain('  tools: planner');
     expect(skillContent).toContain('Use this skill for planning.');
   });
 });
