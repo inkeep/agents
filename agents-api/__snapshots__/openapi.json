@@ -10444,21 +10444,6 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/api/workflow/process": {
-      "get": {
-        "description": "Keeps the workflow worker active to process queued jobs (called by cron)",
-        "responses": {
-          "200": {
-            "description": "Processing complete"
-          }
-        },
-        "security": [],
-        "summary": "Process workflow jobs",
-        "tags": [
-          "Workflows"
-        ]
-      }
-    },
     "/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversation": {
       "post": {
         "operationId": "evaluate-conversation",
