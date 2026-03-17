@@ -2,6 +2,7 @@
 
 import { ChevronRight, File, Folder, FolderOpenIcon } from 'lucide-react';
 import NextLink from 'next/link';
+import { useParams } from 'next/navigation';
 import { type FC, useState } from 'react';
 import {
   SidebarMenuAction,
@@ -12,7 +13,6 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { useParams } from 'next/navigation';
 
 export interface DemoTreeNode {
   name: string;

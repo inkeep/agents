@@ -5,7 +5,7 @@ import type { FC } from 'react';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import FullPageError from '@/components/errors/full-page-error';
 import { PageHeader } from '@/components/layout/page-header';
-import { TreeNode, type DemoTreeNode } from '@/components/skills/tree-node';
+import { type DemoTreeNode, TreeNode } from '@/components/skills/tree-node';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import {
