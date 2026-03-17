@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchProjectPermissions } from '@/lib/api/projects';
+import { fetchSkill, fetchSkills } from '@/lib/api/skills';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const metadata = {
@@ -32,22 +33,12 @@ const description = (
   </>
 );
 
-type DemoSkillFile = {
+type SkillFileTreeItem = {
   filePath: string;
   content: string;
 };
 
-const demoSkillTree: DemoSkillFile[] = [
-  { filePath: 'foo/SKILL.md', content: '1' },
-  { filePath: 'foo/LICENCE.txt', content: '2' },
-  { filePath: 'bar/baz/hello.txt', content: '3' },
-  { filePath: 'bar/baz/index.html', content: '4' },
-  { filePath: 'bar/SKILL.md', content: '5' },
-] as const;
-
-const defaultSelectedPath = demoSkillTree[0]?.filePath ?? '';
-
-function buildTree(files: readonly DemoSkillFile[]): DemoTreeNode[] {
+function buildTree(files: readonly SkillFileTreeItem[]): DemoTreeNode[] {
   const root: DemoTreeNode[] = [];
 
   for (const file of files) {
@@ -81,6 +72,23 @@ function buildTree(files: readonly DemoSkillFile[]): DemoTreeNode[] {
   return root;
 }
 
+function getSkillFiles(
+  skills: Array<{
+    id: string;
+    files?: Array<{
+      filePath: string;
+      content: string;
+    }>;
+  }>
+): SkillFileTreeItem[] {
+  return skills.flatMap((skill) =>
+    (skill.files ?? []).map((file) => ({
+      filePath: `${skill.id}/${file.filePath}`,
+      content: file.content,
+    }))
+  );
+}
+
 function findNodeByPath(nodes: readonly DemoTreeNode[], targetPath: string): DemoTreeNode | null {
   for (const node of nodes) {
     if (node.path === targetPath) {
@@ -111,8 +119,6 @@ function findFirstFile(nodes: readonly DemoTreeNode[]): DemoTreeNode | null {
   return null;
 }
 
-const treeNodes = buildTree(demoSkillTree);
-
 const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({
   params,
   searchParams,
@@ -121,7 +127,16 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
   const rawSearchParams = await searchParams;
 
   try {
-    const permissions = await fetchProjectPermissions(tenantId, projectId);
+    const [permissions, skillsResponse] = await Promise.all([
+      fetchProjectPermissions(tenantId, projectId),
+      fetchSkills(tenantId, projectId),
+    ]);
+    const skillDetails = await Promise.all(
+      skillsResponse.data.map((skill) => fetchSkill(tenantId, projectId, skill.id))
+    );
+    const skillFiles = getSkillFiles(skillDetails);
+    const treeNodes = buildTree(skillFiles);
+    const defaultSelectedPath = skillFiles[0]?.filePath ?? '';
     const requestedPath =
       typeof rawSearchParams.path === 'string' ? rawSearchParams.path : defaultSelectedPath;
     const fallbackNode = findFirstFile(treeNodes) ?? treeNodes[0] ?? null;
@@ -142,7 +157,7 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
         <>
           <PageHeader title={metadata.title} description={description} action={action} />
           <div className="rounded-lg border bg-background p-8 text-sm text-muted-foreground">
-            No demo skill files configured.
+            No skill files configured.
           </div>
         </>
       );
