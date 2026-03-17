@@ -163,7 +163,27 @@ export const FullAgentUpdateSchema = z.strictObject({
     (val) => val,
     'Default sub agent ID is required, please select a default sub agent.'
   ),
-  subAgents: z.record(z.string(), FullAgentSubAgentSchema),
+  subAgents: z.record(z.string(), FullAgentSubAgentSchema).superRefine((subAgents, ctx) => {
+    const nodeIdsBySubAgentId = new Map<string, string[]>();
+
+    for (const [nodeId, subAgent] of Object.entries(subAgents)) {
+      const subAgentId = subAgent.id;
+      const current = nodeIdsBySubAgentId.get(subAgentId) ?? [];
+      nodeIdsBySubAgentId.set(subAgentId, [...current, nodeId]);
+    }
+
+    for (const [subAgentId, nodeIds] of nodeIdsBySubAgentId) {
+      if (nodeIds.length < 2) continue;
+
+      for (const nodeId of nodeIds) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [nodeId, 'id'],
+          message: `Sub agent ID "${subAgentId}" must be unique.`,
+        });
+      }
+    }
+  }),
   functionTools: z.record(z.string(), FullAgentFunctionToolSchema).optional(),
   functions: z.record(z.string(), FullAgentFunctionSchema).optional(),
   externalAgents: z.record(z.string(), FullAgentExternalAgentSchema),

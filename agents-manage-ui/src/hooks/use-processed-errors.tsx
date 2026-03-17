@@ -16,12 +16,11 @@ export function useProcessedErrors(
   field: string;
   message?: string;
 }> {
-  'use memo';
+  // React Hook Form uses a Proxy for formState,
+  // so the errors object may not get a new reference on updates with React compiler
   const { control } = useFullAgentFormContext();
-  const { errors } = useFormState({
-    control,
-    name: `${entity}.${key}`,
-  });
+  const { errors } = useFormState({ control, name: `${entity}.${key}` });
+
   const fieldErrors = errors?.[entity]?.[key] ?? {};
   const processedErrors = Object.entries(fieldErrors).map(([key, value]) => ({
     field: key,

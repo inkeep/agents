@@ -75,11 +75,13 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
   const { deleteNode } = useDeleteNode(nodeId);
   const isPersistedSubAgent =
     form.formState.defaultValues?.subAgents?.[selectedNode.id] !== undefined;
+  const nameField = path('name');
+  const idField = path('id');
 
   useAutoPrefillId({
     form,
-    nameField: path('name'),
-    idField: path('id'),
+    nameField,
+    idField,
     isEditing: isPersistedSubAgent,
   });
   if (!subAgent) {
@@ -90,27 +92,18 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
   const dataComponentsById = createLookup(dataComponents);
   const isDefault = nodeId === defaultSubAgentId;
 
-  const { deleteNode } = useDeleteNode(nodeId);
-
-  useAutoPrefillId({
-    form,
-    nameField: path('name'),
-    idField: path('id'),
-    isEditing: false,
-  });
-
   return (
     <div className="space-y-8 flex flex-col">
       <GenericInput
         control={form.control}
-        name={path('name')}
+        name={nameField}
         label="Name"
         placeholder="Support agent"
         isRequired={isRequired(FullAgentSubAgentSchema, 'name')}
       />
       <GenericInput
         control={form.control}
-        name={path('id')}
+        name={idField}
         label="Id"
         placeholder="my-agent"
         description="Choose a unique identifier for this sub agent. Using an existing id will replace that sub agent."
