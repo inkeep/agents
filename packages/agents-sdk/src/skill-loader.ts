@@ -50,7 +50,9 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
       name,
       description,
       metadata,
-      content: document.trim(),
+      content,
+      files: skillFiles,
     };
   });
+  return result;
 }
