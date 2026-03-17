@@ -12,7 +12,7 @@ interface DeleteSkillFileConfirmationProps {
   projectId: string;
   skillId: string;
   filePath: string;
-  redirectPath: string;
+  redirectPath?: string;
   setIsOpen: (open: boolean) => void;
 }
 
@@ -40,7 +40,9 @@ export const DeleteSkillFileConfirmation: FC<DeleteSkillFileConfirmationProps> =
 
     toast.success(`Removed ${filePath}`);
     setIsOpen(false);
-    router.push(redirectPath);
+    if (redirectPath) {
+      router.push(redirectPath);
+    }
     router.refresh();
   };
 

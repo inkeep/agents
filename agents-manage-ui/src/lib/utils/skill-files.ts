@@ -2,6 +2,14 @@ import type { SkillDetail } from '@/lib/types/skills';
 
 export const SKILL_ENTRY_FILE_PATH = 'SKILL.md';
 
+export function isSkillEntryFile(filePath: string): boolean {
+  return filePath === SKILL_ENTRY_FILE_PATH;
+}
+
+export function getSkillFileRemovalLabel(filePath: string): 'Delete skill' | 'Remove file' {
+  return isSkillEntryFile(filePath) ? 'Delete skill' : 'Remove file';
+}
+
 export interface SkillFileRecord {
   skillId: string;
   skillName: string;
@@ -18,7 +26,7 @@ export function getSkillFileTreePath(skillId: string, filePath: string): string 
 }
 
 export function getSkillFileRoutePath(skillId: string, filePath: string): string {
-  return filePath === SKILL_ENTRY_FILE_PATH ? skillId : getSkillFileTreePath(skillId, filePath);
+  return isSkillEntryFile(filePath) ? skillId : getSkillFileTreePath(skillId, filePath);
 }
 
 export function encodeSkillFileRoutePath(routePath: string): string {
@@ -66,7 +74,7 @@ export function flattenSkillFiles(skills: SkillDetail[]): SkillFileRecord[] {
       content: file.content,
       treePath: getSkillFileTreePath(skill.id, file.filePath),
       routePath: getSkillFileRoutePath(skill.id, file.filePath),
-      isEntryFile: file.filePath === SKILL_ENTRY_FILE_PATH,
+      isEntryFile: isSkillEntryFile(file.filePath),
     }))
   );
 }
@@ -89,7 +97,7 @@ export function resolveSkillFileFromRoute(
   }
 
   const skillEntry = files.find(
-    (file) => file.skillId === routeToken && file.filePath === SKILL_ENTRY_FILE_PATH
+    (file) => file.skillId === routeToken && isSkillEntryFile(file.filePath)
   );
   if (skillEntry) {
     return skillEntry;

@@ -5,6 +5,7 @@ export interface DemoTreeNode {
   path: string;
   routePath?: string;
   skillId?: string;
+  skillName?: string;
   filePath?: string;
   fileId?: string;
   kind: 'folder' | 'file';
@@ -30,6 +31,7 @@ export function buildTree(files: readonly SkillFileRecord[]): DemoTreeNode[] {
           path,
           routePath: isFile ? file.routePath : undefined,
           skillId: isFile ? file.skillId : undefined,
+          skillName: isFile ? file.skillName : undefined,
           filePath: isFile ? file.filePath : undefined,
           fileId: isFile ? file.fileId : undefined,
           kind: isFile ? 'file' : 'folder',
@@ -42,6 +44,7 @@ export function buildTree(files: readonly SkillFileRecord[]): DemoTreeNode[] {
       if (isFile) {
         node.routePath = file.routePath;
         node.skillId = file.skillId;
+        node.skillName = file.skillName;
         node.filePath = file.filePath;
         node.fileId = file.fileId;
         node.content = file.content;
