@@ -1,123 +1,9 @@
-import { Plus } from 'lucide-react';
-import type { Metadata } from 'next';
-import NextLink from 'next/link';
 import type { FC } from 'react';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import FullPageError from '@/components/errors/full-page-error';
-import { PageHeader } from '@/components/layout/page-header';
-import { type DemoTreeNode, TreeNode } from '@/components/skills/tree-node';
-import { Button } from '@/components/ui/button';
-import { ExternalLink } from '@/components/ui/external-link';
-import {
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-} from '@/components/ui/sidebar';
-import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
-import { fetchProjectPermissions } from '@/lib/api/projects';
-import { fetchSkill, fetchSkills } from '@/lib/api/skills';
+import { findFirstFile, findNodeByPath } from '@/components/skills/tree-utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-
-export const metadata = {
-  title: STATIC_LABELS.skills,
-  description:
-    'Agent Skills are reusable instruction blocks that can be attached to multiple sub-agents and ordered for priority.',
-} satisfies Metadata;
-
-const description = (
-  <>
-    {metadata.description}
-    <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/skills`}>Learn more</ExternalLink>
-  </>
-);
-
-type SkillFileTreeItem = {
-  filePath: string;
-  content: string;
-};
-
-function buildTree(files: readonly SkillFileTreeItem[]): DemoTreeNode[] {
-  const root: DemoTreeNode[] = [];
-
-  for (const file of files) {
-    const segments = file.filePath.split('/').filter(Boolean);
-    let children = root;
-
-    for (const [index, segment] of segments.entries()) {
-      const path = segments.slice(0, index + 1).join('/');
-      const isFile = index === segments.length - 1;
-      let node = children.find((child) => child.path === path);
-
-      if (!node) {
-        node = {
-          name: segment,
-          path,
-          kind: isFile ? 'file' : 'folder',
-          content: isFile ? file.content : undefined,
-          children: [],
-        };
-        children.push(node);
-      }
-
-      if (isFile) {
-        node.content = file.content;
-      }
-
-      children = node.children;
-    }
-  }
-
-  return root;
-}
-
-function getSkillFiles(
-  skills: Array<{
-    id: string;
-    files?: Array<{
-      filePath: string;
-      content: string;
-    }>;
-  }>
-): SkillFileTreeItem[] {
-  return skills.flatMap((skill) =>
-    (skill.files ?? []).map((file) => ({
-      filePath: `${skill.id}/${file.filePath}`,
-      content: file.content,
-    }))
-  );
-}
-
-function findNodeByPath(nodes: readonly DemoTreeNode[], targetPath: string): DemoTreeNode | null {
-  for (const node of nodes) {
-    if (node.path === targetPath) {
-      return node;
-    }
-
-    const childMatch = findNodeByPath(node.children, targetPath);
-    if (childMatch) {
-      return childMatch;
-    }
-  }
-
-  return null;
-}
-
-function findFirstFile(nodes: readonly DemoTreeNode[]): DemoTreeNode | null {
-  for (const node of nodes) {
-    if (node.kind === 'file') {
-      return node;
-    }
-
-    const childMatch = findFirstFile(node.children);
-    if (childMatch) {
-      return childMatch;
-    }
-  }
-
-  return null;
-}
+import { fetchSkillsPageData } from './skills-data';
 
 const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({
   params,
@@ -127,79 +13,34 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
   const rawSearchParams = await searchParams;
 
   try {
-    const [permissions, skillsResponse] = await Promise.all([
-      fetchProjectPermissions(tenantId, projectId),
-      fetchSkills(tenantId, projectId),
-    ]);
-    const skillDetails = await Promise.all(
-      skillsResponse.data.map((skill) => fetchSkill(tenantId, projectId, skill.id))
-    );
-    const skillFiles = getSkillFiles(skillDetails);
-    const treeNodes = buildTree(skillFiles);
-    const defaultSelectedPath = skillFiles[0]?.filePath ?? '';
+    const { treeNodes, defaultSelectedPath } = await fetchSkillsPageData(tenantId, projectId);
     const requestedPath =
       typeof rawSearchParams.path === 'string' ? rawSearchParams.path : defaultSelectedPath;
     const fallbackNode = findFirstFile(treeNodes) ?? treeNodes[0] ?? null;
     const selectedNode = findNodeByPath(treeNodes, requestedPath) ?? fallbackNode;
-    const selectedPath = selectedNode?.path ?? defaultSelectedPath;
-
-    const action = permissions.canEdit && (
-      <Button asChild className="flex items-center gap-2">
-        <NextLink href={`/${tenantId}/projects/${projectId}/skills/new`}>
-          <Plus />
-          Create skill
-        </NextLink>
-      </Button>
-    );
 
     if (!selectedNode) {
       return (
-        <>
-          <PageHeader title={metadata.title} description={description} action={action} />
-          <div className="rounded-lg border bg-background p-8 text-sm text-muted-foreground">
-            No skill files configured.
-          </div>
-        </>
+        <div className="rounded-lg border border-dashed bg-muted/20 p-8 text-sm text-muted-foreground">
+          No skill files configured.
+        </div>
       );
     }
 
+    if (selectedNode.kind !== 'file') {
+      return <div className="min-h-80" />;
+    }
+
     return (
-      <>
-        <PageHeader title={metadata.title} description={description} action={action} />
-        <div className="overflow-hidden rounded-lg border bg-background">
-          <div className="grid lg:grid-cols-[18rem_minmax(0,1fr)]">
-            <aside className="border-b bg-muted/20 lg:border-r lg:border-b-0">
-              <SidebarContent>
-                <SidebarGroup>
-                  <SidebarGroupLabel>Library</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {treeNodes.map((node) => (
-                        <TreeNode key={node.path} node={node} selectedPath={selectedPath} />
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </SidebarContent>
-            </aside>
-            <section className="min-w-0 overflow-auto p-6">
-              {selectedNode.kind === 'file' ? (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                      Preview
-                    </p>
-                    <h2 className="text-xl font-semibold">{selectedNode.name}</h2>
-                  </div>
-                  <PromptEditor value={selectedNode.content} uri="test.md" />
-                </div>
-              ) : (
-                <div className="min-h-80" />
-              )}
-            </section>
-          </div>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+            Preview
+          </p>
+          <h2 className="text-xl font-semibold">{selectedNode.name}</h2>
         </div>
-      </>
+        <PromptEditor value={selectedNode.content} uri="test.md" />
+      </div>
     );
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="skills" />;

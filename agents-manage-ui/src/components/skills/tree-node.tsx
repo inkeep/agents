@@ -4,6 +4,7 @@ import { ChevronRight, File, Folder, FolderOpenIcon } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
 import { type FC, type MouseEvent, useState } from 'react';
+import type { DemoTreeNode } from '@/components/skills/tree-utils';
 import {
   SidebarMenuAction,
   SidebarMenuButton,
@@ -13,14 +14,6 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-
-export interface DemoTreeNode {
-  name: string;
-  path: string;
-  kind: 'folder' | 'file';
-  content?: string;
-  children: DemoTreeNode[];
-}
 
 export const TreeNode: FC<{
   node: DemoTreeNode;
