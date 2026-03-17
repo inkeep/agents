@@ -17,8 +17,8 @@ import { getScheduledTrigger } from '@/lib/api/scheduled-triggers';
 import { fetchSkill } from '@/lib/api/skills';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
-import { cn } from '@/lib/utils';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
+import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 
 type LabelKey = keyof typeof STATIC_LABELS;
 
@@ -168,29 +168,9 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
 
 const BreadcrumbSlot: FC<BreadcrumbsProps> = async ({ params }) => {
   const crumbs = await getCrumbs(params);
-  return crumbs.map(({ label, href }, idx, arr) => {
-    const isLast = idx === arr.length - 1;
-    return (
-      <li
-        key={href}
-        aria-current={isLast ? 'page' : undefined}
-        className={cn(
-          'shrink-0',
-          isLast
-            ? 'font-medium text-foreground'
-            : 'after:ml-2 after:content-["›"] after:text-muted-foreground/60'
-        )}
-      >
-        {isLast ? (
-          label
-        ) : (
-          <Link href={href} className="hover:text-foreground">
-            {label}
-          </Link>
-        )}
-      </li>
-    );
-  });
+  return crumbs.map(({ label, href }, idx, arr) => (
+    <BreadcrumbNav.Item key={href} href={href} label={label} isLast={idx === arr.length - 1} />
+  ));
 };
 
 export async function generateMetadata(
