@@ -3,4 +3,4 @@
 "@inkeep/agents-api": patch
 ---
 
-feedback message id consolodation
+Fix message ID mismatch between server and client for feedback records

@@ -246,7 +246,6 @@ export function ChatWidget({
                     action: {
                       type: 'invoke_message_callback',
                       callback({ messageId }) {
-                        console.log('[feedback] messageId from widget:', messageId);
                         setMessageId(messageId);
                         setIsFeedbackDialogOpen(true);
                       },
