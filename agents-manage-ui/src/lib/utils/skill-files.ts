@@ -48,17 +48,6 @@ export function buildSkillFileViewHref(
   )}`;
 }
 
-export function buildSkillFileEditHref(
-  tenantId: string,
-  projectId: string,
-  skillId: string,
-  filePath: string
-): string {
-  return `/${tenantId}/projects/${projectId}/skills/edit/${encodeSkillFileRoutePath(
-    getSkillFileRoutePath(skillId, filePath)
-  )}`;
-}
-
 export function getSkillFileEditorUri(filePath: string): `${string}.${'template' | 'md'}` {
   const stem = filePath.replace(/[^a-zA-Z0-9.-]+/g, '-').replace(/\.[^.]+$/, '') || 'skill-file';
   return filePath.endsWith('.md') ? `${stem}.md` : `${stem}.template`;

@@ -9,6 +9,7 @@ import {
   findNodeByRoutePath,
 } from '@/components/skills/tree-utils';
 import {
+  Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
@@ -39,26 +40,30 @@ export const SkillsSidebar: FC<SkillsSidebarProps> = ({
   const selectedRoutePath = selectedNode?.routePath ?? defaultSelectedRoutePath;
 
   return (
-    <SidebarContent>
-      <SidebarGroup>
-        <SidebarGroupLabel>Library</SidebarGroupLabel>
-        <SidebarGroupContent>
-          {treeNodes.length > 0 ? (
-            <SidebarMenu>
-              {treeNodes.map((node) => (
-                <TreeNode
-                  key={node.path}
-                  node={node}
-                  selectedRoutePath={selectedRoutePath}
-                  canEdit={canEdit}
-                />
-              ))}
-            </SidebarMenu>
-          ) : (
-            <div className="px-2 py-1 text-sm text-muted-foreground">No skill files yet.</div>
-          )}
-        </SidebarGroupContent>
-      </SidebarGroup>
-    </SidebarContent>
+    <Sidebar
+    // collapsible="icon" variant="inset"
+    >
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Library</SidebarGroupLabel>
+          <SidebarGroupContent>
+            {treeNodes.length > 0 ? (
+              <SidebarMenu>
+                {treeNodes.map((node) => (
+                  <TreeNode
+                    key={node.path}
+                    node={node}
+                    selectedRoutePath={selectedRoutePath}
+                    canEdit={canEdit}
+                  />
+                ))}
+              </SidebarMenu>
+            ) : (
+              <div className="px-2 py-1 text-sm text-muted-foreground">No skill files yet.</div>
+            )}
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
   );
 };

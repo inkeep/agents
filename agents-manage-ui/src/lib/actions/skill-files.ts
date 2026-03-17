@@ -3,11 +3,7 @@
 import { parseSkillMarkdown, SkillFrontmatterSchema } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import { fetchSkill, updateSkill } from '@/lib/api/skills';
-import {
-  buildSkillFileEditHref,
-  buildSkillFileViewHref,
-  SKILL_ENTRY_FILE_PATH,
-} from '@/lib/utils/skill-files';
+import { buildSkillFileViewHref, SKILL_ENTRY_FILE_PATH } from '@/lib/utils/skill-files';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
@@ -20,7 +16,6 @@ function revalidateSkillFilePaths(
   const skillsPath = `/${tenantId}/projects/${projectId}/skills`;
   revalidatePath(skillsPath);
   revalidatePath(buildSkillFileViewHref(tenantId, projectId, skillId, filePath));
-  revalidatePath(buildSkillFileEditHref(tenantId, projectId, skillId, filePath));
   revalidatePath(buildSkillFileViewHref(tenantId, projectId, skillId, SKILL_ENTRY_FILE_PATH));
 }
 // TODO remove all validation, whcih are done in backend

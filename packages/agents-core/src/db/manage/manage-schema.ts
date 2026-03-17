@@ -272,6 +272,32 @@ export const skills = pgTable(
   ]
 );
 
+export const skillFiles = pgTable(
+  'skill_files',
+  {
+    ...projectScoped,
+    skillId: varchar('skill_id', { length: 64 }).notNull(),
+    filePath: varchar('file_path', { length: 1024 }).notNull(),
+    content: text('content').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.skillId],
+      foreignColumns: [skills.tenantId, skills.projectId, skills.id],
+      name: 'skill_files_skill_fk',
+    }).onDelete('cascade'),
+    unique('skill_files_skill_path_unique').on(
+      table.tenantId,
+      table.projectId,
+      table.skillId,
+      table.filePath
+    ),
+    index('skill_files_skill_idx').on(table.skillId),
+  ]
+);
+
 export const subAgentSkills = pgTable(
   'sub_agent_skills',
   {
