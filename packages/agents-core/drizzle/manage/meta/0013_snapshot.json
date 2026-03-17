@@ -1,5 +1,5 @@
 {
-  "id": "d9bfc47c-d949-4284-a58f-12727f65707d",
+  "id": "f7975b63-540b-4301-82b2-bec43ba7d345",
   "prevId": "abc7a103-dd2c-4112-987f-c0e6750fb068",
   "version": "7",
   "dialect": "postgresql",
@@ -2264,7 +2264,7 @@
         },
         "file_path": {
           "name": "file_path",
-          "type": "text",
+          "type": "varchar(1024)",
           "primaryKey": false,
           "notNull": true
         },

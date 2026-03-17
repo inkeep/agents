@@ -1,1 +1,0 @@
-ALTER TABLE "skill_files" ALTER COLUMN "file_path" SET DATA TYPE varchar(1024);
