@@ -29,10 +29,10 @@ export function useAutoPrefillId<
     name: nameField,
   });
 
-  const isIdFieldModified = form.getFieldState(idField, form.formState).isDirty;
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: we don't want to re-run this effect when the isIdFieldModified changes since that means the user has manually edited the ID field
   useEffect(() => {
+    const isIdFieldModified = form.getFieldState(idField, form.formState).isDirty;
+
     if (!isEditing && nameValue && !isIdFieldModified) {
       const generatedId = generateIdFromName(nameValue);
       form.setValue(idField, generatedId as any, { shouldValidate: true });

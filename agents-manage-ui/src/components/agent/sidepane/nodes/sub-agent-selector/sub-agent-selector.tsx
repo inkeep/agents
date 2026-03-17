@@ -1,10 +1,6 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import type { MouseEvent } from 'react';
-import {
-  NodeType,
-  newNodeDefaults,
-  nodeTypeMap,
-} from '@/components/agent/configuration/node-types';
+import { NodeType, nodeTypeMap } from '@/components/agent/configuration/node-types';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { SelectorItem, SelectorItemIcon } from '../selector-item';
 
@@ -20,13 +16,22 @@ export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
 
   function handleSelect(event: MouseEvent<HTMLButtonElement>) {
     const nodeType = event.currentTarget.id as (typeof subAgentNodeTypes)[number];
-    const defaults = newNodeDefaults[nodeType];
     const nodeId = selectedNode.id;
-    form.setValue(
-      `subAgents.${nodeId}`,
-      {
-        id: nodeId,
-        name: defaults.name,
+
+    if (nodeType === NodeType.SubAgent) {
+      const all = new Set(Object.values(form.getValues('subAgents')).map((v) => v.id));
+
+      function findName(name: string, index = 0) {
+        const myName = `${name}${index || ''}`;
+        if (all.has(myName)) {
+          return findName(name, index + 1);
+        }
+        return myName;
+      }
+
+      form.setValue(`subAgents.${nodeId}`, {
+        id: '',
+        name: findName('sub-agent'),
         models: {
           base: {},
           summarizer: {},
@@ -36,9 +41,9 @@ export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
         dataComponents: [],
         artifactComponents: [],
         stopWhen: {},
-      },
-      { shouldDirty: true }
-    );
+      });
+    }
+
     updateNode(nodeId, { type: nodeType });
   }
 
