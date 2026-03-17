@@ -2,8 +2,13 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { apps } from '../../db/runtime/runtime-schema';
 import type { AppInsert, AppSelect, AppUpdate } from '../../types/entities';
-import type { AppType, PaginationConfig, TenantScopeConfig } from '../../types/utility';
-import { tenantScopedWhere } from '../manage/scope-helpers';
+import type {
+  AppType,
+  PaginationConfig,
+  ProjectScopeConfig,
+  TenantScopeConfig,
+} from '../../types/utility';
+import { projectScopedWhere, tenantScopedWhere } from '../manage/scope-helpers';
 
 // ── Unscoped (for runtime auth lookups — no tenant/project gating) ───────────
 
@@ -23,9 +28,9 @@ export const updateAppLastUsed =
 
 export const getAppByIdForTenant =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: TenantScopeConfig; id: string }): Promise<AppSelect | undefined> => {
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<AppSelect | undefined> => {
     return db.query.apps.findFirst({
-      where: and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)),
+      where: and(eq(apps.id, params.id), projectScopedWhere(apps, params.scopes)),
     });
   };
 
@@ -92,7 +97,7 @@ export const createApp = (db: AgentsRunDatabaseClient) => async (params: AppInse
 export const updateAppForTenant =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
-    scopes: TenantScopeConfig;
+    scopes: ProjectScopeConfig;
     id: string;
     data: AppUpdate;
   }): Promise<AppSelect | undefined> => {
@@ -104,7 +109,7 @@ export const updateAppForTenant =
         ...params.data,
         updatedAt: now,
       })
-      .where(and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)))
+      .where(and(eq(apps.id, params.id), projectScopedWhere(apps, params.scopes)))
       .returning();
 
     return updatedApp;
@@ -112,10 +117,10 @@ export const updateAppForTenant =
 
 export const deleteAppForTenant =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: TenantScopeConfig; id: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     const result = await db
       .delete(apps)
-      .where(and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)))
+      .where(and(eq(apps.id, params.id), projectScopedWhere(apps, params.scopes)))
       .returning();
 
     return result.length > 0;

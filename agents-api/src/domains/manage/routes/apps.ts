@@ -105,9 +105,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
     const appRecord = await getAppByIdForTenant(runDbClient)({
-      scopes: { tenantId },
+      scopes: { tenantId, projectId },
       id,
     });
 
@@ -218,7 +218,7 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
   }
 
   const updatedApp = await updateAppForTenant(runDbClient)({
-    scopes: { tenantId },
+    scopes: { tenantId, projectId },
     id,
     data,
   });
@@ -264,10 +264,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
 
     const deleted = await deleteAppForTenant(runDbClient)({
-      scopes: { tenantId },
+      scopes: { tenantId, projectId },
       id,
     });
 

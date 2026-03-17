@@ -362,6 +362,80 @@ describe('App CRUD Routes - Integration Tests', () => {
     });
   });
 
+  describe('project isolation', () => {
+    it('should return 404 when getting app from different project in same tenant', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-proj-iso-get');
+      const projectA = 'project-a';
+      const projectB = 'project-b';
+      await createTestProject(manageDbClient, tenantId, projectA);
+      await createTestProject(manageDbClient, tenantId, projectB);
+
+      const { app } = await createTestApp({ tenantId, projectId: projectA });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectB}/apps/${app.id}`
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 404 when updating app from different project in same tenant', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-proj-iso-update');
+      const projectA = 'project-a';
+      const projectB = 'project-b';
+      await createTestProject(manageDbClient, tenantId, projectA);
+      await createTestProject(manageDbClient, tenantId, projectB);
+
+      const { app } = await createTestApp({ tenantId, projectId: projectA });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectB}/apps/${app.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ name: 'Hijacked' }),
+        }
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 404 when deleting app from different project in same tenant', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-proj-iso-delete');
+      const projectA = 'project-a';
+      const projectB = 'project-b';
+      await createTestProject(manageDbClient, tenantId, projectA);
+      await createTestProject(manageDbClient, tenantId, projectB);
+
+      const { app } = await createTestApp({ tenantId, projectId: projectA });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectB}/apps/${app.id}`,
+        { method: 'DELETE' }
+      );
+      expect(res.status).toBe(404);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectA}/apps/${app.id}`
+      );
+      expect(getRes.status).toBe(200);
+    });
+
+    it('should not list apps from different project in same tenant', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-proj-iso-list');
+      const projectA = 'project-a';
+      const projectB = 'project-b';
+      await createTestProject(manageDbClient, tenantId, projectA);
+      await createTestProject(manageDbClient, tenantId, projectB);
+
+      await createTestApp({ tenantId, projectId: projectA });
+      await createTestApp({ tenantId, projectId: projectB, name: 'Project B App' });
+
+      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectA}/apps`);
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.data).toHaveLength(1);
+    });
+  });
+
   describe('Domain validation', () => {
     it('should reject invalid domain patterns in allowedDomains', async () => {
       const tenantId = await createTestTenantWithOrg('apps-domain-invalid');
