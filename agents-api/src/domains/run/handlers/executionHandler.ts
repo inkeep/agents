@@ -47,6 +47,7 @@ interface ExecutionHandlerParams {
   datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
   /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for auth) */
   forwardedHeaders?: Record<string, string>;
+  responseMessageId?: string;
 }
 
 interface ExecutionResult {
@@ -517,7 +518,7 @@ export class ExecutionHandler {
 
               // Store the agent response in the database with both text and parts
               await createMessage(runDbClient)({
-                id: generateId(),
+                id: params.responseMessageId || generateId(),
                 tenantId,
                 projectId,
                 conversationId,

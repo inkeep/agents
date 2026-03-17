@@ -430,9 +430,13 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
+      const responseMessageId = generateId();
+
       // Create UI Message Stream using AI SDK V5
       const dataStream = createUIMessageStream({
         execute: async ({ writer }) => {
+          writer.write({ type: 'start', messageId: responseMessageId } as any);
+
           const streamHelper = createVercelStreamHelper(writer);
           let unsubscribe: (() => void) | undefined;
           try {
@@ -513,6 +517,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               emitOperations,
               datasetRunId: datasetRunId || undefined,
               forwardedHeaders,
+              responseMessageId,
             });
 
             if (!result.success) {
