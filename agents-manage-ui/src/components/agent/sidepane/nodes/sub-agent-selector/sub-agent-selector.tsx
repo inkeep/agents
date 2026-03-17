@@ -19,7 +19,7 @@ export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
     const nodeId = selectedNode.id;
 
     if (nodeType === NodeType.SubAgent) {
-      const all = new Set(Object.values(form.getValues('subAgents')).map((v) => v.id));
+      const all = new Set(Object.values(form.getValues('subAgents') ?? {}).map((v) => v.id));
 
       function findName(name: string, index = 0) {
         const myName = `${name}${index || ''}`;

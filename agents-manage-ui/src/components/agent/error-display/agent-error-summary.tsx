@@ -88,11 +88,19 @@ function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
   );
 }
 
+function isRHFError(obj: Record<string, unknown>) {
+  return obj.message && obj.type && 'ref' in obj;
+}
+
 function processMessagesWithNodeId(obj: Record<string, undefined | Record<string, unknown>>) {
+  if (isRHFError(obj)) {
+    // { message: "Invalid input: expected record, received undefined", ref: undefined, type: "invalid_type" }
+    obj = { '': obj };
+  }
   return Object.entries(obj).flatMap(([nodeId, groupValue = {}]) => {
     // edge case when groupValue doesn't contain field names, e.g.
     // y74w91v3v5fxxfy9yb2gm: {message: 'Unrecognized keys: "id", "functionId"', type: 'unrecognized_keys', ref: undefined}
-    if (groupValue.message && groupValue.type && 'ref' in groupValue) {
+    if (isRHFError(groupValue)) {
       return {
         nodeId,
         field: 'global',
