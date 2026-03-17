@@ -65,6 +65,35 @@ describe('sanitizeErrorMessage (via createApiError)', () => {
   });
 });
 
+describe('createApiError sanitization integration', () => {
+  it('sanitizes 500 response body', async () => {
+    const exception = createApiError({
+      code: 'internal_server_error',
+      message: 'connect ECONNREFUSED 10.0.0.5:5432',
+    });
+    const body = JSON.parse(await exception.getResponse().text());
+    expect(body.detail).not.toContain('10.0.0.5');
+    expect(body.error.message).not.toContain('10.0.0.5');
+    expect(body.status).toBe(500);
+  });
+
+  it('preserves 400 response body unchanged', async () => {
+    const message = 'Missing required header: x-api-key with auth token';
+    const exception = createApiError({ code: 'bad_request', message });
+    const body = JSON.parse(await exception.getResponse().text());
+    expect(body.detail).toBe(message);
+    expect(body.error.message).toBe(message);
+    expect(body.status).toBe(400);
+  });
+
+  it('preserves 404 response body unchanged', async () => {
+    const message = 'Agent not found at /var/task/agents';
+    const exception = createApiError({ code: 'not_found', message });
+    const body = JSON.parse(await exception.getResponse().text());
+    expect(body.detail).toBe(message);
+  });
+});
+
 describe('isUniqueConstraintError', () => {
   describe('PostgreSQL unique violation (23505)', () => {
     it('returns true when cause.code is 23505', () => {
