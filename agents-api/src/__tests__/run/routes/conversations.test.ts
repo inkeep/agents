@@ -687,5 +687,53 @@ describe('Run API - End-User Conversation History', () => {
         metadata: { mimeType: 'image/png' },
       });
     });
+
+    it('should keep malformed JSON data as string', async () => {
+      const tenantId = await createTestTenantWithOrg('conv-get-malformed-json');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appId = appRecord.id;
+
+      const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      const anonUserId = payload.sub as string;
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'Malformed JSON conversation',
+      });
+
+      await createMessage(runDbClient)({
+        id: `msg-${crypto.randomUUID()}`,
+        tenantId,
+        projectId,
+        conversationId: conv.id,
+        role: 'agent',
+        content: {
+          text: 'Response with bad data',
+          parts: [
+            { kind: 'text', text: 'Response with bad data' },
+            { kind: 'data', data: '{invalid json' },
+          ],
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages[0];
+      expect(msg.parts).toHaveLength(2);
+      expect(msg.parts[1]).toEqual({ type: 'data-component', data: '{invalid json' });
+    });
   });
 });
