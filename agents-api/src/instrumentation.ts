@@ -150,7 +150,8 @@ function getOrCreatePropagator(): CompositePropagator {
 
 export const defaultBatchProcessor = getOrCreateBatchProcessor();
 export const defaultResource = getOrCreateResource();
-export const defaultInstrumentations = getOrCreateInstrumentations();
+export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrumentations']> =
+  getOrCreateInstrumentations();
 export const defaultSpanProcessors = getOrCreateSpanProcessors();
 export const defaultContextManager = getOrCreateContextManager();
 export const defaultTextMapPropagator = getOrCreatePropagator();
@@ -182,7 +183,7 @@ export function startOpenTelemetrySDK(): void {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.includes('MetricReader') && msg.includes('can not be bound')) {
-      logger.debug('OpenTelemetry SDK already started (MetricReader binding detected)');
+      logger.debug({}, 'OpenTelemetry SDK already started (MetricReader binding detected)');
       g[OTEL_STARTED_KEY] = true;
       return;
     }
