@@ -523,8 +523,66 @@ describe('Run API - End-User Conversation History', () => {
       expect(msg.parts).toHaveLength(2);
       expect(msg.parts[0]).toEqual({ type: 'text', text: 'Here is the result' });
       expect(msg.parts[1]).toEqual({
-        type: 'data',
+        type: 'data-component',
         data: { type: 'artifact', title: 'Code Example', content: 'console.log("hello")' },
+      });
+    });
+
+    it('should return artifact data parts as data-artifact type', async () => {
+      const tenantId = await createTestTenantWithOrg('conv-get-artifact-parts');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appId = appRecord.id;
+
+      const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      const anonUserId = payload.sub as string;
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'Artifact parts conversation',
+      });
+
+      await createMessage(runDbClient)({
+        id: `msg-${crypto.randomUUID()}`,
+        tenantId,
+        projectId,
+        conversationId: conv.id,
+        role: 'agent',
+        content: {
+          text: 'Here is the artifact',
+          parts: [
+            { kind: 'text', text: 'Here is the artifact' },
+            {
+              kind: 'data',
+              data: JSON.stringify({
+                artifactId: 'art-123',
+                toolCallId: 'call-456',
+                content: 'some artifact content',
+              }),
+            },
+          ],
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages[0];
+      expect(msg.parts).toHaveLength(2);
+      expect(msg.parts[1]).toEqual({
+        type: 'data-artifact',
+        data: { artifactId: 'art-123', toolCallId: 'call-456', content: 'some artifact content' },
       });
     });
 
@@ -574,7 +632,7 @@ describe('Run API - End-User Conversation History', () => {
       const msg = body.data.messages[0];
       expect(msg.parts).toHaveLength(2);
       expect(msg.parts[0]).toEqual({ type: 'text', text: 'Legacy response' });
-      expect(msg.parts[1]).toEqual({ type: 'data', data: { component: 'chart' } });
+      expect(msg.parts[1]).toEqual({ type: 'data-component', data: { component: 'chart' } });
     });
 
     it('should return file parts from user messages', async () => {

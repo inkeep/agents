@@ -86,7 +86,12 @@ function toVercelMessage(msg: {
             // keep as string
           }
         }
-        parts.push({ type: 'data', data: parsed });
+        const isArtifact =
+          parsed &&
+          typeof parsed === 'object' &&
+          (parsed as Record<string, unknown>).artifactId &&
+          (parsed as Record<string, unknown>).toolCallId;
+        parts.push({ type: isArtifact ? 'data-artifact' : 'data-component', data: parsed });
       } else if (kind === 'file') {
         const { kind: _k, ...rest } = p as Record<string, unknown>;
         parts.push({ type: 'file', ...rest });
