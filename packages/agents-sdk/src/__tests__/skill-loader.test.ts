@@ -7,17 +7,13 @@ const createdDirs: string[] = [];
 
 async function createSkill({
   dirName,
-  content,
   files = {},
 }: {
   dirName: string;
-  content: string;
   files?: Record<string, string>;
 }): Promise<string> {
   const root = await mkdtemp(path.join(os.tmpdir(), 'skill-loader-'));
   const skillDir = path.join(root, dirName);
-  await mkdir(skillDir, { recursive: true });
-  await writeFile(path.join(skillDir, 'SKILL.md'), content);
   await Promise.all(
     Object.entries(files).map(async ([filePath, fileContent]) => {
       const resolvedPath = path.join(skillDir, filePath);
@@ -38,10 +34,12 @@ describe('skill-loader', () => {
   it('loads a skill with required fields', async () => {
     const root = await createSkill({
       dirName: 'pdf-processing',
-      content: `---
+      files: {
+        'SKILL.md': `---
 name: pdf-processing
 description: Extracts PDFs.
 ---`,
+      },
     });
     const [skill] = loadSkills(root);
     expect(skill).toEqual({
@@ -64,12 +62,12 @@ description: Extracts PDFs.
   it('loads nested files relative to the skill root', async () => {
     const root = await createSkill({
       dirName: 'weather-safety-guardrails',
-      content: `---
+      files: {
+        'SKILL.md': `---
 name: weather-safety-guardrails
 description: Safety rules.
 ---
 Always check the weather.`,
-      files: {
         'reference/safety-checklist.txt': 'Check weather alerts',
         'templates/day/itinerary-card.html': '<article>Plan</article>',
       },
@@ -104,10 +102,12 @@ Always check the weather.`,
     it('rejects uppercase characters', async () => {
       const root = await createSkill({
         dirName: 'x',
-        content: `---
+        files: {
+          'SKILL.md': `---
 name: PDF-Processing
 description: x
 ---`,
+        },
       });
       expect(() => loadSkills(root)).toThrow(
         'May only contain lowercase alphanumeric characters and hyphens (a-z, 0-9, -)'
@@ -117,10 +117,12 @@ description: x
     it('rejects value with consecutive hyphens', async () => {
       const root = await createSkill({
         dirName: 'x',
-        content: `---
+        files: {
+          'SKILL.md': `---
 name: pdf--processing
 description: x
 ---`,
+        },
       });
       expect(() => loadSkills(root)).toThrow('Must not contain consecutive hyphens (--)');
     });
@@ -128,10 +130,12 @@ description: x
     it('rejects value longer than 64 characters', async () => {
       const root = await createSkill({
         dirName: 'x',
-        content: `---
+        files: {
+          'SKILL.md': `---
 name: ${'a'.repeat(65)}
 description: x
 ---`,
+        },
       });
       expect(() => loadSkills(root)).toThrow('Too big: expected string to have <=64 characters');
     });
@@ -139,10 +143,12 @@ description: x
     it('rejects value that do not match the directory', async () => {
       const root = await createSkill({
         dirName: 'x',
-        content: `---
+        files: {
+          'SKILL.md': `---
 name: y
 description: x
 ---`,
+        },
       });
       expect(() => loadSkills(root)).toThrow('Skill name "y" does not match directory "x"');
     });
@@ -155,10 +161,12 @@ description: x
     it('rejects empty value', async () => {
       const root = await createSkill({
         dirName: 'x',
-        content: `---
+        files: {
+          'SKILL.md': `---
 name: x
 description: " "
 ---`,
+        },
       });
       expect(() => loadSkills(root)).toThrow('Too small: expected string to have >=1 characters');
     });
@@ -166,10 +174,12 @@ description: " "
     it('rejects value longer than 1024 characters', async () => {
       const root = await createSkill({
         dirName: 'x',
-        content: `---
+        files: {
+          'SKILL.md': `---
 name: x
 description: ${'a'.repeat(1025)}
 ---`,
+        },
       });
       expect(() => loadSkills(root)).toThrow('Too big: expected string to have <=1024 characters');
     });
@@ -182,12 +192,14 @@ description: ${'a'.repeat(1025)}
     it('rejects with non-string values', async () => {
       const root = await createSkill({
         dirName: 'x',
-        content: `---
+        files: {
+          'SKILL.md': `---
 name: x
 description: x
 metadata:
   author: 0
 ---`,
+        },
       });
       expect(() => loadSkills(root)).toThrow('All object values must be strings');
     });
@@ -195,13 +207,15 @@ metadata:
     it('accepts with string values', async () => {
       const root = await createSkill({
         dirName: 'x',
-        content: `---
+        files: {
+          'SKILL.md': `---
 name: x
 description: x
 metadata:
   author: " example-org "
   version: 1.0.0
 ---`,
+        },
       });
       const [skill] = loadSkills(root);
       expect(skill.metadata).toEqual({
