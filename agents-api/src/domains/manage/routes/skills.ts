@@ -4,13 +4,13 @@ import {
   createApiError,
   createSkill,
   deleteSkill,
-  getSkillById,
+  getSkillByIdWithFiles,
   listSkills,
   PaginationQueryParamsSchema,
   SkillApiInsertSchema,
   SkillApiUpdateSchema,
   SkillListResponse,
-  SkillResponse,
+  SkillWithFilesResponse,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateSkill,
@@ -81,7 +81,7 @@ app.openapi(
         description: 'Skill found',
         content: {
           'application/json': {
-            schema: SkillResponse,
+            schema: SkillWithFilesResponse,
           },
         },
       },
@@ -91,7 +91,7 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const skill = await getSkillById(db)({
+    const skill = await getSkillByIdWithFiles(db)({
       scopes: { tenantId, projectId },
       skillId: id,
     });
@@ -130,7 +130,7 @@ app.openapi(
         description: 'Skill created successfully',
         content: {
           'application/json': {
-            schema: SkillResponse,
+            schema: SkillWithFilesResponse,
           },
         },
       },
@@ -172,7 +172,7 @@ const updateSkillRouteConfig = {
       description: 'Skill updated successfully',
       content: {
         'application/json': {
-          schema: SkillResponse,
+          schema: SkillWithFilesResponse,
         },
       },
     },
