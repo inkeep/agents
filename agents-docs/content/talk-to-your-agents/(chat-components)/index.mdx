@@ -93,7 +93,7 @@ You can pass custom headers to the chat components via the `headers` prop in `ai
   <Step>
     #### Reference the header in your agent prompt
 
-    Use the key defined in your headers schema with the `{{headers.*}}` template syntax:
+    Use the key defined in your headers schema with the `{{headers.<key>}}` template syntax:
 
 ```text
 The user is currently viewing {{headers.x-current-url}}.
