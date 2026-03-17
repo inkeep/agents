@@ -1,4 +1,5 @@
 import { type Node, useReactFlow } from '@xyflow/react';
+import type { MouseEvent } from 'react';
 import {
   NodeType,
   newNodeDefaults,
@@ -17,7 +18,8 @@ export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
   const form = useFullAgentFormContext();
   const { updateNode } = useReactFlow();
 
-  function handleSelect(nodeType: (typeof subAgentNodeTypes)[number]) {
+  function handleSelect(event: MouseEvent<HTMLButtonElement>) {
+    const nodeType = event.currentTarget.id as (typeof subAgentNodeTypes)[number];
     const defaults = newNodeDefaults[nodeType];
     const nodeId = selectedNode.id;
     form.setValue(
@@ -57,7 +59,7 @@ export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
                   <Icon className="size-4 text-muted-foreground" />
                 </SelectorItemIcon>
               }
-              onClick={() => handleSelect(nodeType)}
+              onClick={handleSelect}
             />
           );
         })}

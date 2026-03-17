@@ -64,18 +64,30 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
   const form = useFullAgentFormContext();
   const nodeId = selectedNode.id;
   const subAgent = useWatch({ control: form.control, name: `subAgents.${nodeId}` });
-
-  const path = <K extends string>(key: K) => `subAgents.${nodeId}.${key}` as const;
-
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { canEdit } = useProjectPermissions();
   const { project } = useProjectData();
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();
-  const artifactComponentsById = createLookup(artifactComponents);
-  const dataComponentsById = createLookup(dataComponents);
   const models = useWatch({ control: form.control, name: 'models' });
   const defaultSubAgentId = useWatch({ control: form.control, name: 'defaultSubAgentId' });
+  const path = <K extends string>(key: K) => `subAgents.${nodeId}.${key}` as const;
+  const { deleteNode } = useDeleteNode(nodeId);
+  const isPersistedSubAgent =
+    form.formState.defaultValues?.subAgents?.[selectedNode.id] !== undefined;
+
+  useAutoPrefillId({
+    form,
+    nameField: path('name'),
+    idField: path('id'),
+    isEditing: isPersistedSubAgent,
+  });
+  if (!subAgent) {
+    return null;
+  }
+
+  const artifactComponentsById = createLookup(artifactComponents);
+  const dataComponentsById = createLookup(dataComponents);
   const isDefault = nodeId === defaultSubAgentId;
 
   const { deleteNode } = useDeleteNode(nodeId);
