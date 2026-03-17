@@ -20,12 +20,14 @@ interface SkillsSidebarProps {
   treeNodes: DemoTreeNode[];
   defaultSelectedRoutePath: string;
   fileRouteAliases: Record<string, string>;
+  canEdit: boolean;
 }
 
 export const SkillsSidebar: FC<SkillsSidebarProps> = ({
   treeNodes,
   defaultSelectedRoutePath,
   fileRouteAliases,
+  canEdit,
 }) => {
   const { fileSlug } = useParams<{ fileSlug?: string[] }>();
   const routeToken = fileSlug?.join('/');
@@ -44,7 +46,12 @@ export const SkillsSidebar: FC<SkillsSidebarProps> = ({
           {treeNodes.length > 0 ? (
             <SidebarMenu>
               {treeNodes.map((node) => (
-                <TreeNode key={node.path} node={node} selectedRoutePath={selectedRoutePath} />
+                <TreeNode
+                  key={node.path}
+                  node={node}
+                  selectedRoutePath={selectedRoutePath}
+                  canEdit={canEdit}
+                />
               ))}
             </SidebarMenu>
           ) : (

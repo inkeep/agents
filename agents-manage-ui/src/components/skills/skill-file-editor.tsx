@@ -13,6 +13,8 @@ import { updateSkillFileAction } from '@/lib/actions/skill-files';
 import {
   buildSkillFileViewHref,
   getSkillFileEditorUri,
+  getSkillFileRemovalLabel,
+  isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
 
@@ -39,7 +41,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const viewHref = buildSkillFileViewHref(tenantId, projectId, skillId, filePath);
-  const isEntryFile = filePath === SKILL_ENTRY_FILE_PATH;
+  const isEntryFile = isSkillEntryFile(filePath);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -74,7 +76,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
             </NextLink>
           </Button>
           <Button type="button" variant="destructive-outline" onClick={() => setIsDeleteOpen(true)}>
-            {isEntryFile ? 'Delete skill' : 'Remove file'}
+            {getSkillFileRemovalLabel(filePath)}
           </Button>
           <Button
             type="button"
