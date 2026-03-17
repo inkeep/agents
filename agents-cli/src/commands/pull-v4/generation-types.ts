@@ -14,6 +14,7 @@ export interface ProjectPaths {
   credentialsDir: string;
   contextConfigsDir: string;
   externalAgentsDir: string;
+  skillsDir: string;
 }
 
 export interface GenerationContext {

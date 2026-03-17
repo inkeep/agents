@@ -53,6 +53,7 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
                 treeNodes={treeNodes}
                 defaultSelectedRoutePath={defaultSelectedRoutePath}
                 fileRouteAliases={fileRouteAliases}
+                canEdit={permissions.canEdit}
               />
             </aside>
             <section className="min-w-0 overflow-auto p-6">{children}</section>
