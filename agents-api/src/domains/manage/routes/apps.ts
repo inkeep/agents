@@ -8,16 +8,16 @@ import {
   commonGetErrorResponses,
   createApiError,
   createApp,
-  deleteAppForTenant,
+  deleteAppForProject,
   ErrorResponseSchema,
   generateAppCredential,
-  getAppByIdForTenant,
+  getAppByIdForProject,
   listAppsPaginated,
   PaginationQueryParamsSchema,
   sanitizeAppConfig,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
-  updateAppForTenant,
+  updateAppForProject,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -106,7 +106,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const appRecord = await getAppByIdForTenant(runDbClient)({
+    const appRecord = await getAppByIdForProject(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -217,7 +217,7 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
     data.defaultProjectId = data.defaultAgentId ? (data.defaultProjectId ?? projectId) : null;
   }
 
-  const updatedApp = await updateAppForTenant(runDbClient)({
+  const updatedApp = await updateAppForProject(runDbClient)({
     scopes: { tenantId, projectId },
     id,
     data,
@@ -266,7 +266,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteAppForTenant(runDbClient)({
+    const deleted = await deleteAppForProject(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });
