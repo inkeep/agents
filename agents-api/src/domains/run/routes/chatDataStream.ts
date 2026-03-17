@@ -392,6 +392,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
         const emitOperations = emitOperationsHeader === 'true';
 
         const bufferingHelper = createBufferingStreamHelper();
+        const responseMessageId = generateId();
 
         const executionHandler = new ExecutionHandler();
         const result = await executionHandler.execute({
@@ -404,6 +405,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           sseHelper: bufferingHelper,
           emitOperations,
           forwardedHeaders,
+          responseMessageId,
         });
 
         const captured = bufferingHelper.getCapturedResponse();
