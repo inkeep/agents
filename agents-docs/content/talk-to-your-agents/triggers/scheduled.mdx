@@ -8,6 +8,24 @@ Scheduled triggers run agents automatically on a recurring schedule (cron) or at
 
 <Snippet file="user-scoped-mcp-triggers-warning.mdx" />
 
+## Report presets
+
+When creating a scheduled trigger, you can start from a **report preset** to quickly configure a trigger for recurring report workflows. Presets are available in create mode and prefill all trigger fields with sensible defaults.
+
+| Preset | Schedule | Description |
+| --- | --- | --- |
+| **Daily report** | Every day at 9:00 AM | Morning summary with charts and delivery targets |
+| **Weekly digest** | Every Monday at 9:00 AM | End-of-week summary for longer-term trends |
+| **Actionable review** | Weekdays at 10:00 AM | High-signal review focused on follow-up actions |
+
+Each preset fills the trigger name, description, cron schedule, message template, payload JSON, and retry configuration. All fields remain editable after applying a preset.
+
+The preset payloads use a convention with `reportType`, `timeRange`, `artifacts`, `deliverTo`, and `trackIn` fields to guide the agent toward structured report output, chart creation, and delivery to Slack or Jira when those tools are available.
+
+<Note>
+For best results, pair report presets with an agent that uses the **report starter template** (available in the agent metadata editor). The starter prompt steers the agent toward executive summaries, chart artifacts, and conditional Slack/Jira delivery.
+</Note>
+
 ## Create a scheduled trigger
 
 <Steps>
