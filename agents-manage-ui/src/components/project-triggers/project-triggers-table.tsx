@@ -178,6 +178,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
       sortingFn: 'basic',
       cell: ({ row }) => {
         const isLoading = loadingTriggers.has(row.original.id);
+        const canManage = canManageTrigger(row.original);
         return (
           <div className="flex items-center gap-2">
             <Switch
@@ -185,7 +186,7 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
               onCheckedChange={() =>
                 toggleEnabled(row.original.id, row.original.agentId, row.original.enabled)
               }
-              disabled={isLoading}
+              disabled={isLoading || !canManage}
             />
             <Badge className="uppercase" variant={row.original.enabled ? 'primary' : 'code'}>
               {row.original.enabled ? 'Enabled' : 'Disabled'}
@@ -238,14 +239,16 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                   View Invocations
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild disabled={!canManage}>
-                <Link
-                  href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${row.original.agentId}/${row.original.id}/edit`}
-                >
-                  <Pencil className="w-4 h-4" />
-                  Edit
-                </Link>
-              </DropdownMenuItem>
+              {canManage && (
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${row.original.agentId}/${row.original.id}/edit`}
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edit
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link
                   href={(() => {
@@ -266,16 +269,17 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                   Duplicate
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                disabled={!canManage}
-                onClick={() =>
-                  deleteTrigger(row.original.id, row.original.agentId, row.original.name)
-                }
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </DropdownMenuItem>
+              {canManage && (
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() =>
+                    deleteTrigger(row.original.id, row.original.agentId, row.original.name)
+                  }
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );

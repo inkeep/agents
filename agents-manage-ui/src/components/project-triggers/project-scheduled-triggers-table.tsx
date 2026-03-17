@@ -1,7 +1,16 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { Clock, Copy, History, MoreHorizontal, Pencil, Play, RotateCw, Trash2 } from 'lucide-react';
+import {
+  Clock,
+  CopyPlus,
+  History,
+  MoreHorizontal,
+  Pencil,
+  Play,
+  RotateCw,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -421,7 +430,7 @@ export function ProjectScheduledTriggersTable({
                     }
                   ).toString()}`}
                 >
-                  <Copy className="w-4 h-4" />
+                  <CopyPlus className="w-4 h-4" />
                   Duplicate
                 </Link>
               </DropdownMenuItem>
