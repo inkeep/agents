@@ -39,6 +39,17 @@ export function NewsletterSignup() {
   if (status === 'success') {
     return (
       <div className="newsletter-signup newsletter-signup-success">
+        <span className="newsletter-signup-success-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" role="img" aria-hidden="true">
+            <path
+              d="M2.5 7.5L5.5 10.5L11.5 3.5"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
         <p className="newsletter-signup-success-text">You&apos;re subscribed!</p>
       </div>
     );
