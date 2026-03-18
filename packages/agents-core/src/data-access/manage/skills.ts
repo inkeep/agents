@@ -6,7 +6,6 @@ import type {
   SkillFileSelect,
   SkillInsert,
   SkillSelect,
-  SkillUpdate,
   SubAgentSkillInsert,
   SubAgentSkillWithIndex,
 } from '../../types/entities';
@@ -17,13 +16,7 @@ import type {
   SubAgentScopeConfig,
 } from '../../types/utility';
 import { getLogger } from '../../utils/logger';
-import {
-  normalizeSkillFilePath,
-  parseSkillMarkdown,
-  SKILL_ENTRY_FILE_PATH,
-  type SkillFileInput,
-  serializeSkillMarkdown,
-} from '../../utils/skill-files';
+import type { SkillFileInput } from '../../utils/skill-files';
 import { agentScopedWhere, projectScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
 const logger = getLogger('skills-dal');
@@ -32,109 +25,12 @@ type SkillRecordWithFiles = SkillSelect & {
   files: SkillFileSelect[];
 };
 
-type SkillSnapshot = {
-  name: string;
+type SkillWriteData = {
   description: string;
   metadata: Record<string, string> | null;
   content: string;
+  files: SkillFileInput[];
 };
-
-function isStringRecord(value: unknown): value is Record<string, string> {
-  if (value === null) {
-    return false;
-  }
-
-  if (typeof value !== 'object' || Array.isArray(value)) {
-    return false;
-  }
-
-  return Object.values(value).every((item) => typeof item === 'string');
-}
-
-function metadataMatches(
-  left: Record<string, string> | null | undefined,
-  right: Record<string, string> | null | undefined
-) {
-  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
-}
-
-function parseSkillEntryFile(markdown: string): SkillSnapshot {
-  const parsed = parseSkillMarkdown(markdown);
-  const frontmatter = parsed.frontmatter;
-
-  if (typeof frontmatter.name !== 'string') {
-    throw new Error(`${SKILL_ENTRY_FILE_PATH} must include a string name`);
-  }
-
-  if (typeof frontmatter.description !== 'string') {
-    throw new Error(`${SKILL_ENTRY_FILE_PATH} must include a string description`);
-  }
-
-  if (
-    frontmatter.metadata !== null &&
-    frontmatter.metadata !== undefined &&
-    !isStringRecord(frontmatter.metadata)
-  ) {
-    throw new Error(`${SKILL_ENTRY_FILE_PATH} metadata must be an object with string values`);
-  }
-
-  return {
-    name: frontmatter.name,
-    description: frontmatter.description,
-    metadata: (frontmatter.metadata as Record<string, string> | null | undefined) ?? null,
-    content: parsed.content,
-  };
-}
-
-function buildSynthesizedSkillFiles(skill: SkillSnapshot): SkillFileInput[] {
-  return [
-    {
-      filePath: SKILL_ENTRY_FILE_PATH,
-      content: serializeSkillMarkdown(skill),
-    },
-  ];
-}
-
-function getSkillFilesForWrite(skill: SkillSnapshot, files?: SkillFileInput[]): SkillFileInput[] {
-  const resolvedFiles = (files ?? buildSynthesizedSkillFiles(skill)).map((file) => ({
-    filePath: normalizeSkillFilePath(file.filePath),
-    content: file.content,
-  }));
-
-  const filePathSet = new Set<string>();
-  const skillEntryFiles = resolvedFiles.filter((file) => file.filePath === SKILL_ENTRY_FILE_PATH);
-
-  for (const file of resolvedFiles) {
-    if (filePathSet.has(file.filePath)) {
-      throw new Error(`Duplicate skill file path: ${file.filePath}`);
-    }
-    filePathSet.add(file.filePath);
-  }
-
-  if (skillEntryFiles.length !== 1) {
-    throw new Error(`Skill files must include exactly one ${SKILL_ENTRY_FILE_PATH}`);
-  }
-
-  const parsedSkill = parseSkillEntryFile(skillEntryFiles[0].content);
-
-  if (parsedSkill.name !== skill.name) {
-    throw new Error(`${SKILL_ENTRY_FILE_PATH} name must match the skill name`);
-  }
-
-  if (parsedSkill.description !== skill.description) {
-    throw new Error(`${SKILL_ENTRY_FILE_PATH} description must match the skill description`);
-  }
-
-  if (!metadataMatches(parsedSkill.metadata, skill.metadata)) {
-    throw new Error(`${SKILL_ENTRY_FILE_PATH} metadata must match the skill metadata`);
-  }
-
-  if (parsedSkill.content !== skill.content) {
-    throw new Error(`${SKILL_ENTRY_FILE_PATH} body must match the skill content`);
-  }
-
-  return resolvedFiles;
-}
 
 async function replaceSkillFiles(
   db: AgentsManageDatabaseClient,
@@ -321,15 +217,7 @@ export const createSkill =
       await replaceSkillFiles(tx, {
         scopes: { tenantId: data.tenantId, projectId: data.projectId },
         skillId: result.id,
-        files: getSkillFilesForWrite(
-          {
-            name: data.name,
-            description: data.description,
-            metadata: data.metadata ?? null,
-            content: data.content,
-          },
-          data.files
-        ),
+        files: data.files,
       });
 
       const createdSkill = await getSkillByIdWithFiles(tx)({
@@ -363,15 +251,7 @@ export const upsertSkill = (db: AgentsManageDatabaseClient) => async (data: Skil
       where: and(projectScopedWhere(skills, scopes), eq(skills.id, baseData.id)),
     });
 
-    const files = getSkillFilesForWrite(
-      {
-        name: baseData.name,
-        description: baseData.description,
-        metadata: baseData.metadata,
-        content: baseData.content,
-      },
-      data.files
-    );
+    const files = data.files;
 
     if (existing) {
       const [result] = await tx
@@ -416,7 +296,7 @@ export const upsertSkill = (db: AgentsManageDatabaseClient) => async (data: Skil
 
 export const updateSkill =
   (db: AgentsManageDatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; skillId: string; data: SkillUpdate }) => {
+  async (params: { scopes: ProjectScopeConfig; skillId: string; data: SkillWriteData }) => {
     return await db.transaction(async (tx) => {
       const existing = await tx.query.skills.findFirst({
         where: and(
@@ -429,25 +309,14 @@ export const updateSkill =
       if (!existing) {
         return null;
       }
+      const { description, metadata, content } = params.data
 
-      const mergedData: SkillSnapshot = {
-        name: existing.name,
-        description:
-          'description' in params.data ? (params.data.description as string) : existing.description,
-        metadata:
-          'metadata' in params.data
-            ? ((params.data.metadata as Record<string, string> | null | undefined) ?? null)
-            : existing.metadata,
-        content: 'content' in params.data ? (params.data.content as string) : existing.content,
-      };
-
-      const files = getSkillFilesForWrite(mergedData, params.data.files);
       const updateData: Partial<SkillSelect> = {
-        description: mergedData.description,
-        metadata: mergedData.metadata,
-        content: mergedData.content,
         updatedAt: new Date().toISOString(),
       };
+      if (description !== undefined) updateData.description = description
+      if (metadata !== undefined) updateData.metadata = metadata
+      if (content !== undefined) updateData.content = content
 
       const [result] = await tx
         .update(skills)
@@ -458,7 +327,7 @@ export const updateSkill =
       await replaceSkillFiles(tx, {
         scopes: params.scopes,
         skillId: params.skillId,
-        files,
+        files: params.data.files,
       });
 
       return result

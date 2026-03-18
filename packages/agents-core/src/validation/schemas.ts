@@ -1674,6 +1674,20 @@ export const SkillFrontmatterSchema = z.looseObject({
   description: z.string().trim().nonempty().max(1024),
   metadata: StringRecordSchema.nullish(),
 });
+
+export const SkillFilePathSchema = z
+  .string()
+  .trim()
+  .nonempty()
+  .max(1024)
+  .refine((value) => !value.startsWith('/'), 'Must be a relative file path')
+  .refine((value) => !value.includes('\\'), 'Must use forward slashes (/) in file paths')
+  .refine(
+    (value) =>
+      value.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..'),
+    'Must not contain empty, ".", or ".." path segments'
+  );
+
 export const SkillSelectSchema = createSelectSchema(skills).extend({
   metadata: StringRecordSchema.nullable(),
 });
