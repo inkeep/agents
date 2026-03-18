@@ -1051,7 +1051,7 @@ class SigNozStatsAPI {
         schemaVersion: SCHEMA_VERSION,
         start: startTime,
         end: endTime,
-        requestType: REQUEST_TYPES.RAW,
+        requestType: REQUEST_TYPES.SCALAR,
         compositeQuery: {
           queries: [
             {
@@ -1060,10 +1060,11 @@ class SigNozStatsAPI {
                 name: QUERY_EXPRESSIONS.SPAN_NAMES,
                 signal: SIGNALS.TRACES,
                 filter: { expression: buildFilterExpression(spanNameFilterItems) },
-                selectFields: [
+                aggregations: [{ expression: 'count()' }],
+                groupBy: [
                   { name: SPAN_KEYS.NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.SPAN },
                 ],
-                order: [],
+                order: [{ key: { name: SPAN_KEYS.NAME }, direction: ORDER_DIRECTIONS.ASC }],
                 stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
                 limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
                 disabled: QUERY_DEFAULTS.DISABLED,
@@ -1076,15 +1077,10 @@ class SigNozStatsAPI {
       };
 
       const resp = await this.makeRequest(payload);
-      const results = resp?.data?.data?.results ?? resp?.data?.results;
-      const result = results?.find((r: any) => r?.queryName === QUERY_EXPRESSIONS.SPAN_NAMES);
-      const rows: any[] = result?.rows ?? [];
-      const names = new Set<string>();
-      for (const row of rows) {
-        const n = row?.data?.name;
-        if (n) names.add(n);
-      }
-      return [...names].sort();
+      const series = this.extractSeries(resp, QUERY_EXPRESSIONS.SPAN_NAMES);
+      return series
+        .map((s) => s.labels?.[SPAN_KEYS.NAME])
+        .filter((n): n is string => !!n);
     } catch (e) {
       console.error('getAvailableSpanNames error:', e);
       return [];

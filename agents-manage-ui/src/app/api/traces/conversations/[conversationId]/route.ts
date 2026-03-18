@@ -137,6 +137,27 @@ function parseList(resp: SigNozResp, name: string): SigNozListItem[] {
   return Array.isArray(list) ? list : [];
 }
 
+function parseListByName(
+  resp: SigNozResp,
+  queryName: string,
+  spanName: string
+): SigNozListItem[] {
+  return parseList(resp, queryName).filter(
+    (row) => getString(row, SPAN_KEYS.NAME) === spanName
+  );
+}
+
+function parseListByField(
+  resp: SigNozResp,
+  queryName: string,
+  fieldKey: string,
+  fieldValue: string
+): SigNozListItem[] {
+  return parseList(resp, queryName).filter(
+    (row) => getString(row, fieldKey) === fieldValue
+  );
+}
+
 // ---------- Payload builder (single combined "list" payload)
 
 type SelectField = { name: string; fieldDataType: string; fieldContext: string };
@@ -179,7 +200,23 @@ function buildQueryEnvelope(
   };
 }
 
-function buildConversationListPayload(
+function wrapQueries(
+  queries: any[],
+  start: number,
+  end: number,
+  projectId?: string
+) {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    start,
+    end,
+    requestType: REQUEST_TYPES.RAW,
+    ...(projectId && { projectId }),
+    compositeQuery: { queries },
+  };
+}
+
+function buildConversationPayloads(
   conversationId: string,
   start = Date.now() - DEFAULT_LOOKBACK_MS,
   end = Date.now(),
@@ -187,339 +224,263 @@ function buildConversationListPayload(
 ) {
   const base = buildBaseExpression(conversationId, projectId);
 
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    start,
-    end,
-    requestType: REQUEST_TYPES.RAW,
-    ...(projectId && { projectId }),
-    compositeQuery: {
-      queries: [
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.TOOL_CALLS,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.AI_TOOL_CALL}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.DURATION_NANO, float64, span),
-            sf(SPAN_KEYS.AI_TOOL_CALL_NAME, str, attr),
-            sf(SPAN_KEYS.AI_TOOL_CALL_RESULT, str, attr),
-            sf(SPAN_KEYS.AI_TOOL_CALL_ARGS, str, attr),
-            sf(SPAN_KEYS.AI_TOOL_TYPE, str, attr),
-            sf(SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, str, attr),
-            sf(SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, str, attr),
-            sf(SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, str, attr),
-            sf(SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.DELEGATION_TYPE, str, attr),
-            sf(SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.TOOL_PURPOSE, str, attr),
-            sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-            sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.AGENT_ID, str, attr),
-            sf(SPAN_KEYS.AGENT_NAME, str, attr),
-          ]
-        ),
+  const coreQueries = [
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.TOOL_CALLS,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.AI_TOOL_CALL}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.DURATION_NANO, float64, span),
+        sf(SPAN_KEYS.AI_TOOL_CALL_NAME, str, attr),
+        sf(SPAN_KEYS.AI_TOOL_CALL_RESULT, str, attr),
+        sf(SPAN_KEYS.AI_TOOL_CALL_ARGS, str, attr),
+        sf(SPAN_KEYS.AI_TOOL_TYPE, str, attr),
+        sf(SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, str, attr),
+        sf(SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, str, attr),
+        sf(SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, str, attr),
+        sf(SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.DELEGATION_TYPE, str, attr),
+        sf(SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.TOOL_PURPOSE, str, attr),
+        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
+        sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.AGENT_ID, str, attr),
+        sf(SPAN_KEYS.AGENT_NAME, str, attr),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.USER_MESSAGES,
+      `${base} AND ${SPAN_KEYS.MESSAGE_CONTENT} != ''`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.CONTEXT_RESOLUTION,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.CONTEXT_RESOLUTION}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.DURATION_NANO, float64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.CONTEXT_URL, str, attr),
-            sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-            sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
-            sf(SPAN_KEYS.CONTEXT_CONFIG_ID, str, attr),
-            sf(SPAN_KEYS.CONTEXT_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.CONTEXT_HEADERS_KEYS, str, attr),
-          ]
-        ),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.DURATION_NANO, float64, span),
+        sf(SPAN_KEYS.MESSAGE_CONTENT, str, attr),
+        sf(SPAN_KEYS.MESSAGE_PARTS, str, attr),
+        sf(SPAN_KEYS.MESSAGE_TIMESTAMP, str, attr),
+        sf(SPAN_KEYS.AGENT_ID, str, attr),
+        sf(SPAN_KEYS.AGENT_NAME, str, attr),
+        sf(SPAN_KEYS.INVOCATION_TYPE, str, attr),
+        sf(SPAN_KEYS.INVOCATION_ENTRY_POINT, str, attr),
+        sf(SPAN_KEYS.TRIGGER_ID, str, attr),
+        sf(SPAN_KEYS.TRIGGER_INVOCATION_ID, str, attr),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES,
+      `${base} AND ${SPAN_KEYS.AI_RESPONSE_CONTENT} != ''`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.CONTEXT_HANDLE,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.CONTEXT_HANDLE}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.DURATION_NANO, float64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.CONTEXT_URL, str, attr),
-            sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-            sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
-            sf(SPAN_KEYS.CONTEXT_CONFIG_ID, str, attr),
-            sf(SPAN_KEYS.CONTEXT_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.CONTEXT_HEADERS_KEYS, str, attr),
-          ]
-        ),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.DURATION_NANO, float64, span),
+        sf(SPAN_KEYS.AI_RESPONSE_CONTENT, str, attr),
+        sf(SPAN_KEYS.AI_RESPONSE_TIMESTAMP, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
+        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.AI_LLM_CALLS,
+      `${base} AND ${SPAN_KEYS.AI_OPERATION_ID} IN ('${AI_OPERATIONS.GENERATE_TEXT}', '${AI_OPERATIONS.STREAM_TEXT}')`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.AGENT_GENERATIONS,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.AGENT_GENERATION}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-            sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-            sf(CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE, int64, attr),
-            ...V1_BREAKDOWN_SCHEMA.map((def) => sf(def.spanAttribute, int64, attr)),
-          ]
-        ),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.DURATION_NANO, float64, span),
+        sf(SPAN_KEYS.AI_OPERATION_ID, str, attr),
+        sf(SPAN_KEYS.AGENT_ID, str, attr),
+        sf(SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, str, attr),
+        sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, str, attr),
+        sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
+        sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
+        sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, int64, attr),
+        sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
+        sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
+        sf(SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, str, attr),
+        sf(SPAN_KEYS.AI_PROMPT_MESSAGES, str, attr),
+        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
+        sf(SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, str, attr),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.AGENT_GENERATIONS,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.AGENT_GENERATION}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
+        sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
+        sf(CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE, int64, attr),
+        ...V1_BREAKDOWN_SCHEMA.map((def) => sf(def.spanAttribute, int64, attr)),
+      ]
+    ),
+  ];
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
-          `${base} AND ${SPAN_KEYS.HAS_ERROR} = true`,
-          [sf(SPAN_KEYS.SPAN_ID, str, span), sf(SPAN_KEYS.NAME, str, span)]
-        ),
+  const contextQueries = [
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE,
+      `${base} AND ${SPAN_KEYS.NAME} IN ('${SPAN_NAMES.CONTEXT_RESOLUTION}', '${SPAN_NAMES.CONTEXT_HANDLE}')`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.USER_MESSAGES,
-          `${base} AND ${SPAN_KEYS.MESSAGE_CONTENT} != ''`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.DURATION_NANO, float64, span),
-            sf(SPAN_KEYS.MESSAGE_CONTENT, str, attr),
-            sf(SPAN_KEYS.MESSAGE_PARTS, str, attr),
-            sf(SPAN_KEYS.MESSAGE_TIMESTAMP, str, attr),
-            sf(SPAN_KEYS.AGENT_ID, str, attr),
-            sf(SPAN_KEYS.AGENT_NAME, str, attr),
-            sf(SPAN_KEYS.INVOCATION_TYPE, str, attr),
-            sf(SPAN_KEYS.INVOCATION_ENTRY_POINT, str, attr),
-            sf(SPAN_KEYS.TRIGGER_ID, str, attr),
-            sf(SPAN_KEYS.TRIGGER_INVOCATION_ID, str, attr),
-          ]
-        ),
+        sf(SPAN_KEYS.NAME, str, span),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.DURATION_NANO, float64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.CONTEXT_URL, str, attr),
+        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
+        sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
+        sf(SPAN_KEYS.CONTEXT_CONFIG_ID, str, attr),
+        sf(SPAN_KEYS.CONTEXT_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.CONTEXT_HEADERS_KEYS, str, attr),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.CONTEXT_FETCHERS,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.CONTEXT_FETCHER}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES,
-          `${base} AND ${SPAN_KEYS.AI_RESPONSE_CONTENT} != ''`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.DURATION_NANO, float64, span),
-            sf(SPAN_KEYS.AI_RESPONSE_CONTENT, str, attr),
-            sf(SPAN_KEYS.AI_RESPONSE_TIMESTAMP, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
-            sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-          ]
-        ),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.DURATION_NANO, float64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.HTTP_URL, str, attr),
+        sf(SPAN_KEYS.HTTP_STATUS_CODE, str, attr),
+        sf(SPAN_KEYS.HTTP_RESPONSE_BODY_SIZE, str, attr),
+        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.DURATION_SPANS,
+      base,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.AI_GENERATIONS,
-          `${base} AND ${SPAN_KEYS.AI_OPERATION_ID} = '${AI_OPERATIONS.GENERATE_TEXT}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.DURATION_NANO, float64, span),
-            sf(SPAN_KEYS.AGENT_ID, str, attr),
-            sf(SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, str, attr),
-            sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, str, attr),
-            sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
-            sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, int64, attr),
-            sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
-            sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
-            sf(SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, str, attr),
-            sf(SPAN_KEYS.AI_PROMPT_MESSAGES, str, attr),
-          ]
-        ),
+        sf(SPAN_KEYS.PARENT_SPAN_ID, str, span),
+        sf(SPAN_KEYS.DURATION_NANO, float64, span),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.ARTIFACT_PROCESSING,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.ARTIFACT_PROCESSING}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.ARTIFACT_ID, str, attr),
+        sf(SPAN_KEYS.ARTIFACT_TYPE, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
+        sf(SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, str, attr),
+        sf(SPAN_KEYS.ARTIFACT_NAME, str, attr),
+        sf(SPAN_KEYS.ARTIFACT_DESCRIPTION, str, attr),
+        sf(SPAN_KEYS.ARTIFACT_DATA, str, attr),
+        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
+        sf(SPAN_KEYS.ARTIFACT_IS_OVERSIZED, bool, attr),
+        sf(SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED, bool, attr),
+        sf(SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE, int64, attr),
+        sf(SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE, int64, attr),
+      ]
+    ),
+  ];
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.AI_STREAMING_TEXT,
-          `${base} AND ${SPAN_KEYS.AI_OPERATION_ID} = '${AI_OPERATIONS.STREAM_TEXT}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.DURATION_NANO, float64, span),
-            sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, str, attr),
-            sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
-            sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
-            sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
-            sf(SPAN_KEYS.AI_OPERATION_ID, str, attr),
-            sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, int64, attr),
-            sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
-            sf(SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, str, attr),
-            sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-            sf(SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, str, attr),
-          ]
-        ),
+  const eventQueries = [
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
+      `${base} AND ${SPAN_KEYS.HAS_ERROR} = true`,
+      [sf(SPAN_KEYS.SPAN_ID, str, span), sf(SPAN_KEYS.NAME, str, span)]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.TOOL_APPROVALS,
+      `${base} AND ${SPAN_KEYS.NAME} IN ('${SPAN_NAMES.TOOL_APPROVAL_REQUESTED}', '${SPAN_NAMES.TOOL_APPROVAL_APPROVED}', '${SPAN_NAMES.TOOL_APPROVAL_DENIED}')`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.CONTEXT_FETCHERS,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.CONTEXT_FETCHER}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.DURATION_NANO, float64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.HTTP_URL, str, attr),
-            sf(SPAN_KEYS.HTTP_STATUS_CODE, str, attr),
-            sf(SPAN_KEYS.HTTP_RESPONSE_BODY_SIZE, str, attr),
-            sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-          ]
-        ),
+        sf(SPAN_KEYS.NAME, str, span),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.TOOL_NAME, str, attr),
+        sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.COMPRESSION,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.COMPRESSOR_SAFE_COMPRESS}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.DURATION_SPANS,
-          base,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.PARENT_SPAN_ID, str, span),
-            sf(SPAN_KEYS.DURATION_NANO, float64, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-          ]
-        ),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
+        sf(SPAN_KEYS.COMPRESSION_TYPE, str, attr),
+        sf(SPAN_KEYS.COMPRESSION_SESSION_ID, str, attr),
+        sf(SPAN_KEYS.COMPRESSION_GENERATED_TOKENS, int64, attr),
+        sf(SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS, int64, attr),
+        sf(SPAN_KEYS.COMPRESSION_TRIGGER_AT, int64, attr),
+        sf(SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS, int64, attr),
+        sf(SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO, float64, attr),
+        sf(SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL, str, attr),
+        sf(SPAN_KEYS.COMPRESSION_SUCCESS, bool, attr),
+        sf(SPAN_KEYS.COMPRESSION_ERROR, str, attr),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.MAX_STEPS_REACHED,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.AGENT_MAX_STEPS_REACHED}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.ARTIFACT_PROCESSING,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.ARTIFACT_PROCESSING}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.ARTIFACT_ID, str, attr),
-            sf(SPAN_KEYS.ARTIFACT_TYPE, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-            sf(SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, str, attr),
-            sf(SPAN_KEYS.ARTIFACT_NAME, str, attr),
-            sf(SPAN_KEYS.ARTIFACT_DESCRIPTION, str, attr),
-            sf(SPAN_KEYS.ARTIFACT_DATA, str, attr),
-            sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-            sf(SPAN_KEYS.ARTIFACT_IS_OVERSIZED, bool, attr),
-            sf(SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED, bool, attr),
-            sf(SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE, int64, attr),
-            sf(SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE, int64, attr),
-          ]
-        ),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
+        sf(SPAN_KEYS.AGENT_ID, str, attr),
+        sf(SPAN_KEYS.AGENT_NAME, str, attr),
+        sf(SPAN_KEYS.AGENT_MAX_STEPS_REACHED, bool, attr),
+        sf(SPAN_KEYS.AGENT_STEPS_COMPLETED, int64, attr),
+        sf(SPAN_KEYS.AGENT_MAX_STEPS, int64, attr),
+      ]
+    ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.STREAM_FORCE_CLEANUP}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.TOOL_APPROVAL_REQUESTED}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.TOOL_NAME, str, attr),
-            sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-          ]
-        ),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.STREAM_CLEANUP_REASON, str, attr),
+        sf(SPAN_KEYS.STREAM_MAX_LIFETIME_MS, int64, attr),
+        sf(SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, int64, attr),
+      ]
+    ),
+  ];
 
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.TOOL_APPROVAL_APPROVED}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.TOOL_NAME, str, attr),
-            sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-          ]
-        ),
-
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.TOOL_APPROVAL_DENIED}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.TOOL_NAME, str, attr),
-            sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-          ]
-        ),
-
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.COMPRESSION,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.COMPRESSOR_SAFE_COMPRESS}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-            sf(SPAN_KEYS.COMPRESSION_TYPE, str, attr),
-            sf(SPAN_KEYS.COMPRESSION_SESSION_ID, str, attr),
-            sf(SPAN_KEYS.COMPRESSION_GENERATED_TOKENS, int64, attr),
-            sf(SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS, int64, attr),
-            sf(SPAN_KEYS.COMPRESSION_TRIGGER_AT, int64, attr),
-            sf(SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS, int64, attr),
-            sf(SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO, float64, attr),
-            sf(SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL, str, attr),
-            sf(SPAN_KEYS.COMPRESSION_SUCCESS, bool, attr),
-            sf(SPAN_KEYS.COMPRESSION_ERROR, str, attr),
-          ]
-        ),
-
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.MAX_STEPS_REACHED,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.AGENT_MAX_STEPS_REACHED}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-            sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-            sf(SPAN_KEYS.AGENT_ID, str, attr),
-            sf(SPAN_KEYS.AGENT_NAME, str, attr),
-            sf(SPAN_KEYS.AGENT_MAX_STEPS_REACHED, bool, attr),
-            sf(SPAN_KEYS.AGENT_STEPS_COMPLETED, int64, attr),
-            sf(SPAN_KEYS.AGENT_MAX_STEPS, int64, attr),
-          ]
-        ),
-
-        buildQueryEnvelope(
-          QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED,
-          `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.STREAM_FORCE_CLEANUP}'`,
-          [
-            sf(SPAN_KEYS.SPAN_ID, str, span),
-            sf(SPAN_KEYS.TRACE_ID, str, span),
-            sf(SPAN_KEYS.TIMESTAMP, int64, span),
-            sf(SPAN_KEYS.HAS_ERROR, bool, span),
-            sf(SPAN_KEYS.STREAM_CLEANUP_REASON, str, attr),
-            sf(SPAN_KEYS.STREAM_MAX_LIFETIME_MS, int64, attr),
-            sf(SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, int64, attr),
-          ]
-        ),
-      ],
-    },
-  };
+  return [
+    wrapQueries(coreQueries, start, end, projectId),
+    wrapQueries(contextQueries, start, end, projectId),
+    wrapQueries(eventQueries, start, end, projectId),
+  ];
 }
 
 // ---------- Main handler
@@ -546,6 +507,9 @@ export async function GET(
   const authHeader = req.headers.get('authorization');
 
   try {
+    const logger = getLogger('conversation-detail');
+    const t0 = Date.now();
+
     const { start, end } = await getConversationTimeRange({
       startParam,
       endParam,
@@ -553,28 +517,74 @@ export async function GET(
       tenantId,
       conversationId,
     });
-    const payload = buildConversationListPayload(conversationId, start, end, projectId);
+    const tTimeRange = Date.now();
 
-    const resp = await signozQuery(payload, tenantId, cookieHeader, authHeader);
+    const payloads = buildConversationPayloads(conversationId, start, end, projectId);
+    const batchLabels = ['core', 'context', 'events'] as const;
+
+    const batchResults = await Promise.all(
+      payloads.map(async (p, i) => {
+        const batchStart = Date.now();
+        const result = await signozQuery(p, tenantId, cookieHeader, authHeader);
+        logger.info(
+          { batch: batchLabels[i], queries: p.compositeQuery.queries.length, ms: Date.now() - batchStart },
+          `signoz batch complete`
+        );
+        return result;
+      })
+    );
+    const tSignoz = Date.now();
+
+    const mergedResults = batchResults.flatMap(
+      (r) => r?.data?.data?.results ?? r?.data?.results ?? []
+    );
+    const resp: SigNozResp = { data: { results: mergedResults } };
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
-    const contextResolutionSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION);
-    const contextHandleSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_HANDLE);
-    const agentGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AGENT_GENERATIONS);
-    const spansWithErrorsList = parseList(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
     const userMessageSpans = parseList(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
     const aiAssistantSpans = parseList(resp, QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES);
-    const aiGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AI_GENERATIONS);
-    const aiStreamingSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_TEXT);
+    const aiGenerationSpans: SigNozListItem[] = [];
+    const aiStreamingSpans: SigNozListItem[] = [];
+    for (const row of parseList(resp, QUERY_EXPRESSIONS.AI_LLM_CALLS)) {
+      const op = getString(row, SPAN_KEYS.AI_OPERATION_ID);
+      if (op === AI_OPERATIONS.GENERATE_TEXT) aiGenerationSpans.push(row);
+      else if (op === AI_OPERATIONS.STREAM_TEXT) aiStreamingSpans.push(row);
+    }
+    const agentGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AGENT_GENERATIONS);
+    const spansWithErrorsList = parseList(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
+
+    const contextResolutionSpans = parseListByName(
+      resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE, SPAN_NAMES.CONTEXT_RESOLUTION
+    );
+    const contextHandleSpans = parseListByName(
+      resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE, SPAN_NAMES.CONTEXT_HANDLE
+    );
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
     const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
-    const toolApprovalRequestedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED);
-    const toolApprovalApprovedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED);
-    const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
+
+    const toolApprovalRequestedSpans = parseListByName(
+      resp, QUERY_EXPRESSIONS.TOOL_APPROVALS, SPAN_NAMES.TOOL_APPROVAL_REQUESTED
+    );
+    const toolApprovalApprovedSpans = parseListByName(
+      resp, QUERY_EXPRESSIONS.TOOL_APPROVALS, SPAN_NAMES.TOOL_APPROVAL_APPROVED
+    );
+    const toolApprovalDeniedSpans = parseListByName(
+      resp, QUERY_EXPRESSIONS.TOOL_APPROVALS, SPAN_NAMES.TOOL_APPROVAL_DENIED
+    );
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
     const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
     const streamLifetimeExceededSpans = parseList(resp, QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED);
+
+    logger.info(
+      {
+        conversationId,
+        timeRangeMs: tTimeRange - t0,
+        signozMs: tSignoz - tTimeRange,
+        spanDays: Math.round((end - start) / 86_400_000),
+      },
+      'conversation detail timing'
+    );
 
     let agentId: string | null = null;
     let agentName: string | null = null;
@@ -1268,12 +1278,16 @@ export async function GET(
 
     // Resolve parentSpanId to nearest ancestor activity
     const activityIds = new Set(activities.map((a) => a.id));
-    function findAncestorActivity(spanId: string): string | undefined {
-      if (!spanId) return undefined;
+    const ancestorCache = new Map<string, string | undefined>();
+    function findAncestorActivity(spanId: string, depth = 0): string | undefined {
+      if (!spanId || depth > 200) return undefined;
       if (activityIds.has(spanId)) return spanId;
+      if (ancestorCache.has(spanId)) return ancestorCache.get(spanId);
       const parentSpanId = spanIdToParentSpanId.get(spanId);
-      if (!parentSpanId) return undefined;
-      return findAncestorActivity(parentSpanId);
+      if (!parentSpanId) { ancestorCache.set(spanId, undefined); return undefined; }
+      const result = findAncestorActivity(parentSpanId, depth + 1);
+      ancestorCache.set(spanId, result);
+      return result;
     }
     for (const activity of activities) {
       if (activity.parentSpanId) {
@@ -1281,14 +1295,18 @@ export async function GET(
       }
     }
 
-    // Adjust tool call status based on whether ALL or SOME failed within their agent generation
-    // Helper function to find the ancestor agent generation for an activity
-    function findAncestorAgentGeneration(activityId: string): string | null {
-      const activity = activities.find((a) => a.id === activityId);
-      if (!activity) return null;
-      if (activity.type === ACTIVITY_TYPES.AGENT_GENERATION) return activity.id;
-      if (!activity.parentSpanId) return null;
-      return findAncestorAgentGeneration(activity.parentSpanId);
+    const activityById = new Map(activities.map((a) => [a.id, a]));
+    const agentGenCache = new Map<string, string | null>();
+    function findAncestorAgentGeneration(activityId: string, depth = 0): string | null {
+      if (depth > 200) return null;
+      if (agentGenCache.has(activityId)) return agentGenCache.get(activityId)!;
+      const activity = activityById.get(activityId);
+      if (!activity) { agentGenCache.set(activityId, null); return null; }
+      if (activity.type === ACTIVITY_TYPES.AGENT_GENERATION) { agentGenCache.set(activityId, activity.id); return activity.id; }
+      if (!activity.parentSpanId) { agentGenCache.set(activityId, null); return null; }
+      const result = findAncestorAgentGeneration(activity.parentSpanId, depth + 1);
+      agentGenCache.set(activityId, result);
+      return result;
     }
 
     // Group tool calls by their ancestor agent generation
@@ -1341,14 +1359,12 @@ export async function GET(
 
     // Conversation duration: user-facing timeline (first user message to last AI response)
     const firstUser = activities.find((a) => a.type === ACTIVITY_TYPES.USER_MESSAGE);
-    const lastAssistant = [...activities]
-      .reverse()
-      .find(
-        (a) =>
-          a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-          a.type === ACTIVITY_TYPES.AI_GENERATION ||
-          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
-      );
+    const lastAssistant = activities.findLast(
+      (a) =>
+        a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
+        a.type === ACTIVITY_TYPES.AI_GENERATION ||
+        a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
+    );
     const conversationStartTime = firstUser
       ? new Date(firstUser.timestamp).getTime()
       : operationStartTime;
@@ -1377,23 +1393,38 @@ export async function GET(
 
     const openAICallsCount = aiGenerationSpans.length;
 
-    // Recalculate error and warning counts based on actual activity statuses
-    const finalErrorCount = activities.filter((a) => a.status === ACTIVITY_STATUS.ERROR).length;
-    const finalWarningCount = activities.filter((a) => a.status === ACTIVITY_STATUS.WARNING).length;
+    let finalErrorCount = 0;
+    let finalWarningCount = 0;
+    let totalMessages = 0;
+    let totalToolCalls = 0;
+    for (const a of activities) {
+      if (a.status === ACTIVITY_STATUS.ERROR) finalErrorCount++;
+      if (a.status === ACTIVITY_STATUS.WARNING) finalWarningCount++;
+      if (a.type === ACTIVITY_TYPES.USER_MESSAGE || a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE)
+        totalMessages++;
+      if (a.type === ACTIVITY_TYPES.TOOL_CALL) totalToolCalls++;
+    }
 
     const conversation = {
       conversationId,
       startTime: conversationStartTime ? conversationStartTime : null,
       endTime: conversationEndTime ? conversationEndTime : null,
       duration: conversationDurationMs,
-      totalMessages: activities.filter(
-        (a) =>
-          a.type === ACTIVITY_TYPES.USER_MESSAGE || a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
-      ).length,
-      totalToolCalls: activities.filter((a) => a.type === ACTIVITY_TYPES.TOOL_CALL).length,
-      totalErrors: 0,
+      totalMessages,
+      totalToolCalls,
+      totalErrors: finalErrorCount,
       totalOpenAICalls: openAICallsCount,
     };
+
+    const tDone = Date.now();
+    logger.info(
+      {
+        conversationId,
+        processingMs: tDone - tSignoz,
+        totalMs: tDone - t0,
+      },
+      'conversation detail complete'
+    );
 
     return NextResponse.json({
       ...conversation,
