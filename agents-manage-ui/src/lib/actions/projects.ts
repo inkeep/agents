@@ -41,36 +41,6 @@ export async function fetchProjectsAction(tenantId: string): Promise<ActionResul
 }
 
 /**
- * Fetch a single project
- */
-export async function fetchProjectAction(
-  tenantId: string,
-  projectId: string
-): Promise<ActionResult<Project>> {
-  try {
-    const result = await fetchProject(tenantId, projectId);
-    return {
-      success: true,
-      data: result.data,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
-
-/**
  * Create a new project
  */
 export async function createProjectAction(

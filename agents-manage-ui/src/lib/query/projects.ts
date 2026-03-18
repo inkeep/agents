@@ -7,7 +7,7 @@ import { fetchProject, fetchProjectPermissions, fetchProjects } from '@/lib/api/
 import { projectQueryKeys } from '@/lib/query/keys/projects';
 import type { Project } from '@/lib/types/project';
 
-export const defaultProjectPermissions: ProjectPermissions = {
+const defaultProjectPermissions: ProjectPermissions = {
   canView: false,
   canUse: false,
   canEdit: false,
