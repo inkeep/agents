@@ -8,11 +8,7 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
   const { files } = await resolveSkillFilePageData(tenantId, projectId);
 
   if (!files.length) {
-    return (
-      <div className="rounded-lg border border-dashed bg-muted/20 p-8 text-sm text-muted-foreground">
-        No skill files configured.
-      </div>
-    );
+    return null;
   }
 
   redirect(buildSkillFileViewHref(tenantId, projectId, files[0].skillId, files[0].filePath));

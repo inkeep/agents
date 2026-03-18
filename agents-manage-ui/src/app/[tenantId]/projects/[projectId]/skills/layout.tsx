@@ -11,6 +11,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { fetchSkillsPageData } from './skills-data';
+import EmptyState from '@/components/layout/empty-state';
 
 export const metadata = {
   title: STATIC_LABELS.skills,
@@ -47,21 +48,21 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
     return (
       <>
         <PageHeader title={metadata.title} description={description} action={action} />
-        <SidebarProvider
-          style={{
-            // @ts-expect-error
-            '--sidebar-width': 'calc(var(--spacing) * 62)',
-            '--header-height': 'calc(var(--spacing) * 12)',
-          }}
-          className="min-h-auto"
-        >
+        <SidebarProvider className="border border-border/70 rounded-[14px] overflow-hidden min-h-[80vh]">
           <SkillsSidebar
             treeNodes={treeNodes}
             defaultSelectedRoutePath={defaultSelectedRoutePath}
             fileRouteAliases={fileRouteAliases}
             canEdit={permissions.canEdit}
+            className="h-auto"
           />
-          <SidebarInset className="min-w-0">{children}</SidebarInset>
+          <SidebarInset className="min-w-0">
+            {treeNodes.length ? (
+              children
+            ) : (
+              <EmptyState title="No skills yet." description={description} action={action} />
+            )}
+          </SidebarInset>
         </SidebarProvider>
       </>
     );
