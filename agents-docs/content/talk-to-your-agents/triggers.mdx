@@ -1,0 +1,23 @@
+---
+title: Triggers
+description: Invoke your Agents automatically via webhooks or scheduled executions
+icon: LuZap
+---
+
+Triggers let external services and schedules invoke your Agents without manual interaction. There are two types:
+
+- **Webhook triggers** — Create HTTP endpoints that external services (GitHub, Slack, Stripe, Zendesk, etc.) can call to start a conversation with your Agent. When a webhook is received, the payload is validated, transformed, and passed to the Agent asynchronously.
+- **Scheduled triggers** — Run Agents on a recurring cron schedule or at a specific future time. Use them for daily reports, hourly health checks, periodic data syncs, or deferred tasks.
+
+## Configure triggers
+
+You can configure triggers either in the dashboard or programmatically in the TypeScript SDK.
+
+<Cards>
+  <Card title="Visual Builder" icon="LuLayoutDashboard" href="/visual-builder/triggers/webhooks">
+    Set up webhook and scheduled triggers from the dashboard.
+  </Card>
+  <Card title="TypeScript SDK" icon="LuCode" href="/typescript-sdk/triggers/overview">
+    Define triggers programmatically in your agent configuration.
+  </Card>
+</Cards>

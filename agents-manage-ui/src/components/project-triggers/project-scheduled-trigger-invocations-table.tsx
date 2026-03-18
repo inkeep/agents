@@ -1,12 +1,15 @@
 'use client';
 
+import type { ColumnDef } from '@tanstack/react-table';
 import { Ban, MoreHorizontal, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,14 +17,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { getProjectScheduledTriggerInvocationsAction } from '@/lib/actions/project-triggers';
 import {
   cancelScheduledTriggerInvocationAction,
@@ -136,73 +131,209 @@ export function ProjectScheduledTriggerInvocationsTable({
     setInvocations(initialInvocations);
   }, [initialInvocations]);
 
-  const cancelInvocation = async (invocation: ScheduledTriggerInvocationWithContext) => {
-    if (!confirm('Are you sure you want to cancel this invocation?')) {
-      return;
-    }
-
-    setLoadingInvocations((prev) => new Set(prev).add(invocation.id));
-
-    try {
-      const result = await cancelScheduledTriggerInvocationAction(
-        tenantId,
-        projectId,
-        invocation.agentId,
-        invocation.scheduledTriggerId,
-        invocation.id
-      );
-
-      if (result.success) {
-        toast.success('Invocation cancelled successfully');
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Failed to cancel invocation');
+  const cancelInvocation = useCallback(
+    async (invocation: ScheduledTriggerInvocationWithContext) => {
+      if (!confirm('Are you sure you want to cancel this invocation?')) {
+        return;
       }
-    } catch (error) {
-      console.error('Failed to cancel invocation:', error);
-      toast.error('Failed to cancel invocation');
-    } finally {
-      setLoadingInvocations((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(invocation.id);
-        return newSet;
-      });
-    }
-  };
 
-  const rerunInvocation = async (invocation: ScheduledTriggerInvocationWithContext) => {
-    if (!confirm('Are you sure you want to rerun this invocation?')) {
-      return;
-    }
+      setLoadingInvocations((prev) => new Set(prev).add(invocation.id));
 
-    setLoadingInvocations((prev) => new Set(prev).add(invocation.id));
+      try {
+        const result = await cancelScheduledTriggerInvocationAction(
+          tenantId,
+          projectId,
+          invocation.agentId,
+          invocation.scheduledTriggerId,
+          invocation.id
+        );
 
-    try {
-      const result = await rerunScheduledTriggerInvocationAction(
-        tenantId,
-        projectId,
-        invocation.agentId,
-        invocation.scheduledTriggerId,
-        invocation.id
-      );
-
-      if (result.success) {
-        toast.success('Invocation rerun started successfully');
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Failed to rerun invocation');
+        if (result.success) {
+          toast.success('Invocation cancelled successfully');
+          router.refresh();
+        } else {
+          toast.error(result.error || 'Failed to cancel invocation');
+        }
+      } catch (error) {
+        console.error('Failed to cancel invocation:', error);
+        toast.error('Failed to cancel invocation');
+      } finally {
+        setLoadingInvocations((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(invocation.id);
+          return newSet;
+        });
       }
-    } catch (error) {
-      console.error('Failed to rerun invocation:', error);
-      toast.error('Failed to rerun invocation');
-    } finally {
-      setLoadingInvocations((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(invocation.id);
-        return newSet;
-      });
-    }
-  };
+    },
+    [tenantId, projectId, router]
+  );
+
+  const rerunInvocation = useCallback(
+    async (invocation: ScheduledTriggerInvocationWithContext) => {
+      if (!confirm('Are you sure you want to rerun this invocation?')) {
+        return;
+      }
+
+      setLoadingInvocations((prev) => new Set(prev).add(invocation.id));
+
+      try {
+        const result = await rerunScheduledTriggerInvocationAction(
+          tenantId,
+          projectId,
+          invocation.agentId,
+          invocation.scheduledTriggerId,
+          invocation.id
+        );
+
+        if (result.success) {
+          toast.success('Invocation rerun started successfully');
+          router.refresh();
+        } else {
+          toast.error(result.error || 'Failed to rerun invocation');
+        }
+      } catch (error) {
+        console.error('Failed to rerun invocation:', error);
+        toast.error('Failed to rerun invocation');
+      } finally {
+        setLoadingInvocations((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(invocation.id);
+          return newSet;
+        });
+      }
+    },
+    [tenantId, projectId, router]
+  );
+
+  const columns = useMemo<ColumnDef<ScheduledTriggerInvocationWithContext>[]>(
+    () => [
+      {
+        id: 'triggerName',
+        accessorFn: (row) => row.triggerName,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Trigger" />,
+        sortingFn: 'text',
+        cell: ({ row }) => (
+          <Link
+            href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${row.original.agentId}/${row.original.scheduledTriggerId}/invocations`}
+            className="font-medium text-foreground hover:underline"
+          >
+            {row.original.triggerName}
+          </Link>
+        ),
+      },
+      {
+        id: 'agentName',
+        accessorFn: (row) => row.agentName,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Agent" />,
+        sortingFn: 'text',
+        cell: ({ row }) => (
+          <Link
+            href={`/${tenantId}/projects/${projectId}/agents/${row.original.agentId}`}
+            className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+          >
+            {row.original.agentName}
+          </Link>
+        ),
+      },
+      {
+        id: 'scheduledFor',
+        accessorFn: (row) => new Date(row.scheduledFor),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Scheduled For" />,
+        sortingFn: 'datetime',
+        cell: ({ row }) => (
+          <div className="font-mono text-sm">
+            {formatInvocationDateTime(row.original.scheduledFor)}
+          </div>
+        ),
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        enableSorting: false,
+        cell: ({ row }) => getInvocationStatusBadge(row.original.status as InvocationStatus),
+      },
+      {
+        id: 'duration',
+        header: 'Duration',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="text-sm text-muted-foreground">
+            {formatInvocationDuration(row.original.startedAt, row.original.completedAt)}
+          </div>
+        ),
+      },
+      {
+        id: 'conversation',
+        header: 'Conversation',
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.conversationIds && row.original.conversationIds.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              {row.original.conversationIds.map((convId: string, idx: number) => (
+                <ExternalLink
+                  key={convId}
+                  href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
+                  className="text-primary no-underline"
+                  iconClassName="text-primary"
+                >
+                  {row.original.conversationIds && row.original.conversationIds.length > 1 && (
+                    <span className="text-muted-foreground text-xs">#{idx + 1}</span>
+                  )}
+                  View
+                </ExternalLink>
+              ))}
+            </div>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: ({ row }) => {
+          const isLoading = loadingInvocations.has(row.original.id);
+          const canCancel = row.original.status === 'pending' || row.original.status === 'running';
+          const canRerun =
+            row.original.status === 'completed' ||
+            row.original.status === 'failed' ||
+            row.original.status === 'cancelled';
+          const hasActions = canCancel || canRerun;
+
+          if (!hasActions) return null;
+
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon-sm" disabled={isLoading}>
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {canRerun && (
+                  <DropdownMenuItem onClick={() => rerunInvocation(row.original)}>
+                    <RotateCcw className="w-4 h-4" />
+                    Rerun
+                  </DropdownMenuItem>
+                )}
+                {canCancel && (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => cancelInvocation(row.original)}
+                  >
+                    <Ban className="w-4 h-4" />
+                    Cancel
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+      },
+    ],
+    [tenantId, projectId, loadingInvocations, cancelInvocation, rerunInvocation]
+  );
 
   return (
     <div className="space-y-4">
@@ -264,132 +395,26 @@ export function ProjectScheduledTriggerInvocationsTable({
       </div>
 
       <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow noHover>
-              <TableHead>Trigger</TableHead>
-              <TableHead>Agent</TableHead>
-              <TableHead>Scheduled For</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Conversation</TableHead>
-              <TableHead className="w-12" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredInvocations.length === 0 ? (
-              <TableRow noHover>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  <p>
-                    {invocations.length === 0
-                      ? 'No invocations yet. Create scheduled triggers to see their invocations here.'
-                      : 'No invocations match the current filters.'}
-                  </p>
-                  {hasActiveFilters && (
-                    <Button variant="link" size="sm" onClick={clearFilters}>
-                      Clear filters
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredInvocations.map((invocation) => {
-                const isLoading = loadingInvocations.has(invocation.id);
-                const canCancel =
-                  invocation.status === 'pending' || invocation.status === 'running';
-                const canRerun =
-                  invocation.status === 'completed' ||
-                  invocation.status === 'failed' ||
-                  invocation.status === 'cancelled';
-                const hasActions = canCancel || canRerun;
-
-                return (
-                  <TableRow key={invocation.id} noHover>
-                    <TableCell>
-                      <Link
-                        href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${invocation.agentId}/${invocation.scheduledTriggerId}/invocations`}
-                        className="font-medium text-foreground hover:underline"
-                      >
-                        {invocation.triggerName}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/${tenantId}/projects/${projectId}/agents/${invocation.agentId}`}
-                        className="text-sm text-muted-foreground hover:text-foreground hover:underline"
-                      >
-                        {invocation.agentName}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-mono text-sm">
-                        {formatInvocationDateTime(invocation.scheduledFor)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getInvocationStatusBadge(invocation.status as InvocationStatus)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-muted-foreground">
-                        {formatInvocationDuration(invocation.startedAt, invocation.completedAt)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {invocation.conversationIds && invocation.conversationIds.length > 0 ? (
-                        <div className="flex flex-col gap-1">
-                          {invocation.conversationIds.map((convId: string, idx: number) => (
-                            <ExternalLink
-                              key={convId}
-                              href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
-                              className="text-primary no-underline"
-                              iconClassName="text-primary"
-                            >
-                              {invocation.conversationIds &&
-                                invocation.conversationIds.length > 1 && (
-                                  <span className="text-muted-foreground text-xs">#{idx + 1}</span>
-                                )}
-                              View
-                            </ExternalLink>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {hasActions && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon-sm" disabled={isLoading}>
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {canRerun && (
-                              <DropdownMenuItem onClick={() => rerunInvocation(invocation)}>
-                                <RotateCcw className="w-4 h-4" />
-                                Rerun
-                              </DropdownMenuItem>
-                            )}
-                            {canCancel && (
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => cancelInvocation(invocation)}
-                              >
-                                <Ban className="w-4 h-4" />
-                                Cancel
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          columns={columns}
+          data={filteredInvocations}
+          defaultSort={[{ id: 'scheduledFor', desc: true }]}
+          getRowId={(row) => row.id}
+          emptyState={
+            <div className="flex flex-col items-center gap-2">
+              <p>
+                {invocations.length === 0
+                  ? 'No invocations yet. Create scheduled triggers to see their invocations here.'
+                  : 'No invocations match the current filters.'}
+              </p>
+              {hasActiveFilters && (
+                <Button variant="link" size="sm" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          }
+        />
       </div>
     </div>
   );

@@ -215,16 +215,17 @@ const processUserMessage = async (
     });
   }
   await createMessage(runDbClient)({
-    id: generateId(),
-    tenantId,
-    projectId,
-    conversationId,
-    role: 'user',
-    content: {
-      text: query,
+    scopes: { tenantId, projectId },
+    data: {
+      id: generateId(),
+      conversationId,
+      role: 'user',
+      content: {
+        text: query,
+      },
+      visibility: 'user-facing',
+      messageType: 'chat',
     },
-    visibility: 'user-facing',
-    messageType: 'chat',
   });
 };
 

@@ -531,17 +531,21 @@ describe('Relationship Tools', () => {
       const innerMock = createMessageMock.mock.results[0]?.value;
       expect(innerMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          conversationId: 'test-context',
-          role: 'agent',
-          content: {
-            text: 'Test message',
-          },
-          visibility: 'external',
-          messageType: 'a2a-request',
-          fromSubAgentId: 'test-calling-agent',
-          toExternalAgentId: 'external-agent',
+          scopes: expect.objectContaining({
+            tenantId: 'test-tenant',
+            projectId: 'test-project',
+          }),
+          data: expect.objectContaining({
+            conversationId: 'test-context',
+            role: 'agent',
+            content: {
+              text: 'Test message',
+            },
+            visibility: 'external',
+            messageType: 'a2a-request',
+            fromSubAgentId: 'test-calling-agent',
+            toExternalAgentId: 'external-agent',
+          }),
         })
       );
     });
@@ -655,17 +659,21 @@ describe('Relationship Tools', () => {
       const innerMock = createMessageMock.mock.results[0]?.value;
       expect(innerMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          conversationId: 'test-context',
-          role: 'agent',
-          content: {
-            text: 'Test message',
-          },
-          visibility: 'internal',
-          messageType: 'a2a-request',
-          fromSubAgentId: 'test-calling-agent',
-          toSubAgentId: 'target-agent',
+          scopes: expect.objectContaining({
+            tenantId: 'test-tenant',
+            projectId: 'test-project',
+          }),
+          data: expect.objectContaining({
+            conversationId: 'test-context',
+            role: 'agent',
+            content: {
+              text: 'Test message',
+            },
+            visibility: 'internal',
+            messageType: 'a2a-request',
+            fromSubAgentId: 'test-calling-agent',
+            toSubAgentId: 'target-agent',
+          }),
         })
       );
     });
