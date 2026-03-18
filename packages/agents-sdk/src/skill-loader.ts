@@ -31,15 +31,8 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
 
   const result = files.map((filePath) => {
     const skillDir = path.join(directoryPath, path.dirname(filePath));
-    const skillFiles = loadSkillFiles(skillDir);
-    const skillFile = skillFiles.find((file) => file.filePath === 'SKILL.md');
-
-    if (!skillFile) {
-      throw new Error('Skill directory must include SKILL.md');
-    }
-
     const result = SkillApiInsertSchema.safeParse({
-      files: skillFiles,
+      files: loadSkillFiles(skillDir),
     });
     if (!result.success) {
       throw new Error(z.prettifyError(result.error));
