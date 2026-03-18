@@ -25,6 +25,16 @@ import type { AiSdkToolDefinition } from '../agent-types';
 
 const logger = getLogger('AgentMcpManager');
 
+const isTrustedSlackMcpUrl = (url: string): boolean => {
+  try {
+    const trustedSlackMcpUrl = new URL('/work-apps/slack/mcp', env.INKEEP_AGENTS_API_URL);
+    const toolUrl = new URL(url, env.INKEEP_AGENTS_API_URL);
+    return toolUrl.origin === trustedSlackMcpUrl.origin && toolUrl.pathname === trustedSlackMcpUrl.pathname;
+  } catch {
+    return false;
+  }
+};
+
 export type McpToolSet = {
   tools: Record<string, any>;
   toolPolicies: Record<string, any>;
@@ -132,7 +142,7 @@ export class AgentMcpManager {
       };
     }
 
-    if (isSlackWorkAppTool(tool)) {
+    if (isSlackWorkAppTool(tool) && isTrustedSlackMcpUrl(serverConfig.url)) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,

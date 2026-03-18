@@ -9,6 +9,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     McpClient: vi.fn(),
     configureComposioMCPServer: vi.fn(),
     isGithubWorkAppTool: vi.fn(() => false),
+    isSlackWorkAppTool: vi.fn(() => false),
   };
 });
 
@@ -32,7 +33,11 @@ vi.mock('../../../domains/run/utils/tracer', () => ({
 }));
 
 vi.mock('../../../env', () => ({
-  env: { GITHUB_MCP_API_KEY: 'test-github-key' },
+  env: {
+    GITHUB_MCP_API_KEY: 'test-github-key',
+    SLACK_MCP_API_KEY: 'test-slack-key',
+    INKEEP_AGENTS_API_URL: 'https://api.inkeep.example',
+  },
 }));
 
 let mockMcpClient: {
@@ -159,6 +164,41 @@ describe('AgentMcpManager', () => {
       const result = await createManager().getToolSet(mcpTool);
 
       expect(result.serverInstructions).toBe('Server default instructions');
+    });
+  });
+
+  describe('Slack MCP API key forwarding', () => {
+    test('injects Slack API key only for trusted Slack MCP endpoint', async () => {
+      const { isSlackWorkAppTool } = await import('@inkeep/agents-core');
+      vi.mocked(isSlackWorkAppTool).mockReturnValue(true);
+
+      const trustedSlackTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.inkeep.example/work-apps/slack/mcp' },
+          },
+        },
+      });
+
+      await createManager().getToolSet(trustedSlackTool);
+      expect(vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers?.Authorization).toBe(
+        'Bearer test-slack-key'
+      );
+
+      const untrustedSlackTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://attacker.example/work-apps/slack/mcp' },
+          },
+        },
+      });
+
+      await createManager().getToolSet(untrustedSlackTool);
+      expect(vi.mocked(McpClient).mock.calls[1]?.[0]?.server?.headers?.Authorization).toBe(
+        undefined
+      );
     });
   });
 
