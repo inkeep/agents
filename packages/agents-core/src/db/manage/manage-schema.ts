@@ -1041,6 +1041,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   artifactComponents: many(artifactComponents),
   credentialReferences: many(credentialReferences),
   skills: many(skills),
+  skillFiles: many(skillFiles),
 }));
 
 export const contextConfigsRelations = relations(contextConfigs, ({ many, one }) => ({
@@ -1207,7 +1208,19 @@ export const skillsRelations = relations(skills, ({ one, many }) => ({
     fields: [skills.tenantId, skills.projectId],
     references: [projects.tenantId, projects.id],
   }),
+  files: many(skillFiles),
   subAgentRelations: many(subAgentSkills),
+}));
+
+export const skillFilesRelations = relations(skillFiles, ({ one }) => ({
+  project: one(projects, {
+    fields: [skillFiles.tenantId, skillFiles.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  skill: one(skills, {
+    fields: [skillFiles.tenantId, skillFiles.projectId, skillFiles.skillId],
+    references: [skills.tenantId, skills.projectId, skills.id],
+  }),
 }));
 
 export const subAgentSkillsRelations = relations(subAgentSkills, ({ one }) => ({
