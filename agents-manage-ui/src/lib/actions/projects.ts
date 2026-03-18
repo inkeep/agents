@@ -2,13 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import type { ProjectFormData } from '@/components/projects/form/validation';
-import {
-  createProject,
-  deleteProject,
-  fetchProject,
-  fetchProjects,
-  updateProject,
-} from '../api/projects';
+import { createProject, deleteProject, fetchProjects, updateProject } from '../api/projects';
 import { ApiError } from '../types/errors';
 import type { Project } from '../types/project';
 import type { ActionResult } from './types';
