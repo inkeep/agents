@@ -14,6 +14,7 @@ const {
   upsertLedgerArtifactMock,
   toolSessionManagerMock,
   agentSessionManagerMock,
+  sanitizeArtifactBinaryDataMock,
 } = vi.hoisted(() => ({
   listTaskIdsByContextIdMock: vi.fn(),
   getTaskMock: vi.fn(),
@@ -33,6 +34,7 @@ const {
     setArtifactCache: vi.fn(),
     getArtifactCache: vi.fn(),
   },
+  sanitizeArtifactBinaryDataMock: vi.fn(async (value: unknown) => value),
 }));
 
 // Mock @inkeep/agents-core WITHOUT importOriginal to avoid loading the heavy module
@@ -60,6 +62,11 @@ vi.mock('../../agents/services/ToolSessionManager', () => ({
 
 vi.mock('../../session/AgentSession', () => ({
   agentSessionManager: agentSessionManagerMock,
+}));
+
+vi.mock('../../services/blob-storage/artifact-binary-sanitizer', () => ({
+  sanitizeArtifactBinaryData: sanitizeArtifactBinaryDataMock,
+  stripBinaryDataForObservability: vi.fn((value: unknown) => value),
 }));
 
 // Mock runDbClient to prevent it from loading @inkeep/agents-core (path from test file to src/data/db)
@@ -973,6 +980,73 @@ describe('ArtifactService', () => {
       const result = await artifactService.getArtifactFull('missing', 'missing-tc');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('saveArtifact binary child artifacts', () => {
+    it('creates child artifacts and injects structured refs for blob-backed binary parts', async () => {
+      sanitizeArtifactBinaryDataMock.mockResolvedValueOnce({
+        sections: [
+          {
+            type: 'image',
+            data: 'blob://v1/t_test-tenant/artifact-data/p_test-project/a_parent/sha256-abc123.png',
+            mimeType: 'image/png',
+          },
+        ],
+      });
+
+      upsertLedgerArtifactMock.mockReturnValue(vi.fn().mockResolvedValue({ created: true }));
+
+      await artifactService.saveArtifact({
+        artifactId: 'parent-artifact',
+        name: 'Parent',
+        description: 'Parent artifact',
+        type: 'BinaryParent',
+        toolCallId: 'tool-call-1',
+        data: { original: 'value' },
+      });
+
+      const upsertFn = upsertLedgerArtifactMock.mock.results[0]?.value;
+      expect(upsertFn).toHaveBeenCalledTimes(2);
+      const childInsert = upsertFn.mock.calls[0][0];
+      const parentInsert = upsertFn.mock.calls[1][0];
+
+      expect(childInsert.artifact.artifactId).toContain('bin_tool-call-1');
+      expect(parentInsert.artifact.parts[0].data.full.sections[0].artifactRef).toEqual({
+        artifactId: expect.any(String),
+        toolCallId: 'tool-call-1',
+      });
+    });
+
+    it('dedupes repeated hashes within the same tool call', async () => {
+      sanitizeArtifactBinaryDataMock.mockResolvedValueOnce({
+        files: [
+          {
+            type: 'image',
+            data: 'blob://v1/t_test-tenant/artifact-data/p_test-project/a_parent/sha256-samehash.png',
+            mimeType: 'image/png',
+          },
+          {
+            type: 'image',
+            data: 'blob://v1/t_test-tenant/artifact-data/p_test-project/a_parent/sha256-samehash.png',
+            mimeType: 'image/png',
+          },
+        ],
+      });
+
+      upsertLedgerArtifactMock.mockReturnValue(vi.fn().mockResolvedValue({ created: true }));
+
+      await artifactService.saveArtifact({
+        artifactId: 'parent-artifact',
+        name: 'Parent',
+        description: 'Parent artifact',
+        type: 'BinaryParent',
+        toolCallId: 'tool-call-2',
+        data: { original: 'value' },
+      });
+
+      const upsertFn = upsertLedgerArtifactMock.mock.results[0]?.value;
+      expect(upsertFn).toHaveBeenCalledTimes(2);
     });
   });
 });

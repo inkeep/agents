@@ -10,6 +10,8 @@ import jmespath from 'jmespath';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/services/ToolSessionManager';
+import { isBlobUri } from '../services/blob-storage';
+import { sanitizeArtifactBinaryData } from '../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager } from '../session/AgentSession';
 import {
   type ExtendedJsonSchema,
@@ -886,10 +888,36 @@ export class ArtifactService {
     metadata?: Record<string, any>;
     toolCallId?: string;
   }): Promise<void> {
-    // Use provided summaryData if available, otherwise default to artifact.data
-    let summaryData = artifact.summaryData || artifact.data;
-    let fullData = artifact.data;
     const { tenantId, projectId } = this.context.executionContext;
+
+    const sanitizedData = (await sanitizeArtifactBinaryData(artifact.data, {
+      tenantId,
+      projectId,
+      artifactId: artifact.artifactId,
+    })) as Record<string, any>;
+    const sanitizedSummaryData = artifact.summaryData
+      ? ((await sanitizeArtifactBinaryData(artifact.summaryData, {
+          tenantId,
+          projectId,
+          artifactId: artifact.artifactId,
+        })) as Record<string, any>)
+      : undefined;
+
+    const binaryReferences = await this.createBinaryChildArtifacts({
+      parentArtifactId: artifact.artifactId,
+      parentArtifactType: artifact.type,
+      toolCallId: artifact.toolCallId,
+      value: sanitizedData,
+    });
+
+    let fullData = this.attachBinaryArtifactRefs(sanitizedData, binaryReferences) as Record<
+      string,
+      any
+    >;
+    let summaryData = this.attachBinaryArtifactRefs(
+      sanitizedSummaryData || fullData,
+      binaryReferences
+    ) as Record<string, any>;
 
     if (this.context.artifactComponents) {
       const artifactComponent = this.context.artifactComponents.find(
@@ -901,8 +929,8 @@ export class ArtifactService {
           const previewSchema = extractPreviewFields(schema);
           const fullSchema = extractFullFields(schema);
 
-          summaryData = this.filterBySchema(artifact.data, previewSchema);
-          fullData = this.filterBySchema(artifact.data, fullSchema);
+          summaryData = this.filterBySchema(summaryData, previewSchema);
+          fullData = this.filterBySchema(fullData, fullSchema);
         } catch (error) {
           logger.warn(
             {
@@ -956,6 +984,198 @@ export class ArtifactService {
         'Artifact already exists, skipping duplicate creation'
       );
     }
+  }
+
+  private async createBinaryChildArtifacts(params: {
+    parentArtifactId: string;
+    parentArtifactType: string;
+    toolCallId?: string;
+    value: unknown;
+  }): Promise<Map<string, { artifactId: string; toolCallId: string }>> {
+    if (!this.context.taskId || !this.context.contextId) {
+      return new Map();
+    }
+
+    const binaryParts = this.collectBlobBackedBinaryParts(params.value);
+    if (binaryParts.length === 0) {
+      return new Map();
+    }
+
+    const refs = new Map<string, { artifactId: string; toolCallId: string }>();
+    const dedupeByHash = new Map<string, { artifactId: string; toolCallId: string }>();
+
+    for (const part of binaryParts) {
+      const hash = this.extractContentHashFromBlobUri(part.data) || this.fallbackHash(part.data);
+      const dedupeKey = `${params.toolCallId || params.parentArtifactId}:${hash}`;
+      const existing = dedupeByHash.get(dedupeKey);
+      if (existing) {
+        refs.set(part.data, existing);
+        continue;
+      }
+
+      const childArtifactId = this.buildBinaryChildArtifactId(
+        params.toolCallId,
+        params.parentArtifactId,
+        hash
+      );
+      const childToolCallId = params.toolCallId || `${params.parentArtifactId}:binary`;
+
+      await upsertLedgerArtifact(runDbClient)({
+        scopes: this.context.executionContext,
+        contextId: this.context.contextId,
+        taskId: this.context.taskId,
+        toolCallId: params.toolCallId || null,
+        artifact: {
+          artifactId: childArtifactId,
+          type: `${params.parentArtifactType}-binary-child`,
+          name: `${params.parentArtifactType} binary ${hash.slice(0, 12)}`,
+          description: 'Binary payload extracted from parent artifact',
+          parts: [
+            {
+              kind: 'data',
+              data: {
+                blobUri: part.data,
+                mimeType: part.mimeType,
+                contentHash: hash,
+                binaryType: part.type,
+              },
+            },
+          ],
+          metadata: {
+            parentArtifactId: params.parentArtifactId,
+            parentArtifactType: params.parentArtifactType,
+            toolCallId: params.toolCallId,
+            contentHash: hash,
+            mimeType: part.mimeType,
+            visibility: 'internal',
+          },
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      const reference = { artifactId: childArtifactId, toolCallId: childToolCallId };
+      dedupeByHash.set(dedupeKey, reference);
+      refs.set(part.data, reference);
+    }
+
+    return refs;
+  }
+
+  private collectBlobBackedBinaryParts(
+    value: unknown
+  ): Array<{ type: string; data: string; mimeType?: string }> {
+    const inStack = new WeakSet<object>();
+    const collected: Array<{ type: string; data: string; mimeType?: string }> = [];
+
+    const visit = (current: unknown) => {
+      if (this.isBlobBackedBinaryPart(current)) {
+        collected.push(current);
+        return;
+      }
+
+      if (Array.isArray(current)) {
+        if (inStack.has(current)) return;
+        inStack.add(current);
+        for (const item of current) visit(item);
+        inStack.delete(current);
+        return;
+      }
+
+      if (current && typeof current === 'object') {
+        if (inStack.has(current as object)) return;
+        inStack.add(current as object);
+        for (const next of Object.values(current as Record<string, unknown>)) {
+          visit(next);
+        }
+        inStack.delete(current as object);
+      }
+    };
+
+    visit(value);
+    return collected;
+  }
+
+  private attachBinaryArtifactRefs(
+    value: unknown,
+    refs: Map<string, { artifactId: string; toolCallId: string }>
+  ): unknown {
+    if (refs.size === 0) {
+      return value;
+    }
+
+    const inStack = new WeakSet<object>();
+
+    const visit = (current: unknown): unknown => {
+      if (this.isBlobBackedBinaryPart(current)) {
+        const ref = refs.get(current.data);
+        if (!ref) {
+          return current;
+        }
+        return {
+          ...current,
+          artifactRef: {
+            artifactId: ref.artifactId,
+            toolCallId: ref.toolCallId,
+          },
+        };
+      }
+
+      if (Array.isArray(current)) {
+        if (inStack.has(current)) return '[Circular Reference]';
+        inStack.add(current);
+        const next = current.map((item) => visit(item));
+        inStack.delete(current);
+        return next;
+      }
+
+      if (current && typeof current === 'object') {
+        if (inStack.has(current as object)) return '[Circular Reference]';
+        inStack.add(current as object);
+        const next: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(current as Record<string, unknown>)) {
+          next[key] = visit(value);
+        }
+        inStack.delete(current as object);
+        return next;
+      }
+
+      return current;
+    };
+
+    return visit(value);
+  }
+
+  private isBlobBackedBinaryPart(
+    value: unknown
+  ): value is { type: string; data: string; mimeType?: string } {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return false;
+    }
+
+    const maybePart = value as Record<string, unknown>;
+    return (
+      (maybePart.type === 'image' || maybePart.type === 'file') &&
+      typeof maybePart.data === 'string' &&
+      isBlobUri(maybePart.data)
+    );
+  }
+
+  private extractContentHashFromBlobUri(blobUri: string): string | null {
+    const match = blobUri.match(/sha256-([a-f0-9]{16,64})\./i);
+    return match?.[1] || null;
+  }
+
+  private fallbackHash(blobUri: string): string {
+    return Buffer.from(blobUri).toString('hex').slice(0, 24);
+  }
+
+  private buildBinaryChildArtifactId(
+    toolCallId: string | undefined,
+    parentArtifactId: string,
+    contentHash: string
+  ): string {
+    const scope = (toolCallId || parentArtifactId).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+    return `bin_${scope}_${contentHash.slice(0, 24)}`;
   }
 
   /**
