@@ -143,7 +143,9 @@ export function MCPToolItem({
             <span className="font-medium break-all">{tool.name}</span>
           </ItemCardTitle>
         </ItemCardLink>
-        {canEdit && <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} editPath={linkPath} />}
+        {canEdit && (
+          <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} editPath={`${linkPath}/edit`} />
+        )}
       </ItemCardHeader>
       <ItemCardContent>
         <div className="space-y-3 min-w-0">
