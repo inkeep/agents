@@ -44,6 +44,9 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
         </NextLink>
       </Button>
     );
+    if (!treeNodes.length) {
+      return <EmptyState title="No skills yet." description={description} action={action} />;
+    }
 
     return (
       <>
