@@ -6869,16 +6869,6 @@
             "maxLength": 256,
             "type": "string"
           },
-          "ref": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ResolvedRef"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
           "resolvedPayload": {
             "additionalProperties": {
               "nullable": true
@@ -9841,16 +9831,6 @@
           "id": {
             "maxLength": 256,
             "type": "string"
-          },
-          "ref": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ResolvedRef"
-              },
-              {
-                "nullable": true
-              }
-            ]
           },
           "requestPayload": {
             "anyOf": [

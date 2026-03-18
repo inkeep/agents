@@ -202,6 +202,41 @@ describe('AgentMcpManager', () => {
     });
   });
 
+  describe('GitHub MCP API key forwarding', () => {
+    test('injects GitHub API key only for trusted GitHub MCP endpoint', async () => {
+      const { isGithubWorkAppTool } = await import('@inkeep/agents-core');
+      vi.mocked(isGithubWorkAppTool).mockReturnValue(true);
+
+      const trustedGithubTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.inkeep.example/work-apps/github/mcp' },
+          },
+        },
+      });
+
+      await createManager().getToolSet(trustedGithubTool);
+      expect(vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers?.Authorization).toBe(
+        'Bearer test-github-key'
+      );
+
+      const untrustedGithubTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://attacker.example/work-apps/github/mcp' },
+          },
+        },
+      });
+
+      await createManager().getToolSet(untrustedGithubTool);
+      expect(vi.mocked(McpClient).mock.calls[1]?.[0]?.server?.headers?.Authorization).toBe(
+        undefined
+      );
+    });
+  });
+
   describe('createMcpConnection error handling', () => {
     test('wraps ECONNREFUSED with user-friendly message', async () => {
       const err = new Error('connect ECONNREFUSED');

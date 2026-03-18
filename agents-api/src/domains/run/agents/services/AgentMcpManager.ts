@@ -25,14 +25,16 @@ import type { AiSdkToolDefinition } from '../agent-types';
 
 const logger = getLogger('AgentMcpManager');
 
-const isTrustedSlackMcpUrl = (url: string): boolean => {
+const TRUSTED_MCP_PATHS = {
+  slack: '/work-apps/slack/mcp',
+  github: '/work-apps/github/mcp',
+};
+
+const isTrustedMcpUrl = (url: string, path: string): boolean => {
   try {
-    const trustedSlackMcpUrl = new URL('/work-apps/slack/mcp', env.INKEEP_AGENTS_API_URL);
+    const trusted = new URL(path, env.INKEEP_AGENTS_API_URL);
     const toolUrl = new URL(url, env.INKEEP_AGENTS_API_URL);
-    return (
-      toolUrl.origin === trustedSlackMcpUrl.origin &&
-      toolUrl.pathname === trustedSlackMcpUrl.pathname
-    );
+    return toolUrl.origin === trusted.origin && toolUrl.pathname === trusted.pathname;
   } catch {
     return false;
   }
@@ -135,7 +137,10 @@ export class AgentMcpManager {
       };
     }
 
-    if (isGithubWorkAppTool(tool)) {
+    const urlString =
+      typeof serverConfig.url === 'string' ? serverConfig.url : serverConfig.url.toString();
+
+    if (isGithubWorkAppTool(tool) && isTrustedMcpUrl(urlString, TRUSTED_MCP_PATHS.github)) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
@@ -145,7 +150,7 @@ export class AgentMcpManager {
       };
     }
 
-    if (isSlackWorkAppTool(tool) && isTrustedSlackMcpUrl(serverConfig.url)) {
+    if (isSlackWorkAppTool(tool) && isTrustedMcpUrl(urlString, TRUSTED_MCP_PATHS.slack)) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
