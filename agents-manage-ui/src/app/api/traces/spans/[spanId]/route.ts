@@ -13,20 +13,11 @@ export const dynamic = 'force-dynamic';
 
 const DEFAULT_LOOKBACK_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
-function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
-  return !cookieHeader && !!process.env.SIGNOZ_URL && !!process.env.SIGNOZ_API_KEY;
-}
-
-function getSigNozEndpoint(): string {
-  const signozUrl = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL;
-  return `${signozUrl}/api/v4/query_range`;
-}
-
 type RouteContext<_T> = {
   params: Promise<Record<string, string>>;
 };
 
-export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/spans/[spanId]'>) {
+export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
   const { spanId } = await context.params;
   if (!spanId) {
     return NextResponse.json({ error: 'Span ID is required' }, { status: 400 });
@@ -80,30 +71,16 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/s
       },
     };
 
-    let response: AxiosResponse;
-
-    if (shouldCallSigNozDirectly(cookieHeader)) {
-      const endpoint = getSigNozEndpoint();
-      response = await axios.post(endpoint, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
-        },
-        timeout: 15000,
-      });
-    } else {
-      const agentsApiUrl = getAgentsApiUrl();
-      const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
-      }
-      response = await axios.post(endpoint, payload, {
-        headers,
-        timeout: 15000,
-        withCredentials: true,
-      });
-    }
+    const agentsApiUrl = getAgentsApiUrl();
+    const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
+    const response: AxiosResponse = await axios.post(endpoint, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+      },
+      timeout: 15000,
+      withCredentials: true,
+    });
 
     const json = response.data;
     const result = json?.data?.result?.[0];

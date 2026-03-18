@@ -1,9 +1,12 @@
 'use client';
 
+import type { ColumnDef } from '@tanstack/react-table';
 import { ChevronRight, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -52,10 +55,42 @@ export function DatasetRunsList({
   }, [tenantId, projectId, datasetId]);
 
   useEffect(() => {
-    // refreshKey triggers reload when incremented
     void refreshKey;
     loadRuns();
   }, [loadRuns, refreshKey]);
+
+  const columns = useMemo<ColumnDef<DatasetRun>[]>(
+    () => [
+      {
+        id: 'name',
+        accessorFn: (row) => row.runConfigName || `Run ${row.id.slice(0, 8)}`,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+        sortingFn: 'text',
+        cell: ({ row }) => (
+          <span className="font-medium">
+            {row.original.runConfigName || `Run ${row.original.id.slice(0, 8)}`}
+          </span>
+        ),
+      },
+      {
+        id: 'createdAt',
+        accessorFn: (row) => new Date(row.createdAt),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+        sortingFn: 'datetime',
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{formatDateAgo(row.original.createdAt)}</span>
+        ),
+      },
+      {
+        id: 'chevron',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: () => <ChevronRight className="h-4 w-4" />,
+      },
+    ],
+    []
+  );
 
   if (loading) {
     return (
@@ -126,38 +161,15 @@ export function DatasetRunsList({
 
   return (
     <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow noHover>
-            <TableHead>Name</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="w-12" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {runs.map((run) => (
-            <TableRow
-              key={run.id}
-              className="cursor-pointer"
-              onClick={() =>
-                router.push(
-                  `/${tenantId}/projects/${projectId}/datasets/${datasetId}/runs/${run.id}`
-                )
-              }
-            >
-              <TableCell className="font-medium">
-                {run.runConfigName || `Run ${run.id.slice(0, 8)}`}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatDateAgo(run.createdAt)}
-              </TableCell>
-              <TableCell>
-                <ChevronRight className="h-4 w-4" />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={columns}
+        data={runs}
+        defaultSort={[{ id: 'createdAt', desc: true }]}
+        onRowClick={(run) =>
+          router.push(`/${tenantId}/projects/${projectId}/datasets/${datasetId}/runs/${run.id}`)
+        }
+        getRowId={(row) => row.id}
+      />
     </div>
   );
 }

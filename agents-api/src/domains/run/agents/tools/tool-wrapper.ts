@@ -187,30 +187,29 @@ export function wrapToolWithStreaming(
               toolResultConversationId,
               messageId
             );
-            const messagePayload = {
-              id: messageId,
-              tenantId: ctx.config.tenantId,
-              projectId: ctx.config.projectId,
-              conversationId: toolResultConversationId,
-              role: 'assistant',
-              content: messageContent,
-              visibility: 'internal',
-              messageType: 'tool-result',
-              fromSubAgentId: ctx.config.id,
-              metadata: {
-                a2a_metadata: {
-                  toolName,
-                  toolCallId,
-                  toolArgs: args,
-                  toolOutput: result,
-                  timestamp: Date.now(),
-                  delegationId: ctx.delegationId,
-                  isDelegated: ctx.isDelegatedAgent,
+            await createMessage(runDbClient)({
+              scopes: { tenantId: ctx.config.tenantId, projectId: ctx.config.projectId },
+              data: {
+                id: messageId,
+                conversationId: toolResultConversationId,
+                role: 'assistant',
+                content: messageContent,
+                visibility: 'internal',
+                messageType: 'tool-result',
+                fromSubAgentId: ctx.config.id,
+                metadata: {
+                  a2a_metadata: {
+                    toolName,
+                    toolCallId,
+                    toolArgs: args,
+                    toolOutput: result,
+                    timestamp: Date.now(),
+                    delegationId: ctx.delegationId,
+                    isDelegated: ctx.isDelegatedAgent,
+                  },
                 },
               },
-            };
-
-            await createMessage(runDbClient)(messagePayload);
+            });
           } catch (error) {
             logger.warn(
               { error, toolName, toolCallId, conversationId: toolResultConversationId },

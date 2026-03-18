@@ -1,24 +1,19 @@
 'use client';
 
+import type { ColumnDef } from '@tanstack/react-table';
 import { ChevronRight, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchEvaluationRunConfigs } from '@/lib/api/evaluation-run-configs';
 import { formatDate } from '@/lib/utils/format-date';
@@ -45,7 +40,6 @@ export function EvaluationRunConfigsList({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deletingRunConfig, setDeletingRunConfig] = useState<EvaluationRunConfig | undefined>();
 
-  // Update local state when initial props change (from router.refresh)
   useEffect(() => {
     setRunConfigs(initialRunConfigs);
   }, [initialRunConfigs]);
@@ -59,113 +53,136 @@ export function EvaluationRunConfigsList({
     }
   }, [tenantId, projectId]);
 
-  // Refresh when refreshKey changes (e.g., after creating a new config)
   useEffect(() => {
     if (refreshKey !== undefined && typeof refreshKey === 'number' && refreshKey > 0) {
       refreshRunConfigs();
     }
   }, [refreshKey, refreshRunConfigs]);
 
-  const handleEdit = (runConfig: EvaluationRunConfig) => {
-    setEditingRunConfig(runConfig);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleDelete = (runConfig: EvaluationRunConfig) => {
-    setDeletingRunConfig(runConfig);
-  };
+  const columns = useMemo<ColumnDef<EvaluationRunConfig>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+        sortingFn: 'text',
+        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+      },
+      {
+        accessorKey: 'description',
+        header: 'Description',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground line-clamp-1">
+            {row.original.description || 'No description'}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'isActive',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        sortingFn: 'basic',
+        cell: ({ row }) => (
+          <Badge className="uppercase" variant={row.original.isActive ? 'primary' : 'code'}>
+            {row.original.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+        ),
+      },
+      {
+        id: 'updatedAt',
+        accessorFn: (row) => new Date(row.updatedAt),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
+        sortingFn: 'datetime',
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.original.updatedAt)}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingRunConfig(row.original);
+                  setIsEditDialogOpen(true);
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeletingRunConfig(row.original);
+                }}
+                variant="destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+      {
+        id: 'chevron',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: () => <ChevronRight className="h-4 w-4 text-muted-foreground" />,
+      },
+    ],
+    []
+  );
 
   return (
     <>
       <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow noHover>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Updated</TableHead>
-              <TableHead className="w-12" />
-              <TableHead className="w-12" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {runConfigs.length === 0 ? (
-              <TableRow noHover>
-                <TableCell colSpan={6} className="py-12">
-                  <div className="flex flex-col items-center gap-4">
-                    <span className="text-muted-foreground">No continuous tests yet</span>
-                    <EvaluationRunConfigFormDialog
-                      tenantId={tenantId}
-                      projectId={projectId}
-                      isOpen={isCreateDialogOpen}
-                      onOpenChange={setIsCreateDialogOpen}
-                      onSuccess={refreshRunConfigs}
-                      trigger={
-                        <Button variant="outline" size="sm">
-                          <Plus className="h-4 w-4" />
-                          Add first continuous test
-                        </Button>
-                      }
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              runConfigs.map((runConfig) => (
-                <TableRow
-                  key={runConfig.id}
-                  className="cursor-pointer"
-                  onClick={() =>
-                    router.push(
-                      `/${tenantId}/projects/${projectId}/evaluations/run-configs/${runConfig.id}`
-                    )
-                  }
-                >
-                  <TableCell className="font-medium">{runConfig.name}</TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground line-clamp-1">
-                      {runConfig.description || 'No description'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={runConfig.isActive ? 'default' : 'secondary'}>
-                      {runConfig.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(runConfig.updatedAt)}
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(runConfig)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(runConfig)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                  <TableCell>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          columns={columns}
+          data={runConfigs}
+          defaultSort={[{ id: 'name', desc: false }]}
+          getRowId={(row) => row.id}
+          onRowClick={(runConfig) =>
+            router.push(
+              `/${tenantId}/projects/${projectId}/evaluations/run-configs/${runConfig.id}`
+            )
+          }
+          emptyState={
+            <div className="flex flex-col items-center gap-4">
+              <span>No continuous tests yet</span>
+              <EvaluationRunConfigFormDialog
+                tenantId={tenantId}
+                projectId={projectId}
+                isOpen={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+                onSuccess={refreshRunConfigs}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4" />
+                    Add first continuous test
+                  </Button>
+                }
+              />
+            </div>
+          }
+        />
       </div>
 
       {editingRunConfig && (
@@ -180,7 +197,6 @@ export function EvaluationRunConfigsList({
             if (!open) {
               setEditingRunConfig(undefined);
             } else {
-              // Refresh when dialog opens to get latest data
               refreshRunConfigs();
             }
           }}
@@ -198,7 +214,6 @@ export function EvaluationRunConfigsList({
             if (!open) {
               setDeletingRunConfig(undefined);
             } else {
-              // Refresh after deletion
               refreshRunConfigs();
             }
           }}
