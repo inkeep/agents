@@ -17,7 +17,7 @@ type RouteContext<_T> = {
   params: Promise<Record<string, string>>;
 };
 
-export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/spans/[spanId]'>) {
+export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
   const { spanId } = await context.params;
   if (!spanId) {
     return NextResponse.json({ error: 'Span ID is required' }, { status: 400 });

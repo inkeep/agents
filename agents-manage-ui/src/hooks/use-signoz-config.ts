@@ -17,7 +17,7 @@ export function useSignozConfig() {
       try {
         setIsLoading(true);
         // Call Next.js route which forwards to agents-api
-        const response = await fetch(`/api/signoz?tenantId=${tenantId}`);
+        const response = await fetch(`/api/traces?tenantId=${tenantId}`);
         if (!response.ok) {
           throw new Error('Failed to check Signoz configuration');
         }

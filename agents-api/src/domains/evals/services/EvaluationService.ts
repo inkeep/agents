@@ -1064,7 +1064,7 @@ Return your evaluation as a JSON object matching the schema above.`;
           }
 
           const traceResponse = await fetch(
-            `${manageUIUrl}/api/signoz/conversations/${conversationId}`,
+            `${manageUIUrl}/api/traces/conversations/${conversationId}`,
             { headers }
           );
 
