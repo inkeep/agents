@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import type { FC } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import type { FC, SetStateAction, Dispatch } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -16,38 +16,30 @@ import {
 import { deleteSkillAction } from '@/lib/actions/skills';
 
 interface DeleteSkillConfirmationProps {
-  tenantId: string;
-  projectId: string;
   skillId: string;
-  skillName: string;
-  setIsOpen: (open: boolean) => void;
+  setIsOpen: Dispatch<SetStateAction<boolean>>;
   redirectOnDelete?: boolean;
 }
 
 export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
-  tenantId,
-  projectId,
   skillId,
-  skillName,
   setIsOpen,
-  redirectOnDelete = true,
 }) => {
   'use memo';
   const router = useRouter();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
-  const handleDelete = async () => {
+  async function handleDelete() {
     const result = await deleteSkillAction(tenantId, projectId, skillId);
     if (!result.success) {
       toast.error(result.error ?? 'Failed to delete skill');
       return;
     }
 
-    toast.success(`Skill "${skillName}" deleted.`);
+    toast.success(`Skill "${skillId}" deleted.`);
     setIsOpen(false);
-    if (redirectOnDelete) {
-      router.push(`/${tenantId}/projects/${projectId}/skills`);
-    }
-  };
+    router.push(`/${tenantId}/projects/${projectId}/skills`);
+  }
 
   return (
     <AlertDialog open onOpenChange={setIsOpen}>
@@ -55,7 +47,7 @@ export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete skill?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will remove "{skillName}" skill. Sub-agents referencing this skill will lose the
+            This will remove "{skillId}" skill. Sub-agents referencing this skill will lose the
             association.
           </AlertDialogDescription>
         </AlertDialogHeader>

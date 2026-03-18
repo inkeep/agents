@@ -186,15 +186,7 @@ Use this skill when the user needs to work with PDF files...
                     Delete Skill
                   </Button>
                 </DialogTrigger>
-                {isDeleteOpen && (
-                  <DeleteSkillConfirmation
-                    tenantId={tenantId}
-                    projectId={projectId}
-                    skillId={initialData.id}
-                    skillName={initialData.name}
-                    setIsOpen={setIsDeleteOpen}
-                  />
-                )}
+                <DeleteSkillConfirmation skillId={initialData.id} setIsOpen={setIsDeleteOpen} />
               </Dialog>
             )}
           </div>
