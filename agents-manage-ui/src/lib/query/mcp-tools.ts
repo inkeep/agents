@@ -81,7 +81,7 @@ export function useMcpToolStatusQuery({
 
   return useQuery<MCPTool>({
     queryKey: mcpToolQueryKeys.status(tenantId, projectId, toolId),
-    queryFn: async () => {
+    async queryFn() {
       const url = `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`;
 
       const response = await fetch(url, {
