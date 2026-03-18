@@ -255,6 +255,15 @@ Types:
 - Update documentation as needed
 - Ensure CI passes before requesting review
 
+## Preview Environments
+
+Internal PRs automatically receive preview environments backed by Railway (backend) and Vercel (frontend). When a PR is opened or synchronized, CI provisions a full-stack preview:
+
+- **API**: `https://pr-<PR number>-api.preview.inkeep.com`
+- **UI**: `https://pr-<PR number>-ui.preview.inkeep.com`
+
+The environment is cloned from `preview-base` and includes all backend services (database, SpiceDB). Smoke tests run automatically to verify the preview is healthy. When the PR is closed, the preview environment is torn down.
+
 ## Continuous Integration
 
 Our CI pipeline runs on all pull requests and includes:
