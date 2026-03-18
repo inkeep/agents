@@ -37,8 +37,8 @@ Vercel Queues (GA, `@vercel/queue`) provides native primitives — **delayed del
 - **G2:** Zero new database tables — scheduling state lives in the queue, not in Postgres.
 - **G3:** No double-fires, no missed fires — queue idempotency + invocation-level idempotency key provides two layers of dedup.
 - **G4:** Works for all environments: Vercel Cloud, self-hosted (`@workflow/world-postgres`), and local development.
-- **G5:** First execution attempt starts within 1 minute of the scheduled time.
-- **G6:** O(0) deploy-time cost — no deploy hook, no scheduler restart. Poll mode consumers automatically run on the latest deployment.
+- **G5:** First execution attempt starts within 1 minute of the scheduled time. (Poll mode latency floor: up to ~60s depending on cron interval.)
+- **G6:** O(0) deploy-time cost — no deploy hook, no scheduler restart. Poll mode consumer runs via Vercel Cron on the latest deployment automatically.
 
 ## 3) Non-Goals
 
@@ -94,8 +94,8 @@ Vercel Queues (GA, `@vercel/queue`) provides native primitives — **delayed del
 ### Deploy path (Vercel Cloud)
 
 1. CI deploys new production, promotion completes
-2. **No deploy hook needed.** Poll mode consumers are not deployment-pinned — they automatically run on the latest active deployment.
-3. Old deployment's consumer (if still running) may process a message — but `checkTriggerEnabledStep` and invocation idempotency prevent double-fires.
+2. **No deploy hook needed.** The Vercel Cron invokes the poll consumer on the latest deployment automatically.
+3. The cron endpoint calls `receive()` to pull messages from the queue — no deployment ID is passed, so messages are not pinned to the publishing deployment.
 4. All one-shot workflows started by the consumer run on the latest code.
 
 ### Deploy path (Self-hosted)
@@ -162,8 +162,8 @@ Each scheduled occurrence dispatches independently. Concurrent invocations allow
 
 - **Performance:** Consumer invocation per message is lightweight (~ms for validation + workflow start). Vercel Queue handles concurrency and scaling automatically.
 - **Reliability:** At-least-once delivery. Visibility timeout auto-extends while consumer runs. Invocation idempotency prevents duplicate execution.
-- **Security:** Poll mode consumer authenticates via Vercel OIDC. Push mode consumer (alternative) is air-gapped from the internet.
-- **Cost:** Vercel Queue charges per operation (send + receive + acknowledge). At typical trigger volumes (hundreds of triggers, minute-to-hourly frequency), cost is negligible. No Postgres polling queries.
+- **Security:** Poll mode consumer authenticates with Vercel Queue via OIDC tokens (handled by the SDK). The cron endpoint is protected by `CRON_SECRET`. Unlike push mode, poll mode is not air-gapped — the cron endpoint has a public URL.
+- **Cost:** Vercel Queue charges per operation (send + receive + acknowledge). Poll mode adds ~1,440 cron invocations/day (1/min) with empty receives when no messages are due. At typical trigger volumes (hundreds of triggers, minute-to-hourly frequency), total cost is negligible. No Postgres polling queries.
 
 ## 8) Success Metrics & Instrumentation
 
@@ -354,50 +354,62 @@ export class VercelQueueScheduler implements TriggerScheduler {
 
 ### Poll Mode Consumer (Vercel)
 
+Push mode is **not viable** for this use case: Vercel Queue topics are [partitioned by deployment ID by default](https://vercel.com/docs/queues/concepts#deployments-and-versioning), and push mode delivers messages back to the same deployment that published them. A trigger enqueued by deployment A would be delivered back to deployment A even after deployment B goes live — defeating G1.
+
+**Poll mode** avoids deployment pinning because the consumer initiates the connection and omits the deployment ID. The consumer is invoked by a **Vercel Cron** running every minute:
+
 ```typescript
-// agents-api/app/api/queues/trigger-dispatch/route.ts
-// (or equivalent Hono route with experimentalTriggers)
+// agents-api/app/api/cron/trigger-poll/route.ts
 
-import { handleCallback } from '@vercel/queue';
-import { consumeTriggerMessage } from '../../domains/run/services/scheduling/triggerConsumer';
+import { receive, acknowledge } from '@vercel/queue';
+import { consumeTriggerMessage } from '../../../domains/run/services/scheduling/triggerConsumer';
 
-export const POST = handleCallback(
-  async (message: TriggerScheduleMessage, metadata) => {
-    await consumeTriggerMessage(message, {
-      messageId: metadata.messageId,
-      deliveryCount: metadata.deliveryCount,
-    });
-  },
-  {
+const TOPIC = 'trigger-dispatch';
+const BATCH_SIZE = 10;
+
+export async function GET(req: Request) {
+  // Vercel Cron auth: verify the request is from Vercel
+  const authHeader = req.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const messages = await receive(TOPIC, {
+    limit: BATCH_SIZE,
     visibilityTimeoutSeconds: 900, // 15 min — enough for validation + workflow start
-    retry: (error, metadata) => {
-      if (metadata.deliveryCount > 5) {
-        return { acknowledge: true }; // poison message — stop retrying
-      }
-      return { afterSeconds: Math.min(300, 2 ** metadata.deliveryCount * 5) };
-    },
-  },
-);
-```
+  });
 
-`**vercel.json` configuration:**
-
-```json
-{
-  "functions": {
-    "agents-api/app/api/queues/trigger-dispatch/route.ts": {
-      "experimentalTriggers": [
-        {
-          "type": "queue/v2beta",
-          "topic": "trigger-dispatch"
-        }
-      ]
+  for (const msg of messages) {
+    try {
+      await consumeTriggerMessage(msg.body as TriggerScheduleMessage, {
+        messageId: msg.id,
+        deliveryCount: msg.deliveryCount,
+      });
+      await acknowledge(TOPIC, msg.id);
+    } catch (error) {
+      // Don't acknowledge — visibility timeout expires and message is redelivered
+      logger.error({ messageId: msg.id, error }, 'Failed to process trigger message');
     }
   }
+
+  return new Response('OK', { status: 200 });
 }
 ```
 
-> **Key:** Push mode consumers are air-gapped from the internet. No authentication needed on the consumer function — only Vercel's internal queue infrastructure can invoke it. Push mode delivers to the **current production deployment** (not pinned to the publishing deployment in v2beta with topic-level routing). If push mode deployment routing is still pinned per-publisher, fall back to poll mode which explicitly avoids pinning by omitting `Vqs-Deployment-Id`.
+**`vercel.json` configuration:**
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/trigger-poll",
+      "schedule": "* * * * *"
+    }
+  ]
+}
+```
+
+> **Key:** Poll mode consumers authenticate with Vercel via OIDC tokens (handled by the `@vercel/queue` SDK). The cron endpoint itself is protected by `CRON_SECRET`. Unlike push mode, poll mode is **not air-gapped** — the cron endpoint has a public URL and requires auth. The tradeoff is a latency floor of up to ~60s (the cron interval), but this meets G5's 1-minute target. If multiple messages are due simultaneously, the batch `receive({ limit: 10 })` processes them in a single invocation.
 
 ### Shared Consumer Logic
 
@@ -685,8 +697,8 @@ async function recoverLocalSchedulerOnStartup() {
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `agents-api/src/domains/run/services/scheduling/triggerConsumer.ts`           | Create — `consumeTriggerMessage()` shared logic                          |
 | `agents-api/src/domains/run/services/scheduling/computeNextCronOccurrence.ts` | Create — cron-parser helper (extracted from existing `computeNextRunAt`) |
-| `vercel.json`                                                                 | Add `experimentalTriggers` for `trigger-dispatch` topic                  |
-| `agents-api/app/api/queues/trigger-dispatch/route.ts`                         | Create — Vercel Queue push mode handler (or poll mode endpoint)          |
+| `vercel.json`                                                                 | Add cron entry for poll mode consumer (`* * * * *`)                      |
+| `agents-api/app/api/cron/trigger-poll/route.ts`                               | Create — Poll mode consumer (Vercel Cron → `receive()` → consume → `acknowledge()`) |
 
 
 ### Phase 3: CRUD Integration
@@ -728,7 +740,7 @@ async function recoverLocalSchedulerOnStartup() {
 | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Schedule table + scheduler workflow** | Works but introduces 2 new tables, write-through sync, polling loop, claim/release cycle, deploy restart hook, bulk resync. More moving parts than needed now that Vercel Queue provides the primitives natively. |
 | **Vercel Cron as primary scheduler**                                                                            | Works on Vercel (no deployment pinning). But needs a separate mechanism for self-hosted. Two code paths.                                                                                                                                                     |
-| **Vercel Queue push mode only**                                                                                 | Push mode consumers are air-gapped (good for security) but historically deployment-pinned. If push mode routing has been updated to deliver to current production (v2beta topic routing), this becomes viable. Otherwise, poll mode avoids pinning entirely. |
+| **Vercel Queue push mode only**                                                                                 | **Ruled out.** Push mode is [deployment-pinned by default](https://vercel.com/docs/queues/concepts#deployments-and-versioning) — messages are delivered back to the publishing deployment. This defeats G1 (always execute on latest code). Air-gapped security is a plus but doesn't offset the deployment pinning problem. |
 | **graphile-worker for all environments**                                                                        | Would unify the backend but requires Postgres on all environments and doesn't leverage Vercel's managed queue infrastructure. graphile-worker is already used by `@workflow/world-postgres` — it's the self-hosted backend.                                  |
 | **BullMQ**                                                                                                      | Requires Redis. Adds a new infrastructure dependency.                                                                                                                                                                                                        |
 | **Inngest**                                                                                                     | Solves deployment pinning by design. But adds a new runtime dependency. Overkill for this use case.                                                                                                                                                          |
@@ -746,7 +758,7 @@ async function recoverLocalSchedulerOnStartup() {
 | D5  | Relay pattern for >24h delays                                            | T    | No     | Proposed | Vercel Queue caps delay at 24h. Relay hops handle weekly/monthly triggers. graphile-worker and local have no cap.                                              |
 | D6  | Consumer validates trigger against manage DB on every invocation         | T    | No     | Proposed | Eliminates need for message cancellation. Stale messages are cheap (one branch-scoped DB read + drop).                                                         |
 | D7  | Reuse `scheduledTriggerRunnerWorkflow` unchanged                         | T    | No     | Proposed | One-shot workflow + all step functions are already implemented and tested. No changes needed.                                                                  |
-| D8  | Push mode consumer with `queue/v2beta` experimental triggers             | T    | No     | Proposed | Air-gapped from internet. Automatically routed by Vercel. Falls back to poll mode if deployment routing is per-publisher.                                      |
+| D8  | Poll mode consumer via Vercel Cron (push mode ruled out)                 | T    | No     | Accepted | Push mode is [deployment-pinned by default](https://vercel.com/docs/queues/concepts#deployments-and-versioning) — messages are delivered back to the publishing deployment. Poll mode avoids pinning by omitting deployment ID. Requires a 1-minute Vercel Cron to drive message consumption. Tradeoff: ~60s latency floor + cron endpoint requires `CRON_SECRET` auth (not air-gapped). |
 | D9  | No `trigger_schedules` or `scheduler_state` tables                       | T    | Yes    | Proposed | Core simplification. Queue replaces both tables. Recovery via catch-up scan instead of bulk resync.                                                            |
 
 
@@ -755,12 +767,12 @@ async function recoverLocalSchedulerOnStartup() {
 
 | ID  | Question                                                                                                                                                                              | Priority | Blocking? | Plan to resolve                                                                                                                                |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q1  | Push mode deployment routing: does `queue/v2beta` deliver to the current production deployment, or to the deployment that published the message? If per-publisher, we need poll mode. | P0       | Yes       | Test with `experimentalTriggers` on a staging project. If per-publisher, switch to poll mode (omit `Vqs-Deployment-Id`).                       |
+| Q1  | ~~Push mode deployment routing: does `queue/v2beta` deliver to the current production deployment, or to the deployment that published the message?~~ | P0       | **Resolved** | **Confirmed: push mode IS deployment-pinned.** [Vercel docs](https://vercel.com/docs/queues/concepts#deployments-and-versioning): "topics are partitioned by deployment ID by default. In push mode, Vercel delivers messages back to the same deployment that published them." **Decision: use poll mode (D8).** |
 | Q2  | Does `@workflow/world-postgres` expose its graphile-worker `WorkerUtils` or `Runner` instance, or do we need to create a separate connection?                                         | P1       | No        | Check the WDK postgres world source. May need to export the runner/utils or create a parallel graphile-worker connection to the same database. |
 | Q3  | `@vercel/queue` pricing impact at scale — what's the per-operation cost for send + receive + ack at thousands of triggers?                                                            | P2       | No        | Review [Vercel Queue pricing](https://vercel.com/docs/queues/pricing). Estimate: ~3 operations per trigger fire.                               |
 | Q4  | Should catch-up recovery run as Vercel Cron, startup task, or both?                                                                                                                   | P2       | No        | Start with startup task + optional Vercel Cron for belt-and-suspenders.                                                                        |
 | Q5  | Vercel Queue `retentionSeconds` — does the 24h max apply to delayed messages too? i.e., does a message with `delaySeconds: 86000` + processing time risk expiring?                    | P1       | No        | Test. If yes, set `retentionSeconds` to max and account for processing time in delay calculation.                                              |
-| Q6  | Can we use push mode (`handleCallback`) within the existing Hono app, or does it require a Next.js API route?                                                                         | P1       | No        | Test. May need a separate route file or adapter. `handleNodeCallback` exists for non-Next.js apps.                                             |
+| Q6  | ~~Can we use push mode (`handleCallback`) within the existing Hono app, or does it require a Next.js API route?~~ | ~~P1~~ | **Resolved** | **No longer relevant.** Push mode ruled out (D8). Poll mode uses `receive()` + `acknowledge()` which are standard SDK calls — no framework-specific adapter needed. |
 
 
 ## 16) Assumptions
@@ -769,11 +781,11 @@ async function recoverLocalSchedulerOnStartup() {
 | ID  | Assumption                                                                              | Confidence | Verification Plan                                                                                                     |
 | --- | --------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |
 | A1  | Vercel Queue `delaySeconds` reliably delivers within seconds of delay expiry            | MEDIUM     | Not documented by Vercel — docs only state messages become visible after delay expires, no latency SLA. Must test with 60s and 300s delays on staging to measure actual delivery latency. |
-| A2  | Push mode consumers on `queue/v2beta` are invoked on the current production deployment  | MEDIUM     | Critical assumption. Test on staging. If false, switch to poll mode.                                                  |
+| A2  | ~~Push mode consumers on `queue/v2beta` are invoked on the current production deployment~~ | **FALSE** | **Disproven.** [Vercel docs confirm](https://vercel.com/docs/queues/concepts#deployments-and-versioning) push mode delivers to the publishing deployment. Switched to poll mode (D8). |
 | A3  | graphile-worker `runAt` works for delays up to 7+ days                                  | HIGH       | graphile-worker is mature. `runAt` accepts any future `Date`. Verified in docs.                                       |
 | A4  | Vercel Queue `idempotencyKey` dedup window covers the full retention period             | HIGH       | Documented: "The deduplication window lasts for the entire lifetime of the original message."                         |
 | A5  | One branch-scoped DoltgreSQL read per message is fast enough (~5ms)                     | HIGH       | Single trigger lookup by ID, not a cross-project scan.                                                                |
-| A6  | `@vercel/queue` works in the agents-api Hono app (not just Next.js)                     | MEDIUM     | `handleNodeCallback` exists for non-Next.js. Test integration.                                                        |
+| A6  | `@vercel/queue` `receive()` and `acknowledge()` work from a Vercel Cron route in the agents-api app | MEDIUM     | Poll mode uses `receive()`/`acknowledge()` (standard SDK calls, not framework-specific). Cron route is a standard GET handler. Test integration on staging. |
 | A7  | graphile-worker instance from `@workflow/world-postgres` is accessible for custom tasks | MEDIUM     | May need WDK to export `WorkerUtils`/`Runner`, or create a parallel graphile-worker instance on the same Postgres DB. |
 
 
@@ -782,12 +794,14 @@ async function recoverLocalSchedulerOnStartup() {
 
 | Risk                                                           | Likelihood | Impact                                                   | Mitigation                                                                                                                        |
 | -------------------------------------------------------------- | ---------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Push mode delivers to wrong deployment (per-publisher pinning) | Medium     | Triggers run on stale code                               | Fall back to poll mode (omit deployment ID). Poll mode is explicitly deployment-agnostic per Vercel docs.                         |
+| ~~Push mode delivers to wrong deployment (per-publisher pinning)~~ | ~~Medium~~ | ~~Triggers run on stale code~~ | **Resolved.** Push mode confirmed deployment-pinned. Switched to poll mode (D8). No longer a risk — poll mode omits deployment ID by design. |
+| Poll mode cron endpoint is publicly accessible (not air-gapped) | Low        | Unauthorized invocation attempts | Cron endpoint protected by `CRON_SECRET`. Vercel injects this header automatically for cron invocations. Unauthorized requests get 401. |
+| Poll mode latency floor (~60s) misses tight scheduling windows | Low | Trigger fires up to 60s late | Meets G5 (1-minute target). Cron interval can be reduced if Vercel supports sub-minute crons in the future. |
 | Chain break: consumer crashes between execute and re-enqueue   | Low        | One trigger misses one occurrence until next restart (local) or redelivery (Vercel/graphile) | Enqueue next occurrence BEFORE starting execution. Vercel Queue redelivers on visibility timeout. graphile-worker retries automatically. Local dev recovers on next server restart via startup scan. |
 | Stale messages accumulate when triggers are frequently updated | Low        | Extra consumer invocations (~ms each, no execution)      | Consumer validates and drops. Cost is one branch-scoped DB read per stale message.                                                |
 | 24h delay cap causes relay storms for very-infrequent triggers | Low        | Extra queue operations for weekly/monthly triggers       | At most 7 relay hops for a weekly trigger. Cost is negligible.                                                                    |
 | Vercel Queue outage delays all trigger execution               | Low        | Triggers delayed until queue recovers                    | Vercel Queue has 3-AZ replication. Self-hosted is unaffected (graphile-worker). Catch-up scan recovers on restoration.            |
-| `@vercel/queue` SDK incompatible with Hono app                 | Medium     | Need adapter or separate route file                      | `handleNodeCallback` exists for non-Next.js. Worst case: thin Next.js API route that delegates to shared consumer.                |
+| `@vercel/queue` `receive()`/`acknowledge()` don't work in cron route | Low | Poll mode consumer can't pull messages | `receive()` and `acknowledge()` are standard SDK calls, not framework-specific. Lower risk than push mode's `handleCallback`. Worst case: thin Next.js API route that delegates to shared consumer. |
 | graphile-worker instance not accessible from WDK               | Medium     | Need separate graphile-worker connection for self-hosted | Create parallel graphile-worker `WorkerUtils` pointing to same database. Low overhead — shares the same Postgres connection pool. |
 
 
