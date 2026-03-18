@@ -11,6 +11,7 @@ import type {
   SubAgentApiInsert,
   ToolInsert,
   ToolPolicy,
+  SkillApiSelectSchema
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
 import type { ArtifactComponentInterface } from './artifact-component';
@@ -83,18 +84,11 @@ export interface ToolResult {
   error?: string;
 }
 
-export interface SkillDefinition {
-  id: string;
-  name: string;
-  description: string;
-  content: string;
-  metadata: Record<string, string> | null;
+export interface SkillDefinition extends z.infer<typeof SkillApiSelectSchema> {
   files?: Array<{
     filePath: string;
     content: string;
   }>;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export type SkillReference =

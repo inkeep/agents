@@ -1655,7 +1655,7 @@ export const DatasetRunConfigAgentRelationUpdateSchema =
 
 const SkillIndexSchema = z.int().min(0);
 
-export const SkillFrontmatterSchema = z.object({
+export const SkillFrontmatterSchema = z.looseObject({
   name: z
     .string()
     .trim()
@@ -1688,6 +1688,8 @@ export const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
 
 const SkillInsertBaseSchema = createInsertSchema(skills)
   .extend({
+    ...SkillFrontmatterSchema.shape,
+    content: z.string().trim().nonempty(),
     files: SkillFilesInputSchema,
   })
   .omit({
@@ -1703,21 +1705,33 @@ export const SkillUpdateSchema = SkillInsertSchema.partial().omit({
 
 export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
 export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
+  .omit({
+    name: true,
+    description: true,
+    metadata: true,
+    content: true,
+  })
   .transform((skill) => {
     const skillFile = skill.files.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
-    if (skillFile) {
-      const { frontmatter, content } = parseSkillMarkdown(skillFile.content);
-      const { name, description, metadata } = frontmatter;
-      Object.assign(skill, {
-        name,
-        description,
-        metadata,
-        content,
-      });
+    if (!skillFile) {
+      throw new Error('should never happens');
     }
+    const { frontmatter, content } = parseSkillMarkdown(skillFile.content);
+    const {
+      name,
+      description,
+      metadata = null,
+    } = frontmatter as z.output<typeof SkillFrontmatterSchema>;
 
-    return skill;
+    return {
+      ...skill,
+      name,
+      description,
+      metadata,
+      content,
+    };
   })
+  // @ts-expect-error
   .pipe(SkillFrontmatterSchema)
   .openapi('SkillCreate');
 export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
