@@ -1743,11 +1743,10 @@ export const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
   content: z.string(),
 });
 
-const SkillInsertBaseSchema = createInsertSchema(skills)
+export const SkillInsertBaseSchema = createInsertSchema(skills)
   .extend({
     ...SkillFrontmatterSchema.shape,
     content: z.string().trim().nonempty(),
-    files: SkillFilesInputSchema,
   })
   .omit({
     // We set id under the hood as skill.name
@@ -1785,12 +1784,9 @@ function transformSkill(markdown: string) {
 }
 
 export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
-export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
-  .omit({
-    name: true,
-    description: true,
-    metadata: true,
-    content: true,
+export const SkillApiInsertSchema = z
+  .strictObject({
+    files: SkillFilesInputSchema,
   })
   .transform((skill) => {
     const skillFile = skill.files.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
