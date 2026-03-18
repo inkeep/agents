@@ -56,13 +56,7 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
             canEdit={permissions.canEdit}
             className="h-auto"
           />
-          <SidebarInset className="min-w-0">
-            {treeNodes.length ? (
-              children
-            ) : (
-              <EmptyState title="No skills yet." description={description} action={action} />
-            )}
-          </SidebarInset>
+          <SidebarInset className="min-w-0">{children}</SidebarInset>
         </SidebarProvider>
       </>
     );
