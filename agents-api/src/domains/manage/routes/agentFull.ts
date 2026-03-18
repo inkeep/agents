@@ -304,12 +304,6 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
     if (error instanceof HTTPException) {
       throw error;
     }
-    if (error instanceof z.ZodError) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'Invalid agent definition',
-      });
-    }
 
     if (error instanceof Error && error.message.includes('ID mismatch')) {
       throw createApiError({
