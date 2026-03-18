@@ -125,7 +125,9 @@ interface EdgeEditorProps {
 function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
   const { updateEdgeData, setEdges, deleteElements, getEdges } = useReactFlow();
 
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const deleteEdge = useCallback(() => {
     deleteElements({ edges: [{ id: selectedEdge.id }] });

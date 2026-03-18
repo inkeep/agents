@@ -33,7 +33,9 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     selectedNodeId: selectedNode.id,
   });
 
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
 
   const nodeData = selectedNode.data;

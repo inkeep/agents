@@ -28,7 +28,9 @@ export function ExternalAgentNodeEditor({
 }: ExternalAgentNodeEditorProps) {
   const { updateNodeData } = useReactFlow();
   const { markUnsaved } = useAgentActions();
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { handleInputChange, getFieldError, setFieldRef, updateField, deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
     errorHelpers,

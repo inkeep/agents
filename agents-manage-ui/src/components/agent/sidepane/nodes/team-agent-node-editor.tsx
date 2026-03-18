@@ -23,7 +23,9 @@ interface TeamAgentNodeEditorProps {
 }
 
 export function TeamAgentNodeEditor({ selectedNode, errorHelpers }: TeamAgentNodeEditorProps) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { updateNodeData } = useReactFlow();
   const { markUnsaved } = useAgentActions();
   const { handleInputChange, getFieldError, setFieldRef, updateField, deleteNode } = useNodeEditor({

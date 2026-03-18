@@ -69,7 +69,9 @@ export function MetadataEditor() {
     metadata;
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
-  const { canUse } = useProjectPermissions();
+  const {
+    data: { canUse },
+  } = useProjectPermissionsQuery();
 
   // Fetch project data for inheritance indicators
   const { project } = useProjectData();

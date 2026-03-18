@@ -85,7 +85,9 @@ export function ExternalAgentItem({
   projectId: string;
   externalAgent: ExternalAgent;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}`;
 
   return (

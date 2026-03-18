@@ -105,7 +105,9 @@ export function MCPToolItem({
   projectId: string;
   tool: MCPTool;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/mcp-servers/${initialTool.id}`;
 
   const { data: fetchedTool, isFetching: isLoadingStatus } = useMcpToolStatusQuery({

@@ -110,7 +110,9 @@ export function CredentialItem({
   tenantId: string;
   projectId: string;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/credentials/${id}`;
 
   return (

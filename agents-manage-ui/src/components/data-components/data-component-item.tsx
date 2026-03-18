@@ -22,7 +22,9 @@ export function DataComponentItem({
   tenantId,
   projectId,
 }: DataComponent & { tenantId: string; projectId: string }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/components/${id}`;
 
   return (

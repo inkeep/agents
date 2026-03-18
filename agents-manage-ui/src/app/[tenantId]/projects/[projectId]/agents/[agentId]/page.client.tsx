@@ -108,7 +108,9 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     isCopilotConfigured,
     isStreaming: isCopilotStreaming,
   } = useCopilotContext();
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const router = useRouter();
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });

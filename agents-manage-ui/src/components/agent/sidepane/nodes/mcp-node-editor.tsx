@@ -33,7 +33,9 @@ interface MCPServerNodeEditorProps {
 
 export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) {
   'use memo';
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
   const { updateNodeData } = useReactFlow();
 

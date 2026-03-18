@@ -34,7 +34,9 @@ export function ViewExternalAgentDetails({
   projectId,
   className,
 }: ExternalAgentProps) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

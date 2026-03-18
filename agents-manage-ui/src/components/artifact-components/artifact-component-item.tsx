@@ -22,7 +22,9 @@ export function ArtifactComponentItem({
   tenantId,
   projectId,
 }: ArtifactComponent & { tenantId: string; projectId: string }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/artifacts/${id}`;
 
   return (

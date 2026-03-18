@@ -27,7 +27,9 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
     projectId: string;
     agentId: string;
   }>();
-  const { canView, canUse, canEdit } = useProjectPermissions();
+  const {
+    data: { canView, canUse, canEdit },
+  } = useProjectPermissionsQuery();
 
   const previewButton = (
     <FlowButton disabled={isDirty || hasOpenModelConfig} onClick={() => setShowPlayground(true)}>

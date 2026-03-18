@@ -120,7 +120,9 @@ export function EditCredentialForm({
   const [isDeleting, setIsDeleting] = useState(false);
   const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
 
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const form = useForm({
     resolver: zodResolver(editCredentialFormSchema),

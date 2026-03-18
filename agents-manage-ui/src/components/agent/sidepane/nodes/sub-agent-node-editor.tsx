@@ -64,7 +64,9 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode, 
     tenantId: string;
     projectId: string;
   }>();
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const selectedDataComponents = selectedNode.data.dataComponents ?? [];
   const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
   const isDefaultSubAgent = selectedNode.data.isDefault ?? false;

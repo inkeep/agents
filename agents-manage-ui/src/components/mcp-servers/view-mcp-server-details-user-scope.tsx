@@ -33,7 +33,9 @@ export function ViewMCPServerDetailsUserScope({
   tenantId: string;
   projectId: string;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,

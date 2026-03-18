@@ -43,7 +43,9 @@ export function ViewMCPServerDetailsProjectScope({
       window.location.reload();
     },
   });
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const isThirdPartyMCPServer = tool.config.mcp.server.url.includes('composio.dev');
   const shouldFetchThirdParty = isThirdPartyMCPServer && tool.status === 'needs_auth';

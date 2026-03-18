@@ -50,9 +50,8 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const { data: artifactComponents } = useArtifactComponentsQuery();
 
   const agentModel = useAgentStore((state) => state.metadata.models);
-  const { project } = useProject();
-  const projectModel = project.models;
-  const modelName = (data.models ?? agentModel ?? projectModel).base?.model ?? '';
+  const { data: project } = useProjectQuery();
+  const modelName = (data.models ?? agentModel ?? project?.models)?.base?.model ?? '';
 
   const { data: dataComponents } = useDataComponentsQuery();
   const dataComponentsById = createLookup(dataComponents);
