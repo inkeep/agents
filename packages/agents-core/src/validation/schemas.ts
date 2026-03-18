@@ -73,10 +73,7 @@ import {
   VALID_RELATION_TYPES,
 } from '../types/utility';
 import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
-import {
-  parseSkillMarkdown,
-  SKILL_ENTRY_FILE_PATH,
-} from '../utils/skill-files';
+import { parseSkillMarkdown, SKILL_ENTRY_FILE_PATH } from '../utils/skill-files';
 import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
@@ -1729,25 +1726,17 @@ const SkillInsertBaseSchema = createInsertSchema(skills)
     updatedAt: true,
   });
 
-export const SkillUpdateSchema = SkillInsertBaseSchema.partial()
-  .omit({
-    // Name is persistent
-    name: true,
-    // Will be generated from SKILL.md
-    content: true,
-    description: true,
-    metadata: true,
-  })
-  .transform((skill) => {
-    const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
-    if (!skillFile) {
-      return skill;
-    }
-    return {
-      ...skill,
-      ...transformSkill(skillFile.content),
-    };
-  });
+export const SkillUpdateSchema = SkillInsertBaseSchema.omit({
+  // Name is persistent
+  name: true,
+  // Will be generated from SKILL.md
+  content: true,
+  description: true,
+  metadata: true,
+  //
+  projectId: true,
+  tenantId: true,
+});
 
 function transformSkill(markdown: string) {
   const { frontmatter, content } = parseSkillMarkdown(markdown);
@@ -1786,7 +1775,18 @@ export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
   // @ts-expect-error
   .pipe(SkillFrontmatterSchema)
   .openapi('SkillCreate');
-export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
+export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema)
+  .transform((skill) => {
+    const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
+    if (!skillFile) {
+      return skill;
+    }
+    return {
+      ...skill,
+      ...transformSkill(skillFile.content),
+    };
+  })
+  .openapi('SkillUpdate');
 export const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
 export const SkillWithFilesApiSelectSchema = SkillApiSelectSchema.extend({
   files: z.array(SkillFileApiSelectSchema),
