@@ -61,7 +61,12 @@ export function wrapToolWithStreaming(
   toolDefinition: ToolSet[string],
   streamRequestId?: string,
   toolType?: ToolType,
-  options?: { needsApproval?: boolean; mcpServerId?: string; mcpServerName?: string }
+  options?: {
+    needsApproval?: boolean;
+    mcpServerId?: string;
+    mcpServerName?: string;
+    relationshipIdOverride?: string;
+  }
 ): ToolSet[string] {
   if (
     !toolDefinition ||
@@ -70,7 +75,8 @@ export function wrapToolWithStreaming(
   ) {
     return toolDefinition;
   }
-  const relationshipId = getRelationshipIdForTool(ctx, toolName, toolType);
+  const relationshipId =
+    options?.relationshipIdOverride ?? getRelationshipIdForTool(ctx, toolName, toolType);
 
   const originalExecute = toolDefinition.execute;
   return {
