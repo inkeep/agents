@@ -155,3 +155,4 @@ export * from './constants/signoz-queries';
 export { CredentialStoreType, MCPTransportType } from './types';
 export { detectAuthenticationRequired } from './utils/auth-detection';
 export * from './validation/extend-schemas';
+export * from './utils/skill-files';
