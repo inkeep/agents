@@ -28,6 +28,198 @@ import { agentScopedWhere, projectScopedWhere, subAgentScopedWhere } from './sco
 
 const logger = getLogger('skills-dal');
 
+type SkillRecordWithFiles = SkillSelect & {
+  files: SkillFileSelect[];
+};
+
+type SkillSnapshot = {
+  name: string;
+  description: string;
+  metadata: Record<string, string> | null;
+  content: string;
+};
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  if (value === null) {
+    return false;
+  }
+
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  return Object.values(value).every((item) => typeof item === 'string');
+}
+
+function metadataMatches(
+  left: Record<string, string> | null | undefined,
+  right: Record<string, string> | null | undefined
+) {
+  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+}
+
+function parseSkillEntryFile(markdown: string): SkillSnapshot {
+  const parsed = parseSkillMarkdown(markdown);
+  const frontmatter = parsed.frontmatter;
+
+  if (typeof frontmatter.name !== 'string') {
+    throw new Error(`${SKILL_ENTRY_FILE_PATH} must include a string name`);
+  }
+
+  if (typeof frontmatter.description !== 'string') {
+    throw new Error(`${SKILL_ENTRY_FILE_PATH} must include a string description`);
+  }
+
+  if (
+    frontmatter.metadata !== null &&
+    frontmatter.metadata !== undefined &&
+    !isStringRecord(frontmatter.metadata)
+  ) {
+    throw new Error(`${SKILL_ENTRY_FILE_PATH} metadata must be an object with string values`);
+  }
+
+  return {
+    name: frontmatter.name,
+    description: frontmatter.description,
+    metadata: (frontmatter.metadata as Record<string, string> | null | undefined) ?? null,
+    content: parsed.content,
+  };
+}
+
+function buildSynthesizedSkillFiles(skill: SkillSnapshot): SkillFileInput[] {
+  return [
+    {
+      filePath: SKILL_ENTRY_FILE_PATH,
+      content: serializeSkillMarkdown(skill),
+    },
+  ];
+}
+
+function getSkillFilesForWrite(skill: SkillSnapshot, files?: SkillFileInput[]): SkillFileInput[] {
+  const resolvedFiles = (files ?? buildSynthesizedSkillFiles(skill)).map((file) => ({
+    filePath: normalizeSkillFilePath(file.filePath),
+    content: file.content,
+  }));
+
+  const filePathSet = new Set<string>();
+  const skillEntryFiles = resolvedFiles.filter((file) => file.filePath === SKILL_ENTRY_FILE_PATH);
+
+  for (const file of resolvedFiles) {
+    if (filePathSet.has(file.filePath)) {
+      throw new Error(`Duplicate skill file path: ${file.filePath}`);
+    }
+    filePathSet.add(file.filePath);
+  }
+
+  if (skillEntryFiles.length !== 1) {
+    throw new Error(`Skill files must include exactly one ${SKILL_ENTRY_FILE_PATH}`);
+  }
+
+  const parsedSkill = parseSkillEntryFile(skillEntryFiles[0].content);
+
+  if (parsedSkill.name !== skill.name) {
+    throw new Error(`${SKILL_ENTRY_FILE_PATH} name must match the skill name`);
+  }
+
+  if (parsedSkill.description !== skill.description) {
+    throw new Error(`${SKILL_ENTRY_FILE_PATH} description must match the skill description`);
+  }
+
+  if (!metadataMatches(parsedSkill.metadata, skill.metadata)) {
+    throw new Error(`${SKILL_ENTRY_FILE_PATH} metadata must match the skill metadata`);
+  }
+
+  if (parsedSkill.content !== skill.content) {
+    throw new Error(`${SKILL_ENTRY_FILE_PATH} body must match the skill content`);
+  }
+
+  return resolvedFiles;
+}
+
+async function replaceSkillFiles(
+  db: AgentsManageDatabaseClient,
+  params: {
+    scopes: ProjectScopeConfig;
+    skillId: string;
+    files: SkillFileInput[];
+  }
+) {
+  const existingFiles = await db
+    .select({ id: skillFiles.id })
+    .from(skillFiles)
+    .where(
+      and(
+        eq(skillFiles.tenantId, params.scopes.tenantId),
+        eq(skillFiles.projectId, params.scopes.projectId),
+        eq(skillFiles.skillId, params.skillId)
+      )
+    )
+    .limit(1);
+
+  if (existingFiles.length > 0) {
+    await db
+      .delete(skillFiles)
+      .where(
+        and(
+          eq(skillFiles.tenantId, params.scopes.tenantId),
+          eq(skillFiles.projectId, params.scopes.projectId),
+          eq(skillFiles.skillId, params.skillId)
+        )
+      );
+  }
+
+  if (!params.files.length) {
+    return [];
+  }
+
+  const now = new Date().toISOString();
+
+  return await db
+    .insert(skillFiles)
+    .values(
+      params.files.map((file) => ({
+        tenantId: params.scopes.tenantId,
+        projectId: params.scopes.projectId,
+        skillId: params.skillId,
+        id: generateId(),
+        filePath: file.filePath,
+        content: file.content,
+        createdAt: now,
+        updatedAt: now,
+      }))
+    )
+    .returning();
+}
+
+export const getSkillFilesBySkillIds =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    skillIds: string[];
+  }): Promise<Record<string, SkillFileSelect[]>> => {
+    if (!params.skillIds.length) {
+      return {};
+    }
+
+    const files = await db
+      .select()
+      .from(skillFiles)
+      .where(
+        and(
+          eq(skillFiles.tenantId, params.scopes.tenantId),
+          eq(skillFiles.projectId, params.scopes.projectId),
+          inArray(skillFiles.skillId, params.skillIds)
+        )
+      )
+      .orderBy(asc(skillFiles.filePath));
+
+    return files.reduce<Record<string, SkillFileSelect[]>>((acc, file) => {
+      acc[file.skillId] ??= [];
+      acc[file.skillId].push(file);
+      return acc;
+    }, {});
+  };
+
 export const getSkillById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
