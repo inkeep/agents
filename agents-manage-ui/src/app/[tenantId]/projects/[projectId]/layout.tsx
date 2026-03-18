@@ -1,7 +1,7 @@
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
 import FullPageError from '@/components/errors/full-page-error';
 import { fetchProjectPermissions } from '@/lib/api/projects';
-import { projectQueryKeys } from '@/lib/query/projects';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';

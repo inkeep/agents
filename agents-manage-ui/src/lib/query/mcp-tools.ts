@@ -6,15 +6,7 @@ import { useCallback } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { fetchMCPTools } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
-
-const mcpToolQueryKeys = {
-  all: ['mcp-tools'] as const,
-  project: (tenantId: string, projectId: string) => ['mcp-tools', tenantId, projectId] as const,
-  list: (tenantId: string, projectId: string, skipDiscovery = false) =>
-    ['mcp-tools', tenantId, projectId, skipDiscovery ? 'skip-discovery' : 'full'] as const,
-  status: (tenantId: string, projectId: string, toolId: string) =>
-    ['mcp-tool-status', tenantId, projectId, toolId] as const,
-};
+import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';
 
 export function useMcpToolsQuery({
   enabled = true,
