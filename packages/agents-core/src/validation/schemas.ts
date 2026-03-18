@@ -25,6 +25,7 @@ import {
   projects,
   scheduledTriggers,
   scheduledWorkflows,
+  skillFiles,
   skills,
   subAgentArtifactComponents,
   subAgentDataComponents,
@@ -72,6 +73,7 @@ import {
   VALID_RELATION_TYPES,
 } from '../types/utility';
 import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
+import { parseSkillMarkdown, SKILL_ENTRY_FILE_PATH } from '../utils/skill-files';
 import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
@@ -1675,7 +1677,16 @@ export const SkillFrontmatterSchema = z.object({
 export const SkillSelectSchema = createSelectSchema(skills).extend({
   metadata: StringRecordSchema.nullable(),
 });
-export const SkillInsertSchema = createInsertSchema(skills)
+
+export const SkillFileSelectSchema = createSelectSchema(skillFiles);
+export const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
+  id: ResourceIdSchema,
+  skillId: ResourceIdSchema,
+  filePath: SkillFilePathSchema,
+  content: z.string(),
+});
+
+const SkillInsertBaseSchema = createInsertSchema(skills)
   .extend({
     ...SkillFrontmatterSchema.shape,
     content: z.string().trim().nonempty(),
@@ -1694,6 +1705,10 @@ export const SkillUpdateSchema = SkillInsertSchema.partial().omit({
 export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
 export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertSchema).openapi('SkillCreate');
 export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
+export const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
+export const SkillWithFilesApiSelectSchema = SkillApiSelectSchema.extend({
+  files: z.array(SkillFileApiSelectSchema),
+}).openapi('SkillWithFiles');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents)
@@ -2832,6 +2847,9 @@ export const SubAgentFunctionToolRelationListResponse = z
   })
   .openapi('SubAgentFunctionToolRelationListResponse');
 export const SkillResponse = z.object({ data: SkillApiSelectSchema }).openapi('SkillResponse');
+export const SkillWithFilesResponse = z
+  .object({ data: SkillWithFilesApiSelectSchema })
+  .openapi('SkillWithFilesResponse');
 export const SkillListResponse = z
   .object({
     data: z.array(SkillApiSelectSchema),
