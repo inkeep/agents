@@ -118,8 +118,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     tenantId: string;
     projectId: string;
   }>();
-  const { data: mcpTools, refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
-  const toolLookup = createLookup(mcpTools);
+  const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
@@ -133,34 +132,14 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   const initialNodes = [initialNode];
 
-  // Helper to enrich MCP nodes with tool data
-  const enrichNodes = (nodes: Node[]): Node[] => {
-    return nodes.map((node) => {
-      if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
-        const tool = toolLookup[node.data.toolId as string];
-        if (tool) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              name: tool.name,
-              imageUrl: tool.imageUrl,
-            },
-          };
-        }
-      }
-      return node;
-    });
-  };
-
   const result = agent ? deserializeAgentData(agent) : { nodes: initialNodes, edges: initialEdges };
 
   const agentNodes = nodeId
-    ? enrichNodes(result.nodes).map((node) => ({
+    ? result.nodes.map((node) => ({
         ...node,
         selected: node.id === nodeId,
       }))
-    : enrichNodes(result.nodes);
+    : result.nodes;
 
   const agentEdges = edgeId
     ? result.edges.map((edge) => ({
@@ -170,8 +149,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     : result.edges;
 
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
-  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
-    storeNodes: state.nodes,
+  const { nodes, edges, metadata } = useAgentStore((state) => ({
+    nodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
   }));
@@ -188,9 +167,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     reset,
   } = useAgentActions();
   const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
-
-  // Always use enriched nodes for ReactFlow
-  const nodes = enrichNodes(storeNodes);
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
   const onAddInitialNode = () => {
@@ -317,7 +293,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       const metadata = extractAgentMetadata(updatedAgent);
 
       // Update the store with all refreshed data
-      setInitial(enrichNodes(nodesWithSelection), edgesWithSelection, metadata);
+      setInitial(nodesWithSelection, edgesWithSelection, metadata);
 
       // Update project data in store so components using useProjectData get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);

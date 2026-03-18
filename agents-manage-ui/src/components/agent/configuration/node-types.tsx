@@ -43,8 +43,6 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   toolId: string;
   subAgentId?: string | null; // null when unconnected, string when connected to specific agent
   relationshipId?: string | null; // null when unconnected, maps to specific DB agent_tool_relation row
-  name?: string;
-  imageUrl?: string;
   provider?: string;
   tempSelectedTools?: string[] | null;
   tempHeaders?: Record<string, string> | null;
