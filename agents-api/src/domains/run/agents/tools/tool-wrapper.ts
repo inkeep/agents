@@ -61,12 +61,7 @@ export function wrapToolWithStreaming(
   toolDefinition: ToolSet[string],
   streamRequestId?: string,
   toolType?: ToolType,
-  options?: {
-    needsApproval?: boolean;
-    mcpServerId?: string;
-    mcpServerName?: string;
-    relationshipIdOverride?: string;
-  }
+  options?: { needsApproval?: boolean; mcpServerId?: string; mcpServerName?: string }
 ): ToolSet[string] {
   if (
     !toolDefinition ||
@@ -75,8 +70,7 @@ export function wrapToolWithStreaming(
   ) {
     return toolDefinition;
   }
-  const relationshipId =
-    options?.relationshipIdOverride ?? getRelationshipIdForTool(ctx, toolName, toolType);
+  const relationshipId = getRelationshipIdForTool(ctx, toolName, toolType);
 
   const originalExecute = toolDefinition.execute;
   return {
@@ -110,7 +104,8 @@ export function wrapToolWithStreaming(
 
       const isInternalTool =
         toolName.includes('save_tool_result') || toolName.startsWith('transfer_to_');
-      const isInternalToolForUi = isInternalTool || toolName.startsWith('delegate_to_');
+      const isInternalToolForUi =
+        isInternalTool || toolName.startsWith('delegate_to_') || toolName === 'load_skill';
 
       const needsApproval = options?.needsApproval || false;
 

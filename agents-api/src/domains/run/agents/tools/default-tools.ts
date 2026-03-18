@@ -127,8 +127,7 @@ export async function getDefaultTools(
       'load_skill',
       createLoadSkillTool(ctx),
       streamRequestId,
-      'tool',
-      { relationshipIdOverride: ctx.config.relationId }
+      'tool'
     );
   }
 
