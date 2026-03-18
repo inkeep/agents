@@ -50,7 +50,6 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.head_ref || github.ref }}
-          fetch-depth: 0
 
       - name: Setup Node.js
         if: steps.changeset-check.outputs.is_changeset != 'true'
@@ -117,8 +116,8 @@ jobs:
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository
         run: |
-          if git diff --name-only origin/${{ github.base_ref }}...HEAD | \
-             grep -qE '^agents-api/src/(domains/.*/routes/|openapi\.|createApp\.)'; then
+          git fetch --no-tags --depth=1 origin ${{ github.base_ref }}
+          if git diff --name-only origin/${{ github.base_ref }} -- agents-api/src/domains/*/routes/ agents-api/src/openapi.* agents-api/src/createApp.* | grep -q .; then
             echo "changed=true" >> $GITHUB_OUTPUT
           else
             echo "changed=false" >> $GITHUB_OUTPUT
