@@ -1704,6 +1704,24 @@ export const SkillUpdateSchema = SkillInsertSchema.partial().omit({
 
 export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
 export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
+  .transform((skill) => {
+    const skillMd = skill.files.find((skill) => skill.filePath === 'SKILL.md');
+    const result = {
+      ...skill,
+    };
+    if (skillMd) {
+      const { frontmatter, content } = parseSkillMarkdown(skillMd.content);
+      const { name, description, metadata } = frontmatter;
+      Object.assign(result, {
+        name,
+        description,
+        metadata,
+        content,
+      });
+    }
+
+    return result;
+  })
   .superRefine((skill, ctx) => {
     if (!skill.files) {
       return;
