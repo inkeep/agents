@@ -175,6 +175,129 @@ describe('applyResolutions', () => {
     expect(updateQuery).toContain('Our Desc');
   });
 
+  it('serializes jsonb object values correctly in UPDATE', async () => {
+    const configObj = { maxTokens: 100, nested: { key: 'value' } };
+    mockDb.queryResults['dolt_conflicts_agent'] = {
+      rows: [
+        {
+          our_diff_type: 'modified',
+          their_diff_type: 'modified',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: 'Our Agent',
+          their_name: 'Their Agent',
+          our_config: { old: true },
+          their_config: configObj,
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'theirs',
+      },
+    ];
+
+    await applyResolutions(mockDb.db)(resolutions);
+
+    const updateQuery = mockDb.executedQueries.find((q) => q.includes('UPDATE'));
+    expect(updateQuery).toBeDefined();
+    expect(updateQuery).toContain(JSON.stringify(configObj));
+    expect(updateQuery).not.toContain('[object Object]');
+  });
+
+  it('serializes jsonb object values correctly in INSERT (ourDiffType=removed)', async () => {
+    const configObj = { enabled: true };
+    mockDb.queryResults['dolt_conflicts_agent'] = {
+      rows: [
+        {
+          our_diff_type: 'removed',
+          their_diff_type: 'modified',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: null,
+          their_name: 'Restored Agent',
+          our_config: null,
+          their_config: configObj,
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'theirs',
+      },
+    ];
+
+    await applyResolutions(mockDb.db)(resolutions);
+
+    const insertQuery = mockDb.executedQueries.find((q) => q.includes('INSERT'));
+    expect(insertQuery).toBeDefined();
+    expect(insertQuery).toContain(JSON.stringify(configObj));
+    expect(insertQuery).not.toContain('[object Object]');
+  });
+
+  it('serializes jsonb object values correctly in mixed resolution', async () => {
+    const oursConfig = { source: 'ours' };
+    const theirsConfig = { source: 'theirs' };
+    mockDb.queryResults['dolt_conflicts_agent'] = {
+      rows: [
+        {
+          our_diff_type: 'modified',
+          their_diff_type: 'modified',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: 'Our Name',
+          their_name: 'Their Name',
+          our_config: oursConfig,
+          their_config: theirsConfig,
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'ours',
+        columns: { config: 'theirs' },
+      },
+    ];
+
+    await applyResolutions(mockDb.db)(resolutions);
+
+    const updateQuery = mockDb.executedQueries.find((q) => q.includes('UPDATE'));
+    expect(updateQuery).toBeDefined();
+    expect(updateQuery).toContain(JSON.stringify(theirsConfig));
+    expect(updateQuery).toContain('Our Name');
+    expect(updateQuery).not.toContain('[object Object]');
+  });
+
   it('throws for invalid table name', async () => {
     const resolutions: ConflictResolution[] = [
       {

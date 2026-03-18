@@ -30,18 +30,7 @@ import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const logger = getLogger('merge');
-const SCOPE_PK_COLUMNS = new Set(['tenant_id', 'project_id']);
 const TIMESTAMP_COLUMNS = new Set(['created_at', 'updated_at']);
-
-function stripScopePks(pk: Record<string, string>): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(pk)) {
-    if (!SCOPE_PK_COLUMNS.has(key)) {
-      result[key] = value;
-    }
-  }
-  return result;
-}
 
 function isTimestampOnlyDiff(
   base: Record<string, unknown>,
@@ -398,7 +387,7 @@ async function buildConflictItems(
 
     items.push({
       table: tableName,
-      primaryKey: stripScopePks(fullPk),
+      primaryKey: fullPk,
       ourDiffType: String(row.our_diff_type ?? 'modified'),
       theirDiffType: String(row.their_diff_type ?? 'modified'),
       base: row.base_diff_type === 'added' ? null : base,

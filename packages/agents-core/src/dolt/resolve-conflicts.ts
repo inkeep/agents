@@ -3,6 +3,12 @@ import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import type { ConflictResolution } from '../validation/dolt-schemas';
 import { isValidManageTable, managePkMap } from './pk-map';
 
+function toSqlLiteral(val: unknown): string {
+  if (val === null || val === undefined) return 'NULL';
+  if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
+  return `'${String(val).replace(/'/g, "''")}'`;
+}
+
 export const applyResolutions =
   (db: AgentsManageDatabaseClient) =>
   async (resolutions: ConflictResolution[]): Promise<void> => {
@@ -139,7 +145,7 @@ async function applyTheirsResolution(
     const allCols = [...pkColumns, ...columns];
     const values = allCols.map((col) => {
       const val = pkColumns.includes(col) ? primaryKey[col] : conflictRow[`their_${col}`];
-      return val === null || val === undefined ? 'NULL' : `'${String(val).replace(/'/g, "''")}'`;
+      return toSqlLiteral(val);
     });
     await db.execute(
       sql.raw(
@@ -151,9 +157,7 @@ async function applyTheirsResolution(
 
   const setClauses = columns.map((col) => {
     const val = conflictRow[`their_${col}`];
-    return val === null || val === undefined
-      ? `"${col}" = NULL`
-      : `"${col}" = '${String(val).replace(/'/g, "''")}'`;
+    return `"${col}" = ${toSqlLiteral(val)}`;
   });
 
   await db.execute(sql.raw(`UPDATE "${table}" SET ${setClauses.join(', ')} WHERE ${pkWhere}`));
@@ -198,9 +202,7 @@ async function applyMixedResolution(
     const pick = columnOverrides[col] ?? rowDefaultPick;
     const prefix = pick === 'theirs' ? 'their_' : 'our_';
     const val = conflictRow[`${prefix}${col}`];
-    return val === null || val === undefined
-      ? `"${col}" = NULL`
-      : `"${col}" = '${String(val).replace(/'/g, "''")}'`;
+    return `"${col}" = ${toSqlLiteral(val)}`;
   });
 
   await db.execute(sql.raw(`UPDATE "${table}" SET ${setClauses.join(', ')} WHERE ${pkWhere}`));
