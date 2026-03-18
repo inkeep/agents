@@ -5,7 +5,16 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { fetchProject, fetchProjectPermissions, fetchProjects } from '@/lib/api/projects';
 import type { Project } from '@/lib/types/project';
-import { projectQueryKeys } from './project-query-keys';
+
+const projectQueryKeys = {
+  all: ['projects'] as const,
+  tenant: (tenantId: string) => [...projectQueryKeys.all, tenantId] as const,
+  list: (tenantId: string) => [...projectQueryKeys.tenant(tenantId), 'list'] as const,
+  detail: (tenantId: string, projectId: string) =>
+    [...projectQueryKeys.tenant(tenantId), projectId] as const,
+  permissions: (tenantId: string, projectId: string) =>
+    [...projectQueryKeys.detail(tenantId, projectId), 'permissions'] as const,
+};
 
 export const defaultProjectPermissions: ProjectPermissions = {
   canView: false,
@@ -86,6 +95,6 @@ export function useProjectsInvalidation(tenantId: string) {
   const queryClient = useQueryClient();
 
   return async () => {
-    await queryClient.invalidateQueries({ queryKey: projectQueryKeys.list(tenantId) });
+    await queryClient.invalidateQueries({ queryKey: projectQueryKeys.tenant(tenantId) });
   };
 }
