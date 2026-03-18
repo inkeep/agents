@@ -1,3 +1,4 @@
+import { isDevelopment } from '@inkeep/agents-core';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -24,7 +25,7 @@ function isPublicPath(pathname: string): boolean {
 
 function redirectToLogin(request: NextRequest): NextResponse {
   const loginUrl = new URL('/login', request.url);
-  loginUrl.searchParams.set('returnUrl', request.nextUrl.pathname);
+  loginUrl.searchParams.set('returnUrl', request.nextUrl.pathname + request.nextUrl.search);
   return NextResponse.redirect(loginUrl);
 }
 
@@ -46,9 +47,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isDev = process.env.ENVIRONMENT === 'development' || process.env.NODE_ENV === 'development';
-
-  if (isDev) {
+  if (isDevelopment()) {
     if (request.cookies.has(LOGGED_OUT_COOKIE)) {
       return redirectToLogin(request);
     }
