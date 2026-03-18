@@ -1,5 +1,14 @@
 # @inkeep/agents-work-apps
 
+## 0.58.19
+
+### Patch Changes
+
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+
 ## 0.58.18
 
 ### Patch Changes
