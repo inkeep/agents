@@ -184,11 +184,53 @@ const updateSkillHandler: ManageRouteHandler<typeof updateSkillRouteConfig> = as
   const db = c.get('db');
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
+  // let data: {
+  //   description: string;
+  //   metadata: Record<string, string> | null;
+  //   content: string;
+  //   files: Array<{ filePath: string; content: string }>;
+  // };
+  //
+  // try {
+  //   if (!body.files) {
+  //     throw new Error('Skill updates must include files');
+  //   }
+  //
+  //   const transformedBody = body as typeof body & {
+  //     name?: string;
+  //     description?: string;
+  //     metadata?: Record<string, string> | null;
+  //     content?: string;
+  //   };
+  //
+  //   const skillName = transformedBody.name;
+  //
+  //   if (typeof skillName === 'string' && skillName !== id) {
+  //     throw new Error(`${SKILL_ENTRY_FILE_PATH} name must match the skill id`);
+  //   }
+  //
+  //   if (transformedBody.description === undefined || transformedBody.content === undefined) {
+  //     throw new Error(`Skill updates with files must include ${SKILL_ENTRY_FILE_PATH}`);
+  //   }
+  //
+  //   data = {
+  //     description: transformedBody.description,
+  //     metadata: transformedBody.metadata ?? null,
+  //     content: transformedBody.content,
+  //     files: body.files,
+  //   };
+  // } catch (error) {
+  //   throw createApiError({
+  //     code: 'unprocessable_entity',
+  //     message: error instanceof Error ? error.message : 'Invalid skill update payload',
+  //   });
+  // }
 
   const skill = await updateSkill(db)({
     scopes: { tenantId, projectId },
     skillId: id,
-    data: body,
+    // @ts-expect-error -- fixme
+    data: SkillApiUpdateSchema.parse(body),
   });
 
   if (!skill) {
