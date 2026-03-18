@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { deleteSkillAction } from '@/lib/actions/skills';
+import { deleteSkill } from '@/lib/api/skills';
 
 interface DeleteSkillConfirmationProps {
   skillId: string;
@@ -30,9 +30,10 @@ export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   async function handleDelete() {
-    const result = await deleteSkillAction(tenantId, projectId, skillId);
-    if (!result.success) {
-      toast.error(result.error ?? 'Failed to delete skill');
+    try {
+      await deleteSkill(tenantId, projectId, skillId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete skill');
       return;
     }
 
