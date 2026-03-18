@@ -70,7 +70,7 @@ async function signozQuery(
   cookieHeader: string | null,
   authHeader: string | null
 ): Promise<SigNozResp> {
-  const logger = getLogger('signoz-query');
+  const logger = getLogger('traces-query');
 
   try {
     const agentsApiUrl = getAgentsApiUrl();
