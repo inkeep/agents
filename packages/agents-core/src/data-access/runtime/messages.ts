@@ -112,20 +112,28 @@ export const getVisibleMessages =
     return await query;
   };
 
-export const createMessage = (db: AgentsRunDatabaseClient) => async (params: MessageInsert) => {
-  const now = new Date().toISOString();
+export const createMessage =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    data: Omit<MessageInsert, 'tenantId' | 'projectId'>;
+  }) => {
+    const { scopes, data } = params;
+    const now = new Date().toISOString();
 
-  const [created] = await db
-    .insert(messages)
-    .values({
-      ...params,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
+    const [created] = await db
+      .insert(messages)
+      .values({
+        ...data,
+        tenantId: scopes.tenantId,
+        projectId: scopes.projectId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
 
-  return created;
-};
+    return created;
+  };
 
 export const updateMessage =
   (db: AgentsRunDatabaseClient) =>
@@ -165,6 +173,30 @@ export const countMessagesByConversation =
         and(
           projectScopedWhere(messages, params.scopes),
           eq(messages.conversationId, params.conversationId)
+        )
+      );
+
+    const total = result[0]?.count || 0;
+    return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
+  };
+
+export const countVisibleMessages =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId: string;
+    visibility?: MessageVisibility[];
+  }) => {
+    const visibilityFilter = params.visibility || ['user-facing'];
+
+    const result = await db
+      .select({ count: count() })
+      .from(messages)
+      .where(
+        and(
+          projectScopedWhere(messages, params.scopes),
+          eq(messages.conversationId, params.conversationId),
+          inArray(messages.visibility, visibilityFilter)
         )
       );
 

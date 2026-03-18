@@ -906,7 +906,8 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
     updatedAt: true,
   })
   .openapi('TriggerCreate');
-export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
+export const TriggerApiUpdateSchema =
+  createAgentScopedApiUpdateSchema(TriggerUpdateSchema).openapi('TriggerUpdate');
 
 // Extended Trigger schema with webhookUrl (for manage API responses)
 // Note: This extends the base TriggerApiSelectSchema to add the computed webhookUrl field
@@ -1035,8 +1036,9 @@ export const ScheduledTriggerApiInsertSchema = ScheduledTriggerApiInsertBaseSche
   })
   .openapi('ScheduledTriggerCreate');
 
-export const ScheduledTriggerApiUpdateSchema =
-  ScheduledTriggerUpdateSchema.openapi('ScheduledTriggerUpdate');
+export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  ScheduledTriggerUpdateSchema
+).openapi('ScheduledTriggerUpdate');
 
 export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
 export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
@@ -1073,8 +1075,9 @@ export const ScheduledWorkflowApiInsertSchema = createAgentScopedApiInsertSchema
   .extend({ id: ResourceIdSchema.optional() })
   .openapi('ScheduledWorkflowCreate');
 
-export const ScheduledWorkflowApiUpdateSchema =
-  ScheduledWorkflowUpdateSchema.openapi('ScheduledWorkflowUpdate');
+export const ScheduledWorkflowApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  ScheduledWorkflowUpdateSchema
+).openapi('ScheduledWorkflowUpdate');
 
 export type ScheduledWorkflow = z.infer<typeof ScheduledWorkflowSelectSchema>;
 export type ScheduledWorkflowInsert = z.infer<typeof ScheduledWorkflowInsertSchema>;

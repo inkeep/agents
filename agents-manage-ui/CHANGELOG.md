@@ -1,5 +1,36 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.18
+
+### Patch Changes
+
+- ad867c5: Fix Nango MCP integration reuse regression causing 'integration already exists' error on OAuth login
+  - @inkeep/agents-core@0.58.18
+
+## 0.58.17
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.17
+
+## 0.58.16
+
+### Patch Changes
+
+- Updated dependencies [5065552]
+  - @inkeep/agents-core@0.58.16
+
+## 0.58.15
+
+### Patch Changes
+
+- 2a50786: Bump agents-ui package to 0.15.18 and remove lingering references to the deprecated agentUrl prop
+- 36430ee: Reuse createLookup utility instead of inline reduce patterns
+- 5394245: Improve OAuth credentials CRUD with multi-app configuration support, integration visibility on credential detail pages, and accurate auth type labels
+- 0e1011b: Refactor evaluator selection to use idiomatic react-hook-form field render props and adopt createLookup utility
+- Updated dependencies [abaefda]
+  - @inkeep/agents-core@0.58.15
+
 ## 0.58.14
 
 ### Patch Changes

@@ -6954,10 +6954,6 @@
       },
       "ScheduledTriggerUpdate": {
         "properties": {
-          "agentId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -7009,10 +7005,6 @@
             "nullable": true,
             "type": "object"
           },
-          "projectId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "retryDelaySeconds": {
             "maximum": 3600,
             "minimum": 10,
@@ -7027,10 +7019,6 @@
             "description": "One-time execution timestamp",
             "format": "date-time",
             "nullable": true,
-            "type": "string"
-          },
-          "tenantId": {
-            "maxLength": 256,
             "type": "string"
           },
           "timeoutSeconds": {
@@ -10037,10 +10025,6 @@
       },
       "TriggerUpdate": {
         "properties": {
-          "agentId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "authentication": {
             "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
@@ -10086,10 +10070,6 @@
           },
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
-          },
-          "projectId": {
-            "maxLength": 256,
-            "type": "string"
           },
           "runAsUserId": {
             "description": "User ID to run the webhook as",
@@ -10150,10 +10130,6 @@
           "signingSecretCredentialReferenceId": {
             "description": "Reference to credential containing signing secret",
             "nullable": true,
-            "type": "string"
-          },
-          "tenantId": {
-            "maxLength": 256,
             "type": "string"
           },
           "updatedAt": {
@@ -10444,21 +10420,6 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/api/workflow/process": {
-      "get": {
-        "description": "Keeps the workflow worker active to process queued jobs (called by cron)",
-        "responses": {
-          "200": {
-            "description": "Processing complete"
-          }
-        },
-        "security": [],
-        "summary": "Process workflow jobs",
-        "tags": [
-          "Workflows"
-        ]
-      }
-    },
     "/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversation": {
       "post": {
         "operationId": "evaluate-conversation",
