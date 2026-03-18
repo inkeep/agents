@@ -1,11 +1,11 @@
 import type { FC } from 'react';
+import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 import { HeaderMenus } from '@/components/layout/header-menus';
 import { SentryScopeProvider } from '@/components/sentry-scope-provider';
 import { AppSidebarProvider } from '@/components/sidebar-nav/app-sidebar-provider';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 
 const Layout: FC<LayoutProps<'/[tenantId]'>> = ({ children, breadcrumbs }) => {
   return (

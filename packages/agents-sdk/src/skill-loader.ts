@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { SkillApiInsertSchema } from '@inkeep/agents-core';
-import type { SkillDefinition } from './types';
 import { z } from 'zod';
+import type { SkillDefinition } from './types';
 
 function getParentDirName(filePath: string): string {
   return path.basename(path.dirname(filePath));

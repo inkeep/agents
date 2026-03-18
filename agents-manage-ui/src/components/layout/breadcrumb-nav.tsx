@@ -1,6 +1,6 @@
-import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 const BreadcrumbNavItem: FC<{
   href: string;

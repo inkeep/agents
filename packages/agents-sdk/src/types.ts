@@ -7,11 +7,11 @@ import type {
   FullAgentDefinition,
   McpTransportConfig,
   ModelSettings,
+  SkillApiSelectSchema,
   StatusUpdateSettings,
   SubAgentApiInsert,
   ToolInsert,
   ToolPolicy,
-  SkillApiSelectSchema
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
 import type { ArtifactComponentInterface } from './artifact-component';

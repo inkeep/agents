@@ -7,10 +7,10 @@ import { PageHeader } from '@/components/layout/page-header';
 import { SkillsSidebar } from '@/components/skills/skills-sidebar';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { fetchSkillsPageData } from './skills-data';
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 export const metadata = {
   title: STATIC_LABELS.skills,

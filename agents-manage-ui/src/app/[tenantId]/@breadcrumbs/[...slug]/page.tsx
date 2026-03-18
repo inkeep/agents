@@ -1,7 +1,7 @@
 import type { Metadata, ResolvingMetadata } from 'next';
-import Link from 'next/link';
 import type { FC } from 'react';
 import { getJobName } from '@/app/[tenantId]/projects/[projectId]/evaluations/jobs/[configId]/page';
+import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 import { STATIC_LABELS } from '@/constants/theme';
 import { getFullAgent } from '@/lib/api/agent-full-client';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
@@ -18,7 +18,6 @@ import { fetchSkill } from '@/lib/api/skills';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
-import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 
 type LabelKey = keyof typeof STATIC_LABELS;
 
