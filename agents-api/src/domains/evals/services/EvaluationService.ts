@@ -57,9 +57,11 @@ export interface ChatApiResponse {
 export class EvaluationService {
   private readonly agentsApiUrl: string | undefined;
   private readonly runApiBypassSecret: string | undefined;
+  private readonly manageApiBypassSecret: string | undefined;
 
   constructor() {
     this.runApiBypassSecret = env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET ?? undefined;
+    this.manageApiBypassSecret = env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET ?? undefined;
     this.agentsApiUrl = env.INKEEP_AGENTS_API_URL ?? '';
   }
 
@@ -1056,8 +1058,14 @@ Return your evaluation as a JSON object matching the schema above.`;
             'Fetching trace from SigNoz'
           );
 
+          const headers: Record<string, string> = {};
+          if (this.manageApiBypassSecret) {
+            headers.Authorization = `Bearer ${this.manageApiBypassSecret}`;
+          }
+
           const traceResponse = await fetch(
-            `${manageUIUrl}/api/signoz/conversations/${conversationId}`
+            `${manageUIUrl}/api/signoz/conversations/${conversationId}`,
+            { headers }
           );
 
           if (!traceResponse.ok) {
