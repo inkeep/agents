@@ -8,8 +8,8 @@ import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
 import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
 import { createTestQueryClient, renderWithClient } from '@/lib/query/__tests__/test-utils';
-import { projectQueryKeys } from '@/lib/query/keys/projects';
 import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
 import '@/lib/utils/test-utils/styles.css';
 
 const TENANT_ID = 'tenant-1';

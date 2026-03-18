@@ -4,8 +4,8 @@ import type { ProjectPermissions } from '@inkeep/agents-core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { fetchProject, fetchProjectPermissions, fetchProjects } from '@/lib/api/projects';
-import type { Project } from '@/lib/types/project';
 import { projectQueryKeys } from '@/lib/query/keys/projects';
+import type { Project } from '@/lib/types/project';
 
 export const defaultProjectPermissions: ProjectPermissions = {
   canView: false,

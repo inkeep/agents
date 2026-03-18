@@ -5,8 +5,8 @@ import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { fetchMCPTools } from '@/lib/api/tools';
-import type { MCPTool } from '@/lib/types/tools';
 import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';
+import type { MCPTool } from '@/lib/types/tools';
 
 export function useMcpToolsQuery({
   enabled = true,
