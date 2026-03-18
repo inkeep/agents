@@ -11,8 +11,8 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
 import { updateExternalAgent } from '@/lib/api/external-agents';
-import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { updateMCPTool } from '@/lib/api/tools';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 
