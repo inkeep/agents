@@ -1703,7 +1703,72 @@ export const SkillUpdateSchema = SkillInsertSchema.partial().omit({
 });
 
 export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
-export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertSchema).openapi('SkillCreate');
+export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
+  .superRefine((skill, ctx) => {
+    if (!skill.files) {
+      return;
+    }
+
+    const skillFile = skill.files.find((file) => file.filePath === SKILL_ENTRY_FILE_PATH);
+    if (!skillFile) {
+      return;
+    }
+
+    try {
+      const parsed = parseSkillMarkdown(skillFile.content);
+      const frontmatterResult = SkillFrontmatterSchema.safeParse(parsed.frontmatter);
+
+      if (!frontmatterResult.success) {
+        const firstIssue = frontmatterResult.error.issues[0];
+        ctx.addIssue({
+          code: 'custom',
+          path: ['files'],
+          message: firstIssue?.message ?? `Invalid ${SKILL_ENTRY_FILE_PATH} frontmatter`,
+        });
+        return;
+      }
+
+      if (frontmatterResult.data.name !== skill.name) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['files'],
+          message: `${SKILL_ENTRY_FILE_PATH} name must match the skill name`,
+        });
+      }
+
+      if (frontmatterResult.data.description !== skill.description) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['files'],
+          message: `${SKILL_ENTRY_FILE_PATH} description must match the skill description`,
+        });
+      }
+
+      if (!skillMetadataMatches(frontmatterResult.data.metadata, skill.metadata)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['files'],
+          message: `${SKILL_ENTRY_FILE_PATH} metadata must match the skill metadata`,
+        });
+      }
+
+      if (parsed.content !== skill.content) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['files'],
+          message: `${SKILL_ENTRY_FILE_PATH} body must match the skill content`,
+        });
+      }
+    } catch (error) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['files'],
+        message:
+          error instanceof Error ? error.message : `Invalid ${SKILL_ENTRY_FILE_PATH} content`,
+      });
+    }
+  })
+  .openapi('SkillCreate');
 export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
 export const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
 export const SkillWithFilesApiSelectSchema = SkillApiSelectSchema.extend({
