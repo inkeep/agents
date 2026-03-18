@@ -32,9 +32,6 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/signoz/s
   }
 
   const cookieHeader = req.headers.get('cookie');
-  if (!cookieHeader?.trim()) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
 
   try {
     const now = Date.now();

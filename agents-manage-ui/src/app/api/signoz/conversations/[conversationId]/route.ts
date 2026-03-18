@@ -1269,10 +1269,6 @@ export async function GET(
   const cookieHeader = req.headers.get('cookie');
   const authHeader = req.headers.get('authorization');
 
-  if (!cookieHeader?.trim() && !authHeader?.trim()) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
     const { start, end } = await getConversationTimeRange({
       startParam,
