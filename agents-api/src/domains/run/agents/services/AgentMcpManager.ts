@@ -29,7 +29,10 @@ const isTrustedSlackMcpUrl = (url: string): boolean => {
   try {
     const trustedSlackMcpUrl = new URL('/work-apps/slack/mcp', env.INKEEP_AGENTS_API_URL);
     const toolUrl = new URL(url, env.INKEEP_AGENTS_API_URL);
-    return toolUrl.origin === trustedSlackMcpUrl.origin && toolUrl.pathname === trustedSlackMcpUrl.pathname;
+    return (
+      toolUrl.origin === trustedSlackMcpUrl.origin &&
+      toolUrl.pathname === trustedSlackMcpUrl.pathname
+    );
   } catch {
     return false;
   }
