@@ -73,7 +73,10 @@ import {
   VALID_RELATION_TYPES,
 } from '../types/utility';
 import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
-import { parseSkillMarkdown, SKILL_ENTRY_FILE_PATH } from '../utils/skill-files';
+import {
+  parseSkillMarkdown,
+  SKILL_ENTRY_FILE_PATH,
+} from '../utils/skill-files';
 import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
@@ -1725,10 +1728,42 @@ const SkillInsertBaseSchema = createInsertSchema(skills)
     createdAt: true,
     updatedAt: true,
   });
-export const SkillUpdateSchema = SkillInsertSchema.partial().omit({
-  // Name is persistent
-  name: true,
-});
+
+export const SkillUpdateSchema = SkillInsertBaseSchema.partial()
+  .omit({
+    // Name is persistent
+    name: true,
+    // Will be generated from SKILL.md
+    content: true,
+    description: true,
+    metadata: true,
+  })
+  .transform((skill) => {
+    const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
+    if (!skillFile) {
+      return skill;
+    }
+    return {
+      ...skill,
+      ...transformSkill(skillFile.content),
+    };
+  });
+
+function transformSkill(markdown: string) {
+  const { frontmatter, content } = parseSkillMarkdown(markdown);
+  const {
+    name,
+    description,
+    metadata = null,
+  } = frontmatter as z.output<typeof SkillFrontmatterSchema>;
+
+  return {
+    name,
+    description,
+    metadata,
+    content,
+  };
+}
 
 export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
 export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
@@ -1743,19 +1778,9 @@ export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
     if (!skillFile) {
       throw new Error('should never happens');
     }
-    const { frontmatter, content } = parseSkillMarkdown(skillFile.content);
-    const {
-      name,
-      description,
-      metadata = null,
-    } = frontmatter as z.output<typeof SkillFrontmatterSchema>;
-
     return {
       ...skill,
-      name,
-      description,
-      metadata,
-      content,
+      ...transformSkill(skillFile.content),
     };
   })
   // @ts-expect-error
