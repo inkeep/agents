@@ -1713,7 +1713,10 @@ export const SkillFileContentInputSchema = z.object({
   content: z.string(),
 });
 
-const SkillFilesInputSchema = z.array(SkillFileContentInputSchema).superRefine((files, ctx) => {
+function addDuplicateSkillFilePathIssues(
+  files: Array<z.infer<typeof SkillFileContentInputSchema>>,
+  ctx: z.RefinementCtx
+) {
   const filePaths = new Set<string>();
 
   for (const [index, file] of files.entries()) {
@@ -1726,14 +1729,22 @@ const SkillFilesInputSchema = z.array(SkillFileContentInputSchema).superRefine((
     }
     filePaths.add(file.filePath);
   }
+}
 
-  if (!filePaths.has(SKILL_ENTRY_FILE_PATH)) {
+const SkillFilesInputSchema = z.array(SkillFileContentInputSchema).superRefine((files, ctx) => {
+  addDuplicateSkillFilePathIssues(files, ctx);
+
+  if (!files.some((file) => file.filePath === SKILL_ENTRY_FILE_PATH)) {
     ctx.addIssue({
       code: 'custom',
       message: `Skill files must include exactly one ${SKILL_ENTRY_FILE_PATH}`,
     });
   }
 });
+
+const SkillUpdateFilesInputSchema = z
+  .array(SkillFileContentInputSchema)
+  .superRefine(addDuplicateSkillFilePathIssues);
 
 export const SkillFileSelectSchema = createSelectSchema(skillFiles);
 export const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
@@ -1765,6 +1776,8 @@ export const SkillUpdateSchema = SkillInsertBaseSchema.omit({
   //
   projectId: true,
   tenantId: true,
+}).extend({
+  files: SkillUpdateFilesInputSchema,
 });
 
 function transformSkill(markdown: string) {
