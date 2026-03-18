@@ -1732,58 +1732,17 @@ export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
       return;
     }
 
-    try {
-      const parsed = parseSkillMarkdown(skillFile.content);
-      const frontmatterResult = SkillFrontmatterSchema.safeParse(parsed.frontmatter);
+    const parsed = parseSkillMarkdown(skillFile.content);
+    const frontmatterResult = SkillFrontmatterSchema.safeParse(parsed.frontmatter);
 
-      if (!frontmatterResult.success) {
-        const firstIssue = frontmatterResult.error.issues[0];
-        ctx.addIssue({
-          code: 'custom',
-          path: ['files'],
-          message: firstIssue?.message ?? `Invalid ${SKILL_ENTRY_FILE_PATH} frontmatter`,
-        });
-        return;
-      }
-
-      if (frontmatterResult.data.name !== skill.name) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['files'],
-          message: `${SKILL_ENTRY_FILE_PATH} name must match the skill name`,
-        });
-      }
-
-      if (frontmatterResult.data.description !== skill.description) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['files'],
-          message: `${SKILL_ENTRY_FILE_PATH} description must match the skill description`,
-        });
-      }
-
-      if (!skillMetadataMatches(frontmatterResult.data.metadata, skill.metadata)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['files'],
-          message: `${SKILL_ENTRY_FILE_PATH} metadata must match the skill metadata`,
-        });
-      }
-
-      if (parsed.content !== skill.content) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['files'],
-          message: `${SKILL_ENTRY_FILE_PATH} body must match the skill content`,
-        });
-      }
-    } catch (error) {
+    if (!frontmatterResult.success) {
+      const firstIssue = frontmatterResult.error.issues[0];
       ctx.addIssue({
         code: 'custom',
         path: ['files'],
-        message:
-          error instanceof Error ? error.message : `Invalid ${SKILL_ENTRY_FILE_PATH} content`,
+        message: firstIssue?.message ?? `Invalid ${SKILL_ENTRY_FILE_PATH} frontmatter`,
       });
+      return;
     }
   })
   .openapi('SkillCreate');
