@@ -170,10 +170,11 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     : result.edges;
 
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
-  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
+  const { storeNodes, edges, metadata, dirty } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
+    dirty: state.dirty,
   }));
   const {
     setNodes,
@@ -880,7 +881,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           </ResizablePanel>
         </>
       )}
-      <UnsavedChangesDialog onSubmit={onSubmit} />
+      <UnsavedChangesDialog onSubmit={onSubmit} dirty={dirty} />
     </ResizablePanelGroup>
   );
 };
