@@ -1,11 +1,10 @@
 import { join } from 'node:path';
-import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
-import { stringify } from 'yaml';
+import { SkillInsertSchema, serializeSkillToMarkdown } from '@inkeep/agents-core';
 import { z } from 'zod';
 import type { GenerationTask } from '../generation-types';
 import { validateGeneratorInput } from '../simple-factory-generator';
 
-const MySchema = FullProjectDefinitionSchema.shape.skills.unwrap().valueType;
+const MySchema = SkillInsertSchema;
 
 const SkillSchema = z.strictObject({
   ...MySchema.shape,
@@ -15,14 +14,12 @@ const SkillSchema = z.strictObject({
 type SkillInput = z.input<typeof SkillSchema>;
 
 export function generateSkillDefinition(data: SkillInput): string {
-  const { name, description, metadata, content } = validateGeneratorInput(data, {
+  const result = validateGeneratorInput(data, {
     schema: SkillSchema,
     errorLabel: 'skill',
   });
-  const yaml = stringify({ name, description, metadata });
-  const parts = ['---', yaml.trimEnd(), '---', '', content];
 
-  return parts.join('\n');
+  return serializeSkillToMarkdown(result);
 }
 
 export const task: GenerationTask<Parameters<typeof generateSkillDefinition>[0]> = {

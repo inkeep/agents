@@ -45,20 +45,16 @@ export const SkillsSidebar: FC<SkillsSidebarProps> = ({
         <SidebarGroup>
           <SidebarGroupLabel>Library</SidebarGroupLabel>
           <SidebarGroupContent>
-            {treeNodes.length > 0 ? (
-              <SidebarMenu>
-                {treeNodes.map((node) => (
-                  <TreeNode
-                    key={node.path}
-                    node={node}
-                    selectedRoutePath={selectedRoutePath}
-                    canEdit={canEdit}
-                  />
-                ))}
-              </SidebarMenu>
-            ) : (
-              <div className="px-2 py-1 text-sm text-muted-foreground">No skill files yet.</div>
-            )}
+            <SidebarMenu className="gap-0.5">
+              {treeNodes.map((node) => (
+                <TreeNode
+                  key={node.path}
+                  node={node}
+                  selectedRoutePath={selectedRoutePath}
+                  canEdit={canEdit}
+                />
+              ))}
+            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
