@@ -1678,6 +1678,33 @@ export const SkillSelectSchema = createSelectSchema(skills).extend({
   metadata: StringRecordSchema.nullable(),
 });
 
+export const SkillFileContentInputSchema = z.object({
+  filePath: SkillFilePathSchema,
+  content: z.string(),
+});
+
+const SkillFilesInputSchema = z.array(SkillFileContentInputSchema).superRefine((files, ctx) => {
+  const filePaths = new Set<string>();
+
+  for (const [index, file] of files.entries()) {
+    if (filePaths.has(file.filePath)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [index, 'filePath'],
+        message: `Duplicate skill file path: ${file.filePath}`,
+      });
+    }
+    filePaths.add(file.filePath);
+  }
+
+  if (!filePaths.has(SKILL_ENTRY_FILE_PATH)) {
+    ctx.addIssue({
+      code: 'custom',
+      message: `Skill files must include exactly one ${SKILL_ENTRY_FILE_PATH}`,
+    });
+  }
+});
+
 export const SkillFileSelectSchema = createSelectSchema(skillFiles);
 export const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
   id: ResourceIdSchema,

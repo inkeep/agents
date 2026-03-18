@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { SkillApiInsertSchema } from '../../validation/schemas';
 
 describe('SkillApiInsertSchema', () => {
@@ -33,12 +32,6 @@ Always check the weather.`,
 
   it('rejects duplicate file paths', () => {
     const result = SkillApiInsertSchema.safeParse({
-      tenantId: 'tenant-1',
-      projectId: 'project-1',
-      name: 'weather-safety-guardrails',
-      description: 'Safety rules.',
-      content: 'Always check the weather.',
-      metadata: null,
       files: [
         {
           filePath: 'SKILL.md',
@@ -56,6 +49,16 @@ Always check the weather.`,
     });
 
     expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues).toStrictEqual([
+        {
+          code: 'custom',
+          path: ['files', 1, 'filePath'],
+          message: 'Duplicate skill file path: SKILL.md',
+        },
+      ]);
+    }
   });
 
   it('rejects missing SKILL.md', () => {
