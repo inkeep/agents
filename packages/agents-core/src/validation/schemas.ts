@@ -1688,8 +1688,7 @@ export const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
 
 const SkillInsertBaseSchema = createInsertSchema(skills)
   .extend({
-    ...SkillFrontmatterSchema.shape,
-    content: z.string().trim().nonempty(),
+    files: SkillFilesInputSchema,
   })
   .omit({
     // We set id under the hood as skill.name
@@ -1705,14 +1704,11 @@ export const SkillUpdateSchema = SkillInsertSchema.partial().omit({
 export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
 export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
   .transform((skill) => {
-    const skillMd = skill.files.find((skill) => skill.filePath === 'SKILL.md');
-    const result = {
-      ...skill,
-    };
-    if (skillMd) {
-      const { frontmatter, content } = parseSkillMarkdown(skillMd.content);
+    const skillFile = skill.files.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
+    if (skillFile) {
+      const { frontmatter, content } = parseSkillMarkdown(skillFile.content);
       const { name, description, metadata } = frontmatter;
-      Object.assign(result, {
+      Object.assign(skill, {
         name,
         description,
         metadata,
@@ -1720,31 +1716,9 @@ export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertBaseSchema)
       });
     }
 
-    return result;
+    return skill;
   })
-  .superRefine((skill, ctx) => {
-    if (!skill.files) {
-      return;
-    }
-
-    const skillFile = skill.files.find((file) => file.filePath === SKILL_ENTRY_FILE_PATH);
-    if (!skillFile) {
-      return;
-    }
-
-    const parsed = parseSkillMarkdown(skillFile.content);
-    const frontmatterResult = SkillFrontmatterSchema.safeParse(parsed.frontmatter);
-
-    if (!frontmatterResult.success) {
-      const firstIssue = frontmatterResult.error.issues[0];
-      ctx.addIssue({
-        code: 'custom',
-        path: ['files'],
-        message: firstIssue?.message ?? `Invalid ${SKILL_ENTRY_FILE_PATH} frontmatter`,
-      });
-      return;
-    }
-  })
+  .pipe(SkillFrontmatterSchema)
   .openapi('SkillCreate');
 export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
 export const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
