@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.58.19
+
+### Patch Changes
+
+- 1571ef1: Fix project-level auth bypass in app CRUD endpoints — GET, UPDATE, and DELETE now filter by projectId in addition to tenantId, preventing cross-project access within a tenant
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+  - @inkeep/agents-work-apps@0.58.19
+  - @inkeep/agents-email@0.58.19
+  - @inkeep/agents-mcp@0.58.19
+
 ## 0.58.18
 
 ### Patch Changes

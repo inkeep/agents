@@ -130,7 +130,7 @@ describe('GitHub Token Exchange Route', () => {
         expect(validateOidcTokenMock).toHaveBeenCalledWith(validToken);
         expect(lookupInstallationForRepoMock).toHaveBeenCalledWith('test-org', 'test-repo');
         expect(getInstallationByGitHubIdMock).toHaveBeenCalledWith('12345678');
-        expect(generateInstallationAccessTokenMock).toHaveBeenCalledWith(12345678);
+        expect(generateInstallationAccessTokenMock).toHaveBeenCalledWith(12345678, 123456789);
       });
 
       it('should return installation token with project_id when project has access', async () => {
@@ -206,6 +206,57 @@ describe('GitHub Token Exchange Route', () => {
     });
 
     describe('400 Bad Request cases', () => {
+      it('should return 400 when repository_id claim is invalid', async () => {
+        const validToken = await createTestOidcToken();
+
+        validateOidcTokenMock.mockResolvedValue({
+          success: true,
+          claims: {
+            repository: 'test-org/test-repo',
+            repository_owner: 'test-org',
+            repository_id: 'not-a-number',
+            workflow: 'CI',
+            actor: 'test-user',
+            ref: 'refs/heads/main',
+          },
+        });
+
+        lookupInstallationForRepoMock.mockResolvedValue({
+          success: true,
+          installation: {
+            installationId: 12345678,
+            appId: 98765,
+          },
+        });
+
+        getInstallationByGitHubIdMock.mockResolvedValue({
+          id: 'inst_123',
+          tenantId: 'tenant_abc123',
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '99999',
+          accountType: 'Organization',
+          status: 'active',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        });
+
+        const response = await app.request('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oidc_token: validToken }),
+        });
+
+        expect(response.status).toBe(400);
+        const body = await response.json();
+        expect(body).toMatchObject({
+          title: 'Bad Request',
+          status: 400,
+          error: 'OIDC token contains an invalid repository_id claim',
+        });
+        expect(generateInstallationAccessTokenMock).not.toHaveBeenCalled();
+      });
+
       it('should return 400 when oidc_token is missing', async () => {
         const response = await app.request('/', {
           method: 'POST',

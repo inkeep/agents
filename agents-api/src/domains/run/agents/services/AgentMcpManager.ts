@@ -5,6 +5,7 @@ import {
   type FullExecutionContext,
   isGithubWorkAppTool,
   isSlackWorkAppTool,
+  isTrustedWorkAppMcpUrl,
   JsonTransformer,
   MCPServerType,
   type MCPToolConfig,
@@ -13,6 +14,7 @@ import {
   type McpServerConfig,
   type McpTool,
   resolveSlackUserContext,
+  TRUSTED_WORK_APP_MCP_PATHS,
 } from '@inkeep/agents-core';
 import { jsonSchema, tool } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
@@ -122,7 +124,17 @@ export class AgentMcpManager {
       };
     }
 
-    if (isGithubWorkAppTool(tool)) {
+    const urlString =
+      typeof serverConfig.url === 'string' ? serverConfig.url : serverConfig.url.toString();
+
+    if (
+      isGithubWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(
+        urlString,
+        TRUSTED_WORK_APP_MCP_PATHS.github,
+        env.INKEEP_AGENTS_API_URL
+      )
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
@@ -132,7 +144,10 @@ export class AgentMcpManager {
       };
     }
 
-    if (isSlackWorkAppTool(tool)) {
+    if (
+      isSlackWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(urlString, TRUSTED_WORK_APP_MCP_PATHS.slack, env.INKEEP_AGENTS_API_URL)
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,

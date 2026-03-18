@@ -181,7 +181,7 @@ class SigNozStatsAPI {
       ...(projectId && { projectId }),
     };
 
-    const response = await axios.post<T>(`/api/signoz?tenantId=${this.tenantId}`, requestPayload, {
+    const response = await axios.post<T>(`/api/traces?tenantId=${this.tenantId}`, requestPayload, {
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -207,7 +207,7 @@ class SigNozStatsAPI {
     }
 
     const response = await axios.post(
-      `/api/signoz?tenantId=${this.tenantId}&mode=batch`,
+      `/api/traces?tenantId=${this.tenantId}&mode=batch`,
       { paginationPayload, detailPayloadTemplate },
       {
         timeout: 60000,

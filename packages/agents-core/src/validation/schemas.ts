@@ -916,7 +916,9 @@ export const TriggerWithWebhookUrlSchema = TriggerApiSelectSchema.extend({
 }).openapi('TriggerWithWebhookUrl');
 
 // Trigger Invocation schemas
-export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
+export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations).extend({
+  ref: ResolvedRefSchema.nullable().optional(),
+});
 
 export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocations, {
   id: () => ResourceIdSchema,
@@ -1094,6 +1096,7 @@ export const ScheduledTriggerInvocationStatusEnum = z.enum([
 export const ScheduledTriggerInvocationSelectSchema = createSelectSchema(
   scheduledTriggerInvocations
 ).extend({
+  ref: ResolvedRefSchema.nullable().optional(),
   resolvedPayload: z.record(z.string(), z.unknown()).nullable().optional(),
   status: ScheduledTriggerInvocationStatusEnum,
 });
@@ -1146,7 +1149,9 @@ export type ScheduledTriggerInvocationUpdate = z.infer<
 >;
 export type ScheduledTriggerInvocationStatus = z.infer<typeof ScheduledTriggerInvocationStatusEnum>;
 
-export const TaskSelectSchema = createSelectSchema(tasks);
+export const TaskSelectSchema = createSelectSchema(tasks).extend({
+  ref: ResolvedRefSchema.nullable().optional(),
+});
 export const TaskInsertSchema = createInsertSchema(tasks).extend({
   id: ResourceIdSchema,
   conversationId: ResourceIdSchema.optional(),
@@ -1264,7 +1269,9 @@ export const ToolInsertSchema = createInsertSchema(tools)
     updatedAt: true,
   });
 
-export const ConversationSelectSchema = createSelectSchema(conversations);
+export const ConversationSelectSchema = createSelectSchema(conversations).extend({
+  ref: ResolvedRefSchema.nullable().optional(),
+});
 export const ConversationInsertSchema = createInsertSchema(conversations).extend({
   id: ResourceIdSchema,
   contextConfigId: ResourceIdSchema.optional(),
@@ -1293,7 +1300,9 @@ export const MessageApiInsertSchema =
 export const MessageApiUpdateSchema =
   createApiUpdateSchema(MessageUpdateSchema).openapi('MessageUpdate');
 
-export const ContextCacheSelectSchema = createSelectSchema(contextCache);
+export const ContextCacheSelectSchema = createSelectSchema(contextCache).extend({
+  ref: ResolvedRefSchema.nullable().optional(),
+});
 export const ContextCacheInsertSchema = createInsertSchema(contextCache).extend({
   ref: ResolvedRefSchema,
 });
@@ -1303,7 +1312,9 @@ export const ContextCacheApiSelectSchema = createApiSchema(ContextCacheSelectSch
 export const ContextCacheApiInsertSchema = createApiInsertSchema(ContextCacheInsertSchema);
 export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpdateSchema);
 
-export const DatasetRunSelectSchema = createSelectSchema(datasetRun);
+export const DatasetRunSelectSchema = createSelectSchema(datasetRun).extend({
+  ref: ResolvedRefSchema.nullable().optional(),
+});
 export const DatasetRunInsertSchema = createInsertSchema(datasetRun).extend({
   id: ResourceIdSchema,
 });
@@ -1359,7 +1370,9 @@ export const EvaluationResultApiUpdateSchema = createApiUpdateSchema(EvaluationR
   .omit({ id: true })
   .openapi('EvaluationResultUpdate');
 
-export const EvaluationRunSelectSchema = createSelectSchema(evaluationRun);
+export const EvaluationRunSelectSchema = createSelectSchema(evaluationRun).extend({
+  ref: ResolvedRefSchema.nullable().optional(),
+});
 export const EvaluationRunInsertSchema = createInsertSchema(evaluationRun).extend({
   id: ResourceIdSchema,
 });

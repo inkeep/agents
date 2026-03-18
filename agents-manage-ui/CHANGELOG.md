@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.19
+
+### Patch Changes
+
+- f8f16f4: Add GPT-5.4 Mini and GPT-5.4 Nano to model constants, UI picker, and CLI
+- 56a8a91: - Enable sorting for simple tables
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+
 ## 0.58.18
 
 ### Patch Changes
