@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { parseSkillMarkdown, SkillFrontmatterSchema } from '@inkeep/agents-core';
+import { SkillApiInsertSchema } from '@inkeep/agents-core';
 import type { SkillDefinition } from './types';
+import { z } from 'zod';
 
 function getParentDirName(filePath: string): string {
   return path.basename(path.dirname(filePath));
@@ -37,22 +38,19 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
       throw new Error('Skill directory must include SKILL.md');
     }
 
-    const { frontmatter, content } = parseSkillMarkdown(skillFile.content);
-    const { name, description, metadata } = SkillFrontmatterSchema.parse(frontmatter);
-
+    const result = SkillApiInsertSchema.safeParse({
+      files: skillFiles,
+    });
+    if (!result.success) {
+      throw new Error(z.prettifyError(result.error));
+    }
+    const { name } = result.data;
     const id = getParentDirName(filePath);
     if (name !== id) {
       throw new Error(`Skill name "${name}" does not match directory "${id}"`);
     }
 
-    return {
-      id,
-      name,
-      description,
-      metadata,
-      content,
-      files: skillFiles,
-    };
+    return result.data;
   });
   return result;
 }

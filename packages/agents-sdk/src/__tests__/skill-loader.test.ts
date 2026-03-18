@@ -43,9 +43,9 @@ description: Extracts PDFs.
     });
     const [skill] = loadSkills(root);
     expect(skill).toEqual({
-      id: 'pdf-processing',
       name: 'pdf-processing',
       description: 'Extracts PDFs.',
+      metadata: null,
       content: '',
       files: [
         {
