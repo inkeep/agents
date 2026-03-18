@@ -3,7 +3,6 @@ import {
   parseContextBreakdownFromSpan,
   V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core/client-exports';
-import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -65,65 +64,36 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-/**
- * Check if we should call SigNoz directly (server-to-server call without cookies)
- */
-function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
-  return !cookieHeader && !!process.env.SIGNOZ_URL && !!process.env.SIGNOZ_API_KEY;
-}
-
-/**
- * Get the SigNoz endpoint URL
- */
-function getSigNozEndpoint(): string {
-  const signozUrl = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL;
-  return `${signozUrl}/api/v4/query_range`;
-}
-
-// Call SigNoz directly for server-to-server calls, otherwise go through agents-api
 async function signozQuery(
   payload: any,
   tenantId: string,
-  cookieHeader: string | null
+  cookieHeader: string | null,
+  authHeader: string | null
 ): Promise<SigNozResp> {
-  const logger = getLogger('signoz-query');
+  const logger = getLogger('traces-query');
 
   try {
-    let response: AxiosResponse;
+    const agentsApiUrl = getAgentsApiUrl();
+    const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
 
-    // For server-to-server calls (no cookies), call SigNoz directly
-    if (shouldCallSigNozDirectly(cookieHeader)) {
-      const endpoint = getSigNozEndpoint();
-      logger.debug({ endpoint }, 'Calling SigNoz directly for conversation traces');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
 
-      response = await axios.post(endpoint, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
-        },
-        timeout: 30000,
-      });
-    } else {
-      // For browser calls, go through agents-api for auth
-      const agentsApiUrl = getAgentsApiUrl();
-      const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
-      }
-
-      logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
-
-      response = await axios.post(endpoint, payload, {
-        headers,
-        timeout: 30000,
-        withCredentials: true,
-      });
+    if (cookieHeader) {
+      headers.Cookie = cookieHeader;
     }
+    if (authHeader) {
+      headers.Authorization = authHeader;
+    }
+
+    logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
+
+    const response = await axios.post(endpoint, payload, {
+      headers,
+      timeout: 30000,
+      withCredentials: true,
+    });
 
     const json = response.data as SigNozResp;
     const responseData = json?.data?.result
@@ -1280,7 +1250,7 @@ type RouteContext<_T> = {
 
 export async function GET(
   req: NextRequest,
-  context: RouteContext<'/api/signoz/conversations/[conversationId]'>
+  context: RouteContext<'/api/traces/conversations/[conversationId]'>
 ) {
   const { conversationId } = await context.params;
   if (!conversationId) {
@@ -1296,8 +1266,8 @@ export async function GET(
   const startParam = url.searchParams.get('start');
   const endParam = url.searchParams.get('end');
 
-  // Forward cookies for authentication
   const cookieHeader = req.headers.get('cookie');
+  const authHeader = req.headers.get('authorization');
 
   try {
     const { start, end } = await getConversationTimeRange({
@@ -1309,9 +1279,7 @@ export async function GET(
     });
     const payload = buildConversationListPayload(conversationId, start, end, projectId);
 
-    // Single SigNoz builder query — allSpanAttributes SQL removed from initial load
-    // (span details are now fetched lazily via /api/signoz/spans/[spanId])
-    const resp = await signozQuery(payload, tenantId, cookieHeader);
+    const resp = await signozQuery(payload, tenantId, cookieHeader, authHeader);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const contextResolutionSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION);

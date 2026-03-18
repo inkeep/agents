@@ -481,7 +481,7 @@ export function TimelineWrapper({
     setLazySpanLoading(true);
 
     fetch(
-      `/api/signoz/spans/${activityId}?conversationId=${encodeURIComponent(conversationId)}&tenantId=${encodeURIComponent(tenantId)}`
+      `/api/traces/spans/${activityId}?conversationId=${encodeURIComponent(conversationId)}&tenantId=${encodeURIComponent(tenantId)}`
     )
       .then((res) => {
         if (!res.ok) {
