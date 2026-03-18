@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
   AI_OPERATIONS,
   AI_TOOL_TYPES,
+  buildFilterExpression,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
   OPERATORS,
@@ -12,12 +13,10 @@ import {
   QUERY_ENVELOPE_TYPES,
   QUERY_EXPRESSIONS,
   REQUEST_TYPES,
-  SCHEMA_VERSION,
   SIGNALS,
   SPAN_KEYS,
   SPAN_NAMES,
   UNKNOWN_VALUE,
-  buildFilterExpression,
 } from '@/constants/signoz';
 
 // ---------- String Constants for Type Safety
@@ -254,7 +253,7 @@ class SigNozStatsAPI {
             ? Object.fromEntries(
                 (s.labels as any[]).map((l: any) => [l.key?.name ?? '', String(l.value ?? '')])
               )
-            : s.labels ?? {},
+            : (s.labels ?? {}),
           values: (s.values ?? []).map((v: any) => ({ value: String(v.value ?? '0') })),
         }))
       );
@@ -1043,12 +1042,16 @@ class SigNozStatsAPI {
     try {
       const spanNameFilterItems: Array<{ key: string; op: string; value: unknown }> = [
         { key: SPAN_KEYS.NAME, op: OPERATORS.EXISTS, value: '' },
-        ...(agentId && agentId !== 'all' ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }] : []),
-        ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
+        ...(agentId && agentId !== 'all'
+          ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }]
+          : []),
+        ...(projectId
+          ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }]
+          : []),
       ];
 
       const payload = {
-        schemaVersion: SCHEMA_VERSION,
+
         start: startTime,
         end: endTime,
         requestType: REQUEST_TYPES.SCALAR,
@@ -1062,7 +1065,11 @@ class SigNozStatsAPI {
                 filter: { expression: buildFilterExpression(spanNameFilterItems) },
                 aggregations: [{ expression: 'count()' }],
                 groupBy: [
-                  { name: SPAN_KEYS.NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.SPAN },
+                  {
+                    name: SPAN_KEYS.NAME,
+                    fieldDataType: FIELD_DATA_TYPES.STRING,
+                    fieldContext: FIELD_CONTEXTS.SPAN,
+                  },
                 ],
                 order: [{ key: { name: SPAN_KEYS.NAME }, direction: ORDER_DIRECTIONS.ASC }],
                 stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1078,9 +1085,7 @@ class SigNozStatsAPI {
 
       const resp = await this.makeRequest(payload);
       const series = this.extractSeries(resp, QUERY_EXPRESSIONS.SPAN_NAMES);
-      return series
-        .map((s) => s.labels?.[SPAN_KEYS.NAME])
-        .filter((n): n is string => !!n);
+      return series.map((s) => s.labels?.[SPAN_KEYS.NAME]).filter((n): n is string => !!n);
     } catch (e) {
       console.error('getAvailableSpanNames error:', e);
       return [];
@@ -1175,12 +1180,16 @@ class SigNozStatsAPI {
 
   private buildAgentModelBreakdownPayload(start: number, end: number, projectId?: string) {
     const filterItems: Array<{ key: string; op: string; value: unknown }> = [
-      { key: SPAN_KEYS.AI_OPERATION_ID, op: OPERATORS.IN, value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT] },
+      {
+        key: SPAN_KEYS.AI_OPERATION_ID,
+        op: OPERATORS.IN,
+        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+      },
       { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1194,10 +1203,26 @@ class SigNozStatsAPI {
               aggregations: [{ expression: 'count()' }],
               filter: { expression: buildFilterExpression(filterItems) },
               groupBy: [
-                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AGENT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AI_MODEL_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AGENT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_MODEL_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1214,12 +1239,16 @@ class SigNozStatsAPI {
 
   private buildModelBreakdownPayload(start: number, end: number, projectId?: string) {
     const filterItems: Array<{ key: string; op: string; value: unknown }> = [
-      { key: SPAN_KEYS.AI_OPERATION_ID, op: OPERATORS.IN, value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT] },
+      {
+        key: SPAN_KEYS.AI_OPERATION_ID,
+        op: OPERATORS.IN,
+        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+      },
       { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1233,9 +1262,21 @@ class SigNozStatsAPI {
               aggregations: [{ expression: 'count()' }],
               filter: { expression: buildFilterExpression(filterItems) },
               groupBy: [
-                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AI_MODEL_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AGENT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_MODEL_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AGENT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1258,11 +1299,13 @@ class SigNozStatsAPI {
   ) {
     const filterItems: Array<{ key: string; op: string; value: unknown }> = [
       { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
-      ...(agentId && agentId !== 'all' ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }] : []),
+      ...(agentId && agentId !== 'all'
+        ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }]
+        : []),
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1276,9 +1319,15 @@ class SigNozStatsAPI {
               aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
               filter: { expression: buildFilterExpression(filterItems) },
               groupBy: [
-                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
-              order: [{ key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC }],
+              order: [
+                { key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+              ],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
               limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
               disabled: QUERY_DEFAULTS.DISABLED,
@@ -1334,9 +1383,15 @@ class SigNozStatsAPI {
           aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
           filter: { expression: buildFilterExpression(buildBaseFilterItems()) },
           groupBy: [
-            { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+            {
+              name: SPAN_KEYS.CONVERSATION_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
           ],
-          order: [{ key: { name: `max(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC }],
+          order: [
+            { key: { name: `max(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+          ],
           stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
           limit: paginationWindowLimit,
           disabled: QUERY_DEFAULTS.DISABLED,
@@ -1364,7 +1419,11 @@ class SigNozStatsAPI {
       ];
 
       if (filters.spanName) {
-        filteredConvItems.push({ key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: filters.spanName });
+        filteredConvItems.push({
+          key: SPAN_KEYS.NAME,
+          op: OPERATORS.EQUALS,
+          value: filters.spanName,
+        });
       }
 
       for (const attr of filters.attributes ?? []) {
@@ -1400,7 +1459,11 @@ class SigNozStatsAPI {
       }
 
       if (projectId) {
-        filteredConvItems.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
+        filteredConvItems.push({
+          key: SPAN_KEYS.PROJECT_ID,
+          op: OPERATORS.EQUALS,
+          value: projectId,
+        });
       }
 
       queries.push({
@@ -1411,7 +1474,11 @@ class SigNozStatsAPI {
           aggregations: [{ expression: 'count()' }],
           filter: { expression: buildFilterExpression(filteredConvItems) },
           groupBy: [
-            { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+            {
+              name: SPAN_KEYS.CONVERSATION_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
           ],
           order: [],
           stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1436,10 +1503,26 @@ class SigNozStatsAPI {
           aggregations: [{ expression: 'count()' }],
           filter: { expression: buildFilterExpression(metadataItems) },
           groupBy: [
-            { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-            { name: SPAN_KEYS.TENANT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-            { name: SPAN_KEYS.AGENT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-            { name: SPAN_KEYS.AGENT_NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+            {
+              name: SPAN_KEYS.CONVERSATION_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+            {
+              name: SPAN_KEYS.TENANT_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+            {
+              name: SPAN_KEYS.AGENT_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+            {
+              name: SPAN_KEYS.AGENT_NAME,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
           ],
           order: [],
           stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1461,8 +1544,16 @@ class SigNozStatsAPI {
           aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
           filter: { expression: buildFilterExpression(userMsgItems) },
           groupBy: [
-            { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-            { name: SPAN_KEYS.MESSAGE_CONTENT, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+            {
+              name: SPAN_KEYS.CONVERSATION_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+            {
+              name: SPAN_KEYS.MESSAGE_CONTENT,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
           ],
           order: [],
           stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1485,7 +1576,11 @@ class SigNozStatsAPI {
         aggregations: [{ expression: 'count()' }],
         filter: { expression: buildFilterExpression(toolCallsItems) },
         groupBy: [
-          { name: SPAN_KEYS.AI_TOOL_TYPE, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+          {
+            name: SPAN_KEYS.AI_TOOL_TYPE,
+            fieldDataType: FIELD_DATA_TYPES.STRING,
+            fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+          },
         ],
         order: [],
         stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1496,7 +1591,11 @@ class SigNozStatsAPI {
 
     const aiCallsItems: Array<{ key: string; op: string; value: unknown }> = [
       ...buildBaseFilterItems(),
-      { key: SPAN_KEYS.AI_OPERATION_ID, op: OPERATORS.IN, value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT] },
+      {
+        key: SPAN_KEYS.AI_OPERATION_ID,
+        op: OPERATORS.IN,
+        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+      },
     ];
 
     queries.push({
@@ -1515,7 +1614,7 @@ class SigNozStatsAPI {
     });
 
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1537,7 +1636,8 @@ class SigNozStatsAPI {
       base: Array<{ key: string; op: string; value: unknown }>
     ): Array<{ key: string; op: string; value: unknown }> => {
       const items = [...base];
-      if (projectId) items.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
+      if (projectId)
+        items.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
       if (agentId) items.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
       if (conversationIds && conversationIds.length > 0) {
         items.push({ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.IN, value: conversationIds });
@@ -1548,7 +1648,7 @@ class SigNozStatsAPI {
     };
 
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1569,8 +1669,16 @@ class SigNozStatsAPI {
                 ),
               },
               groupBy: [
-                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AI_TOOL_CALL_NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1593,10 +1701,26 @@ class SigNozStatsAPI {
                 ),
               },
               groupBy: [
-                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.TENANT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AGENT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AGENT_NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.TENANT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AGENT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AGENT_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1612,9 +1736,15 @@ class SigNozStatsAPI {
               aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
               filter: { expression: buildFilterExpression(withContext([])) },
               groupBy: [
-                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
-              order: [{ key: { name: `max(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC }],
+              order: [
+                { key: { name: `max(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+              ],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
               limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
               disabled: QUERY_DEFAULTS.DISABLED,
@@ -1632,8 +1762,16 @@ class SigNozStatsAPI {
                 ),
               },
               groupBy: [
-                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.SPAN },
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.SPAN,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1653,8 +1791,16 @@ class SigNozStatsAPI {
                 ),
               },
               groupBy: [
-                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.MESSAGE_CONTENT, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.MESSAGE_CONTENT,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1676,7 +1822,7 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1690,7 +1836,11 @@ class SigNozStatsAPI {
               aggregations: [{ expression: 'count()' }],
               filter: { expression: buildFilterExpression(filterItems) },
               groupBy: [
-                { name: SPAN_KEYS.AGENT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.AGENT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [{ key: { name: SPAN_KEYS.AGENT_ID }, direction: ORDER_DIRECTIONS.ASC }],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1712,7 +1862,7 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1726,7 +1876,11 @@ class SigNozStatsAPI {
               aggregations: [{ expression: 'count()' }],
               filter: { expression: buildFilterExpression(filterItems) },
               groupBy: [
-                { name: SPAN_KEYS.AI_MODEL_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.AI_MODEL_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [{ key: { name: SPAN_KEYS.AI_MODEL_ID }, direction: ORDER_DIRECTIONS.ASC }],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1749,7 +1903,7 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1763,9 +1917,21 @@ class SigNozStatsAPI {
               aggregations: [{ expression: 'count()' }],
               filter: { expression: buildFilterExpression(baseItems) },
               groupBy: [
-                { name: SPAN_KEYS.AI_TOOL_CALL_NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1786,7 +1952,11 @@ class SigNozStatsAPI {
                 ]),
               },
               groupBy: [
-                { name: SPAN_KEYS.AI_TOOL_CALL_NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -1806,11 +1976,15 @@ class SigNozStatsAPI {
       { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
       { key: SPAN_KEYS.AI_TOOL_TYPE, op: OPERATORS.EQUALS, value: AI_TOOL_TYPES.MCP },
       { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, op: OPERATORS.EXISTS, value: '' },
-      { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, op: OPERATORS.NOT_EQUALS, value: UNKNOWN_VALUE },
+      {
+        key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME,
+        op: OPERATORS.NOT_EQUALS,
+        value: UNKNOWN_VALUE,
+      },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1824,10 +1998,23 @@ class SigNozStatsAPI {
               aggregations: [{ expression: 'count()' }],
               filter: { expression: buildFilterExpression(filterItems) },
               groupBy: [
-                { name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
-                { name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
-              order: [{ key: { name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME }, direction: ORDER_DIRECTIONS.ASC }],
+              order: [
+                {
+                  key: { name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME },
+                  direction: ORDER_DIRECTIONS.ASC,
+                },
+              ],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
               limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
               disabled: QUERY_DEFAULTS.DISABLED,
@@ -1849,7 +2036,7 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1863,9 +2050,15 @@ class SigNozStatsAPI {
               aggregations: [{ expression: 'count()' }],
               filter: { expression: buildFilterExpression(filterItems) },
               groupBy: [
-                { name: SPAN_KEYS.AI_TOOL_CALL_NAME, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
-              order: [{ key: { name: SPAN_KEYS.AI_TOOL_CALL_NAME }, direction: ORDER_DIRECTIONS.ASC }],
+              order: [
+                { key: { name: SPAN_KEYS.AI_TOOL_CALL_NAME }, direction: ORDER_DIRECTIONS.ASC },
+              ],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
               limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
               disabled: QUERY_DEFAULTS.DISABLED,
@@ -2076,7 +2269,7 @@ class SigNozStatsAPI {
     const base = [tenantItem, projectItem, convExistsItem];
 
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -2165,7 +2358,11 @@ class SigNozStatsAPI {
               filter: {
                 expression: buildFilterExpression([
                   ...base,
-                  { key: SPAN_KEYS.AI_OPERATION_ID, op: OPERATORS.IN, value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT] },
+                  {
+                    key: SPAN_KEYS.AI_OPERATION_ID,
+                    op: OPERATORS.IN,
+                    value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+                  },
                 ]),
               },
               groupBy: [],
@@ -2216,7 +2413,7 @@ class SigNozStatsAPI {
       { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
     ];
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -2230,9 +2427,15 @@ class SigNozStatsAPI {
               aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
               filter: { expression: buildFilterExpression(filterItems) },
               groupBy: [
-                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
-              order: [{ key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC }],
+              order: [
+                { key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+              ],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
               limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
               disabled: QUERY_DEFAULTS.DISABLED,
@@ -2254,7 +2457,7 @@ class SigNozStatsAPI {
     const base = [tenantItem, projectItem, convExistsItem];
 
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -2268,7 +2471,11 @@ class SigNozStatsAPI {
               aggregations: [{ expression: `count_distinct(${SPAN_KEYS.CONVERSATION_ID})` }],
               filter: { expression: buildFilterExpression(base) },
               groupBy: [
-                { name: SPAN_KEYS.PROJECT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.PROJECT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -2285,11 +2492,19 @@ class SigNozStatsAPI {
               filter: {
                 expression: buildFilterExpression([
                   ...base,
-                  { key: SPAN_KEYS.AI_OPERATION_ID, op: OPERATORS.IN, value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT] },
+                  {
+                    key: SPAN_KEYS.AI_OPERATION_ID,
+                    op: OPERATORS.IN,
+                    value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+                  },
                 ]),
               },
               groupBy: [
-                { name: SPAN_KEYS.PROJECT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.PROJECT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -2311,7 +2526,11 @@ class SigNozStatsAPI {
                 ]),
               },
               groupBy: [
-                { name: SPAN_KEYS.PROJECT_ID, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+                {
+                  name: SPAN_KEYS.PROJECT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -2327,7 +2546,11 @@ class SigNozStatsAPI {
 
   private buildTokenUsagePayload(start: number, end: number, projectId?: string) {
     const baseItems: Array<{ key: string; op: string; value: unknown }> = [
-      { key: SPAN_KEYS.AI_OPERATION_ID, op: OPERATORS.IN, value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT] },
+      {
+        key: SPAN_KEYS.AI_OPERATION_ID,
+        op: OPERATORS.IN,
+        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+      },
       { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
@@ -2340,7 +2563,11 @@ class SigNozStatsAPI {
         aggregations: [{ expression: `sum(${aggregateKey})` }],
         filter: { expression: buildFilterExpression(baseItems) },
         groupBy: [
-          { name: groupByKey, fieldDataType: FIELD_DATA_TYPES.STRING, fieldContext: FIELD_CONTEXTS.ATTRIBUTE },
+          {
+            name: groupByKey,
+            fieldDataType: FIELD_DATA_TYPES.STRING,
+            fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+          },
         ],
         order: [],
         stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -2350,18 +2577,42 @@ class SigNozStatsAPI {
     });
 
     return {
-      schemaVersion: SCHEMA_VERSION,
+
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
-          makeTokenQuery('inputTokensByModel', SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, SPAN_KEYS.AI_MODEL_ID),
-          makeTokenQuery('outputTokensByModel', SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, SPAN_KEYS.AI_MODEL_ID),
-          makeTokenQuery('inputTokensByAgent', SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, SPAN_KEYS.AGENT_ID),
-          makeTokenQuery('outputTokensByAgent', SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, SPAN_KEYS.AGENT_ID),
-          makeTokenQuery('inputTokensByProject', SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, SPAN_KEYS.PROJECT_ID),
-          makeTokenQuery('outputTokensByProject', SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, SPAN_KEYS.PROJECT_ID),
+          makeTokenQuery(
+            'inputTokensByModel',
+            SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
+            SPAN_KEYS.AI_MODEL_ID
+          ),
+          makeTokenQuery(
+            'outputTokensByModel',
+            SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
+            SPAN_KEYS.AI_MODEL_ID
+          ),
+          makeTokenQuery(
+            'inputTokensByAgent',
+            SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
+            SPAN_KEYS.AGENT_ID
+          ),
+          makeTokenQuery(
+            'outputTokensByAgent',
+            SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
+            SPAN_KEYS.AGENT_ID
+          ),
+          makeTokenQuery(
+            'inputTokensByProject',
+            SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
+            SPAN_KEYS.PROJECT_ID
+          ),
+          makeTokenQuery(
+            'outputTokensByProject',
+            SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
+            SPAN_KEYS.PROJECT_ID
+          ),
         ],
       },
       variables: {},

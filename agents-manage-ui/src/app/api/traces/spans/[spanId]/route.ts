@@ -34,7 +34,6 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
     const tableName = 'distributed_signoz_index_v3';
 
     const payload = {
-      schemaVersion: 'v1',
       start: now - DEFAULT_LOOKBACK_MS,
       end: now,
       requestType: 'scalar',
@@ -94,7 +93,9 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
 
     const rawRow = dataRows[0];
     const row: Record<string, string> = {};
-    columns.forEach((col, i) => { row[col.name] = rawRow[i] == null ? '' : String(rawRow[i]); });
+    columns.forEach((col, i) => {
+      row[col.name] = rawRow[i] == null ? '' : String(rawRow[i]);
+    });
     if (!row.trace_id || !row.span_id) {
       return NextResponse.json({ error: 'Span not found' }, { status: 404 });
     }

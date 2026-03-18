@@ -21,7 +21,6 @@ const compositeQuerySchema = z.object({
 });
 
 const signozPayloadSchema = z.object({
-  schemaVersion: z.string().default('v1'),
   start: z.number().int().positive(),
   end: z.number().int().positive(),
   requestType: z.enum(['scalar', 'time_series', 'raw', 'raw_stream', 'trace', 'distribution']),

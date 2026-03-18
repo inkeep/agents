@@ -16,7 +16,6 @@ import {
   FIELD_DATA_TYPES,
   QUERY_EXPRESSIONS,
   REQUEST_TYPES,
-  SCHEMA_VERSION,
   SIGNALS,
   SPAN_KEYS,
   SPAN_NAMES,
@@ -41,12 +40,8 @@ export const dynamic = 'force-dynamic';
 // ---------- Types
 
 type SigNozListItem = { data?: Record<string, any>; [k: string]: any };
-type SigNozResp = {
-  data?: {
-    data?: { results?: Array<{ queryName?: string; rows?: SigNozListItem[] }> };
-    results?: Array<{ queryName?: string; rows?: SigNozListItem[] }>;
-  };
-};
+type SigNozResult = { queryName?: string; rows?: SigNozListItem[] };
+type SigNozResp = { results: SigNozResult[] };
 
 function getField(span: SigNozListItem, key: string) {
   const d = span?.data ?? span;
@@ -95,16 +90,13 @@ async function signozQuery(
       withCredentials: true,
     });
 
-    const json = response.data as SigNozResp;
-    const results = json?.data?.data?.results ?? json?.data?.results;
-    const responseData = results
-      ? results.map((r) => ({
-          queryName: r.queryName,
-          count: r.rows?.length,
-        }))
-      : [];
-    logger.debug({ responseData }, 'SigNoz response (truncated)');
-    return json;
+    const json = response.data;
+    const results = json?.data?.data?.results ?? json?.data?.results ?? [];
+    logger.debug(
+      { responseData: results.map((r: any) => ({ queryName: r.queryName, count: r.rows?.length })) },
+      'SigNoz response (truncated)'
+    );
+    return { results };
   } catch (e) {
     logger.error({ error: e }, 'SigNoz query error');
 
@@ -132,31 +124,13 @@ async function signozQuery(
 }
 
 function parseList(resp: SigNozResp, name: string): SigNozListItem[] {
-  const results = resp?.data?.data?.results ?? resp?.data?.results;
-  const list = results?.find((r) => r?.queryName === name)?.rows ?? [];
-  return Array.isArray(list) ? list : [];
+  return resp.results.find((r) => r.queryName === name)?.rows ?? [];
 }
 
-function parseListByName(
-  resp: SigNozResp,
-  queryName: string,
-  spanName: string
-): SigNozListItem[] {
-  return parseList(resp, queryName).filter(
-    (row) => getString(row, SPAN_KEYS.NAME) === spanName
-  );
+function parseListByName(resp: SigNozResp, queryName: string, spanName: string): SigNozListItem[] {
+  return parseList(resp, queryName).filter((row) => getString(row, SPAN_KEYS.NAME) === spanName);
 }
 
-function parseListByField(
-  resp: SigNozResp,
-  queryName: string,
-  fieldKey: string,
-  fieldValue: string
-): SigNozListItem[] {
-  return parseList(resp, queryName).filter(
-    (row) => getString(row, fieldKey) === fieldValue
-  );
-}
 
 // ---------- Payload builder (single combined "list" payload)
 
@@ -200,14 +174,8 @@ function buildQueryEnvelope(
   };
 }
 
-function wrapQueries(
-  queries: any[],
-  start: number,
-  end: number,
-  projectId?: string
-) {
+function wrapQueries(queries: any[], start: number, end: number, projectId?: string) {
   return {
-    schemaVersion: SCHEMA_VERSION,
     start,
     end,
     requestType: REQUEST_TYPES.RAW,
@@ -367,17 +335,13 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
       ]
     ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.DURATION_SPANS,
-      base,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
+    buildQueryEnvelope(QUERY_EXPRESSIONS.DURATION_SPANS, base, [
+      sf(SPAN_KEYS.SPAN_ID, str, span),
 
-        sf(SPAN_KEYS.PARENT_SPAN_ID, str, span),
-        sf(SPAN_KEYS.DURATION_NANO, float64, span),
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-      ]
-    ),
+      sf(SPAN_KEYS.PARENT_SPAN_ID, str, span),
+      sf(SPAN_KEYS.DURATION_NANO, float64, span),
+      sf(SPAN_KEYS.TIMESTAMP, int64, span),
+    ]),
     buildQueryEnvelope(
       QUERY_EXPRESSIONS.ARTIFACT_PROCESSING,
       `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.ARTIFACT_PROCESSING}'`,
@@ -527,7 +491,11 @@ export async function GET(
         const batchStart = Date.now();
         const result = await signozQuery(p, tenantId, cookieHeader, authHeader);
         logger.info(
-          { batch: batchLabels[i], queries: p.compositeQuery.queries.length, ms: Date.now() - batchStart },
+          {
+            batch: batchLabels[i],
+            queries: p.compositeQuery.queries.length,
+            ms: Date.now() - batchStart,
+          },
           `signoz batch complete`
         );
         return result;
@@ -535,10 +503,7 @@ export async function GET(
     );
     const tSignoz = Date.now();
 
-    const mergedResults = batchResults.flatMap(
-      (r) => r?.data?.data?.results ?? r?.data?.results ?? []
-    );
-    const resp: SigNozResp = { data: { results: mergedResults } };
+    const resp: SigNozResp = { results: batchResults.flatMap((r) => r.results) };
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const userMessageSpans = parseList(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
@@ -554,23 +519,33 @@ export async function GET(
     const spansWithErrorsList = parseList(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
 
     const contextResolutionSpans = parseListByName(
-      resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE, SPAN_NAMES.CONTEXT_RESOLUTION
+      resp,
+      QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE,
+      SPAN_NAMES.CONTEXT_RESOLUTION
     );
     const contextHandleSpans = parseListByName(
-      resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE, SPAN_NAMES.CONTEXT_HANDLE
+      resp,
+      QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE,
+      SPAN_NAMES.CONTEXT_HANDLE
     );
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
     const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
 
     const toolApprovalRequestedSpans = parseListByName(
-      resp, QUERY_EXPRESSIONS.TOOL_APPROVALS, SPAN_NAMES.TOOL_APPROVAL_REQUESTED
+      resp,
+      QUERY_EXPRESSIONS.TOOL_APPROVALS,
+      SPAN_NAMES.TOOL_APPROVAL_REQUESTED
     );
     const toolApprovalApprovedSpans = parseListByName(
-      resp, QUERY_EXPRESSIONS.TOOL_APPROVALS, SPAN_NAMES.TOOL_APPROVAL_APPROVED
+      resp,
+      QUERY_EXPRESSIONS.TOOL_APPROVALS,
+      SPAN_NAMES.TOOL_APPROVAL_APPROVED
     );
     const toolApprovalDeniedSpans = parseListByName(
-      resp, QUERY_EXPRESSIONS.TOOL_APPROVALS, SPAN_NAMES.TOOL_APPROVAL_DENIED
+      resp,
+      QUERY_EXPRESSIONS.TOOL_APPROVALS,
+      SPAN_NAMES.TOOL_APPROVAL_DENIED
     );
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
     const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
@@ -1284,7 +1259,10 @@ export async function GET(
       if (activityIds.has(spanId)) return spanId;
       if (ancestorCache.has(spanId)) return ancestorCache.get(spanId);
       const parentSpanId = spanIdToParentSpanId.get(spanId);
-      if (!parentSpanId) { ancestorCache.set(spanId, undefined); return undefined; }
+      if (!parentSpanId) {
+        ancestorCache.set(spanId, undefined);
+        return undefined;
+      }
       const result = findAncestorActivity(parentSpanId, depth + 1);
       ancestorCache.set(spanId, result);
       return result;
@@ -1301,9 +1279,18 @@ export async function GET(
       if (depth > 200) return null;
       if (agentGenCache.has(activityId)) return agentGenCache.get(activityId)!;
       const activity = activityById.get(activityId);
-      if (!activity) { agentGenCache.set(activityId, null); return null; }
-      if (activity.type === ACTIVITY_TYPES.AGENT_GENERATION) { agentGenCache.set(activityId, activity.id); return activity.id; }
-      if (!activity.parentSpanId) { agentGenCache.set(activityId, null); return null; }
+      if (!activity) {
+        agentGenCache.set(activityId, null);
+        return null;
+      }
+      if (activity.type === ACTIVITY_TYPES.AGENT_GENERATION) {
+        agentGenCache.set(activityId, activity.id);
+        return activity.id;
+      }
+      if (!activity.parentSpanId) {
+        agentGenCache.set(activityId, null);
+        return null;
+      }
       const result = findAncestorAgentGeneration(activity.parentSpanId, depth + 1);
       agentGenCache.set(activityId, result);
       return result;

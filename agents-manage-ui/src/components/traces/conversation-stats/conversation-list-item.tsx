@@ -52,7 +52,8 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
 
             <div className="flex items-center gap-2 text-xs">
               <code className="font-mono text-gray-500 dark:text-white/50">{conversationId}</code>
-              {startTime != null && startTime > 0 &&
+              {startTime != null &&
+                startTime > 0 &&
                 (() => {
                   try {
                     const date = new Date(startTime);

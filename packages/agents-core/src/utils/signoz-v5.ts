@@ -1,4 +1,10 @@
-import { buildFilterExpression, FIELD_CONTEXTS, FIELD_DATA_TYPES, REQUEST_TYPES, SCHEMA_VERSION, SIGNALS } from '../constants/signoz-queries';
+import {
+  buildFilterExpression,
+  FIELD_CONTEXTS,
+  FIELD_DATA_TYPES,
+  REQUEST_TYPES,
+  SIGNALS,
+} from '../constants/signoz-queries';
 
 // Built-in span fields that map to fieldContext 'span'
 const SPAN_BUILTIN_FIELDS = new Set([
@@ -135,7 +141,6 @@ export function toV5Payload(v4Payload: any): any {
   }
 
   const v5: any = {
-    schemaVersion: SCHEMA_VERSION,
     start: v4Payload.start,
     end: v4Payload.end,
     requestType,
@@ -178,7 +183,5 @@ export function extractV5Series(v5Response: any, queryName: string): any[] {
 }
 
 export function extractV5Rows(v5Response: any, queryName: string): any[] {
-  return (
-    v5Response?.data?.results?.find((r: any) => r?.queryName === queryName)?.rows ?? []
-  );
+  return v5Response?.data?.results?.find((r: any) => r?.queryName === queryName)?.rows ?? [];
 }

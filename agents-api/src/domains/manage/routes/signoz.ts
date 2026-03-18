@@ -1,10 +1,10 @@
-import { canViewProject, createApiError, type OrgRole } from '@inkeep/agents-core';
+import { canViewProject, createApiError, type OrgRole, SPAN_KEYS } from '@inkeep/agents-core';
 import axios from 'axios';
 import { Hono } from 'hono';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
-import { enforceSecurityFilters } from '../../../utils/signozHelpers';
+import { esc, enforceSecurityFilters } from '../../../utils/signozHelpers';
 
 const logger = getLogger('signoz-proxy');
 
@@ -68,7 +68,7 @@ app.post('/query', async (c) => {
   // Strip fields that are used by our proxy but not part of the SigNoz v5 schema
   // (v5 uses DisallowUnknownFields and will reject unknown top-level keys)
   delete payload.projectId;
-  delete payload.dataSource;
+
 
   const signozUrl = env.SIGNOZ_URL || env.PUBLIC_SIGNOZ_URL;
   const signozApiKey = env.SIGNOZ_API_KEY;
@@ -122,18 +122,11 @@ app.post('/query', async (c) => {
         );
       }
       if (error.response?.status === 400) {
-        const filterExpressions = payload.compositeQuery?.queries?.map((q: any) => ({
-          name: q.spec?.name,
-          filter: q.spec?.filter?.expression,
-        }));
-        logger.warn(
-          { status: error.response.status, responseData: error.response?.data, filterExpressions },
-          'Invalid SigNoz query'
-        );
+        logger.warn({ status: error.response.status }, 'Invalid SigNoz query');
         return c.json(
           {
             error: 'Bad Request',
-            message: error.response?.data?.error ?? 'Invalid query parameters',
+            message: 'Invalid query parameters',
           },
           400
         );
@@ -227,33 +220,32 @@ app.post('/query-batch', async (c) => {
       requestedProjectId
     );
     delete securedPagination.projectId;
-    delete securedPagination.dataSource;
     const step1 = await axios.post(signozEndpoint, securedPagination, {
       headers: signozHeaders,
       timeout: 30000,
     });
 
-    // Extract conversation IDs from the pageConversations result (v5 scalar columnar format)
-    // SigNoz wraps response: { status, data: { type, data: { results: [...] } } }
-    const step1Results = step1.data?.data?.data?.results ?? step1.data?.data?.results;
-    const pageResult = step1Results?.find(
-      (r: any) => r?.queryName === 'pageConversations'
-    );
+    // Axios body → SigNoz { status, data } wrapper → v5 { type, data: { results } }
+    const step1Results = step1.data?.data?.data?.results;
+    const pageResult = step1Results?.find((r: any) => r?.queryName === 'pageConversations');
     const columns: Array<{ name: string; columnType: string }> = pageResult?.columns ?? [];
-    const convIdColIdx = columns.findIndex((c) => c.name === 'conversation.id');
-    const conversationIds: string[] = convIdColIdx >= 0
-      ? (pageResult?.data ?? []).map((row: any[]) => row[convIdColIdx]).filter(Boolean)
-      : [];
+    const convIdColIdx = columns.findIndex((c) => c.name === SPAN_KEYS.CONVERSATION_ID);
+    const conversationIds: string[] =
+      convIdColIdx >= 0
+        ? (pageResult?.data ?? []).map((row: any[]) => row[convIdColIdx]).filter(Boolean)
+        : [];
 
     if (conversationIds.length === 0) {
       return c.json({ paginationResponse: step1.data, detailResponse: null });
     }
 
-    // Step 2: Inject conversation IDs into the detail template and execute
-    const detailWithIds = injectConversationIdFilter(detailPayloadTemplate, conversationIds);
-    const securedDetail = enforceSecurityFilters(detailWithIds, tenantId, requestedProjectId);
+    // Step 2: Scope detail template to the conversation IDs from step 1
+    const convIdExpr = `${SPAN_KEYS.CONVERSATION_ID} IN (${conversationIds.map((id) => `'${esc(id)}'`).join(', ')})`;
+    for (const { spec } of detailPayloadTemplate.compositeQuery.queries) {
+      spec.filter = { expression: `(${spec.filter.expression}) AND ${convIdExpr}` };
+    }
+    const securedDetail = enforceSecurityFilters(detailPayloadTemplate, tenantId, requestedProjectId);
     delete securedDetail.projectId;
-    delete securedDetail.dataSource;
     const step2 = await axios.post(signozEndpoint, securedDetail, {
       headers: signozHeaders,
       timeout: 30000,
@@ -287,7 +279,10 @@ app.post('/query-batch', async (c) => {
           'Invalid SigNoz batch query'
         );
         return c.json(
-          { error: 'Bad Request', message: error.response?.data?.error ?? 'Invalid query parameters' },
+          {
+            error: 'Bad Request',
+            message: error.response?.data?.error ?? 'Invalid query parameters',
+          },
           400
         );
       }
@@ -303,34 +298,6 @@ app.post('/query-batch', async (c) => {
   }
 });
 
-/**
- * Inject a `conversation.id IN (...)` filter into every builder query
- * of a SigNoz v5 composite query payload.
- */
-function injectConversationIdFilter(payload: any, conversationIds: string[]): any {
-  const modified = JSON.parse(JSON.stringify(payload));
-  const queries = modified.compositeQuery?.queries;
-  if (!queries) return modified;
-
-  const expr = `conversation.id IN (${conversationIds.map((id) => `'${id}'`).join(', ')})`;
-
-  for (const envelope of queries) {
-    if (envelope.type !== 'builder_query') continue;
-    const spec = envelope.spec;
-    const existing: string = spec.filter?.expression ?? '';
-    // Remove any existing conversation.id IN clause to avoid duplication
-    const sanitized = existing
-      .split(/\s+AND\s+/i)
-      .map((c: string) => c.trim())
-      .filter((c: string) => !c.toLowerCase().startsWith('conversation.id'))
-      .join(' AND ');
-    spec.filter = {
-      expression: sanitized ? `${sanitized} AND ${expr}` : expr,
-    };
-  }
-
-  return modified;
-}
 
 // GET /health - Check SigNoz configuration
 app.get('/health', async (c) => {
@@ -359,8 +326,7 @@ app.get('/health', async (c) => {
   // Test connection with minimal query
   try {
     const testPayload = {
-      schemaVersion: 'v1',
-      start: Date.now() - 300000, // 5 minutes ago
+      start: Date.now() - 300000,
       end: Date.now(),
       requestType: 'scalar',
       compositeQuery: {
