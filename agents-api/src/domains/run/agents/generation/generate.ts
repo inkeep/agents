@@ -15,7 +15,11 @@ import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
 import { handleStreamGeneration } from '../streaming/stream-handler';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
-import { handlePrepareStepCompression, handleStopWhenConditions } from './ai-sdk-callbacks';
+import {
+  createRepairToolCallHandler,
+  handlePrepareStepCompression,
+  handleStopWhenConditions,
+} from './ai-sdk-callbacks';
 import { setupCompression } from './compression';
 import { buildConversationHistory, buildInitialMessages } from './conversation-history';
 import { configureModelSettings } from './model-config';
@@ -80,6 +84,7 @@ export function buildBaseGenerationConfig(
     stopWhen: async ({ steps }: { steps: unknown[] }) => {
       return await handleStopWhenConditions(ctx, steps);
     },
+    experimental_repairToolCall: createRepairToolCallHandler(ctx),
     experimental_telemetry: buildTelemetryConfig(ctx, phase),
     abortSignal: AbortSignal.timeout(timeoutMs),
   };

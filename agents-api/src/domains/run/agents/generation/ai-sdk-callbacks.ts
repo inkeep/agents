@@ -1,11 +1,144 @@
+import { parseEmbeddedJson } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
+import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import { agentSessionManager } from '../../session/AgentSession';
 import { tracer } from '../../utils/tracer';
 import type { AgentRunContext } from '../agent-types';
 import { getMaxGenerationSteps } from './model-config';
 
 const logger = getLogger('Agent');
+
+function hasSentinelReference(value: unknown): boolean {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((item) => hasSentinelReference(item));
+  }
+
+  const record = value as Record<string, unknown>;
+  if (
+    typeof record[SENTINEL_KEY.TOOL] === 'string' ||
+    (typeof record[SENTINEL_KEY.ARTIFACT] === 'string' &&
+      typeof record[SENTINEL_KEY.TOOL] === 'string')
+  ) {
+    return true;
+  }
+
+  return Object.values(record).some((item) => hasSentinelReference(item));
+}
+
+type RepairableToolCall = {
+  type?: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+};
+
+function parseJsonContainerString(value: string): unknown {
+  const trimmed = value.trim();
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    return value;
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeEmbeddedJsonStrings(value: unknown): unknown {
+  if (typeof value === 'string') {
+    const parsed = parseJsonContainerString(value);
+    if (parsed === value) {
+      return value;
+    }
+    return normalizeEmbeddedJsonStrings(parsed);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeEmbeddedJsonStrings(item));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nested]) => [key, normalizeEmbeddedJsonStrings(nested)])
+  );
+}
+
+function normalizeToolInput(input: unknown): unknown {
+  if (typeof input === 'string') {
+    try {
+      return normalizeEmbeddedJsonStrings(JSON.parse(input));
+    } catch {
+      try {
+        const parsed = parseEmbeddedJson(input);
+        if (typeof parsed === 'string') {
+          return undefined;
+        }
+        return normalizeEmbeddedJsonStrings(parsed);
+      } catch {
+        return undefined;
+      }
+    }
+  }
+
+  return normalizeEmbeddedJsonStrings(parseEmbeddedJson(input));
+}
+
+export function createRepairToolCallHandler(ctx: AgentRunContext) {
+  return async ({ toolCall, error }: { toolCall: RepairableToolCall; error: unknown }) => {
+    const streamRequestId = ctx.streamRequestId;
+    if (!streamRequestId || !toolCall?.toolCallId) {
+      return null;
+    }
+
+    const parser = agentSessionManager.getArtifactParser(streamRequestId);
+    if (!parser) {
+      return null;
+    }
+
+    const parsedInput = normalizeToolInput(toolCall.input);
+    if (parsedInput === undefined || !hasSentinelReference(parsedInput)) {
+      return null;
+    }
+
+    try {
+      const resolved = await parser.resolveArgs(parsedInput);
+      if (JSON.stringify(resolved) === JSON.stringify(parsedInput)) {
+        return null;
+      }
+
+      const repairedInput = JSON.stringify(resolved);
+      if (typeof repairedInput !== 'string') {
+        return null;
+      }
+
+      return {
+        ...toolCall,
+        input: repairedInput,
+      };
+    } catch (resolveError) {
+      logger.debug(
+        {
+          streamRequestId,
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          error: error instanceof Error ? error.message : String(error),
+          resolveError: resolveError instanceof Error ? resolveError.message : String(resolveError),
+        },
+        'Tool repair failed while resolving sentinel references'
+      );
+      return null;
+    }
+  };
+}
 
 export async function handlePrepareStepCompression(
   stepMessages: any[],

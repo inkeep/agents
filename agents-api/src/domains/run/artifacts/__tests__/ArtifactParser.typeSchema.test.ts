@@ -350,7 +350,6 @@ describe('ArtifactParser — typeSchema in data parts', () => {
         const imageResult = {
           result: {
             data: 'base64data==',
-            encoding: 'base64',
             mimeType: 'image/png',
           },
         };

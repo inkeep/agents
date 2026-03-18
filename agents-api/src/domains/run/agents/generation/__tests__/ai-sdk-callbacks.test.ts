@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { handlePrepareStepCompression } from '../ai-sdk-callbacks';
+import { agentSessionManager } from '../../../session/AgentSession';
+import { createRepairToolCallHandler, handlePrepareStepCompression } from '../ai-sdk-callbacks';
 
 vi.mock('../../../session/AgentSession', () => ({
-  agentSessionManager: { getSession: vi.fn() },
+  agentSessionManager: { getSession: vi.fn(), getArtifactParser: vi.fn() },
 }));
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -227,5 +228,125 @@ describe('handlePrepareStepCompression', () => {
 
     const result = await handlePrepareStepCompression(makeMessages(6), compressor, 2);
     expect(result).toEqual({});
+  });
+});
+
+describe('createRepairToolCallHandler', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function makeCtx(streamRequestId?: string): any {
+    return {
+      streamRequestId,
+      config: {
+        id: 'sub-agent-1',
+        agentId: 'agent-1',
+      },
+    };
+  }
+
+  it('repairs tool call input by resolving sentinel references', async () => {
+    const resolveArgs = vi.fn().mockResolvedValue({
+      image: { data: 'abc123', mimeType: 'image/png' },
+    });
+    vi.mocked(agentSessionManager.getArtifactParser).mockReturnValue({ resolveArgs } as any);
+
+    const handler = createRepairToolCallHandler(makeCtx('stream-1'));
+    const repaired = await handler({
+      toolCall: {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'image_info',
+        input: '{"image":{"$tool":"call-read-ticket","$path":"[?type==\'image\'] | [0]"}}',
+      },
+      error: new Error('Invalid tool input'),
+    });
+
+    expect(resolveArgs).toHaveBeenCalledWith({
+      image: { $tool: 'call-read-ticket', $path: "[?type=='image'] | [0]" },
+    });
+    expect(repaired).toEqual({
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'image_info',
+      input: '{"image":{"data":"abc123","mimeType":"image/png"}}',
+    });
+  });
+
+  it('repairs nested JSON-string sentinel refs in scalar fields', async () => {
+    const resolveArgs = vi.fn().mockResolvedValue({
+      image: { data: 'abc123', mimeType: 'image/png' },
+      width: 168,
+      height: 300,
+    });
+    vi.mocked(agentSessionManager.getArtifactParser).mockReturnValue({ resolveArgs } as any);
+
+    const handler = createRepairToolCallHandler(makeCtx('stream-1'));
+    const repaired = await handler({
+      toolCall: {
+        type: 'tool-call',
+        toolCallId: 'call-2',
+        toolName: 'image_resize',
+        input: JSON.stringify({
+          image: { $artifact: 'art-1', $tool: 'call-ticket' },
+          width: '{"$tool":"call-info","$path":"width"}',
+          height: '{"$tool":"call-info","$path":"height"}',
+        }),
+      },
+      error: new Error('Invalid tool input'),
+    });
+
+    expect(resolveArgs).toHaveBeenCalledWith({
+      image: { $artifact: 'art-1', $tool: 'call-ticket' },
+      width: { $tool: 'call-info', $path: 'width' },
+      height: { $tool: 'call-info', $path: 'height' },
+    });
+    expect(repaired).toEqual({
+      type: 'tool-call',
+      toolCallId: 'call-2',
+      toolName: 'image_resize',
+      input: '{"image":{"data":"abc123","mimeType":"image/png"},"width":168,"height":300}',
+    });
+  });
+
+  it('returns null when no sentinel references are present', async () => {
+    const resolveArgs = vi
+      .fn()
+      .mockResolvedValue({ image: { data: 'abc123', mimeType: 'image/png' } });
+    vi.mocked(agentSessionManager.getArtifactParser).mockReturnValue({ resolveArgs } as any);
+
+    const handler = createRepairToolCallHandler(makeCtx('stream-1'));
+    const repaired = await handler({
+      toolCall: {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'image_info',
+        input: { image: { data: 'abc123', mimeType: 'image/png' } },
+      },
+      error: new Error('Invalid tool input'),
+    });
+
+    expect(resolveArgs).not.toHaveBeenCalled();
+    expect(repaired).toBeNull();
+  });
+
+  it('returns null when resolution fails', async () => {
+    const resolveArgs = vi.fn().mockRejectedValue(new Error('tool result missing'));
+    vi.mocked(agentSessionManager.getArtifactParser).mockReturnValue({ resolveArgs } as any);
+
+    const handler = createRepairToolCallHandler(makeCtx('stream-1'));
+    const repaired = await handler({
+      toolCall: {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'image_info',
+        input: { image: { $tool: 'call-read-ticket' } },
+      },
+      error: new Error('Invalid tool input'),
+    });
+
+    expect(resolveArgs).toHaveBeenCalledWith({ image: { $tool: 'call-read-ticket' } });
+    expect(repaired).toBeNull();
   });
 });

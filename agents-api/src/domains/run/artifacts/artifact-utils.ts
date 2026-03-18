@@ -27,12 +27,11 @@ export function queryJMESPath(data: unknown, selector: string): unknown {
 
 export type NormalizedContentItem =
   | { type: 'text'; text: unknown }
-  | { type: 'image'; data: string; encoding: 'base64'; mimeType: string };
+  | { type: 'image'; data: string; mimeType: string };
 
 function normalizeContentItem(item: any): NormalizedContentItem | null {
   if (item?.type === 'text') return { type: 'text', text: item.text };
-  if (item?.type === 'image')
-    return { type: 'image', data: item.data, encoding: 'base64', mimeType: item.mimeType };
+  if (item?.type === 'image') return { type: 'image', data: item.data, mimeType: item.mimeType };
   return null;
 }
 
@@ -52,8 +51,7 @@ export function unwrapToolResult(result: any): unknown {
     if (items.length === 1) {
       const first = items[0];
       if (first?.type === 'text') return first.text;
-      if (first?.type === 'image')
-        return { data: first.data, encoding: 'base64', mimeType: first.mimeType };
+      if (first?.type === 'image') return { data: first.data, mimeType: first.mimeType };
       return first;
     }
 

@@ -551,7 +551,6 @@ describe('ArtifactService', () => {
       });
       expect(artifactService.getToolResultRaw('call-img')).toEqual({
         data: 'base64data==',
-        encoding: 'base64',
         mimeType: 'image/png',
       });
     });
