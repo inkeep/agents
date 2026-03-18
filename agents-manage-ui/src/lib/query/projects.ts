@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { fetchProject, fetchProjectPermissions, fetchProjects } from '@/lib/api/projects';
 import type { Project } from '@/lib/types/project';
 
-const projectQueryKeys = {
+export const projectQueryKeys = {
   all: ['projects'] as const,
   tenant: (tenantId: string) => [...projectQueryKeys.all, tenantId] as const,
   list: (tenantId: string) => [...projectQueryKeys.tenant(tenantId), 'list'] as const,
