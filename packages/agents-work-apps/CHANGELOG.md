@@ -1,5 +1,15 @@
 # @inkeep/agents-work-apps
 
+## 0.58.20
+
+### Patch Changes
+
+- b4baf66: Fix GitHub OIDC token exchange to scope installation tokens to the repository from the OIDC claims.
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+  - @inkeep/agents-core@0.58.20
+
 ## 0.58.19
 
 ### Patch Changes

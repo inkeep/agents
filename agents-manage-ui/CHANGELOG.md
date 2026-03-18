@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.20
+
+### Patch Changes
+
+- 9c06353: Remove `enrichNodes` helper and fix MCP tool image not displaying in sidepane
+- 9e0dd71: fix unauthenticated access to span details
+- ac53c07: rename the api to remove references to signoz
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+  - @inkeep/agents-core@0.58.20
+
 ## 0.58.19
 
 ### Patch Changes
