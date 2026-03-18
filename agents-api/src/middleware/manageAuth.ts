@@ -22,7 +22,7 @@ import { sessionAuth } from './sessionAuth';
  * list, bounds, media, and all other manage endpoints remain session-only.
  */
 const LEGACY_API_KEY_CONVERSATION_ROUTE =
-  /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/conversations\/[^/]+$/;
+  /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/conversations\/[^/]+\/?$/;
 
 function isLegacyApiKeyAllowedRoute(method: string, path: string): boolean {
   return method === 'GET' && LEGACY_API_KEY_CONVERSATION_ROUTE.test(path);
@@ -214,6 +214,9 @@ export const manageBearerAuth = () =>
         if (error instanceof HTTPException) {
           throw error;
         }
+        // Intentional fallthrough to 401 on transient DB errors — a broken run DB
+        // should not block session-based manage auth on other routes. The customer
+        // will see "Invalid Token" rather than 503, which is acceptable for a legacy path.
         logger.error({ error }, 'Legacy API key validation failed');
       }
     }
