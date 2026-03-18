@@ -5,6 +5,7 @@ import {
   type FullExecutionContext,
   isGithubWorkAppTool,
   isSlackWorkAppTool,
+  isTrustedWorkAppMcpUrl,
   JsonTransformer,
   MCPServerType,
   type MCPToolConfig,
@@ -13,6 +14,7 @@ import {
   type McpServerConfig,
   type McpTool,
   resolveSlackUserContext,
+  TRUSTED_WORK_APP_MCP_PATHS,
 } from '@inkeep/agents-core';
 import { jsonSchema, tool } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
@@ -24,21 +26,6 @@ import type { AgentConfig } from '../Agent';
 import type { AiSdkToolDefinition } from '../agent-types';
 
 const logger = getLogger('AgentMcpManager');
-
-const TRUSTED_MCP_PATHS = {
-  slack: '/work-apps/slack/mcp',
-  github: '/work-apps/github/mcp',
-};
-
-const isTrustedMcpUrl = (url: string, path: string): boolean => {
-  try {
-    const trusted = new URL(path, env.INKEEP_AGENTS_API_URL);
-    const toolUrl = new URL(url, env.INKEEP_AGENTS_API_URL);
-    return toolUrl.origin === trusted.origin && toolUrl.pathname === trusted.pathname;
-  } catch {
-    return false;
-  }
-};
 
 export type McpToolSet = {
   tools: Record<string, any>;
@@ -140,7 +127,14 @@ export class AgentMcpManager {
     const urlString =
       typeof serverConfig.url === 'string' ? serverConfig.url : serverConfig.url.toString();
 
-    if (isGithubWorkAppTool(tool) && isTrustedMcpUrl(urlString, TRUSTED_MCP_PATHS.github)) {
+    if (
+      isGithubWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(
+        urlString,
+        TRUSTED_WORK_APP_MCP_PATHS.github,
+        env.INKEEP_AGENTS_API_URL
+      )
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
@@ -150,7 +144,10 @@ export class AgentMcpManager {
       };
     }
 
-    if (isSlackWorkAppTool(tool) && isTrustedMcpUrl(urlString, TRUSTED_MCP_PATHS.slack)) {
+    if (
+      isSlackWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(urlString, TRUSTED_WORK_APP_MCP_PATHS.slack, env.INKEEP_AGENTS_API_URL)
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
