@@ -9,8 +9,8 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import { useProjectPermissions } from '@/contexts/project';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDate } from '@/lib/utils/format-date';
 import { ArtifactComponentItemMenu } from './artifact-component-item-menu';
 

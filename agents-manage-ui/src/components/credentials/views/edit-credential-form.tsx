@@ -18,12 +18,12 @@ import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
 import type { NangoIntegrationWithMaskedCredentials } from '@/lib/mcp-tools/nango';
 import { setNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { cn } from '@/lib/utils';
 import { keyValuePairsToRecord, metadataSchema } from './credential-form-validation';
 

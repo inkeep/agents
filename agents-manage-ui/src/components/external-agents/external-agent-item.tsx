@@ -19,7 +19,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import { URLDisplay } from '@/components/url-display';
-import { useProjectPermissions } from '@/contexts/project';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';
