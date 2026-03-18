@@ -3,6 +3,7 @@
 import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { toast } from 'sonner';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
@@ -93,6 +94,7 @@ export function MetadataEditor() {
       updateMetadata('description', reportAgentStarterTemplate.description);
     }
     updateMetadata('prompt', reportAgentStarterTemplate.prompt);
+    toast.success(`Applied "${reportAgentStarterTemplate.label}" starter`);
   }, [description, updateMetadata]);
 
   const handleIdChange = useCallback(

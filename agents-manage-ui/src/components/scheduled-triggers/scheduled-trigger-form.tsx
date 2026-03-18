@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -204,6 +204,16 @@ export function ScheduledTriggerForm({
 
     toast.success(`Applied ${preset.label} preset`);
   };
+
+  // Clear preset highlight when the user manually edits any prefilled field
+  useEffect(() => {
+    const subscription = form.watch((_value, { name }) => {
+      if (selectedReportPreset && name) {
+        setSelectedReportPreset(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, selectedReportPreset]);
 
   const onSubmit = async (data: ScheduledTriggerFormData) => {
     try {
@@ -686,7 +696,7 @@ export function ScheduledTriggerForm({
                         value={Number(field.value)}
                         type="number"
                         min={30}
-                        max={900}
+                        max={780}
                       />
                     </FormControl>
                     <FormDescription>Execution timeout (30-780)</FormDescription>

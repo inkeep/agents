@@ -58,7 +58,7 @@ export const reportTriggerPresets: ReportTriggerPreset[] = [
   {
     id: 'weekly-digest',
     label: 'Weekly digest',
-    description: 'End-of-week summary for longer-term trends.',
+    description: 'Monday morning summary of the previous week for longer-term trends.',
     triggerName: 'Weekly Digest',
     triggerDescription:
       'Generate a weekly digest with notable trends, charts, and follow-up items.',

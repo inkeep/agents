@@ -37,6 +37,7 @@ describe('reportTriggerPresets', () => {
       expect(preset.maxRetries).toBeGreaterThanOrEqual(0);
       expect(preset.maxRetries).toBeLessThanOrEqual(10);
       expect(preset.retryDelaySeconds).toBeGreaterThanOrEqual(10);
+      expect(preset.retryDelaySeconds).toBeLessThanOrEqual(3600);
       expect(preset.timeoutSeconds).toBeGreaterThanOrEqual(30);
       expect(preset.timeoutSeconds).toBeLessThanOrEqual(780);
     }
