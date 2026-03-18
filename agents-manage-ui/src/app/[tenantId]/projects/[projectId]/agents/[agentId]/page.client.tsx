@@ -284,10 +284,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       setInitial(nodesWithSelection, edgesWithSelection, metadata);
 
       // Update project data in store so components using useProjectData get fresh data
-      queryClient.setQueryData(
-        projectQueryKeys.detail(tenantId, projectId),
-        convertFullProjectToProject(fullProject, tenantId)
-      );
+      const convertedProject = convertFullProjectToProject(fullProject, tenantId);
+      queryClient.setQueryData(projectQueryKeys.detail(tenantId, projectId), convertedProject);
     }
 
     try {

@@ -25,15 +25,14 @@ export default function NewCredentialForm({
   const { user } = useAuthSession();
   const {
     data: { canEdit },
-    isFetched: hasPermissions,
   } = useProjectPermissionsQuery();
 
   // Redirect if user doesn't have edit permission
   useEffect(() => {
-    if (hasPermissions && !canEdit) {
+    if (!canEdit) {
       router.replace(`/${tenantId}/projects/${projectId}/credentials`);
     }
-  }, [canEdit, hasPermissions, router, tenantId, projectId]);
+  }, [canEdit, router, tenantId, projectId]);
 
   const handleCreateCredential = async (data: CredentialFormOutput) => {
     try {
