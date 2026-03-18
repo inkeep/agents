@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -195,7 +195,10 @@ export function ProjectScheduledTriggersTable({
     [tenantId, projectId, router]
   );
 
-  const localTz = getLocalTimezoneAbbreviation();
+  const [localTz, setLocalTz] = useState<string | null>(null);
+  useEffect(() => {
+    setLocalTz(getLocalTimezoneAbbreviation());
+  }, []);
 
   const columns = useMemo<ColumnDef<ScheduledTriggerWithAgent>[]>(
     () => [
