@@ -70,7 +70,7 @@ async function signozQuery(
   cookieHeader: string | null,
   authHeader: string | null
 ): Promise<SigNozResp> {
-  const logger = getLogger('signoz-query');
+  const logger = getLogger('traces-query');
 
   try {
     const agentsApiUrl = getAgentsApiUrl();
@@ -1250,7 +1250,7 @@ type RouteContext<_T> = {
 
 export async function GET(
   req: NextRequest,
-  context: RouteContext<'/api/signoz/conversations/[conversationId]'>
+  context: RouteContext<'/api/traces/conversations/[conversationId]'>
 ) {
   const { conversationId } = await context.params;
   if (!conversationId) {

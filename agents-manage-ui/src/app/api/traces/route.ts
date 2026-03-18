@@ -87,7 +87,7 @@ function handleProxyError(error: unknown, logger: ReturnType<typeof getLogger>) 
 }
 
 export async function POST(request: NextRequest) {
-  const logger = getLogger('signoz-proxy');
+  const logger = getLogger('traces-proxy');
   const { tenantId, mode, headers } = extractRequestContext(request);
   const agentsApiUrl = getAgentsApiUrl();
 
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const logger = getLogger('signoz-config-check');
+  const logger = getLogger('traces-config-check');
 
   try {
     // Extract tenantId from query params
