@@ -3,6 +3,7 @@ import {
   getLogger,
   isInternalServiceToken,
   isSlackUserToken,
+  validateAndGetApiKey,
   verifyInternalServiceAuthHeader,
   verifySlackUserToken,
 } from '@inkeep/agents-core';
@@ -10,8 +11,22 @@ import type { createAuth } from '@inkeep/agents-core/auth';
 import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
+import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 import { sessionAuth } from './sessionAuth';
+
+/**
+ * Legacy exception: allow database API keys on GET /manage/tenants/:t/projects/:p/conversations/:id
+ * A customer uses the deprecated API key and needs read access to this single endpoint.
+ * The caller must already know the conversationId. Only GET with a specific conversation ID is allowed —
+ * list, bounds, media, and all other manage endpoints remain session-only.
+ */
+const LEGACY_API_KEY_CONVERSATION_ROUTE =
+  /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/conversations\/[^/]+$/;
+
+function isLegacyApiKeyAllowedRoute(method: string, path: string): boolean {
+  return method === 'GET' && LEGACY_API_KEY_CONVERSATION_ROUTE.test(path);
+}
 
 const logger = getLogger('env-key-auth');
 /**
@@ -22,8 +37,9 @@ const logger = getLogger('env-key-auth');
  * 3. Slack user JWT token (for Slack work app delegation)
  * 4. Internal service token
  *
- * NOTE: Database API keys are intentionally NOT accepted on manage endpoints.
- * API keys are restricted to the run domain only (chat, agent execution).
+ * NOTE: Database API keys are intentionally NOT accepted on manage endpoints,
+ * EXCEPT for the legacy exception on GET /manage/tenants/:t/projects/:p/conversations/:id
+ * (see isLegacyApiKeyAllowedRoute). API keys are otherwise restricted to the run domain only.
  */
 export const manageBearerAuth = () =>
   createMiddleware<{
@@ -157,6 +173,21 @@ export const manageBearerAuth = () =>
 
       await next();
       return;
+    }
+
+    // 5. Legacy exception: allow database API keys on the get-conversation-by-ID endpoint only
+    if (isLegacyApiKeyAllowedRoute(c.req.method, c.req.path)) {
+      const apiKeyRecord = await validateAndGetApiKey(token, runDbClient);
+      if (apiKeyRecord) {
+        logger.info(
+          { apiKeyId: apiKeyRecord.id, tenantId: apiKeyRecord.tenantId },
+          'Legacy API key authenticated for manage conversation endpoint'
+        );
+        c.set('userId', `apikey:${apiKeyRecord.id}`);
+        c.set('tenantId', apiKeyRecord.tenantId);
+        await next();
+        return;
+      }
     }
 
     // None of the authentication methods succeeded
