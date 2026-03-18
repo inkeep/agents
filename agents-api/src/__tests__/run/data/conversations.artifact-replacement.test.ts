@@ -97,12 +97,15 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
 
     const result = await getConversationHistoryWithCompression(baseParams);
 
-    expect(result).toContain('Artifact: "Google Doc"');
-    expect(result).toContain('id: art-1');
-    expect(result).toContain('args:');
-    expect(result).toContain('description: Fetched document content');
-    expect(result).toContain('summary:');
-    expect(result).not.toContain(rawContent);
+    const toolResult = result.find((msg) => msg.messageType === 'tool-result');
+    const toolResultText = toolResult?.content?.text ?? '';
+
+    expect(toolResultText).toContain('Artifact: "Google Doc"');
+    expect(toolResultText).toContain('id: art-1');
+    expect(toolResultText).toContain('args:');
+    expect(toolResultText).toContain('description: Fetched document content');
+    expect(toolResultText).toContain('summary:');
+    expect(toolResultText).not.toContain(rawContent);
   });
 
   it('batches toolCallId lookups in a single getLedgerArtifacts call', async () => {
@@ -134,7 +137,45 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
 
     const result = await getConversationHistoryWithCompression(baseParams);
 
-    expect(result).toContain(content);
-    expect(result).not.toContain('Artifact:');
+    const toolResult = result.find((msg) => msg.messageType === 'tool-result');
+    const toolResultText = toolResult?.content?.text ?? '';
+
+    expect(toolResultText).toContain(content);
+    expect(toolResultText).not.toContain('Artifact:');
+  });
+
+  it('preserves all artifact references when multiple artifacts share a toolCallId', async () => {
+    const messages = [makeToolResultMessage('tc-shared', 'raw tool output')];
+
+    mockGetConversationHistory.mockReturnValue(vi.fn().mockResolvedValue(messages));
+    mockGetLedgerArtifacts.mockReturnValue(
+      vi.fn().mockResolvedValue([
+        {
+          artifactId: 'art-1',
+          toolCallId: 'tc-shared',
+          name: 'First',
+          description: 'First artifact',
+          parts: [{ kind: 'data', data: { summary: { text: 'one' } } }],
+          metadata: {},
+          createdAt: new Date().toISOString(),
+        },
+        {
+          artifactId: 'art-2',
+          toolCallId: 'tc-shared',
+          name: 'Second',
+          description: 'Second artifact',
+          parts: [{ kind: 'data', data: { summary: { text: 'two' } } }],
+          metadata: {},
+          createdAt: new Date().toISOString(),
+        },
+      ])
+    );
+
+    const result = await getConversationHistoryWithCompression(baseParams);
+    const toolResult = result.find((msg) => msg.messageType === 'tool-result');
+    const toolResultText = toolResult?.content?.text ?? '';
+
+    expect(toolResultText).toContain('id: art-1');
+    expect(toolResultText).toContain('id: art-2');
   });
 });
