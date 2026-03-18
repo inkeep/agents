@@ -1,3 +1,4 @@
+import { stripUnsupportedConstraints } from '@inkeep/agents-core';
 import jmespath from 'jmespath';
 import type { JSONSchema } from 'zod/v4/core';
 import { getLogger } from '../../../logger';
@@ -279,6 +280,16 @@ export class SchemaProcessor {
     }
 
     return normalized;
+  }
+
+  /**
+   * Strips JSON Schema constraints that are not supported by all LLM providers.
+   * Delegates to the shared `stripUnsupportedConstraints` utility from agents-core.
+   */
+  static stripUnsupportedConstraints<
+    T extends JSONSchema.BaseSchema | Record<string, unknown> | null | undefined,
+  >(schema: T): T {
+    return stripUnsupportedConstraints(schema as Record<string, unknown>) as T;
   }
 
   /**
