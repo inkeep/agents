@@ -99,7 +99,7 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-playwright-
+          restore-keys: playwright-${{ runner.os }}-
 
       - name: Install dependencies
         if: steps.changeset-check.outputs.is_changeset != 'true'
@@ -328,7 +328,7 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-playwright-
+          restore-keys: playwright-${{ runner.os }}-
 
       - name: Install Playwright
         if: steps.changeset-check.outputs.is_changeset != 'true'
