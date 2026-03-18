@@ -1,13 +1,10 @@
-import { SkillApiInsertSchema, transformToJson } from '@inkeep/agents-core/client-exports';
+import { SkillInsertSchema, transformToJson } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
-const SkillMetadata = SkillApiInsertSchema.shape.metadata;
+const SkillMetadata = SkillInsertSchema.shape.metadata;
 
-export const SkillSchema = SkillApiInsertSchema.pick({
-  name: true,
-  description: true,
-  content: true,
-}).extend({
+export const SkillSchema = z.strictObject({
+  ...SkillInsertSchema.shape,
   metadata: z
     .string()
     .trim()

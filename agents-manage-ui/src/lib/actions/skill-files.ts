@@ -1,6 +1,6 @@
 'use server';
 
-import { parseSkillMarkdown, SkillFrontmatterSchema } from '@inkeep/agents-core';
+import { parseSkillFromMarkdown, SkillFrontmatterSchema } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import { fetchSkill, updateSkill } from '@/lib/api/skills';
 import { buildSkillFileViewHref, SKILL_ENTRY_FILE_PATH } from '@/lib/utils/skill-files';
@@ -41,7 +41,7 @@ export async function updateSkillFileAction(
     }
 
     if (filePath === SKILL_ENTRY_FILE_PATH) {
-      const parsed = parseSkillMarkdown(content);
+      const parsed = parseSkillFromMarkdown(content);
       const frontmatterResult = SkillFrontmatterSchema.safeParse(parsed.frontmatter);
 
       if (!frontmatterResult.success) {

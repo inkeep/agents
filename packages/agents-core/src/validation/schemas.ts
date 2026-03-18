@@ -73,7 +73,7 @@ import {
   VALID_RELATION_TYPES,
 } from '../types/utility';
 import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
-import { parseSkillMarkdown, SKILL_ENTRY_FILE_PATH } from '../utils/skill-files';
+import { parseSkillFromMarkdown, SKILL_ENTRY_FILE_PATH } from '../utils/skill-files';
 import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
@@ -1754,7 +1754,7 @@ export const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
   content: z.string(),
 });
 
-export const SkillInsertBaseSchema = createInsertSchema(skills)
+export const SkillInsertSchema = createInsertSchema(skills)
   .extend({
     ...SkillFrontmatterSchema.shape,
     content: z.string().trim().nonempty(),
@@ -1764,24 +1764,23 @@ export const SkillInsertBaseSchema = createInsertSchema(skills)
     id: true,
     createdAt: true,
     updatedAt: true,
+    projectId: true,
+    tenantId: true,
   });
 
-export const SkillUpdateSchema = SkillInsertBaseSchema.omit({
+export const SkillUpdateSchema = SkillInsertSchema.omit({
   // Name is persistent
   name: true,
   // Will be generated from SKILL.md
   content: true,
   description: true,
   metadata: true,
-  //
-  projectId: true,
-  tenantId: true,
 }).extend({
   files: SkillUpdateFilesInputSchema,
 });
 
 function transformSkill(markdown: string) {
-  const { frontmatter, content } = parseSkillMarkdown(markdown);
+  const { frontmatter, content } = parseSkillFromMarkdown(markdown);
   const {
     name,
     description,

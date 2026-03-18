@@ -485,7 +485,8 @@ export type SkillSelect = z.infer<typeof SkillSelectSchema>;
 export type SkillInsert = z.infer<typeof SkillInsertSchema>;
 export type SkillUpdate = z.infer<typeof SkillUpdateSchema>;
 export type SkillApiSelect = z.infer<typeof SkillApiSelectSchema>;
-export type SkillApiInsert = z.infer<typeof SkillApiInsertSchema>;
+// zod doesn't infer properly type due z.transform
+export type SkillApiInsert = z.input<typeof SkillApiInsertSchema> & SkillInsert;
 export type SkillApiUpdate = z.infer<typeof SkillApiUpdateSchema>;
 export type SkillFileSelect = z.infer<typeof SkillFileSelectSchema>;
 export type SkillFileInsert = z.infer<typeof SkillFileInsertSchema>;

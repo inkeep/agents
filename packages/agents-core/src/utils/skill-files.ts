@@ -1,4 +1,6 @@
 import { simplematter } from 'simplematter';
+import { stringify } from 'yaml';
+import type { SkillInsert } from '@inkeep/agents-core';
 
 export const SKILL_ENTRY_FILE_PATH = 'SKILL.md';
 
@@ -7,7 +9,7 @@ export interface SkillFileInput {
   content: string;
 }
 
-export function parseSkillMarkdown(markdown: string): {
+export function parseSkillFromMarkdown(markdown: string): {
   frontmatter: Record<string, unknown>;
   content: string;
 } {
@@ -16,4 +18,11 @@ export function parseSkillMarkdown(markdown: string): {
     frontmatter: frontmatter as Record<string, unknown>,
     content,
   };
+}
+
+export function serializeSkillToMarkdown({ name, description, metadata, content }: SkillInsert) {
+  const yaml = stringify({ name, description, metadata });
+  const parts = ['---', yaml.trimEnd(), '---', '', content];
+
+  return parts.join('\n');
 }
