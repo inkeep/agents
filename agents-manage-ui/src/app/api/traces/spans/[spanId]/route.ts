@@ -34,19 +34,21 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
     const tableName = 'distributed_signoz_index_v3';
 
     const payload = {
+      schemaVersion: 'v1',
       start: now - DEFAULT_LOOKBACK_MS,
       end: now,
-      step: 60,
+      requestType: 'scalar',
       variables: {
-        conversation_id: conversationId,
-        span_id: spanId,
+        conversation_id: { type: 'custom', value: conversationId },
+        span_id: { type: 'custom', value: spanId },
       },
       compositeQuery: {
-        queryType: 'clickhouse_sql',
-        panelType: 'table',
-        chQueries: {
-          A: {
-            query: `
+        queries: [
+          {
+            type: 'clickhouse_sql',
+            spec: {
+              name: 'A',
+              query: `
               SELECT
                 trace_id, span_id, parent_span_id,
                 timestamp,
@@ -62,8 +64,9 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
                 AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
               LIMIT 1
             `,
+            },
           },
-        },
+        ],
       },
     };
 
@@ -79,15 +82,20 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
     });
 
     const json = response.data;
-    const result = json?.data?.result?.[0];
-    const series = result?.series;
+    // v5 clickhouse_sql response: data.data.results[0].columns + data.data.results[0].data (columnar)
+    const results = json?.data?.data?.results ?? json?.data?.results;
+    const result = results?.[0];
+    const columns: Array<{ name: string }> = result?.columns ?? [];
+    const dataRows: unknown[][] = result?.data ?? [];
 
-    if (!series || series.length === 0) {
+    if (!dataRows.length) {
       return NextResponse.json({ error: 'Span not found' }, { status: 404 });
     }
 
-    const row = series[0]?.labels;
-    if (!row?.trace_id || !row?.span_id) {
+    const rawRow = dataRows[0];
+    const row: Record<string, string> = {};
+    columns.forEach((col, i) => { row[col.name] = rawRow[i] == null ? '' : String(rawRow[i]); });
+    if (!row.trace_id || !row.span_id) {
       return NextResponse.json({ error: 'Span not found' }, { status: 404 });
     }
 

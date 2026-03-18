@@ -1,6 +1,103 @@
 // SigNoz-specific query building constants
 // Used for constructing queries against the SigNoz API
 
+// ---------- v5 constants ----------
+
+export const SCHEMA_VERSION = 'v1' as const;
+
+export const REQUEST_TYPES = {
+  SCALAR: 'scalar',
+  TIME_SERIES: 'time_series',
+  RAW: 'raw',
+  RAW_STREAM: 'raw_stream',
+  TRACE: 'trace',
+  DISTRIBUTION: 'distribution',
+} as const;
+
+export const QUERY_ENVELOPE_TYPES = {
+  BUILDER_QUERY: 'builder_query',
+  BUILDER_FORMULA: 'builder_formula',
+  BUILDER_TRACE_OPERATOR: 'builder_trace_operator',
+  BUILDER_SUB_QUERY: 'builder_sub_query',
+  BUILDER_JOIN: 'builder_join',
+  CLICKHOUSE_SQL: 'clickhouse_sql',
+  PROMQL: 'promql',
+} as const;
+
+export const FIELD_CONTEXTS = {
+  RESOURCE: 'resource',
+  ATTRIBUTE: 'attribute',
+  SPAN: 'span',
+  LOG: 'log',
+  SCOPE: 'scope',
+  EVENT: 'event',
+  METRIC: 'metric',
+  TRACE: 'trace',
+} as const;
+
+export const FIELD_DATA_TYPES = {
+  STRING: 'string',
+  INT64: 'int64',
+  FLOAT64: 'float64',
+  BOOL: 'bool',
+  NUMBER: 'number',
+} as const;
+
+export const SIGNALS = {
+  TRACES: 'traces',
+} as const;
+
+export function fieldKey(
+  name: string,
+  fieldDataType: string,
+  fieldContext: string
+): { name: string; fieldDataType: string; fieldContext: string } {
+  return { name, fieldDataType, fieldContext };
+}
+
+const OP_MAP: Record<string, string> = {
+  '=': '=',
+  '!=': '!=',
+  '<': '<',
+  '>': '>',
+  '<=': '<=',
+  '>=': '>=',
+  like: 'LIKE',
+  nlike: 'NOT LIKE',
+  contains: 'CONTAINS',
+  ncontains: 'NOT CONTAINS',
+  exists: 'EXISTS',
+  nexists: 'NOT EXISTS',
+  in: 'IN',
+  nin: 'NOT IN',
+};
+
+function quoteValue(value: unknown): string {
+  if (typeof value === 'string') return `'${value.replace(/'/g, "\\'")}'`;
+  if (typeof value === 'boolean') return String(value);
+  return String(value);
+}
+
+export function buildFilterExpression(
+  items: Array<{ key: string; op: string; value: unknown }>
+): string {
+  const clauses = items.map(({ key, op, value }) => {
+    const v5op = OP_MAP[op] ?? op;
+    if (v5op === 'EXISTS' || v5op === 'NOT EXISTS') return `${key} ${v5op}`;
+    if (v5op === 'IN' || v5op === 'NOT IN') {
+      const vals = Array.isArray(value) ? value : [value];
+      return `${key} ${v5op} (${vals.map(quoteValue).join(', ')})`;
+    }
+    if (v5op === 'CONTAINS' || v5op === 'NOT CONTAINS') {
+      return `${key} ${v5op} ${quoteValue(value)}`;
+    }
+    return `${key} ${v5op} ${quoteValue(value)}`;
+  });
+  return clauses.join(' AND ');
+}
+
+// ---------- v4 constants (kept for backward compatibility) ----------
+
 /** SigNoz query data types */
 export const DATA_TYPES = {
   STRING: 'string',
@@ -77,6 +174,8 @@ export const OPERATORS = {
   // String operators
   LIKE: 'like',
   NOT_LIKE: 'nlike',
+  CONTAINS: 'contains',
+  NOT_CONTAINS: 'ncontains',
 
   // Existence operators
   EXISTS: 'exists',

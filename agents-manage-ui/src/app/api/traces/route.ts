@@ -11,19 +11,29 @@ axiosRetry(axios, {
   retryDelay: axiosRetry.exponentialDelay,
 });
 
+const queryEnvelopeSchema = z.object({
+  type: z.string(),
+  spec: z.record(z.string(), z.any()),
+});
+
 const compositeQuerySchema = z.object({
-  queryType: z.string(),
-  panelType: z.string(),
-  builderQueries: z.record(z.string(), z.any()),
+  queries: z.array(queryEnvelopeSchema),
 });
 
 const signozPayloadSchema = z.object({
+  schemaVersion: z.string().default('v1'),
   start: z.number().int().positive(),
   end: z.number().int().positive(),
-  step: z.number().int().positive().optional().default(60),
-  variables: z.record(z.string(), z.any()).optional().default({}),
+  requestType: z.enum(['scalar', 'time_series', 'raw', 'raw_stream', 'trace', 'distribution']),
   compositeQuery: compositeQuerySchema,
-  dataSource: z.string().optional(),
+  variables: z.record(z.string(), z.any()).optional().default({}),
+  formatOptions: z
+    .object({
+      fillGaps: z.boolean().optional(),
+      formatTableResultForUI: z.boolean().optional(),
+    })
+    .optional(),
+  noCache: z.boolean().optional(),
   projectId: z.string().optional(),
 });
 

@@ -65,6 +65,11 @@ app.post('/query', async (c) => {
   payload = enforceSecurityFilters(payload, tenantId, requestedProjectId);
   logger.debug({ tenantId, projectId: requestedProjectId }, 'Security filters enforced');
 
+  // Strip fields that are used by our proxy but not part of the SigNoz v5 schema
+  // (v5 uses DisallowUnknownFields and will reject unknown top-level keys)
+  delete payload.projectId;
+  delete payload.dataSource;
+
   const signozUrl = env.SIGNOZ_URL || env.PUBLIC_SIGNOZ_URL;
   const signozApiKey = env.SIGNOZ_API_KEY;
 
@@ -80,7 +85,7 @@ app.post('/query', async (c) => {
   }
 
   try {
-    const signozEndpoint = `${signozUrl}/api/v4/query_range`;
+    const signozEndpoint = `${signozUrl}/api/v5/query_range`;
     logger.debug({ endpoint: signozEndpoint }, 'Proxying to SigNoz');
 
     const response = await axios.post(signozEndpoint, payload, {
@@ -117,11 +122,18 @@ app.post('/query', async (c) => {
         );
       }
       if (error.response?.status === 400) {
-        logger.warn({ status: error.response.status }, 'Invalid SigNoz query');
+        const filterExpressions = payload.compositeQuery?.queries?.map((q: any) => ({
+          name: q.spec?.name,
+          filter: q.spec?.filter?.expression,
+        }));
+        logger.warn(
+          { status: error.response.status, responseData: error.response?.data, filterExpressions },
+          'Invalid SigNoz query'
+        );
         return c.json(
           {
             error: 'Bad Request',
-            message: 'Invalid query parameters',
+            message: error.response?.data?.error ?? 'Invalid query parameters',
           },
           400
         );
@@ -201,7 +213,7 @@ app.post('/query-batch', async (c) => {
     return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
   }
 
-  const signozEndpoint = `${signozUrl}/api/v4/query_range`;
+  const signozEndpoint = `${signozUrl}/api/v5/query_range`;
   const signozHeaders = {
     'Content-Type': 'application/json',
     'SIGNOZ-API-KEY': signozApiKey,
@@ -214,18 +226,24 @@ app.post('/query-batch', async (c) => {
       tenantId,
       requestedProjectId
     );
+    delete securedPagination.projectId;
+    delete securedPagination.dataSource;
     const step1 = await axios.post(signozEndpoint, securedPagination, {
       headers: signozHeaders,
       timeout: 30000,
     });
 
-    // Extract conversation IDs from the pageConversations result
-    const pageResult = step1.data?.data?.result?.find(
+    // Extract conversation IDs from the pageConversations result (v5 scalar columnar format)
+    // SigNoz wraps response: { status, data: { type, data: { results: [...] } } }
+    const step1Results = step1.data?.data?.data?.results ?? step1.data?.data?.results;
+    const pageResult = step1Results?.find(
       (r: any) => r?.queryName === 'pageConversations'
     );
-    const conversationIds: string[] = (pageResult?.series ?? [])
-      .map((s: any) => s.labels?.['conversation.id'])
-      .filter(Boolean);
+    const columns: Array<{ name: string; columnType: string }> = pageResult?.columns ?? [];
+    const convIdColIdx = columns.findIndex((c) => c.name === 'conversation.id');
+    const conversationIds: string[] = convIdColIdx >= 0
+      ? (pageResult?.data ?? []).map((row: any[]) => row[convIdColIdx]).filter(Boolean)
+      : [];
 
     if (conversationIds.length === 0) {
       return c.json({ paginationResponse: step1.data, detailResponse: null });
@@ -234,6 +252,8 @@ app.post('/query-batch', async (c) => {
     // Step 2: Inject conversation IDs into the detail template and execute
     const detailWithIds = injectConversationIdFilter(detailPayloadTemplate, conversationIds);
     const securedDetail = enforceSecurityFilters(detailWithIds, tenantId, requestedProjectId);
+    delete securedDetail.projectId;
+    delete securedDetail.dataSource;
     const step2 = await axios.post(signozEndpoint, securedDetail, {
       headers: signozHeaders,
       timeout: 30000,
@@ -257,8 +277,19 @@ app.post('/query-batch', async (c) => {
         );
       }
       if (error.response?.status === 400) {
-        logger.warn({ status: error.response.status }, 'Invalid SigNoz query');
-        return c.json({ error: 'Bad Request', message: 'Invalid query parameters' }, 400);
+        const failedPayload = error.config?.data ? JSON.parse(error.config.data) : {};
+        const filterExpressions = failedPayload.compositeQuery?.queries?.map((q: any) => ({
+          name: q.spec?.name,
+          filter: q.spec?.filter?.expression,
+        }));
+        logger.warn(
+          { status: error.response.status, responseData: error.response?.data, filterExpressions },
+          'Invalid SigNoz batch query'
+        );
+        return c.json(
+          { error: 'Bad Request', message: error.response?.data?.error ?? 'Invalid query parameters' },
+          400
+        );
       }
     }
     logger.error(
@@ -273,37 +304,29 @@ app.post('/query-batch', async (c) => {
 });
 
 /**
- * Inject a `conversation.id IN [...]` filter into every builder query
- * of a SigNoz composite query payload.
+ * Inject a `conversation.id IN (...)` filter into every builder query
+ * of a SigNoz v5 composite query payload.
  */
 function injectConversationIdFilter(payload: any, conversationIds: string[]): any {
   const modified = JSON.parse(JSON.stringify(payload));
-  const builderQueries = modified.compositeQuery?.builderQueries;
-  if (!builderQueries) return modified;
+  const queries = modified.compositeQuery?.queries;
+  if (!queries) return modified;
 
-  const inFilter = {
-    key: {
-      key: 'conversation.id',
-      dataType: 'string',
-      type: 'tag',
-      isColumn: false,
-      isJSON: false,
-      id: 'false',
-    },
-    op: 'in',
-    value: conversationIds,
-  };
+  const expr = `conversation.id IN (${conversationIds.map((id) => `'${id}'`).join(', ')})`;
 
-  for (const queryKey in builderQueries) {
-    const query = builderQueries[queryKey];
-    if (!query.filters) {
-      query.filters = { op: 'AND', items: [] };
-    }
-    // Remove any existing conversation.id IN filter to avoid duplication
-    query.filters.items = query.filters.items.filter(
-      (item: any) => !(item.key?.key === 'conversation.id' && item.op === 'in')
-    );
-    query.filters.items.push(inFilter);
+  for (const envelope of queries) {
+    if (envelope.type !== 'builder_query') continue;
+    const spec = envelope.spec;
+    const existing: string = spec.filter?.expression ?? '';
+    // Remove any existing conversation.id IN clause to avoid duplication
+    const sanitized = existing
+      .split(/\s+AND\s+/i)
+      .map((c: string) => c.trim())
+      .filter((c: string) => !c.toLowerCase().startsWith('conversation.id'))
+      .join(' AND ');
+    spec.filter = {
+      expression: sanitized ? `${sanitized} AND ${expr}` : expr,
+    };
   }
 
   return modified;
@@ -336,17 +359,16 @@ app.get('/health', async (c) => {
   // Test connection with minimal query
   try {
     const testPayload = {
+      schemaVersion: 'v1',
       start: Date.now() - 300000, // 5 minutes ago
       end: Date.now(),
-      step: 60,
+      requestType: 'scalar',
       compositeQuery: {
-        queryType: 'builder',
-        panelType: 'table',
-        builderQueries: {},
+        queries: [],
       },
     };
 
-    const signozEndpoint = `${signozUrl}/api/v4/query_range`;
+    const signozEndpoint = `${signozUrl}/api/v5/query_range`;
     logger.debug({ endpoint: signozEndpoint }, 'Testing SigNoz connection');
 
     await axios.post(signozEndpoint, testPayload, {
