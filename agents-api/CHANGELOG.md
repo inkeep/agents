@@ -1,5 +1,24 @@
 # @inkeep/agents-api
 
+## 0.58.20
+
+### Patch Changes
+
+- 7daab01: Remove unreachable ZodError catch blocks from agentFull and projectFull handlers
+- 15c6752: Add ref fields to runtime tables for branch tracking support
+- 62aad0e: Fix API key leakage vulnerability in Slack/GitHub MCP integrations by adding URL trust validation
+- 62a7aa2: Allow legacy API key authentication for GET conversation-by-ID manage endpoint
+- 9e0dd71: fix unauthenticated access to span details
+- ac53c07: rename the api to remove references to signoz
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+- Updated dependencies [b4baf66]
+  - @inkeep/agents-core@0.58.20
+  - @inkeep/agents-work-apps@0.58.20
+  - @inkeep/agents-email@0.58.20
+  - @inkeep/agents-mcp@0.58.20
+
 ## 0.58.19
 
 ### Patch Changes

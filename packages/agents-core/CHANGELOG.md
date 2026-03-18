@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.58.20
+
+### Patch Changes
+
+- 3a868c0: Add isDevelopment, isTest, and isProduction environment detection helpers
+- 15c6752: Add ref fields to runtime tables for branch tracking support
+- 62aad0e: Fix API key leakage vulnerability in Slack/GitHub MCP integrations by adding URL trust validation
+
 ## 0.58.19
 
 ### Patch Changes
