@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import type { FC } from 'react';
 import EmptyState from '@/components/layout/empty-state';
 import { buildSkillFileViewHref } from '@/lib/utils/skill-files';
-import { resolveSkillFilePageData } from './skills-data';
+import { resolveSkillFilePageData } from '../skills-data';
 import { metadata } from './layout';
 
 const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({ params }) => {

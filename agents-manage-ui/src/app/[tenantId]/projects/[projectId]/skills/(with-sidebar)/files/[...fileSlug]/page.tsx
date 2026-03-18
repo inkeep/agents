@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { SkillFileEditor } from '@/components/skills/skill-file-editor';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { resolveSkillFilePageData } from '../../skills-data';
+import { resolveSkillFilePageData } from '../../../skills-data';
 
 const SkillFilePage: FC<
   PageProps<'/[tenantId]/projects/[projectId]/skills/files/[...fileSlug]'>

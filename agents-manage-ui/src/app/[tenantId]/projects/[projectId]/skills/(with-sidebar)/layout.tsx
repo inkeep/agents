@@ -11,7 +11,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { fetchSkillsPageData } from './skills-data';
+import { fetchSkillsPageData } from '../skills-data';
 
 export const metadata = {
   title: STATIC_LABELS.skills,
