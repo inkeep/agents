@@ -28,6 +28,11 @@ function isLegacyApiKeyAllowedRoute(method: string, path: string): boolean {
   return method === 'GET' && LEGACY_API_KEY_CONVERSATION_ROUTE.test(path);
 }
 
+function extractProjectIdFromPath(path: string): string | undefined {
+  const match = path.match(/\/projects\/([^/]+)\//);
+  return match?.[1];
+}
+
 const logger = getLogger('env-key-auth');
 /**
  * Middleware to authenticate API requests using Bearer token authentication
@@ -177,16 +182,39 @@ export const manageBearerAuth = () =>
 
     // 5. Legacy exception: allow database API keys on the get-conversation-by-ID endpoint only
     if (isLegacyApiKeyAllowedRoute(c.req.method, c.req.path)) {
-      const apiKeyRecord = await validateAndGetApiKey(token, runDbClient);
-      if (apiKeyRecord) {
-        logger.info(
-          { apiKeyId: apiKeyRecord.id, tenantId: apiKeyRecord.tenantId },
-          'Legacy API key authenticated for manage conversation endpoint'
-        );
-        c.set('userId', `apikey:${apiKeyRecord.id}`);
-        c.set('tenantId', apiKeyRecord.tenantId);
-        await next();
-        return;
+      try {
+        const apiKeyRecord = await validateAndGetApiKey(token, runDbClient);
+        if (apiKeyRecord) {
+          // Validate that the API key's project matches the route's project
+          const routeProjectId = extractProjectIdFromPath(c.req.path);
+          if (routeProjectId && apiKeyRecord.projectId !== routeProjectId) {
+            logger.warn(
+              {
+                apiKeyId: apiKeyRecord.id,
+                apiKeyProjectId: apiKeyRecord.projectId,
+                routeProjectId,
+              },
+              'Legacy API key project mismatch'
+            );
+            throw new HTTPException(403, {
+              message: 'API key does not have access to this project',
+            });
+          }
+
+          logger.info(
+            { apiKeyId: apiKeyRecord.id, tenantId: apiKeyRecord.tenantId },
+            'Legacy API key authenticated for manage conversation endpoint'
+          );
+          c.set('userId', `apikey:${apiKeyRecord.id}`);
+          c.set('tenantId', apiKeyRecord.tenantId);
+          await next();
+          return;
+        }
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error;
+        }
+        logger.error({ error }, 'Legacy API key validation failed');
       }
     }
 

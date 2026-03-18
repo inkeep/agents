@@ -193,6 +193,22 @@ describe('Manage Auth - API Key Rejection', () => {
       expect(validateAndGetApiKeyMock).not.toHaveBeenCalled();
     });
 
+    it('should reject API key when project does not match the key project', async () => {
+      validateAndGetApiKeyMock.mockResolvedValue({
+        ...VALID_API_KEY_RECORD,
+        projectId: 'other-project',
+      });
+      app.use('*', manageBearerAuth());
+      app.get(CONVERSATION_PATH, (c) => c.text('OK'));
+
+      const res = await app.request(CONVERSATION_PATH, {
+        headers: { Authorization: 'Bearer valid-api-key-token' },
+      });
+
+      expect(res.status).toBe(403);
+      expect(validateAndGetApiKeyMock).toHaveBeenCalled();
+    });
+
     it('should reject an invalid API key on GET conversation by ID', async () => {
       validateAndGetApiKeyMock.mockResolvedValue(null);
       app.use('*', manageBearerAuth());
