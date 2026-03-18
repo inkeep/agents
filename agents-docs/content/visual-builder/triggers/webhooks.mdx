@@ -1,118 +1,151 @@
 ---
 title: Webhook Triggers
-description: Create webhook endpoints for external services to invoke your Agents
+description: Create webhook endpoints that let external services invoke your agents via HTTP
 icon: LuWebhook
 ---
 
-Triggers create webhook endpoints that allow external services to invoke your Agents via HTTP. When a service like GitHub, Slack, Zendesk, or Stripe sends a webhook, the payload is validated, transformed, and used to start a new conversation with your Agent.
+Webhook triggers give you an HTTP endpoint that external services — like GitHub, Zendesk, Stripe, or PagerDuty — can POST to. 
 
-Triggers are HTTP URLs you create that you can send POST requests to, to invoke the agent. Once you create the webhook URL in the dashboard, you can hook it up to external services like GitHub, Slack, Zendesk, or Stripe to trigger your agent. For example in Zendesk, you can go into Zendesk's configuration settings and input the webhook URL you created in the Inkeep dashboard to trigger your agent when a new ticket is created or updated. The same can be applied to other services like GitHub, PagerDuty, or Stripe.
+Incoming payloads are validated, transformed into a message, and used to start a new conversation asynchronously.
 
-## How to Create a Webhook Trigger
+<NumberedStepsTOC stepIds={["open-the-triggers-page", "start-a-new-trigger", "configure-and-save", "verify-the-trigger"]} />
 
-<NumberedStepsTOC stepIds={["navigate-to-triggers", "create-a-webhook-trigger", "configure-the-trigger"]} />
+## Create a webhook trigger
 
 <Steps>
   <Step>
-    ### Navigate to Triggers
-    
-    Open Triggers from the sidebar.
+    ### Open the triggers page
+
+    Navigate to your project and select **Triggers** in the left sidebar, then choose the **Webhooks** tab.
 
     <Image src="/images/vb-triggers-webhooks/step-1.png" alt="Triggers menu item in the left sidebar" />
   </Step>
   <Step>
-    ### Create a Webhook Trigger
+    ### Start a new trigger
 
-    Go to the Webhooks tab and click New Webhook Trigger, then select the agent you want the trigger to run.
+    Click **New Webhook Trigger**. Select the agent you want the trigger to invoke, then click **Continue**.
 
-    <Image src="/images/vb-triggers-webhooks/step-2.png" alt="Webhooks tab in the Triggers page" />
+    <Image src="/images/vb-triggers-webhooks/step-2.png" alt="Webhooks tab with the New Webhook Trigger button" />
   </Step>
   <Step>
-    ### Configure the Trigger
+    ### Configure and save
 
-    Fill out the trigger configuration, including authentication headers, signature verification, or other optional settings.
+    Fill in the trigger settings described below, then click **Create Trigger**. 
 
-    Then click Create Trigger.
+    <Image src="/images/vb-triggers-webhooks/step-3.png" alt="Trigger configuration form with name, message template, and authentication fields" />
+  </Step>
+  <Step>
+    ### Verify the trigger
 
-    <Image src="/images/vb-triggers-webhooks/step-3.png" alt="Trigger configuration page" />
+    The new webhook URL appears in the webhooks tab — copy it into your external service's webhook configuration.
+
+    <Image src="/images/vb-triggers-webhooks/step-4.png" alt="Webhooks tab with the new webhook URL" />
   </Step>
 </Steps>
 
-## How Triggers Work
+## Configuration reference
 
-1. **External service sends a webhook** to your trigger's URL
-2. **Authentication is verified** (custom headers or signature)
-3. **Payload is validated** against the input schema (if configured)
-4. **Payload is transformed** using the message template
-5. **Invocation is logged** and the webhook returns immediately with `202 Accepted`
-6. **Agent processes the message** asynchronously in a new conversation
+### Required fields
 
-## Trigger Configuration
-
-Each trigger is configured with:
-
-### Required
-
-- **Name**: Human-readable identifier for the trigger
-- **Message Template**: Template that converts the webhook payload into a message for the Agent
-
-### Optional
-
-- **Input Schema**: JSON Schema to validate incoming payloads
-- **Authentication**: Custom headers with expected values
-- **Signing Secret**: HMAC-SHA256 signature verification (for GitHub, Slack, etc.)
-- **Output Transform**: Reshape payloads before interpolating the message template. Choose one approach:
-  - **Object Transformation**: Simple field remapping (recommended for basic use cases)
-  - **JMESPath**: Complex transformations like filtering arrays or restructuring nested data
-- **Run As User**: Execute the trigger on behalf of a specific user, enabling access to their connected credentials
-
-## Authentication Options
-
-Triggers support flexible header-based authentication:
-
-| Configuration | Use Case |
+| Field | Description |
 | --- | --- |
-| Custom header (e.g., `X-API-Key`) | Simple API key authentication |
-| `Authorization` header with Bearer token | OAuth-style authentication |
-| Multiple headers | Multi-factor authentication |
-| Signing secret only | Webhooks from services that sign requests |
-| No authentication | Public webhooks (use with caution) |
+| **Name** | Human-readable identifier (e.g., "GitHub Issues" or "Stripe Payments") |
+| **Message Template** | Converts the webhook payload into a message for the agent. Uses `{{placeholder}}` syntax for interpolation (e.g., `New issue: {{issue.title}} by {{issue.user.login}}`) |
+
+### Optional fields
+
+| Field | Description |
+| --- | --- |
+| **Description** | Explains what the trigger does |
+| **Enabled** | Toggle on to activate immediately after creation |
+| **Input Schema** | JSON Schema to validate incoming payloads — rejects requests that don't match |
+| **Authentication** | One or more custom headers with expected values (see [Authentication](#authentication)) |
+| **Signing Secret** | HMAC-SHA256 secret for signature verification (GitHub, Stripe, Slack) |
+| **Output Transform** | Reshape payloads before interpolating the message template (see [Payload transformation](#payload-transformation)) |
+| **Run As User** | Execute the trigger as a specific user to access their connected credentials (see [User-scoped execution](#user-scoped-execution)) |
+
+### Message templates
+
+Templates use `{{placeholder}}` syntax to pull values from the (optionally transformed) payload. Nested properties use dot notation:
+
+```
+New order received:
+- Order ID: {{order.id}}
+- Customer: {{customer.name}} ({{customer.email}})
+- Total: ${{order.total}}
+
+Please process this order and send a confirmation.
+```
+
+When the trigger fires, the agent receives a multi-part message: a **text part** generated from the template and a **data part** containing the full structured payload.
+
+## Authentication
+
+Triggers support flexible header-based authentication. Configure one or more headers that every incoming request must match:
+
+| Approach | When to use |
+| --- | --- |
+| Custom header (e.g., `X-API-Key`) | Simple API key verification |
+| `Authorization: Bearer <token>` | OAuth-style authentication |
+| Multiple headers | Combined verification (e.g., API key + client ID) |
+| Signing secret only | Services that sign requests (GitHub, Stripe, Slack) |
+| No authentication | Public endpoints (use with caution) |
 
 <Note>
-Header values are securely hashed before storage. For services that sign webhooks (GitHub, Stripe, Slack), you can rely on `signingSecret` alone for security.
+Header values are securely hashed before storage — original values are never persisted. For services that sign webhooks, you can rely on the signing secret alone for security.
 </Note>
 
-## Webhook URL Format
+## Payload transformation
 
-After creating a trigger, the webhook URL follows this pattern:
+Transform incoming payloads before they reach the message template. Choose one approach:
 
-```
-POST https://<your-run-api>/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}
-```
+| Approach | Best for | Complexity |
+| --- | --- | --- |
+| **Object Transformation** | Simple field remapping | Low |
+| **JMESPath** | Filtering arrays, conditional logic, complex restructuring | High |
 
-You can find the complete webhook URL in the API response when creating or listing triggers.
+**Object Transformation** maps input fields to output fields. For example, mapping `payload.user.display_name` → `userName` and `payload.action.type` → `actionName`.
 
-## User-Scoped Execution
+**JMESPath** uses a full query language for advanced cases. For example, `{ activeUsers: join(', ', users[?active==true].name) }` filters an array and joins the results. See [jmespath.org](https://jmespath.org/) for the full specification.
 
-By default, webhook triggers execute without a user identity — tools with user-scoped credentials will fail. Setting `runAsUserId` makes the trigger execute as a specific user, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira).
+<Tip>
+Object Transformation is converted to JMESPath under the hood. Start with object transformation and switch to JMESPath only when you need filtering, conditionals, or array operations.
+</Tip>
 
-Any user with `edit` permission on a project can set `runAsUserId` to themselves. Org admins and owners can set it to any user in their organization.
+## User-scoped execution
 
-When `runAsUserId` is set, agents automatically use that user's profile timezone for time-aware responses.
+By default, webhook triggers run without a user identity — tools requiring user-scoped credentials are skipped. Setting **Run As User** makes the trigger execute as a specific user, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira).
 
-## Invocation Tracking
+When a run-as user is set, agents automatically use that user's profile timezone for time-aware responses.
+
+## How webhooks are processed
+
+1. An external service sends an HTTP POST to the trigger's webhook URL
+2. Authentication headers or signing secret are verified
+3. The payload is validated against the input schema (if configured)
+4. The payload is transformed using the output transform (if configured)
+5. The message template is interpolated with the (transformed) payload
+6. The webhook returns `202 Accepted` immediately
+7. The agent processes the message asynchronously in a new conversation
+
+## Monitor invocations
+
+View invocations from the trigger's dropdown menu to monitor activity, debug failures, and audit usage.
+
+<Image src="/images/vb-triggers-webhooks/invocations.png" alt="Select view invocations" />
 
 Every webhook invocation is tracked with:
 
-- **Status**: `pending` → `success` or `failed`
-- **Request Payload**: The original webhook body
-- **Transformed Payload**: The payload after transformation
-- **Conversation ID**: The conversation created for this invocation
-- **Error Message**: Details if the invocation failed
+| Field | Description |
+| --- | --- |
+| **Status** | `pending` → `success` or `failed` |
+| **Request Payload** | The original webhook body |
+| **Transformed Payload** | The payload after output transformation |
+| **Conversation ID** | Links to the conversation the invocation created |
+| **Error Message** | Details if the invocation failed |
 
-This allows you to monitor webhook activity, debug failures, and audit trigger usage.
 
-## Next Steps
+## Next steps
 
 <Cards>
   <Card title="Define in Code" icon="LuCode" href="/typescript-sdk/triggers/webhooks">
