@@ -22,8 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
-import { useProjectData } from '@/hooks/use-project-data';
-import { useProjectPermissionsQuery } from '@/lib/query/projects';
+import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
 import {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
@@ -74,7 +73,7 @@ export function MetadataEditor() {
   } = useProjectPermissionsQuery();
 
   // Fetch project data for inheritance indicators
-  const { project } = useProjectData();
+  const { data: project } = useProjectQuery();
 
   const { markUnsaved, setMetadata } = useAgentActions();
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Background,
   ConnectionMode,
@@ -51,12 +52,12 @@ import {
   validateSerializedData,
 } from '@/features/agent/domain';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { saveAgent } from '@/lib/services/save-agent';
@@ -111,6 +112,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
@@ -142,7 +144,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     markUnsaved,
     reset,
   } = useAgentActions();
-  const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
   const onAddInitialNode = () => {
@@ -208,8 +209,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     return () => {
       // we need to reset the agent store when the component unmounts otherwise the agent store will persist the changes from the previous agent
       reset();
-      // Also reset the project store to prevent stale data
-      resetProjectStore();
     };
   }, []);
 
@@ -285,9 +284,10 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       setInitial(nodesWithSelection, edgesWithSelection, metadata);
 
       // Update project data in store so components using useProjectData get fresh data
-      const convertedProject = convertFullProjectToProject(fullProject, tenantId);
-
-      setProjectStore(convertedProject);
+      queryClient.setQueryData(
+        projectQueryKeys.detail(tenantId, projectId),
+        convertFullProjectToProject(fullProject, tenantId)
+      );
     }
 
     try {
