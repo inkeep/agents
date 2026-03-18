@@ -23,14 +23,17 @@ export default function NewCredentialForm({
   const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const { tenantId, projectId } = use(params);
   const { user } = useAuthSession();
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+    isFetched: hasPermissions,
+  } = useProjectPermissionsQuery();
 
   // Redirect if user doesn't have edit permission
   useEffect(() => {
-    if (!canEdit) {
+    if (hasPermissions && !canEdit) {
       router.replace(`/${tenantId}/projects/${projectId}/credentials`);
     }
-  }, [canEdit, router, tenantId, projectId]);
+  }, [canEdit, hasPermissions, router, tenantId, projectId]);
 
   const handleCreateCredential = async (data: CredentialFormOutput) => {
     try {

@@ -51,7 +51,10 @@ function ProviderSetupPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers/[providerId]'>) {
   const router = useRouter();
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+    isFetched: hasPermissions,
+  } = useProjectPermissionsQuery();
   const { providers, loading: providersLoading } = useNangoProviders();
   const [loading, setLoading] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
@@ -66,10 +69,10 @@ function ProviderSetupPage({
   const { providerId, tenantId, projectId } = use(params);
 
   useEffect(() => {
-    if (!canEdit) {
+    if (hasPermissions && !canEdit) {
       router.replace(`/${tenantId}/projects/${projectId}/credentials`);
     }
-  }, [canEdit, router, tenantId, projectId]);
+  }, [canEdit, hasPermissions, router, tenantId, projectId]);
 
   const provider = providers?.find((p: ApiProvider) => encodeURIComponent(p.name) === providerId);
 
