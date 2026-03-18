@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import NextLink from 'next/link';
 import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
+import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { SkillsSidebar } from '@/components/skills/skills-sidebar';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,6 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { fetchSkillsPageData } from './skills-data';
-import EmptyState from '@/components/layout/empty-state';
 
 export const metadata = {
   title: STATIC_LABELS.skills,

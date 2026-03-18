@@ -309,14 +309,14 @@ export const updateSkill =
       if (!existing) {
         return null;
       }
-      const { description, metadata, content } = params.data
+      const { description, metadata, content } = params.data;
 
       const updateData: Partial<SkillSelect> = {
         updatedAt: new Date().toISOString(),
       };
-      if (description !== undefined) updateData.description = description
-      if (metadata !== undefined) updateData.metadata = metadata
-      if (content !== undefined) updateData.content = content
+      if (description !== undefined) updateData.description = description;
+      if (metadata !== undefined) updateData.metadata = metadata;
+      if (content !== undefined) updateData.content = content;
 
       const [result] = await tx
         .update(skills)

@@ -6,6 +6,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { PromptEditor } from '@/components/editors/prompt-editor';
+import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 import { DeleteSkillConfirmation } from '@/components/skills/delete-skill-confirmation';
 import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-file-confirmation';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,6 @@ import {
   isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
-import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 
 interface SkillFileEditorProps {
   tenantId: string;
