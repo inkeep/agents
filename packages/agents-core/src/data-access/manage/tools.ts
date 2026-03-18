@@ -30,6 +30,8 @@ import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
+  isTrustedWorkAppMcpUrl,
+  TRUSTED_WORK_APP_MCP_PATHS,
   toISODateString,
 } from '../../utils';
 import { generateId } from '../../utils/conversations';
@@ -227,7 +229,16 @@ const discoverToolsFromServer = async (
       userId
     );
 
-    if (isGithubWorkAppTool(tool)) {
+    const urlString = String(serverConfig.url);
+
+    if (
+      isGithubWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(
+        urlString,
+        TRUSTED_WORK_APP_MCP_PATHS.github,
+        env.INKEEP_AGENTS_API_URL
+      )
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
@@ -237,7 +248,10 @@ const discoverToolsFromServer = async (
       };
     }
 
-    if (isSlackWorkAppTool(tool)) {
+    if (
+      isSlackWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(urlString, TRUSTED_WORK_APP_MCP_PATHS.slack, env.INKEEP_AGENTS_API_URL)
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
