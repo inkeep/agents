@@ -184,7 +184,8 @@ export async function lookupInstallationForRepo(
 }
 
 export async function generateInstallationAccessToken(
-  installationId: number
+  installationId: number,
+  repositoryId: number
 ): Promise<GenerateInstallationAccessTokenResult> {
   let appJwt: string;
   try {
@@ -207,9 +208,13 @@ export async function generateInstallationAccessToken(
       headers: {
         Authorization: `Bearer ${appJwt}`,
         Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
         'X-GitHub-Api-Version': '2022-11-28',
         'User-Agent': 'inkeep-agents-api',
       },
+      body: JSON.stringify({
+        repository_ids: [repositoryId],
+      }),
     });
 
     if (!response.ok) {
@@ -249,7 +254,7 @@ export async function generateInstallationAccessToken(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     logger.error(
-      { error: message, installationId },
+      { error: message, installationId, repositoryId },
       'Error calling GitHub API to generate installation access token'
     );
     return {
