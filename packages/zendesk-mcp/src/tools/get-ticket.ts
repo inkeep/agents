@@ -1,3 +1,4 @@
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { formatTicketWithDescription } from '../lib/format.js';
 import type { ZendeskTicketResponse } from '../lib/types.js';
@@ -12,7 +13,7 @@ export const GetTicketInputSchema = z
 
 export type GetTicketInput = z.infer<typeof GetTicketInputSchema>;
 
-export function registerGetTicket(server: any, client: ZendeskClient, subdomain: string) {
+export function registerGetTicket(server: McpServer, client: ZendeskClient, subdomain: string) {
   server.registerTool(
     'zendesk_get_ticket',
     {

@@ -20,6 +20,7 @@ const targetPackages = [
   './packages/agents-sdk',
   './packages/create-agents',
   './packages/agents-email',
+  './packages/zendesk-mcp',
 ];
 
 // Header to add to generated LICENSE files

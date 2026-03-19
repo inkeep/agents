@@ -1,3 +1,4 @@
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { formatUser } from '../lib/format.js';
 import type { ZendeskUsersSearchResponse } from '../lib/types.js';
@@ -15,7 +16,7 @@ export const SearchUsersInputSchema = z
 
 export type SearchUsersInput = z.infer<typeof SearchUsersInputSchema>;
 
-export function registerSearchUsers(server: any, client: ZendeskClient) {
+export function registerSearchUsers(server: McpServer, client: ZendeskClient) {
   server.registerTool(
     'zendesk_search_users',
     {

@@ -1,7 +1,13 @@
-import { defineConfig } from 'vitest/config';
+import { defineProject } from 'vitest/config';
 
-export default defineConfig({
+export default defineProject({
   test: {
+    name: 'zendesk-mcp',
+    globals: true,
+    environment: 'node',
     include: ['src/__tests__/**/*.test.ts'],
+    env: {
+      ENVIRONMENT: 'test',
+    },
   },
 });

@@ -15,10 +15,10 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.18.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
@@ -43,5 +43,5 @@
     "support",
     "tickets"
   ],
-  "license": "MIT"
+  "license": "SEE LICENSE IN LICENSE.md"
 }

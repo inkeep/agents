@@ -1,3 +1,4 @@
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { formatTicketList } from '../lib/format.js';
 import type { ZendeskTicketsListResponse } from '../lib/types.js';
@@ -29,7 +30,7 @@ export const ListTicketsInputSchema = z
 
 export type ListTicketsInput = z.infer<typeof ListTicketsInputSchema>;
 
-export function registerListTickets(server: any, client: ZendeskClient, subdomain: string) {
+export function registerListTickets(server: McpServer, client: ZendeskClient, subdomain: string) {
   server.registerTool(
     'zendesk_list_tickets',
     {

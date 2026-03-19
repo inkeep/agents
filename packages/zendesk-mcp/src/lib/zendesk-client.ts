@@ -37,6 +37,14 @@ export function getConfig(): ZendeskConfig {
     process.exit(1);
   }
 
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i.test(subdomain)) {
+    console.error(
+      `Error: Invalid ZENDESK_SUBDOMAIN value "${subdomain}".\n` +
+        'Must contain only alphanumeric characters and hyphens (e.g., "mycompany").'
+    );
+    process.exit(1);
+  }
+
   return { subdomain, email, apiToken };
 }
 

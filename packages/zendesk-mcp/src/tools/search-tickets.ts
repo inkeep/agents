@@ -1,3 +1,4 @@
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { formatTicketList } from '../lib/format.js';
 import type { ZendeskSearchResponse } from '../lib/types.js';
@@ -52,7 +53,7 @@ export const SearchTicketsInputSchema = z
 
 export type SearchTicketsInput = z.infer<typeof SearchTicketsInputSchema>;
 
-function buildQuery(params: SearchTicketsInput): string {
+export function buildQuery(params: SearchTicketsInput): string {
   const parts: string[] = [params.query];
 
   if (params.status) parts.push(`status:${params.status}`);
@@ -70,7 +71,7 @@ function buildQuery(params: SearchTicketsInput): string {
   return parts.join(' ');
 }
 
-export function registerSearchTickets(server: any, client: ZendeskClient, subdomain: string) {
+export function registerSearchTickets(server: McpServer, client: ZendeskClient, subdomain: string) {
   server.registerTool(
     'zendesk_search_tickets',
     {

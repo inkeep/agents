@@ -1,3 +1,4 @@
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { formatComment } from '../lib/format.js';
 import type { ZendeskCommentsResponse } from '../lib/types.js';
@@ -25,7 +26,7 @@ export const GetCommentsInputSchema = z
 
 export type GetCommentsInput = z.infer<typeof GetCommentsInputSchema>;
 
-export function registerGetComments(server: any, client: ZendeskClient) {
+export function registerGetComments(server: McpServer, client: ZendeskClient) {
   server.registerTool(
     'zendesk_get_ticket_comments',
     {
