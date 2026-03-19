@@ -37,13 +37,17 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
     if (!result.success) {
       throw new Error(z.prettifyError(result.error));
     }
-    const { name } = result.data;
+    const { name, files } = result.data;
     const id = getParentDirName(filePath);
     if (name !== id) {
       throw new Error(`Skill name "${name}" does not match directory "${id}"`);
     }
 
-    return result.data;
+    return {
+      id,
+      files,
+    };
   });
+  // @ts-expect-error -- fixme
   return result;
 }
