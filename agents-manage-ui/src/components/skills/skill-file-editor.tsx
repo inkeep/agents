@@ -93,9 +93,8 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                   <DeleteSkillConfirmation skillId={skillId} setIsOpen={setIsDeleteOpen} />
                 ) : (
                   <DeleteSkillFileConfirmation
-                    tenantId={tenantId}
-                    projectId={projectId}
                     skillId={skillId}
+                    fileId={fileId}
                     filePath={filePath}
                     redirectPath={buildSkillFileViewHref(
                       tenantId,
