@@ -5,7 +5,7 @@ export * from './dolt-schemas';
 export * from './event-schemas';
 export * from './props-validation';
 export * from './render-validation';
-export * from './schemas';
 export * from './schemas/shared';
 export * from './schemas/skills';
+export * from './schemas';
 export * from './stream-event-schemas';
