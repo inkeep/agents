@@ -2,7 +2,7 @@
 
 import { parseSkillFromMarkdown, SkillFrontmatterSchema } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
-import { fetchSkill, updateSkill } from '@/lib/api/skills';
+import { deleteSkillFile, updateSkillFile } from '@/lib/api/skills';
 import { buildSkillFileViewHref, SKILL_ENTRY_FILE_PATH } from '@/lib/utils/skill-files';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
@@ -23,23 +23,11 @@ export async function updateSkillFileAction(
   tenantId: string,
   projectId: string,
   skillId: string,
+  fileId: string,
   filePath: string,
   content: string
 ): Promise<ActionResult<null>> {
   try {
-    const skill = await fetchSkill(tenantId, projectId, skillId);
-    const files = skill.files.map((file) =>
-      file.filePath === filePath ? { filePath: file.filePath, content } : file
-    );
-
-    if (!files.some((file) => file.filePath === filePath)) {
-      return {
-        success: false,
-        error: 'Skill file not found',
-        code: 'not_found',
-      };
-    }
-
     if (filePath === SKILL_ENTRY_FILE_PATH) {
       const parsed = parseSkillFromMarkdown(content);
       const frontmatterResult = SkillFrontmatterSchema.safeParse(parsed.frontmatter);
@@ -59,24 +47,9 @@ export async function updateSkillFileAction(
           code: 'validation_error',
         };
       }
-
-      await updateSkill(tenantId, projectId, skillId, {
-        description: frontmatterResult.data.description,
-        metadata: frontmatterResult.data.metadata ?? null,
-        content: parsed.content,
-        files: files.map((file) => ({
-          filePath: file.filePath,
-          content: file.content,
-        })),
-      });
-    } else {
-      await updateSkill(tenantId, projectId, skillId, {
-        files: files.map((file) => ({
-          filePath: file.filePath,
-          content: file.content,
-        })),
-      });
     }
+
+    await updateSkillFile(tenantId, projectId, skillId, fileId, { content });
 
     revalidateSkillFilePaths(tenantId, projectId, skillId, filePath);
 

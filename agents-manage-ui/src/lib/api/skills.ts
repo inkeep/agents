@@ -87,6 +87,28 @@ export async function updateSkill(
   return response.data;
 }
 
+export async function updateSkillFile(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  fileId: string,
+  file: SkillFileUpdate
+): Promise<SkillFile> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<SingleResponse<SkillFile>>(
+    `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files/${fileId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(file),
+    }
+  );
+  revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
+
+  return response.data;
+}
+
 export async function deleteSkill(tenantId: string, projectId: string, skillId: string) {
   validateTenantId(tenantId);
   validateProjectId(projectId);

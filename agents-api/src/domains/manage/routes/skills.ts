@@ -249,6 +249,81 @@ openapiRegisterPutPatchRoutesForLegacy(app, updateSkillRouteConfig, updateSkillH
 
 app.openapi(
   createProtectedRoute({
+    method: 'patch',
+    path: '/{id}/files/{fileId}',
+    summary: 'Update Skill File',
+    operationId: 'update-skill-file',
+    tags: ['Skills'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectSkillFileParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: SkillFileApiUpdateSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Skill file updated successfully',
+        content: {
+          'application/json': {
+            schema: SkillFileResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, id, fileId } = c.req.valid('param');
+    const body = c.req.valid('json');
+
+    try {
+      const file = await updateSkillFileById(db)({
+        scopes: { tenantId, projectId },
+        skillId: id,
+        fileId,
+        ...body,
+      });
+
+      if (!file) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Skill file not found',
+        });
+      }
+
+      return c.json({ data: file });
+    } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+
+      if (error instanceof z.ZodError) {
+        throw createApiError({
+          code: 'unprocessable_entity',
+          message: 'Invalid skill file payload',
+        });
+      }
+
+      if (error instanceof Error) {
+        throw createApiError({
+          code: 'unprocessable_entity',
+          message: error.message,
+        });
+      }
+
+      throw error;
+    }
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Skill',
