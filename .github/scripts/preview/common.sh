@@ -20,6 +20,21 @@ require_pr_number() {
   fi
 }
 
+sleep_with_jitter() {
+  local sleep_seconds="$1"
+  local jittered_sleep=""
+
+  jittered_sleep="$(
+    python3 - <<PY
+import random
+base = float(${sleep_seconds})
+print(base * (0.5 + random.random()))
+PY
+  )"
+
+  sleep "${jittered_sleep}"
+}
+
 pr_env_name() {
   local pr_number="$1"
 
@@ -83,7 +98,7 @@ railway_extract_runtime_var() {
     fi
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
-      sleep "${sleep_seconds}"
+      sleep_with_jitter "${sleep_seconds}"
     fi
   done
 
@@ -213,7 +228,8 @@ EOF
 
   count="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port)] | length' <<< "${response}")"
   if [ "${count}" = "0" ]; then
-    railway_graphql "$(cat <<EOF
+    response="$(
+      railway_graphql "$(cat <<EOF
 mutation {
   tcpProxyCreate(input: {
     environmentId: "${env_id}"
@@ -224,7 +240,13 @@ mutation {
   }
 }
 EOF
-)" >/dev/null
+)"
+    )"
+
+    if echo "${response}" | jq -e '.errors' >/dev/null 2>&1; then
+      echo "Failed to create TCP proxy for ${service_name} in ${env_name}: $(echo "${response}" | jq -r '.errors[0].message // "unknown error"')" >&2
+      return 1
+    fi
   fi
 
   for attempt in $(seq 1 "${max_attempts}"); do
@@ -246,7 +268,7 @@ EOF
     fi
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
-      sleep "${sleep_seconds}"
+      sleep_with_jitter "${sleep_seconds}"
     fi
   done
 

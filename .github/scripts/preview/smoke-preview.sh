@@ -83,7 +83,7 @@ run_preview_auth_smoke() {
 
   if [ "${sign_in_status}" != "200" ]; then
     echo "Preview sign-in failed with status ${sign_in_status}" >&2
-    cat "${sign_in_body}" >&2
+    cat "${sign_in_body}" | redact_preview_logs >&2
     return 1
   fi
 
@@ -104,7 +104,7 @@ run_preview_auth_smoke() {
 
   if [ "${manage_status}" != "200" ]; then
     echo "Preview manage auth check failed with status ${manage_status}" >&2
-    cat "${manage_body}" >&2
+    cat "${manage_body}" | redact_preview_logs >&2
     return 1
   fi
 }

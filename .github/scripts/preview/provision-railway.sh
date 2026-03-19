@@ -167,7 +167,7 @@ extract_runtime_var() {
     fi
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
-      sleep "${sleep_seconds}"
+      sleep_with_jitter "${sleep_seconds}"
       refresh_service_env_dump
     fi
   done
