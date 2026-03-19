@@ -19,7 +19,7 @@ Get the current authenticated user and their organization for CLI usage`,
     "readOnlyHint": true,
   },
   tool: async (client, ctx) => {
-    const [result, apiCall] = await cliGetManageApiCLIMe(
+    const [result] = await cliGetManageApiCLIMe(
       client,
       { fetchOptions: { signal: ctx.signal } },
     ).$inspect();
@@ -31,8 +31,6 @@ Get the current authenticated user and their organization for CLI usage`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -25,7 +25,7 @@ Send a test message to verify the bot is working correctly.`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackTestMessage(
+    const [result] = await workAppsSlackTestMessage(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Send a test message to verify the bot is working correctly.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

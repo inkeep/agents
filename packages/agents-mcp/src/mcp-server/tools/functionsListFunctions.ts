@@ -23,7 +23,7 @@ export const tool$functionsListFunctions: ToolDefinition<typeof args> = {
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await functionsListFunctions(
+    const [result] = await functionsListFunctions(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -36,8 +36,6 @@ export const tool$functionsListFunctions: ToolDefinition<typeof args> = {
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

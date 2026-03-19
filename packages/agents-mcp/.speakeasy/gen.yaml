@@ -52,4 +52,4 @@ mcp-typescript:
   outputModelSuffix: output
   packageName: '@inkeep/agents-mcp'
   responseFormat: envelope
-  validateResponse: true
+  validateResponse: false

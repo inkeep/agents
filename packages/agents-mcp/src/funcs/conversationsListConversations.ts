@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeFormQuery, encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -23,8 +22,6 @@ import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import {
   ListConversationsRequest,
   ListConversationsRequest$zodSchema,
-  ListConversationsResponse,
-  ListConversationsResponse$zodSchema,
 } from "../models/listconversationsop.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
@@ -46,7 +43,7 @@ export function conversationsListConversations(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    ListConversationsResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -72,7 +69,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      ListConversationsResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -168,49 +165,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    ListConversationsResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.json(200, ListConversationsResponse$zodSchema, {
-      key: "ManageConversationListResponse",
-    }),
-    M.json(400, ListConversationsResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "BadRequest",
-    }),
-    M.json(401, ListConversationsResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Unauthorized",
-    }),
-    M.json(403, ListConversationsResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Forbidden",
-    }),
-    M.json(404, ListConversationsResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "NotFound",
-    }),
-    M.json(422, ListConversationsResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "UnprocessableEntity",
-    }),
-    M.json(500, ListConversationsResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "InternalServerError",
-    }),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

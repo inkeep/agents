@@ -27,7 +27,7 @@ Retrieve a complete project definition with all Agents, Sub Agents, tools, and r
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectsGetFullProjectWithRelationIds(
+    const [result] = await projectsGetFullProjectWithRelationIds(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Retrieve a complete project definition with all Agents, Sub Agents, tools, and r
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

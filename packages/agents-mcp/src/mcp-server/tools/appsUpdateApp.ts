@@ -25,7 +25,7 @@ Update an app credential configuration`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await appsUpdateApp(
+    const [result] = await appsUpdateApp(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Update an app credential configuration`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

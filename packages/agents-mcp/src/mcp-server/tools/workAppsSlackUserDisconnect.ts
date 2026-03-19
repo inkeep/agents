@@ -25,7 +25,7 @@ Unlink a Slack user from their Inkeep account.`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackUserDisconnect(
+    const [result] = await workAppsSlackUserDisconnect(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Unlink a Slack user from their Inkeep account.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

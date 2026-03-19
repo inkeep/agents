@@ -25,7 +25,7 @@ Verify a JWT link token and create user mapping`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackVerifyLinkToken(
+    const [result] = await workAppsSlackVerifyLinkToken(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Verify a JWT link token and create user mapping`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

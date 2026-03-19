@@ -25,7 +25,7 @@ Configures which Slack channels an MCP tool can post to. When channelAccessMode 
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await toolsSetMcpToolSlackAccess(
+    const [result] = await toolsSetMcpToolSlackAccess(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Configures which Slack channels an MCP tool can post to. When channelAccessMode 
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -19,7 +19,7 @@ import { InkeepAgentsCore } from "../core.js";
 import { ConsoleLogger } from "./console-logger.js";
 import { MCPServerFlags } from "./flags.js";
 import { MCPScope, mcpScopes } from "./scopes.js";
-import { isAsyncIterable, isBinaryData, valueToBase64 } from "./shared.js";
+import { valueToBase64 } from "./shared.js";
 
 export type ToolDefinition<
   Args extends undefined | ZodRawShapeCompat = undefined,
@@ -61,59 +61,27 @@ export type ToolDefinition<
 
 // Optional function to assist with formatting tool results
 export async function formatResult(
-  value: unknown,
-  init: { response?: Response | undefined },
+  response: Response,
 ): Promise<CallToolResult> {
-  if (typeof value === "undefined") {
-    return { content: [] };
-  }
-
-  const { response } = init;
-  const contentType = response?.headers.get("content-type") ?? "";
   let content: CallToolResult["content"] = [];
+  const contentType = response?.headers.get("content-type") ?? "";
 
-  if (contentType.search(/\bjson\b/g)) {
-    content = [{ type: "text", text: JSON.stringify(value) }];
-  } else if (
-    contentType.startsWith("text/event-stream")
-    && isAsyncIterable(value)
-  ) {
-    content = await consumeSSE(value);
-  } else if (contentType.startsWith("text/") && typeof value === "string") {
-    content = [{ type: "text", text: value }];
-  } else if (isBinaryData(value) && contentType.startsWith("image/")) {
-    const data = await valueToBase64(value);
+  if (contentType.startsWith("image/")) {
+    const data = await valueToBase64(await response.arrayBuffer());
     content = data == null
       ? []
       : [{ type: "image", data, mimeType: contentType }];
+  } else if (contentType.startsWith("audio/")) {
+    const data = await valueToBase64(await response.arrayBuffer());
+    content = data == null
+      ? []
+      : [{ type: "audio", data, mimeType: contentType }];
   } else {
-    return {
-      content: [{
-        type: "text",
-        text: `Unsupported content type: "${contentType}"`,
-      }],
-      isError: true,
-    };
+    const text = await response.text();
+    content = [{ type: "text", text }];
   }
 
-  const isError = response ? !response.ok : false;
-  return isError ? { content, isError } : { content };
-}
-
-async function consumeSSE(
-  value: AsyncIterable<unknown>,
-): Promise<CallToolResult["content"]> {
-  const content: CallToolResult["content"] = [];
-
-  for await (const chunk of value) {
-    if (typeof chunk === "string") {
-      content.push({ type: "text", text: chunk });
-    } else {
-      content.push({ type: "text", text: JSON.stringify(chunk) });
-    }
-  }
-
-  return content;
+  return response.ok ? { content } : { content, isError: true };
 }
 
 export function createRegisterTool(

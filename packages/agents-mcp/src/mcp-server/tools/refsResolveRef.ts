@@ -25,7 +25,7 @@ Resolve a ref string (branch name, tag name, or commit hash) to its full resolve
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await refsResolveRef(
+    const [result] = await refsResolveRef(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Resolve a ref string (branch name, tag name, or commit hash) to its full resolve
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

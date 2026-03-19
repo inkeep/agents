@@ -23,7 +23,7 @@ export const tool$skillsGetSkill: ToolDefinition<typeof args> = {
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await skillsGetSkill(
+    const [result] = await skillsGetSkill(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -36,8 +36,6 @@ export const tool$skillsGetSkill: ToolDefinition<typeof args> = {
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

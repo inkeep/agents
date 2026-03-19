@@ -25,12 +25,11 @@ export const tool$subAgentsDeleteSubAgentExternalAgentRelation: ToolDefinition<
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] =
-      await subAgentsDeleteSubAgentExternalAgentRelation(
-        client,
-        args.request,
-        { fetchOptions: { signal: ctx.signal } },
-      ).$inspect();
+    const [result] = await subAgentsDeleteSubAgentExternalAgentRelation(
+      client,
+      args.request,
+      { fetchOptions: { signal: ctx.signal } },
+    ).$inspect();
 
     if (!result.ok) {
       return {
@@ -39,8 +38,6 @@ export const tool$subAgentsDeleteSubAgentExternalAgentRelation: ToolDefinition<
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

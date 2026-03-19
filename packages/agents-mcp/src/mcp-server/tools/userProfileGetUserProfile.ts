@@ -25,7 +25,7 @@ Get the profile for a specific user. Users can only access their own profile.`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await userProfileGetUserProfile(
+    const [result] = await userProfileGetUserProfile(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Get the profile for a specific user. Users can only access their own profile.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

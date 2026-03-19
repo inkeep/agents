@@ -27,7 +27,7 @@ Get settings for a Slack workspace including default agent`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackGetWorkspaceSettings(
+    const [result] = await workAppsSlackGetWorkspaceSettings(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Get settings for a Slack workspace including default agent`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

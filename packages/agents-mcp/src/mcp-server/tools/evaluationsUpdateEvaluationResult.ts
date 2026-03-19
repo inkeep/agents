@@ -25,7 +25,7 @@ export const tool$evaluationsUpdateEvaluationResult: ToolDefinition<
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await evaluationsUpdateEvaluationResult(
+    const [result] = await evaluationsUpdateEvaluationResult(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ export const tool$evaluationsUpdateEvaluationResult: ToolDefinition<
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

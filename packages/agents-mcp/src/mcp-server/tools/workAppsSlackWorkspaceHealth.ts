@@ -25,7 +25,7 @@ Verify the bot token is valid and check permissions. Returns bot info and permis
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackWorkspaceHealth(
+    const [result] = await workAppsSlackWorkspaceHealth(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Verify the bot token is valid and check permissions. Returns bot info and permis
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

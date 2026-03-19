@@ -23,7 +23,7 @@ export const tool$triggersGetTriggerById: ToolDefinition<typeof args> = {
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await triggersGetTriggerById(
+    const [result] = await triggersGetTriggerById(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -36,8 +36,6 @@ export const tool$triggersGetTriggerById: ToolDefinition<typeof args> = {
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

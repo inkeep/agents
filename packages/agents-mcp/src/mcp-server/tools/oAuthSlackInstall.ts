@@ -25,7 +25,7 @@ Redirects to Slack OAuth page for workspace installation`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await oAuthSlackInstall(
+    const [result] = await oAuthSlackInstall(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,6 +38,6 @@ Redirects to Slack OAuth page for workspace installation`,
       };
     }
 
-    return formatResult(void 0, apiCall);
+    return formatResult(result.value);
   },
 };

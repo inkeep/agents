@@ -27,7 +27,7 @@ Apply the same agent configuration to multiple channels at once`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackBulkSetChannelAgents(
+    const [result] = await workAppsSlackBulkSetChannelAgents(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Apply the same agent configuration to multiple channels at once`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

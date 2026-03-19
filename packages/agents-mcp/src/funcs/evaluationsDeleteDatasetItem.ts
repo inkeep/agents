@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -14,8 +13,6 @@ import { pathToFunc } from "../lib/url.js";
 import {
   DeleteDatasetItemRequest,
   DeleteDatasetItemRequest$zodSchema,
-  DeleteDatasetItemResponse,
-  DeleteDatasetItemResponse$zodSchema,
 } from "../models/deletedatasetitemop.js";
 import { APIError } from "../models/errors/apierror.js";
 import {
@@ -38,7 +35,7 @@ export function evaluationsDeleteDatasetItem(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    DeleteDatasetItemResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -62,7 +59,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      DeleteDatasetItemResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -159,47 +156,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    DeleteDatasetItemResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.nil(204, DeleteDatasetItemResponse$zodSchema),
-    M.json(400, DeleteDatasetItemResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "BadRequest",
-    }),
-    M.json(401, DeleteDatasetItemResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Unauthorized",
-    }),
-    M.json(403, DeleteDatasetItemResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Forbidden",
-    }),
-    M.json(404, DeleteDatasetItemResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "NotFound",
-    }),
-    M.json(422, DeleteDatasetItemResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "UnprocessableEntity",
-    }),
-    M.json(500, DeleteDatasetItemResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "InternalServerError",
-    }),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

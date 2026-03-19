@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -14,8 +13,6 @@ import { pathToFunc } from "../lib/url.js";
 import {
   DeleteSubagentToolRelationRequest,
   DeleteSubagentToolRelationRequest$zodSchema,
-  DeleteSubagentToolRelationResponse,
-  DeleteSubagentToolRelationResponse$zodSchema,
 } from "../models/deletesubagenttoolrelationop.js";
 import { APIError } from "../models/errors/apierror.js";
 import {
@@ -38,7 +35,7 @@ export function toolsDeleteSubagentToolRelation(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    DeleteSubagentToolRelationResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -62,7 +59,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      DeleteSubagentToolRelationResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -159,26 +156,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    DeleteSubagentToolRelationResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.nil(204, DeleteSubagentToolRelationResponse$zodSchema),
-    M.json(404, DeleteSubagentToolRelationResponse$zodSchema, {
-      key: "ErrorResponse",
-    }),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

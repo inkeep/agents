@@ -25,7 +25,7 @@ List all API keys for a tenant with optional pagination`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await apiKeysListAPIKeys(
+    const [result] = await apiKeysListAPIKeys(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ List all API keys for a tenant with optional pagination`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

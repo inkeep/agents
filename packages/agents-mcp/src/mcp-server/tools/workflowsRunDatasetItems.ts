@@ -25,7 +25,7 @@ Runs dataset items for processing through the chat API`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workflowsRunDatasetItems(
+    const [result] = await workflowsRunDatasetItems(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Runs dataset items for processing through the chat API`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

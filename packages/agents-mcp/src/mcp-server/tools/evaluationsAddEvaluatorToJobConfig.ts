@@ -25,7 +25,7 @@ export const tool$evaluationsAddEvaluatorToJobConfig: ToolDefinition<
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await evaluationsAddEvaluatorToJobConfig(
+    const [result] = await evaluationsAddEvaluatorToJobConfig(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ export const tool$evaluationsAddEvaluatorToJobConfig: ToolDefinition<
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

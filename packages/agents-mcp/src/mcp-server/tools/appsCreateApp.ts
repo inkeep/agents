@@ -25,7 +25,7 @@ Create a new app credential.`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await appsCreateApp(
+    const [result] = await appsCreateApp(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Create a new app credential.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

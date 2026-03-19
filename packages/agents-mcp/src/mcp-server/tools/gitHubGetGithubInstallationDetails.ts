@@ -27,7 +27,7 @@ Returns detailed information about a specific GitHub App installation, including
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await gitHubGetGithubInstallationDetails(
+    const [result] = await gitHubGetGithubInstallationDetails(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Returns detailed information about a specific GitHub App installation, including
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -19,7 +19,7 @@ Check if the service is ready to serve traffic by verifying database connectivit
     "readOnlyHint": true,
   },
   tool: async (client, ctx) => {
-    const [result, apiCall] = await healthReady(
+    const [result] = await healthReady(
       client,
       { fetchOptions: { signal: ctx.signal } },
     ).$inspect();
@@ -31,8 +31,6 @@ Check if the service is ready to serve traffic by verifying database connectivit
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };
