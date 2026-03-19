@@ -11,6 +11,7 @@ import {
   type MCPToolConfig,
   MCPTransportType,
   McpClient,
+  McpRateLimiter,
   type McpServerConfig,
   type McpTool,
   resolveSlackUserContext,
@@ -26,6 +27,8 @@ import type { AgentConfig } from '../Agent';
 import type { AiSdkToolDefinition } from '../agent-types';
 
 const logger = getLogger('AgentMcpManager');
+
+const globalMcpRateLimiter = new McpRateLimiter();
 
 export type McpToolSet = {
   tools: Record<string, any>;
@@ -321,6 +324,10 @@ export class AgentMcpManager {
     const client = new McpClient({
       name: tool.name,
       server: serverConfig,
+      rateLimiter: tool.rateLimits ? globalMcpRateLimiter : undefined,
+      rateLimitConfig: tool.rateLimits,
+      tenantId: this.config.tenantId,
+      toolId: tool.id,
     });
 
     try {

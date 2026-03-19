@@ -22,6 +22,8 @@ import {
   MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR,
 } from '../constants/execution-limits-shared';
 import { MCPTransportType } from '../types/utility';
+import type { McpRateLimitConfig } from '../validation/schemas';
+import type { McpRateLimiter } from './mcp-rate-limiter';
 
 export const activeMcpClients = new Set<McpClient>();
 
@@ -79,6 +81,10 @@ export interface McpClientOptions {
   server: McpServerConfig;
   capabilities?: ClientCapabilities;
   timeout?: number;
+  rateLimiter?: McpRateLimiter;
+  rateLimitConfig?: McpRateLimitConfig | null;
+  tenantId?: string;
+  toolId?: string;
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -90,11 +96,19 @@ export class McpClient {
   private transport?: Transport;
   private serverConfig: McpServerConfig;
   private connected = false;
+  private rateLimiter?: McpRateLimiter;
+  private rateLimitConfig?: McpRateLimitConfig | null;
+  private tenantId?: string;
+  private toolId?: string;
 
   constructor(opts: McpClientOptions) {
     this.name = opts.name;
     this.timeout = opts.timeout || DEFAULT_REQUEST_TIMEOUT_MSEC;
     this.serverConfig = opts.server;
+    this.rateLimiter = opts.rateLimiter;
+    this.rateLimitConfig = opts.rateLimitConfig;
+    this.tenantId = opts.tenantId;
+    this.toolId = opts.toolId;
 
     this.client = new Client(
       { name: opts.name, version: opts.version || '1.0.0' },
@@ -308,12 +322,28 @@ export class McpClient {
           description: def.description || '',
           inputSchema: schema,
           execute: async (context) => {
-            const result = await this.client.callTool(
-              { name: def.name, arguments: context },
-              CallToolResultSchema,
-              { timeout: this.timeout }
-            );
-            return result;
+            const rl = this.rateLimiter;
+            const rlConfig = this.rateLimitConfig;
+            const rlTenantId = this.tenantId;
+            const rlToolId = this.toolId;
+            const hasRateLimit = rl && rlConfig && rlTenantId && rlToolId;
+
+            if (hasRateLimit) {
+              await rl.acquireToken(rlTenantId, rlToolId, rlConfig);
+            }
+
+            try {
+              const result = await this.client.callTool(
+                { name: def.name, arguments: context },
+                CallToolResultSchema,
+                { timeout: this.timeout }
+              );
+              return result;
+            } finally {
+              if (hasRateLimit && rlConfig.concurrentRequests !== undefined) {
+                rl.releaseToken(rlTenantId, rlToolId);
+              }
+            }
           },
         });
 
