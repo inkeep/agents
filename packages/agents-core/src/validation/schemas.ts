@@ -92,7 +92,11 @@ import {
   omitTimestamps,
   omitTenantScope,
   PaginationQueryParamsSchema,
+  PaginationSchema,
+  createAgentScopedApiInsertSchema,
+  createAgentScopedApiSchema,
 } from './schemas/shared';
+import { SkillApiInsertSchema, SkillIndexSchema } from './schemas/skills';
 
 // Destructure defaults for use in schemas
 const {

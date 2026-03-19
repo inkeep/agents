@@ -267,7 +267,7 @@ import type {
   WorkAppGitHubProjectRepositoryAccessSelectSchema,
   WorkAppGitHubRepositoryInsertSchema,
   WorkAppGitHubRepositorySelectSchema,
-} from '../validation/schemas';
+} from '../validation';
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
 export type DatasetRunInsert = z.infer<typeof DatasetRunInsertSchema>;

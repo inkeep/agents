@@ -14,7 +14,7 @@ import { createInsertSchema, createSelectSchema } from '../drizzle-schema-helper
 
 const SkillIndexSchema = z.int().min(0);
 
-export const SkillFrontmatterSchema = z.looseObject({
+const SkillFrontmatterSchema = z.looseObject({
   name: z
     .string()
     .trim()
@@ -34,7 +34,7 @@ export const SkillFrontmatterSchema = z.looseObject({
   metadata: StringRecordSchema.nullish(),
 });
 
-export const SkillFilePathSchema = z
+const SkillFilePathSchema = z
   .string()
   .trim()
   .nonempty()
@@ -47,11 +47,11 @@ export const SkillFilePathSchema = z
     'Must not contain empty, ".", or ".." path segments'
   );
 
-export const SkillSelectSchema = createSelectSchema(skills).extend({
+const SkillSelectSchema = createSelectSchema(skills).extend({
   metadata: StringRecordSchema.nullable(),
 });
 
-export const SkillFileContentInputSchema = z.object({
+const SkillFileContentInputSchema = z.object({
   filePath: SkillFilePathSchema,
   content: z.string(),
 });
@@ -89,16 +89,16 @@ const SkillFilesInputSchema = z.array(SkillFileContentInputSchema).superRefine((
   }
 });
 
-export const SkillFileSelectSchema = createSelectSchema(skillFiles);
+const SkillFileSelectSchema = createSelectSchema(skillFiles);
 
-export const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
+const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
   id: ResourceIdSchema,
   skillId: ResourceIdSchema,
   filePath: SkillFilePathSchema,
   content: z.string(),
 });
 
-export const SkillInsertSchema = createInsertSchema(skills)
+const SkillInsertSchema = createInsertSchema(skills)
   .extend({
     ...SkillFrontmatterSchema.shape,
     content: z.string().trim().nonempty(),
@@ -112,7 +112,7 @@ export const SkillInsertSchema = createInsertSchema(skills)
     tenantId: true,
   });
 
-export const SkillUpdateSchema = SkillInsertSchema.omit({
+const SkillUpdateSchema = SkillInsertSchema.omit({
   // Name is persistent
   name: true,
   // Will be generated from SKILL.md
@@ -139,9 +139,9 @@ function transformSkill(markdown: string) {
   };
 }
 
-export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
+const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
 
-export const SkillApiInsertSchema = z
+const SkillApiInsertSchema = z
   .object({
     files: SkillFilesInputSchema,
   })
@@ -159,7 +159,7 @@ export const SkillApiInsertSchema = z
   .pipe(SkillFrontmatterSchema)
   .openapi('SkillCreate');
 
-export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema)
+const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema)
   .transform((skill) => {
     const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
     if (!skillFile) {
@@ -172,17 +172,17 @@ export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema)
   })
   .openapi('SkillUpdate');
 
-export const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
+const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
 
-export const SkillWithFilesApiSelectSchema = SkillApiSelectSchema.extend({
+const SkillWithFilesApiSelectSchema = SkillApiSelectSchema.extend({
   files: z.array(SkillFileApiSelectSchema),
 }).openapi('SkillWithFiles');
 
-export const SubAgentSkillSelectSchema = createSelectSchema(subAgentSkills).extend({
+const SubAgentSkillSelectSchema = createSelectSchema(subAgentSkills).extend({
   index: SkillIndexSchema,
 });
 
-export const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).extend({
+const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).extend({
   id: ResourceIdSchema,
   subAgentId: ResourceIdSchema,
   skillId: ResourceIdSchema,
@@ -190,12 +190,12 @@ export const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).exte
   alwaysLoaded: z.boolean().optional().default(false),
 });
 
-export const SubAgentSkillUpdateSchema = SubAgentSkillInsertSchema.partial();
+const SubAgentSkillUpdateSchema = SubAgentSkillInsertSchema.partial();
 
-export const SubAgentSkillApiSelectSchema =
+const SubAgentSkillApiSelectSchema =
   createAgentScopedApiSchema(SubAgentSkillSelectSchema).openapi('SubAgentSkill');
 
-export const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
+const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
   tenantId: true,
   projectId: true,
   id: true,
@@ -203,30 +203,42 @@ export const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
   updatedAt: true,
 }).openapi('SubAgentSkillCreate');
 
-export const SubAgentSkillApiUpdateSchema =
+const SubAgentSkillApiUpdateSchema =
   createAgentScopedApiUpdateSchema(SubAgentSkillUpdateSchema).openapi('SubAgentSkillUpdate');
 
-export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
+const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
   subAgentSkillId: ResourceIdSchema,
   subAgentId: ResourceIdSchema,
   index: SkillIndexSchema,
   alwaysLoaded: z.boolean(),
 }).openapi('SubAgentSkillWithIndex');
 
-export const SkillResponse = z.object({ data: SkillApiSelectSchema }).openapi('SkillResponse');
-export const SkillWithFilesResponse = z
+const SkillResponse = z.object({ data: SkillApiSelectSchema }).openapi('SkillResponse');
+const SkillWithFilesResponse = z
   .object({ data: SkillWithFilesApiSelectSchema })
   .openapi('SkillWithFilesResponse');
-export const SkillListResponse = z
+const SkillListResponse = z
   .object({
     data: z.array(SkillApiSelectSchema),
     pagination: PaginationSchema,
   })
   .openapi('SkillListResponse');
 
-export const SubAgentSkillResponse = z
+const SubAgentSkillResponse = z
   .object({ data: SubAgentSkillApiSelectSchema })
   .openapi('SubAgentSkillResponse');
-export const SubAgentSkillWithIndexArrayResponse = z
+const SubAgentSkillWithIndexArrayResponse = z
   .object({ data: z.array(SubAgentSkillWithIndexSchema) })
   .openapi('SubAgentSkillWithIndexArrayResponse');
+
+export {
+  SkillApiInsertSchema,
+  SkillIndexSchema,
+  SubAgentSkillWithIndexSchema,
+  SubAgentSkillUpdateSchema,
+  SubAgentSkillSelectSchema,
+  SubAgentSkillInsertSchema,
+  SubAgentSkillApiUpdateSchema,
+  SubAgentSkillApiSelectSchema,
+  SubAgentSkillApiInsertSchema,
+};
