@@ -222,7 +222,13 @@ jobs:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
           SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+          RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
+          RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
           SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
+          PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
           TENANT_ID: default
           INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME }}
           INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD }}

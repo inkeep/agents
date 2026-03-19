@@ -44,6 +44,57 @@ railway_env_exists_count() {
     "${output_path}"
 }
 
+railway_link_service() {
+  local project_id="$1"
+  local service="$2"
+  local env_name="$3"
+
+  if ! railway link \
+    --project "${project_id}" \
+    --service "${service}" \
+    --environment "${env_name}" \
+    >/dev/null; then
+    echo "Failed to link Railway CLI to project ${project_id} service ${service} env ${env_name}." >&2
+    return 1
+  fi
+}
+
+railway_extract_runtime_var() {
+  local service="$1"
+  local env_name="$2"
+  local key="$3"
+  local max_attempts="${4:-20}"
+  local sleep_seconds="${5:-2}"
+  local attempt=""
+  local value=""
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    value="$(
+      railway variable list \
+        --service "${service}" \
+        --environment "${env_name}" \
+        --json |
+      jq -r --arg key "${key}" '.[$key] // empty'
+    )"
+
+    if [ -n "${value}" ] && ! printf '%s' "${value}" | grep -q '\$[{][{]'; then
+      printf '%s' "${value}"
+      return 0
+    fi
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      sleep "${sleep_seconds}"
+    fi
+  done
+
+  if [ -z "${value:-}" ]; then
+    echo "Missing runtime variable ${key} in Railway service ${service} for env ${env_name}." >&2
+  else
+    echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
+  fi
+  return 1
+}
+
 mask_env_vars() {
   local var_name
   for var_name in "$@"; do
