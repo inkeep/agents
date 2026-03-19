@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import type { FC, SetStateAction, Dispatch } from 'react';
+import type { Dispatch, FC, SetStateAction } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,

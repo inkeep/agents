@@ -1,11 +1,11 @@
+import { Plus } from 'lucide-react';
+import NextLink from 'next/link';
 import { redirect } from 'next/navigation';
 import type { FC } from 'react';
+import EmptyState from '@/components/layout/empty-state';
+import { Button } from '@/components/ui/button';
 import { buildSkillFileViewHref } from '@/lib/utils/skill-files';
 import { resolveSkillFilePageData } from '../skills-data';
-import { Button } from '@/components/ui/button';
-import NextLink from 'next/link';
-import { Plus } from 'lucide-react';
-import EmptyState from '@/components/layout/empty-state';
 import { metadata } from './layout';
 
 const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({ params }) => {

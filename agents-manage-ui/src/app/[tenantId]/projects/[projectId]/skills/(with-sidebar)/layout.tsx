@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { SkillsSidebar } from '@/components/skills/skills-sidebar';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
+import { Separator } from '@/components/ui/separator';
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import { CollapseFileTree } from '../collapse-file-tree';
 import { fetchSkillsPageData } from '../skills-data';
 
 export const metadata = {
@@ -59,11 +61,16 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
       <>
         <PageHeader title={metadata.title} description={description} action={action} />
         <SidebarProvider className="border border-border/70 rounded-[14px] overflow-hidden min-h-[80vh]">
-          <Sidebar collapsible="none" className="h-auto bg-transparent border-r">
-            <SidebarHeader className="border-b px-4 h-(--header-height) text-sm text-muted-foreground flex justify-center">
-              Files
-            </SidebarHeader>
-            <SidebarContent className=" py-2">
+          <Sidebar collapsible="icon" className="h-full border-r relative">
+            <SidebarContent className="bg-background">
+              <SidebarHeader className="border-b px-4 h-(--header-height) text-sm text-muted-foreground flex flex-row items-center">
+                <CollapseFileTree />
+                <Separator
+                  orientation="vertical"
+                  className="mx-1 data-[orientation=vertical]:h-4"
+                />
+                Files
+              </SidebarHeader>
               <SidebarGroup>
                 <SidebarGroupContent>
                   <SidebarMenu>

@@ -83,18 +83,18 @@ import {
   NameSchema,
 } from './extend-schemas';
 import {
-  ResourceIdSchema,
-  createApiSchema,
-  createApiInsertSchema,
-  createApiUpdateSchema,
-  createAgentScopedApiUpdateSchema,
-  omitGeneratedFields,
-  omitTimestamps,
-  omitTenantScope,
-  PaginationQueryParamsSchema,
-  PaginationSchema,
   createAgentScopedApiInsertSchema,
   createAgentScopedApiSchema,
+  createAgentScopedApiUpdateSchema,
+  createApiInsertSchema,
+  createApiSchema,
+  createApiUpdateSchema,
+  omitGeneratedFields,
+  omitTenantScope,
+  omitTimestamps,
+  PaginationQueryParamsSchema,
+  PaginationSchema,
+  ResourceIdSchema,
 } from './schemas/shared';
 import { SkillApiInsertSchema, SkillIndexSchema } from './schemas/skills';
 

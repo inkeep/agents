@@ -1,5 +1,5 @@
-import type { SkillDetail } from '@/lib/types/skills';
 import { SKILL_ENTRY_FILE_PATH } from '@inkeep/agents-core/client-exports';
+import type { SkillDetail } from '@/lib/types/skills';
 
 export { SKILL_ENTRY_FILE_PATH };
 
