@@ -1278,7 +1278,7 @@ export async function GET(
     const agentGenCache = new Map<string, string | null>();
     function findAncestorAgentGeneration(activityId: string, depth = 0): string | null {
       if (depth > 200) return null;
-      if (agentGenCache.has(activityId)) return agentGenCache.get(activityId)!;
+      if (agentGenCache.has(activityId)) return agentGenCache.get(activityId) ?? null;
       const activity = activityById.get(activityId);
       if (!activity) {
         agentGenCache.set(activityId, null);

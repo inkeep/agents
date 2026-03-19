@@ -48,8 +48,7 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
     );
 
     const json = response.data;
-    // v5 clickhouse_sql response: data.data.results[0].columns + data.data.results[0].data (columnar)
-    const results = json?.data?.data?.results ?? json?.data?.results;
+    const results = json?.data?.results ?? [];
     const result = results?.[0];
     const columns: Array<{ name: string }> = result?.columns ?? [];
     const dataRows: unknown[][] = result?.data ?? [];

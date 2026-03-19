@@ -42,6 +42,8 @@ const OP_MAP: Record<string, string> = {
   nlike: 'NOT LIKE',
   contains: 'CONTAINS',
   ncontains: 'NOT CONTAINS',
+  regex: 'REGEX',
+  nregex: 'NOT REGEX',
   exists: 'EXISTS',
   nexists: 'NOT EXISTS',
   in: 'IN',
@@ -76,13 +78,20 @@ export function buildFilterExpression(
 export const OPERATORS = {
   EQUALS: '=',
   NOT_EQUALS: '!=',
+  LESS_THAN: '<',
+  GREATER_THAN: '>',
   LESS_THAN_OR_EQUAL: '<=',
   GREATER_THAN_OR_EQUAL: '>=',
   LIKE: 'like',
   NOT_LIKE: 'nlike',
+  CONTAINS: 'contains',
+  NOT_CONTAINS: 'ncontains',
+  REGEX: 'regex',
+  NOT_REGEX: 'nregex',
   EXISTS: 'exists',
   NOT_EXISTS: 'nexists',
   IN: 'in',
+  NOT_IN: 'nin',
 } as const;
 
 /** Query Expressions */
