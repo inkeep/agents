@@ -8,6 +8,12 @@ name: Preview Environments
 # - VERCEL_API_PROJECT_ID
 # - VERCEL_MANAGE_UI_PROJECT_ID
 #
+# Optional preview auth bootstrap configuration:
+# - PREVIEW_MANAGE_UI_USERNAME=<admin email> (repo variable, default: admin@example.com)
+# - PREVIEW_MANAGE_UI_PASSWORD=<admin password> (secret, default: adminADMIN!@12)
+# - PREVIEW_BOOTSTRAP_BETTER_AUTH_SECRET=<bootstrap-only Better Auth secret> (secret, default: test-secret-key-for-ci)
+# - PREVIEW_SPICEDB_PRESHARED_KEY=<SpiceDB key> (secret, default: dev-secret-key)
+#
 # Repository variables:
 # - PREVIEW_ENVIRONMENTS_ENABLED=true|false
 # - RAILWAY_PROJECT_ID=<railway project id>
@@ -190,6 +196,34 @@ jobs:
           PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
         run: bash .github/scripts/preview/provision-railway.sh
 
+  bootstrap-preview-auth:
+    name: Bootstrap Preview Auth
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [compute-context, provision-tier1]
+    if: |
+      needs.compute-context.outputs.preview_enabled == 'true' &&
+      github.event.action != 'closed' &&
+      needs.compute-context.outputs.is_internal_pr == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install
+        uses: ./.github/composite-actions/install
+
+      - name: Seed preview admin user
+        env:
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
+          SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY || 'dev-secret-key' }}
+          TENANT_ID: default
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME || 'admin@example.com' }}
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD || 'adminADMIN!@12' }}
+          BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BOOTSTRAP_BETTER_AUTH_SECRET || 'test-secret-key-for-ci' }}
+        run: bash .github/scripts/preview/bootstrap-preview-auth.sh
+
   configure-vercel-preview:
     name: Inject Vercel Preview Env Vars
     runs-on: ubuntu-latest
@@ -251,7 +285,7 @@ jobs:
     name: Smoke Test Preview URLs
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [compute-context, provision-tier1, configure-vercel-preview]
+    needs: [compute-context, provision-tier1, bootstrap-preview-auth, configure-vercel-preview]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
       github.event.action != 'closed' &&
@@ -266,6 +300,9 @@ jobs:
         env:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+          TENANT_ID: default
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME || 'admin@example.com' }}
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD || 'adminADMIN!@12' }}
         run: bash .github/scripts/preview/smoke-preview.sh
 
       - name: Capture preview failure diagnostics
@@ -273,6 +310,9 @@ jobs:
         env:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+          TENANT_ID: default
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME || 'admin@example.com' }}
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD || 'adminADMIN!@12' }}
         run: bash .github/scripts/preview/capture-preview-failure-diagnostics.sh
 
       - name: Fetch Vercel runtime logs for API deployment

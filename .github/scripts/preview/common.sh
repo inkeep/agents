@@ -57,5 +57,7 @@ redact_preview_logs() {
   sed -E \
     -e 's#(postgres(ql)?://)[^[:space:]]+#\1[REDACTED]#g' \
     -e 's#([A-Z_]*(SECRET|KEY|TOKEN|PASSWORD)[A-Z_]*[:=])[^\r\n[:space:]]+#\1[REDACTED]#g' \
+    -e 's#((s|S)et-(c|C)ookie:[[:space:]]*better-auth[^=]*=)[^;[:space:]]+#\1[REDACTED]#g' \
+    -e 's#(better-auth\.[^=]+=)[^;[:space:]]+#\1[REDACTED]#g' \
     -e 's#(Bearer )[A-Za-z0-9._-]+#\1[REDACTED]#g'
 }
