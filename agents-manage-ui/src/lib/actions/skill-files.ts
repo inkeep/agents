@@ -105,6 +105,7 @@ export async function deleteSkillFileAction(
   tenantId: string,
   projectId: string,
   skillId: string,
+  fileId: string,
   filePath: string
 ): Promise<ActionResult<null>> {
   try {
@@ -116,23 +117,7 @@ export async function deleteSkillFileAction(
       };
     }
 
-    const skill = await fetchSkill(tenantId, projectId, skillId);
-    const files = skill.files
-      .filter((file) => file.filePath !== filePath)
-      .map((file) => ({
-        filePath: file.filePath,
-        content: file.content,
-      }));
-
-    if (files.length === skill.files.length) {
-      return {
-        success: false,
-        error: 'Skill file not found',
-        code: 'not_found',
-      };
-    }
-
-    await updateSkill(tenantId, projectId, skillId, { files });
+    await deleteSkillFile(tenantId, projectId, skillId, fileId);
 
     revalidateSkillFilePaths(tenantId, projectId, skillId, filePath);
 
