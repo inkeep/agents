@@ -166,6 +166,7 @@ import type {
   SkillApiSelectSchema,
   SkillApiUpdateSchema,
   SkillFileApiSelectSchema,
+  SkillFileApiUpdateSchema,
   SkillFileInsertSchema,
   SkillFileSelectSchema,
   SkillInsertSchema,
@@ -491,6 +492,7 @@ export type SkillApiUpdate = z.infer<typeof SkillApiUpdateSchema>;
 export type SkillFileSelect = z.infer<typeof SkillFileSelectSchema>;
 export type SkillFileInsert = z.infer<typeof SkillFileInsertSchema>;
 export type SkillFileApiSelect = z.infer<typeof SkillFileApiSelectSchema>;
+export type SkillFileApiUpdate = z.infer<typeof SkillFileApiUpdateSchema>;
 export type SkillWithFilesApiSelect = z.infer<typeof SkillWithFilesApiSelectSchema>;
 
 export type DataComponentSelect = z.infer<typeof DataComponentSelectSchema>;
