@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.58.21
+
+### Patch Changes
+
+- 64b0d88: Improve custom header ux by deriving template json from the headers schema
+  - @inkeep/agents-core@0.58.21
+
 ## 0.58.20
 
 ### Patch Changes
