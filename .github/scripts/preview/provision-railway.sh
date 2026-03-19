@@ -10,6 +10,10 @@ require_env_vars \
   RAILWAY_PROJECT_ID \
   RAILWAY_TEMPLATE_ENVIRONMENT \
   RAILWAY_OUTPUT_SERVICE \
+  RAILWAY_MANAGE_DB_SERVICE \
+  RAILWAY_RUN_DB_SERVICE \
+  RAILWAY_MANAGE_DB_TCP_PORT \
+  RAILWAY_RUN_DB_TCP_PORT \
   RAILWAY_SPICEDB_SERVICE \
   RAILWAY_SPICEDB_PRESHARED_KEY_KEY \
   RAILWAY_MANAGE_DB_URL_KEY \
@@ -46,6 +50,9 @@ if [ "${ENV_EXISTS}" = "0" ]; then
 else
   echo "Railway environment ${RAILWAY_ENV_NAME} already exists"
 fi
+
+railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_MANAGE_DB_SERVICE}" "${RAILWAY_MANAGE_DB_TCP_PORT}"
+railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_RUN_DB_SERVICE}" "${RAILWAY_RUN_DB_TCP_PORT}"
 
 TEMPLATE_SERVICE_ENV_JSON="$(
   railway variable list \
@@ -110,15 +117,15 @@ ensure_runtime_var_seeded() {
   local seed_value=""
   local source_label=""
 
-  existing="$(json_get_var "${SERVICE_ENV_JSON}" "${key}")"
-  if [ -n "${existing}" ]; then
-    return
-  fi
-
   if [ -n "${explicit_template}" ]; then
     seed_value="${explicit_template}"
-    source_label="repository template variable"
+    source_label="repository template override"
   else
+    existing="$(json_get_var "${SERVICE_ENV_JSON}" "${key}")"
+    if [ -n "${existing}" ]; then
+      return
+    fi
+
     seed_value="$(json_get_var "${TEMPLATE_SERVICE_ENV_JSON}" "${key}")"
     source_label="template environment ${RAILWAY_TEMPLATE_ENVIRONMENT}"
   fi
@@ -193,6 +200,8 @@ echo "spicedb_endpoint=${SPICEDB_ENDPOINT}" >> "${GITHUB_OUTPUT}"
   echo "- Railway environment: \`${RAILWAY_ENV_NAME}\`"
   echo "- Template environment: \`${RAILWAY_TEMPLATE_ENVIRONMENT}\`"
   echo "- Runtime variable source service: \`${RAILWAY_OUTPUT_SERVICE}\`"
+  echo "- Manage DB TCP proxy ready: ✅"
+  echo "- Run DB TCP proxy ready: ✅"
   echo "- Resolved manage DB URL: ✅"
   echo "- Resolved run DB URL: ✅"
   echo "- Resolved SpiceDB endpoint: ✅"

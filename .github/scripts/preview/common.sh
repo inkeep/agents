@@ -104,6 +104,156 @@ mask_env_vars() {
   done
 }
 
+railway_graphql() {
+  local query="$1"
+  local payload=""
+
+  payload="$(jq -nc --arg query "${query}" '{query: $query}')"
+
+  curl --connect-timeout 10 --max-time 30 -fsS \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${RAILWAY_API_TOKEN}" \
+    -H "User-Agent: Mozilla/5.0" \
+    -H "Origin: https://railway.com" \
+    -H "Referer: https://railway.com/" \
+    -d "${payload}" \
+    https://backboard.railway.com/graphql/v2
+}
+
+railway_environment_id() {
+  local project_id="$1"
+  local env_name="$2"
+  local response=""
+
+  response="$(
+    railway_graphql "$(cat <<EOF
+query {
+  environments(projectId: "${project_id}") {
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}
+EOF
+)"
+  )"
+
+  jq -r --arg env_name "${env_name}" '.data.environments.edges[] | select(.node.name == $env_name) | .node.id' <<< "${response}"
+}
+
+railway_service_id_for_env() {
+  local env_id="$1"
+  local service_name="$2"
+  local response=""
+
+  response="$(
+    railway_graphql "$(cat <<EOF
+query {
+  environment(id: "${env_id}") {
+    serviceInstances {
+      edges {
+        node {
+          serviceId
+          serviceName
+        }
+      }
+    }
+  }
+}
+EOF
+)"
+  )"
+
+  jq -r --arg service_name "${service_name}" '.data.environment.serviceInstances.edges[] | select(.node.serviceName == $service_name) | .node.serviceId' <<< "${response}"
+}
+
+railway_ensure_tcp_proxy() {
+  local project_id="$1"
+  local env_name="$2"
+  local service_name="$3"
+  local application_port="$4"
+  local max_attempts="${5:-30}"
+  local sleep_seconds="${6:-2}"
+  local env_id=""
+  local service_id=""
+  local response=""
+  local count=""
+  local active=""
+  local attempt=""
+
+  env_id="$(railway_environment_id "${project_id}" "${env_name}")"
+  if [ -z "${env_id}" ]; then
+    echo "Unable to resolve Railway environment ID for ${env_name}." >&2
+    return 1
+  fi
+
+  service_id="$(railway_service_id_for_env "${env_id}" "${service_name}")"
+  if [ -z "${service_id}" ]; then
+    echo "Unable to resolve Railway service ID for ${service_name} in ${env_name}." >&2
+    return 1
+  fi
+
+  response="$(
+    railway_graphql "$(cat <<EOF
+query {
+  tcpProxies(environmentId: "${env_id}", serviceId: "${service_id}") {
+    id
+    domain
+    proxyPort
+    applicationPort
+    syncStatus
+  }
+}
+EOF
+)"
+  )"
+
+  count="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port)] | length' <<< "${response}")"
+  if [ "${count}" = "0" ]; then
+    railway_graphql "$(cat <<EOF
+mutation {
+  tcpProxyCreate(input: {
+    environmentId: "${env_id}"
+    serviceId: "${service_id}"
+    applicationPort: ${application_port}
+  }) {
+    id
+  }
+}
+EOF
+)" >/dev/null
+  fi
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    response="$(
+      railway_graphql "$(cat <<EOF
+query {
+  tcpProxies(environmentId: "${env_id}", serviceId: "${service_id}") {
+    applicationPort
+    syncStatus
+  }
+}
+EOF
+)"
+    )"
+
+    active="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port and .syncStatus == "ACTIVE")] | length' <<< "${response}")"
+    if [ "${active}" != "0" ]; then
+      return 0
+    fi
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      sleep "${sleep_seconds}"
+    fi
+  done
+
+  echo "TCP proxy for ${service_name} in ${env_name} did not become ACTIVE." >&2
+  return 1
+}
+
 redact_preview_logs() {
   sed -E \
     -e 's#(postgres(ql)?://)[^[:space:]]+#\1[REDACTED]#g' \
