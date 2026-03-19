@@ -42,8 +42,13 @@ updates:
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
-      interval: 'monthly'
+      interval: 'daily'
     groups:
+      high-frequency:
+        patterns:
+          - 'pullfrog/*'
       github-actions:
         patterns:
           - '*'
+        exclude-patterns:
+          - 'pullfrog/*'
