@@ -66,6 +66,10 @@
       "types": "./dist/db/test-client.d.ts",
       "import": "./dist/db/test-client.js"
     },
+    "./utils/env-detection": {
+      "types": "./dist/utils/env-detection.d.ts",
+      "import": "./dist/utils/env-detection.js"
+    },
     "./utils/schema-conversion": {
       "types": "./dist/utils/schema-conversion.d.ts",
       "import": "./dist/utils/schema-conversion.js"
@@ -77,6 +81,10 @@
     "./auth": {
       "types": "./dist/auth/auth.d.ts",
       "import": "./dist/auth/auth.js"
+    },
+    "./auth/cookie-names": {
+      "types": "./dist/auth/cookie-names.d.ts",
+      "import": "./dist/auth/cookie-names.js"
     },
     "./auth/schema": {
       "types": "./dist/auth/auth-schema.d.ts",

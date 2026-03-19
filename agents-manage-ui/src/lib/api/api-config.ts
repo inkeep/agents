@@ -4,7 +4,7 @@
  * Centralized configuration for API endpoints and settings
  */
 
-import { isAuthCookie } from '@inkeep/agents-core';
+import { isAuthCookie } from '@inkeep/agents-core/auth/cookie-names';
 import { DEFAULT_INKEEP_AGENTS_API_URL } from '../runtime-config/defaults';
 import { ApiError } from '../types/errors';
 

@@ -1,4 +1,5 @@
-import { isDevelopment, isSessionCookie } from '@inkeep/agents-core';
+import { isSessionCookie } from '@inkeep/agents-core/auth/cookie-names';
+import { isDevelopment } from '@inkeep/agents-core/utils/env-detection';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
