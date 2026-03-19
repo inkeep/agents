@@ -283,7 +283,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       // Update the store with all refreshed data
       setInitial(nodesWithSelection, edgesWithSelection, metadata);
 
-      // Update project data in store so components using useProjectData get fresh data
+      // Update project data in React Query cache so components using useProjectQuery get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);
       queryClient.setQueryData(projectQueryKeys.detail(tenantId, projectId), convertedProject);
     }

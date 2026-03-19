@@ -54,6 +54,9 @@ export function useProjectQuery({ enabled = true }: { enabled?: boolean } = {}) 
     },
     enabled,
     staleTime: 30_000,
+    initialData: null,
+    // force `queryFn` still runs on mount
+    initialDataUpdatedAt: 0,
     meta: {
       defaultError: 'Failed to load project',
     },
