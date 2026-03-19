@@ -1,4 +1,4 @@
-import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   type AgentsManageDatabaseClient,
   cascadeDeleteByProject,
@@ -667,12 +667,6 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
   } catch (error: any) {
     if (error instanceof HTTPException) {
       throw error;
-    }
-    if (error instanceof z.ZodError) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'Invalid project definition',
-      });
     }
 
     if (error instanceof Error && error.message.includes('ID mismatch')) {

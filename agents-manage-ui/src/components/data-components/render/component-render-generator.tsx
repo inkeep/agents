@@ -18,8 +18,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DOCS_BASE_URL } from '@/constants/theme';
-import { useProject } from '@/contexts/project';
 import { updateDataComponent } from '@/lib/api/data-components';
+import { useProjectQuery } from '@/lib/query/projects';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {
@@ -52,8 +52,8 @@ export function ComponentRenderGenerator({
   const [isSaved, setIsSaved] = useState(!!existingRender);
   const [regenerateInstructions, setRegenerateInstructions] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const { project } = useProject();
-  const baseModel = project.models?.base?.model;
+  const { data: project } = useProjectQuery();
+  const baseModel = project?.models?.base?.model;
 
   const generatePreview = async (instructions?: string) => {
     setIsGenerating(true);

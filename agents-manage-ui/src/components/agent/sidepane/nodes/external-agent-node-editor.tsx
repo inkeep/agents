@@ -6,11 +6,11 @@ import { StandaloneJsonEditor } from '@/components/editors/standalone-json-edito
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
-import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
@@ -28,7 +28,9 @@ export function ExternalAgentNodeEditor({
 }: ExternalAgentNodeEditorProps) {
   const { updateNodeData } = useReactFlow();
   const { markUnsaved } = useAgentActions();
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { handleInputChange, getFieldError, setFieldRef, updateField, deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
     errorHelpers,

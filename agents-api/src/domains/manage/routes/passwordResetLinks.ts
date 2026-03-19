@@ -45,7 +45,7 @@ passwordResetLinksRoutes.post('/', async (c) => {
     headers: c.req.raw.headers,
   });
 
-  const isMember = result.members.some((m: { user: { email: string } }) => m.user.email === email);
+  const isMember = result.members.some((m) => m.user.email === email);
 
   if (!isMember) {
     throw createApiError({
