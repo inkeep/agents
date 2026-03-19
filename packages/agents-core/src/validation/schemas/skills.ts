@@ -250,4 +250,8 @@ export {
   SkillFileApiSelectSchema,
   SkillApiUpdateSchema,
   SkillApiSelectSchema,
+  SubAgentSkillWithIndexArrayResponse,
+  SubAgentSkillResponse,
+  SkillWithFilesResponse,
+  SkillListResponse,
 };
