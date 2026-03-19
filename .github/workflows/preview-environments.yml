@@ -217,6 +217,9 @@ jobs:
       - name: Install
         uses: ./.github/composite-actions/install
 
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@4.31.0
+
       - name: Seed preview admin user
         env:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
