@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeFormQuery, encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -23,8 +22,6 @@ import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import {
   SlackListChannelsRequest,
   SlackListChannelsRequest$zodSchema,
-  SlackListChannelsResponse,
-  SlackListChannelsResponse$zodSchema,
 } from "../models/slacklistchannelsop.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
@@ -41,7 +38,7 @@ export function slackSlackListChannels(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    SlackListChannelsResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -65,7 +62,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      SlackListChannelsResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -154,24 +151,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    SlackListChannelsResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.json(200, SlackListChannelsResponse$zodSchema, { key: "object" }),
-    M.nil(404, SlackListChannelsResponse$zodSchema),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

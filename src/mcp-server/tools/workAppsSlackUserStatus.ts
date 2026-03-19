@@ -25,7 +25,7 @@ Check if an Inkeep user has a linked Slack account.`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackUserStatus(
+    const [result] = await workAppsSlackUserStatus(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Check if an Inkeep user has a linked Slack account.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

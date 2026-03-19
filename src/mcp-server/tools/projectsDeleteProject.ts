@@ -25,7 +25,7 @@ Delete a project and its branch. Must be called from the main branch.`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectsDeleteProject(
+    const [result] = await projectsDeleteProject(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Delete a project and its branch. Must be called from the main branch.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

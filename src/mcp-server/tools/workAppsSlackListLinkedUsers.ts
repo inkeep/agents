@@ -25,7 +25,7 @@ List all users linked to Inkeep in this workspace`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackListLinkedUsers(
+    const [result] = await workAppsSlackListLinkedUsers(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ List all users linked to Inkeep in this workspace`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

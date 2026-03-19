@@ -25,7 +25,7 @@ Get a specific API key by ID (does not return the actual key)`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await apiKeysGetAPIKeyById(
+    const [result] = await apiKeysGetAPIKeyById(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Get a specific API key by ID (does not return the actual key)`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

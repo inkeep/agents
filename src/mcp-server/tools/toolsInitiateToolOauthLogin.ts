@@ -25,7 +25,7 @@ Detects OAuth requirements and redirects to the authorization server for the spe
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await toolsInitiateToolOauthLogin(
+    const [result] = await toolsInitiateToolOauthLogin(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Detects OAuth requirements and redirects to the authorization server for the spe
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

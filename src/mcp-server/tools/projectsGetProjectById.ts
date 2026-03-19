@@ -25,7 +25,7 @@ Get a single project by ID`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectsGetProjectById(
+    const [result] = await projectsGetProjectById(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Get a single project by ID`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

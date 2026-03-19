@@ -19,7 +19,7 @@ Check if the management service is healthy`,
     "readOnlyHint": true,
   },
   tool: async (client, ctx) => {
-    const [result, apiCall] = await healthHealth(
+    const [result] = await healthHealth(
       client,
       { fetchOptions: { signal: ctx.signal } },
     ).$inspect();
@@ -31,6 +31,6 @@ Check if the management service is healthy`,
       };
     }
 
-    return formatResult(void 0, apiCall);
+    return formatResult(result.value);
   },
 };

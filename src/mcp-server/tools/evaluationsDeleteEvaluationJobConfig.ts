@@ -25,7 +25,7 @@ export const tool$evaluationsDeleteEvaluationJobConfig: ToolDefinition<
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await evaluationsDeleteEvaluationJobConfig(
+    const [result] = await evaluationsDeleteEvaluationJobConfig(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ export const tool$evaluationsDeleteEvaluationJobConfig: ToolDefinition<
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

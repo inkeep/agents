@@ -25,7 +25,7 @@ Get details of a specific Slack workspace`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackGetWorkspace(
+    const [result] = await workAppsSlackGetWorkspace(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Get details of a specific Slack workspace`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -14,8 +13,6 @@ import { pathToFunc } from "../lib/url.js";
 import {
   DeleteSubAgentExternalAgentRelationRequest,
   DeleteSubAgentExternalAgentRelationRequest$zodSchema,
-  DeleteSubAgentExternalAgentRelationResponse,
-  DeleteSubAgentExternalAgentRelationResponse$zodSchema,
 } from "../models/deletesubagentexternalagentrelationop.js";
 import { APIError } from "../models/errors/apierror.js";
 import {
@@ -38,7 +35,7 @@ export function subAgentsDeleteSubAgentExternalAgentRelation(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    DeleteSubAgentExternalAgentRelationResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -62,7 +59,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      DeleteSubAgentExternalAgentRelationResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -164,26 +161,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    DeleteSubAgentExternalAgentRelationResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.nil(204, DeleteSubAgentExternalAgentRelationResponse$zodSchema),
-    M.json(404, DeleteSubAgentExternalAgentRelationResponse$zodSchema, {
-      key: "ErrorResponse",
-    }),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

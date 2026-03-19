@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeJSON, encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -14,8 +13,6 @@ import { pathToFunc } from "../lib/url.js";
 import {
   CreateArtifactComponentRequest,
   CreateArtifactComponentRequest$zodSchema,
-  CreateArtifactComponentResponse,
-  CreateArtifactComponentResponse$zodSchema,
 } from "../models/createartifactcomponentop.js";
 import { APIError } from "../models/errors/apierror.js";
 import {
@@ -43,7 +40,7 @@ export function artifactComponentsCreateArtifactComponent(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    CreateArtifactComponentResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -69,7 +66,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      CreateArtifactComponentResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -160,49 +157,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    CreateArtifactComponentResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.json(201, CreateArtifactComponentResponse$zodSchema, {
-      key: "ArtifactComponentResponse",
-    }),
-    M.json(400, CreateArtifactComponentResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "BadRequest",
-    }),
-    M.json(401, CreateArtifactComponentResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Unauthorized",
-    }),
-    M.json(403, CreateArtifactComponentResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Forbidden",
-    }),
-    M.json(404, CreateArtifactComponentResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "NotFound",
-    }),
-    M.json(422, CreateArtifactComponentResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "UnprocessableEntity",
-    }),
-    M.json(500, CreateArtifactComponentResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "InternalServerError",
-    }),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

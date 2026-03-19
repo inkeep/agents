@@ -26,7 +26,7 @@ Get default agent configuration for a specific channel`,
     },
     args,
     tool: async (client, args, ctx) => {
-      const [result, apiCall] = await workAppsSlackGetChannelSettings(
+      const [result] = await workAppsSlackGetChannelSettings(
         client,
         args.request,
         { fetchOptions: { signal: ctx.signal } },
@@ -39,8 +39,6 @@ Get default agent configuration for a specific channel`,
         };
       }
 
-      const value = result.value;
-
-      return formatResult(value, apiCall);
+      return formatResult(result.value);
     },
   };

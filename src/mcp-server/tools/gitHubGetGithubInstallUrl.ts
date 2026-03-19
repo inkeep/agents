@@ -25,7 +25,7 @@ Generates a URL to install the GitHub App on an organization or user account. Th
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await gitHubGetGithubInstallUrl(
+    const [result] = await gitHubGetGithubInstallUrl(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Generates a URL to install the GitHub App on an organization or user account. Th
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

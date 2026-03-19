@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -23,8 +22,6 @@ import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import {
   GetMcpToolSlackAccessRequest,
   GetMcpToolSlackAccessRequest$zodSchema,
-  GetMcpToolSlackAccessResponse,
-  GetMcpToolSlackAccessResponse$zodSchema,
 } from "../models/getmcptoolslackaccessop.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
@@ -46,7 +43,7 @@ export function toolsGetMcpToolSlackAccess(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    GetMcpToolSlackAccessResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -72,7 +69,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      GetMcpToolSlackAccessResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -166,47 +163,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    GetMcpToolSlackAccessResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.json(200, GetMcpToolSlackAccessResponse$zodSchema, { key: "object" }),
-    M.json(400, GetMcpToolSlackAccessResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "BadRequest",
-    }),
-    M.json(401, GetMcpToolSlackAccessResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Unauthorized",
-    }),
-    M.json(403, GetMcpToolSlackAccessResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Forbidden",
-    }),
-    M.json(404, GetMcpToolSlackAccessResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "NotFound",
-    }),
-    M.json(422, GetMcpToolSlackAccessResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "UnprocessableEntity",
-    }),
-    M.json(500, GetMcpToolSlackAccessResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "InternalServerError",
-    }),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

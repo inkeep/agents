@@ -25,7 +25,7 @@ Handles OAuth authorization codes for MCP tools and completes the authentication
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await oAuthMcpOauthCallback(
+    const [result] = await oAuthMcpOauthCallback(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Handles OAuth authorization codes for MCP tools and completes the authentication
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

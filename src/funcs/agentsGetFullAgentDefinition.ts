@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -23,8 +22,6 @@ import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import {
   GetFullAgentDefinitionRequest,
   GetFullAgentDefinitionRequest$zodSchema,
-  GetFullAgentDefinitionResponse,
-  GetFullAgentDefinitionResponse$zodSchema,
 } from "../models/getfullagentdefinitionop.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
@@ -43,7 +40,7 @@ export function agentsGetFullAgentDefinition(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    GetFullAgentDefinitionResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -69,7 +66,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      GetFullAgentDefinitionResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -163,49 +160,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    GetFullAgentDefinitionResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.json(200, GetFullAgentDefinitionResponse$zodSchema, {
-      key: "AgentWithinContextOfProjectResponse",
-    }),
-    M.json(400, GetFullAgentDefinitionResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "BadRequest",
-    }),
-    M.json(401, GetFullAgentDefinitionResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Unauthorized",
-    }),
-    M.json(403, GetFullAgentDefinitionResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Forbidden",
-    }),
-    M.json(404, GetFullAgentDefinitionResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "NotFound",
-    }),
-    M.json(422, GetFullAgentDefinitionResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "UnprocessableEntity",
-    }),
-    M.json(500, GetFullAgentDefinitionResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "InternalServerError",
-    }),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

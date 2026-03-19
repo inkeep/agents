@@ -25,7 +25,7 @@ Get a single branch by name`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await branchesGetBranch(
+    const [result] = await branchesGetBranch(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Get a single branch by name`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

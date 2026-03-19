@@ -27,7 +27,7 @@ Get the join from workspace setting for the workspace`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackGetJoinFromWorkspace(
+    const [result] = await workAppsSlackGetJoinFromWorkspace(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Get the join from workspace setting for the workspace`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

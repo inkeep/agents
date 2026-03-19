@@ -25,7 +25,7 @@ Retrieve a complete agent definition with all agents, tools, and relationships`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await agentsGetFullAgent(
+    const [result] = await agentsGetFullAgent(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Retrieve a complete agent definition with all agents, tools, and relationships`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -26,7 +26,7 @@ Set or update the default agent for a specific channel`,
     },
     args,
     tool: async (client, args, ctx) => {
-      const [result, apiCall] = await workAppsSlackSetChannelSettings(
+      const [result] = await workAppsSlackSetChannelSettings(
         client,
         args.request,
         { fetchOptions: { signal: ctx.signal } },
@@ -39,8 +39,6 @@ Set or update the default agent for a specific channel`,
         };
       }
 
-      const value = result.value;
-
-      return formatResult(value, apiCall);
+      return formatResult(result.value);
     },
   };

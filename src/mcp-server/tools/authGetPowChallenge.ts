@@ -19,7 +19,7 @@ Fetch an ALTCHA Proof-of-Work challenge. Returns 404 when PoW is not enabled on 
     "readOnlyHint": true,
   },
   tool: async (client, ctx) => {
-    const [result, apiCall] = await authGetPowChallenge(
+    const [result] = await authGetPowChallenge(
       client,
       { fetchOptions: { signal: ctx.signal } },
     ).$inspect();
@@ -31,8 +31,6 @@ Fetch an ALTCHA Proof-of-Work challenge. Returns 404 when PoW is not enabled on 
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

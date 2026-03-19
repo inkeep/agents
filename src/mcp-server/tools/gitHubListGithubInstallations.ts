@@ -25,7 +25,7 @@ Returns a list of GitHub App installations connected to this tenant. By default,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await gitHubListGithubInstallations(
+    const [result] = await gitHubListGithubInstallations(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Returns a list of GitHub App installations connected to this tenant. By default,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

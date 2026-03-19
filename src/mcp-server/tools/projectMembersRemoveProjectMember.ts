@@ -27,7 +27,7 @@ Remove a user from a project. Pass role as query param to specify which role to 
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectMembersRemoveProjectMember(
+    const [result] = await projectMembersRemoveProjectMember(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Remove a user from a project. Pass role as query param to specify which role to 
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

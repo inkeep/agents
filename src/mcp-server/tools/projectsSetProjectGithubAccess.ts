@@ -26,7 +26,7 @@ Configures which GitHub repositories a project can access. When mode is "all", t
     },
     args,
     tool: async (client, args, ctx) => {
-      const [result, apiCall] = await projectsSetProjectGithubAccess(
+      const [result] = await projectsSetProjectGithubAccess(
         client,
         args.request,
         { fetchOptions: { signal: ctx.signal } },
@@ -39,8 +39,6 @@ Configures which GitHub repositories a project can access. When mode is "all", t
         };
       }
 
-      const value = result.value;
-
-      return formatResult(value, apiCall);
+      return formatResult(result.value);
     },
   };

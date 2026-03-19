@@ -19,7 +19,7 @@ Get information about optional server-side capabilities and configuration.`,
     "readOnlyHint": true,
   },
   tool: async (client, ctx) => {
-    const [result, apiCall] = await capabilities(
+    const [result] = await capabilities(
       client,
       { fetchOptions: { signal: ctx.signal } },
     ).$inspect();
@@ -31,8 +31,6 @@ Get information about optional server-side capabilities and configuration.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

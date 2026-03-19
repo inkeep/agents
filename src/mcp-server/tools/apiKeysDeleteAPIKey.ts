@@ -25,7 +25,7 @@ Delete an API key permanently`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await apiKeysDeleteAPIKey(
+    const [result] = await apiKeysDeleteAPIKey(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Delete an API key permanently`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

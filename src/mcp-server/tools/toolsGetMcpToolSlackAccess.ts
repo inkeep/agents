@@ -25,7 +25,7 @@ Returns the current Slack channel access configuration for an MCP tool. If chann
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await toolsGetMcpToolSlackAccess(
+    const [result] = await toolsGetMcpToolSlackAccess(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Returns the current Slack channel access configuration for an MCP tool. If chann
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

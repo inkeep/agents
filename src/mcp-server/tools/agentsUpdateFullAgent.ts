@@ -25,7 +25,7 @@ Update or create a complete agent with all agents, tools, and relationships from
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await agentsUpdateFullAgent(
+    const [result] = await agentsUpdateFullAgent(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Update or create a complete agent with all agents, tools, and relationships from
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

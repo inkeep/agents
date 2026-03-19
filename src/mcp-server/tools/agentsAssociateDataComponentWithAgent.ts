@@ -25,7 +25,7 @@ export const tool$agentsAssociateDataComponentWithAgent: ToolDefinition<
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await agentsAssociateDataComponentWithAgent(
+    const [result] = await agentsAssociateDataComponentWithAgent(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ export const tool$agentsAssociateDataComponentWithAgent: ToolDefinition<
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

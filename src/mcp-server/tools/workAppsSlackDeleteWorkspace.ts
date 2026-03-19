@@ -25,7 +25,7 @@ Uninstall Slack app from workspace. Accepts either teamId or connectionId.`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackDeleteWorkspace(
+    const [result] = await workAppsSlackDeleteWorkspace(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Uninstall Slack app from workspace. Accepts either teamId or connectionId.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

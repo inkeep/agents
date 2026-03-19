@@ -25,7 +25,7 @@ Update an API key (currently only expiration date can be changed)`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await apiKeysUpdateAPIKey(
+    const [result] = await apiKeysUpdateAPIKey(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Update an API key (currently only expiration date can be changed)`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

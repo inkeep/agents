@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeJSON, encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -14,8 +13,6 @@ import { pathToFunc } from "../lib/url.js";
 import {
   CreateAppRequest,
   CreateAppRequest$zodSchema,
-  CreateAppResponse,
-  CreateAppResponse$zodSchema,
 } from "../models/createappop.js";
 import { APIError } from "../models/errors/apierror.js";
 import {
@@ -46,7 +43,7 @@ export function appsCreateApp(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    CreateAppResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -70,7 +67,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      CreateAppResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -161,47 +158,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    CreateAppResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.json(201, CreateAppResponse$zodSchema, { key: "object" }),
-    M.json(400, CreateAppResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "BadRequest",
-    }),
-    M.json(401, CreateAppResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Unauthorized",
-    }),
-    M.json(403, CreateAppResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "Forbidden",
-    }),
-    M.json(404, CreateAppResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "NotFound",
-    }),
-    M.json(422, CreateAppResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "UnprocessableEntity",
-    }),
-    M.json(500, CreateAppResponse$zodSchema, {
-      ctype: "application/problem+json",
-      key: "InternalServerError",
-    }),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

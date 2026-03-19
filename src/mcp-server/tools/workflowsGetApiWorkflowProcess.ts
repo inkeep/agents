@@ -19,7 +19,7 @@ Keeps the workflow worker active to process queued jobs (called by cron)`,
     "readOnlyHint": true,
   },
   tool: async (client, ctx) => {
-    const [result, apiCall] = await workflowsGetApiWorkflowProcess(
+    const [result] = await workflowsGetApiWorkflowProcess(
       client,
       { fetchOptions: { signal: ctx.signal } },
     ).$inspect();
@@ -31,6 +31,6 @@ Keeps the workflow worker active to process queued jobs (called by cron)`,
       };
     }
 
-    return formatResult(void 0, apiCall);
+    return formatResult(result.value);
   },
 };

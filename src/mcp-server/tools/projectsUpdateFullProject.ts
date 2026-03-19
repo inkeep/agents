@@ -25,7 +25,7 @@ Update or create a complete project with all Agents, Sub Agents, tools, and rela
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectsUpdateFullProject(
+    const [result] = await projectsUpdateFullProject(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Update or create a complete project with all Agents, Sub Agents, tools, and rela
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -27,7 +27,7 @@ Get the OAuth redirect URL for a third-party MCP server. Call this after scope s
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await thirdPartyMCPServersGetOauthRedirectUrl(
+    const [result] = await thirdPartyMCPServersGetOauthRedirectUrl(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Get the OAuth redirect URL for a third-party MCP server. Call this after scope s
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

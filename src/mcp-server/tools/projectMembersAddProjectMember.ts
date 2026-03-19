@@ -26,7 +26,7 @@ Add a user to a project with a specified role.`,
     },
     args,
     tool: async (client, args, ctx) => {
-      const [result, apiCall] = await projectMembersAddProjectMember(
+      const [result] = await projectMembersAddProjectMember(
         client,
         args.request,
         { fetchOptions: { signal: ctx.signal } },
@@ -39,8 +39,6 @@ Add a user to a project with a specified role.`,
         };
       }
 
-      const value = result.value;
-
-      return formatResult(value, apiCall);
+      return formatResult(result.value);
     },
   };

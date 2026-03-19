@@ -25,7 +25,7 @@ Delete a branch. Cannot delete protected branches like main.`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await branchesDeleteBranch(
+    const [result] = await branchesDeleteBranch(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Delete a branch. Cannot delete protected branches like main.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -25,7 +25,7 @@ export const tool$subAgentsGetSubagentToolRelation: ToolDefinition<
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await subAgentsGetSubagentToolRelation(
+    const [result] = await subAgentsGetSubagentToolRelation(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ export const tool$subAgentsGetSubagentToolRelation: ToolDefinition<
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

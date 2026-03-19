@@ -4,7 +4,6 @@
  */
 
 import { InkeepAgentsCore } from "../core.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { RequestOptions } from "../lib/sdks.js";
 import { pathToFunc } from "../lib/url.js";
@@ -17,10 +16,6 @@ import {
   UnexpectedClientError,
 } from "../models/errors/httpclienterrors.js";
 import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
-import {
-  GetPowChallengeResponse,
-  GetPowChallengeResponse$zodSchema,
-} from "../models/getpowchallengeop.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
@@ -35,7 +30,7 @@ export function authGetPowChallenge(
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    GetPowChallengeResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -57,7 +52,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      GetPowChallengeResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -117,26 +112,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    GetPowChallengeResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.json(200, GetPowChallengeResponse$zodSchema, {
-      key: "PowChallengeResponse",
-    }),
-    M.json(404, GetPowChallengeResponse$zodSchema, { key: "PowDisabledError" }),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

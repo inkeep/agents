@@ -27,7 +27,7 @@ List all users with explicit project access.`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectMembersListProjectMembers(
+    const [result] = await projectMembersListProjectMembers(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ List all users with explicit project access.`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -25,7 +25,7 @@ Configures which GitHub repositories an MCP tool can access. When mode is "all",
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await toolsSetMcpToolGithubAccess(
+    const [result] = await toolsSetMcpToolGithubAccess(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Configures which GitHub repositories an MCP tool can access. When mode is "all",
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

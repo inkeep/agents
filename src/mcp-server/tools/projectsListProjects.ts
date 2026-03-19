@@ -25,7 +25,7 @@ List all projects within a tenant with pagination. When authorization is enabled
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectsListProjects(
+    const [result] = await projectsListProjects(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ List all projects within a tenant with pagination. When authorization is enabled
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };
