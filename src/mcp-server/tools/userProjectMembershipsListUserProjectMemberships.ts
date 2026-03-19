@@ -13,7 +13,7 @@ const args = {
 
 export const tool$userProjectMembershipsListUserProjectMemberships:
   ToolDefinition<typeof args> = {
-    name: "user-project-memberships-list-user-project-88a",
+    name: "user-project-memberships-list-user-project-memberships",
     description: `List User Project Memberships
 
 List all projects a user has explicit access to and their role in each.`,

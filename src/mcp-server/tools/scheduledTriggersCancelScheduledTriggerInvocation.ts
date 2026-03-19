@@ -13,7 +13,7 @@ const args = {
 
 export const tool$scheduledTriggersCancelScheduledTriggerInvocation:
   ToolDefinition<typeof args> = {
-    name: "scheduled-triggers-cancel-scheduled-trigger-747",
+    name: "scheduled-triggers-cancel-scheduled-trigger-invocation",
     description: `Cancel Scheduled Trigger Invocation`,
     annotations: {
       "title": "",

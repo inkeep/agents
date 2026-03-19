@@ -4,7 +4,6 @@
  */
 
 import * as z from "zod";
-import * as b64$ from "../lib/base64.js";
 import { Forbidden, Forbidden$zodSchema } from "./forbidden.js";
 import {
   InternalServerError,
@@ -70,8 +69,8 @@ export const GetConversationMediaResponse$zodSchema: z.ZodType<
   StatusCode: z.int(),
   Unauthorized: Unauthorized$zodSchema.optional(),
   UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
-  bytes: z.string().describe("Base64-encoded binary content").transform(
-    b64$.bytesFromBase64,
+  bytes: z.custom<Uint8Array>(x => x instanceof Uint8Array).describe(
+    "Media file (content type varies by blob)",
   ).optional(),
   object: z.lazy(() => GetConversationMediaResponseBody$zodSchema).optional(),
 });
