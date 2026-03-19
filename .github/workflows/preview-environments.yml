@@ -22,6 +22,7 @@ name: Preview Environments
 # - RAILWAY_MANAGE_DB_SERVICE=<service name/id for Doltgres, default: doltgres>
 # - RAILWAY_RUN_DB_SERVICE=<service name/id for runtime Postgres, default: postgres>
 # - RAILWAY_SPICEDB_SERVICE=<service name/id for preview SpiceDB, default: spicedb>
+# - RAILWAY_SPICEDB_TCP_PORT=<SpiceDB gRPC port for Railway TCP proxy, default: 50051>
 # - RAILWAY_SPICEDB_PRESHARED_KEY_KEY=<service var key for SpiceDB auth, default: SPICEDB_GRPC_PRESHARED_KEY>
 # - RAILWAY_MANAGE_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_MANAGE_DATABASE_URL>
 # - RAILWAY_RUN_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_RUN_DATABASE_URL>
@@ -29,7 +30,7 @@ name: Preview Environments
 # - Optional explicit runtime templates (authoritative overrides when set):
 #   - RAILWAY_MANAGE_DB_URL_TEMPLATE (example: postgresql://appuser:password@${{doltgres.RAILWAY_TCP_PROXY_DOMAIN}}:${{doltgres.RAILWAY_TCP_PROXY_PORT}}/inkeep_agents?sslmode=disable)
 #   - RAILWAY_RUN_DB_URL_TEMPLATE (example: postgresql://appuser:password@${{postgres.RAILWAY_TCP_PROXY_DOMAIN}}:${{postgres.RAILWAY_TCP_PROXY_PORT}}/inkeep_agents?sslmode=disable)
-#   - RAILWAY_SPICEDB_ENDPOINT_TEMPLATE (example: ${{spicedb.SERVICE_PRIVATE_URL}})
+#   - RAILWAY_SPICEDB_ENDPOINT_TEMPLATE (default: ${{spicedb.RAILWAY_TCP_PROXY_DOMAIN}}:${{spicedb.RAILWAY_TCP_PROXY_PORT}})
 
 on:
   pull_request:
@@ -196,6 +197,7 @@ jobs:
           RAILWAY_MANAGE_DB_TCP_PORT: ${{ vars.RAILWAY_MANAGE_DB_TCP_PORT || '5432' }}
           RAILWAY_RUN_DB_TCP_PORT: ${{ vars.RAILWAY_RUN_DB_TCP_PORT || '5432' }}
           RAILWAY_SPICEDB_SERVICE: ${{ vars.RAILWAY_SPICEDB_SERVICE || 'spicedb' }}
+          RAILWAY_SPICEDB_TCP_PORT: ${{ vars.RAILWAY_SPICEDB_TCP_PORT || '50051' }}
           RAILWAY_SPICEDB_PRESHARED_KEY_KEY: ${{ vars.RAILWAY_SPICEDB_PRESHARED_KEY_KEY || 'SPICEDB_GRPC_PRESHARED_KEY' }}
           RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
           RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
@@ -231,6 +233,7 @@ jobs:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
           SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          SPICEDB_TLS_ENABLED: false
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}

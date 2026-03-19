@@ -15,6 +15,7 @@ require_env_vars \
   RAILWAY_MANAGE_DB_TCP_PORT \
   RAILWAY_RUN_DB_TCP_PORT \
   RAILWAY_SPICEDB_SERVICE \
+  RAILWAY_SPICEDB_TCP_PORT \
   RAILWAY_SPICEDB_PRESHARED_KEY_KEY \
   RAILWAY_MANAGE_DB_URL_KEY \
   RAILWAY_RUN_DB_URL_KEY \
@@ -53,6 +54,7 @@ fi
 
 railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_MANAGE_DB_SERVICE}" "${RAILWAY_MANAGE_DB_TCP_PORT}"
 railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_RUN_DB_SERVICE}" "${RAILWAY_RUN_DB_TCP_PORT}"
+railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_SPICEDB_SERVICE}" "${RAILWAY_SPICEDB_TCP_PORT}"
 
 TEMPLATE_SERVICE_ENV_JSON="$(
   railway variable list \
@@ -179,9 +181,12 @@ extract_runtime_var() {
 }
 
 refresh_service_env_dump
+
+DEFAULT_SPICEDB_ENDPOINT_TEMPLATE="\${{${RAILWAY_SPICEDB_SERVICE}.RAILWAY_TCP_PROXY_DOMAIN}}:\${{${RAILWAY_SPICEDB_SERVICE}.RAILWAY_TCP_PROXY_PORT}}"
+
 ensure_runtime_var_seeded "${RAILWAY_MANAGE_DB_URL_KEY}" "${RAILWAY_MANAGE_DB_URL_TEMPLATE:-}"
 ensure_runtime_var_seeded "${RAILWAY_RUN_DB_URL_KEY}" "${RAILWAY_RUN_DB_URL_TEMPLATE:-}"
-ensure_runtime_var_seeded "${RAILWAY_SPICEDB_ENDPOINT_KEY}" "${RAILWAY_SPICEDB_ENDPOINT_TEMPLATE:-}"
+ensure_runtime_var_seeded "${RAILWAY_SPICEDB_ENDPOINT_KEY}" "${RAILWAY_SPICEDB_ENDPOINT_TEMPLATE:-${DEFAULT_SPICEDB_ENDPOINT_TEMPLATE}}"
 
 MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
 RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
@@ -202,6 +207,7 @@ echo "spicedb_endpoint=${SPICEDB_ENDPOINT}" >> "${GITHUB_OUTPUT}"
   echo "- Runtime variable source service: \`${RAILWAY_OUTPUT_SERVICE}\`"
   echo "- Manage DB TCP proxy ready: ✅"
   echo "- Run DB TCP proxy ready: ✅"
+  echo "- SpiceDB TCP proxy ready: ✅"
   echo "- Resolved manage DB URL: ✅"
   echo "- Resolved run DB URL: ✅"
   echo "- Resolved SpiceDB endpoint: ✅"
