@@ -1,10 +1,10 @@
 import { z } from '@hono/zod-openapi';
 
-export const MIN_ID_LENGTH = 1;
-export const MAX_ID_LENGTH = 255;
-export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
+const MIN_ID_LENGTH = 1;
+const MAX_ID_LENGTH = 255;
+const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
 
-export const ResourceIdSchema = z
+const ResourceIdSchema = z
   .string()
   .min(MIN_ID_LENGTH)
   .max(MAX_ID_LENGTH)
@@ -17,7 +17,7 @@ export const ResourceIdSchema = z
     example: 'resource_789',
   });
 
-export const StringRecordSchema = z
+const StringRecordSchema = z
   .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
   .openapi('StringRecord');
 
@@ -29,7 +29,7 @@ const limitNumber = z.coerce
   .default(10)
   .openapi('PaginationLimitQueryParam');
 
-export const PaginationSchema = z
+const PaginationSchema = z
   .object({
     page: pageNumber,
     limit: limitNumber,
@@ -38,7 +38,7 @@ export const PaginationSchema = z
   })
   .openapi('Pagination');
 
-export const PaginationQueryParamsSchema = z
+const PaginationQueryParamsSchema = z
   .object({
     page: pageNumber,
     limit: limitNumber,
@@ -120,4 +120,23 @@ const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(
     agentId: true,
   }) as z.ZodObject<OmitAgentScope<T>>;
 
-export { createApiSchema, createApiUpdateSchema };
+const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  (
+    (schema as z.ZodObject<z.ZodRawShape>).omit({
+      tenantId: true,
+      projectId: true,
+      agentId: true,
+    }) as z.ZodObject<OmitAgentScope<T>>
+  ).partial();
+
+export {
+  createApiSchema,
+  createApiUpdateSchema,
+  createApiInsertSchema,
+  createAgentScopedApiUpdateSchema,
+  createAgentScopedApiSchema,
+  omitGeneratedFields,
+  omitTimestamps,
+  omitTenantScope,
+  PaginationQueryParamsSchema,
+};

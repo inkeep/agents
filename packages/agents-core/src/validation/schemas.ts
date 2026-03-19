@@ -84,9 +84,14 @@ import {
 } from './extend-schemas';
 import {
   ResourceIdSchema,
-  createAgentScopedApiSchema,
-  createAgentScopedApiInsertSchema,
+  createApiSchema,
+  createApiInsertSchema,
+  createApiUpdateSchema,
   createAgentScopedApiUpdateSchema,
+  omitGeneratedFields,
+  omitTimestamps,
+  omitTenantScope,
+  PaginationQueryParamsSchema,
 } from './schemas/shared';
 
 // Destructure defaults for use in schemas

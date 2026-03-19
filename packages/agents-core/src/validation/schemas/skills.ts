@@ -7,6 +7,8 @@ import {
   PaginationSchema,
   createApiSchema,
   createApiUpdateSchema,
+  createAgentScopedApiUpdateSchema,
+  createAgentScopedApiSchema,
 } from './shared';
 import { createInsertSchema, createSelectSchema } from '../drizzle-schema-helpers';
 
