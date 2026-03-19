@@ -32,6 +32,7 @@ import type { JsonSchemaForLlmSchemaType } from '../../validation/json-schemas';
 import type {
   AgentStopWhen,
   AudienceConfig,
+  McpRateLimitConfig,
   ModelSettings,
   SignatureVerificationConfig,
   SimulationAgent,
@@ -469,6 +470,7 @@ export const tools = pgTable(
     capabilities: jsonb('capabilities').$type<ToolServerCapabilities>(),
     lastError: text('last_error'),
     isWorkApp: boolean('is_work_app').notNull().default(false),
+    rateLimits: jsonb('rate_limits').$type<McpRateLimitConfig | null>(),
     ...timestamps,
   },
   (table) => [

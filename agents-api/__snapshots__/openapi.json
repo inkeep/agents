@@ -2166,6 +2166,31 @@
                   "maxLength": 256,
                   "type": "string"
                 },
+                "rateLimits": {
+                  "description": "Rate limit configuration for MCP tool calls",
+                  "nullable": true,
+                  "properties": {
+                    "concurrentRequests": {
+                      "description": "Maximum concurrent requests",
+                      "maximum": 100,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "requestsPerHour": {
+                      "description": "Maximum requests per hour",
+                      "maximum": 100000,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "requestsPerMinute": {
+                      "description": "Maximum requests per minute",
+                      "maximum": 10000,
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                },
                 "tenantId": {
                   "maxLength": 256,
                   "type": "string"
@@ -5926,6 +5951,31 @@
             "maxLength": 256,
             "type": "string"
           },
+          "rateLimits": {
+            "description": "Rate limit configuration for MCP tool calls",
+            "nullable": true,
+            "properties": {
+              "concurrentRequests": {
+                "description": "Maximum concurrent requests",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "requestsPerHour": {
+                "description": "Maximum requests per hour",
+                "maximum": 100000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "requestsPerMinute": {
+                "description": "Maximum requests per minute",
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
           "relationshipId": {
             "type": "string"
           },
@@ -9232,6 +9282,31 @@
             "maxLength": 256,
             "type": "string"
           },
+          "rateLimits": {
+            "description": "Rate limit configuration for MCP tool calls",
+            "nullable": true,
+            "properties": {
+              "concurrentRequests": {
+                "description": "Maximum concurrent requests",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "requestsPerHour": {
+                "description": "Maximum requests per hour",
+                "maximum": 100000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "requestsPerMinute": {
+                "description": "Maximum requests per minute",
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
           "updatedAt": {
             "type": "string"
           }
@@ -9454,6 +9529,31 @@
           "name": {
             "maxLength": 256,
             "type": "string"
+          },
+          "rateLimits": {
+            "description": "Rate limit configuration for MCP tool calls",
+            "nullable": true,
+            "properties": {
+              "concurrentRequests": {
+                "description": "Maximum concurrent requests",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "requestsPerHour": {
+                "description": "Maximum requests per hour",
+                "maximum": 100000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "requestsPerMinute": {
+                "description": "Maximum requests per minute",
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         },
         "required": [
@@ -9664,6 +9764,31 @@
           "name": {
             "maxLength": 256,
             "type": "string"
+          },
+          "rateLimits": {
+            "description": "Rate limit configuration for MCP tool calls",
+            "nullable": true,
+            "properties": {
+              "concurrentRequests": {
+                "description": "Maximum concurrent requests",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "requestsPerHour": {
+                "description": "Maximum requests per hour",
+                "maximum": 100000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "requestsPerMinute": {
+                "description": "Maximum requests per minute",
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         },
         "type": "object"

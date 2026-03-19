@@ -1258,7 +1258,37 @@ export const McpToolDefinitionSchema = z.object({
   inputSchema: z.record(z.string(), z.unknown()).optional(),
 });
 
-export const ToolSelectSchema = createSelectSchema(tools);
+export const McpRateLimitConfigSchema = z
+  .object({
+    requestsPerMinute: z
+      .number()
+      .int()
+      .min(1)
+      .max(10000)
+      .optional()
+      .describe('Maximum requests per minute'),
+    requestsPerHour: z
+      .number()
+      .int()
+      .min(1)
+      .max(100000)
+      .optional()
+      .describe('Maximum requests per hour'),
+    concurrentRequests: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Maximum concurrent requests'),
+  })
+  .describe('Rate limit configuration for MCP tool calls');
+
+export type McpRateLimitConfig = z.infer<typeof McpRateLimitConfigSchema>;
+
+export const ToolSelectSchema = createSelectSchema(tools).extend({
+  rateLimits: McpRateLimitConfigSchema.nullable().optional(),
+});
 
 export const ToolInsertSchema = createInsertSchema(tools)
   .extend({
@@ -1302,6 +1332,9 @@ export const ToolInsertSchema = createInsertSchema(tools)
         prompt: z.string().optional(),
       }),
     }),
+    rateLimits: McpRateLimitConfigSchema.nullable()
+      .optional()
+      .describe('Rate limit configuration for MCP tool calls'),
   })
   .omit({
     createdAt: true,
