@@ -490,6 +490,40 @@ export async function incrementAttemptStep(params: {
 }
 
 /**
+ * Step: Reset a cancelled invocation back to pending.
+ * Used when a restarted workflow finds a cancelled invocation via idempotency
+ * that is still scheduled for a future time.
+ */
+export async function resetInvocationToPendingStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  invocationId: string;
+}) {
+  'use step';
+
+  await updateScheduledTriggerInvocationStatus(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    invocationId: params.invocationId,
+    data: {
+      status: 'pending',
+      attemptNumber: 1,
+    },
+  });
+
+  logger.info(
+    { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+    'Reset cancelled invocation to pending'
+  );
+}
+
+/**
  * Step: Execute the scheduled trigger using executeAgentAsync.
  *
  * Uses the shared executeAgentAsync from TriggerService which includes
