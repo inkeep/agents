@@ -1,8 +1,7 @@
-import { isDevelopment } from '@inkeep/agents-core';
+import { isDevelopment, isSessionCookie } from '@inkeep/agents-core';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const SESSION_COOKIE_SUFFIX = 'better-auth.session_token';
 const LOGGED_OUT_COOKIE = 'dev-logged-out';
 
 const PUBLIC_PATH_PREFIXES = [
@@ -36,7 +35,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const hasSession = request.cookies.getAll().some((c) => c.name.endsWith(SESSION_COOKIE_SUFFIX));
+  const hasSession = request.cookies.getAll().some((c) => isSessionCookie(c.name));
 
   if (hasSession) {
     if (request.cookies.has(LOGGED_OUT_COOKIE)) {
