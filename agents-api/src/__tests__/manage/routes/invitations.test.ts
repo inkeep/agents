@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist the mock functions
-const { getPendingInvitationsByEmailMock, listUserInvitationsMock } = vi.hoisted(() => ({
+const {
+  getPendingInvitationsByEmailMock,
+  listUserInvitationsMock,
+  getFilteredAuthMethodsForEmailMock,
+} = vi.hoisted(() => ({
   getPendingInvitationsByEmailMock: vi.fn(),
   listUserInvitationsMock: vi.fn(),
+  getFilteredAuthMethodsForEmailMock: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock @inkeep/agents-core
@@ -12,6 +17,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   return {
     ...original,
     getPendingInvitationsByEmail: () => getPendingInvitationsByEmailMock,
+    getFilteredAuthMethodsForEmail: () => getFilteredAuthMethodsForEmailMock,
     createApiError: original.createApiError,
   };
 });

@@ -54,7 +54,7 @@ usersRoutes.get('/:userId/organizations', async (c) => {
  * POST /api/users/providers
  *
  * Get authentication providers for a list of users.
- * Returns which providers each user has (e.g., 'credential', 'google', 'auth0').
+ * Returns which providers each user has (e.g., 'credential', 'google', etc).
  * Restricted to org admins/owners querying members of their organization.
  *
  * Body: { userIds: string[], organizationId: string }

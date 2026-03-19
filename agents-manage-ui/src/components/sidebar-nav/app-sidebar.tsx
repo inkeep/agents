@@ -74,6 +74,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
 
   const orgNavItems: NavItemProps[] = [
     {
+      title: STATIC_LABELS.members,
+      url: `/${tenantId}/members`,
+      icon: Users,
+    },
+    {
       title: STATIC_LABELS.settings,
       url: `/${tenantId}/settings`,
       icon: Settings,
