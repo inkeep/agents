@@ -1,9 +1,16 @@
 import { z } from '@hono/zod-openapi';
-import { type DataPart, type FilePart, type Part, SPAN_KEYS } from '@inkeep/agents-core';
+import {
+  type DataPart,
+  type FilePart,
+  type Part,
+  recordUsage,
+  SPAN_KEYS,
+} from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import { generateText, Output, streamText } from 'ai';
+import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { agentSessionManager } from '../../session/AgentSession';
@@ -289,6 +296,26 @@ export async function runGenerate(
         );
 
         response = await resolveGenerationResponse(rawResponse as Record<string, unknown>);
+
+        if (primaryModelSettings.model) {
+          recordUsage(
+            runDbClient,
+            {
+              tenantId: ctx.config.tenantId,
+              projectId: ctx.config.projectId,
+              agentId: ctx.config.agentId,
+              subAgentId: ctx.config.id,
+              conversationId: runtimeContext?.metadata?.conversationId,
+              generationType: 'sub_agent_generation',
+            },
+            primaryModelSettings.model,
+            response,
+            {
+              streamed: !!shouldStream,
+              finishReason: response.finishReason,
+            }
+          );
+        }
 
         if (hasStructuredOutput && response.output) {
           response.object = response.output;
