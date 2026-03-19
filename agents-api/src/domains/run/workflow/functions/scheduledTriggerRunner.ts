@@ -216,7 +216,12 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     });
     invocation = result.invocation;
 
-    if (isOneTime && result.alreadyExists && invocation.status !== 'pending') {
+    if (
+      isOneTime &&
+      result.alreadyExists &&
+      invocation.status !== 'pending' &&
+      invocation.status !== 'cancelled'
+    ) {
       await logStep('One-time trigger already executed', {
         scheduledTriggerId,
         invocationId: invocation.id,
@@ -235,13 +240,31 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
           invocationId: invocation.id,
           scheduledFor,
         });
-        await resetInvocationToPendingStep({
-          tenantId,
-          projectId,
-          agentId,
-          scheduledTriggerId,
-          invocationId: invocation.id,
-        });
+        let resetResult: Awaited<ReturnType<typeof resetInvocationToPendingStep>> | undefined;
+        try {
+          resetResult = await resetInvocationToPendingStep({
+            tenantId,
+            projectId,
+            agentId,
+            scheduledTriggerId,
+            invocationId: invocation.id,
+          });
+        } catch (err) {
+          await logStep('Failed to reset cancelled invocation to pending', {
+            scheduledTriggerId,
+            invocationId: invocation.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          throw err;
+        }
+
+        if (!resetResult) {
+          await logStep('Reset skipped — invocation status changed concurrently, exiting', {
+            scheduledTriggerId,
+            invocationId: invocation.id,
+          });
+          return { status: 'skipped' as const, reason: 'concurrent_status_change' };
+        }
         invocation = { ...invocation, status: 'pending' };
       } else {
         await logStep('Cancelled idempotent invocation in the past, skipping to next iteration', {

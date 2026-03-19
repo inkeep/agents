@@ -21,6 +21,7 @@ import {
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
   type Part,
+  resetCancelledInvocationToPending,
   resolveRef,
   type ScheduledTriggerInvocation,
   updateScheduledTriggerInvocationStatus,
@@ -503,7 +504,7 @@ export async function resetInvocationToPendingStep(params: {
 }) {
   'use step';
 
-  await updateScheduledTriggerInvocationStatus(runDbClient)({
+  const updated = await resetCancelledInvocationToPending(runDbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
@@ -511,16 +512,21 @@ export async function resetInvocationToPendingStep(params: {
     },
     scheduledTriggerId: params.scheduledTriggerId,
     invocationId: params.invocationId,
-    data: {
-      status: 'pending',
-      attemptNumber: 1,
-    },
   });
 
-  logger.info(
-    { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
-    'Reset cancelled invocation to pending'
-  );
+  if (updated) {
+    logger.info(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Reset cancelled invocation to pending'
+    );
+  } else {
+    logger.warn(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Skipped reset — invocation status changed concurrently (no longer cancelled)'
+    );
+  }
+
+  return updated;
 }
 
 /**
