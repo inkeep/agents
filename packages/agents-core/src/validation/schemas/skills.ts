@@ -173,6 +173,7 @@ const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema)
   .openapi('SkillUpdate');
 
 const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
+const SkillFileApiInsertSchema = SkillFileContentInputSchema.openapi('SkillFileCreate');
 const SkillFileApiUpdateSchema = z
   .object({
     content: z.string(),
@@ -256,6 +257,7 @@ export {
   SkillInsertSchema,
   SkillFileSelectSchema,
   SkillFileInsertSchema,
+  SkillFileApiInsertSchema,
   SkillFileApiUpdateSchema,
   SkillFileApiSelectSchema,
   SkillApiUpdateSchema,

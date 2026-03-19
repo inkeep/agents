@@ -71,14 +71,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
     setIsSaving(true);
     const result = isCreateMode
       ? await createSkillFileAction(tenantId, projectId, skillId, nextFilePath, nextContent)
-      : await updateSkillFileAction(
-          tenantId,
-          projectId,
-          skillId,
-          fileId,
-          filePath,
-          nextContent
-        );
+      : await updateSkillFileAction(tenantId, projectId, skillId, fileId, filePath, nextContent);
     setIsSaving(false);
 
     if (!result.success) {

@@ -28,11 +28,6 @@ export const SkillsSidebar: FC<SkillsSidebarProps> = ({ treeNodes, fileRouteAlia
   const selectedRoutePath = selectedNode?.routePath ?? '';
 
   return treeNodes.map((node) => (
-    <TreeNode
-      key={node.path}
-      node={node}
-      selectedRoutePath={selectedRoutePath}
-      canEdit={canEdit}
-    />
+    <TreeNode key={node.path} node={node} selectedRoutePath={selectedRoutePath} canEdit={canEdit} />
   ));
 };

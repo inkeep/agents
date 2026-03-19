@@ -25,8 +25,8 @@ import { cn } from '@/lib/utils';
 import {
   buildNewSkillFileHref,
   buildSkillFileViewHref,
-  getSkillFileRemovalLabel,
   getSkillFileParentDirectory,
+  getSkillFileRemovalLabel,
   isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
@@ -104,88 +104,86 @@ export const TreeNode: FC<{
 
   return (
     <ComponentToUse key={node.path}>
-      {isFile ? (
-        (() => {
-          const button = (
-            <SidebarMenuButton className="px-0!">
-              <ButtonToUse asChild isActive={isActive} className="w-full">
-                <NextLink href={href}>{content}</NextLink>
-              </ButtonToUse>
-            </SidebarMenuButton>
-          );
-          return (
-            <>
-              {canEdit ? (
-                <ContextMenu>
-                  <ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
-                  <ContextMenuContent>
-                    {renderAddFileItem()}
-                    <ContextMenuItem variant="destructive" onSelect={() => setIsDeleteOpen(true)}>
-                      <Trash2 />
-                      {getSkillFileRemovalLabel(node.filePath ?? '')}
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-              ) : (
-                button
-              )}
-              {isDeleteOpen && node.skillId && node.fileId && node.filePath && (
-                <>
-                  {isEntryFile ? (
-                    <DeleteSkillConfirmation
-                      skillId={node.skillId}
-                      setIsOpen={setIsDeleteOpen}
-                      redirectOnDelete={Boolean(isSelectedSkill)}
-                    />
-                  ) : (
-                    <DeleteSkillFileConfirmation
-                      skillId={node.skillId}
-                      fileId={node.fileId}
-                      filePath={node.filePath}
-                      redirectPath={
-                        isActive
-                          ? buildSkillFileViewHref(
-                              tenantId,
-                              projectId,
-                              node.skillId,
-                              SKILL_ENTRY_FILE_PATH
-                            )
-                          : undefined
-                      }
-                      setIsOpen={setIsDeleteOpen}
-                    />
-                  )}
-                </>
-              )}
-            </>
-          );
-        })()
-      ) : (
-        (() => {
-          const button = (
-            <div>
-              <SidebarMenuSubButton onClick={handleCollapse} className="cursor-pointer">
-                {content}
-              </SidebarMenuSubButton>
-              <SidebarMenuAction
-                className={cn('top-1', !isCollapsed && 'rotate-90')}
-                onClick={handleCollapse}
-              >
-                <ChevronRight className="size-4" />
-              </SidebarMenuAction>
-            </div>
-          );
+      {isFile
+        ? (() => {
+            const button = (
+              <SidebarMenuButton className="px-0!">
+                <ButtonToUse asChild isActive={isActive} className="w-full">
+                  <NextLink href={href}>{content}</NextLink>
+                </ButtonToUse>
+              </SidebarMenuButton>
+            );
+            return (
+              <>
+                {canEdit ? (
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
+                    <ContextMenuContent>
+                      {renderAddFileItem()}
+                      <ContextMenuItem variant="destructive" onSelect={() => setIsDeleteOpen(true)}>
+                        <Trash2 />
+                        {getSkillFileRemovalLabel(node.filePath ?? '')}
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ) : (
+                  button
+                )}
+                {isDeleteOpen && node.skillId && node.fileId && node.filePath && (
+                  <>
+                    {isEntryFile ? (
+                      <DeleteSkillConfirmation
+                        skillId={node.skillId}
+                        setIsOpen={setIsDeleteOpen}
+                        redirectOnDelete={Boolean(isSelectedSkill)}
+                      />
+                    ) : (
+                      <DeleteSkillFileConfirmation
+                        skillId={node.skillId}
+                        fileId={node.fileId}
+                        filePath={node.filePath}
+                        redirectPath={
+                          isActive
+                            ? buildSkillFileViewHref(
+                                tenantId,
+                                projectId,
+                                node.skillId,
+                                SKILL_ENTRY_FILE_PATH
+                              )
+                            : undefined
+                        }
+                        setIsOpen={setIsDeleteOpen}
+                      />
+                    )}
+                  </>
+                )}
+              </>
+            );
+          })()
+        : (() => {
+            const button = (
+              <div>
+                <SidebarMenuSubButton onClick={handleCollapse} className="cursor-pointer">
+                  {content}
+                </SidebarMenuSubButton>
+                <SidebarMenuAction
+                  className={cn('top-1', !isCollapsed && 'rotate-90')}
+                  onClick={handleCollapse}
+                >
+                  <ChevronRight className="size-4" />
+                </SidebarMenuAction>
+              </div>
+            );
 
-          return canEdit && createHref ? (
-            <ContextMenu>
-              <ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
-              <ContextMenuContent>{renderAddFileItem()}</ContextMenuContent>
-            </ContextMenu>
-          ) : (
-            button
-          );
-        })()
-      )}
+            return canEdit && createHref ? (
+              <ContextMenu>
+                <ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
+                <ContextMenuContent>{renderAddFileItem()}</ContextMenuContent>
+              </ContextMenu>
+            ) : (
+              button
+            );
+          })()}
       {node.children.length > 0 && !isCollapsed && (
         <SidebarMenuSub className="pr-0 mr-0">
           {node.children.map((child) => (
