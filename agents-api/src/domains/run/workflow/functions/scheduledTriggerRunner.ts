@@ -469,7 +469,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       messageTemplate: currentTrigger.messageTemplate,
       payload: currentTrigger.payload ?? null,
       timeoutSeconds: currentTrigger.timeoutSeconds,
-      runAsUserId: currentTrigger.runAsUserId,
+      runAsUserId: invocation.recipientUserId || currentTrigger.runAsUserId,
       cronTimezone: currentTrigger.cronTimezone,
     });
 
