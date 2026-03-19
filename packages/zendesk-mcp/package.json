@@ -1,0 +1,47 @@
+{
+  "name": "@inkeep/zendesk-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for searching Zendesk tickets via natural language in Cursor/Claude Code",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "zendesk-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "check": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "~5.8.3",
+    "vitest": "^3.1.1"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "packages/zendesk-mcp"
+  },
+  "keywords": [
+    "mcp",
+    "zendesk",
+    "search",
+    "support",
+    "tickets"
+  ],
+  "license": "MIT"
+}
