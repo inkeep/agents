@@ -148,6 +148,30 @@ export function ChatWidget({
         <InkeepEmbeddedChat
           baseSettings={{
             shouldBypassCaptcha: true,
+            async onFeedback(feedback) {
+              try {
+                await fetch(
+                  `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/v1/conversations/${conversationId}/messages/${feedback.messageId}/feedback`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${tempApiKey}`,
+                      'x-inkeep-tenant-id': tenantId,
+                      'x-inkeep-project-id': projectId,
+                      ...customHeaders,
+                    },
+                    body: JSON.stringify({
+                      type: feedback.type,
+                      reasons: feedback.reasons,
+                    }),
+                  }
+                );
+              } catch (error) {
+                console.error('Failed to persist message feedback:', error);
+              }
+              return feedback;
+            },
             async onEvent(event) {
               posthog?.capture(event.eventName, {
                 ...event.properties,
