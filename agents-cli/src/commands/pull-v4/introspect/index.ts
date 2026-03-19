@@ -146,13 +146,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
   }
 
   console.log(styleText('blue', '\nInkeep Pull:'));
-  if (options.introspect) {
-    console.log(
-      styleText('gray', '  Introspect mode • Complete regeneration • No comparison needed')
-    );
-  } else {
-    console.log(styleText('gray', '  Smart comparison • Detect all changes • Targeted updates'));
-  }
+  console.log(styleText('gray', '  Smart comparison • Detect all changes • Targeted updates'));
 
   const s = p.spinner();
 

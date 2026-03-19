@@ -23,7 +23,6 @@ interface SkillFileEditorProps {
   tenantId: string;
   projectId: string;
   skillId: string;
-  skillName: string;
   filePath: string;
   initialContent: string;
 }
@@ -32,7 +31,6 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   tenantId,
   projectId,
   skillId,
-  skillName,
   filePath,
   initialContent,
 }) => {
@@ -92,13 +90,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
             {isDeleteOpen && (
               <>
                 {isEntryFile ? (
-                  <DeleteSkillConfirmation
-                    tenantId={tenantId}
-                    projectId={projectId}
-                    skillId={skillId}
-                    skillName={skillName}
-                    setIsOpen={setIsDeleteOpen}
-                  />
+                  <DeleteSkillConfirmation skillId={skillId} setIsOpen={setIsDeleteOpen} />
                 ) : (
                   <DeleteSkillFileConfirmation
                     tenantId={tenantId}
