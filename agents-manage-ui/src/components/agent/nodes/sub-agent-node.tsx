@@ -6,12 +6,12 @@ import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
 import { STATIC_LABELS } from '@/constants/theme';
-import { useProject } from '@/contexts/project';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { useProjectQuery } from '@/lib/query/projects';
 import { cn, createLookup } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
@@ -50,9 +50,8 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const { data: artifactComponents } = useArtifactComponentsQuery();
 
   const agentModel = useAgentStore((state) => state.metadata.models);
-  const { project } = useProject();
-  const projectModel = project.models;
-  const modelName = (data.models ?? agentModel ?? projectModel).base?.model ?? '';
+  const { data: project } = useProjectQuery();
+  const modelName = (data.models ?? agentModel ?? project?.models)?.base?.model ?? '';
 
   const { data: dataComponents } = useDataComponentsQuery();
   const dataComponentsById = createLookup(dataComponents);

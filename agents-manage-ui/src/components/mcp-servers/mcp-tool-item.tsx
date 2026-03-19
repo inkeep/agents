@@ -22,9 +22,9 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import { URLDisplay } from '@/components/url-display';
-import { useProjectPermissions } from '@/contexts/project';
 import { deleteToolAction } from '@/lib/actions/tools';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { MCPTool } from '@/lib/types/tools';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { formatDate } from '@/lib/utils/format-date';
@@ -113,7 +113,9 @@ export function MCPToolItem({
   projectId: string;
   tool: MCPTool;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/mcp-servers/${initialTool.id}`;
 
   const { data: fetchedTool, isFetching: isLoadingStatus } = useMcpToolStatusQuery({

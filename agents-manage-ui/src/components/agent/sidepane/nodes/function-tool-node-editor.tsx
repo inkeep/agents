@@ -18,8 +18,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useCopilotContext } from '@/contexts/copilot';
-import { useProjectPermissions } from '@/contexts/project';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
 import { TextareaField } from '../form-components/text-area';
@@ -33,7 +33,9 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     selectedNodeId: selectedNode.id,
   });
 
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
 
   const nodeData = selectedNode.data;
