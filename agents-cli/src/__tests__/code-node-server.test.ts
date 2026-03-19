@@ -1,4 +1,5 @@
 import { mkdtemp, rm } from 'node:fs/promises';
+import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -114,12 +115,52 @@ async function makeWorkspace(): Promise<string> {
 }
 
 async function postJson(url: string, body: unknown): Promise<any> {
-  const response = await fetch(url, {
+  const response = await requestText(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  return await response.json();
+  return JSON.parse(response.body);
+}
+
+async function requestText(
+  url: string,
+  init: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+  } = {}
+): Promise<{ body: string; headers: Record<string, string | string[] | undefined> }> {
+  return await new Promise((resolve, reject) => {
+    const req = request(
+      new URL(url),
+      {
+        method: init.method ?? 'GET',
+        headers: init.headers,
+      },
+      (res) => {
+        const chunks: string[] = [];
+        res.setEncoding('utf8');
+        res.on('data', (chunk: string) => {
+          chunks.push(chunk);
+        });
+        res.on('end', () => {
+          resolve({
+            body: chunks.join(''),
+            headers: res.headers,
+          });
+        });
+      }
+    );
+
+    req.on('error', reject);
+
+    if (init.body) {
+      req.write(init.body);
+    }
+
+    req.end();
+  });
 }
 
 beforeEach(() => {
@@ -164,8 +205,8 @@ describe('code node server', () => {
     });
     startedServers.push(started);
 
-    const agentCard = await fetch(`${started.baseUrl}/.well-known/agent.json`).then((res) =>
-      res.json()
+    const agentCard = JSON.parse(
+      (await requestText(`${started.baseUrl}/.well-known/agent.json`)).body
     );
     expect(agentCard.url).toBe(`${started.baseUrl}/a2a`);
     expect(agentCard.skills[0].id).toBe('local-code-execution');
@@ -373,7 +414,7 @@ describe('code node server', () => {
     });
     startedServers.push(started);
 
-    const response = await fetch(`${started.baseUrl}/a2a`, {
+    const response = await requestText(`${started.baseUrl}/a2a`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -395,11 +436,9 @@ describe('code node server', () => {
       }),
     });
 
-    const body = await response.text();
-
-    expect(response.headers.get('content-type')).toContain('text/event-stream');
-    expect(body).toContain('"kind":"status-update"');
-    expect(body).toContain('"kind":"artifact-update"');
-    expect(body).toContain('"state":"completed"');
+    expect(response.headers['content-type']).toContain('text/event-stream');
+    expect(response.body).toContain('"kind":"status-update"');
+    expect(response.body).toContain('"kind":"artifact-update"');
+    expect(response.body).toContain('"state":"completed"');
   });
 });
