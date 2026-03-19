@@ -1,8 +1,8 @@
 'use client';
 
-import { ChevronRight, File, Folder, FolderOpenIcon, Trash2 } from 'lucide-react';
+import { ChevronRight, File, Folder, FolderOpenIcon, Plus, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { type FC, type MouseEvent, useState } from 'react';
 import { DeleteSkillConfirmation } from '@/components/skills/delete-skill-confirmation';
 import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-file-confirmation';
@@ -23,8 +23,10 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import {
+  buildNewSkillFileHref,
   buildSkillFileViewHref,
   getSkillFileRemovalLabel,
+  getSkillFileParentDirectory,
   isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
@@ -38,6 +40,7 @@ export const TreeNode: FC<{
   'use memo';
 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
+  const router = useRouter();
 
   const [isCollapsed, setCollapsed] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -64,10 +67,40 @@ export const TreeNode: FC<{
     </>
   );
 
+  const createTarget =
+    node.skillId &&
+    (isFile
+      ? {
+          skillId: node.skillId,
+          directoryPath: node.filePath ? getSkillFileParentDirectory(node.filePath) : undefined,
+        }
+      : {
+          skillId: node.skillId,
+          directoryPath:
+            node.path === node.skillId ? undefined : node.path.slice(node.skillId.length + 1),
+        });
+
+  const createHref =
+    createTarget &&
+    buildNewSkillFileHref(
+      tenantId,
+      projectId,
+      createTarget.skillId,
+      createTarget.directoryPath || undefined
+    );
+
   function handleCollapse(event: MouseEvent<HTMLElement>) {
     event.preventDefault();
     setCollapsed((v) => !v);
   }
+
+  const renderAddFileItem = () =>
+    createHref ? (
+      <ContextMenuItem onSelect={() => router.push(createHref)}>
+        <Plus />
+        Add file
+      </ContextMenuItem>
+    ) : null;
 
   return (
     <ComponentToUse key={node.path}>
@@ -86,6 +119,7 @@ export const TreeNode: FC<{
                 <ContextMenu>
                   <ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
                   <ContextMenuContent>
+                    {renderAddFileItem()}
                     <ContextMenuItem variant="destructive" onSelect={() => setIsDeleteOpen(true)}>
                       <Trash2 />
                       {getSkillFileRemovalLabel(node.filePath ?? '')}
@@ -127,17 +161,30 @@ export const TreeNode: FC<{
           );
         })()
       ) : (
-        <>
-          <SidebarMenuSubButton onClick={handleCollapse} className="cursor-pointer">
-            {content}
-          </SidebarMenuSubButton>
-          <SidebarMenuAction
-            className={cn('top-1', !isCollapsed && 'rotate-90')}
-            onClick={handleCollapse}
-          >
-            <ChevronRight className="size-4" />
-          </SidebarMenuAction>
-        </>
+        (() => {
+          const button = (
+            <div>
+              <SidebarMenuSubButton onClick={handleCollapse} className="cursor-pointer">
+                {content}
+              </SidebarMenuSubButton>
+              <SidebarMenuAction
+                className={cn('top-1', !isCollapsed && 'rotate-90')}
+                onClick={handleCollapse}
+              >
+                <ChevronRight className="size-4" />
+              </SidebarMenuAction>
+            </div>
+          );
+
+          return canEdit && createHref ? (
+            <ContextMenu>
+              <ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
+              <ContextMenuContent>{renderAddFileItem()}</ContextMenuContent>
+            </ContextMenu>
+          ) : (
+            button
+          );
+        })()
       )}
       {node.children.length > 0 && !isCollapsed && (
         <SidebarMenuSub className="pr-0 mr-0">

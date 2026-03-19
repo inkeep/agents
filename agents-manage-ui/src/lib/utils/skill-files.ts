@@ -48,6 +48,21 @@ export function buildSkillFileViewHref(
   )}`;
 }
 
+export function buildNewSkillFileHref(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  directoryPath?: string
+): string {
+  const suffix = directoryPath ? `/${encodeSkillFileRoutePath(directoryPath)}` : '';
+  return `/${tenantId}/projects/${projectId}/skills/new/${encodeURIComponent(skillId)}${suffix}`;
+}
+
+export function getSkillFileParentDirectory(filePath: string): string {
+  const segments = filePath.split('/').filter(Boolean);
+  return segments.slice(0, -1).join('/');
+}
+
 export function getSkillFileEditorUri(filePath: string): `${string}.${'template' | 'md'}` {
   const stem = filePath.replace(/[^a-zA-Z0-9.-]+/g, '-').replace(/\.[^.]+$/, '') || 'skill-file';
   return filePath.endsWith('.md') ? `${stem}.md` : `${stem}.template`;

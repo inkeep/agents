@@ -6,7 +6,7 @@ import { fetchSkill } from '@/lib/api/skills';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 const NewSkillFilePage: FC<
-  PageProps<'/[tenantId]/projects/[projectId]/skills/files/new/[skillId]/[[...parentPath]]'>
+  PageProps<'/[tenantId]/projects/[projectId]/skills/new/[skillId]/[[...parentPath]]'>
 > = async ({ params }) => {
   const { tenantId, projectId, skillId, parentPath } = await params;
 

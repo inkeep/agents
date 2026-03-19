@@ -16,22 +16,22 @@ interface SkillsSidebarProps {
 }
 
 export const SkillsSidebar: FC<SkillsSidebarProps> = ({ treeNodes, fileRouteAliases, canEdit }) => {
-  const { fileSlug } = useParams<{ fileSlug?: string[] }>();
+  const { fileSlug, skillId } = useParams<{ fileSlug?: string[]; skillId?: string }>();
   const routeToken = fileSlug?.join('/');
   const requestedRoutePath = routeToken
     ? (fileRouteAliases[routeToken] ?? routeToken)
-    : (treeNodes[0].routePath as string);
-  const { routePath } =
-    findNodeByRoutePath(treeNodes, requestedRoutePath) ??
-    // fallback nodes
+    : skillId || '';
+  const selectedNode =
+    (requestedRoutePath ? findNodeByRoutePath(treeNodes, requestedRoutePath) : null) ??
     findFirstFile(treeNodes) ??
-    treeNodes[0];
+    null;
+  const selectedRoutePath = selectedNode?.routePath ?? '';
 
   return treeNodes.map((node) => (
     <TreeNode
       key={node.path}
       node={node}
-      selectedRoutePath={routePath as string}
+      selectedRoutePath={selectedRoutePath}
       canEdit={canEdit}
     />
   ));
