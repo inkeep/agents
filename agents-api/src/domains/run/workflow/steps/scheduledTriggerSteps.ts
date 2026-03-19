@@ -7,7 +7,6 @@
 import {
   addConversationIdToInvocation,
   canUseProjectStrict,
-  countRunningInvocationsForTrigger,
   createScheduledTriggerInvocation,
   deletePendingInvocationsForTrigger,
   generateId,
@@ -355,22 +354,32 @@ export async function createFanOutInvocationsStep(params: {
       continue;
     }
 
-    await createScheduledTriggerInvocation(runDbClient)({
-      id: generateId(),
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-      scheduledTriggerId: params.scheduledTriggerId,
-      ref: resolvedRef ?? undefined,
-      status: 'pending',
-      scheduledFor: params.scheduledFor,
-      resolvedPayload: params.payload,
-      idempotencyKey,
-      attemptNumber: 1,
-      recipientUserId: userId,
-    });
-
-    created++;
+    try {
+      await createScheduledTriggerInvocation(runDbClient)({
+        id: generateId(),
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+        scheduledTriggerId: params.scheduledTriggerId,
+        ref: resolvedRef ?? undefined,
+        status: 'pending',
+        scheduledFor: params.scheduledFor,
+        resolvedPayload: params.payload,
+        idempotencyKey,
+        attemptNumber: 1,
+        recipientUserId: userId,
+      });
+      created++;
+    } catch (err) {
+      const isUniqueViolation =
+        err instanceof Error &&
+        (err.message.includes('unique') || err.message.includes('duplicate'));
+      if (isUniqueViolation) {
+        skipped++;
+      } else {
+        throw err;
+      }
+    }
   }
 
   logger.info(
@@ -712,19 +721,6 @@ export async function executeScheduledTriggerStep(params: {
 }
 
 /**
- * Step: Count currently running invocations for a trigger.
- * Used by concurrency control to gate new invocation starts.
- */
-export async function countRunningInvocationsStep(params: {
-  scheduledTriggerId: string;
-}): Promise<number> {
-  'use step';
-
-  return countRunningInvocationsForTrigger(runDbClient)({
-    scheduledTriggerId: params.scheduledTriggerId,
-  });
-}
-
 /**
  * Step: List ALL pending invocations for a trigger (up to a limit).
  * Used by concurrency-controlled dispatch to get the full work queue.
@@ -744,7 +740,7 @@ export async function listAllPendingInvocationsStep(params: {
       agentId: params.agentId,
     },
     scheduledTriggerId: params.scheduledTriggerId,
-    limit: 100,
+    limit: 1000,
   });
 }
 
