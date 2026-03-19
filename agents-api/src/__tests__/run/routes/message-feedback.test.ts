@@ -52,6 +52,7 @@ describe('Run API - Message Feedback', () => {
       expect(body.type).toBe('positive');
       expect(body.reasons).toBeNull();
       expect(body.createdAt).toBeDefined();
+      expect(body.updatedAt).toBeDefined();
     });
 
     it('submits negative feedback with reasons', async () => {
@@ -109,6 +110,26 @@ describe('Run API - Message Feedback', () => {
 
       expect(res.status).toBe(400);
     });
+
+    it('returns 404 for non-existent conversation', async () => {
+      const res = await makeRequest(feedbackUrl('non-existent-conv', 'some-msg'), {
+        method: 'POST',
+        body: JSON.stringify({ type: 'positive' }),
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 404 for non-existent message', async () => {
+      const { conversationId } = await setupConversationWithMessage();
+
+      const res = await makeRequest(feedbackUrl(conversationId, 'non-existent-msg'), {
+        method: 'POST',
+        body: JSON.stringify({ type: 'positive' }),
+      });
+
+      expect(res.status).toBe(404);
+    });
   });
 
   describe('DELETE /{conversationId}/messages/{messageId}/feedback', () => {
@@ -135,6 +156,14 @@ describe('Run API - Message Feedback', () => {
       });
 
       expect(res.status).toBe(204);
+    });
+
+    it('returns 404 for non-existent conversation', async () => {
+      const res = await makeRequest(feedbackUrl('non-existent-conv', 'some-msg'), {
+        method: 'DELETE',
+      });
+
+      expect(res.status).toBe(404);
     });
   });
 });

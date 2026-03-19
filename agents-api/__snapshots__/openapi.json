@@ -40682,13 +40682,17 @@
                         "negative"
                       ],
                       "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
                     }
                   },
                   "required": [
                     "id",
                     "type",
                     "reasons",
-                    "createdAt"
+                    "createdAt",
+                    "updatedAt"
                   ],
                   "type": "object"
                 }

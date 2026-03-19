@@ -3,10 +3,12 @@ import {
   type BaseExecutionContext,
   type CredentialStoreRegistry,
   commonDeleteErrorResponses,
-  commonGetErrorResponses,
+  commonUpdateErrorResponses,
   createApiError,
   deleteMessageFeedback,
   generateId,
+  getConversation,
+  getMessageById,
   toISODateString,
   upsertMessageFeedback,
 } from '@inkeep/agents-core';
@@ -44,6 +46,7 @@ const FeedbackResponseSchema = z.object({
     )
     .nullable(),
   createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
 const FeedbackParamsSchema = z.object({
@@ -74,7 +77,7 @@ app.openapi(
         description: 'Feedback submitted successfully',
         content: { 'application/json': { schema: FeedbackResponseSchema } },
       },
-      ...commonGetErrorResponses,
+      ...commonUpdateErrorResponses,
     },
   }),
   async (c) => {
@@ -82,6 +85,22 @@ app.openapi(
     const { tenantId, projectId } = executionContext;
     const { conversationId, messageId } = c.req.valid('param');
     const body = c.req.valid('json');
+
+    const conversation = await getConversation(runDbClient)({
+      scopes: { tenantId, projectId },
+      conversationId,
+    });
+    if (!conversation) {
+      throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+    }
+
+    const message = await getMessageById(runDbClient)({
+      scopes: { tenantId, projectId },
+      messageId,
+    });
+    if (!message) {
+      throw createApiError({ code: 'not_found', message: 'Message not found' });
+    }
 
     const result = await upsertMessageFeedback(runDbClient)({
       scopes: { tenantId, projectId },
@@ -107,6 +126,7 @@ app.openapi(
       type: result.type,
       reasons: result.reasons ?? null,
       createdAt: toISODateString(result.createdAt),
+      updatedAt: toISODateString(result.updatedAt),
     });
   }
 );
@@ -134,7 +154,15 @@ app.openapi(
   async (c) => {
     const executionContext = c.get('executionContext');
     const { tenantId, projectId } = executionContext;
-    const { messageId } = c.req.valid('param');
+    const { conversationId, messageId } = c.req.valid('param');
+
+    const conversation = await getConversation(runDbClient)({
+      scopes: { tenantId, projectId },
+      conversationId,
+    });
+    if (!conversation) {
+      throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+    }
 
     await deleteMessageFeedback(runDbClient)({
       scopes: { tenantId, projectId },

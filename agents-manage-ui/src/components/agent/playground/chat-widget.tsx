@@ -150,7 +150,7 @@ export function ChatWidget({
             shouldBypassCaptcha: true,
             async onFeedback(feedback) {
               try {
-                await fetch(
+                const response = await fetch(
                   `${PUBLIC_INKEEP_AGENTS_API_URL}/run/v1/conversations/${conversationId}/messages/${feedback.messageId}/feedback`,
                   {
                     method: 'POST',
@@ -167,6 +167,9 @@ export function ChatWidget({
                     }),
                   }
                 );
+                if (!response.ok) {
+                  console.error('Failed to persist message feedback:', response.status);
+                }
               } catch (error) {
                 console.error('Failed to persist message feedback:', error);
               }

@@ -58,9 +58,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, conversationId } = c.req.valid('param') as z.infer<
-      typeof ConversationFeedbackParamsSchema
-    >;
+    const { tenantId, projectId, conversationId } = c.req.valid('param');
 
     const feedbacks = await getConversationFeedback(runDbClient)({
       scopes: { tenantId, projectId },
