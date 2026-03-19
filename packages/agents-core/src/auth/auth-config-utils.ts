@@ -1,27 +1,21 @@
-import { and, eq } from 'drizzle-orm';
+import {
+  queryHasCredentialAccount,
+  getInitialOrganization as queryInitialOrganization,
+  queryMemberExists,
+  queryOrgAllowedAuthMethods,
+  queryPendingInvitationExists,
+  querySsoProviderIssuers,
+} from '../data-access/runtime/auth';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
-import * as authSchema from './auth-schema';
 import type { AllowedAuthMethod } from './auth-types';
 import { parseAllowedAuthMethods } from './auth-types';
 
-/**
- * Get the user's initial organization for a new session.
- * Returns the oldest organization the user is a member of.
- * See: https://www.better-auth.com/docs/plugins/organization#active-organization
- */
 export async function getInitialOrganization(
   dbClient: AgentsRunDatabaseClient,
   userId: string
 ): Promise<{ id: string } | null> {
-  const [membership] = await dbClient
-    .select({ organizationId: authSchema.member.organizationId })
-    .from(authSchema.member)
-    .where(eq(authSchema.member.userId, userId))
-    .orderBy(authSchema.member.createdAt)
-    .limit(1);
-
-  return membership ? { id: membership.organizationId } : null;
+  return queryInitialOrganization(dbClient)(userId);
 }
 
 /**
@@ -65,9 +59,7 @@ export async function getTrustedOrigins(
   }
 
   try {
-    const providers = await dbClient
-      .select({ issuer: authSchema.ssoProvider.issuer })
-      .from(authSchema.ssoProvider);
+    const providers = await querySsoProviderIssuers(dbClient)();
 
     const issuerOrigins = providers
       .map((p) => {
@@ -178,15 +170,7 @@ export async function hasCredentialAccount(
   dbClient: AgentsRunDatabaseClient,
   userId: string
 ): Promise<boolean> {
-  const [row] = await dbClient
-    .select({ id: authSchema.account.id })
-    .from(authSchema.account)
-    .where(
-      and(eq(authSchema.account.userId, userId), eq(authSchema.account.providerId, 'credential'))
-    )
-    .limit(1);
-
-  return !!row;
+  return queryHasCredentialAccount(dbClient)(userId);
 }
 
 /**
@@ -207,11 +191,7 @@ export async function shouldAutoProvision(
     return false;
   }
 
-  const [org] = await dbClient
-    .select({ allowedAuthMethods: authSchema.organization.allowedAuthMethods })
-    .from(authSchema.organization)
-    .where(eq(authSchema.organization.id, provider.organizationId))
-    .limit(1);
+  const org = await queryOrgAllowedAuthMethods(dbClient)(provider.organizationId);
 
   if (!org) {
     return false;
@@ -227,34 +207,16 @@ export async function shouldAutoProvision(
     return false;
   }
 
-  const existingMember = await dbClient
-    .select({ id: authSchema.member.id })
-    .from(authSchema.member)
-    .where(
-      and(
-        eq(authSchema.member.userId, user.id),
-        eq(authSchema.member.organizationId, provider.organizationId)
-      )
-    )
-    .limit(1);
-
-  if (existingMember.length > 0) {
+  const isMember = await queryMemberExists(dbClient)(user.id, provider.organizationId);
+  if (isMember) {
     return false;
   }
 
-  const pendingInvitation = await dbClient
-    .select({ id: authSchema.invitation.id, role: authSchema.invitation.role })
-    .from(authSchema.invitation)
-    .where(
-      and(
-        eq(authSchema.invitation.email, user.email),
-        eq(authSchema.invitation.organizationId, provider.organizationId),
-        eq(authSchema.invitation.status, 'pending')
-      )
-    )
-    .limit(1);
-
-  if (pendingInvitation.length > 0) {
+  const hasPendingInvitation = await queryPendingInvitationExists(dbClient)(
+    user.email,
+    provider.organizationId
+  );
+  if (hasPendingInvitation) {
     return false;
   }
 

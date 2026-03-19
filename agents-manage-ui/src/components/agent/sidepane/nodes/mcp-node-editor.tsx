@@ -249,17 +249,15 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
 
   return (
     <div className="space-y-8">
-      {toolData?.imageUrl && (
-        <div className="flex items-center gap-2">
-          <MCPToolImage
-            imageUrl={toolData.imageUrl}
-            name={toolData.name}
-            size={32}
-            className="rounded-lg"
-          />
-          <span className="font-medium text-sm truncate">{toolData.name}</span>
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        <MCPToolImage
+          imageUrl={toolData.imageUrl}
+          name={toolData.name}
+          size={32}
+          className="rounded-lg"
+        />
+        <span className="font-medium text-sm truncate">{toolData.name}</span>
+      </div>
 
       {/* Warning banner for needs_auth status */}
       {toolData?.status === 'needs_auth' && (

@@ -9,6 +9,7 @@ import {
   oAuthProxy,
   organization,
 } from 'better-auth/plugins';
+import { querySsoProviderIds } from '../data-access/runtime/auth';
 import { createUserProfileIfNotExists } from '../data-access/runtime/userProfiles';
 import { env } from '../env';
 import {
@@ -18,7 +19,6 @@ import {
   hasCredentialAccount,
   shouldAutoProvision,
 } from './auth-config-utils';
-import { ssoProvider } from './auth-schema';
 import type { BetterAuthConfig } from './auth-types';
 import { type OrgRole, OrgRoles } from './authz/types';
 import { setEmailSendStatus } from './email-send-status-store';
@@ -128,10 +128,8 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         trustedProviders: async () => {
           const base = ['google', 'email-password'];
           try {
-            const rows = await config.dbClient
-              .select({ providerId: ssoProvider.providerId })
-              .from(ssoProvider);
-            return [...base, ...rows.map((r) => r.providerId)];
+            const providerIds = await querySsoProviderIds(config.dbClient)();
+            return [...base, ...providerIds];
           } catch {
             return base;
           }

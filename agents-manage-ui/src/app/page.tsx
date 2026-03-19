@@ -56,7 +56,7 @@ function HomeContent() {
       if (!user) {
         setIsRedirecting(true);
         const loginUrl =
-          returnUrl && isValidReturnUrl(returnUrl)
+          returnUrl && isValidReturnUrl(returnUrl) && returnUrl !== '/'
             ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
             : '/login';
         router.push(loginUrl);
@@ -64,7 +64,10 @@ function HomeContent() {
       }
 
       // Authenticated with valid returnUrl - redirect to that destination
-      if (returnUrl && isValidReturnUrl(returnUrl)) {
+      // Skip if returnUrl is '/' since we're already on the root page and
+      // redirecting to ourselves would get stuck (isRedirecting stays true
+      // because the component doesn't remount for same-page navigation).
+      if (returnUrl && isValidReturnUrl(returnUrl) && returnUrl !== '/') {
         setIsRedirecting(true);
         router.push(returnUrl);
         return;

@@ -251,7 +251,11 @@ async function handleMessageSend(
           messageData.toTeamAgentId = agent.subAgentId;
         }
 
-        await createMessage(runDbClient)(messageData);
+        const { tenantId: _tenantId, projectId: _projectId, ...messageFields } = messageData;
+        await createMessage(runDbClient)({
+          scopes: { tenantId: agent.tenantId, projectId: agent.projectId },
+          data: messageFields,
+        });
 
         logger.info(
           {
@@ -285,6 +289,7 @@ async function handleMessageSend(
 
     await updateTask(runDbClient)({
       taskId: task.id,
+      scopes: { tenantId: agent.tenantId, projectId: agent.projectId },
       data: {
         status: result.status.state.toLowerCase(),
         metadata: {

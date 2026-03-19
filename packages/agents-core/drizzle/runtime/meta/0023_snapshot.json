@@ -1,5 +1,5 @@
 {
-  "id": "a99299e6-3c2e-425f-8d8c-a3b8ff99555b",
+  "id": "077fbc00-78ca-4743-ad71-c5233248443c",
   "prevId": "9dc3e813-268e-4093-8338-cb04bc5ff68a",
   "version": "7",
   "dialect": "postgresql",
@@ -688,6 +688,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "ref": {
+          "name": "ref",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1053,6 +1059,12 @@
         "evaluation_run_config_id": {
           "name": "evaluation_run_config_id",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ref": {
+          "name": "ref",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -1742,12 +1754,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "allowed_auth_methods": {
-          "name": "allowed_auth_methods",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "service_account_user_id": {
           "name": "service_account_user_id",
           "type": "text",
@@ -1917,6 +1923,12 @@
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
+        },
+        "ref": {
+          "name": "ref",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         },
         "status": {
           "name": "status",
@@ -2432,6 +2444,12 @@
         "conversation_id": {
           "name": "conversation_id",
           "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ref": {
+          "name": "ref",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },

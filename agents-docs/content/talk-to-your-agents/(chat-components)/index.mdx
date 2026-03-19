@@ -65,6 +65,108 @@ The chat components automatically send the following headers with each request t
 
 These headers enable your agents to provide time-aware responses. See [Headers](/typescript-sdk/headers#widget-provided-headers) to learn how to use these values in your agent configuration.
 
+
+
+## Custom Headers
+
+You can pass custom headers to the chat components via the `headers` prop in `aiChatSettings`. Common use cases include passing the current page URL, user context, or session metadata. Custom headers are validated against a schema you define in the agent settings, then made available in your agent prompt via template syntax.
+
+In the following example, you'll pass the current page URL to the agent.
+
+<Steps>
+  <Step>
+    #### Define the headers schema
+
+    In the Visual Builder, navigate to **Agents** in the left sidebar, select your agent, then open the **Agent Settings** pane and scroll down to **Headers schema** and add the following schema:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "x-current-url": {
+      "type": "string",
+      "description": "The URL the user is currently viewing."
+    }
+  },
+  "required": []
+}
+```
+
+  </Step>
+  <Step>
+    #### Reference the header in your agent prompt
+
+    Use the key defined in your headers schema with the `{{headers.<key>}}` template syntax:
+
+```text
+The user is currently viewing {{headers.x-current-url}}.
+```
+
+  </Step>
+  <Step>
+    #### Pass the header value from your chat component
+
+<CodeGroup>
+```tsx title="React"
+import { InkeepChatButton } from '@inkeep/agents-ui'
+import type { InkeepAIChatSettings } from '@inkeep/agents-ui/types'
+import { useState, useEffect } from 'react'
+
+export default function ChatButton() {
+  const [currentUrl, setCurrentUrl] = useState<string>()
+
+  useEffect(() => {
+    const sync = () => setCurrentUrl(window.location.href)
+    sync()
+    window.addEventListener('hashchange', sync)
+    window.addEventListener('popstate', sync)
+    return () => {
+      window.removeEventListener('hashchange', sync)
+      window.removeEventListener('popstate', sync)
+    }
+  }, [])
+
+  const aiChatSettings: InkeepAIChatSettings = {
+    baseUrl: 'https://your-api.example.com',
+    appId: 'YOUR_APP_ID',
+    ...(currentUrl && {
+      headers: {
+        'x-current-url': currentUrl,
+      },
+    }),
+  }
+
+  return <InkeepChatButton aiChatSettings={aiChatSettings} />;
+}
+```
+
+```js title="JavaScript"
+const chatButton = Inkeep.ChatButton({
+  aiChatSettings: {
+    baseUrl: 'https://your-api.example.com',
+    appId: 'YOUR_APP_ID',
+    headers: {
+      'x-current-url': window.location.href,
+    },
+  },
+});
+
+function syncUrl() {
+  chatButton.update({
+    aiChatSettings: {
+      headers: { 'x-current-url': window.location.href },
+    },
+  });
+}
+
+window.addEventListener('hashchange', syncUrl);
+window.addEventListener('popstate', syncUrl);
+```
+</CodeGroup>
+
+  </Step>
+</Steps>
+
 ## Customization
 
 Learn how to customize the appearance and behavior of chat components in the [Styling guide](/talk-to-your-agents/customization/styling).

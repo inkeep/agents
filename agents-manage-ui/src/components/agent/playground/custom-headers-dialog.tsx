@@ -27,6 +27,7 @@ interface CustomHeadersDialogProps {
   form: UseFormReturn<any, any, { headers: DefaultHeaders }>;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  headersTemplate?: string;
 }
 
 export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
@@ -35,6 +36,7 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
   form,
   isOpen,
   setIsOpen,
+  headersTemplate,
 }) => {
   'use memo';
   const numHeaders = Object.keys(customHeaders ?? {}).length;
@@ -76,8 +78,8 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
             <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
               {(field) => (
                 <StandaloneJsonEditor
-                  placeholder={customHeadersTemplate}
-                  customTemplate={customHeadersTemplate}
+                  placeholder={headersTemplate ?? customHeadersTemplate}
+                  customTemplate={headersTemplate ?? customHeadersTemplate}
                   {...field}
                 />
               )}

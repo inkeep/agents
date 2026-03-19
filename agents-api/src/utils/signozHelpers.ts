@@ -1,7 +1,8 @@
+const ALLOWED_SERVICE_NAMES = ['inkeep-agents-api', 'inkeep-agents-run-api'];
+
 /**
- * Helper function to enforce projectId filter on SigNoz queries.
- * This modifies the query payload to ensure all builder queries include
- * a server-side project.id filter, preventing client-side filter bypass.
+ * Enforces server-side filters on SigNoz builder queries.
+ * Scopes to known Inkeep services and prevents tenant/project filter bypass.
  */
 export function enforceSecurityFilters(payload: any, tenantId: string, projectId?: string): any {
   const modifiedPayload = JSON.parse(JSON.stringify(payload));
@@ -16,22 +17,37 @@ export function enforceSecurityFilters(payload: any, tenantId: string, projectId
 
       // Remove any existing tenant.id and project.id filters to prevent bypass
       query.filters.items = query.filters.items.filter(
-        (item: any) => item.key?.key !== 'tenant.id' && item.key?.key !== 'project.id'
+        (item: any) =>
+          item.key?.key !== 'serviceName' &&
+          item.key?.key !== 'tenant.id' &&
+          item.key?.key !== 'project.id'
       );
 
-      // Always add server-side tenant filter
-      query.filters.items.push({
-        key: {
-          key: 'tenant.id',
-          dataType: 'string',
-          type: 'tag',
-          isColumn: false,
-          isJSON: false,
-          id: 'false',
+      query.filters.items.push(
+        {
+          key: {
+            key: 'serviceName',
+            dataType: 'string',
+            type: 'resource',
+            isColumn: true,
+            isJSON: false,
+          },
+          op: 'in',
+          value: ALLOWED_SERVICE_NAMES,
         },
-        op: '=',
-        value: tenantId,
-      });
+        {
+          key: {
+            key: 'tenant.id',
+            dataType: 'string',
+            type: 'tag',
+            isColumn: false,
+            isJSON: false,
+            id: 'false',
+          },
+          op: '=',
+          value: tenantId,
+        }
+      );
 
       // Add server-side project filter if provided
       if (projectId) {

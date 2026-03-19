@@ -1636,15 +1636,21 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.objectContaining({
-            parts: [
-              { kind: 'text', text: 'Webhook message: Hello webhook!' },
-              {
-                kind: 'data',
-                data: { message: 'Hello webhook!' },
-                metadata: { source: 'trigger', triggerId: 'trigger-123' },
-              },
-            ],
+          scopes: expect.objectContaining({
+            tenantId: 'tenant-123',
+            projectId: 'project-123',
+          }),
+          data: expect.objectContaining({
+            content: expect.objectContaining({
+              parts: [
+                { kind: 'text', text: 'Webhook message: Hello webhook!' },
+                {
+                  kind: 'data',
+                  data: { message: 'Hello webhook!' },
+                  metadata: { source: 'trigger', triggerId: 'trigger-123' },
+                },
+              ],
+            }),
           }),
         })
       );
@@ -1673,14 +1679,20 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.objectContaining({
-            parts: [
-              {
-                kind: 'data',
-                data: { message: 'test data' },
-                metadata: { source: 'trigger', triggerId: 'trigger-123' },
-              },
-            ],
+          scopes: expect.objectContaining({
+            tenantId: 'tenant-123',
+            projectId: 'project-123',
+          }),
+          data: expect.objectContaining({
+            content: expect.objectContaining({
+              parts: [
+                {
+                  kind: 'data',
+                  data: { message: 'test data' },
+                  metadata: { source: 'trigger', triggerId: 'trigger-123' },
+                },
+              ],
+            }),
           }),
         })
       );
@@ -1709,14 +1721,20 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.objectContaining({
-            parts: [
-              {
-                kind: 'data',
-                data: {},
-                metadata: { source: 'trigger', triggerId: 'trigger-123' },
-              },
-            ],
+          scopes: expect.objectContaining({
+            tenantId: 'tenant-123',
+            projectId: 'project-123',
+          }),
+          data: expect.objectContaining({
+            content: expect.objectContaining({
+              parts: [
+                {
+                  kind: 'data',
+                  data: {},
+                  metadata: { source: 'trigger', triggerId: 'trigger-123' },
+                },
+              ],
+            }),
           }),
         })
       );
@@ -1754,15 +1772,21 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.objectContaining({
-            parts: [
-              { kind: 'text', text: 'User: Alice' },
-              {
-                kind: 'data',
-                data: { userName: 'Alice' },
-                metadata: { source: 'trigger', triggerId: 'trigger-123' },
-              },
-            ],
+          scopes: expect.objectContaining({
+            tenantId: 'tenant-123',
+            projectId: 'project-123',
+          }),
+          data: expect.objectContaining({
+            content: expect.objectContaining({
+              parts: [
+                { kind: 'text', text: 'User: Alice' },
+                {
+                  kind: 'data',
+                  data: { userName: 'Alice' },
+                  metadata: { source: 'trigger', triggerId: 'trigger-123' },
+                },
+              ],
+            }),
           }),
         })
       );

@@ -8,6 +8,7 @@ import {
   tools as toolsTable,
 } from '../../db/manage/manage-schema';
 import type { ProjectScopeConfig } from '../../types/utility';
+import { projectScopedWhere } from './scope-helpers';
 
 export const listEnabledScheduledTriggers =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
@@ -16,8 +17,7 @@ export const listEnabledScheduledTriggers =
       .from(scheduledTriggers)
       .where(
         and(
-          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggers.projectId, params.scopes.projectId),
+          projectScopedWhere(scheduledTriggers, params.scopes),
           eq(scheduledTriggers.enabled, true)
         )
       );
@@ -32,12 +32,7 @@ export const listScheduledWorkflowsByProject =
         scheduledTriggerId: scheduledWorkflows.scheduledTriggerId,
       })
       .from(scheduledWorkflows)
-      .where(
-        and(
-          eq(scheduledWorkflows.tenantId, params.scopes.tenantId),
-          eq(scheduledWorkflows.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(scheduledWorkflows, params.scopes));
   };
 
 export const listToolIdsByProject =
@@ -45,12 +40,7 @@ export const listToolIdsByProject =
     const rows = await db
       .select({ id: toolsTable.id })
       .from(toolsTable)
-      .where(
-        and(
-          eq(toolsTable.tenantId, params.scopes.tenantId),
-          eq(toolsTable.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(toolsTable, params.scopes));
     return rows.map((r) => r.id);
   };
 
@@ -59,12 +49,7 @@ export const listContextConfigIdsByProject =
     const rows = await db
       .select({ id: contextConfigsTable.id })
       .from(contextConfigsTable)
-      .where(
-        and(
-          eq(contextConfigsTable.tenantId, params.scopes.tenantId),
-          eq(contextConfigsTable.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(contextConfigsTable, params.scopes));
     return rows.map((r) => r.id);
   };
 
@@ -73,11 +58,6 @@ export const listAgentIdsByProject =
     const rows = await db
       .select({ id: agentsTable.id })
       .from(agentsTable)
-      .where(
-        and(
-          eq(agentsTable.tenantId, params.scopes.tenantId),
-          eq(agentsTable.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(agentsTable, params.scopes));
     return rows.map((r) => r.id);
   };

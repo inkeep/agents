@@ -352,14 +352,15 @@ app.openapi(chatCompletionsRoute, async (c) => {
       });
 
       await createMessage(runDbClient)({
-        id: userMessageId,
-        tenantId,
-        projectId,
-        conversationId,
-        role: 'user',
-        content: messageContent,
-        visibility: 'user-facing',
-        messageType: 'chat',
+        scopes: { tenantId, projectId },
+        data: {
+          id: userMessageId,
+          conversationId,
+          role: 'user',
+          content: messageContent,
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
       });
 
       if (messageSpan) {

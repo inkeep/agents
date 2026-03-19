@@ -70,7 +70,8 @@ function LoginForm() {
     const baseURL = window.location.origin;
     const params = new URLSearchParams();
     if (invitationId) params.set('invitation', invitationId);
-    if (returnUrl && isValidReturnUrl(returnUrl)) params.set('returnUrl', returnUrl);
+    if (returnUrl && isValidReturnUrl(returnUrl) && returnUrl !== '/')
+      params.set('returnUrl', returnUrl);
     const queryString = params.toString();
     return queryString ? `${baseURL}/?${queryString}` : `${baseURL}/`;
   }, [invitationId, returnUrl]);

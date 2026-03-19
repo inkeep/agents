@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.58.14",
+  "version": "0.58.21",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -54,7 +54,7 @@
     "@better-auth/sso": "catalog:",
     "@hookform/resolvers": "^5.2.1",
     "@inkeep/agents-core": "workspace:^",
-    "@inkeep/agents-ui": "^0.15.13",
+    "@inkeep/agents-ui": "^0.15.18",
     "@nangohq/frontend": "^0.69.41",
     "@nangohq/node": "^0.69.41",
     "@nangohq/types": "^0.69.41",

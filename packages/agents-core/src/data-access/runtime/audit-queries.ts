@@ -1,4 +1,3 @@
-import { and, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   apiKeys,
@@ -9,6 +8,7 @@ import {
   workAppSlackMcpToolAccessConfig,
 } from '../../db/runtime/runtime-schema';
 import type { ProjectScopeConfig } from '../../types/utility';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 export const listGitHubToolAccessByProject =
   (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
@@ -18,12 +18,7 @@ export const listGitHubToolAccessByProject =
         toolId: workAppGitHubMcpToolRepositoryAccess.toolId,
       })
       .from(workAppGitHubMcpToolRepositoryAccess)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, params.scopes.tenantId),
-          eq(workAppGitHubMcpToolRepositoryAccess.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(workAppGitHubMcpToolRepositoryAccess, params.scopes));
   };
 
 export const listGitHubToolAccessModeByProject =
@@ -33,12 +28,7 @@ export const listGitHubToolAccessModeByProject =
         toolId: workAppGitHubMcpToolAccessMode.toolId,
       })
       .from(workAppGitHubMcpToolAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolAccessMode.tenantId, params.scopes.tenantId),
-          eq(workAppGitHubMcpToolAccessMode.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(workAppGitHubMcpToolAccessMode, params.scopes));
   };
 
 export const listSlackToolAccessConfigByProject =
@@ -48,12 +38,7 @@ export const listSlackToolAccessConfigByProject =
         toolId: workAppSlackMcpToolAccessConfig.toolId,
       })
       .from(workAppSlackMcpToolAccessConfig)
-      .where(
-        and(
-          eq(workAppSlackMcpToolAccessConfig.tenantId, params.scopes.tenantId),
-          eq(workAppSlackMcpToolAccessConfig.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(workAppSlackMcpToolAccessConfig, params.scopes));
   };
 
 export const listContextCacheByProject =
@@ -64,12 +49,7 @@ export const listContextCacheByProject =
         contextConfigId: contextCache.contextConfigId,
       })
       .from(contextCache)
-      .where(
-        and(
-          eq(contextCache.tenantId, params.scopes.tenantId),
-          eq(contextCache.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(contextCache, params.scopes));
   };
 
 export const listApiKeysByProject =
@@ -80,12 +60,7 @@ export const listApiKeysByProject =
         agentId: apiKeys.agentId,
       })
       .from(apiKeys)
-      .where(
-        and(
-          eq(apiKeys.tenantId, params.scopes.tenantId),
-          eq(apiKeys.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(apiKeys, params.scopes));
   };
 
 export const listSlackChannelAgentConfigsByProject =
@@ -96,10 +71,5 @@ export const listSlackChannelAgentConfigsByProject =
         agentId: workAppSlackChannelAgentConfigs.agentId,
       })
       .from(workAppSlackChannelAgentConfigs)
-      .where(
-        and(
-          eq(workAppSlackChannelAgentConfigs.tenantId, params.scopes.tenantId),
-          eq(workAppSlackChannelAgentConfigs.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(workAppSlackChannelAgentConfigs, params.scopes));
   };
