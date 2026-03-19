@@ -1,0 +1,51 @@
+{
+  "manifest_version": "0.3",
+  "name": "@inkeep/agents-mcp",
+  "version": "0.1.0",
+  "description": "",
+  "long_description": "Inkeep Agents API: REST API for the Inkeep Agent Framework.",
+  "author": {
+    "name": "Speakeasy"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "./bin/mcp-server.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/bin/mcp-server.js",
+        "start",
+        "--cookie-auth",
+        "${user_config.cookie_auth}",
+        "--bearer-auth",
+        "${user_config.bearer_auth}"
+      ]
+    }
+  },
+  "display_name": "@inkeep/agents Mcp",
+  "prompts": [],
+  "keywords": [
+      "@inkeep/agents",
+      "mcp",
+      "inkeep",
+      "agents",
+      "api",
+      "rest"
+    ],
+  "user_config": {
+      "cookie_auth": {
+        "type": "string",
+        "title": "cookieAuth",
+        "description": "The cookieAuth to use for the request",
+        "required": false,
+        "sensitive": true
+      },
+      "bearer_auth": {
+        "type": "string",
+        "title": "bearerAuth",
+        "description": "The bearerAuth to use for the request",
+        "required": false,
+        "sensitive": true
+      }
+    }
+}
