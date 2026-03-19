@@ -285,4 +285,58 @@ app.openapi(
   }
 );
 
+app.openapi(
+  createProtectedRoute({
+    method: 'delete',
+    path: '/{id}/files/{fileId}',
+    summary: 'Delete Skill File',
+    operationId: 'delete-skill-file',
+    tags: ['Skills'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectSkillFileParamsSchema,
+    },
+    responses: {
+      204: {
+        description: 'Skill file deleted successfully',
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, id, fileId } = c.req.valid('param');
+
+    try {
+      const removed = await deleteSkillFileById(db)({
+        scopes: { tenantId, projectId },
+        skillId: id,
+        fileId,
+      });
+
+      if (!removed) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Skill file not found',
+        });
+      }
+
+      return c.body(null, 204);
+    } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        throw createApiError({
+          code: 'unprocessable_entity',
+          message: error.message,
+        });
+      }
+
+      throw error;
+    }
+  }
+);
+
 export default app;

@@ -96,3 +96,21 @@ export async function deleteSkill(tenantId: string, projectId: string, skillId: 
   });
   revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
 }
+
+export async function deleteSkillFile(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  fileId: string
+) {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  await makeManagementApiRequest(
+    `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files/${fileId}`,
+    {
+      method: 'DELETE',
+    }
+  );
+  revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
+}
