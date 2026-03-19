@@ -95,7 +95,7 @@ export const TreeNode: FC<{
               ) : (
                 button
               )}
-              {isDeleteOpen && node.skillId && node.filePath && (
+              {isDeleteOpen && node.skillId && node.fileId && node.filePath && (
                 <>
                   {isEntryFile ? (
                     <DeleteSkillConfirmation
@@ -105,9 +105,8 @@ export const TreeNode: FC<{
                     />
                   ) : (
                     <DeleteSkillFileConfirmation
-                      tenantId={tenantId}
-                      projectId={projectId}
                       skillId={node.skillId}
+                      fileId={node.fileId}
                       filePath={node.filePath}
                       redirectPath={
                         isActive
