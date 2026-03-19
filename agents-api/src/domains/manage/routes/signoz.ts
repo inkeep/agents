@@ -57,6 +57,65 @@ async function authorizeProject(c: Ctx, projectId: string | undefined) {
   return { tenantId, userId };
 }
 
+const KEY_NOT_FOUND_RE = /key `(.+)` not found/i;
+
+function getMissingKeys(error: unknown): string[] | null {
+  if (!axios.isAxiosError(error) || error.response?.status !== 400) return null;
+  const errors: any[] = error.response?.data?.error?.errors ?? [];
+  const keys = errors.map((e: any) => KEY_NOT_FOUND_RE.exec(e?.message)?.[1]).filter(Boolean);
+  if (keys.length === 0 || keys.length !== errors.length) return null;
+  const unique = [...new Set(keys)] as string[];
+  logger.warn({ missingKeys: unique }, 'SigNoz attributes not yet ingested');
+  return unique;
+}
+
+function queryReferencesKeys(query: any, keys: string[]): boolean {
+  const spec = query?.spec;
+  const searchable = [
+    spec?.filter?.expression ?? '',
+    ...(spec?.selectFields ?? []).map((f: any) => f.name),
+    ...(spec?.groupBy ?? []).map((g: any) => g.name),
+  ];
+  return keys.some((k) => searchable.some((t: string) => t.includes(k)));
+}
+
+type SignozConfig = { endpoint: string; headers: Record<string, string> };
+const EMPTY_RESPONSE = { data: { status: 'success', data: { data: { results: [] } } } };
+
+async function queryWithRetry(
+  signoz: SignozConfig,
+  payload: any,
+): Promise<{ data: any; retried: boolean }> {
+  try {
+    const resp = await axios.post(signoz.endpoint, payload, {
+      headers: signoz.headers,
+      timeout: 30000,
+    });
+    return { data: resp, retried: false };
+  } catch (error) {
+    const missing = getMissingKeys(error);
+    if (!missing) throw error;
+
+    const queries: any[] = payload.compositeQuery?.queries ?? [];
+    const kept = queries.filter((q: any) => !queryReferencesKeys(q, missing));
+    if (kept.length === queries.length) throw error;
+
+    logger.info(
+      { removedCount: queries.length - kept.length, remaining: kept.length, missingKeys: missing },
+      'Retrying SigNoz query without queries referencing missing keys',
+    );
+
+    if (kept.length === 0) return { data: EMPTY_RESPONSE, retried: true };
+
+    const stripped = { ...payload, compositeQuery: { ...payload.compositeQuery, queries: kept } };
+    const resp = await axios.post(signoz.endpoint, stripped, {
+      headers: signoz.headers,
+      timeout: 30000,
+    });
+    return { data: resp, retried: true };
+  }
+}
+
 function handleSignozError(error: unknown, operation: string) {
   if (axios.isAxiosError(error)) {
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
@@ -120,10 +179,7 @@ app.post('/query', async (c) => {
   enforceSecurityFilters(payload, auth.tenantId, requestedProjectId);
 
   try {
-    const response = await axios.post(signoz.endpoint, payload, {
-      headers: signoz.headers,
-      timeout: 30000,
-    });
+    const { data: response } = await queryWithRetry(signoz, payload);
     return c.json(response.data);
   } catch (error) {
     const { body, status } = handleSignozError(error, 'query');
@@ -155,12 +211,9 @@ app.post('/query-batch', async (c) => {
 
   try {
     enforceSecurityFilters(paginationPayload, auth.tenantId, requestedProjectId);
-    const step1 = await axios.post(signoz.endpoint, paginationPayload, {
-      headers: signoz.headers,
-      timeout: 30000,
-    });
+    const { data: step1Data } = await queryWithRetry(signoz, paginationPayload);
 
-    const step1Results = extractResults(step1);
+    const step1Results = extractResults(step1Data);
     const pageResult = step1Results.find((r: any) => r?.queryName === 'pageConversations');
 
     const columns: Array<{ name: string; columnType: string }> = pageResult?.columns ?? [];
@@ -172,10 +225,9 @@ app.post('/query-batch', async (c) => {
       convIdColIdx >= 0 ? rows.map((row) => row[convIdColIdx]).filter(Boolean) : [];
 
     if (conversationIds.length === 0) {
-      return c.json({ paginationResponse: step1.data, detailResponse: null });
+      return c.json({ paginationResponse: step1Data.data, detailResponse: null });
     }
 
-    // Narrow step 2's time range using the max(timestamp) values from step 1
     if (tsColIdx >= 0 && rows.length > 0) {
       const BUFFER_MS = 3_600_000;
       let minTs = Number.POSITIVE_INFINITY;
@@ -196,12 +248,9 @@ app.post('/query-batch', async (c) => {
       spec.filter = { expression: `(${spec.filter.expression}) AND ${convIdExpr}` };
     }
     enforceSecurityFilters(detailPayloadTemplate, auth.tenantId, requestedProjectId);
-    const step2 = await axios.post(signoz.endpoint, detailPayloadTemplate, {
-      headers: signoz.headers,
-      timeout: 30000,
-    });
+    const { data: step2Data } = await queryWithRetry(signoz, detailPayloadTemplate);
 
-    return c.json({ paginationResponse: step1.data, detailResponse: step2.data });
+    return c.json({ paginationResponse: step1Data.data, detailResponse: step2Data.data });
   } catch (error) {
     const { body, status } = handleSignozError(error, 'query-batch');
     return c.json(body, status);

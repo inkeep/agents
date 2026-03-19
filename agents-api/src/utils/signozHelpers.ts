@@ -1,6 +1,6 @@
 import { QUERY_TYPES, SPAN_KEYS } from '@inkeep/agents-core';
 
-const SERVICE_NAME_FILTER = "serviceName IN ('inkeep-agents-api', 'inkeep-agents-run-api')";
+const SERVICE_NAME_FILTER = "serviceName IN ('inkeep-agents-api', 'inkeep-agents-run-api', 'inkeep-agents')";
 
 function buildSecurityExpression(tenantId: string, projectId?: string): string {
   let expr = `${SERVICE_NAME_FILTER} AND ${SPAN_KEYS.TENANT_ID} = '${tenantId}'`;
