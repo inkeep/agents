@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+### Patch Changes
+
+- 3d54b6b: Remove `useProject`, `useProjectPermissions`, `useProjectActions`, `useProjectData` in favor of `useProjectPermissionsQuery` and `useProjectQuery` React Query hooks
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+
 ## 0.58.21
 
 ### Patch Changes
