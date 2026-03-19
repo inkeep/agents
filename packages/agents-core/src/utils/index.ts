@@ -29,5 +29,6 @@ export * from './template-interpolation';
 export * from './third-party-mcp-servers';
 export * from './tracer-factory';
 export * from './trigger-auth';
+export * from './usage-tracker';
 export * from './wait-until';
 export * from './work-app-mcp';

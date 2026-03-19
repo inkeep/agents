@@ -77,6 +77,13 @@ export const SPAN_KEYS = {
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
+  GEN_AI_USAGE_TOTAL_TOKENS: 'gen_ai.usage.total_tokens',
+  GEN_AI_USAGE_REASONING_TOKENS: 'gen_ai.usage.reasoning_tokens',
+  GEN_AI_USAGE_CACHED_READ_TOKENS: 'gen_ai.usage.cached_read_tokens',
+  GEN_AI_RESPONSE_MODEL: 'gen_ai.response.model',
+  GEN_AI_COST_ESTIMATED_USD: 'gen_ai.cost.estimated_usd',
+  GEN_AI_GENERATION_STEP_COUNT: 'gen_ai.generation.step_count',
+  GEN_AI_GENERATION_TYPE: 'gen_ai.generation.type',
 
   // Context attributes
   CONTEXT_URL: 'context.url',
