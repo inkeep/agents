@@ -32,14 +32,12 @@ export const DeleteGithubInstallationRequest$zodSchema: z.ZodType<
 /**
  * Installation deleted successfully
  */
-export type DeleteGithubInstallationResponseBody = {
-  success?: true | undefined;
-};
+export type DeleteGithubInstallationResponseBody = { success: boolean };
 
 export const DeleteGithubInstallationResponseBody$zodSchema: z.ZodType<
   DeleteGithubInstallationResponseBody
 > = z.object({
-  success: z.literal(true).default(true).optional(),
+  success: z.boolean(),
 }).describe("Installation deleted successfully");
 
 export type DeleteGithubInstallationResponse = {

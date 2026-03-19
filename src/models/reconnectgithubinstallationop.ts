@@ -105,14 +105,14 @@ export const ReconnectGithubInstallationSyncResult$zodSchema: z.ZodType<
  * Installation reconnected successfully
  */
 export type ReconnectGithubInstallationResponseBody = {
-  success?: true | undefined;
+  success: boolean;
   syncResult?: ReconnectGithubInstallationSyncResult | undefined;
 };
 
 export const ReconnectGithubInstallationResponseBody$zodSchema: z.ZodType<
   ReconnectGithubInstallationResponseBody
 > = z.object({
-  success: z.literal(true).default(true).optional(),
+  success: z.boolean(),
   syncResult: z.lazy(() => ReconnectGithubInstallationSyncResult$zodSchema)
     .optional(),
 }).describe("Installation reconnected successfully");
