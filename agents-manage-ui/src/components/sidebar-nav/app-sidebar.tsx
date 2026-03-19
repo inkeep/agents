@@ -61,6 +61,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/stats`,
           icon: BarChart3,
         },
+        {
+          title: 'Usage',
+          url: `/${tenantId}/usage`,
+          icon: Activity,
+        },
         ...(isWorkAppsEnabled
           ? [
               {
