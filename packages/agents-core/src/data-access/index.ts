@@ -40,6 +40,7 @@ export * from './runtime/conversations';
 export * from './runtime/evalRuns';
 export * from './runtime/github-work-app-installations';
 export * from './runtime/ledgerArtifacts';
+export * from './runtime/message-feedback';
 export * from './runtime/messages';
 export * from './runtime/organizations';
 export * from './runtime/projects';
