@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
 ## 0.58.21
 
 ## 0.58.20
