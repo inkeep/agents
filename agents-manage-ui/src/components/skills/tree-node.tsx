@@ -99,10 +99,7 @@ export const TreeNode: FC<{
                 <>
                   {isEntryFile ? (
                     <DeleteSkillConfirmation
-                      tenantId={tenantId}
-                      projectId={projectId}
                       skillId={node.skillId}
-                      skillName={node.skillName ?? node.skillId}
                       setIsOpen={setIsDeleteOpen}
                       redirectOnDelete={Boolean(isSelectedSkill)}
                     />

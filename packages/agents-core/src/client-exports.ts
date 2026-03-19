@@ -42,6 +42,8 @@ import { FullAgentAgentInsertSchema, MAX_ID_LENGTH } from './validation';
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
 
 export * from './validation/schemas';
+export * from './validation/schemas/shared';
+export * from './validation/schemas/skills';
 
 const ContextConfigApiInsertSchema = z.object({
   id: z.string().optional(),

@@ -18,11 +18,14 @@ import { deleteSkill } from '@/lib/api/skills';
 interface DeleteSkillConfirmationProps {
   skillId: string;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
+  /** @default true */
+  redirectOnDelete?: boolean;
 }
 
 export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
   skillId,
   setIsOpen,
+  redirectOnDelete,
 }) => {
   'use memo';
   const router = useRouter();
@@ -38,7 +41,9 @@ export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
 
     toast.success(`Skill "${skillId}" deleted.`);
     setIsOpen(false);
-    router.push(`/${tenantId}/projects/${projectId}/skills`);
+    if (redirectOnDelete) {
+      router.push(`/${tenantId}/projects/${projectId}/skills`);
+    }
   }
 
   return (

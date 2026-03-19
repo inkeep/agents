@@ -257,4 +257,5 @@ export {
   SubAgentSkillResponse,
   SkillWithFilesResponse,
   SkillListResponse,
+  SkillFrontmatterSchema,
 };
