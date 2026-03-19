@@ -1,5 +1,9 @@
 import { z } from '@hono/zod-openapi';
 
+export const MIN_ID_LENGTH = 1;
+export const MAX_ID_LENGTH = 255;
+export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
+
 export const ResourceIdSchema = z
   .string()
   .min(MIN_ID_LENGTH)
@@ -17,6 +21,14 @@ export const StringRecordSchema = z
   .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
   .openapi('StringRecord');
 
+const pageNumber = z.coerce.number().min(1).default(1).openapi('PaginationPageQueryParam');
+const limitNumber = z.coerce
+  .number()
+  .min(1)
+  .max(100)
+  .default(10)
+  .openapi('PaginationLimitQueryParam');
+
 export const PaginationSchema = z
   .object({
     page: pageNumber,
@@ -25,3 +37,10 @@ export const PaginationSchema = z
     pages: z.number(),
   })
   .openapi('Pagination');
+
+export const PaginationQueryParamsSchema = z
+  .object({
+    page: pageNumber,
+    limit: limitNumber,
+  })
+  .openapi('PaginationQueryParams');

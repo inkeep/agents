@@ -178,22 +178,10 @@ export type StopWhen = z.infer<typeof StopWhenSchema>;
 export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
 export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
 
-export const MIN_ID_LENGTH = 1;
-export const MAX_ID_LENGTH = 255;
-export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
-
 export const UserIdSchema = z.string().openapi('UserId', {
   description: 'User identifier',
   example: 'user_123',
 });
-
-const pageNumber = z.coerce.number().min(1).default(1).openapi('PaginationPageQueryParam');
-const limitNumber = z.coerce
-  .number()
-  .min(1)
-  .max(100)
-  .default(10)
-  .openapi('PaginationLimitQueryParam');
 
 export const ModelSettingsSchema = z
   .object({
@@ -3030,13 +3018,6 @@ export const TenantProjectAgentSubAgentIdParamsSchema =
 export const RefQueryParamSchema = z.object({
   ref: z.string().optional().describe('Branch name, tag name, or commit hash to query from'),
 });
-
-export const PaginationQueryParamsSchema = z
-  .object({
-    page: pageNumber,
-    limit: limitNumber,
-  })
-  .openapi('PaginationQueryParams');
 
 export const DateTimeFilterQueryParamsSchema = z.object({
   from: z.iso.datetime().optional().describe('Start date for filtering (ISO8601)'),
