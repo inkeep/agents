@@ -4,6 +4,7 @@
  * Centralized configuration for API endpoints and settings
  */
 
+import { isAuthCookie } from '@inkeep/agents-core/auth/cookie-names';
 import { DEFAULT_INKEEP_AGENTS_API_URL } from '../runtime-config/defaults';
 import { ApiError } from '../types/errors';
 
@@ -43,7 +44,7 @@ async function makeApiRequestInternal<T>(
       if (rawCookieHeader) {
         // Filter to only forward Better Auth cookies for security
         const cookiePairs = rawCookieHeader.split(';').map((c) => c.trim());
-        const authCookies = cookiePairs.filter((c) => c.includes('better-auth'));
+        const authCookies = cookiePairs.filter((c) => isAuthCookie(c));
         cookieHeader = authCookies.join('; ');
       }
 
@@ -52,7 +53,7 @@ async function makeApiRequestInternal<T>(
         const { cookies } = await import('next/headers');
         const cookieStore = await cookies();
         const allCookies = cookieStore.getAll();
-        const authCookies = allCookies.filter((c) => c.name.includes('better-auth'));
+        const authCookies = allCookies.filter((c) => isAuthCookie(c.name));
         cookieHeader = authCookies.map((c) => `${c.name}=${c.value}`).join('; ');
       }
     } catch {
