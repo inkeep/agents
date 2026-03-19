@@ -173,6 +173,11 @@ const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema)
   .openapi('SkillUpdate');
 
 const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
+const SkillFileApiUpdateSchema = z
+  .object({
+    content: z.string(),
+  })
+  .openapi('SkillFileUpdate');
 
 const SkillWithFilesApiSelectSchema = SkillApiSelectSchema.extend({
   files: z.array(SkillFileApiSelectSchema),
@@ -214,6 +219,7 @@ const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
 }).openapi('SubAgentSkillWithIndex');
 
 const SkillResponse = z.object({ data: SkillApiSelectSchema }).openapi('SkillResponse');
+const SkillFileResponse = z.object({ data: SkillFileApiSelectSchema }).openapi('SkillFileResponse');
 
 const SkillWithFilesResponse = z
   .object({ data: SkillWithFilesApiSelectSchema })
@@ -250,9 +256,11 @@ export {
   SkillInsertSchema,
   SkillFileSelectSchema,
   SkillFileInsertSchema,
+  SkillFileApiUpdateSchema,
   SkillFileApiSelectSchema,
   SkillApiUpdateSchema,
   SkillApiSelectSchema,
+  SkillFileResponse,
   SubAgentSkillWithIndexArrayResponse,
   SubAgentSkillResponse,
   SkillWithFilesResponse,
