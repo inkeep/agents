@@ -21,6 +21,7 @@ import {
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
   type Part,
+  resetCancelledInvocationToPending,
   resolveRef,
   type ScheduledTriggerInvocation,
   updateScheduledTriggerInvocationStatus,
@@ -487,6 +488,45 @@ export async function incrementAttemptStep(params: {
       status: 'pending',
     },
   });
+}
+
+/**
+ * Step: Reset a cancelled invocation back to pending.
+ * Used when a restarted workflow finds a cancelled invocation via idempotency
+ * that is still scheduled for a future time.
+ */
+export async function resetInvocationToPendingStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  invocationId: string;
+}) {
+  'use step';
+
+  const updated = await resetCancelledInvocationToPending(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    invocationId: params.invocationId,
+  });
+
+  if (updated) {
+    logger.info(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Reset cancelled invocation to pending'
+    );
+  } else {
+    logger.warn(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Skipped reset — invocation status changed concurrently (no longer cancelled)'
+    );
+  }
+
+  return updated;
 }
 
 /**

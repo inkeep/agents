@@ -279,6 +279,38 @@ export const markScheduledTriggerInvocationFailed =
   };
 
 /**
+ * Reset a cancelled invocation back to pending.
+ * Only updates if the current status is 'cancelled' to prevent race conditions.
+ */
+export const resetCancelledInvocationToPending =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: AgentScopeConfig;
+    scheduledTriggerId: string;
+    invocationId: string;
+  }): Promise<ScheduledTriggerInvocation | undefined> => {
+    const result = await db
+      .update(scheduledTriggerInvocations)
+      .set({
+        status: 'pending',
+        attemptNumber: 1,
+        startedAt: null,
+        completedAt: null,
+      })
+      .where(
+        and(
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          eq(scheduledTriggerInvocations.id, params.invocationId),
+          eq(scheduledTriggerInvocations.status, 'cancelled')
+        )
+      )
+      .returning();
+
+    return result[0] as ScheduledTriggerInvocation | undefined;
+  };
+
+/**
  * Add a conversation ID to the invocation's conversationIds array
  * Used to track all conversations created during retries
  */
