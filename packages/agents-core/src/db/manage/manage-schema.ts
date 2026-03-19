@@ -179,6 +179,12 @@ export const scheduledTriggers = pgTable(
     timeoutSeconds: numeric('timeout_seconds', { mode: 'number' }).notNull().default(780),
     runAsUserId: varchar('run_as_user_id', { length: 256 }),
     createdBy: varchar('created_by', { length: 256 }),
+    maxConcurrentInvocations: numeric('max_concurrent_invocations', { mode: 'number' })
+      .notNull()
+      .default(1),
+    staggerIntervalSeconds: numeric('stagger_interval_seconds', { mode: 'number' })
+      .notNull()
+      .default(0),
     ...timestamps,
   },
   (table) => [

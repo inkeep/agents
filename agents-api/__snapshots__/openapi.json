@@ -6578,6 +6578,11 @@
             "maxLength": 256,
             "type": "string"
           },
+          "maxConcurrentInvocations": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "number"
+          },
           "maxRetries": {
             "maximum": 9007199254740991,
             "minimum": -9007199254740991,
@@ -6618,6 +6623,11 @@
             "nullable": true,
             "type": "string"
           },
+          "staggerIntervalSeconds": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "number"
+          },
           "timeoutSeconds": {
             "maximum": 9007199254740991,
             "minimum": -9007199254740991,
@@ -6641,6 +6651,8 @@
           "timeoutSeconds",
           "runAsUserId",
           "createdBy",
+          "maxConcurrentInvocations",
+          "staggerIntervalSeconds",
           "createdAt",
           "updatedAt"
         ],
@@ -6676,6 +6688,13 @@
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
+          },
+          "maxConcurrentInvocations": {
+            "default": 1,
+            "description": "Maximum number of invocations that can run simultaneously",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
           },
           "maxRetries": {
             "default": 1,
@@ -6718,6 +6737,13 @@
             "format": "date-time",
             "nullable": true,
             "type": "string"
+          },
+          "staggerIntervalSeconds": {
+            "default": 0,
+            "description": "Minimum delay in seconds between starting consecutive invocations",
+            "maximum": 3600,
+            "minimum": 0,
+            "type": "integer"
           },
           "timeoutSeconds": {
             "default": 780,
@@ -6762,6 +6788,13 @@
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
+          "maxConcurrentInvocations": {
+            "default": 1,
+            "description": "Maximum number of invocations that can run simultaneously",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
           "maxRetries": {
             "default": 1,
             "maximum": 10,
@@ -6803,6 +6836,13 @@
             "format": "date-time",
             "nullable": true,
             "type": "string"
+          },
+          "staggerIntervalSeconds": {
+            "default": 0,
+            "description": "Minimum delay in seconds between starting consecutive invocations",
+            "maximum": 3600,
+            "minimum": 0,
+            "type": "integer"
           },
           "timeoutSeconds": {
             "default": 780,
@@ -6991,6 +7031,11 @@
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
+          "maxConcurrentInvocations": {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
           "maxRetries": {
             "maximum": 10,
             "minimum": 0,
@@ -7030,6 +7075,11 @@
             "format": "date-time",
             "nullable": true,
             "type": "string"
+          },
+          "staggerIntervalSeconds": {
+            "maximum": 3600,
+            "minimum": 0,
+            "type": "integer"
           },
           "timeoutSeconds": {
             "maximum": 780,

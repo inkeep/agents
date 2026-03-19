@@ -992,6 +992,22 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
   createdBy: () =>
     UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
+  maxConcurrentInvocations: () =>
+    z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .default(1)
+      .describe('Maximum number of invocations that can run simultaneously'),
+  staggerIntervalSeconds: () =>
+    z
+      .number()
+      .int()
+      .min(0)
+      .max(3600)
+      .default(0)
+      .describe('Minimum delay in seconds between starting consecutive invocations'),
 }).omit({
   createdAt: true,
   updatedAt: true,
@@ -1015,6 +1031,8 @@ export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.ext
   maxRetries: z.number().int().min(0).max(10).optional(),
   retryDelaySeconds: z.number().int().min(10).max(3600).optional(),
   timeoutSeconds: z.number().int().min(30).max(780).optional(),
+  maxConcurrentInvocations: z.number().int().min(1).max(50).optional(),
+  staggerIntervalSeconds: z.number().int().min(0).max(3600).optional(),
 }).partial();
 
 export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(
