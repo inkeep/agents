@@ -10343,6 +10343,206 @@
           }
         ]
       },
+      "UsageEventsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "properties": {
+                "agentId": {
+                  "type": "string"
+                },
+                "byok": {
+                  "type": "boolean"
+                },
+                "cachedReadTokens": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "cachedWriteTokens": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "completedAt": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "conversationId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "errorCode": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "estimatedCostUsd": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "finishReason": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "generationDurationMs": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "generationType": {
+                  "type": "string"
+                },
+                "inputTokens": {
+                  "type": "number"
+                },
+                "messageId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "outputTokens": {
+                  "type": "number"
+                },
+                "projectId": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "reasoningTokens": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "requestId": {
+                  "type": "string"
+                },
+                "requestedModel": {
+                  "type": "string"
+                },
+                "resolvedModel": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "spanId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "startedAt": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "stepCount": {
+                  "type": "number"
+                },
+                "streamed": {
+                  "type": "boolean"
+                },
+                "subAgentId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "tenantId": {
+                  "type": "string"
+                },
+                "totalTokens": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "traceId": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "requestId",
+                "tenantId",
+                "projectId",
+                "agentId",
+                "subAgentId",
+                "conversationId",
+                "messageId",
+                "generationType",
+                "traceId",
+                "spanId",
+                "requestedModel",
+                "resolvedModel",
+                "provider",
+                "inputTokens",
+                "outputTokens",
+                "totalTokens",
+                "reasoningTokens",
+                "cachedReadTokens",
+                "cachedWriteTokens",
+                "stepCount",
+                "estimatedCostUsd",
+                "streamed",
+                "finishReason",
+                "generationDurationMs",
+                "byok",
+                "status",
+                "errorCode",
+                "startedAt",
+                "completedAt",
+                "createdAt"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "nextCursor"
+        ],
+        "type": "object"
+      },
+      "UsageSummaryResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "properties": {
+                "eventCount": {
+                  "type": "number"
+                },
+                "groupKey": {
+                  "type": "string"
+                },
+                "totalEstimatedCostUsd": {
+                  "type": "number"
+                },
+                "totalInputTokens": {
+                  "type": "number"
+                },
+                "totalOutputTokens": {
+                  "type": "number"
+                },
+                "totalTokens": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "groupKey",
+                "totalInputTokens",
+                "totalOutputTokens",
+                "totalTokens",
+                "totalEstimatedCostUsd",
+                "eventCount"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "UserId": {
         "description": "User identifier",
         "example": "user_123",
@@ -38832,6 +39032,308 @@
           "description": "Requires project edit permission (project_admin, or org admin/owner)",
           "permission": "edit",
           "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/usage/events": {
+      "get": {
+        "description": "List individual usage events with pagination. Supports filtering by project, agent, model, and generation type.",
+        "operationId": "list-usage-events",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agentId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "model",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "generationType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageEventsResponse"
+                }
+              }
+            },
+            "description": "Paginated usage events"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Usage Events",
+        "tags": [
+          "Usage"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/usage/summary": {
+      "get": {
+        "description": "Get aggregated usage data. Omit projectId for tenant-level summary. Supports grouping by model, agent, day, or generation_type.",
+        "operationId": "get-usage-summary",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "groupBy",
+            "required": false,
+            "schema": {
+              "default": "model",
+              "enum": [
+                "model",
+                "agent",
+                "day",
+                "generation_type"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSummaryResponse"
+                }
+              }
+            },
+            "description": "Usage summary"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Usage Summary",
+        "tags": [
+          "Usage"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
         }
       }
     },
