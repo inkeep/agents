@@ -20,9 +20,9 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import { useProjectPermissions } from '@/contexts/project';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import type { Credential } from '@/lib/api/credentials';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
@@ -110,7 +110,9 @@ export function CredentialItem({
   tenantId: string;
   projectId: string;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/credentials/${id}`;
 
   return (
