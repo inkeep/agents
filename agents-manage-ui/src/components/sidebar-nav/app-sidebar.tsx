@@ -178,6 +178,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/evaluations`,
           icon: BarChart3,
         },
+        {
+          title: 'Usage',
+          url: `/${tenantId}/projects/${projectId}/usage`,
+          icon: Activity,
+        },
       ]
     : [];
 

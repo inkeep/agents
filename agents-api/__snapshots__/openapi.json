@@ -42735,6 +42735,10 @@
       "name": "User Project Memberships"
     },
     {
+      "description": "Operations for querying token usage and cost analytics",
+      "name": "Usage"
+    },
+    {
       "description": "Operations for managing user profile",
       "name": "User Profile"
     },

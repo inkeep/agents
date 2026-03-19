@@ -40,6 +40,7 @@ export const TagToDescription = {
   Tools: 'Operations for managing MCP tools',
   Triggers: 'Operations for managing triggers',
   'User Project Memberships': 'Operations for managing user project memberships',
+  Usage: 'Operations for querying token usage and cost analytics',
   'User Profile': 'Operations for managing user profile',
   Users: 'Operations for managing users',
   Webhooks: 'Webhook endpoints',

@@ -49,6 +49,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'Third-Party MCP Servers': 'LuServerCog',
   Tools: 'LuHammer',
   Triggers: 'LuWebhook',
+  Usage: 'LuBarChart3',
   'User Project Memberships': 'LuUserCheck',
   'User Profile': 'LuUser',
   Users: 'LuUsers',
