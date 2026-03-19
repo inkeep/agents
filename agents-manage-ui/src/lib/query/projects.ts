@@ -46,7 +46,7 @@ export function useProjectQuery({ enabled = true }: { enabled?: boolean } = {}) 
     throw new Error('tenantId and projectId are required');
   }
 
-  return useQuery<Project>({
+  return useQuery<Project | null>({
     queryKey: projectQueryKeys.detail(tenantId, projectId),
     async queryFn() {
       const response = await fetchProject(tenantId, projectId);
