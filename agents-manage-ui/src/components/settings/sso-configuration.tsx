@@ -48,12 +48,17 @@ export interface SSOProviderInfo {
   scopes?: string[];
 }
 
-export function useSSOProviders(organizationId: string) {
+export function useSSOProviders(organizationId: string | undefined) {
   const authClient = useAuthClient();
   const [providers, setProviders] = useState<SSOProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProviders = useCallback(async () => {
+    if (!organizationId) {
+      setProviders([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const result = await authClient.sso.providers();

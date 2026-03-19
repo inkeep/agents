@@ -16,11 +16,14 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { useAuthClient } from '@/contexts/auth-client';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import SettingsLoadingSkeleton from './loading';
 
 export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings'>) {
   const authClient = useAuthClient();
+  const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
+  const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
   const { tenantId } = use(params);
 
   const [organization, setOrganization] = useState<
@@ -38,7 +41,7 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
     providers: ssoProviders,
     loading: ssoLoading,
     refetch: refetchSSO,
-  } = useSSOProviders(tenantId);
+  } = useSSOProviders(isCloudDeployment ? tenantId : undefined);
 
   const fetchOrganization = useCallback(async () => {
     if (!tenantId) return;
@@ -115,7 +118,7 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
     if (provider) setRemovingProvider(provider);
   };
 
-  if (editingProvider) {
+  if (isCloudDeployment && editingProvider) {
     const entry = findSSOEntry(editingProvider.providerId);
     return (
       <div className="space-y-6">
@@ -134,7 +137,7 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
     );
   }
 
-  if (showRegisterForm) {
+  if (isCloudDeployment && showRegisterForm) {
     return (
       <div className="space-y-6">
         <RegisterSSOForm
@@ -172,7 +175,7 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {ssoLoading ? (
+              {isCloudDeployment && ssoLoading ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
@@ -181,25 +184,27 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
                   organizationId={tenantId}
                   allowedAuthMethods={allowedMethods}
                   isOrgAdmin={isOrgAdmin}
-                  ssoProviders={ssoRows}
+                  ssoProviders={isCloudDeployment ? ssoRows : []}
                   onAuthMethodChanged={fetchOrganization}
-                  onEditSSO={handleEditSSO}
-                  onRemoveSSO={handleRemoveSSO}
-                  onAddSSO={() => setShowRegisterForm(true)}
+                  onEditSSO={isCloudDeployment ? handleEditSSO : undefined}
+                  onRemoveSSO={isCloudDeployment ? handleRemoveSSO : undefined}
+                  onAddSSO={isCloudDeployment ? () => setShowRegisterForm(true) : undefined}
                 />
               )}
             </CardContent>
           </Card>
 
-          <RemoveSSODialog
-            provider={removingProvider}
-            organizationId={tenantId}
-            onClose={() => setRemovingProvider(null)}
-            onRemoved={() => {
-              setRemovingProvider(null);
-              handleRefreshAll();
-            }}
-          />
+          {isCloudDeployment && (
+            <RemoveSSODialog
+              provider={removingProvider}
+              organizationId={tenantId}
+              onClose={() => setRemovingProvider(null)}
+              onRemoved={() => {
+                setRemovingProvider(null);
+                handleRefreshAll();
+              }}
+            />
+          )}
         </>
       )}
     </div>
