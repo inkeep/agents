@@ -203,6 +203,54 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const fetched = await getRes.json();
       expect(fetched.data.isWorkApp).toBe(true);
     });
+
+    it('should persist rateLimits field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-create-ratelimits');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const rateLimits = { requestsPerMinute: 60, requestsPerHour: 1000, concurrentRequests: 5 };
+      const toolData = { ...createToolData(), rateLimits };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools`,
+        { method: 'POST', body: JSON.stringify(toolData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.rateLimits).toEqual(rateLimits);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.rateLimits).toEqual(rateLimits);
+    });
+
+    it('should work without rateLimits (null by default)', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-create-no-ratelimits');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const toolData = createToolData();
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools`,
+        { method: 'POST', body: JSON.stringify(toolData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.rateLimits).toBeNull();
+    });
+
+    it('should reject invalid rateLimits values', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-create-bad-ratelimits');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const toolData = { ...createToolData(), rateLimits: { requestsPerMinute: -1 } };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools`,
+        { method: 'POST', body: JSON.stringify(toolData) }
+      );
+      expect(createRes.status).toBe(400);
+    });
   });
 
   describe('PATCH /{id} - field persistence', () => {
@@ -267,6 +315,49 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(getRes.status).toBe(200);
       const fetched = await getRes.json();
       expect(fetched.data.isWorkApp).toBe(true);
+    });
+
+    it('should update rateLimits field individually', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-update-ratelimits');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { toolId } = await createTestTool({ tenantId });
+
+      const rateLimits = { requestsPerMinute: 30, concurrentRequests: 3 };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
+        { method: 'PATCH', body: JSON.stringify({ rateLimits }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.rateLimits).toEqual(rateLimits);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.rateLimits).toEqual(rateLimits);
+    });
+
+    it('should clear rateLimits by setting to null', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-update-clear-ratelimits');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const rateLimits = { requestsPerMinute: 60 };
+      const toolData = { ...createToolData(), rateLimits };
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools`,
+        { method: 'POST', body: JSON.stringify(toolData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${created.data.id}`,
+        { method: 'PATCH', body: JSON.stringify({ rateLimits: null }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.rateLimits).toBeNull();
     });
   });
 
