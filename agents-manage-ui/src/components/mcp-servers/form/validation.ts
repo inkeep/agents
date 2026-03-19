@@ -137,6 +137,14 @@ export const mcpToolSchema = z.object({
     .refine((value) => !value || value.trim() === '' || z.string().url().safeParse(value).success, {
       message: 'Image URL must be a valid URL.',
     }),
+  rateLimits: z
+    .object({
+      requestsPerMinute: z.number().int().min(1).max(10000).nullable().optional(),
+      requestsPerHour: z.number().int().min(1).max(100000).nullable().optional(),
+      concurrentRequests: z.number().int().min(1).max(100).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export type MCPToolFormData = z.infer<typeof mcpToolSchema>;

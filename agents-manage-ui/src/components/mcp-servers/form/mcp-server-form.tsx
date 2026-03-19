@@ -57,7 +57,23 @@ const defaultValues: MCPToolFormData = {
   imageUrl: '', // Initialize as empty string to avoid uncontrolled/controlled warning
   credentialReferenceId: 'oauth',
   credentialScope: CredentialScopeEnum.project,
+  rateLimits: {
+    requestsPerMinute: null,
+    requestsPerHour: null,
+    concurrentRequests: null,
+  },
 };
+
+function cleanRateLimits(
+  raw: MCPToolFormData['rateLimits']
+): { requestsPerMinute?: number; requestsPerHour?: number; concurrentRequests?: number } | null {
+  if (!raw) return null;
+  const out: Record<string, number> = {};
+  if (raw.requestsPerMinute != null) out.requestsPerMinute = raw.requestsPerMinute;
+  if (raw.requestsPerHour != null) out.requestsPerHour = raw.requestsPerHour;
+  if (raw.concurrentRequests != null) out.concurrentRequests = raw.concurrentRequests;
+  return Object.keys(out).length > 0 ? out : null;
+}
 
 export function MCPServerForm({
   initialData,
@@ -122,6 +138,7 @@ export function MCPServerForm({
           credentialReferenceId: null,
           credentialScope: CredentialScopeEnum.user,
           imageUrl: data.imageUrl,
+          rateLimits: cleanRateLimits(data.rateLimits),
         };
 
         const result = await createToolAction(tenantId, projectId, mcpToolData);
@@ -171,6 +188,7 @@ export function MCPServerForm({
           credentialReferenceId: null,
           credentialScope: CredentialScopeEnum.project,
           imageUrl: data.imageUrl,
+          rateLimits: cleanRateLimits(data.rateLimits),
         };
 
         const createResult = await createToolAction(tenantId, projectId, mcpToolData);
@@ -205,6 +223,7 @@ export function MCPServerForm({
             activeTools: getActiveTools(data.config.mcp.toolsConfig),
           },
         },
+        rateLimits: cleanRateLimits(data.rateLimits),
       };
 
       if (tool) {
@@ -388,6 +407,43 @@ export function MCPServerForm({
               )}
             </>
           )}
+
+          <fieldset className="space-y-4 rounded-lg border p-4">
+            <legend className="px-2 text-sm font-medium">Rate Limits (optional)</legend>
+            <p className="text-sm text-muted-foreground">
+              Throttle MCP tool calls to respect external API rate limits. Leave empty for no
+              limits.
+            </p>
+            <div className="grid grid-cols-3 gap-4">
+              <GenericInput
+                control={form.control}
+                name="rateLimits.requestsPerMinute"
+                label="Requests / Minute"
+                placeholder="e.g. 60"
+                type="number"
+                min="1"
+                max="10000"
+              />
+              <GenericInput
+                control={form.control}
+                name="rateLimits.requestsPerHour"
+                label="Requests / Hour"
+                placeholder="e.g. 1000"
+                type="number"
+                min="1"
+                max="100000"
+              />
+              <GenericInput
+                control={form.control}
+                name="rateLimits.concurrentRequests"
+                label="Concurrent Requests"
+                placeholder="e.g. 5"
+                type="number"
+                min="1"
+                max="100"
+              />
+            </div>
+          </fieldset>
 
           {tool && (
             <>

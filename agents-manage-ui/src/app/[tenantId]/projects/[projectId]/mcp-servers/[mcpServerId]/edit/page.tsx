@@ -86,6 +86,7 @@ async function EditMCPPage({
     credentialReferenceId: mcpTool.credentialReferenceId || 'none',
     credentialScope: (mcpTool.credentialScope as CredentialScope) ?? CredentialScopeEnum.project,
     imageUrl: mcpTool.imageUrl?.trim() || undefined,
+    rateLimits: mcpTool.rateLimits ?? undefined,
   };
 
   return (
