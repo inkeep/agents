@@ -1,12 +1,10 @@
+import { QUERY_TYPES, SPAN_KEYS } from '@inkeep/agents-core';
+
 const SERVICE_NAME_FILTER = "serviceName IN ('inkeep-agents-api', 'inkeep-agents-run-api')";
 
-export function esc(value: string): string {
-  return value.replace(/'/g, "''");
-}
-
 function buildSecurityExpression(tenantId: string, projectId?: string): string {
-  let expr = `${SERVICE_NAME_FILTER} AND tenant.id = '${esc(tenantId)}'`;
-  if (projectId) expr += ` AND project.id = '${esc(projectId)}'`;
+  let expr = `${SERVICE_NAME_FILTER} AND ${SPAN_KEYS.TENANT_ID} = '${tenantId}'`;
+  if (projectId) expr += ` AND ${SPAN_KEYS.PROJECT_ID} = '${projectId}'`;
   return expr;
 }
 
@@ -18,7 +16,7 @@ export function enforceSecurityFilters(payload: any, tenantId: string, projectId
   if (payload.compositeQuery?.queries) {
     const securityExpr = buildSecurityExpression(tenantId, projectId);
     for (const { type, spec } of payload.compositeQuery.queries) {
-      if (type !== 'builder_query') continue;
+      if (type !== QUERY_TYPES.BUILDER_QUERY) continue;
       spec.filter = { expression: `(${spec.filter.expression}) AND ${securityExpr}` };
     }
   }

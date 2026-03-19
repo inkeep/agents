@@ -10,7 +10,7 @@ import {
   OPERATORS,
   ORDER_DIRECTIONS,
   QUERY_DEFAULTS,
-  QUERY_ENVELOPE_TYPES,
+  QUERY_TYPES,
   QUERY_EXPRESSIONS,
   REQUEST_TYPES,
   SIGNALS,
@@ -1051,14 +1051,13 @@ class SigNozStatsAPI {
       ];
 
       const payload = {
-
         start: startTime,
         end: endTime,
         requestType: REQUEST_TYPES.SCALAR,
         compositeQuery: {
           queries: [
             {
-              type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+              type: QUERY_TYPES.BUILDER_QUERY,
               spec: {
                 name: QUERY_EXPRESSIONS.SPAN_NAMES,
                 signal: SIGNALS.TRACES,
@@ -1189,14 +1188,13 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.AGENT_MODEL_CALLS,
               signal: SIGNALS.TRACES,
@@ -1248,14 +1246,13 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.MODEL_CALLS,
               signal: SIGNALS.TRACES,
@@ -1305,14 +1302,13 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
               signal: SIGNALS.TRACES,
@@ -1376,7 +1372,7 @@ class SigNozStatsAPI {
 
     const queries: any[] = [
       {
-        type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+        type: QUERY_TYPES.BUILDER_QUERY,
         spec: {
           name: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
           signal: SIGNALS.TRACES,
@@ -1398,7 +1394,7 @@ class SigNozStatsAPI {
         },
       },
       {
-        type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+        type: QUERY_TYPES.BUILDER_QUERY,
         spec: {
           name: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
           signal: SIGNALS.TRACES,
@@ -1467,7 +1463,7 @@ class SigNozStatsAPI {
       }
 
       queries.push({
-        type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+        type: QUERY_TYPES.BUILDER_QUERY,
         spec: {
           name: QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS,
           signal: SIGNALS.TRACES,
@@ -1496,7 +1492,7 @@ class SigNozStatsAPI {
       ];
 
       queries.push({
-        type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+        type: QUERY_TYPES.BUILDER_QUERY,
         spec: {
           name: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
           signal: SIGNALS.TRACES,
@@ -1537,7 +1533,7 @@ class SigNozStatsAPI {
       ];
 
       queries.push({
-        type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+        type: QUERY_TYPES.BUILDER_QUERY,
         spec: {
           name: QUERY_EXPRESSIONS.USER_MESSAGES,
           signal: SIGNALS.TRACES,
@@ -1569,7 +1565,7 @@ class SigNozStatsAPI {
     ];
 
     queries.push({
-      type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+      type: QUERY_TYPES.BUILDER_QUERY,
       spec: {
         name: 'aggToolCallsByType',
         signal: SIGNALS.TRACES,
@@ -1599,7 +1595,7 @@ class SigNozStatsAPI {
     ];
 
     queries.push({
-      type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+      type: QUERY_TYPES.BUILDER_QUERY,
       spec: {
         name: 'aggAICalls',
         signal: SIGNALS.TRACES,
@@ -1614,7 +1610,6 @@ class SigNozStatsAPI {
     });
 
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
@@ -1648,14 +1643,13 @@ class SigNozStatsAPI {
     };
 
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.TOOLS,
               signal: SIGNALS.TRACES,
@@ -1687,7 +1681,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
               signal: SIGNALS.TRACES,
@@ -1729,7 +1723,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
               signal: SIGNALS.TRACES,
@@ -1751,7 +1745,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
               signal: SIGNALS.TRACES,
@@ -1780,7 +1774,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.USER_MESSAGES,
               signal: SIGNALS.TRACES,
@@ -1822,14 +1816,13 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.UNIQUE_AGENTS,
               signal: SIGNALS.TRACES,
@@ -1862,14 +1855,13 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.UNIQUE_MODELS,
               signal: SIGNALS.TRACES,
@@ -1903,14 +1895,13 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'toolCalls',
               signal: SIGNALS.TRACES,
@@ -1940,7 +1931,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'toolErrors',
               signal: SIGNALS.TRACES,
@@ -1984,14 +1975,13 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'uniqueServers',
               signal: SIGNALS.TRACES,
@@ -2036,14 +2026,13 @@ class SigNozStatsAPI {
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'uniqueTools',
               signal: SIGNALS.TRACES,
@@ -2269,14 +2258,13 @@ class SigNozStatsAPI {
     const base = [tenantItem, projectItem, convExistsItem];
 
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'totalConversations',
               signal: SIGNALS.TRACES,
@@ -2290,7 +2278,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'totalUserMessages',
               signal: SIGNALS.TRACES,
@@ -2309,7 +2297,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'totalTriggerInvocations',
               signal: SIGNALS.TRACES,
@@ -2330,7 +2318,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'totalSlackMessages',
               signal: SIGNALS.TRACES,
@@ -2350,7 +2338,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'totalAICalls',
               signal: SIGNALS.TRACES,
@@ -2373,7 +2361,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'totalMCPCalls',
               signal: SIGNALS.TRACES,
@@ -2413,14 +2401,13 @@ class SigNozStatsAPI {
       { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
     ];
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
               signal: SIGNALS.TRACES,
@@ -2457,14 +2444,13 @@ class SigNozStatsAPI {
     const base = [tenantItem, projectItem, convExistsItem];
 
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'conversationsByProject',
               signal: SIGNALS.TRACES,
@@ -2484,7 +2470,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'aiCallsByProject',
               signal: SIGNALS.TRACES,
@@ -2513,7 +2499,7 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: 'mcpCallsByProject',
               signal: SIGNALS.TRACES,
@@ -2556,7 +2542,7 @@ class SigNozStatsAPI {
     ];
 
     const makeTokenQuery = (queryName: string, aggregateKey: string, groupByKey: string) => ({
-      type: QUERY_ENVELOPE_TYPES.BUILDER_QUERY,
+      type: QUERY_TYPES.BUILDER_QUERY,
       spec: {
         name: queryName,
         signal: SIGNALS.TRACES,
@@ -2577,7 +2563,6 @@ class SigNozStatsAPI {
     });
 
     return {
-
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,

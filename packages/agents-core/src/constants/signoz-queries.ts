@@ -7,30 +7,17 @@ export const REQUEST_TYPES = {
   SCALAR: 'scalar',
   TIME_SERIES: 'time_series',
   RAW: 'raw',
-  RAW_STREAM: 'raw_stream',
   TRACE: 'trace',
-  DISTRIBUTION: 'distribution',
 } as const;
 
-export const QUERY_ENVELOPE_TYPES = {
+export const QUERY_TYPES = {
   BUILDER_QUERY: 'builder_query',
-  BUILDER_FORMULA: 'builder_formula',
-  BUILDER_TRACE_OPERATOR: 'builder_trace_operator',
-  BUILDER_SUB_QUERY: 'builder_sub_query',
-  BUILDER_JOIN: 'builder_join',
-  CLICKHOUSE_SQL: 'clickhouse_sql',
-  PROMQL: 'promql',
 } as const;
 
 export const FIELD_CONTEXTS = {
   RESOURCE: 'resource',
   ATTRIBUTE: 'attribute',
   SPAN: 'span',
-  LOG: 'log',
-  SCOPE: 'scope',
-  EVENT: 'event',
-  METRIC: 'metric',
-  TRACE: 'trace',
 } as const;
 
 export const FIELD_DATA_TYPES = {
@@ -38,7 +25,6 @@ export const FIELD_DATA_TYPES = {
   INT64: 'int64',
   FLOAT64: 'float64',
   BOOL: 'bool',
-  NUMBER: 'number',
 } as const;
 
 export const SIGNALS = {
@@ -90,20 +76,13 @@ export function buildFilterExpression(
 export const OPERATORS = {
   EQUALS: '=',
   NOT_EQUALS: '!=',
-  LESS_THAN: '<',
-  GREATER_THAN: '>',
   LESS_THAN_OR_EQUAL: '<=',
   GREATER_THAN_OR_EQUAL: '>=',
   LIKE: 'like',
   NOT_LIKE: 'nlike',
-  CONTAINS: 'contains',
-  NOT_CONTAINS: 'ncontains',
   EXISTS: 'exists',
   NOT_EXISTS: 'nexists',
   IN: 'in',
-  NOT_IN: 'nin',
-  AND: 'AND',
-  OR: 'OR',
 } as const;
 
 /** Query Expressions */
@@ -117,30 +96,17 @@ export const QUERY_EXPRESSIONS = {
   PAGE_CONVERSATIONS: 'pageConversations',
   TOTAL_CONVERSATIONS: 'totalConversations',
   TOOLS: 'tools',
-  TRANSFERS: 'transfers',
-  DELEGATIONS: 'delegations',
-  AI_CALLS: 'aiCalls',
-  CONTEXT_ERRORS: 'contextErrors',
-  AGENT_GENERATION_ERRORS: 'agentGenerationErrors',
   USER_MESSAGES: 'userMessages',
   UNIQUE_AGENTS: 'uniqueAgents',
   UNIQUE_MODELS: 'uniqueModels',
-  // Route-specific query names
   TOOL_CALLS: 'toolCalls',
-  CONTEXT_RESOLUTION: 'contextResolution',
-  CONTEXT_HANDLE: 'contextHandle',
   AI_ASSISTANT_MESSAGES: 'aiAssistantMessages',
-  AI_GENERATIONS: 'aiGenerations',
-  AI_STREAMING_TEXT: 'aiStreamingText',
   CONTEXT_FETCHERS: 'contextFetchers',
   DURATION_SPANS: 'durationSpans',
   AGENT_GENERATIONS: 'agentGenerations',
   SPANS_WITH_ERRORS: 'spansWithErrors',
   ARTIFACT_PROCESSING: 'artifactProcessing',
   TOOL_APPROVALS: 'toolApprovals',
-  TOOL_APPROVAL_REQUESTED: 'toolApprovalRequested',
-  TOOL_APPROVAL_APPROVED: 'toolApprovalApproved',
-  TOOL_APPROVAL_DENIED: 'toolApprovalDenied',
   CONTEXT_RESOLUTION_AND_HANDLE: 'contextResolutionAndHandle',
   AI_LLM_CALLS: 'aiLlmCalls',
   COMPRESSION: 'compression',
@@ -156,12 +122,7 @@ export const ORDER_DIRECTIONS = {
 
 /** Query Default Values */
 export const QUERY_DEFAULTS = {
-  STEP: 60,
   STEP_INTERVAL: 60,
-  OFFSET: 0,
   DISABLED: false,
-  HAVING: [],
-  LEGEND: '',
   LIMIT_UNLIMITED: 10000,
-  EMPTY_GROUP_BY: [],
 } as const;

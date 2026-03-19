@@ -93,7 +93,9 @@ async function signozQuery(
     const json = response.data;
     const results = json?.data?.data?.results ?? json?.data?.results ?? [];
     logger.debug(
-      { responseData: results.map((r: any) => ({ queryName: r.queryName, count: r.rows?.length })) },
+      {
+        responseData: results.map((r: any) => ({ queryName: r.queryName, count: r.rows?.length })),
+      },
       'SigNoz response (truncated)'
     );
     return { results };
@@ -130,7 +132,6 @@ function parseList(resp: SigNozResp, name: string): SigNozListItem[] {
 function parseListByName(resp: SigNozResp, queryName: string, spanName: string): SigNozListItem[] {
   return parseList(resp, queryName).filter((row) => getString(row, SPAN_KEYS.NAME) === spanName);
 }
-
 
 // ---------- Payload builder (single combined "list" payload)
 
