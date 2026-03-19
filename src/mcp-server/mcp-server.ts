@@ -6,11 +6,13 @@
 import { buildApplication, buildRouteMap, run } from "@stricli/core";
 import process from "node:process";
 import { buildContext } from "./cli.js";
+import { serveCommand } from "./cli/serve/command.js";
 import { startCommand } from "./cli/start/command.js";
 
 const routes = buildRouteMap({
   routes: {
     start: startCommand,
+    serve: serveCommand,
   },
   docs: {
     brief: "MCP server CLI",

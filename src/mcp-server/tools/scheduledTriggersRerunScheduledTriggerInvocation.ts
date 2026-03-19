@@ -13,7 +13,7 @@ const args = {
 
 export const tool$scheduledTriggersRerunScheduledTriggerInvocation:
   ToolDefinition<typeof args> = {
-    name: "scheduled-triggers-rerun-scheduled-trigger-invocation",
+    name: "scheduled-triggers-rerun-scheduled-trigger-825",
     description: `Rerun Scheduled Trigger Invocation`,
     annotations: {
       "title": "",

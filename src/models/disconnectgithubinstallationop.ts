@@ -31,12 +31,14 @@ export const DisconnectGithubInstallationRequest$zodSchema: z.ZodType<
 /**
  * Installation disconnected successfully
  */
-export type DisconnectGithubInstallationResponseBody = { success: boolean };
+export type DisconnectGithubInstallationResponseBody = {
+  success?: true | undefined;
+};
 
 export const DisconnectGithubInstallationResponseBody$zodSchema: z.ZodType<
   DisconnectGithubInstallationResponseBody
 > = z.object({
-  success: z.boolean(),
+  success: z.literal(true).default(true).optional(),
 }).describe("Installation disconnected successfully");
 
 export type DisconnectGithubInstallationResponse = {
