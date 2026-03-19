@@ -132,7 +132,10 @@ export const TreeNode: FC<{
           <SidebarMenuSubButton onClick={handleCollapse} className="cursor-pointer">
             {content}
           </SidebarMenuSubButton>
-          <SidebarMenuAction className={cn(!isCollapsed && 'rotate-90')} onClick={handleCollapse}>
+          <SidebarMenuAction
+            className={cn('top-1', !isCollapsed && 'rotate-90')}
+            onClick={handleCollapse}
+          >
             <ChevronRight className="size-4" />
           </SidebarMenuAction>
         </>
