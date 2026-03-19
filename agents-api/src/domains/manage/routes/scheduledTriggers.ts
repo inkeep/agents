@@ -385,6 +385,9 @@ app.openapi(
       messageTemplate: body.messageTemplate ?? null,
       runAsUserId,
       createdBy: callerId || null,
+      maxConcurrentInvocations: body.maxConcurrentInvocations ?? 1,
+      staggerIntervalSeconds: body.staggerIntervalSeconds ?? 0,
+      audienceConfig: body.audienceConfig ?? null,
     });
 
     // Start workflow for enabled triggers
@@ -467,7 +470,10 @@ app.openapi(
       body.maxRetries !== undefined ||
       body.retryDelaySeconds !== undefined ||
       body.timeoutSeconds !== undefined ||
-      body.runAsUserId !== undefined;
+      body.runAsUserId !== undefined ||
+      body.maxConcurrentInvocations !== undefined ||
+      body.staggerIntervalSeconds !== undefined ||
+      body.audienceConfig !== undefined;
 
     if (!hasUpdateFields) {
       throw createApiError({

@@ -106,6 +106,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
     scheduledFor,
     idempotencyKey,
     attemptNumber = 1,
+    recipientUserId,
   }: {
     tenantId: string;
     projectId: string;
@@ -115,6 +116,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
     scheduledFor?: string;
     idempotencyKey?: string;
     attemptNumber?: number;
+    recipientUserId?: string;
   }) => {
     const invocation = await createScheduledTriggerInvocation(runDbClient)({
       id: generateId(),
@@ -126,6 +128,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       scheduledFor: scheduledFor || new Date().toISOString(),
       idempotencyKey: idempotencyKey || `test-${generateId()}`,
       attemptNumber,
+      recipientUserId: recipientUserId ?? null,
     });
     return invocation;
   };
@@ -179,6 +182,9 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       expect(firstTrigger).toHaveProperty('maxRetries');
       expect(firstTrigger).toHaveProperty('retryDelaySeconds');
       expect(firstTrigger).toHaveProperty('timeoutSeconds');
+      expect(firstTrigger).toHaveProperty('maxConcurrentInvocations');
+      expect(firstTrigger).toHaveProperty('staggerIntervalSeconds');
+      expect(firstTrigger).toHaveProperty('audienceConfig');
       expect(firstTrigger).toHaveProperty('createdAt');
       expect(firstTrigger).toHaveProperty('updatedAt');
       expect(firstTrigger).not.toHaveProperty('tenantId');
@@ -247,6 +253,9 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       expect(body.data.enabled).toBe(true);
       expect(body.data.cronExpression).toBe('0 * * * *');
       expect(body.data.cronTimezone).toBe('UTC');
+      expect(body.data.maxConcurrentInvocations).toBe(1);
+      expect(body.data.staggerIntervalSeconds).toBe(0);
+      expect(body.data.audienceConfig).toBeNull();
     });
 
     it('should return 404 for non-existent scheduled trigger', async () => {
@@ -438,6 +447,104 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
         cronExpression: '0 * * * *',
         runAt: new Date(Date.now() + 60000).toISOString(),
         messageTemplate: 'Both specified',
+      };
+
+      const res = await makeRequest(basePath(tenantId, projectId, agentId), {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should create trigger with concurrency control fields', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-create-conc');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const createData = {
+        name: 'Concurrent Trigger',
+        cronExpression: '0 * * * *',
+        messageTemplate: 'Test',
+        maxConcurrentInvocations: 5,
+        staggerIntervalSeconds: 30,
+      };
+
+      const res = await makeRequest(basePath(tenantId, projectId, agentId), {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.data.maxConcurrentInvocations).toBe(5);
+      expect(body.data.staggerIntervalSeconds).toBe(30);
+    });
+
+    it('should use default concurrency control values when not provided', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-create-conc-def');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const createData = {
+        name: 'Default Concurrency Trigger',
+        cronExpression: '0 * * * *',
+        messageTemplate: 'Test',
+      };
+
+      const res = await makeRequest(basePath(tenantId, projectId, agentId), {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.data.maxConcurrentInvocations).toBe(1);
+      expect(body.data.staggerIntervalSeconds).toBe(0);
+      expect(body.data.audienceConfig).toBeNull();
+    });
+
+    it('should create trigger with audience config', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-create-audience');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const createData = {
+        name: 'Audience Trigger',
+        cronExpression: '0 9 * * *',
+        messageTemplate: 'Daily report for {{user}}',
+        audienceConfig: {
+          type: 'userList',
+          userIds: ['user-1', 'user-2', 'user-3'],
+        },
+        maxConcurrentInvocations: 3,
+        staggerIntervalSeconds: 10,
+      };
+
+      const res = await makeRequest(basePath(tenantId, projectId, agentId), {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.data.audienceConfig).toEqual({
+        type: 'userList',
+        userIds: ['user-1', 'user-2', 'user-3'],
+      });
+      expect(body.data.maxConcurrentInvocations).toBe(3);
+      expect(body.data.staggerIntervalSeconds).toBe(10);
+    });
+
+    it('should reject audience config with empty userIds', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-create-aud-empty');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const createData = {
+        name: 'Empty Audience Trigger',
+        cronExpression: '0 9 * * *',
+        messageTemplate: 'Test',
+        audienceConfig: {
+          type: 'userList',
+          userIds: [],
+        },
       };
 
       const res = await makeRequest(basePath(tenantId, projectId, agentId), {
@@ -673,6 +780,91 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data.cronExpression).toBe('0 * * * *');
       expect(body.data.runAt).toBeNull();
+    });
+
+    it('should update concurrency control fields', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-update-conc');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestScheduledTrigger({ tenantId, projectId, agentId });
+
+      expect(trigger.maxConcurrentInvocations).toBe(1);
+      expect(trigger.staggerIntervalSeconds).toBe(0);
+
+      const updateData = {
+        maxConcurrentInvocations: 10,
+        staggerIntervalSeconds: 60,
+      };
+
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.maxConcurrentInvocations).toBe(10);
+      expect(body.data.staggerIntervalSeconds).toBe(60);
+    });
+
+    it('should update audience config', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-update-aud');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestScheduledTrigger({ tenantId, projectId, agentId });
+
+      expect(trigger.audienceConfig).toBeNull();
+
+      const updateData = {
+        audienceConfig: {
+          type: 'userList',
+          userIds: ['user-a', 'user-b'],
+        },
+      };
+
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.audienceConfig).toEqual({
+        type: 'userList',
+        userIds: ['user-a', 'user-b'],
+      });
+    });
+
+    it('should clear audience config by setting to null', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-update-aud-clr');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const createData = {
+        name: 'Audience Clear Trigger',
+        cronExpression: '0 * * * *',
+        messageTemplate: 'Test',
+        audienceConfig: {
+          type: 'userList',
+          userIds: ['user-1'],
+        },
+      };
+
+      const createRes = await makeRequest(basePath(tenantId, projectId, agentId), {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      });
+      expect(createRes.status).toBe(201);
+      const created = (await createRes.json()).data;
+
+      const updateRes = await makeRequest(
+        `${basePath(tenantId, projectId, agentId)}/${created.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ audienceConfig: null }),
+        }
+      );
+
+      expect(updateRes.status).toBe(200);
+      const updated = (await updateRes.json()).data;
+      expect(updated.audienceConfig).toBeNull();
     });
   });
 
@@ -965,6 +1157,49 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
           total: 5,
           pages: 2,
         });
+      });
+
+      it('should return recipientUserId when present on invocations', async () => {
+        const tenantId = await createTestTenantWithOrg('sched-inv-recipient');
+        const { agentId, projectId } = await createTestAgent(tenantId);
+        const { trigger } = await createTestScheduledTrigger({ tenantId, projectId, agentId });
+
+        await createTestInvocation({
+          tenantId,
+          projectId,
+          agentId,
+          scheduledTriggerId: trigger.id,
+          status: 'pending',
+          recipientUserId: 'recipient-user-1',
+        });
+
+        await createTestInvocation({
+          tenantId,
+          projectId,
+          agentId,
+          scheduledTriggerId: trigger.id,
+          status: 'pending',
+        });
+
+        const res = await makeRequest(
+          `${basePath(tenantId, projectId, agentId)}/${trigger.id}/invocations`
+        );
+        expect(res.status).toBe(200);
+
+        const body = await res.json();
+        expect(body.data).toHaveLength(2);
+
+        const withRecipient = body.data.find(
+          (inv: { recipientUserId: string | null }) => inv.recipientUserId === 'recipient-user-1'
+        );
+        const withoutRecipient = body.data.find(
+          (inv: { recipientUserId: string | null }) => inv.recipientUserId === null
+        );
+
+        expect(withRecipient).toBeDefined();
+        expect(withRecipient.recipientUserId).toBe('recipient-user-1');
+        expect(withoutRecipient).toBeDefined();
+        expect(withoutRecipient.recipientUserId).toBeNull();
       });
     });
 
