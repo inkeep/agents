@@ -214,9 +214,11 @@ const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
 }).openapi('SubAgentSkillWithIndex');
 
 const SkillResponse = z.object({ data: SkillApiSelectSchema }).openapi('SkillResponse');
+
 const SkillWithFilesResponse = z
   .object({ data: SkillWithFilesApiSelectSchema })
   .openapi('SkillWithFilesResponse');
+
 const SkillListResponse = z
   .object({
     data: z.array(SkillApiSelectSchema),
@@ -227,6 +229,7 @@ const SkillListResponse = z
 const SubAgentSkillResponse = z
   .object({ data: SubAgentSkillApiSelectSchema })
   .openapi('SubAgentSkillResponse');
+
 const SubAgentSkillWithIndexArrayResponse = z
   .object({ data: z.array(SubAgentSkillWithIndexSchema) })
   .openapi('SubAgentSkillWithIndexArrayResponse');

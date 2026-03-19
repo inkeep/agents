@@ -22,6 +22,7 @@ const StringRecordSchema = z
   .openapi('StringRecord');
 
 const pageNumber = z.coerce.number().min(1).default(1).openapi('PaginationPageQueryParam');
+
 const limitNumber = z.coerce
   .number()
   .min(1)
