@@ -147,6 +147,144 @@ export const getSkillByIdWithFiles =
     };
   };
 
+export const getSkillFileById =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    skillId: string;
+    fileId: string;
+  }): Promise<SkillFileSelect | null> => {
+    const file = await db.query.skillFiles.findFirst({
+      where: and(
+        projectScopedWhere(skillFiles, params.scopes),
+        eq(skillFiles.skillId, params.skillId),
+        eq(skillFiles.id, params.fileId)
+      ),
+    });
+
+    return file ?? null;
+  };
+
+function buildEntryFileUpdateData(params: {
+  skillId: string;
+  files: SkillFileInput[];
+  content: string;
+}): SkillWriteData {
+  const parsed = parseSkillFromMarkdown(params.content);
+  const frontmatterResult = SkillFrontmatterSchema.safeParse(parsed.frontmatter);
+
+  if (!frontmatterResult.success) {
+    throw new Error(frontmatterResult.error.issues[0]?.message ?? 'Invalid SKILL.md frontmatter');
+  }
+
+  if (frontmatterResult.data.name !== params.skillId) {
+    throw new Error('SKILL.md name must match the skill id');
+  }
+
+  return {
+    description: frontmatterResult.data.description,
+    metadata: frontmatterResult.data.metadata ?? null,
+    content: parsed.content,
+    files: params.files,
+  };
+}
+
+export const updateSkillFileById =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    skillId: string;
+    fileId: string;
+    content: string;
+  }): Promise<SkillFileSelect | null> => {
+    const skill = await getSkillByIdWithFiles(db)({
+      scopes: params.scopes,
+      skillId: params.skillId,
+    });
+
+    if (!skill) {
+      return null;
+    }
+
+    const existingFile = skill.files.find((file) => file.id === params.fileId);
+
+    if (!existingFile) {
+      return null;
+    }
+
+    const files = skill.files.map((file) => ({
+      filePath: file.filePath,
+      content: file.id === params.fileId ? params.content : file.content,
+    }));
+
+    const data =
+      existingFile.filePath === SKILL_ENTRY_FILE_PATH
+        ? buildEntryFileUpdateData({
+            skillId: params.skillId,
+            files,
+            content: params.content,
+          })
+        : { files };
+
+    const updatedSkill = await updateSkill(db)({
+      scopes: params.scopes,
+      skillId: params.skillId,
+      data,
+    });
+
+    if (!updatedSkill) {
+      return null;
+    }
+
+    return await getSkillFileById(db)({
+      scopes: params.scopes,
+      skillId: params.skillId,
+      fileId: params.fileId,
+    });
+  };
+
+export const deleteSkillFileById =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    skillId: string;
+    fileId: string;
+  }): Promise<boolean | null> => {
+    const skill = await getSkillByIdWithFiles(db)({
+      scopes: params.scopes,
+      skillId: params.skillId,
+    });
+
+    if (!skill) {
+      return null;
+    }
+
+    const existingFile = skill.files.find((file) => file.id === params.fileId);
+
+    if (!existingFile) {
+      return null;
+    }
+
+    if (existingFile.filePath === SKILL_ENTRY_FILE_PATH) {
+      throw new Error('Use the skill delete flow to remove SKILL.md');
+    }
+
+    const updatedSkill = await updateSkill(db)({
+      scopes: params.scopes,
+      skillId: params.skillId,
+      data: {
+        files: skill.files
+          .filter((file) => file.id !== params.fileId)
+          .map((file) => ({
+            filePath: file.filePath,
+            content: file.content,
+          })),
+      },
+    });
+
+    return updatedSkill !== null;
+  };
+
 export const listSkills =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
