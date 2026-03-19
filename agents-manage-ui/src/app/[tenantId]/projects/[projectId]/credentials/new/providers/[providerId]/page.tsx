@@ -29,7 +29,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthClient } from '@/contexts/auth-client';
-import { useProjectPermissions } from '@/contexts/project';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
@@ -42,6 +41,7 @@ import {
   updateNangoIntegrationCredentials,
 } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -51,7 +51,9 @@ function ProviderSetupPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers/[providerId]'>) {
   const router = useRouter();
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { providers, loading: providersLoading } = useNangoProviders();
   const [loading, setLoading] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);

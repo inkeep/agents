@@ -14,15 +14,9 @@ export function PasswordResetEmail({ data }: PasswordResetEmailProps) {
     <EmailLayout
       previewText={`This link expires in ${expiresInMinutes} minutes.`}
       securityText="If you didn't request this, you can safely ignore this email."
+      title="Reset your password"
+      description="We received a request to reset the password for your account."
     >
-      <Section>
-        <Text className="text-email-text text-[16px] leading-[24px] mt-0">
-          Reset your Inkeep password
-        </Text>
-        <Text className="text-email-text-secondary text-[14px] leading-[20px]">
-          We received a request to reset the password for your account.
-        </Text>
-      </Section>
       <Section className="text-center my-[24px]">
         <EmailButton href={resetUrl}>Reset Password</EmailButton>
       </Section>

@@ -9,8 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { getCycleErrorMessage, wouldCreateCycle } from '@/lib/utils/cycle-detection';
 import type { A2AEdgeData } from '../../configuration/edge-types';
 
@@ -125,7 +125,9 @@ interface EdgeEditorProps {
 function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
   const { updateEdgeData, setEdges, deleteElements, getEdges } = useReactFlow();
 
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const deleteEdge = useCallback(() => {
     deleteElements({ edges: [{ id: selectedEdge.id }] });
