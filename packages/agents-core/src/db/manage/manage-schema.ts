@@ -31,6 +31,7 @@ import type {
 import type { JsonSchemaForLlmSchemaType } from '../../validation/json-schemas';
 import type {
   AgentStopWhen,
+  AudienceConfig,
   ModelSettings,
   SignatureVerificationConfig,
   SimulationAgent,
@@ -185,6 +186,7 @@ export const scheduledTriggers = pgTable(
     staggerIntervalSeconds: numeric('stagger_interval_seconds', { mode: 'number' })
       .notNull()
       .default(0),
+    audienceConfig: jsonb('audience_config').$type<AudienceConfig | null>(),
     ...timestamps,
   },
   (table) => [

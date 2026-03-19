@@ -6543,6 +6543,39 @@
       },
       "ScheduledTrigger": {
         "properties": {
+          "audienceConfig": {
+            "description": "Audience configuration for fan-out trigger execution",
+            "oneOf": [
+              {
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "userList"
+                    ],
+                    "type": "string"
+                  },
+                  "userIds": {
+                    "description": "List of user IDs to run the trigger for",
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "type",
+                  "userIds"
+                ],
+                "type": "object"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "createdAt": {
             "type": "string"
           },
@@ -6660,6 +6693,39 @@
       },
       "ScheduledTriggerCreate": {
         "properties": {
+          "audienceConfig": {
+            "description": "Audience configuration for fan-out",
+            "oneOf": [
+              {
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "userList"
+                    ],
+                    "type": "string"
+                  },
+                  "userIds": {
+                    "description": "List of user IDs to run the trigger for",
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "type",
+                  "userIds"
+                ],
+                "type": "object"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -6759,6 +6825,39 @@
       },
       "ScheduledTriggerInsertBase": {
         "properties": {
+          "audienceConfig": {
+            "description": "Audience configuration for fan-out",
+            "oneOf": [
+              {
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "userList"
+                    ],
+                    "type": "string"
+                  },
+                  "userIds": {
+                    "description": "List of user IDs to run the trigger for",
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "type",
+                  "userIds"
+                ],
+                "type": "object"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -6909,6 +7008,11 @@
             "maxLength": 256,
             "type": "string"
           },
+          "recipientUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "ref": {
             "allOf": [
               {
@@ -6958,6 +7062,7 @@
           "conversationIds",
           "attemptNumber",
           "idempotencyKey",
+          "recipientUserId",
           "createdAt"
         ],
         "type": "object"
@@ -7004,6 +7109,39 @@
       },
       "ScheduledTriggerUpdate": {
         "properties": {
+          "audienceConfig": {
+            "description": "Audience configuration for fan-out trigger execution",
+            "oneOf": [
+              {
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "userList"
+                    ],
+                    "type": "string"
+                  },
+                  "userIds": {
+                    "description": "List of user IDs to run the trigger for",
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "type",
+                  "userIds"
+                ],
+                "type": "object"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",

@@ -958,8 +958,24 @@ export const CronExpressionSchema = z
   .describe('Cron expression in standard 5-field format (minute hour day month weekday)')
   .openapi('CronExpression');
 
+export const AudienceConfigSchema = z
+  .discriminatedUnion('type', [
+    z.object({
+      type: z.literal('userList'),
+      userIds: z
+        .array(z.string().min(1))
+        .min(1)
+        .max(1000)
+        .describe('List of user IDs to run the trigger for'),
+    }),
+  ])
+  .describe('Audience configuration for fan-out trigger execution');
+
+export type AudienceConfig = z.infer<typeof AudienceConfigSchema>;
+
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
+  audienceConfig: AudienceConfigSchema.nullable().optional(),
   runAsUserId: UserIdSchema.nullable().describe(
     'User ID of the user who this trigger is running as'
   ),
@@ -985,6 +1001,8 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
       .nullable()
       .optional()
       .describe('Static payload for agent execution'),
+  audienceConfig: () =>
+    AudienceConfigSchema.nullable().optional().describe('Audience configuration for fan-out'),
   messageTemplate: () =>
     z.string().trim().min(1).describe('Message template with {{placeholder}} syntax').optional(),
   maxRetries: () => z.number().int().min(0).max(10).default(1),
@@ -1033,6 +1051,7 @@ export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.ext
   timeoutSeconds: z.number().int().min(30).max(780).optional(),
   maxConcurrentInvocations: z.number().int().min(1).max(50).optional(),
   staggerIntervalSeconds: z.number().int().min(0).max(3600).optional(),
+  audienceConfig: AudienceConfigSchema.nullable().optional(),
 }).partial();
 
 export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(
@@ -1138,6 +1157,8 @@ export const ScheduledTriggerInvocationInsertSchema = createInsertSchema(
       z.array(ResourceIdSchema).default([]).describe('Conversation IDs created during execution'),
     attemptNumber: () => z.number().int().min(1).default(1),
     idempotencyKey: () => z.string().describe('Idempotency key for deduplication'),
+    recipientUserId: () =>
+      z.string().max(256).nullable().optional().describe('User ID of the recipient for fan-out'),
   }
 );
 

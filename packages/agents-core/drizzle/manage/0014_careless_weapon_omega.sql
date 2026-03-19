@@ -1,0 +1,1 @@
+ALTER TABLE "scheduled_triggers" ADD COLUMN "audience_config" jsonb;

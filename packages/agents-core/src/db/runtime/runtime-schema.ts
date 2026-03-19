@@ -365,6 +365,7 @@ export const scheduledTriggerInvocations = pgTable(
     conversationIds: jsonb('conversation_ids').$type<string[]>().default([]),
     attemptNumber: integer('attempt_number').notNull().default(1),
     idempotencyKey: varchar('idempotency_key', { length: 256 }).notNull(),
+    recipientUserId: varchar('recipient_user_id', { length: 256 }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .notNull()
       .defaultNow(),

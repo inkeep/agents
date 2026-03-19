@@ -666,6 +666,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       createdBy: 'user-a',
       maxConcurrentInvocations: 1,
       staggerIntervalSeconds: 0,
+      audienceConfig: null,
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-01-01T00:00:00Z',
     };

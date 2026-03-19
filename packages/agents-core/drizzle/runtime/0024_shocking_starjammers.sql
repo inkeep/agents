@@ -1,0 +1,1 @@
+ALTER TABLE "scheduled_trigger_invocations" ADD COLUMN "recipient_user_id" varchar(256);

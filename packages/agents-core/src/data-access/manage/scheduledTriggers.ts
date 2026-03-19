@@ -138,7 +138,7 @@ export const upsertScheduledTrigger =
       return await updateScheduledTrigger(db)({
         scopes: params.scopes,
         scheduledTriggerId: params.data.id,
-        data: params.data,
+        data: params.data as ScheduledTriggerUpdate,
       });
     }
 

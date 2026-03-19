@@ -1,0 +1,2 @@
+ALTER TABLE "scheduled_triggers" ADD COLUMN "max_concurrent_invocations" numeric DEFAULT 1 NOT NULL;--> statement-breakpoint
+ALTER TABLE "scheduled_triggers" ADD COLUMN "stagger_interval_seconds" numeric DEFAULT 0 NOT NULL;
