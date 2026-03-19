@@ -151,7 +151,7 @@ export function ChatWidget({
             async onFeedback(feedback) {
               try {
                 await fetch(
-                  `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/v1/conversations/${conversationId}/messages/${feedback.messageId}/feedback`,
+                  `${PUBLIC_INKEEP_AGENTS_API_URL}/run/v1/conversations/${conversationId}/messages/${feedback.messageId}/feedback`,
                   {
                     method: 'POST',
                     headers: {
