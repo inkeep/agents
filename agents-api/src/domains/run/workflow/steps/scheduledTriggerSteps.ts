@@ -320,6 +320,73 @@ export async function createInvocationIdempotentStep(params: {
 }
 
 /**
+ * Step: Create fan-out invocations for a trigger with an audience.
+ * Creates one invocation per userId in the audience, each with a unique idempotency key.
+ * Returns the count of newly created invocations (skips existing via idempotency).
+ */
+export async function createFanOutInvocationsStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  scheduledFor: string;
+  payload: Record<string, unknown> | null;
+  userIds: string[];
+  idempotencyKeyPrefix: string;
+}): Promise<{ created: number; skipped: number }> {
+  'use step';
+
+  const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
+  const resolvedRef = await resolveRef(manageDbClient)(ref);
+
+  let created = 0;
+  let skipped = 0;
+
+  for (const userId of params.userIds) {
+    const idempotencyKey = `${params.idempotencyKeyPrefix}_${userId}`;
+
+    const existing = await getScheduledTriggerInvocationByIdempotencyKey(runDbClient)({
+      idempotencyKey,
+    });
+
+    if (existing) {
+      skipped++;
+      continue;
+    }
+
+    await createScheduledTriggerInvocation(runDbClient)({
+      id: generateId(),
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+      scheduledTriggerId: params.scheduledTriggerId,
+      ref: resolvedRef ?? undefined,
+      status: 'pending',
+      scheduledFor: params.scheduledFor,
+      resolvedPayload: params.payload,
+      idempotencyKey,
+      attemptNumber: 1,
+      recipientUserId: userId,
+    });
+
+    created++;
+  }
+
+  logger.info(
+    {
+      scheduledTriggerId: params.scheduledTriggerId,
+      scheduledFor: params.scheduledFor,
+      totalUsers: params.userIds.length,
+      created,
+      skipped,
+    },
+    'Fan-out invocations created'
+  );
+
+  return { created, skipped };
+}
+
+/**
  * Step: Check if invocation was cancelled before execution
  * Returns true if cancelled (should skip execution), false otherwise
  */

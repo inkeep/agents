@@ -28,6 +28,7 @@ import {
   checkInvocationCancelledStep,
   checkTriggerEnabledStep,
   computeSleepDurationStep,
+  createFanOutInvocationsStep,
   createInvocationIdempotentStep,
   executeScheduledTriggerStep,
   getNextPendingInvocationStep,
@@ -203,25 +204,53 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       return { status: 'error', reason: 'trigger missing cronExpression and runAt' };
     }
 
-    const idempotencyKey = generateIdempotencyKey(scheduledTriggerId, scheduledFor);
-    const result = await createInvocationIdempotentStep({
-      tenantId,
-      projectId,
-      agentId,
-      scheduledTriggerId,
-      scheduledFor,
-      payload: trigger.payload ?? null,
-      idempotencyKey,
-    });
-    invocation = result.invocation;
+    const idempotencyKeyPrefix = generateIdempotencyKey(scheduledTriggerId, scheduledFor);
 
-    if (isOneTime && result.alreadyExists && invocation.status !== 'pending') {
-      await logStep('One-time trigger already executed', {
+    const audienceConfig = trigger.audienceConfig as { type: 'userList'; userIds: string[] } | null;
+
+    if (audienceConfig?.type === 'userList' && audienceConfig.userIds.length > 0) {
+      await createFanOutInvocationsStep({
+        tenantId,
+        projectId,
+        agentId,
         scheduledTriggerId,
-        invocationId: invocation.id,
-        status: invocation.status,
+        scheduledFor,
+        payload: trigger.payload ?? null,
+        userIds: audienceConfig.userIds,
+        idempotencyKeyPrefix,
       });
-      return { status: 'already_executed', invocationId: invocation.id };
+
+      invocation = await getNextPendingInvocationStep({
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+      });
+
+      if (!invocation) {
+        await logStep('Fan-out invocations created but none pending', { scheduledTriggerId });
+        return { status: 'already_executed', reason: 'all fan-out invocations already processed' };
+      }
+    } else {
+      const result = await createInvocationIdempotentStep({
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        scheduledFor,
+        payload: trigger.payload ?? null,
+        idempotencyKey: idempotencyKeyPrefix,
+      });
+      invocation = result.invocation;
+
+      if (isOneTime && result.alreadyExists && invocation.status !== 'pending') {
+        await logStep('One-time trigger already executed', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          status: invocation.status,
+        });
+        return { status: 'already_executed', invocationId: invocation.id };
+      }
     }
   }
 
