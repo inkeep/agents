@@ -1,7 +1,14 @@
 import { z } from '@hono/zod-openapi';
 import { parseSkillFromMarkdown, SKILL_ENTRY_FILE_PATH } from '../../utils/skill-files';
 import { skillFiles, skills, subAgentSkills } from '../../db/manage/manage-schema';
-import { ResourceIdSchema, StringRecordSchema, PaginationSchema } from './shared';
+import {
+  ResourceIdSchema,
+  StringRecordSchema,
+  PaginationSchema,
+  createApiSchema,
+  createApiUpdateSchema,
+} from './shared';
+import { createInsertSchema, createSelectSchema } from '../drizzle-schema-helpers';
 
 const SkillIndexSchema = z.int().min(0);
 
