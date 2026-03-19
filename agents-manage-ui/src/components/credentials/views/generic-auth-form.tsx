@@ -46,7 +46,7 @@ function createFormSchema(formConfig: NonNullable<ReturnType<typeof getFormConfi
         (value: unknown) => {
           const stringValue = String(value || '');
           if (!stringValue && !field.required) return true;
-          const error = field.validate ? field.validate(stringValue) : undefined;
+          const error = field.validate(stringValue);
           return !error;
         },
         {
