@@ -49,7 +49,7 @@ const OP_MAP: Record<string, string> = {
 };
 
 function quoteValue(value: unknown): string {
-  if (typeof value === 'string') return `'${value.replace(/'/g, "\\'")}'`;
+  if (typeof value === 'string') return `'${value.replace(/'/g, "''")}'`;
   if (typeof value === 'boolean') return String(value);
   return String(value);
 }

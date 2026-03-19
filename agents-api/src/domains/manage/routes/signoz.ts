@@ -5,7 +5,7 @@ import { Hono } from 'hono';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
-import { enforceSecurityFilters } from '../../../utils/signozHelpers';
+import { buildSpanLookupPayload, enforceSecurityFilters } from '../../../utils/signozHelpers';
 
 const logger = getLogger('signoz-proxy');
 
@@ -176,7 +176,14 @@ app.post('/query', async (c) => {
   if (!signoz)
     return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
 
-  enforceSecurityFilters(payload, auth.tenantId, requestedProjectId);
+  try {
+    enforceSecurityFilters(payload, auth.tenantId, requestedProjectId);
+  } catch (error) {
+    return c.json(
+      { error: 'Bad Request', message: error instanceof Error ? error.message : 'Invalid query' },
+      400,
+    );
+  }
 
   try {
     const { data: response } = await queryWithRetry(signoz, payload);
@@ -211,6 +218,15 @@ app.post('/query-batch', async (c) => {
 
   try {
     enforceSecurityFilters(paginationPayload, auth.tenantId, requestedProjectId);
+    enforceSecurityFilters(detailPayloadTemplate, auth.tenantId, requestedProjectId);
+  } catch (error) {
+    return c.json(
+      { error: 'Bad Request', message: error instanceof Error ? error.message : 'Invalid query' },
+      400,
+    );
+  }
+
+  try {
     const { data: step1Data } = await queryWithRetry(signoz, paginationPayload);
 
     const step1Results = extractResults(step1Data);
@@ -247,13 +263,52 @@ app.post('/query-batch', async (c) => {
     for (const { spec } of detailPayloadTemplate.compositeQuery.queries) {
       spec.filter = { expression: `(${spec.filter.expression}) AND ${convIdExpr}` };
     }
-    enforceSecurityFilters(detailPayloadTemplate, auth.tenantId, requestedProjectId);
     const { data: step2Data } = await queryWithRetry(signoz, detailPayloadTemplate);
 
     return c.json({ paginationResponse: step1Data.data, detailResponse: step2Data.data });
   } catch (error) {
     const { body, status } = handleSignozError(error, 'query-batch');
     return c.json(body, status);
+  }
+});
+
+app.post('/span-lookup', async (c) => {
+  const body = await c.req.json();
+  const { conversationId, spanId } = body;
+
+  if (!conversationId || !spanId) {
+    return c.json(
+      { error: 'Bad Request', message: 'conversationId and spanId are required' },
+      400,
+    );
+  }
+
+  const auth = await authorizeProject(c, undefined);
+  if (auth instanceof Response) return auth;
+
+  const signoz = getSignozConfig();
+  if (!signoz)
+    return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
+
+  const now = Date.now();
+  const lookbackMs = 180 * 24 * 60 * 60 * 1000;
+  const payload = buildSpanLookupPayload(
+    auth.tenantId,
+    conversationId,
+    spanId,
+    now - lookbackMs,
+    now,
+  );
+
+  try {
+    const resp = await axios.post(signoz.endpoint, payload, {
+      headers: signoz.headers,
+      timeout: 15000,
+    });
+    return c.json(resp.data);
+  } catch (error) {
+    const { body: errBody, status } = handleSignozError(error, 'span-lookup');
+    return c.json(errBody, status);
   }
 });
 
