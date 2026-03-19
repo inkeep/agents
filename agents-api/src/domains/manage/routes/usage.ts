@@ -6,7 +6,6 @@ import {
   createApiError,
   queryUsageEvents,
   queryUsageSummary,
-  TenantParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -47,7 +46,6 @@ app.openapi(
     tags: ['Usage'],
     permission: inheritedManageTenantAuth(),
     request: {
-      params: TenantParamsSchema,
       query: UsageSummaryQuerySchema,
     },
     responses: {
@@ -63,10 +61,18 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId } = c.req.valid('param');
-    const { projectId, from, to, groupBy } = c.req.valid('query');
+    const tenantId = c.get('tenantId');
     const userId = c.get('userId');
     const tenantRole = c.get('tenantRole') as OrgRole;
+    const { projectId, from, to, groupBy } = c.req.valid('query');
+
+    if (!tenantId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Tenant context not found',
+        instance: c.req.path,
+      });
+    }
 
     if (projectId && userId && userId !== 'system' && !userId.startsWith('apikey:')) {
       const hasAccess = await canViewProject({ userId, tenantId, projectId, orgRole: tenantRole });
@@ -153,7 +159,6 @@ app.openapi(
     tags: ['Usage'],
     permission: inheritedManageTenantAuth(),
     request: {
-      params: TenantParamsSchema,
       query: UsageEventsQuerySchema,
     },
     responses: {
@@ -169,10 +174,18 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId } = c.req.valid('param');
-    const query = c.req.valid('query');
+    const tenantId = c.get('tenantId');
     const userId = c.get('userId');
     const tenantRole = c.get('tenantRole') as OrgRole;
+    const query = c.req.valid('query');
+
+    if (!tenantId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Tenant context not found',
+        instance: c.req.path,
+      });
+    }
 
     if (query.projectId && userId && userId !== 'system' && !userId.startsWith('apikey:')) {
       const hasAccess = await canViewProject({

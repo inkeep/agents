@@ -39041,15 +39041,6 @@
         "operationId": "list-usage-events",
         "parameters": [
           {
-            "description": "Tenant identifier",
-            "in": "path",
-            "name": "tenantId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/TenantIdPathParam"
-            }
-          },
-          {
             "in": "query",
             "name": "projectId",
             "required": false,
@@ -39205,15 +39196,6 @@
         "description": "Get aggregated usage data. Omit projectId for tenant-level summary. Supports grouping by model, agent, day, or generation_type.",
         "operationId": "get-usage-summary",
         "parameters": [
-          {
-            "description": "Tenant identifier",
-            "in": "path",
-            "name": "tenantId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/TenantIdPathParam"
-            }
-          },
           {
             "in": "query",
             "name": "projectId",

@@ -1,5 +1,3 @@
-import { makeManagementApiRequest } from './api-config';
-
 export interface UsageSummaryRow {
   groupKey: string;
   totalInputTokens: number;
@@ -45,14 +43,18 @@ export async function fetchUsageSummary(params: {
   groupBy?: UsageSummaryGroupBy;
 }): Promise<UsageSummaryRow[]> {
   const searchParams = new URLSearchParams();
+  searchParams.set('tenantId', params.tenantId);
+  searchParams.set('endpoint', 'summary');
   if (params.projectId) searchParams.set('projectId', params.projectId);
   searchParams.set('from', params.from);
   searchParams.set('to', params.to);
   if (params.groupBy) searchParams.set('groupBy', params.groupBy);
 
-  const result = await makeManagementApiRequest<{ data: UsageSummaryRow[] }>(
-    `v1/${params.tenantId}/usage/summary?${searchParams.toString()}`
-  );
+  const response = await fetch(`/api/usage?${searchParams.toString()}`);
+  if (!response.ok) {
+    throw new Error(`Usage summary request failed: ${response.status}`);
+  }
+  const result = await response.json();
   return result.data;
 }
 
@@ -68,6 +70,8 @@ export async function fetchUsageEvents(params: {
   limit?: number;
 }): Promise<{ data: UsageEvent[]; nextCursor: string | null }> {
   const searchParams = new URLSearchParams();
+  searchParams.set('tenantId', params.tenantId);
+  searchParams.set('endpoint', 'events');
   if (params.projectId) searchParams.set('projectId', params.projectId);
   searchParams.set('from', params.from);
   searchParams.set('to', params.to);
@@ -77,7 +81,9 @@ export async function fetchUsageEvents(params: {
   if (params.cursor) searchParams.set('cursor', params.cursor);
   if (params.limit) searchParams.set('limit', String(params.limit));
 
-  return makeManagementApiRequest<{ data: UsageEvent[]; nextCursor: string | null }>(
-    `v1/${params.tenantId}/usage/events?${searchParams.toString()}`
-  );
+  const response = await fetch(`/api/usage?${searchParams.toString()}`);
+  if (!response.ok) {
+    throw new Error(`Usage events request failed: ${response.status}`);
+  }
+  return response.json();
 }

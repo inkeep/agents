@@ -7,6 +7,7 @@ defaultSDK.start();
 import {
   CredentialStoreRegistry,
   createDefaultCredentialStores,
+  getPricingService,
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { getLogger } from './logger';
@@ -113,6 +114,13 @@ const app = createAgentsHono({
   auth,
   sandboxConfig,
 });
+
+// Initialize pricing service for usage tracking
+getPricingService()
+  .initialize()
+  .catch((err) => {
+    logger.warn({ error: err }, 'Failed to initialize pricing service');
+  });
 
 // Start the workflow world worker and recover orphaned workflows.
 const workflowWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';
