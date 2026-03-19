@@ -19,11 +19,10 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
-import { useProjectData } from '@/hooks/use-project-data';
+import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
 import {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
@@ -69,10 +68,12 @@ export function MetadataEditor() {
     metadata;
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
-  const { canUse } = useProjectPermissions();
+  const {
+    data: { canUse },
+  } = useProjectPermissionsQuery();
 
   // Fetch project data for inheritance indicators
-  const { project } = useProjectData();
+  const { data: project } = useProjectQuery();
 
   const { markUnsaved, setMetadata } = useAgentActions();
 

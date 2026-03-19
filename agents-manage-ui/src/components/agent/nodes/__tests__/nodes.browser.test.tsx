@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { type NodeProps, ReactFlowProvider } from '@xyflow/react';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import { ExternalAgentNode } from '@/components/agent/nodes/external-agent-node';
@@ -7,13 +7,23 @@ import { MCPNode } from '@/components/agent/nodes/mcp-node';
 import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
 import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
-import { ProjectProvider } from '@/contexts/project';
+import { createTestQueryClient, renderWithClient } from '@/lib/query/__tests__/test-utils';
+import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
 import '@/lib/utils/test-utils/styles.css';
+
+const TENANT_ID = 'tenant-1';
+const PROJECT_ID = 'project-1';
+const TOOL_ID = 'tool-1';
+const DATA = {
+  name: 'name '.repeat(10),
+  description: 'description '.repeat(10),
+};
 
 vi.mock('next/navigation', () => {
   return {
     useParams() {
-      return {};
+      return { tenantId: TENANT_ID, projectId: PROJECT_ID };
     },
   };
 });
@@ -24,13 +34,12 @@ vi.mock('@/contexts/runtime-config', () => {
     },
   };
 });
-vi.mock('@/lib/query/mcp-tools', () => {
+vi.mock('@/lib/query/mcp-tools', async () => {
+  const actual = await vi.importActual('@/lib/query/mcp-tools');
   return {
+    ...actual,
     useMcpToolsQuery() {
       return { data: [] };
-    },
-    useMcpToolStatusQuery() {
-      return {};
     },
   };
 });
@@ -51,10 +60,6 @@ vi.mock('@/lib/query/artifact-components', () => {
 
 function Nodes() {
   const divider = <hr style={{ borderColor: 'green' }} />;
-  const data = {
-    name: 'name '.repeat(10),
-    description: 'description '.repeat(10),
-  };
 
   const baseProps: NodeProps = {
     type: 'foo',
@@ -73,38 +78,34 @@ function Nodes() {
 
   return (
     <ReactFlowProvider>
-      <ExternalAgentNode {...baseProps} data={{ ...data, id: 'foo', baseUrl: 'foo' }} />
+      <ExternalAgentNode {...baseProps} data={{ ...DATA, id: 'foo', baseUrl: 'foo' }} />
       {divider}
-      <FunctionToolNode {...baseProps} data={{ ...data, functionToolId: 'foo' }} />
+      <FunctionToolNode {...baseProps} data={{ ...DATA, functionToolId: 'foo' }} />
       {divider}
-      <MCPNode
-        {...baseProps}
-        data={{ ...data, imageUrl: 'https://pilot.inkeep.com/icon.svg', toolId: 'foo' }}
-      />
+      <MCPNode {...baseProps} data={{ ...DATA, toolId: TOOL_ID }} />
       {divider}
-      <PlaceholderNode {...baseProps} data={{ ...data, type: NodeType.MCPPlaceholder }} />
+      <PlaceholderNode {...baseProps} data={{ ...DATA, type: NodeType.MCPPlaceholder }} />
       {divider}
-      <ProjectProvider
-        value={{
-          // @ts-expect-error
-          project: {
-            models: {
-              base: { model: `openai/${data.name}` },
-            },
-          },
-        }}
-      >
-        <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', isDefault: true, skills: [] }} />
-      </ProjectProvider>
+      <SubAgentNode {...baseProps} data={{ ...DATA, id: 'foo', isDefault: true, skills: [] }} />
       {divider}
-      <TeamAgentNode {...baseProps} data={{ ...data, id: 'foo' }} />
+      <TeamAgentNode {...baseProps} data={{ ...DATA, id: 'foo' }} />
     </ReactFlowProvider>
   );
 }
 
 describe('Nodes', () => {
   test('should handle long names with character limit', async () => {
-    const { container } = render(<Nodes />);
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(projectQueryKeys.detail(TENANT_ID, PROJECT_ID), {
+      models: {
+        base: { model: `openai/${DATA.name}` },
+      },
+    });
+    queryClient.setQueryData(mcpToolQueryKeys.status(TENANT_ID, PROJECT_ID, TOOL_ID), {
+      name: DATA.name,
+    });
+
+    const { container } = renderWithClient(<Nodes />, queryClient);
     await act(async () => {
       await expect(container).toMatchScreenshot();
     });

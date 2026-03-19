@@ -1,5 +1,6 @@
 'use server';
 
+import type { MethodOption } from '@inkeep/agents-core/auth/auth-types';
 import { makeManagementApiRequest } from '../api/api-config';
 import { ApiError } from '../types/errors';
 
@@ -33,6 +34,7 @@ export interface InvitationVerification {
   role: string;
   expiresAt: string;
   authMethod: string | null;
+  allowedAuthMethods?: MethodOption[];
 }
 
 interface InvitationVerificationError {

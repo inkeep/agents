@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
-function createTestQueryClient() {
+export function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
@@ -13,8 +13,7 @@ function createTestQueryClient() {
   });
 }
 
-export function renderWithClient(children: ReactNode) {
-  const queryClient = createTestQueryClient();
+export function renderWithClient(children: ReactNode, queryClient = createTestQueryClient()) {
   const view = render(<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>);
 
   return { ...view, queryClient };

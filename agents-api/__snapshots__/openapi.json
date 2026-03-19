@@ -6193,6 +6193,7 @@
               "forbidden",
               "not_found",
               "conflict",
+              "too_many_requests",
               "internal_server_error",
               "unprocessable_entity"
             ],
@@ -6869,6 +6870,16 @@
             "maxLength": 256,
             "type": "string"
           },
+          "ref": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResolvedRef"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "resolvedPayload": {
             "additionalProperties": {
               "nullable": true
@@ -6954,10 +6965,6 @@
       },
       "ScheduledTriggerUpdate": {
         "properties": {
-          "agentId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -7009,10 +7016,6 @@
             "nullable": true,
             "type": "object"
           },
-          "projectId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "retryDelaySeconds": {
             "maximum": 3600,
             "minimum": 10,
@@ -7027,10 +7030,6 @@
             "description": "One-time execution timestamp",
             "format": "date-time",
             "nullable": true,
-            "type": "string"
-          },
-          "tenantId": {
-            "maxLength": 256,
             "type": "string"
           },
           "timeoutSeconds": {
@@ -9844,6 +9843,16 @@
             "maxLength": 256,
             "type": "string"
           },
+          "ref": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResolvedRef"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "requestPayload": {
             "anyOf": [
               {
@@ -10037,10 +10046,6 @@
       },
       "TriggerUpdate": {
         "properties": {
-          "agentId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "authentication": {
             "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
@@ -10086,10 +10091,6 @@
           },
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
-          },
-          "projectId": {
-            "maxLength": 256,
-            "type": "string"
           },
           "runAsUserId": {
             "description": "User ID to run the webhook as",
@@ -10150,10 +10151,6 @@
           "signingSecretCredentialReferenceId": {
             "description": "Reference to credential containing signing secret",
             "nullable": true,
-            "type": "string"
-          },
-          "tenantId": {
-            "maxLength": 256,
             "type": "string"
           },
           "updatedAt": {

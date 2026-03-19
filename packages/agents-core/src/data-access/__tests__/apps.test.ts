@@ -10,12 +10,15 @@ import {
   clearAppDefaultsByProject,
   createApp,
   deleteApp,
+  deleteAppForProject,
   deleteAppForTenant,
   deleteAppsByProject,
   getAppById,
+  getAppByIdForProject,
   getAppByIdForTenant,
   listAppsPaginated,
   updateApp,
+  updateAppForProject,
   updateAppForTenant,
 } from '../runtime/apps';
 
@@ -155,6 +158,42 @@ describe('apps data access', () => {
     });
   });
 
+  describe('getAppByIdForProject', () => {
+    it('should return the app when tenant and project match', async () => {
+      await createApp(db)(makeWebClientApp());
+
+      const app = await getAppByIdForProject(db)({
+        scopes: { tenantId: TEST_TENANT_ID, projectId: TEST_PROJECT_ID },
+        id: 'app-web-1',
+      });
+
+      expect(app).toBeDefined();
+      expect(app?.id).toBe('app-web-1');
+    });
+
+    it('should return undefined when project does not match', async () => {
+      await createApp(db)(makeWebClientApp());
+
+      const app = await getAppByIdForProject(db)({
+        scopes: { tenantId: TEST_TENANT_ID, projectId: 'other-project' },
+        id: 'app-web-1',
+      });
+
+      expect(app).toBeUndefined();
+    });
+
+    it('should return undefined when tenant does not match', async () => {
+      await createApp(db)(makeWebClientApp());
+
+      const app = await getAppByIdForProject(db)({
+        scopes: { tenantId: 'other-tenant', projectId: TEST_PROJECT_ID },
+        id: 'app-web-1',
+      });
+
+      expect(app).toBeUndefined();
+    });
+  });
+
   describe('listAppsPaginated', () => {
     it('should list apps with pagination', async () => {
       await createApp(db)(makeWebClientApp());
@@ -274,6 +313,52 @@ describe('apps data access', () => {
     });
   });
 
+  describe('updateAppForProject', () => {
+    it('should update app fields when tenant and project match', async () => {
+      await createApp(db)(makeWebClientApp());
+
+      const updated = await updateAppForProject(db)({
+        scopes: { tenantId: TEST_TENANT_ID, projectId: TEST_PROJECT_ID },
+        id: 'app-web-1',
+        data: { name: 'Updated Widget', enabled: false },
+      });
+
+      expect(updated).toBeDefined();
+      expect(updated?.name).toBe('Updated Widget');
+      expect(updated?.enabled).toBe(false);
+    });
+
+    it('should return undefined when project does not match', async () => {
+      await createApp(db)(makeWebClientApp());
+
+      const updated = await updateAppForProject(db)({
+        scopes: { tenantId: TEST_TENANT_ID, projectId: 'other-project' },
+        id: 'app-web-1',
+        data: { name: 'Should Not Work' },
+      });
+
+      expect(updated).toBeUndefined();
+
+      const unchanged = await getAppById(db)('app-web-1');
+      expect(unchanged?.name).toBe('Docs Widget');
+    });
+
+    it('should return undefined when tenant does not match', async () => {
+      await createApp(db)(makeWebClientApp());
+
+      const updated = await updateAppForProject(db)({
+        scopes: { tenantId: 'other-tenant', projectId: TEST_PROJECT_ID },
+        id: 'app-web-1',
+        data: { name: 'Should Not Work' },
+      });
+
+      expect(updated).toBeUndefined();
+
+      const unchanged = await getAppById(db)('app-web-1');
+      expect(unchanged?.name).toBe('Docs Widget');
+    });
+  });
+
   describe('deleteAppForTenant', () => {
     it('should delete app when tenant matches', async () => {
       await createApp(db)(makeWebClientApp());
@@ -306,6 +391,59 @@ describe('apps data access', () => {
     it('should return false for nonexistent app', async () => {
       const deleted = await deleteAppForTenant(db)({
         scopes: { tenantId: TEST_TENANT_ID },
+        id: 'nonexistent',
+      });
+
+      expect(deleted).toBe(false);
+    });
+  });
+
+  describe('deleteAppForProject', () => {
+    it('should delete app when tenant and project match', async () => {
+      await createApp(db)(makeWebClientApp());
+
+      const deleted = await deleteAppForProject(db)({
+        scopes: { tenantId: TEST_TENANT_ID, projectId: TEST_PROJECT_ID },
+        id: 'app-web-1',
+      });
+
+      expect(deleted).toBe(true);
+
+      const app = await getAppById(db)('app-web-1');
+      expect(app).toBeUndefined();
+    });
+
+    it('should return false when project does not match', async () => {
+      await createApp(db)(makeWebClientApp());
+
+      const deleted = await deleteAppForProject(db)({
+        scopes: { tenantId: TEST_TENANT_ID, projectId: 'other-project' },
+        id: 'app-web-1',
+      });
+
+      expect(deleted).toBe(false);
+
+      const app = await getAppById(db)('app-web-1');
+      expect(app).toBeDefined();
+    });
+
+    it('should return false when tenant does not match', async () => {
+      await createApp(db)(makeWebClientApp());
+
+      const deleted = await deleteAppForProject(db)({
+        scopes: { tenantId: 'other-tenant', projectId: TEST_PROJECT_ID },
+        id: 'app-web-1',
+      });
+
+      expect(deleted).toBe(false);
+
+      const app = await getAppById(db)('app-web-1');
+      expect(app).toBeDefined();
+    });
+
+    it('should return false for nonexistent app', async () => {
+      const deleted = await deleteAppForProject(db)({
+        scopes: { tenantId: TEST_TENANT_ID, projectId: TEST_PROJECT_ID },
         id: 'nonexistent',
       });
 
