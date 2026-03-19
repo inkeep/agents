@@ -84,7 +84,7 @@ const EMPTY_RESPONSE = { data: { status: 'success', data: { data: { results: [] 
 
 async function queryWithRetry(
   signoz: SignozConfig,
-  payload: any,
+  payload: any
 ): Promise<{ data: any; retried: boolean }> {
   try {
     const resp = await axios.post(signoz.endpoint, payload, {
@@ -102,7 +102,7 @@ async function queryWithRetry(
 
     logger.info(
       { removedCount: queries.length - kept.length, remaining: kept.length, missingKeys: missing },
-      'Retrying SigNoz query without queries referencing missing keys',
+      'Retrying SigNoz query without queries referencing missing keys'
     );
 
     if (kept.length === 0) return { data: EMPTY_RESPONSE, retried: true };
@@ -181,7 +181,7 @@ app.post('/query', async (c) => {
   } catch (error) {
     return c.json(
       { error: 'Bad Request', message: error instanceof Error ? error.message : 'Invalid query' },
-      400,
+      400
     );
   }
 
@@ -222,7 +222,7 @@ app.post('/query-batch', async (c) => {
   } catch (error) {
     return c.json(
       { error: 'Bad Request', message: error instanceof Error ? error.message : 'Invalid query' },
-      400,
+      400
     );
   }
 
@@ -277,10 +277,7 @@ app.post('/span-lookup', async (c) => {
   const { conversationId, spanId } = body;
 
   if (!conversationId || !spanId) {
-    return c.json(
-      { error: 'Bad Request', message: 'conversationId and spanId are required' },
-      400,
-    );
+    return c.json({ error: 'Bad Request', message: 'conversationId and spanId are required' }, 400);
   }
 
   const auth = await authorizeProject(c, undefined);
@@ -297,7 +294,7 @@ app.post('/span-lookup', async (c) => {
     conversationId,
     spanId,
     now - lookbackMs,
-    now,
+    now
   );
 
   try {
