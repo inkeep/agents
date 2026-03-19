@@ -27,7 +27,6 @@
   "dependencies": {
     "@inkeep/agents-core": "workspace:^",
     "@yarnpkg/lockfile": "^1.1.0",
-    "simplematter": "^1.0.1",
     "js-yaml": "^4.1.0",
     "typescript": "^5.3.3",
     "zod": "^4.3.6"
