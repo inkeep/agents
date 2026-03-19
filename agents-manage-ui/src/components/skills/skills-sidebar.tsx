@@ -8,14 +8,6 @@ import {
   findFirstFile,
   findNodeByRoutePath,
 } from '@/components/skills/tree-utils';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-} from '@/components/ui/sidebar';
 
 interface SkillsSidebarProps {
   treeNodes: DemoTreeNode[];
@@ -39,25 +31,7 @@ export const SkillsSidebar: FC<SkillsSidebarProps> = ({
   const selectedNode = findNodeByRoutePath(treeNodes, requestedRoutePath) ?? fallbackNode;
   const selectedRoutePath = selectedNode?.routePath ?? defaultSelectedRoutePath;
 
-  return (
-    <Sidebar className="relative h-full" variant="sidebar">
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Library</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
-              {treeNodes.map((node) => (
-                <TreeNode
-                  key={node.path}
-                  node={node}
-                  selectedRoutePath={selectedRoutePath}
-                  canEdit={canEdit}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
-  );
+  return treeNodes.map((node) => (
+    <TreeNode key={node.path} node={node} selectedRoutePath={selectedRoutePath} canEdit={canEdit} />
+  ));
 };

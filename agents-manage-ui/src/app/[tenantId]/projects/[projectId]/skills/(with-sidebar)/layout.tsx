@@ -7,7 +7,16 @@ import { PageHeader } from '@/components/layout/page-header';
 import { SkillsSidebar } from '@/components/skills/skills-sidebar';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarProvider,
+} from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { fetchSkillsPageData } from '../skills-data';
@@ -48,13 +57,25 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
       <>
         <PageHeader title={metadata.title} description={description} action={action} />
         <SidebarProvider className="border border-border/70 rounded-[14px] overflow-hidden min-h-[80vh]">
-          <SkillsSidebar
-            treeNodes={treeNodes}
-            defaultSelectedRoutePath={defaultSelectedRoutePath}
-            fileRouteAliases={fileRouteAliases}
-            canEdit={permissions.canEdit}
-            className="h-auto"
-          />
+          <Sidebar collapsible="none" className="h-auto">
+            <SidebarHeader className="border-b px-4 py-3 h-(--header-height) text-sm text-muted-foreground flex justify-center">
+              Files
+            </SidebarHeader>
+            <SidebarContent className="px-2 py-2">
+              <SidebarGroup className="py-0">
+                <SidebarGroupContent>
+                  <SidebarMenu className="gap-0.5">
+                    <SkillsSidebar
+                      treeNodes={treeNodes}
+                      defaultSelectedRoutePath={defaultSelectedRoutePath}
+                      fileRouteAliases={fileRouteAliases}
+                      canEdit={permissions.canEdit}
+                    />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </SidebarContent>
+          </Sidebar>
           <SidebarInset className="min-w-0">{children}</SidebarInset>
         </SidebarProvider>
       </>
