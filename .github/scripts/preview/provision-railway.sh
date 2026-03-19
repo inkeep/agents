@@ -10,9 +10,12 @@ require_env_vars \
   RAILWAY_PROJECT_ID \
   RAILWAY_TEMPLATE_ENVIRONMENT \
   RAILWAY_OUTPUT_SERVICE \
+  RAILWAY_SPICEDB_SERVICE \
+  RAILWAY_SPICEDB_PRESHARED_KEY_KEY \
   RAILWAY_MANAGE_DB_URL_KEY \
   RAILWAY_RUN_DB_URL_KEY \
   RAILWAY_SPICEDB_ENDPOINT_KEY \
+  SPICEDB_PRESHARED_KEY \
   PR_NUMBER \
   GITHUB_OUTPUT \
   GITHUB_STEP_SUMMARY
@@ -63,6 +66,31 @@ json_get_var() {
   local key="$2"
 
   jq -r --arg key "${key}" '.[$key] // empty' <<< "${json}"
+}
+
+validate_spicedb_preshared_key() {
+  local spicedb_service_env_json=""
+  local current_value=""
+
+  spicedb_service_env_json="$(
+    railway variable list \
+      --service "${RAILWAY_SPICEDB_SERVICE}" \
+      --environment "${RAILWAY_ENV_NAME}" \
+      --json
+  )"
+  current_value="$(json_get_var "${spicedb_service_env_json}" "${RAILWAY_SPICEDB_PRESHARED_KEY_KEY}")"
+
+  if [ -z "${current_value}" ]; then
+    echo "Missing ${RAILWAY_SPICEDB_PRESHARED_KEY_KEY} on Railway service ${RAILWAY_SPICEDB_SERVICE} in env ${RAILWAY_ENV_NAME}." >&2
+    echo "Set the preview SpiceDB key on ${RAILWAY_TEMPLATE_ENVIRONMENT}/${RAILWAY_SPICEDB_SERVICE} before rerunning preview provisioning." >&2
+    exit 1
+  fi
+
+  if [ "${current_value}" != "${SPICEDB_PRESHARED_KEY}" ]; then
+    echo "Railway service ${RAILWAY_SPICEDB_SERVICE} in env ${RAILWAY_ENV_NAME} is not using PREVIEW_SPICEDB_PRESHARED_KEY." >&2
+    echo "Update ${RAILWAY_TEMPLATE_ENVIRONMENT}/${RAILWAY_SPICEDB_SERVICE} ${RAILWAY_SPICEDB_PRESHARED_KEY_KEY} to match the GitHub secret and recreate the PR environment." >&2
+    exit 1
+  fi
 }
 
 refresh_service_env_dump() {
@@ -152,7 +180,9 @@ MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
 RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
 SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
 
-mask_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT
+mask_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT SPICEDB_PRESHARED_KEY
+
+validate_spicedb_preshared_key
 
 echo "manage_db_url=${MANAGE_DB_URL}" >> "${GITHUB_OUTPUT}"
 echo "run_db_url=${RUN_DB_URL}" >> "${GITHUB_OUTPUT}"
@@ -166,4 +196,5 @@ echo "spicedb_endpoint=${SPICEDB_ENDPOINT}" >> "${GITHUB_OUTPUT}"
   echo "- Resolved manage DB URL: ✅"
   echo "- Resolved run DB URL: ✅"
   echo "- Resolved SpiceDB endpoint: ✅"
+  echo "- Preview SpiceDB auth key matches GitHub secret: ✅"
 } >> "${GITHUB_STEP_SUMMARY}"

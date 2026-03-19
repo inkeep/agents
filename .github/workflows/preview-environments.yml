@@ -8,17 +8,19 @@ name: Preview Environments
 # - VERCEL_API_PROJECT_ID
 # - VERCEL_MANAGE_UI_PROJECT_ID
 #
-# Optional preview auth bootstrap configuration:
-# - PREVIEW_MANAGE_UI_USERNAME=<admin email> (repo variable, default: admin@example.com)
-# - PREVIEW_MANAGE_UI_PASSWORD=<admin password> (secret, default: adminADMIN!@12)
-# - PREVIEW_BOOTSTRAP_BETTER_AUTH_SECRET=<bootstrap-only Better Auth secret> (secret, default: test-secret-key-for-ci)
-# - PREVIEW_SPICEDB_PRESHARED_KEY=<SpiceDB key> (secret, default: dev-secret-key)
+# Required preview auth configuration:
+# - PREVIEW_MANAGE_UI_USERNAME=<admin email> (repo variable)
+# - PREVIEW_MANAGE_UI_PASSWORD=<admin password> (secret)
+# - PREVIEW_BETTER_AUTH_SECRET=<preview Better Auth secret> (secret)
+# - PREVIEW_SPICEDB_PRESHARED_KEY=<preview SpiceDB key> (secret)
 #
 # Repository variables:
 # - PREVIEW_ENVIRONMENTS_ENABLED=true|false
 # - RAILWAY_PROJECT_ID=<railway project id>
 # - RAILWAY_TEMPLATE_ENVIRONMENT=<base environment to copy, e.g. staging>
 # - RAILWAY_OUTPUT_SERVICE=<service name/id that exposes resolved runtime vars, default: agents-api>
+# - RAILWAY_SPICEDB_SERVICE=<service name/id for preview SpiceDB, default: spicedb>
+# - RAILWAY_SPICEDB_PRESHARED_KEY_KEY=<service var key for SpiceDB auth, default: SPICEDB_GRPC_PRESHARED_KEY>
 # - RAILWAY_MANAGE_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_MANAGE_DATABASE_URL>
 # - RAILWAY_RUN_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_RUN_DATABASE_URL>
 # - RAILWAY_SPICEDB_ENDPOINT_KEY=<runtime var key, default: SPICEDB_ENDPOINT>
@@ -187,12 +189,15 @@ jobs:
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+          RAILWAY_SPICEDB_SERVICE: ${{ vars.RAILWAY_SPICEDB_SERVICE || 'spicedb' }}
+          RAILWAY_SPICEDB_PRESHARED_KEY_KEY: ${{ vars.RAILWAY_SPICEDB_PRESHARED_KEY_KEY || 'SPICEDB_GRPC_PRESHARED_KEY' }}
           RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
           RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
           RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
           RAILWAY_MANAGE_DB_URL_TEMPLATE: ${{ vars.RAILWAY_MANAGE_DB_URL_TEMPLATE || '' }}
           RAILWAY_RUN_DB_URL_TEMPLATE: ${{ vars.RAILWAY_RUN_DB_URL_TEMPLATE || '' }}
           RAILWAY_SPICEDB_ENDPOINT_TEMPLATE: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_TEMPLATE || '' }}
+          SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
         run: bash .github/scripts/preview/provision-railway.sh
 
@@ -217,11 +222,11 @@ jobs:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
           SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
-          SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY || 'dev-secret-key' }}
+          SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           TENANT_ID: default
-          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME || 'admin@example.com' }}
-          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD || 'adminADMIN!@12' }}
-          BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BOOTSTRAP_BETTER_AUTH_SECRET || 'test-secret-key-for-ci' }}
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME }}
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD }}
+          BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
         run: bash .github/scripts/preview/bootstrap-preview-auth.sh
 
   configure-vercel-preview:
@@ -258,6 +263,8 @@ jobs:
           MANAGE_DB_URL: ${{ needs.provision-tier1.outputs.manage_db_url }}
           RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
           SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
+          SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           CI: true
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
@@ -301,8 +308,8 @@ jobs:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
           TENANT_ID: default
-          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME || 'admin@example.com' }}
-          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD || 'adminADMIN!@12' }}
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME }}
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD }}
         run: bash .github/scripts/preview/smoke-preview.sh
 
       - name: Capture preview failure diagnostics
@@ -311,8 +318,8 @@ jobs:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
           TENANT_ID: default
-          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME || 'admin@example.com' }}
-          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD || 'adminADMIN!@12' }}
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME }}
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD }}
         run: bash .github/scripts/preview/capture-preview-failure-diagnostics.sh
 
       - name: Fetch Vercel runtime logs for API deployment
