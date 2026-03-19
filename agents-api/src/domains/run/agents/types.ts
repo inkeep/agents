@@ -1,10 +1,10 @@
 import type {
   Artifact,
   ArtifactComponentApiInsert,
+  AssembleResult,
   BreakdownComponentDef,
   DataComponentApiInsert,
 } from '@inkeep/agents-core';
-import type { AssembleResult } from '../utils/token-estimator';
 
 // Re-export for convenience
 export type { BreakdownComponentDef };

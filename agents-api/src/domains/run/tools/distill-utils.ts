@@ -1,11 +1,10 @@
 import type { ModelSettings } from '@inkeep/agents-core';
-import { ModelFactory } from '@inkeep/agents-core';
+import { estimateTokens, ModelFactory } from '@inkeep/agents-core';
 import { generateText, Output } from 'ai';
 import type { z } from 'zod';
 import { getLogger } from '../../../logger';
 import { LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS } from '../constants/execution-limits';
 import { getModelContextWindow } from '../utils/model-context-utils';
-import { estimateTokens } from '../utils/token-estimator';
 
 const logger = getLogger('distill-utils');
 

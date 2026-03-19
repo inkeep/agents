@@ -1,13 +1,13 @@
 import type { FilePart } from '@inkeep/agents-core';
 import {
-  createDefaultConversationHistoryConfig,
-  getConversationHistoryWithCompression,
-} from '../../data/conversations';
-import {
   type ContextBreakdown,
   calculateBreakdownTotal,
   estimateTokens,
-} from '../../utils/token-estimator';
+} from '@inkeep/agents-core';
+import {
+  createDefaultConversationHistoryConfig,
+  getConversationHistoryWithCompression,
+} from '../../data/conversations';
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 

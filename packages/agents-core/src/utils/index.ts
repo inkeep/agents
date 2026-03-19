@@ -27,6 +27,7 @@ export * from './sse-parser';
 export * from './temp-jwt';
 export * from './template-interpolation';
 export * from './third-party-mcp-servers';
+export * from './token-estimator';
 export * from './tracer-factory';
 export * from './trigger-auth';
 export * from './usage-tracker';

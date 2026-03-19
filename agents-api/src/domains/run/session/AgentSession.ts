@@ -12,6 +12,7 @@ import type {
 import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+  estimateTokens,
   getLedgerArtifacts,
   ModelFactory,
   recordUsage,
@@ -36,7 +37,6 @@ import { getFormattedConversationHistory, getScopedHistory } from '../data/conve
 import { getStreamHelper } from '../stream/stream-registry';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getModelContextWindow } from '../utils/model-context-utils';
-import { estimateTokens } from '../utils/token-estimator';
 import { setSpanWithError, tracer } from '../utils/tracer';
 
 const logger = getLogger('AgentSession');
