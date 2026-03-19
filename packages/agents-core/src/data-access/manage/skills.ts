@@ -233,66 +233,67 @@ export const createSkill =
     });
   };
 
-export const upsertSkill = (db: AgentsManageDatabaseClient) => async (data: SkillInsert) => {
-  return await db.transaction(async (tx) => {
-    const now = new Date().toISOString();
-    const baseData: Omit<SkillSelect, 'createdAt' | 'updatedAt'> = {
-      tenantId: data.tenantId,
-      projectId: data.projectId,
-      id: data.name,
-      name: data.name,
-      description: data.description,
-      content: data.content,
-      metadata: data.metadata ?? null,
-    };
+export const upsertSkill =
+  (db: AgentsManageDatabaseClient) => async (data: SkillApiInsert & WithTenantIdProjectId) => {
+    return await db.transaction(async (tx) => {
+      const now = new Date().toISOString();
+      const baseData: Omit<SkillSelect, 'createdAt' | 'updatedAt'> = {
+        tenantId: data.tenantId,
+        projectId: data.projectId,
+        id: data.name,
+        name: data.name,
+        description: data.description,
+        content: data.content,
+        metadata: data.metadata ?? null,
+      };
 
-    const scopes = { tenantId: baseData.tenantId, projectId: baseData.projectId };
-    const existing = await tx.query.skills.findFirst({
-      where: and(projectScopedWhere(skills, scopes), eq(skills.id, baseData.id)),
-    });
+      const scopes = { tenantId: baseData.tenantId, projectId: baseData.projectId };
+      const existing = await tx.query.skills.findFirst({
+        where: and(projectScopedWhere(skills, scopes), eq(skills.id, baseData.id)),
+      });
 
-    const files = data.files;
+      const files = data.files;
 
-    if (existing) {
-      const [result] = await tx
-        .update(skills)
-        .set({
-          name: baseData.name,
-          description: baseData.description,
-          content: baseData.content,
-          metadata: baseData.metadata,
-          updatedAt: now,
-        })
-        .where(and(projectScopedWhere(skills, scopes), eq(skills.id, baseData.id)))
-        .returning();
+      if (existing) {
+        const [result] = await tx
+          .update(skills)
+          .set({
+            name: baseData.name,
+            description: baseData.description,
+            content: baseData.content,
+            metadata: baseData.metadata,
+            updatedAt: now,
+          })
+          .where(and(projectScopedWhere(skills, scopes), eq(skills.id, baseData.id)))
+          .returning();
 
+        await replaceSkillFiles(tx, {
+          scopes: { tenantId: baseData.tenantId, projectId: baseData.projectId },
+          skillId: baseData.id,
+          files,
+        });
+
+        logger.info({ skillId: baseData.id }, 'Updated skill');
+        return result;
+      }
+
+      const insertData: SkillSelect = {
+        ...baseData,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const [result] = await tx.insert(skills).values(insertData).returning();
       await replaceSkillFiles(tx, {
         scopes: { tenantId: baseData.tenantId, projectId: baseData.projectId },
         skillId: baseData.id,
         files,
       });
 
-      logger.info({ skillId: baseData.id }, 'Updated skill');
+      logger.info({ skillId: baseData.id }, 'Created skill');
       return result;
-    }
-
-    const insertData: SkillSelect = {
-      ...baseData,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const [result] = await tx.insert(skills).values(insertData).returning();
-    await replaceSkillFiles(tx, {
-      scopes: { tenantId: baseData.tenantId, projectId: baseData.projectId },
-      skillId: baseData.id,
-      files,
     });
-
-    logger.info({ skillId: baseData.id }, 'Created skill');
-    return result;
-  });
-};
+  };
 
 export const updateSkill =
   (db: AgentsManageDatabaseClient) =>
