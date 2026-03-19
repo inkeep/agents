@@ -25,7 +25,7 @@ Delete a complete project and cascade to all related entities (Agents, Sub Agent
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectsDeleteFullProject(
+    const [result] = await projectsDeleteFullProject(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Delete a complete project and cascade to all related entities (Agents, Sub Agent
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

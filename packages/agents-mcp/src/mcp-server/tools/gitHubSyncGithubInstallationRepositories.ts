@@ -27,7 +27,7 @@ Manually refreshes the repository list for a GitHub App installation by fetching
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await gitHubSyncGithubInstallationRepositories(
+    const [result] = await gitHubSyncGithubInstallationRepositories(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Manually refreshes the repository list for a GitHub App installation by fetching
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

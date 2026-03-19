@@ -25,7 +25,7 @@ Create a new API key for an agent. Returns the full key (shown only once).`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await apiKeysCreateAPIKey(
+    const [result] = await apiKeysCreateAPIKey(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Create a new API key for an agent. Returns the full key (shown only once).`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

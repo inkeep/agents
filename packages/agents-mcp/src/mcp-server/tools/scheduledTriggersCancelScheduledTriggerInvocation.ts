@@ -24,12 +24,11 @@ export const tool$scheduledTriggersCancelScheduledTriggerInvocation:
     },
     args,
     tool: async (client, args, ctx) => {
-      const [result, apiCall] =
-        await scheduledTriggersCancelScheduledTriggerInvocation(
-          client,
-          args.request,
-          { fetchOptions: { signal: ctx.signal } },
-        ).$inspect();
+      const [result] = await scheduledTriggersCancelScheduledTriggerInvocation(
+        client,
+        args.request,
+        { fetchOptions: { signal: ctx.signal } },
+      ).$inspect();
 
       if (!result.ok) {
         return {
@@ -38,8 +37,6 @@ export const tool$scheduledTriggersCancelScheduledTriggerInvocation:
         };
       }
 
-      const value = result.value;
-
-      return formatResult(value, apiCall);
+      return formatResult(result.value);
     },
   };

@@ -27,7 +27,7 @@ Enable or disable join from workspace for the workspace`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackUpdateJoinFromWorkspace(
+    const [result] = await workAppsSlackUpdateJoinFromWorkspace(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Enable or disable join from workspace for the workspace`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

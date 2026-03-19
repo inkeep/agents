@@ -5,7 +5,6 @@
 
 import { InkeepAgentsCore } from "../core.js";
 import { encodeJSON, encodeSimple } from "../lib/encodings.js";
-import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -22,8 +21,6 @@ import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import {
   PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdRequest,
   PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdRequest$zodSchema,
-  PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse,
-  PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse$zodSchema,
 } from "../models/postruntenantstenantidprojectsprojectidagentsagentidtriggerstriggeridop.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
@@ -41,7 +38,7 @@ export function webhooksPostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTrig
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse,
+    Response,
     | APIError
     | SDKValidationError
     | UnexpectedClientError
@@ -66,7 +63,7 @@ async function $do(
 ): Promise<
   [
     Result<
-      PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse,
+      Response,
       | APIError
       | SDKValidationError
       | UnexpectedClientError
@@ -164,57 +161,9 @@ async function $do(
   if (!doResult.ok) {
     return [doResult, { status: "request-error", request: req$ }];
   }
-  const response = doResult.value;
-  const responseFields$ = {
-    HttpMeta: { Response: response, Request: req$ },
-  };
-
-  const [result$] = await M.match<
-    PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse,
-    | APIError
-    | SDKValidationError
-    | UnexpectedClientError
-    | InvalidRequestError
-    | RequestAbortedError
-    | RequestTimeoutError
-    | ConnectionError
-  >(
-    M.json(
-      202,
-      PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse$zodSchema,
-      { key: "twoHundredAndTwoApplicationJsonObject" },
-    ),
-    M.json(
-      400,
-      PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse$zodSchema,
-      { key: "fourHundredApplicationJsonObject" },
-    ),
-    M.json(
-      401,
-      PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse$zodSchema,
-      { key: "fourHundredAndOneApplicationJsonObject" },
-    ),
-    M.json(
-      403,
-      PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse$zodSchema,
-      { key: "fourHundredAndThreeApplicationJsonObject" },
-    ),
-    M.json(
-      404,
-      PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse$zodSchema,
-      { key: "fourHundredAndFourApplicationJsonObject" },
-    ),
-    M.json(
-      422,
-      PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse$zodSchema,
-      { key: "fourHundredAndTwentyTwoApplicationJsonObject" },
-    ),
-    M.json(
-      500,
-      PostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerIdResponse$zodSchema,
-      { key: "fiveHundredApplicationJsonObject" },
-    ),
-  )(response, req$, { extraFields: responseFields$ });
-
-  return [result$, { status: "complete", request: req$, response }];
+  return [doResult, {
+    status: "complete",
+    "request": req$,
+    response: doResult.value,
+  }];
 }

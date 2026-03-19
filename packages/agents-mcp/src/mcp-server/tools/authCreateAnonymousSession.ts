@@ -25,7 +25,7 @@ Issue an anonymous session JWT for a web_client app. The app must have anonymous
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await authCreateAnonymousSession(
+    const [result] = await authCreateAnonymousSession(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Issue an anonymous session JWT for a web_client app. The app must have anonymous
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

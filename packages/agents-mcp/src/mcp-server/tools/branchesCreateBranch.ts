@@ -25,7 +25,7 @@ Create a new branch`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await branchesCreateBranch(
+    const [result] = await branchesCreateBranch(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Create a new branch`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

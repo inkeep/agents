@@ -25,7 +25,7 @@ List Slack channels where the bot is a member`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackListChannels(
+    const [result] = await workAppsSlackListChannels(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ List Slack channels where the bot is a member`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -29,7 +29,7 @@ Webhook endpoint for third-party services to invoke an agent via a configured tr
     },
     args,
     tool: async (client, args, ctx) => {
-      const [result, apiCall] =
+      const [result] =
         await webhooksPostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerId(
           client,
           args.request,
@@ -43,8 +43,6 @@ Webhook endpoint for third-party services to invoke an agent via a configured tr
         };
       }
 
-      const value = result.value;
-
-      return formatResult(value, apiCall);
+      return formatResult(result.value);
     },
   };

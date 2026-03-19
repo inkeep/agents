@@ -25,7 +25,7 @@ export const tool$scheduledTriggersUpdateScheduledTrigger: ToolDefinition<
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await scheduledTriggersUpdateScheduledTrigger(
+    const [result] = await scheduledTriggersUpdateScheduledTrigger(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ export const tool$scheduledTriggersUpdateScheduledTrigger: ToolDefinition<
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

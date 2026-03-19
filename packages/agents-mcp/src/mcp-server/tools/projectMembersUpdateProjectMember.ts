@@ -27,7 +27,7 @@ Update a project member's role. Include previousRole to specify which role to re
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectMembersUpdateProjectMember(
+    const [result] = await projectMembersUpdateProjectMember(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Update a project member's role. Include previousRole to specify which role to re
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

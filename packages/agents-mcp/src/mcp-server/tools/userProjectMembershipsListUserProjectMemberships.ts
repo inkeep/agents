@@ -26,12 +26,11 @@ List all projects a user has explicit access to and their role in each.`,
     },
     args,
     tool: async (client, args, ctx) => {
-      const [result, apiCall] =
-        await userProjectMembershipsListUserProjectMemberships(
-          client,
-          args.request,
-          { fetchOptions: { signal: ctx.signal } },
-        ).$inspect();
+      const [result] = await userProjectMembershipsListUserProjectMemberships(
+        client,
+        args.request,
+        { fetchOptions: { signal: ctx.signal } },
+      ).$inspect();
 
       if (!result.ok) {
         return {
@@ -40,8 +39,6 @@ List all projects a user has explicit access to and their role in each.`,
         };
       }
 
-      const value = result.value;
-
-      return formatResult(value, apiCall);
+      return formatResult(result.value);
     },
   };

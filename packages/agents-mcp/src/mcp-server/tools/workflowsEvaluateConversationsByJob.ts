@@ -27,7 +27,7 @@ Filters conversations based on job filters, creates an evaluation run, and enque
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workflowsEvaluateConversationsByJob(
+    const [result] = await workflowsEvaluateConversationsByJob(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Filters conversations based on job filters, creates an evaluation run, and enque
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

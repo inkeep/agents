@@ -26,7 +26,7 @@ List conversations in a project. Supports optional userId filter for viewing a s
     },
     args,
     tool: async (client, args, ctx) => {
-      const [result, apiCall] = await conversationsListConversations(
+      const [result] = await conversationsListConversations(
         client,
         args.request,
         { fetchOptions: { signal: ctx.signal } },
@@ -39,8 +39,6 @@ List conversations in a project. Supports optional userId filter for viewing a s
         };
       }
 
-      const value = result.value;
-
-      return formatResult(value, apiCall);
+      return formatResult(result.value);
     },
   };

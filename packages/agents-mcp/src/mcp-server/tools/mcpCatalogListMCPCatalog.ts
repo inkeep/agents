@@ -25,7 +25,7 @@ Get a list of available prebuilt MCP servers. If COMPOSIO_API_KEY is configured,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await mcpCatalogListMCPCatalog(
+    const [result] = await mcpCatalogListMCPCatalog(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Get a list of available prebuilt MCP servers. If COMPOSIO_API_KEY is configured,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

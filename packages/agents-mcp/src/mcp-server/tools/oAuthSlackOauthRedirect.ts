@@ -25,7 +25,7 @@ Handles the OAuth callback from Slack after workspace installation`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await oAuthSlackOauthRedirect(
+    const [result] = await oAuthSlackOauthRedirect(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,6 +38,6 @@ Handles the OAuth callback from Slack after workspace installation`,
       };
     }
 
-    return formatResult(void 0, apiCall);
+    return formatResult(result.value);
   },
 };

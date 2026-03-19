@@ -25,7 +25,7 @@ List all branches within a project that contain the agent`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await branchesListBranchesForAgent(
+    const [result] = await branchesListBranchesForAgent(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ List all branches within a project that contain the agent`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

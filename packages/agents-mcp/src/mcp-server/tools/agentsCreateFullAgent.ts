@@ -25,7 +25,7 @@ Create a complete agent with all agents, tools, and relationships from JSON defi
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await agentsCreateFullAgent(
+    const [result] = await agentsCreateFullAgent(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Create a complete agent with all agents, tools, and relationships from JSON defi
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

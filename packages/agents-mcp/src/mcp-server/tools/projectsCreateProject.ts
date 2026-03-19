@@ -25,7 +25,7 @@ Create a new project. When authorization is enabled, the creator is automaticall
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectsCreateProject(
+    const [result] = await projectsCreateProject(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Create a new project. When authorization is enabled, the creator is automaticall
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -25,7 +25,7 @@ Delete an app credential permanently`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await appsDeleteApp(
+    const [result] = await appsDeleteApp(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -38,8 +38,6 @@ Delete an app credential permanently`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

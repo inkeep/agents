@@ -27,7 +27,7 @@ Get the current user's permissions for a project. Returns which actions the user
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await projectPermissionsGetProjectPermissions(
+    const [result] = await projectPermissionsGetProjectPermissions(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Get the current user's permissions for a project. Returns which actions the user
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

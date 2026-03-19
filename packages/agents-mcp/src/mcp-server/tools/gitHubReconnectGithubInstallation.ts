@@ -27,7 +27,7 @@ Reconnects a previously disconnected GitHub App installation by setting its stat
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await gitHubReconnectGithubInstallation(
+    const [result] = await gitHubReconnectGithubInstallation(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Reconnects a previously disconnected GitHub App installation by setting its stat
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

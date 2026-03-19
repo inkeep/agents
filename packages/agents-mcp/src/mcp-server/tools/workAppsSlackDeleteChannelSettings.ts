@@ -27,7 +27,7 @@ Remove the default agent configuration for a channel`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackDeleteChannelSettings(
+    const [result] = await workAppsSlackDeleteChannelSettings(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Remove the default agent configuration for a channel`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

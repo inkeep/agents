@@ -26,7 +26,7 @@ Returns the current GitHub repository access configuration for a project. If mod
     },
     args,
     tool: async (client, args, ctx) => {
-      const [result, apiCall] = await projectsGetProjectGithubAccess(
+      const [result] = await projectsGetProjectGithubAccess(
         client,
         args.request,
         { fetchOptions: { signal: ctx.signal } },
@@ -39,8 +39,6 @@ Returns the current GitHub repository access configuration for a project. If mod
         };
       }
 
-      const value = result.value;
-
-      return formatResult(value, apiCall);
+      return formatResult(result.value);
     },
   };

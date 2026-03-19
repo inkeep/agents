@@ -19,7 +19,7 @@ List all installed Slack workspaces for the tenant`,
     "readOnlyHint": true,
   },
   tool: async (client, ctx) => {
-    const [result, apiCall] = await workAppsSlackListWorkspaces(
+    const [result] = await workAppsSlackListWorkspaces(
       client,
       { fetchOptions: { signal: ctx.signal } },
     ).$inspect();
@@ -31,8 +31,6 @@ List all installed Slack workspaces for the tenant`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

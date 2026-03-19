@@ -27,7 +27,7 @@ Disconnects a GitHub App installation from the tenant. This soft deletes the ins
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await gitHubDisconnectGithubInstallation(
+    const [result] = await gitHubDisconnectGithubInstallation(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Disconnects a GitHub App installation from the tenant. This soft deletes the ins
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

@@ -27,7 +27,7 @@ Remove agent configuration from multiple channels at once`,
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await workAppsSlackBulkDeleteChannelAgents(
+    const [result] = await workAppsSlackBulkDeleteChannelAgents(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Remove agent configuration from multiple channels at once`,
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };

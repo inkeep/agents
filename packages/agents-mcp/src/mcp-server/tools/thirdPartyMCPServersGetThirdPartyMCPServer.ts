@@ -27,7 +27,7 @@ Fetch details for a specific third-party MCP server (e.g., Composio) including a
   },
   args,
   tool: async (client, args, ctx) => {
-    const [result, apiCall] = await thirdPartyMCPServersGetThirdPartyMCPServer(
+    const [result] = await thirdPartyMCPServersGetThirdPartyMCPServer(
       client,
       args.request,
       { fetchOptions: { signal: ctx.signal } },
@@ -40,8 +40,6 @@ Fetch details for a specific third-party MCP server (e.g., Composio) including a
       };
     }
 
-    const value = result.value;
-
-    return formatResult(value, apiCall);
+    return formatResult(result.value);
   },
 };
