@@ -14,7 +14,7 @@ const args = {
 export const tool$subAgentsGetSubAgentExternalAgentRelationById: ToolDefinition<
   typeof args
 > = {
-  name: "sub-agents-get-sub-agent-external-agent-relation-by-id",
+  name: "sub-agents-get-sub-agent-external-agent-relation-8f1",
   description: `Get Sub Agent External Agent Relation`,
   annotations: {
     "title": "",

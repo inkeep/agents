@@ -13,7 +13,7 @@ import {
   createRegisterResourceTemplate,
 } from "./resources.js";
 import { MCPScope } from "./scopes.js";
-import { createRegisterTool } from "./tools.js";
+import { createRegisterTool, registerDynamicTools } from "./tools.js";
 import { tool$agentsAssociateArtifactComponentWithAgent } from "./tools/agentsAssociateArtifactComponentWithAgent.js";
 import { tool$agentsAssociateDataComponentWithAgent } from "./tools/agentsAssociateDataComponentWithAgent.js";
 import { tool$agentsCheckArtifactComponentAgentAssociation } from "./tools/agentsCheckArtifactComponentAgentAssociation.js";
@@ -276,6 +276,7 @@ import { tool$workflowsRunDatasetItems } from "./tools/workflowsRunDatasetItems.
 export function createMCPServer(deps: {
   logger: ConsoleLogger;
   allowedTools?: string[] | undefined;
+  dynamic?: boolean | undefined;
   scopes?: MCPScope[] | undefined;
   getSDK?: () => InkeepAgentsCore;
   serverURL?: string | undefined;
@@ -304,12 +305,13 @@ export function createMCPServer(deps: {
   const scopes = new Set(deps.scopes);
 
   const allowedTools = deps.allowedTools && new Set(deps.allowedTools);
-  const [tool, tools] = createRegisterTool(
+  const [tool, tools, toolMap] = createRegisterTool(
     deps.logger,
     server,
     getClient,
     scopes,
     allowedTools,
+    deps.dynamic,
   );
   const resource = createRegisterResource(
     deps.logger,
@@ -339,8 +341,8 @@ export function createMCPServer(deps: {
   tool(tool$projectsListProjects);
   tool(tool$projectsCreateProject);
   tool(tool$projectsGetProjectById);
-  tool(tool$projectsUpdateProject);
   tool(tool$projectsDeleteProject);
+  tool(tool$projectsUpdateProject);
   tool(tool$projectsGetProjectGithubAccess);
   tool(tool$projectsSetProjectGithubAccess);
   tool(tool$projectsCreateFullProject);
@@ -356,8 +358,8 @@ export function createMCPServer(deps: {
   tool(tool$refsResolveRef);
   tool(tool$projectMembersListProjectMembers);
   tool(tool$projectMembersAddProjectMember);
-  tool(tool$projectMembersUpdateProjectMember);
   tool(tool$projectMembersRemoveProjectMember);
+  tool(tool$projectMembersUpdateProjectMember);
   tool(tool$projectPermissionsGetProjectPermissions);
   tool(tool$subAgentsListSubagents);
   tool(tool$subAgentsCreateSubagent);
@@ -487,8 +489,8 @@ export function createMCPServer(deps: {
   tool(tool$triggersListTriggers);
   tool(tool$triggersCreateTrigger);
   tool(tool$triggersGetTriggerById);
-  tool(tool$triggersUpdateTrigger);
   tool(tool$triggersDeleteTrigger);
+  tool(tool$triggersUpdateTrigger);
   tool(tool$triggersListTriggerInvocations);
   tool(tool$triggersGetTriggerInvocationById);
   tool(tool$triggersRerunTrigger);
@@ -496,8 +498,8 @@ export function createMCPServer(deps: {
   tool(tool$scheduledTriggersCreateScheduledTrigger);
   tool(tool$scheduledTriggersListUpcomingScheduledRuns);
   tool(tool$scheduledTriggersGetScheduledTriggerById);
-  tool(tool$scheduledTriggersUpdateScheduledTrigger);
   tool(tool$scheduledTriggersDeleteScheduledTrigger);
+  tool(tool$scheduledTriggersUpdateScheduledTrigger);
   tool(tool$scheduledTriggersListScheduledTriggerInvocations);
   tool(tool$scheduledTriggersGetScheduledTriggerInvocationById);
   tool(tool$scheduledTriggersCancelScheduledTriggerInvocation);
@@ -505,8 +507,8 @@ export function createMCPServer(deps: {
   tool(tool$scheduledTriggersRunScheduledTriggerNow);
   tool(tool$evaluationsListDatasetItems);
   tool(tool$evaluationsGetDatasetItem);
-  tool(tool$evaluationsUpdateDatasetItem);
   tool(tool$evaluationsDeleteDatasetItem);
+  tool(tool$evaluationsUpdateDatasetItem);
   tool(tool$evaluationsCreateDatasetItem);
   tool(tool$evaluationsCreateDatasetItemsBulk);
   tool(tool$evaluationsListEvaluationJobConfigs);
@@ -520,31 +522,31 @@ export function createMCPServer(deps: {
   tool(tool$evaluationsListEvaluationRunConfigs);
   tool(tool$evaluationsCreateEvaluationRunConfig);
   tool(tool$evaluationsGetEvaluationRunConfig);
-  tool(tool$evaluationsUpdateEvaluationRunConfig);
   tool(tool$evaluationsDeleteEvaluationRunConfig);
+  tool(tool$evaluationsUpdateEvaluationRunConfig);
   tool(tool$evaluationsGetEvaluationRunConfigResults);
   tool(tool$evaluationsListEvaluationSuiteConfigs);
   tool(tool$evaluationsCreateEvaluationSuiteConfig);
   tool(tool$evaluationsGetEvaluationSuiteConfig);
-  tool(tool$evaluationsUpdateEvaluationSuiteConfig);
   tool(tool$evaluationsDeleteEvaluationSuiteConfig);
+  tool(tool$evaluationsUpdateEvaluationSuiteConfig);
   tool(tool$evaluationsListEvaluationSuiteConfigEvaluators);
   tool(tool$evaluationsAddEvaluatorToSuiteConfig);
   tool(tool$evaluationsRemoveEvaluatorFromSuiteConfig);
   tool(tool$evaluationsListDatasets);
   tool(tool$evaluationsCreateDataset);
   tool(tool$evaluationsGetDataset);
-  tool(tool$evaluationsUpdateDataset);
   tool(tool$evaluationsDeleteDataset);
+  tool(tool$evaluationsUpdateDataset);
   tool(tool$evaluationsListEvaluators);
   tool(tool$evaluationsCreateEvaluator);
   tool(tool$evaluationsGetEvaluator);
-  tool(tool$evaluationsUpdateEvaluator);
   tool(tool$evaluationsDeleteEvaluator);
+  tool(tool$evaluationsUpdateEvaluator);
   tool(tool$evaluationsGetEvaluatorsBatch);
   tool(tool$evaluationsGetEvaluationResult);
-  tool(tool$evaluationsUpdateEvaluationResult);
   tool(tool$evaluationsDeleteEvaluationResult);
+  tool(tool$evaluationsUpdateEvaluationResult);
   tool(tool$evaluationsCreateEvaluationResult);
   tool(tool$evaluationsEvaluateConversation);
   tool(tool$evaluationsStartConversationsEvaluations);
@@ -585,6 +587,10 @@ export function createMCPServer(deps: {
   tool(tool$workAppsSlackUserConnect);
   tool(tool$workAppsSlackUserDisconnect);
   tool(tool$workAppsSlackUserStatus);
+
+  if (deps.dynamic) {
+    registerDynamicTools(deps.logger, server, getClient, toolMap, scopes);
+  }
 
   return { server, tools };
 }

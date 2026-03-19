@@ -85,7 +85,10 @@ type SecurityInputOAuth2 = {
 type SecurityInputOAuth2ClientCredentials = {
   type: "oauth2:client_credentials";
   value:
-    | { clientID?: string | undefined; clientSecret?: string | undefined }
+    | {
+      clientID?: string | undefined;
+      clientSecret?: string | undefined;
+    }
     | null
     | string
     | undefined;
@@ -244,12 +247,12 @@ export function resolveGlobalSecurity(
       {
         fieldName: "better-auth.session_token",
         type: "apiKey:cookie",
-        value: security?.cookieAuth ?? env().INKEEPAGENTS_COOKIE_AUTH,
+        value: security?.cookieAuth || env().INKEEPAGENTS_COOKIE_AUTH,
       },
       {
         fieldName: "Authorization",
         type: "http:bearer",
-        value: security?.bearerAuth ?? env().INKEEPAGENTS_BEARER_AUTH,
+        value: security?.bearerAuth || env().INKEEPAGENTS_BEARER_AUTH,
       },
     ],
   );

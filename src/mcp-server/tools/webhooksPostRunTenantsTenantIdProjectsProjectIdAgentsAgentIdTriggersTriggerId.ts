@@ -16,8 +16,7 @@ const args = {
 
 export const tool$webhooksPostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerId:
   ToolDefinition<typeof args> = {
-    name:
-      "webhooks-post-run-tenants-tenant-id-projects-project-id-agents-agent-id-triggers-trigger-id",
+    name: "webhooks-post-run-tenants-tenant-id-projects-55b",
     description: `Invoke agent via trigger webhook
 
 Webhook endpoint for third-party services to invoke an agent via a configured trigger`,
