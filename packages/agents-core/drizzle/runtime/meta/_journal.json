@@ -169,6 +169,13 @@
       "when": 1773428665214,
       "tag": "0023_bumpy_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1773882450091,
+      "tag": "0024_supreme_wolf_cub",
+      "breakpoints": true
     }
   ]
 }

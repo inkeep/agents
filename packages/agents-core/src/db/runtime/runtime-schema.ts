@@ -414,6 +414,42 @@ export const messages = pgTable(
   ]
 );
 
+export const messageFeedback = pgTable(
+  'message_feedback',
+  {
+    ...projectScoped,
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    messageId: varchar('message_id', { length: 256 }).notNull(),
+    type: varchar('type', { length: 50 }).notNull().$type<'positive' | 'negative'>(),
+    reasons: jsonb('reasons').$type<Array<{ label: string; details: string }>>(),
+    userId: varchar('user_id', { length: 256 }),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    unique('message_feedback_message_unique').on(table.tenantId, table.projectId, table.messageId),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'message_feedback_conversation_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.messageId],
+      foreignColumns: [messages.tenantId, messages.projectId, messages.id],
+      name: 'message_feedback_message_fk',
+    }).onDelete('cascade'),
+    index('message_feedback_conversation_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId
+    ),
+    index('message_feedback_message_idx').on(table.tenantId, table.projectId, table.messageId),
+  ]
+);
+
+export type MessageFeedbackRow = typeof messageFeedback.$inferSelect;
+export type MessageFeedbackInsert = typeof messageFeedback.$inferInsert;
+
 export const taskRelations = pgTable(
   'task_relations',
   {
@@ -656,6 +692,7 @@ export const userProfileRelations = relations(userProfile, ({ one }) => ({
 
 export const conversationsRelations = relations(conversations, ({ many }) => ({
   messages: many(messages),
+  feedback: many(messageFeedback),
 }));
 
 export const messagesRelations = relations(messages, ({ one, many }) => ({
@@ -674,6 +711,18 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
   }),
   childMessages: many(messages, {
     relationName: 'parentChild',
+  }),
+  feedback: many(messageFeedback),
+}));
+
+export const messageFeedbackRelations = relations(messageFeedback, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messageFeedback.conversationId],
+    references: [conversations.id],
+  }),
+  message: one(messages, {
+    fields: [messageFeedback.messageId],
+    references: [messages.id],
   }),
 }));
 
