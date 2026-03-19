@@ -25,6 +25,7 @@ const SkillFilePage: FC<
         tenantId={tenantId}
         projectId={projectId}
         skillId={selectedFile.skillId}
+        fileId={selectedFile.fileId}
         filePath={selectedFile.filePath}
         initialContent={selectedFile.content}
         canEdit={permissions.canEdit}
