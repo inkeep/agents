@@ -68,6 +68,49 @@ app.openapi(
 app.openapi(
   createProtectedRoute({
     method: 'get',
+    path: '/{id}/files/{fileId}',
+    summary: 'Get Skill File',
+    operationId: 'get-skill-file',
+    tags: ['Skills'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectSkillFileParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'Skill file found',
+        content: {
+          'application/json': {
+            schema: SkillFileResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, id, fileId } = c.req.valid('param');
+    const file = await getSkillFileById(db)({
+      scopes: { tenantId, projectId },
+      skillId: id,
+      fileId,
+    });
+
+    if (!file) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Skill file not found',
+      });
+    }
+
+    return c.json({ data: file });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
     path: '/{id}',
     summary: 'Get Skill',
     operationId: 'get-skill',
