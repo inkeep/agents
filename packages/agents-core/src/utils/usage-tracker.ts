@@ -112,10 +112,14 @@ function persistEvent(
   }
 ): void {
   let provider: string;
+  let requestedModelName: string;
   try {
-    provider = ModelFactory.parseModelString(requestedModel).provider;
+    const parsed = ModelFactory.parseModelString(requestedModel);
+    provider = parsed.provider;
+    requestedModelName = parsed.modelName;
   } catch {
     provider = 'unknown';
+    requestedModelName = requestedModel;
   }
 
   const tokenUsage: TokenUsage = {
@@ -127,15 +131,9 @@ function persistEvent(
   };
 
   const pricingService = getPricingService();
-  let estimatedCostUsd: number | null = null;
-  try {
-    const modelForPricing = opts.resolvedModel ?? requestedModel;
-    const { modelName } = ModelFactory.parseModelString(modelForPricing);
-    const pricing = pricingService.getModelPricing(modelName, provider);
-    estimatedCostUsd = pricing ? pricingService.calculateCost(tokenUsage, pricing) : null;
-  } catch {
-    // pricing lookup failed — proceed with null cost
-  }
+  const modelName = opts.resolvedModel ?? requestedModelName;
+  const pricing = pricingService.getModelPricing(modelName, provider);
+  const estimatedCostUsd = pricing ? pricingService.calculateCost(tokenUsage, pricing) : null;
 
   const activeSpan = trace.getActiveSpan();
   if (activeSpan) {
