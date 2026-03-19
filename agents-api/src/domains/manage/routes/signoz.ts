@@ -46,7 +46,10 @@ async function authorizeProject(c: Ctx, projectId: string | undefined) {
       });
       if (!hasAccess) {
         logger.warn({ tenantId, projectId, userId }, 'Project not found or access denied');
-        return c.json({ error: 'Forbidden', message: 'You do not have access to this project' }, 403);
+        return c.json(
+          { error: 'Forbidden', message: 'You do not have access to this project' },
+          403
+        );
       }
     }
   }
@@ -58,16 +61,28 @@ function handleSignozError(error: unknown, operation: string) {
   if (axios.isAxiosError(error)) {
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       logger.error({ error: error.message }, 'SigNoz service unavailable');
-      return { body: { error: 'Service Unavailable', message: 'SigNoz service is unavailable' }, status: 503 as const };
+      return {
+        body: { error: 'Service Unavailable', message: 'SigNoz service is unavailable' },
+        status: 503 as const,
+      };
     }
     if (error.response?.status === 401 || error.response?.status === 403) {
       logger.error({ status: error.response.status }, 'SigNoz authentication failed');
-      return { body: { error: 'Internal Server Error', message: 'SigNoz authentication failed' }, status: 500 as const };
+      return {
+        body: { error: 'Internal Server Error', message: 'SigNoz authentication failed' },
+        status: 500 as const,
+      };
     }
     if (error.response?.status === 400) {
-      logger.warn({ status: 400, responseData: error.response?.data }, `Invalid SigNoz ${operation}`);
+      logger.warn(
+        { status: 400, responseData: error.response?.data },
+        `Invalid SigNoz ${operation}`
+      );
       return {
-        body: { error: 'Bad Request', message: error.response?.data?.error ?? 'Invalid query parameters' },
+        body: {
+          error: 'Bad Request',
+          message: error.response?.data?.error ?? 'Invalid query parameters',
+        },
         status: 400 as const,
       };
     }
@@ -76,7 +91,10 @@ function handleSignozError(error: unknown, operation: string) {
     { error, responseData: axios.isAxiosError(error) ? error.response?.data : undefined },
     `SigNoz ${operation} failed`
   );
-  return { body: { error: 'Internal Server Error', message: 'Failed to query SigNoz' }, status: 500 as const };
+  return {
+    body: { error: 'Internal Server Error', message: 'Failed to query SigNoz' },
+    status: 500 as const,
+  };
 }
 
 // Axios wraps the HTTP body in `.data`. SigNoz v5 returns `{ status, data: { results } }`.
@@ -96,7 +114,8 @@ app.post('/query', async (c) => {
   if (auth instanceof Response) return auth;
 
   const signoz = getSignozConfig();
-  if (!signoz) return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
+  if (!signoz)
+    return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
 
   enforceSecurityFilters(payload, auth.tenantId, requestedProjectId);
 
@@ -131,7 +150,8 @@ app.post('/query-batch', async (c) => {
   if (auth instanceof Response) return auth;
 
   const signoz = getSignozConfig();
-  if (!signoz) return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
+  if (!signoz)
+    return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
 
   try {
     enforceSecurityFilters(paginationPayload, auth.tenantId, requestedProjectId);
@@ -192,24 +212,39 @@ app.get('/health', async (c) => {
   const signoz = getSignozConfig();
   if (!signoz) {
     logger.warn({}, 'SigNoz credentials not set');
-    return c.json({ status: 'not_configured', configured: false, error: 'SIGNOZ_URL or SIGNOZ_API_KEY not set' });
+    return c.json({
+      status: 'not_configured',
+      configured: false,
+      error: 'SIGNOZ_URL or SIGNOZ_API_KEY not set',
+    });
   }
 
   try {
     await axios.post(
       signoz.endpoint,
-      { start: Date.now() - 300000, end: Date.now(), requestType: 'scalar', compositeQuery: { queries: [] } },
+      {
+        start: Date.now() - 300000,
+        end: Date.now(),
+        requestType: 'scalar',
+        compositeQuery: { queries: [] },
+      },
       { headers: signoz.headers, timeout: 5000, validateStatus: (s) => s === 200 || s === 400 }
     );
     return c.json({ status: 'ok', configured: true });
   } catch (error) {
     let errorMessage = 'Failed to connect to SigNoz';
     if (axios.isAxiosError(error)) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') errorMessage = 'Check SIGNOZ_URL';
-      else if (error.response?.status === 401 || error.response?.status === 403) errorMessage = 'Invalid SIGNOZ_API_KEY';
-      else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') errorMessage = 'SigNoz connection timed out';
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND')
+        errorMessage = 'Check SIGNOZ_URL';
+      else if (error.response?.status === 401 || error.response?.status === 403)
+        errorMessage = 'Invalid SIGNOZ_API_KEY';
+      else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED')
+        errorMessage = 'SigNoz connection timed out';
     }
-    logger.error({ error: error instanceof Error ? error.message : error }, 'SigNoz connection test failed');
+    logger.error(
+      { error: error instanceof Error ? error.message : error },
+      'SigNoz connection test failed'
+    );
     return c.json({ status: 'connection_failed', configured: false, error: errorMessage });
   }
 });
