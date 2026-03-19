@@ -6,6 +6,7 @@ import appsRoutes from './apps';
 import artifactComponentsRoutes from './artifactComponents';
 import branchesRoutes from './branches';
 import contextConfigsRoutes from './contextConfigs';
+import conversationFeedbackRoutes from './conversationFeedback';
 import conversationsRoutes from './conversations';
 import credentialStoresRoutes from './credentialStores';
 import credentialsRoutes from './credentials';
@@ -85,6 +86,10 @@ app.route('/projects/:projectId/agents/:agentId/sub-agent-skills', subAgentSkill
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/conversations', conversationsRoutes);
+app.route(
+  '/projects/:projectId/conversations/:conversationId/feedback',
+  conversationFeedbackRoutes
+);
 app.route('/projects/:projectId/credentials', credentialsRoutes);
 app.route('/projects/:projectId/credential-stores', credentialStoresRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
