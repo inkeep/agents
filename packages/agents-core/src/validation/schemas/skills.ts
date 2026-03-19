@@ -241,4 +241,13 @@ export {
   SubAgentSkillApiUpdateSchema,
   SubAgentSkillApiSelectSchema,
   SubAgentSkillApiInsertSchema,
+  SkillWithFilesApiSelectSchema,
+  SkillUpdateSchema,
+  SkillSelectSchema,
+  SkillInsertSchema,
+  SkillFileSelectSchema,
+  SkillFileInsertSchema,
+  SkillFileApiSelectSchema,
+  SkillApiUpdateSchema,
+  SkillApiSelectSchema,
 };

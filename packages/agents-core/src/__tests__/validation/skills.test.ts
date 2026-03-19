@@ -1,4 +1,4 @@
-import { SkillApiInsertSchema } from '../../validation/schemas';
+import { SkillApiInsertSchema } from '../../validation/schemas/skills';
 
 describe('SkillApiInsertSchema', () => {
   it('accepts nested files when SKILL.md matches the skill fields', () => {

@@ -37,7 +37,7 @@ import type {
   TriggerApiSelectSchema,
   TriggerInvocationApiSelectSchema,
 } from './validation/schemas';
-import { FullAgentAgentInsertSchema, MAX_ID_LENGTH } from './validation/schemas';
+import { FullAgentAgentInsertSchema, MAX_ID_LENGTH } from './validation';
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
 
