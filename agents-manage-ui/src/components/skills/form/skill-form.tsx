@@ -169,8 +169,7 @@ Use this skill when the user needs to work with PDF files...
   "version": "1.0.0",
   "author": "example"
 }`}
-          // TODO: isRequired incorrectly say metadata is required due zod transform
-          isRequired={false}
+          isRequired={isRequired(schema, 'metadata')}
           readOnly={readOnly}
         />
 

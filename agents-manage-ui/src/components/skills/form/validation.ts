@@ -16,7 +16,6 @@ export const SkillSchema = z
       .trim()
       .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
       .pipe(SkillMetadata)
-      .optional()
       .default(null),
   })
   .transform((data) => ({
