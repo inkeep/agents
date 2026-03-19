@@ -18,7 +18,6 @@ import { deleteSkill } from '@/lib/api/skills';
 interface DeleteSkillConfirmationProps {
   skillId: string;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
-  redirectOnDelete?: boolean;
 }
 
 export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
