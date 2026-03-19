@@ -36,6 +36,9 @@ export type CreateScheduledTriggerInput = {
   retryDelaySeconds?: number;
   timeoutSeconds?: number;
   runAsUserId?: string | null;
+  maxConcurrentInvocations?: number;
+  staggerIntervalSeconds?: number;
+  audienceConfig?: { type: 'userList'; userIds: string[] } | null;
 };
 
 export type UpdateScheduledTriggerInput = Partial<CreateScheduledTriggerInput>;

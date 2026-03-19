@@ -76,6 +76,9 @@ const scheduledTriggerFormSchema = z
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
     timeoutSeconds: z.coerce.number().int().min(30).max(780).default(780),
     runAsUserId: z.string().optional(),
+    maxConcurrentInvocations: z.coerce.number().int().min(1).max(50).default(1),
+    staggerIntervalSeconds: z.coerce.number().int().min(0).max(3600).default(0),
+    audienceUserIds: z.array(z.string()).default([]),
   })
   .refine(
     (data) => {
@@ -144,6 +147,9 @@ export function ScheduledTriggerForm({
         retryDelaySeconds: p?.retryDelaySeconds ? Number(p.retryDelaySeconds) : 60,
         timeoutSeconds: p?.timeoutSeconds ? Number(p.timeoutSeconds) : 780,
         runAsUserId: undefined,
+        maxConcurrentInvocations: 1,
+        staggerIntervalSeconds: 0,
+        audienceUserIds: [],
       };
     }
 
@@ -162,6 +168,10 @@ export function ScheduledTriggerForm({
       retryDelaySeconds: trigger.retryDelaySeconds ?? 60,
       timeoutSeconds: trigger.timeoutSeconds ?? 780,
       runAsUserId: trigger.runAsUserId ?? undefined,
+      maxConcurrentInvocations: trigger.maxConcurrentInvocations ?? 1,
+      staggerIntervalSeconds: trigger.staggerIntervalSeconds ?? 0,
+      audienceUserIds:
+        trigger.audienceConfig?.type === 'userList' ? trigger.audienceConfig.userIds : [],
     };
   };
 
@@ -197,6 +207,11 @@ export function ScheduledTriggerForm({
         }
       }
 
+      const audienceConfig =
+        data.audienceUserIds.length > 0
+          ? { type: 'userList' as const, userIds: data.audienceUserIds }
+          : null;
+
       const basePayload = {
         id: data.id,
         description: data.description || undefined,
@@ -209,6 +224,9 @@ export function ScheduledTriggerForm({
         maxRetries: data.maxRetries,
         retryDelaySeconds: data.retryDelaySeconds,
         timeoutSeconds: data.timeoutSeconds,
+        maxConcurrentInvocations: data.maxConcurrentInvocations,
+        staggerIntervalSeconds: data.staggerIntervalSeconds,
+        audienceConfig,
       };
 
       if (mode === 'edit') {
@@ -567,6 +585,145 @@ export function ScheduledTriggerForm({
                 </FormItem>
               )}
             />
+          </CardContent>
+        </Card>
+
+        {/* Execution Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Execution Settings</CardTitle>
+            <CardDescription>
+              Control concurrency and pacing for fan-out invocations.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="maxConcurrentInvocations"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Max Concurrent Invocations</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={Number(field.value)}
+                        type="number"
+                        min={1}
+                        max={50}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      How many invocations can run at the same time (1-50)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="staggerIntervalSeconds"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stagger Interval (seconds)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={Number(field.value)}
+                        type="number"
+                        min={0}
+                        max={3600}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Minimum delay between starting consecutive invocations (0-3600)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {isAdmin && (
+              <FormField
+                control={form.control}
+                name="audienceUserIds"
+                render={({ field }) => {
+                  const selectedIds = field.value ?? [];
+                  return (
+                    <FormItem>
+                      <FormLabel>Audience (Fan-Out Recipients)</FormLabel>
+                      <FormDescription>
+                        Select users to create one invocation per recipient. Leave empty for a
+                        single invocation.
+                      </FormDescription>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start font-normal"
+                              disabled={isMembersLoading}
+                            >
+                              {selectedIds.length > 0
+                                ? `${selectedIds.length} user${selectedIds.length > 1 ? 's' : ''} selected`
+                                : 'Select audience members'}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Search users..." />
+                            <CommandList>
+                              <CommandEmpty>No users found.</CommandEmpty>
+                              <CommandGroup>
+                                {orgMembers.map((member) => {
+                                  const isSelected = selectedIds.includes(member.id);
+                                  return (
+                                    <CommandItem
+                                      key={member.id}
+                                      onSelect={() => {
+                                        const updated = isSelected
+                                          ? selectedIds.filter((id) => id !== member.id)
+                                          : [...selectedIds, member.id];
+                                        field.onChange(updated);
+                                      }}
+                                    >
+                                      <Checkbox checked={isSelected} className="mr-2" />
+                                      <span>{member.name || member.email || member.id}</span>
+                                    </CommandItem>
+                                  );
+                                })}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      {selectedIds.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {selectedIds.map((userId) => (
+                            <Badge key={userId} variant="secondary" className="text-xs">
+                              {getMemberDisplayName(userId)}
+                              <button
+                                type="button"
+                                className="ml-1 hover:text-destructive"
+                                onClick={() =>
+                                  field.onChange(selectedIds.filter((id) => id !== userId))
+                                }
+                              >
+                                x
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+            )}
           </CardContent>
         </Card>
 
