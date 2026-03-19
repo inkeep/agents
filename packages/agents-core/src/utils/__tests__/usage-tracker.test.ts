@@ -32,6 +32,20 @@ function extractUsage(response: {
   };
 }
 
+function isNonConsumingError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const statusCode = (error as { statusCode?: number }).statusCode;
+  if (statusCode === 429) return true;
+  const message = error instanceof Error ? error.message : '';
+  return (
+    message.includes('ECONNREFUSED') ||
+    message.includes('ETIMEDOUT') ||
+    message.includes('ENOTFOUND') ||
+    message.includes('fetch failed') ||
+    message.includes('context_length_exceeded')
+  );
+}
+
 describe('UsageTracker', () => {
   describe('extractUsage', () => {
     it('extracts basic token counts from usage', () => {
@@ -103,6 +117,33 @@ describe('UsageTracker', () => {
       expect(result.inputTokens).toBe(0);
       expect(result.outputTokens).toBe(0);
       expect(result.stepCount).toBe(1);
+    });
+  });
+
+  describe('isNonConsumingError', () => {
+    it('identifies 429 rate limit as non-consuming', () => {
+      expect(isNonConsumingError({ statusCode: 429 })).toBe(true);
+    });
+
+    it('identifies network errors as non-consuming', () => {
+      expect(isNonConsumingError(new Error('ECONNREFUSED'))).toBe(true);
+      expect(isNonConsumingError(new Error('ETIMEDOUT'))).toBe(true);
+      expect(isNonConsumingError(new Error('ENOTFOUND'))).toBe(true);
+      expect(isNonConsumingError(new Error('fetch failed'))).toBe(true);
+    });
+
+    it('identifies context_length_exceeded as non-consuming', () => {
+      expect(isNonConsumingError(new Error('context_length_exceeded'))).toBe(true);
+    });
+
+    it('treats other errors as consuming', () => {
+      expect(isNonConsumingError(new Error('content filter triggered'))).toBe(false);
+      expect(isNonConsumingError(new Error('internal server error'))).toBe(false);
+    });
+
+    it('handles null/undefined', () => {
+      expect(isNonConsumingError(null)).toBe(false);
+      expect(isNonConsumingError(undefined)).toBe(false);
     });
   });
 });

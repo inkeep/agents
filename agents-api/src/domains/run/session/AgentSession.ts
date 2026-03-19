@@ -15,7 +15,7 @@ import {
   estimateTokens,
   getLedgerArtifacts,
   ModelFactory,
-  recordUsage,
+  trackedGenerate,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateText, Output } from 'ai';
@@ -1124,7 +1124,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           }
           const statusUpdateGenerationConfig = ModelFactory.prepareGenerationConfig(modelToUse);
 
-          const statusUpdateResult = await generateText({
+          const statusUpdateConfig = {
             ...statusUpdateGenerationConfig,
             prompt,
             output: Output.object({
@@ -1140,25 +1140,32 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
                 sessionId: this.sessionId,
               },
             },
-          });
+          };
 
-          if (
-            modelToUse?.model &&
-            this.executionContext.tenantId &&
-            this.executionContext.projectId
-          ) {
-            recordUsage(
-              runDbClient,
-              {
-                tenantId: this.executionContext.tenantId,
-                projectId: this.executionContext.projectId,
-                agentId: this.executionContext.agentId,
-                generationType: 'status_update',
-              },
-              modelToUse.model,
-              statusUpdateResult
-            );
-          }
+          const statusUpdateDb =
+            modelToUse?.model && this.executionContext.tenantId && this.executionContext.projectId
+              ? runDbClient
+              : null;
+          const statusUpdateContext =
+            modelToUse?.model && this.executionContext.tenantId && this.executionContext.projectId
+              ? {
+                  tenantId: this.executionContext.tenantId,
+                  projectId: this.executionContext.projectId,
+                  agentId: this.executionContext.agentId,
+                  generationType: 'status_update' as const,
+                }
+              : null;
+
+          const statusUpdateResult =
+            statusUpdateDb && statusUpdateContext && modelToUse?.model
+              ? await trackedGenerate(
+                  statusUpdateDb,
+                  statusUpdateContext,
+                  modelToUse.model,
+                  () => generateText(statusUpdateConfig as Parameters<typeof generateText>[0]),
+                  statusUpdateConfig as Record<string, unknown>
+                )
+              : await generateText(statusUpdateConfig as Parameters<typeof generateText>[0]);
 
           const result = statusUpdateResult.output as any;
           logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
@@ -1694,9 +1701,27 @@ Make the name extremely specific to what this tool call actually returned, not g
                 const maxRetries = 3;
                 let lastError: Error | null = null;
 
+                const artifactDb =
+                  this.statusUpdateState?.summarizerModel?.model &&
+                  this.executionContext.tenantId &&
+                  this.executionContext.projectId
+                    ? runDbClient
+                    : null;
+                const artifactUsageContext =
+                  this.statusUpdateState?.summarizerModel?.model &&
+                  this.executionContext.tenantId &&
+                  this.executionContext.projectId
+                    ? {
+                        tenantId: this.executionContext.tenantId,
+                        projectId: this.executionContext.projectId,
+                        agentId: this.executionContext.agentId,
+                        generationType: 'artifact_metadata' as const,
+                      }
+                    : null;
+
                 for (let attempt = 1; attempt <= maxRetries; attempt++) {
                   try {
-                    const result = await generateText({
+                    const artifactGenConfig = {
                       ...artifactMetadataGenerationConfig,
                       prompt,
                       output: Output.object({
@@ -1713,7 +1738,23 @@ Make the name extremely specific to what this tool call actually returned, not g
                           attempt,
                         },
                       },
-                    });
+                    };
+
+                    const result =
+                      artifactDb &&
+                      artifactUsageContext &&
+                      this.statusUpdateState?.summarizerModel?.model
+                        ? await trackedGenerate(
+                            artifactDb,
+                            artifactUsageContext,
+                            this.statusUpdateState.summarizerModel.model,
+                            () =>
+                              generateText(artifactGenConfig as Parameters<typeof generateText>[0]),
+                            artifactGenConfig as Record<string, unknown>
+                          )
+                        : await generateText(
+                            artifactGenConfig as Parameters<typeof generateText>[0]
+                          );
 
                     generationSpan.setAttributes({
                       'artifact.id': artifactData.artifactId,
@@ -1732,24 +1773,6 @@ Make the name extremely specific to what this tool call actually returned, not g
                     });
 
                     generationSpan.setStatus({ code: SpanStatusCode.OK });
-
-                    if (
-                      this.statusUpdateState?.summarizerModel?.model &&
-                      this.executionContext.tenantId &&
-                      this.executionContext.projectId
-                    ) {
-                      recordUsage(
-                        runDbClient,
-                        {
-                          tenantId: this.executionContext.tenantId,
-                          projectId: this.executionContext.projectId,
-                          agentId: this.executionContext.agentId,
-                          generationType: 'artifact_metadata',
-                        },
-                        this.statusUpdateState.summarizerModel.model,
-                        result
-                      );
-                    }
 
                     return result;
                   } catch (error) {

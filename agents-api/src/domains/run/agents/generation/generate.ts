@@ -3,8 +3,8 @@ import {
   type DataPart,
   type FilePart,
   type Part,
-  recordUsage,
   SPAN_KEYS,
+  trackedGenerate,
 } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
@@ -268,19 +268,58 @@ export async function runGenerate(
           'Starting generation'
         );
 
+        const usageContext = primaryModelSettings.model
+          ? {
+              tenantId: ctx.config.tenantId,
+              projectId: ctx.config.projectId,
+              agentId: ctx.config.agentId,
+              subAgentId: ctx.config.id,
+              conversationId: runtimeContext?.metadata?.conversationId,
+              generationType: 'sub_agent_generation' as const,
+            }
+          : null;
+
         let rawResponse: Record<string, unknown> | ResolvedGenerationResponse;
         if (shouldStream) {
-          rawResponse = await handleStreamGeneration(
-            ctx,
-            streamText(generationConfig as Parameters<typeof streamText>[0]),
-            sessionId,
-            contextId,
-            !!dataComponentsSchema
-          );
+          rawResponse =
+            usageContext && primaryModelSettings.model
+              ? await trackedGenerate(
+                  runDbClient,
+                  usageContext,
+                  primaryModelSettings.model,
+                  () =>
+                    handleStreamGeneration(
+                      ctx,
+                      streamText(generationConfig as Parameters<typeof streamText>[0]),
+                      sessionId,
+                      contextId,
+                      !!dataComponentsSchema
+                    ),
+                  generationConfig as Record<string, unknown>
+                )
+              : await handleStreamGeneration(
+                  ctx,
+                  streamText(generationConfig as Parameters<typeof streamText>[0]),
+                  sessionId,
+                  contextId,
+                  !!dataComponentsSchema
+                );
         } else {
-          rawResponse = (await generateText(
-            nonStreamingConfig as Parameters<typeof generateText>[0]
-          )) as unknown as Record<string, unknown>;
+          rawResponse =
+            usageContext && primaryModelSettings.model
+              ? await trackedGenerate(
+                  runDbClient,
+                  usageContext,
+                  primaryModelSettings.model,
+                  () =>
+                    generateText(
+                      nonStreamingConfig as Parameters<typeof generateText>[0]
+                    ) as Promise<any>,
+                  nonStreamingConfig as Record<string, unknown>
+                )
+              : ((await generateText(
+                  nonStreamingConfig as Parameters<typeof generateText>[0]
+                )) as unknown as Record<string, unknown>);
         }
 
         logger.info(
@@ -296,26 +335,6 @@ export async function runGenerate(
         );
 
         response = await resolveGenerationResponse(rawResponse as Record<string, unknown>);
-
-        if (primaryModelSettings.model) {
-          recordUsage(
-            runDbClient,
-            {
-              tenantId: ctx.config.tenantId,
-              projectId: ctx.config.projectId,
-              agentId: ctx.config.agentId,
-              subAgentId: ctx.config.id,
-              conversationId: runtimeContext?.metadata?.conversationId,
-              generationType: 'sub_agent_generation',
-            },
-            primaryModelSettings.model,
-            response,
-            {
-              streamed: !!shouldStream,
-              finishReason: response.finishReason,
-            }
-          );
-        }
 
         if (hasStructuredOutput && response.output) {
           response.object = response.output;

@@ -22,6 +22,7 @@ import {
   ModelFactory,
   parseSSEResponse,
   resolveRef,
+  trackedGenerate,
   updateEvaluationResult,
   withRef,
 } from '@inkeep/agents-core';
@@ -346,10 +347,25 @@ export class EvaluationService {
           'Generating next user message with simulation agent'
         );
 
-        const simulationResponse = await generateText({
+        const simulationConfig = {
           ...simulationModelConfig,
           prompt: simulationPrompt,
-        });
+        };
+
+        const simulationResponse = simulationAgent.model?.model
+          ? await trackedGenerate(
+              runDbClient,
+              {
+                tenantId,
+                projectId,
+                agentId,
+                generationType: 'eval_simulation' as const,
+              },
+              simulationAgent.model.model,
+              () => generateText(simulationConfig),
+              simulationConfig as Record<string, unknown>
+            )
+          : await generateText(simulationConfig);
 
         const nextUserMessage = simulationResponse.text.trim();
 
