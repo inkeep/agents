@@ -336,6 +336,25 @@ export const markScheduledTriggerInvocationCancelled =
   };
 
 /**
+ * Count currently running invocations for a trigger.
+ * Used by concurrency control to gate new invocation starts.
+ */
+export const countRunningInvocationsForTrigger =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scheduledTriggerId: string }): Promise<number> => {
+    const result = await db
+      .select({ count: count() })
+      .from(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          eq(scheduledTriggerInvocations.status, 'running')
+        )
+      );
+    return result[0]?.count || 0;
+  };
+
+/**
  * Cancel all pending invocations for a trigger
  * Used when a trigger is deleted
  */

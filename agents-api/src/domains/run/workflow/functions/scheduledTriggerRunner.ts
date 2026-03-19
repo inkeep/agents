@@ -33,10 +33,12 @@ import {
   executeScheduledTriggerStep,
   getNextPendingInvocationStep,
   incrementAttemptStep,
+  listAllPendingInvocationsStep,
   logStep,
   markCompletedStep,
   markFailedStep,
   markRunningStep,
+  processInvocationBatchStep,
 } from '../steps/scheduledTriggerSteps';
 
 const logger = getLogger('workflow-scheduled-trigger-runner');
@@ -209,6 +211,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     const audienceConfig = trigger.audienceConfig as { type: 'userList'; userIds: string[] } | null;
 
     if (audienceConfig?.type === 'userList' && audienceConfig.userIds.length > 0) {
+      // --- FAN-OUT PATH: multiple invocations with concurrency control ---
       await createFanOutInvocationsStep({
         tenantId,
         projectId,
@@ -220,40 +223,141 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         idempotencyKeyPrefix,
       });
 
-      invocation = await getNextPendingInvocationStep({
+      const allPending = await listAllPendingInvocationsStep({
         tenantId,
         projectId,
         agentId,
         scheduledTriggerId,
       });
 
-      if (!invocation) {
+      if (allPending.length === 0) {
         await logStep('Fan-out invocations created but none pending', { scheduledTriggerId });
         return { status: 'already_executed', reason: 'all fan-out invocations already processed' };
       }
-    } else {
-      const result = await createInvocationIdempotentStep({
+
+      await logStep('Fan-out invocations ready for batch processing', {
+        scheduledTriggerId,
+        pendingCount: allPending.length,
+        maxConcurrent: trigger.maxConcurrentInvocations,
+        staggerSeconds: trigger.staggerIntervalSeconds,
+      });
+
+      // Sleep until the scheduled time (all fan-out invocations share the same scheduledFor)
+      const fanOutSleepMs = await computeSleepDurationStep(allPending[0].scheduledFor);
+      await logStep('Sleeping until scheduled time for fan-out batch', {
+        scheduledTriggerId,
+        scheduledFor: allPending[0].scheduledFor,
+        sleepMs: fanOutSleepMs,
+      });
+      await sleep(fanOutSleepMs);
+
+      // Post-sleep enabled check
+      const fanOutPostSleep = await checkTriggerEnabledStep({
         tenantId,
         projectId,
         agentId,
         scheduledTriggerId,
-        scheduledFor,
-        payload: trigger.payload ?? null,
-        idempotencyKey: idempotencyKeyPrefix,
+        runnerId,
       });
-      invocation = result.invocation;
 
-      if (isOneTime && result.alreadyExists && invocation.status !== 'pending') {
-        await logStep('One-time trigger already executed', {
+      if (!fanOutPostSleep.shouldContinue || !fanOutPostSleep.trigger) {
+        await logStep('Trigger disabled/deleted during sleep, stopping fan-out', {
           scheduledTriggerId,
-          invocationId: invocation.id,
-          status: invocation.status,
+          reason: fanOutPostSleep.reason,
         });
-        return { status: 'already_executed', invocationId: invocation.id };
+        return { status: 'stopped', reason: fanOutPostSleep.reason };
       }
+
+      const currentTriggerForBatch = fanOutPostSleep.trigger;
+
+      // Process all pending invocations with concurrency control
+      const batchResult = await processInvocationBatchStep({
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        invocations: allPending,
+        maxConcurrentInvocations: currentTriggerForBatch.maxConcurrentInvocations,
+        staggerIntervalSeconds: currentTriggerForBatch.staggerIntervalSeconds,
+        maxRetries: currentTriggerForBatch.maxRetries,
+        retryDelaySeconds: currentTriggerForBatch.retryDelaySeconds,
+        messageTemplate: currentTriggerForBatch.messageTemplate,
+        payload: currentTriggerForBatch.payload ?? null,
+        timeoutSeconds: currentTriggerForBatch.timeoutSeconds,
+        runAsUserId: currentTriggerForBatch.runAsUserId,
+        cronTimezone: currentTriggerForBatch.cronTimezone,
+      });
+
+      await logStep('Fan-out batch processing complete', {
+        scheduledTriggerId,
+        ...batchResult,
+      });
+
+      // Chain to next iteration for cron triggers
+      if (!isOneTime) {
+        const preChainCheck = await checkTriggerEnabledStep({
+          tenantId,
+          projectId,
+          agentId,
+          scheduledTriggerId,
+          runnerId,
+        });
+
+        if (preChainCheck.shouldContinue) {
+          try {
+            await startNextIterationStep({
+              tenantId,
+              projectId,
+              agentId,
+              scheduledTriggerId,
+              lastScheduledFor: scheduledFor,
+              currentRunId: runnerId,
+            });
+          } catch (err) {
+            await logStep('Failed to chain to next iteration after fan-out', {
+              scheduledTriggerId,
+              error: err instanceof Error ? err.message : String(err),
+            });
+            throw err;
+          }
+          return { status: 'chained', ...batchResult };
+        }
+
+        await logStep('Pre-chain check failed after fan-out, not chaining', {
+          scheduledTriggerId,
+          reason: preChainCheck.reason,
+        });
+        return { status: 'stopped', reason: preChainCheck.reason };
+      }
+
+      return {
+        status: batchResult.failed > 0 ? 'failed' : 'completed',
+        ...batchResult,
+      };
+    }
+    // --- SINGLE INVOCATION PATH (unchanged) ---
+    const result = await createInvocationIdempotentStep({
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      scheduledFor,
+      payload: trigger.payload ?? null,
+      idempotencyKey: idempotencyKeyPrefix,
+    });
+    invocation = result.invocation;
+
+    if (isOneTime && result.alreadyExists && invocation.status !== 'pending') {
+      await logStep('One-time trigger already executed', {
+        scheduledTriggerId,
+        invocationId: invocation.id,
+        status: invocation.status,
+      });
+      return { status: 'already_executed', invocationId: invocation.id };
     }
   }
 
+  // --- SINGLE INVOCATION PROCESSING (existing logic, unchanged) ---
   await logStep('Got next pending invocation', {
     scheduledTriggerId,
     invocationId: invocation.id,

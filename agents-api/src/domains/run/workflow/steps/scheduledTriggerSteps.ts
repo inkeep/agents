@@ -7,6 +7,7 @@
 import {
   addConversationIdToInvocation,
   canUseProjectStrict,
+  countRunningInvocationsForTrigger,
   createScheduledTriggerInvocation,
   deletePendingInvocationsForTrigger,
   generateId,
@@ -708,4 +709,241 @@ export async function executeScheduledTriggerStep(params: {
       error: errorMessage,
     };
   }
+}
+
+/**
+ * Step: Count currently running invocations for a trigger.
+ * Used by concurrency control to gate new invocation starts.
+ */
+export async function countRunningInvocationsStep(params: {
+  scheduledTriggerId: string;
+}): Promise<number> {
+  'use step';
+
+  return countRunningInvocationsForTrigger(runDbClient)({
+    scheduledTriggerId: params.scheduledTriggerId,
+  });
+}
+
+/**
+ * Step: List ALL pending invocations for a trigger (up to a limit).
+ * Used by concurrency-controlled dispatch to get the full work queue.
+ */
+export async function listAllPendingInvocationsStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+}): Promise<ScheduledTriggerInvocation[]> {
+  'use step';
+
+  return listPendingScheduledTriggerInvocations(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    limit: 100,
+  });
+}
+
+/**
+ * Step: Process a batch of invocations with concurrency control.
+ * Launches up to maxConcurrent invocations in parallel, enforces stagger interval,
+ * and handles retries independently per invocation.
+ * Returns after all invocations in the batch have completed (or failed).
+ */
+export async function processInvocationBatchStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  invocations: ScheduledTriggerInvocation[];
+  maxConcurrentInvocations: number;
+  staggerIntervalSeconds: number;
+  maxRetries: number;
+  retryDelaySeconds: number;
+  messageTemplate?: string | null;
+  payload?: Record<string, unknown> | null;
+  timeoutSeconds: number;
+  runAsUserId?: string | null;
+  cronTimezone?: string | null;
+}): Promise<{
+  completed: number;
+  failed: number;
+  cancelled: number;
+}> {
+  'use step';
+
+  const {
+    tenantId,
+    projectId,
+    agentId,
+    scheduledTriggerId,
+    invocations,
+    maxConcurrentInvocations,
+    staggerIntervalSeconds,
+    maxRetries,
+    retryDelaySeconds,
+    messageTemplate,
+    payload,
+    timeoutSeconds,
+    runAsUserId,
+    cronTimezone,
+  } = params;
+
+  const scopes = { tenantId, projectId, agentId };
+  const staggerMs = staggerIntervalSeconds * 1000;
+  let completed = 0;
+  let failed = 0;
+  let cancelled = 0;
+
+  const processOne = async (invocation: ScheduledTriggerInvocation) => {
+    const inv = await getScheduledTriggerInvocationById(runDbClient)({
+      scopes,
+      scheduledTriggerId,
+      invocationId: invocation.id,
+    });
+
+    if (!inv || inv.status === 'cancelled') {
+      cancelled++;
+      return;
+    }
+
+    let attemptNumber = inv.attemptNumber;
+    const maxAttempts = maxRetries + 1;
+    let lastError: string | null = null;
+
+    while (attemptNumber <= maxAttempts) {
+      const freshInv = await getScheduledTriggerInvocationById(runDbClient)({
+        scopes,
+        scheduledTriggerId,
+        invocationId: invocation.id,
+      });
+      if (freshInv?.status === 'cancelled') {
+        cancelled++;
+        return;
+      }
+
+      await markScheduledTriggerInvocationRunning(runDbClient)({
+        scopes,
+        scheduledTriggerId,
+        invocationId: invocation.id,
+      });
+
+      const effectiveRunAsUserId = invocation.recipientUserId || runAsUserId;
+
+      const result = await executeScheduledTriggerStep({
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        invocationId: invocation.id,
+        messageTemplate,
+        payload,
+        timeoutSeconds,
+        runAsUserId: effectiveRunAsUserId,
+        cronTimezone,
+      });
+
+      if (result.conversationId) {
+        await addConversationIdToInvocation(runDbClient)({
+          scopes,
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          conversationId: result.conversationId,
+        });
+      }
+
+      if (result.success) {
+        await markScheduledTriggerInvocationCompleted(runDbClient)({
+          scopes,
+          scheduledTriggerId,
+          invocationId: invocation.id,
+        });
+        completed++;
+        lastError = null;
+        return;
+      }
+
+      lastError = result.error || 'Unknown error';
+      logger.info(
+        { scheduledTriggerId, invocationId: invocation.id, attemptNumber, error: lastError },
+        'Batch invocation execution failed'
+      );
+
+      if (attemptNumber < maxAttempts) {
+        await updateScheduledTriggerInvocationStatus(runDbClient)({
+          scopes,
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          data: { attemptNumber: attemptNumber + 1, status: 'pending' },
+        });
+        attemptNumber++;
+        const jitter = Math.random() * 0.3;
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryDelaySeconds * 1000 * (1 + jitter))
+        );
+      } else {
+        break;
+      }
+    }
+
+    if (lastError) {
+      await markScheduledTriggerInvocationFailed(runDbClient)({
+        scopes,
+        scheduledTriggerId,
+        invocationId: invocation.id,
+      });
+      failed++;
+    }
+  };
+
+  const pending = [...invocations];
+  const inFlight = new Set<Promise<void>>();
+
+  const launchNext = () => {
+    const inv = pending.shift();
+    if (!inv) return null;
+    let resolve: () => void;
+    const sentinel = new Promise<void>((r) => {
+      resolve = r;
+    });
+    const task = processOne(inv).finally(() => {
+      inFlight.delete(sentinel);
+      resolve();
+    });
+    // Suppress unhandled rejection - errors are tracked inside processOne
+    task.catch(() => {});
+    inFlight.add(sentinel);
+    return sentinel;
+  };
+
+  // Launch initial batch up to maxConcurrent, with stagger between each
+  for (let i = 0; i < Math.min(maxConcurrentInvocations, invocations.length); i++) {
+    launchNext();
+    if (staggerMs > 0 && i < maxConcurrentInvocations - 1 && pending.length > 0) {
+      await new Promise((resolve) => setTimeout(resolve, staggerMs));
+    }
+  }
+
+  // As invocations complete, launch more until all are processed
+  while (inFlight.size > 0) {
+    await Promise.race([...inFlight]);
+    // Launch new invocations to fill freed slots, with stagger
+    while (pending.length > 0 && inFlight.size < maxConcurrentInvocations) {
+      if (staggerMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, staggerMs));
+      }
+      launchNext();
+    }
+  }
+
+  logger.info(
+    { scheduledTriggerId, completed, failed, cancelled, total: invocations.length },
+    'Batch invocation processing complete'
+  );
+
+  return { completed, failed, cancelled };
 }
