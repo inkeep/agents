@@ -100,10 +100,6 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       const result = await getFullAgent(tenantId, projectId, agentId);
       return result.data.name;
     },
-    async skills(id) {
-      const result = await fetchSkill(tenantId, projectId, id);
-      return result.name;
-    },
     async 'scheduled-triggers'(id) {
       const trigger = await getScheduledTrigger(tenantId, projectId, slug[3], id);
       return trigger.name;

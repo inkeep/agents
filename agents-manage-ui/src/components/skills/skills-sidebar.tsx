@@ -11,27 +11,28 @@ import {
 
 interface SkillsSidebarProps {
   treeNodes: DemoTreeNode[];
-  defaultSelectedRoutePath: string;
   fileRouteAliases: Record<string, string>;
   canEdit: boolean;
 }
 
-export const SkillsSidebar: FC<SkillsSidebarProps> = ({
-  treeNodes,
-  defaultSelectedRoutePath,
-  fileRouteAliases,
-  canEdit,
-}) => {
+export const SkillsSidebar: FC<SkillsSidebarProps> = ({ treeNodes, fileRouteAliases, canEdit }) => {
   const { fileSlug } = useParams<{ fileSlug?: string[] }>();
   const routeToken = fileSlug?.join('/');
   const requestedRoutePath = routeToken
     ? (fileRouteAliases[routeToken] ?? routeToken)
-    : defaultSelectedRoutePath;
-  const fallbackNode = findFirstFile(treeNodes) ?? treeNodes[0] ?? null;
-  const selectedNode = findNodeByRoutePath(treeNodes, requestedRoutePath) ?? fallbackNode;
-  const selectedRoutePath = selectedNode?.routePath ?? defaultSelectedRoutePath;
+    : (treeNodes[0].routePath as string);
+  const { routePath } =
+    findNodeByRoutePath(treeNodes, requestedRoutePath) ??
+    // fallback nodes
+    findFirstFile(treeNodes) ??
+    treeNodes[0];
 
   return treeNodes.map((node) => (
-    <TreeNode key={node.path} node={node} selectedRoutePath={selectedRoutePath} canEdit={canEdit} />
+    <TreeNode
+      key={node.path}
+      node={node}
+      selectedRoutePath={routePath as string}
+      canEdit={canEdit}
+    />
   ));
 };

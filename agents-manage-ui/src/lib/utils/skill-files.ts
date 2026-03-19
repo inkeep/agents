@@ -1,6 +1,7 @@
 import type { SkillDetail } from '@/lib/types/skills';
+import { SKILL_ENTRY_FILE_PATH } from '@inkeep/agents-core/client-exports';
 
-export const SKILL_ENTRY_FILE_PATH = 'SKILL.md';
+export { SKILL_ENTRY_FILE_PATH };
 
 export function isSkillEntryFile(filePath: string): boolean {
   return filePath === SKILL_ENTRY_FILE_PATH;
@@ -12,7 +13,6 @@ export function getSkillFileRemovalLabel(filePath: string): 'Delete skill' | 'Re
 
 export interface SkillFileRecord {
   skillId: string;
-  skillName: string;
   fileId: string;
   filePath: string;
   content: string;

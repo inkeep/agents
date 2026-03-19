@@ -41,8 +41,10 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
   const { tenantId, projectId } = await params;
 
   try {
-    const { permissions, treeNodes, defaultSelectedRoutePath, fileRouteAliases } =
-      await fetchSkillsPageData(tenantId, projectId);
+    const { permissions, treeNodes, fileRouteAliases } = await fetchSkillsPageData(
+      tenantId,
+      projectId
+    );
 
     const action = permissions.canEdit && (
       <Button asChild className="flex items-center gap-2">
@@ -57,17 +59,16 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
       <>
         <PageHeader title={metadata.title} description={description} action={action} />
         <SidebarProvider className="border border-border/70 rounded-[14px] overflow-hidden min-h-[80vh]">
-          <Sidebar collapsible="none" className="h-auto">
-            <SidebarHeader className="border-b px-4 py-3 h-(--header-height) text-sm text-muted-foreground flex justify-center">
+          <Sidebar collapsible="none" className="h-auto bg-transparent border-r">
+            <SidebarHeader className="border-b px-4 h-(--header-height) text-sm text-muted-foreground flex justify-center">
               Files
             </SidebarHeader>
-            <SidebarContent className="px-2 py-2">
-              <SidebarGroup className="py-0">
+            <SidebarContent className=" py-2">
+              <SidebarGroup>
                 <SidebarGroupContent>
-                  <SidebarMenu className="gap-0.5">
+                  <SidebarMenu>
                     <SkillsSidebar
                       treeNodes={treeNodes}
-                      defaultSelectedRoutePath={defaultSelectedRoutePath}
                       fileRouteAliases={fileRouteAliases}
                       canEdit={permissions.canEdit}
                     />

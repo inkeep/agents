@@ -24,7 +24,6 @@ async function $fetchSkillsPageData(tenantId: string, projectId: string) {
     files,
     treeNodes,
     fileRouteAliases: buildSkillFileRouteAliases(files),
-    defaultSelectedRoutePath: files[0]?.routePath ?? '',
   };
 }
 
