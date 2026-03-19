@@ -42,6 +42,10 @@
       "types": "./dist/validation/index.d.ts",
       "import": "./dist/validation/index.js"
     },
+    "./auth/auth-types": {
+      "types": "./dist/auth/auth-types.d.ts",
+      "import": "./dist/auth/auth-types.js"
+    },
     "./client-exports": {
       "types": "./dist/client-exports.d.ts",
       "import": "./dist/client-exports.js"
@@ -163,6 +167,7 @@
     "@authzed/authzed-node": "^1.6.1",
     "@babel/parser": "^7.28.6",
     "@better-auth/sso": "catalog:",
+    "@better-auth/infra": "catalog:",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
     "@modelcontextprotocol/sdk": "^1.26.0",

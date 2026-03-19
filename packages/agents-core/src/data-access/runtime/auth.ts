@@ -1,7 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import * as authSchema from '../../auth/auth-schema';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { generateId } from '../../utils';
 
 export const getInitialOrganization =
   (db: AgentsRunDatabaseClient) =>
@@ -30,44 +29,58 @@ export const queryHasCredentialAccount =
     return !!row;
   };
 
-export interface SSOProviderRegistration {
-  providerId: string;
-  issuer: string;
-  domain: string;
-  organizationId?: string;
-  oidcConfig?: object;
-  samlConfig?: object;
-}
+export const querySsoProviderIssuers =
+  (db: AgentsRunDatabaseClient) => async (): Promise<{ issuer: string }[]> => {
+    return db.select({ issuer: authSchema.ssoProvider.issuer }).from(authSchema.ssoProvider);
+  };
 
-export const registerSSOProvider =
+export const querySsoProviderIds = (db: AgentsRunDatabaseClient) => async (): Promise<string[]> => {
+  const rows = await db
+    .select({ providerId: authSchema.ssoProvider.providerId })
+    .from(authSchema.ssoProvider);
+  return rows.map((r) => r.providerId);
+};
+
+export const queryOrgAllowedAuthMethods =
   (db: AgentsRunDatabaseClient) =>
-  async (provider: SSOProviderRegistration): Promise<void> => {
-    try {
-      const existing = await db
-        .select()
-        .from(authSchema.ssoProvider)
-        .where(eq(authSchema.ssoProvider.providerId, provider.providerId))
-        .limit(1);
+  async (orgId: string): Promise<{ allowedAuthMethods: string | null } | undefined> => {
+    const [org] = await db
+      .select({ allowedAuthMethods: authSchema.organization.allowedAuthMethods })
+      .from(authSchema.organization)
+      .where(eq(authSchema.organization.id, orgId))
+      .limit(1);
+    return org;
+  };
 
-      if (existing.length > 0) {
-        return;
-      }
+export const queryMemberExists =
+  (db: AgentsRunDatabaseClient) =>
+  async (userId: string, organizationId: string): Promise<boolean> => {
+    const [row] = await db
+      .select({ id: authSchema.member.id })
+      .from(authSchema.member)
+      .where(
+        and(
+          eq(authSchema.member.userId, userId),
+          eq(authSchema.member.organizationId, organizationId)
+        )
+      )
+      .limit(1);
+    return !!row;
+  };
 
-      if (!provider.domain) {
-        throw new Error(`SSO provider '${provider.providerId}' must have a domain`);
-      }
-
-      await db.insert(authSchema.ssoProvider).values({
-        id: generateId(),
-        providerId: provider.providerId,
-        issuer: provider.issuer,
-        domain: provider.domain,
-        oidcConfig: provider.oidcConfig ? JSON.stringify(provider.oidcConfig) : null,
-        samlConfig: provider.samlConfig ? JSON.stringify(provider.samlConfig) : null,
-        userId: null,
-        organizationId: provider.organizationId || null,
-      });
-    } catch (error) {
-      console.error(`❌ Failed to register SSO provider '${provider.providerId}':`, error);
-    }
+export const queryPendingInvitationExists =
+  (db: AgentsRunDatabaseClient) =>
+  async (email: string, organizationId: string): Promise<boolean> => {
+    const [row] = await db
+      .select({ id: authSchema.invitation.id })
+      .from(authSchema.invitation)
+      .where(
+        and(
+          eq(authSchema.invitation.email, email),
+          eq(authSchema.invitation.organizationId, organizationId),
+          eq(authSchema.invitation.status, 'pending')
+        )
+      )
+      .limit(1);
+    return !!row;
   };
