@@ -14,6 +14,7 @@ import {
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   getLedgerArtifacts,
   ModelFactory,
+  recordUsage,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateText, Output } from 'ai';
@@ -1123,7 +1124,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           }
           const statusUpdateGenerationConfig = ModelFactory.prepareGenerationConfig(modelToUse);
 
-          const { output: object } = await generateText({
+          const statusUpdateResult = await generateText({
             ...statusUpdateGenerationConfig,
             prompt,
             output: Output.object({
@@ -1141,7 +1142,25 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
             },
           });
 
-          const result = object as any;
+          if (
+            modelToUse?.model &&
+            this.executionContext.tenantId &&
+            this.executionContext.projectId
+          ) {
+            recordUsage(
+              runDbClient,
+              {
+                tenantId: this.executionContext.tenantId,
+                projectId: this.executionContext.projectId,
+                agentId: this.executionContext.agentId,
+                generationType: 'status_update',
+              },
+              modelToUse.model,
+              statusUpdateResult
+            );
+          }
+
+          const result = statusUpdateResult.output as any;
           logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
 
           const summaries = [];
@@ -1713,6 +1732,25 @@ Make the name extremely specific to what this tool call actually returned, not g
                     });
 
                     generationSpan.setStatus({ code: SpanStatusCode.OK });
+
+                    if (
+                      this.statusUpdateState?.summarizerModel?.model &&
+                      this.executionContext.tenantId &&
+                      this.executionContext.projectId
+                    ) {
+                      recordUsage(
+                        runDbClient,
+                        {
+                          tenantId: this.executionContext.tenantId,
+                          projectId: this.executionContext.projectId,
+                          agentId: this.executionContext.agentId,
+                          generationType: 'artifact_metadata',
+                        },
+                        this.statusUpdateState.summarizerModel.model,
+                        result
+                      );
+                    }
+
                     return result;
                   } catch (error) {
                     lastError = error instanceof Error ? error : new Error(String(error));
