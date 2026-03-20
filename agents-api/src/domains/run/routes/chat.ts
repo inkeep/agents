@@ -20,11 +20,11 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { buildPersistedMessageContent } from '../services/blob-storage/image-upload-helpers';
+import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
-import { ImageContentItemSchema } from '../types/chat';
+import { FileContentItemSchema, ImageContentItemSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
 
@@ -68,6 +68,7 @@ const chatCompletionsRoute = createProtectedRoute({
                             text: z.string(),
                           }),
                           ImageContentItemSchema,
+                          FileContentItemSchema,
                         ])
                       ),
                     ])
