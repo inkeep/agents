@@ -1,30 +1,30 @@
 import { lookup as dnsLookup } from 'node:dns';
 import { retryWithBackoff } from '@inkeep/agents-core';
 import { Agent } from 'undici';
-import { resolveDownloadedImageMimeType } from './image-content-security';
+import { resolveDownloadedImageMimeType } from './file-content-security';
 import {
   EXTERNAL_FETCH_TIMEOUT_MS,
-  MAX_EXTERNAL_IMAGE_BYTES,
   MAX_EXTERNAL_REDIRECTS,
-} from './image-security-constants';
+  MAX_FILE_BYTES,
+} from './file-security-constants';
 import {
   BlockedConnectionToPrivateIpError,
-  BlockedExternalImageExceedingError,
-  BlockedExternalImageLargerThanError,
-  ExternalImageResponseBodyEmptyError,
+  BlockedExternalFileExceedingError,
+  BlockedExternalFileLargerThanError,
+  ExternalFileResponseBodyEmptyError,
   FailedToDownloadError,
-  ImageSecurityError,
+  FileSecurityError,
   RedirectMissingLocationError,
   TimedOutDownloadingError,
   TooManyRedirectsError,
   UnableToResolveHostError,
   UnexpectedRedirectStateError,
-} from './image-security-errors';
+} from './file-security-errors';
 import {
   isBlockedIpAddress,
-  validateExternalImageUrl,
+  validateExternalFileUrl,
   validateUrlResolvesToPublicIp,
-} from './image-url-security';
+} from './file-url-security';
 
 const externalImageDispatcher = new Agent({
   connect: {
@@ -64,10 +64,10 @@ const externalImageDispatcher = new Agent({
 
 const MAX_EXTERNAL_FETCH_ATTEMPTS = 3;
 
-export async function downloadExternalImage(
+export async function downloadExternalFile(
   url: string
 ): Promise<{ data: Uint8Array; mimeType: string }> {
-  let currentUrl = validateExternalImageUrl(url);
+  let currentUrl = validateExternalFileUrl(url);
   await validateUrlResolvesToPublicIp(currentUrl);
 
   for (let redirectCount = 0; redirectCount <= MAX_EXTERNAL_REDIRECTS; redirectCount++) {
@@ -83,7 +83,7 @@ export async function downloadExternalImage(
         throw new TooManyRedirectsError(toSanitizedUrl(url));
       }
 
-      currentUrl = validateExternalImageUrl(new URL(location, currentUrl).toString());
+      currentUrl = validateExternalFileUrl(new URL(location, currentUrl).toString());
       await validateUrlResolvesToPublicIp(currentUrl);
       continue;
     }
@@ -104,12 +104,12 @@ export async function downloadExternalImage(
     if (
       contentLength &&
       Number.isFinite(Number(contentLength)) &&
-      Number(contentLength) > MAX_EXTERNAL_IMAGE_BYTES
+      Number(contentLength) > MAX_FILE_BYTES
     ) {
-      throw new BlockedExternalImageLargerThanError(MAX_EXTERNAL_IMAGE_BYTES, contentLength);
+      throw new BlockedExternalFileLargerThanError(MAX_FILE_BYTES, contentLength);
     }
 
-    const data = await readResponseBytesWithLimit(response, MAX_EXTERNAL_IMAGE_BYTES);
+    const data = await readResponseBytesWithLimit(response, MAX_FILE_BYTES);
     const mimeType = await resolveDownloadedImageMimeType(data, headerContentType);
     return { data, mimeType };
   }
@@ -142,7 +142,7 @@ async function fetchWithRetry(url: URL): Promise<Response> {
     {
       maxAttempts: MAX_EXTERNAL_FETCH_ATTEMPTS,
       maxDelayMs: 2_000,
-      label: `image-download ${toSanitizedUrl(url)}`,
+      label: `file-download ${toSanitizedUrl(url)}`,
     }
   );
 }
@@ -160,7 +160,7 @@ async function readResponseBytesWithLimit(
   maxBytes: number
 ): Promise<Uint8Array> {
   if (!response.body) {
-    throw new ExternalImageResponseBodyEmptyError();
+    throw new ExternalFileResponseBodyEmptyError();
   }
 
   const reader = response.body.getReader();
@@ -179,7 +179,7 @@ async function readResponseBytesWithLimit(
 
       totalBytes += value.byteLength;
       if (totalBytes > maxBytes) {
-        throw new BlockedExternalImageExceedingError(maxBytes);
+        throw new BlockedExternalFileExceedingError(maxBytes);
       }
       chunks.push(value);
     }
@@ -204,12 +204,12 @@ async function fetchWithConnectionIpValidation(url: URL): Promise<Response> {
       dispatcher: externalImageDispatcher,
     } as RequestInit & { dispatcher: Agent });
   } catch (error) {
-    const imageSecurityError = extractImageSecurityError(error);
+    const fileSecurityError = extractFileSecurityError(error);
     if (
-      imageSecurityError instanceof BlockedConnectionToPrivateIpError ||
-      imageSecurityError instanceof UnableToResolveHostError
+      fileSecurityError instanceof BlockedConnectionToPrivateIpError ||
+      fileSecurityError instanceof UnableToResolveHostError
     ) {
-      throw imageSecurityError;
+      throw fileSecurityError;
     }
     if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
       throw new TimedOutDownloadingError(toSanitizedUrl(url));
@@ -219,19 +219,18 @@ async function fetchWithConnectionIpValidation(url: URL): Promise<Response> {
   }
 }
 
-function extractImageSecurityError(error: unknown): ImageSecurityError | null {
-  if (error instanceof ImageSecurityError) {
+function extractFileSecurityError(error: unknown): FileSecurityError | null {
+  if (error instanceof FileSecurityError) {
     return error;
   }
 
   if (error instanceof Error && error.cause) {
-    return extractImageSecurityError(error.cause);
+    return extractFileSecurityError(error.cause);
   }
 
   return null;
 }
 
-// Remove search and hash from the URL for logging purposes
 function toSanitizedUrl(url: URL | string): string {
   const parsed = typeof url === 'string' ? new URL(url) : new URL(url.toString());
   parsed.search = '';

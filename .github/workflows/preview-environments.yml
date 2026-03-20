@@ -8,18 +8,29 @@ name: Preview Environments
 # - VERCEL_API_PROJECT_ID
 # - VERCEL_MANAGE_UI_PROJECT_ID
 #
+# Required preview auth configuration:
+# - PREVIEW_MANAGE_UI_USERNAME=<admin email> (repo variable)
+# - PREVIEW_MANAGE_UI_PASSWORD=<admin password> (secret)
+# - PREVIEW_BETTER_AUTH_SECRET=<preview Better Auth secret> (secret)
+# - PREVIEW_SPICEDB_PRESHARED_KEY=<preview SpiceDB key> (secret)
+#
 # Repository variables:
 # - PREVIEW_ENVIRONMENTS_ENABLED=true|false
 # - RAILWAY_PROJECT_ID=<railway project id>
 # - RAILWAY_TEMPLATE_ENVIRONMENT=<base environment to copy, e.g. staging>
 # - RAILWAY_OUTPUT_SERVICE=<service name/id that exposes resolved runtime vars, default: agents-api>
+# - RAILWAY_MANAGE_DB_SERVICE=<service name/id for Doltgres, default: doltgres>
+# - RAILWAY_RUN_DB_SERVICE=<service name/id for runtime Postgres, default: postgres>
+# - RAILWAY_SPICEDB_SERVICE=<service name/id for preview SpiceDB, default: spicedb>
+# - RAILWAY_SPICEDB_TCP_PORT=<SpiceDB gRPC port for Railway TCP proxy, default: 50051>
+# - RAILWAY_SPICEDB_PRESHARED_KEY_KEY=<service var key for SpiceDB auth, default: SPICEDB_GRPC_PRESHARED_KEY>
 # - RAILWAY_MANAGE_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_MANAGE_DATABASE_URL>
 # - RAILWAY_RUN_DB_URL_KEY=<runtime var key, default: INKEEP_AGENTS_RUN_DATABASE_URL>
 # - RAILWAY_SPICEDB_ENDPOINT_KEY=<runtime var key, default: SPICEDB_ENDPOINT>
-# - Optional explicit runtime templates (used when PR env is missing vars):
-#   - RAILWAY_MANAGE_DB_URL_TEMPLATE (example: ${{doltgres.DATABASE_URL}})
-#   - RAILWAY_RUN_DB_URL_TEMPLATE (example: ${{postgres.DATABASE_URL}})
-#   - RAILWAY_SPICEDB_ENDPOINT_TEMPLATE (example: ${{spicedb.SERVICE_PRIVATE_URL}})
+# - Optional explicit runtime templates (authoritative overrides when set):
+#   - RAILWAY_MANAGE_DB_URL_TEMPLATE (example: postgresql://appuser:password@${{doltgres.RAILWAY_TCP_PROXY_DOMAIN}}:${{doltgres.RAILWAY_TCP_PROXY_PORT}}/inkeep_agents?sslmode=disable)
+#   - RAILWAY_RUN_DB_URL_TEMPLATE (example: postgresql://appuser:password@${{postgres.RAILWAY_TCP_PROXY_DOMAIN}}:${{postgres.RAILWAY_TCP_PROXY_PORT}}/inkeep_agents?sslmode=disable)
+#   - RAILWAY_SPICEDB_ENDPOINT_TEMPLATE (default: ${{spicedb.RAILWAY_TCP_PROXY_DOMAIN}}:${{spicedb.RAILWAY_TCP_PROXY_PORT}})
 
 on:
   pull_request:
@@ -181,14 +192,60 @@ jobs:
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+          RAILWAY_MANAGE_DB_SERVICE: ${{ vars.RAILWAY_MANAGE_DB_SERVICE || 'doltgres' }}
+          RAILWAY_RUN_DB_SERVICE: ${{ vars.RAILWAY_RUN_DB_SERVICE || 'postgres' }}
+          RAILWAY_MANAGE_DB_TCP_PORT: ${{ vars.RAILWAY_MANAGE_DB_TCP_PORT || '5432' }}
+          RAILWAY_RUN_DB_TCP_PORT: ${{ vars.RAILWAY_RUN_DB_TCP_PORT || '5432' }}
+          RAILWAY_SPICEDB_SERVICE: ${{ vars.RAILWAY_SPICEDB_SERVICE || 'spicedb' }}
+          RAILWAY_SPICEDB_TCP_PORT: ${{ vars.RAILWAY_SPICEDB_TCP_PORT || '50051' }}
+          RAILWAY_SPICEDB_PRESHARED_KEY_KEY: ${{ vars.RAILWAY_SPICEDB_PRESHARED_KEY_KEY || 'SPICEDB_GRPC_PRESHARED_KEY' }}
           RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
           RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
           RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
           RAILWAY_MANAGE_DB_URL_TEMPLATE: ${{ vars.RAILWAY_MANAGE_DB_URL_TEMPLATE || '' }}
           RAILWAY_RUN_DB_URL_TEMPLATE: ${{ vars.RAILWAY_RUN_DB_URL_TEMPLATE || '' }}
           RAILWAY_SPICEDB_ENDPOINT_TEMPLATE: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_TEMPLATE || '' }}
+          SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
         run: bash .github/scripts/preview/provision-railway.sh
+
+  bootstrap-preview-auth:
+    name: Bootstrap Preview Auth
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [compute-context, provision-tier1]
+    if: |
+      needs.compute-context.outputs.preview_enabled == 'true' &&
+      github.event.action != 'closed' &&
+      needs.compute-context.outputs.is_internal_pr == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install
+        uses: ./.github/composite-actions/install
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@4.31.0
+
+      - name: Seed preview admin user
+        env:
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
+          SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          SPICEDB_TLS_ENABLED: false
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+          RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
+          RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
+          SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
+          PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
+          TENANT_ID: default
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME }}
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD }}
+          BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
+        run: bash .github/scripts/preview/bootstrap-preview-auth.sh
 
   configure-vercel-preview:
     name: Inject Vercel Preview Env Vars
@@ -224,6 +281,8 @@ jobs:
           MANAGE_DB_URL: ${{ needs.provision-tier1.outputs.manage_db_url }}
           RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
           SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
+          SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           CI: true
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
@@ -251,7 +310,7 @@ jobs:
     name: Smoke Test Preview URLs
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [compute-context, provision-tier1, configure-vercel-preview]
+    needs: [compute-context, provision-tier1, bootstrap-preview-auth, configure-vercel-preview]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
       github.event.action != 'closed' &&
@@ -266,6 +325,9 @@ jobs:
         env:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+          TENANT_ID: default
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME }}
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD }}
         run: bash .github/scripts/preview/smoke-preview.sh
 
       - name: Capture preview failure diagnostics
@@ -273,6 +335,9 @@ jobs:
         env:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+          TENANT_ID: default
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME }}
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD }}
         run: bash .github/scripts/preview/capture-preview-failure-diagnostics.sh
 
       - name: Fetch Vercel runtime logs for API deployment

@@ -98,6 +98,13 @@ export async function buildCredentialsPayload(
     return undefined;
   }
 
+  if (typeof credentials.app_link === 'string' && credentials.app_link.trim()) {
+    const url = new URL(credentials.app_link.trim());
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      throw new Error('Only HTTP and HTTPS URLs are allowed for app_link');
+    }
+  }
+
   return { ...credentials, type: authMode } as ApiPublicIntegrationCredentials;
 }
 

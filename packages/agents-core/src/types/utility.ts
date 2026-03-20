@@ -265,6 +265,7 @@ export const CredentialStoreType = {
   memory: 'memory',
   keychain: 'keychain',
   nango: 'nango',
+  composio: 'composio',
 } as const;
 
 export interface CreateApiKeyParams {

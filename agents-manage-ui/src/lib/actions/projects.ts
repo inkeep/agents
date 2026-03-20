@@ -2,37 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import type { ProjectFormData } from '@/components/projects/form/validation';
-import { createProject, deleteProject, fetchProjects, updateProject } from '../api/projects';
+import { createProject, deleteProject, updateProject } from '../api/projects';
 import { ApiError } from '../types/errors';
 import type { Project } from '../types/project';
 import type { ActionResult } from './types';
-
-/**
- * Fetch all projects
- */
-export async function fetchProjectsAction(tenantId: string): Promise<ActionResult<Project[]>> {
-  try {
-    const result = await fetchProjects(tenantId);
-    return {
-      success: true,
-      data: result.data,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
 
 /**
  * Create a new project

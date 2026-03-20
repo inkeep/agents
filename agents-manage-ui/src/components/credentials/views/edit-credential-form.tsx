@@ -55,7 +55,7 @@ const normalizeMetadata = (metadata: Record<string, string>): string =>
       .map((key) => [key, metadata[key]])
   );
 
-const NANGO_AUTH_MODE_LABELS: Record<string, string> = {
+const AUTH_SCHEME_LABELS: Record<string, string> = {
   OAUTH2: 'OAuth 2.0',
   OAUTH1: 'OAuth 1.0',
   OAUTH2_CC: 'OAuth 2.0 (Client Credentials)',
@@ -63,6 +63,8 @@ const NANGO_AUTH_MODE_LABELS: Record<string, string> = {
   API_KEY: 'API Key',
   APP: 'App authentication',
   BASIC: 'Basic authentication',
+  BASIC_WITH_JWT: 'Basic + JWT authentication',
+  BEARER_TOKEN: 'Bearer token authentication',
   CUSTOM: 'Custom authentication',
   APP_STORE: 'App Store authentication',
   BILL: 'Bill authentication',
@@ -70,6 +72,7 @@ const NANGO_AUTH_MODE_LABELS: Record<string, string> = {
   JWT: 'JWT authentication',
   TWO_STEP: 'Two-step authentication',
   TABLEAU: 'Tableau authentication',
+  NO_AUTH: 'No authentication',
 };
 
 function getCredentialAuthenticationType(credential: Credential): string | undefined {
@@ -89,7 +92,15 @@ function getCredentialAuthenticationType(credential: Credential): string | undef
 
   if (credential.type === CredentialStoreType.nango && credential.retrievalParams?.authMode) {
     const authMode = credential.retrievalParams.authMode as string;
-    return NANGO_AUTH_MODE_LABELS[authMode] ?? authMode;
+    return AUTH_SCHEME_LABELS[authMode] ?? authMode;
+  }
+
+  if (credential.type === CredentialStoreType.composio) {
+    const authScheme = credential.retrievalParams?.authScheme as string | undefined;
+    if (authScheme) {
+      return AUTH_SCHEME_LABELS[authScheme] ?? authScheme;
+    }
+    return 'Composio';
   }
 
   if (
@@ -223,41 +234,42 @@ export function EditCredentialForm({
             </div>
 
             {/* Linked App Configuration */}
-            {nangoIntegration && (
-              <div className="space-y-3">
-                <Label>App configuration</Label>
-                <div className="rounded-lg border p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <ProviderIcon provider={nangoIntegration.provider} size={20} />
-                    <span className="text-sm font-medium">{nangoIntegration.provider}</span>
+            {nangoIntegration &&
+              !['mcp-generic', 'private-api-bearer'].includes(nangoIntegration.provider) && (
+                <div className="space-y-3">
+                  <Label>App configuration</Label>
+                  <div className="rounded-lg border p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ProviderIcon provider={nangoIntegration.provider} size={20} />
+                      <span className="text-sm font-medium">{nangoIntegration.provider}</span>
+                    </div>
+                    {nangoIntegration.maskedCredentials?.client_id && (
+                      <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
+                        <span className="shrink-0">Client ID:</span>
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded truncate">
+                          {nangoIntegration.maskedCredentials.client_id}
+                        </code>
+                      </div>
+                    )}
+                    {nangoIntegration.maskedCredentials?.client_secret && (
+                      <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
+                        <span className="shrink-0">Secret:</span>
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                          {nangoIntegration.maskedCredentials.client_secret}
+                        </code>
+                      </div>
+                    )}
+                    {nangoIntegration.maskedCredentials?.app_id && (
+                      <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
+                        <span className="shrink-0">App ID:</span>
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                          {nangoIntegration.maskedCredentials.app_id}
+                        </code>
+                      </div>
+                    )}
                   </div>
-                  {nangoIntegration.maskedCredentials?.client_id && (
-                    <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
-                      <span className="shrink-0">Client ID:</span>
-                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded truncate">
-                        {nangoIntegration.maskedCredentials.client_id}
-                      </code>
-                    </div>
-                  )}
-                  {nangoIntegration.maskedCredentials?.client_secret && (
-                    <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
-                      <span className="shrink-0">Secret:</span>
-                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                        {nangoIntegration.maskedCredentials.client_secret}
-                      </code>
-                    </div>
-                  )}
-                  {nangoIntegration.maskedCredentials?.app_id && (
-                    <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
-                      <span className="shrink-0">App ID:</span>
-                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                        {nangoIntegration.maskedCredentials.app_id}
-                      </code>
-                    </div>
-                  )}
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Created By Display */}
             {credential.createdBy && (
@@ -305,6 +317,7 @@ export function EditCredentialForm({
               externalAgents={credential.externalAgents}
               tenantId={tenantId}
               projectId={projectId}
+              toolId={credential.toolId || undefined}
             />
           </div>
 

@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useScopeSelection } from '@/hooks/use-scope-selection';
 import type { Credential } from '@/lib/api/credentials';
-import { getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { createMCPTool } from '@/lib/api/tools';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
@@ -95,32 +94,9 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
 
       const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
 
-      // proceed with OAuth flow
-      const isThirdPartyServer = serverUrl.includes('composio.dev');
-
       if (server.isOpen) {
         toast.success(`${server.name} MCP server created successfully`);
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
-      } else if (isThirdPartyServer) {
-        const credentialScopedRedirectUrl = await getThirdPartyOAuthRedirectUrl(
-          tenantId,
-          projectId,
-          serverUrl,
-          scope
-        );
-        if (credentialScopedRedirectUrl) {
-          handleOAuthLogin({
-            toolId: newTool.id,
-            mcpServerUrl: serverUrl,
-            toolName: mcpServerName,
-            thirdPartyConnectAccountUrl: credentialScopedRedirectUrl,
-            credentialScope: scope,
-          });
-        } else {
-          // Fallback: redirect to detail page if we couldn't get the OAuth URL
-          toast.error(`Failed to get OAuth URL. Please try connecting from the detail page.`);
-          router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
-        }
       } else {
         handleOAuthLogin({
           toolId: newTool.id,

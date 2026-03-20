@@ -1,6 +1,6 @@
-import { ALLOWED_IMAGE_MIME_TYPES } from '@inkeep/agents-core/constants/allowed-image-formats';
+import { ALLOWED_IMAGE_MIME_TYPES } from '@inkeep/agents-core/constants/allowed-file-formats';
 
-export const MAX_EXTERNAL_IMAGE_BYTES = 10 * 1024 * 1024;
+export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 export const EXTERNAL_FETCH_TIMEOUT_MS = 10_000;
 

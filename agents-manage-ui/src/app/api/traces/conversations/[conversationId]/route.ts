@@ -1244,10 +1244,6 @@ function buildConversationListPayload(
 
 // ---------- Main handler
 
-type RouteContext<_T> = {
-  params: Promise<Record<string, string>>;
-};
-
 export async function GET(
   req: NextRequest,
   context: RouteContext<'/api/traces/conversations/[conversationId]'>
