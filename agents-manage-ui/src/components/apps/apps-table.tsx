@@ -14,12 +14,12 @@ import type { App } from '@/lib/api/apps';
 import type { Agent } from '@/lib/types/agent-full';
 import { formatDateAgo } from '@/lib/utils/format-date';
 import { AppItemMenu } from './app-item-menu';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 
 interface AppsTableProps {
   apps: App[];
   agentLookup: Record<string, Agent>;
   agentOptions: SelectOption[];
-  canUse: boolean;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -53,8 +53,11 @@ function AppIdCell({ appId }: { appId: string }) {
   );
 }
 
-export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTableProps) {
+export function AppsTable({ apps, agentLookup, agentOptions }: AppsTableProps) {
   const { tenantId } = useParams<{ tenantId: string }>();
+  const {
+    data: { canUse },
+  } = useProjectPermissionsQuery();
 
   const columns = useMemo<ColumnDef<App>[]>(
     () => [
