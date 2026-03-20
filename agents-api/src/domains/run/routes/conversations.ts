@@ -16,6 +16,7 @@ import {
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { resolveMessagesListBlobUris } from '../services/blob-storage/resolve-blob-uris';
 
 const logger = getLogger('run-conversations');
 
@@ -93,8 +94,16 @@ function toVercelMessage(msg: {
           (parsed as Record<string, unknown>).toolCallId;
         parts.push({ type: isArtifact ? 'data-artifact' : 'data-component', data: parsed });
       } else if (kind === 'file') {
-        const { kind: _k, type: _t, ...rest } = p as Record<string, unknown>;
-        parts.push({ type: 'file', ...rest });
+        const url = typeof p.data === 'string' ? p.data : undefined;
+        const meta = p.metadata as Record<string, unknown> | undefined;
+        const mediaType = typeof meta?.mimeType === 'string' ? meta.mimeType : undefined;
+        const filename = typeof meta?.filename === 'string' ? meta.filename : undefined;
+        parts.push({
+          type: 'file',
+          ...(url && { url }),
+          ...(mediaType && { mediaType }),
+          ...(filename && { filename }),
+        });
       }
     }
   }
@@ -333,11 +342,15 @@ app.openapi(
       }),
     ]);
 
-    const formattedMessages = messageList.map((msg) =>
+    const resolvedMessages = resolveMessagesListBlobUris(
+      messageList.map((msg) => ({ ...msg, content: msg.content as MessageContent }))
+    );
+
+    const formattedMessages = resolvedMessages.map((msg) =>
       toVercelMessage({
         id: msg.id,
         role: msg.role,
-        content: msg.content as MessageContent,
+        content: msg.content,
         createdAt: msg.createdAt,
       })
     );
