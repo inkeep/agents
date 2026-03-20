@@ -19,7 +19,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
-import { useUserScopedCredentialQuery } from '@/lib/query/credentials';
+import type { Credential } from '@/lib/api/credentials';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { MCPTool } from '@/lib/types/tools';
 import { Button } from '../ui/button';
@@ -38,10 +38,12 @@ import {
 
 export function ViewMCPServerDetailsUserScope({
   tool,
+  userCredential,
   tenantId,
   projectId,
 }: {
   tool: MCPTool;
+  userCredential: Credential | null;
   tenantId: string;
   projectId: string;
 }) {
@@ -59,10 +61,6 @@ export function ViewMCPServerDetailsUserScope({
   });
 
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
-
-  const { data: userCredential, isFetching: isLoadingCredential } = useUserScopedCredentialQuery({
-    toolId: tool.id,
-  });
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -118,13 +116,11 @@ export function ViewMCPServerDetailsUserScope({
       </div>
 
       {/* Your Connection */}
-      {(isLoadingCredential || userCredential || tool.status === 'needs_auth') && (
+      {(userCredential || tool.status === 'needs_auth') && (
         <div className="space-y-2">
           <ItemLabel>Your Connection</ItemLabel>
 
-          {isLoadingCredential ? (
-            <p className="text-sm text-muted-foreground">Checking your connection status...</p>
-          ) : userCredential ? (
+          {userCredential ? (
             <ItemCardRoot>
               <ItemCardHeader>
                 <ItemCardLink
