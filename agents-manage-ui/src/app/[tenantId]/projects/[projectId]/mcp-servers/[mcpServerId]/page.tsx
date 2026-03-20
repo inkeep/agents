@@ -1,7 +1,7 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ViewMCPServerDetailsProjectScope } from '@/components/mcp-servers/view-mcp-server-details-project-scope';
 import { ViewMCPServerDetailsUserScope } from '@/components/mcp-servers/view-mcp-server-details-user-scope';
-import { fetchCredential } from '@/lib/api/credentials';
+import { fetchCredential, fetchUserScopedCredential } from '@/lib/api/credentials';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -14,8 +14,15 @@ async function MCPPage({
     const tool = await fetchMCPTool(tenantId, projectId, mcpServerId);
 
     if (tool.credentialScope === 'user') {
+      const userCredential = await fetchUserScopedCredential(tenantId, projectId, tool.id);
+
       return (
-        <ViewMCPServerDetailsUserScope tool={tool} tenantId={tenantId} projectId={projectId} />
+        <ViewMCPServerDetailsUserScope
+          tool={tool}
+          userCredential={userCredential}
+          tenantId={tenantId}
+          projectId={projectId}
+        />
       );
     }
 
