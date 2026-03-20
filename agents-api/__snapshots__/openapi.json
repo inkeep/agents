@@ -39050,6 +39050,14 @@
           },
           {
             "in": "query",
+            "name": "conversationId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "from",
             "required": true,
             "schema": {
@@ -39230,7 +39238,9 @@
                 "model",
                 "agent",
                 "day",
-                "generation_type"
+                "generation_type",
+                "conversation",
+                "message"
               ],
               "type": "string"
             }

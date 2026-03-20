@@ -1152,6 +1152,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
                   tenantId: this.executionContext.tenantId,
                   projectId: this.executionContext.projectId,
                   agentId: this.executionContext.agentId,
+                  subAgentId: this.executionContext.subAgentId,
+                  conversationId: this.contextId,
                   generationType: 'status_update' as const,
                 }
               : null;
@@ -1715,6 +1717,8 @@ Make the name extremely specific to what this tool call actually returned, not g
                         tenantId: this.executionContext.tenantId,
                         projectId: this.executionContext.projectId,
                         agentId: this.executionContext.agentId,
+                        subAgentId: this.executionContext.subAgentId,
+                        conversationId: this.contextId,
                         generationType: 'artifact_metadata' as const,
                       }
                     : null;

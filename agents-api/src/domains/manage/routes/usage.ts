@@ -17,7 +17,10 @@ const UsageSummaryQuerySchema = z.object({
   projectId: z.string().optional(),
   from: z.string(),
   to: z.string(),
-  groupBy: z.enum(['model', 'agent', 'day', 'generation_type']).default('model').optional(),
+  groupBy: z
+    .enum(['model', 'agent', 'day', 'generation_type', 'conversation', 'message'])
+    .default('model')
+    .optional(),
 });
 
 const UsageSummaryRowSchema = z.object({
@@ -99,6 +102,7 @@ app.openapi(
 
 const UsageEventsQuerySchema = z.object({
   projectId: z.string().optional(),
+  conversationId: z.string().optional(),
   from: z.string(),
   to: z.string(),
   agentId: z.string().optional(),
@@ -206,6 +210,7 @@ app.openapi(
     const result = await queryUsageEvents(runDbClient)({
       tenantId,
       projectId: query.projectId,
+      conversationId: query.conversationId,
       agentId: query.agentId,
       model: query.model,
       generationType: query.generationType as any,

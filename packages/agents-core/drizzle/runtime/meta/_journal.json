@@ -176,6 +176,13 @@
       "when": 1773943475742,
       "tag": "0024_naive_robin_chapel",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1773954525735,
+      "tag": "0025_redundant_newton_destine",
+      "breakpoints": true
     }
   ]
 }

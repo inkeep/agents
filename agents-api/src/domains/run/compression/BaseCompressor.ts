@@ -64,6 +64,7 @@ export abstract class BaseCompressor {
     protected conversationId: string,
     protected tenantId: string,
     protected projectId: string,
+    protected agentId: string,
     protected config: CompressionConfig,
     protected summarizerModel?: ModelSettings,
     protected baseModel?: ModelSettings
@@ -514,6 +515,12 @@ export abstract class BaseCompressor {
       messageFormatter: (maxChars) =>
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
       compressionCycle,
+      usageContext: {
+        tenantId: this.tenantId,
+        projectId: this.projectId,
+        agentId: this.agentId,
+        generationType: 'mid_generation_compression',
+      },
     });
 
     logger.info(

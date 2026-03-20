@@ -667,6 +667,17 @@ export type GenerationType =
 
 export type UsageEventStatus = 'succeeded' | 'failed' | 'timeout';
 
+export interface StepUsage {
+  stepIndex: number;
+  inputTokens: number;
+  outputTokens: number;
+  reasoningTokens?: number;
+  cachedReadTokens?: number;
+  cachedWriteTokens?: number;
+  finishReason?: string;
+  toolCalls?: string[];
+}
+
 export const usageEvents = pgTable(
   'usage_events',
   {
@@ -698,6 +709,7 @@ export const usageEvents = pgTable(
     cachedWriteTokens: integer('cached_write_tokens'),
 
     stepCount: integer('step_count').notNull().default(1),
+    steps: jsonb('steps').$type<StepUsage[]>(),
 
     estimatedCostUsd: numeric('estimated_cost_usd', { precision: 20, scale: 8 }),
 

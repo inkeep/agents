@@ -1,9 +1,12 @@
 'use client';
 
-import { Coins, Hash, Layers, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Coins, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -14,8 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { UsageSummaryRow } from '@/lib/api/usage';
-import { fetchUsageSummary } from '@/lib/api/usage';
+import type { UsageEvent, UsageSummaryRow } from '@/lib/api/usage';
+import { fetchUsageEvents, fetchUsageSummary } from '@/lib/api/usage';
+import { formatDateAgo } from '@/lib/utils/format-date';
 
 export function formatCost(cost: number): string {
   if (cost === 0) return '$0.00';
@@ -90,31 +94,6 @@ export function UsageDashboard({ tenantId, projectId, startTime, endTime }: Usag
     <>
       <UsageStatCards totals={totals} modelCount={summaryByModel.length} isLoading={isLoading} />
 
-      {chartData.length > 0 && (
-        <AreaChartCard
-          title="Token Usage Over Time"
-          config={{ tokens: { color: 'var(--chart-1)', label: 'Tokens' } }}
-          data={chartData}
-          dataKeyOne="tokens"
-          xAxisDataKey="date"
-          isLoading={isLoading}
-          tickFormatter={(value: string) => {
-            try {
-              const [y, m, d] = value.split('-').map(Number);
-              return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-              });
-            } catch {
-              return value;
-            }
-          }}
-          yAxisTickFormatter={(value: number | string) =>
-            formatTokens(typeof value === 'string' ? Number.parseInt(value, 10) : value)
-          }
-        />
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <UsageBreakdownTable title="Usage by Model" data={summaryByModel} isLoading={isLoading} />
         <UsageBreakdownTable
@@ -124,6 +103,45 @@ export function UsageDashboard({ tenantId, projectId, startTime, endTime }: Usag
           formatGroupKey={(key) => key.replace(/_/g, ' ')}
           groupLabel="Generation Type"
         />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="min-h-0">
+          {chartData.length > 0 && (
+            <AreaChartCard
+              title="Token Usage Over Time"
+              className="h-full"
+              chartContainerClassName="h-full min-h-[300px] w-full"
+              config={{ tokens: { color: 'var(--chart-1)', label: 'Tokens' } }}
+              data={chartData}
+              dataKeyOne="tokens"
+              xAxisDataKey="date"
+              isLoading={isLoading}
+              tickFormatter={(value: string) => {
+                try {
+                  const [y, m, d] = value.split('-').map(Number);
+                  return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                  });
+                } catch {
+                  return value;
+                }
+              }}
+              yAxisTickFormatter={(value: number | string) =>
+                formatTokens(typeof value === 'string' ? Number.parseInt(value, 10) : value)
+              }
+            />
+          )}
+        </div>
+        <div>
+          <UsageEventsTable
+            tenantId={tenantId}
+            projectId={projectId}
+            startTime={startTime}
+            endTime={endTime}
+          />
+        </div>
       </div>
     </>
   );
@@ -213,6 +231,170 @@ function UsageBreakdownTable({
               ))}
             </TableBody>
           </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  succeeded: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  timeout: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+};
+
+function UsageEventsTable({
+  tenantId,
+  projectId,
+  startTime,
+  endTime,
+}: {
+  tenantId: string;
+  projectId?: string;
+  startTime: string;
+  endTime: string;
+}) {
+  const [events, setEvents] = useState<UsageEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [prevCursors, setPrevCursors] = useState<string[]>([]);
+
+  const loadEvents = useCallback(
+    async (cursor?: string) => {
+      setIsLoading(true);
+      try {
+        const result = await fetchUsageEvents({
+          tenantId,
+          projectId,
+          from: startTime,
+          to: endTime,
+          cursor,
+          limit: 25,
+        });
+        setEvents(result.data);
+        setNextCursor(result.nextCursor);
+      } catch (error) {
+        console.error('Failed to fetch usage events:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [tenantId, projectId, startTime, endTime]
+  );
+
+  useEffect(() => {
+    setPrevCursors([]);
+    loadEvents();
+  }, [loadEvents]);
+
+  const handleNextPage = () => {
+    if (!nextCursor) return;
+    const currentFirst = events[0]?.createdAt;
+    if (currentFirst) setPrevCursors((prev) => [...prev, currentFirst]);
+    loadEvents(nextCursor);
+  };
+
+  const handlePrevPage = () => {
+    if (prevCursors.length === 0) return;
+    const prev = [...prevCursors];
+    prev.pop();
+    setPrevCursors(prev);
+    loadEvents(prev.length > 0 ? prev[prev.length - 1] : undefined);
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Usage Events</CardTitle>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrevPage}
+            disabled={prevCursors.length === 0 || isLoading}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextPage}
+            disabled={!nextCursor || isLoading}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-64 w-full" />
+        ) : events.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No usage events for this period</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Model</TableHead>
+                  <TableHead>Agent</TableHead>
+                  <TableHead>Sub Agent</TableHead>
+                  <TableHead className="text-right">In</TableHead>
+                  <TableHead className="text-right">Out</TableHead>
+                  <TableHead className="text-right">Cost</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Conversation</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {events.map((event) => (
+                  <TableRow key={event.requestId}>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDateAgo(event.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {event.generationType.replace(/_/g, ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {event.resolvedModel ?? event.requestedModel}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{event.agentId}</TableCell>
+                    <TableCell className="font-mono text-xs">{event.subAgentId ?? '—'}</TableCell>
+                    <TableCell className="text-right">{formatTokens(event.inputTokens)}</TableCell>
+                    <TableCell className="text-right">{formatTokens(event.outputTokens)}</TableCell>
+                    <TableCell className="text-right">
+                      {event.estimatedCostUsd
+                        ? formatCost(Number.parseFloat(event.estimatedCostUsd))
+                        : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[event.status] ?? ''}`}
+                      >
+                        {event.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {event.conversationId ? (
+                        <Link
+                          href={`/${tenantId}/projects/${event.projectId}/traces/conversations/${event.conversationId}`}
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View trace
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

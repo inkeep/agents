@@ -4,6 +4,7 @@ import type { Part } from '@inkeep/agents-core';
 import {
   Activity,
   ArrowLeft,
+  Coins,
   ExternalLink as ExternalLinkIcon,
   MessageSquare,
   TriangleAlert,
@@ -28,6 +29,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
+import type { UsageEvent } from '@/lib/api/usage';
+import { fetchUsageEvents } from '@/lib/api/usage';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import {
@@ -43,6 +46,7 @@ export default function ConversationDetail({
 
   const router = useRouter();
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
+  const [usageEvents, setUsageEvents] = useState<UsageEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
@@ -206,13 +210,24 @@ export default function ConversationDetail({
         setLoading(true);
         setError(null);
 
-        const response = await fetch(
-          `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
-        );
+        const [traceResponse, usageResult] = await Promise.all([
+          fetch(
+            `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
+          ),
+          fetchUsageEvents({
+            tenantId,
+            projectId,
+            conversationId,
+            from: '2020-01-01T00:00:00Z',
+            to: new Date().toISOString(),
+            limit: 200,
+          }).catch(() => ({ data: [] as UsageEvent[], nextCursor: null })),
+        ]);
 
-        if (!response.ok) throw new Error('Failed to fetch conversation details');
-        const data = await response.json();
+        if (!traceResponse.ok) throw new Error('Failed to fetch conversation details');
+        const data = await traceResponse.json();
         setConversation(data);
+        setUsageEvents(usageResult.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -401,6 +416,56 @@ export default function ConversationDetail({
                 </div>
               );
             })()}
+          </CardContent>
+        </Card>
+
+        {/* Usage Cost */}
+        <Card className="shadow-none bg-background max-h-[280px] flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
+            <CardTitle className="text-sm font-medium text-foreground">Usage Cost</CardTitle>
+            <Coins className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 overflow-y-auto">
+            {usageEvents.length > 0 ? (
+              <div className="space-y-3">
+                <div className="text-2xl font-bold text-foreground mb-2">
+                  {(() => {
+                    const total = usageEvents.reduce(
+                      (sum, e) =>
+                        sum + (e.estimatedCostUsd ? Number.parseFloat(e.estimatedCostUsd) : 0),
+                      0
+                    );
+                    return total < 0.01 ? `$${total.toFixed(6)}` : `$${total.toFixed(2)}`;
+                  })()}
+                </div>
+                {usageEvents.map((event) => (
+                  <div key={event.requestId} className="border border-border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-foreground">
+                        {event.generationType.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-xs font-mono text-foreground">
+                        {event.estimatedCostUsd
+                          ? `$${Number.parseFloat(event.estimatedCostUsd).toFixed(4)}`
+                          : '—'}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <InfoRow
+                        label="Tokens"
+                        value={`${(event.inputTokens ?? 0).toLocaleString()} in / ${(event.outputTokens ?? 0).toLocaleString()} out`}
+                      />
+                      <InfoRow label="Model" value={event.resolvedModel ?? event.requestedModel} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-muted-foreground mb-1">—</div>
+                <p className="text-xs text-muted-foreground">No usage data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

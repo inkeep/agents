@@ -61,6 +61,7 @@ export async function fetchUsageSummary(params: {
 export async function fetchUsageEvents(params: {
   tenantId: string;
   projectId?: string;
+  conversationId?: string;
   from: string;
   to: string;
   agentId?: string;
@@ -73,6 +74,7 @@ export async function fetchUsageEvents(params: {
   searchParams.set('tenantId', params.tenantId);
   searchParams.set('endpoint', 'events');
   if (params.projectId) searchParams.set('projectId', params.projectId);
+  if (params.conversationId) searchParams.set('conversationId', params.conversationId);
   searchParams.set('from', params.from);
   searchParams.set('to', params.to);
   if (params.agentId) searchParams.set('agentId', params.agentId);

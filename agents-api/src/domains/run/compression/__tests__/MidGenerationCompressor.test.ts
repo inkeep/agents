@@ -85,6 +85,7 @@ describe('MidGenerationCompressor', () => {
       'conv-456',
       'tenant-789',
       'project-abc',
+      'agent-def',
       { hardLimit: 100000, safetyBuffer: 10000, enabled: true }
     );
   });

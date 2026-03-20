@@ -267,6 +267,13 @@ export function TimelineItem({
                 <Streamdown>{activity.description}</Streamdown>
               </span>
             </button>
+            {activity.costUsd != null && (
+              <span className="flex-shrink-0 text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                {activity.costUsd < 0.01
+                  ? `$${activity.costUsd.toFixed(6)}`
+                  : `$${activity.costUsd.toFixed(4)}`}
+              </span>
+            )}
             {hasChildren && onToggleCollapse && (
               <button
                 type="button"

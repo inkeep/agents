@@ -2119,6 +2119,42 @@ export async function GET(
       totalOpenAICalls: openAICallsCount,
     };
 
+    // Enrich activities with usage cost data (best-effort)
+    try {
+      const agentsApiUrl = getAgentsApiUrl();
+      const usageParams = new URLSearchParams({
+        conversationId,
+        from: '2020-01-01T00:00:00Z',
+        to: new Date().toISOString(),
+        limit: '200',
+      });
+      const usageHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (cookieHeader) usageHeaders.Cookie = cookieHeader;
+      if (authHeader) usageHeaders.Authorization = authHeader;
+      const bypassSecret = process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
+      if (bypassSecret) usageHeaders.Authorization = `Bearer ${bypassSecret}`;
+
+      const usageResp = await axios.get(
+        `${agentsApiUrl}/manage/tenants/${tenantId}/usage/events?${usageParams}`,
+        { headers: usageHeaders, timeout: 5000 }
+      );
+
+      const costBySpanId = new Map<string, number>();
+      for (const event of usageResp.data?.data ?? []) {
+        if (event.spanId && event.estimatedCostUsd) {
+          costBySpanId.set(event.spanId, Number.parseFloat(event.estimatedCostUsd));
+        }
+      }
+      for (const activity of activities) {
+        const cost = costBySpanId.get(activity.id) ?? costBySpanId.get(activity.parentSpanId ?? '');
+        if (cost != null) {
+          (activity as any).costUsd = cost;
+        }
+      }
+    } catch {
+      // Usage cost enrichment is best-effort
+    }
+
     return NextResponse.json({
       ...conversation,
       activities,

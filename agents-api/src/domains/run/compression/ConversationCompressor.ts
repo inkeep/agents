@@ -26,6 +26,7 @@ export class ConversationCompressor extends BaseCompressor {
     conversationId: string,
     tenantId: string,
     projectId: string,
+    agentId: string,
     options?: {
       config?: CompressionConfig;
       summarizerModel?: ModelSettings;
@@ -40,6 +41,7 @@ export class ConversationCompressor extends BaseCompressor {
       conversationId,
       tenantId,
       projectId,
+      agentId,
       compressionConfig,
       options?.summarizerModel,
       options?.baseModel
@@ -150,6 +152,12 @@ export class ConversationCompressor extends BaseCompressor {
       currentSummary: this.priorSummary,
       messageFormatter: (maxChars) =>
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
+      usageContext: {
+        tenantId: this.tenantId,
+        projectId: this.projectId,
+        agentId: this.agentId,
+        generationType: 'conversation_compression',
+      },
     });
   }
 }

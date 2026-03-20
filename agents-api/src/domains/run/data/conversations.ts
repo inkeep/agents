@@ -612,6 +612,7 @@ async function performActualCompression(
     conversationId: string;
     tenantId: string;
     projectId: string;
+    agentId?: string;
     summarizerModel: any;
     baseModel?: any;
     streamRequestId?: string;
@@ -623,6 +624,7 @@ async function performActualCompression(
     conversationId,
     tenantId,
     projectId,
+    agentId,
     summarizerModel,
     baseModel,
     priorSummary,
@@ -636,6 +638,7 @@ async function performActualCompression(
     conversationId,
     tenantId,
     projectId,
+    agentId ?? 'unknown',
     { summarizerModel, baseModel, priorSummary }
   );
 

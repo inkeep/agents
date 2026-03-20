@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import type { GenerationType, UsageEventStatus } from '../../db/runtime/runtime-schema';
+import type { GenerationType, StepUsage, UsageEventStatus } from '../../db/runtime/runtime-schema';
 import { usageEvents } from '../../db/runtime/runtime-schema';
 
 export interface UsageEventInsert {
@@ -22,6 +22,7 @@ export interface UsageEventInsert {
   cachedReadTokens?: number | null;
   cachedWriteTokens?: number | null;
   stepCount?: number;
+  steps?: StepUsage[] | null;
   estimatedCostUsd?: string | null;
   streamed?: boolean;
   finishReason?: string | null;
@@ -37,6 +38,7 @@ export interface UsageEventQueryParams {
   tenantId: string;
   projectId?: string;
   agentId?: string;
+  conversationId?: string;
   model?: string;
   generationType?: GenerationType;
   from: string;
@@ -45,7 +47,13 @@ export interface UsageEventQueryParams {
   limit?: number;
 }
 
-export type UsageSummaryGroupBy = 'model' | 'agent' | 'day' | 'generation_type';
+export type UsageSummaryGroupBy =
+  | 'model'
+  | 'agent'
+  | 'day'
+  | 'generation_type'
+  | 'conversation'
+  | 'message';
 
 export interface UsageSummaryParams {
   tenantId: string;
@@ -81,6 +89,8 @@ export const queryUsageEvents =
 
     if (params.projectId) conditions.push(eq(usageEvents.projectId, params.projectId));
     if (params.agentId) conditions.push(eq(usageEvents.agentId, params.agentId));
+    if (params.conversationId)
+      conditions.push(eq(usageEvents.conversationId, params.conversationId));
     if (params.model) conditions.push(eq(usageEvents.resolvedModel, params.model));
     if (params.generationType)
       conditions.push(eq(usageEvents.generationType, params.generationType));
@@ -120,7 +130,11 @@ export const queryUsageSummary =
           ? usageEvents.agentId
           : groupBy === 'generation_type'
             ? usageEvents.generationType
-            : sql<string>`date_trunc('day', ${usageEvents.createdAt})::text`;
+            : groupBy === 'conversation'
+              ? usageEvents.conversationId
+              : groupBy === 'message'
+                ? usageEvents.messageId
+                : sql<string>`date_trunc('day', ${usageEvents.createdAt})::text`;
 
     const rows = await db
       .select({

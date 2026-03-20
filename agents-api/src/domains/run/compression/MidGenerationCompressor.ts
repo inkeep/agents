@@ -36,6 +36,7 @@ export class MidGenerationCompressor extends BaseCompressor {
     conversationId: string,
     tenantId: string,
     projectId: string,
+    agentId: string,
     config?: CompressionConfig,
     summarizerModel?: ModelSettings,
     baseModel?: ModelSettings
@@ -47,6 +48,7 @@ export class MidGenerationCompressor extends BaseCompressor {
       conversationId,
       tenantId,
       projectId,
+      agentId,
       compressionConfig,
       summarizerModel,
       baseModel

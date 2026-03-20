@@ -3,7 +3,7 @@ import { SPAN_KEYS } from '../constants/otel-attributes';
 import type { UsageEventInsert } from '../data-access/runtime/usageEvents';
 import { insertUsageEvent } from '../data-access/runtime/usageEvents';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
-import type { GenerationType } from '../db/runtime/runtime-schema';
+import type { GenerationType, StepUsage } from '../db/runtime/runtime-schema';
 import { getLogger } from './logger';
 import { ModelFactory } from './model-factory';
 import type { TokenUsage } from './pricing-service';
@@ -42,14 +42,33 @@ interface AiSdkUsage {
   };
 }
 
+interface AiSdkStep {
+  usage?: AiSdkUsage;
+  finishReason?: string;
+  toolCalls?: Array<{ toolName?: string }>;
+}
+
 interface AiSdkResponse {
   usage?: AiSdkUsage;
   totalUsage?: AiSdkUsage;
   response?: {
     modelId?: string;
   };
-  steps?: unknown[];
+  steps?: AiSdkStep[];
   finishReason?: string;
+}
+
+function extractSteps(steps: AiSdkStep[]): StepUsage[] {
+  return steps.map((step, i) => ({
+    stepIndex: i,
+    inputTokens: step.usage?.inputTokens ?? step.usage?.promptTokens ?? 0,
+    outputTokens: step.usage?.outputTokens ?? step.usage?.completionTokens ?? 0,
+    reasoningTokens: step.usage?.outputTokenDetails?.reasoningTokens ?? undefined,
+    cachedReadTokens: step.usage?.inputTokenDetails?.cacheReadTokens ?? undefined,
+    cachedWriteTokens: step.usage?.inputTokenDetails?.cacheWriteTokens ?? undefined,
+    finishReason: step.finishReason,
+    toolCalls: step.toolCalls?.map((tc) => tc.toolName).filter(Boolean) as string[] | undefined,
+  }));
 }
 
 function extractUsage(response: AiSdkResponse) {
@@ -61,6 +80,10 @@ function extractUsage(response: AiSdkResponse) {
     cachedReadTokens: usage?.inputTokenDetails?.cacheReadTokens ?? undefined,
     cachedWriteTokens: usage?.inputTokenDetails?.cacheWriteTokens ?? undefined,
     stepCount: Array.isArray(response.steps) ? response.steps.length : 1,
+    steps:
+      Array.isArray(response.steps) && response.steps.length > 1
+        ? extractSteps(response.steps)
+        : undefined,
     resolvedModel: response.response?.modelId ?? undefined,
   };
 }
@@ -104,6 +127,7 @@ function persistEvent(
     cachedReadTokens?: number;
     cachedWriteTokens?: number;
     stepCount?: number;
+    steps?: StepUsage[];
     streamed?: boolean;
     finishReason?: string;
     generationDurationMs?: number;
@@ -136,6 +160,10 @@ function persistEvent(
   const estimatedCostUsd = pricing ? pricingService.calculateCost(tokenUsage, pricing) : null;
 
   const activeSpan = trace.getActiveSpan();
+  const spanContext = activeSpan?.spanContext();
+  const traceId = spanContext?.traceId;
+  const spanId = spanContext?.spanId;
+
   if (activeSpan) {
     activeSpan.setAttributes({
       [SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS]: inputTokens,
@@ -170,6 +198,8 @@ function persistEvent(
     conversationId: context.conversationId ?? null,
     messageId: context.messageId ?? null,
     generationType: context.generationType,
+    traceId: traceId ?? null,
+    spanId: spanId ?? null,
     requestedModel,
     resolvedModel: opts.resolvedModel ?? null,
     provider,
@@ -179,6 +209,7 @@ function persistEvent(
     cachedReadTokens: opts.cachedReadTokens ?? null,
     cachedWriteTokens: opts.cachedWriteTokens ?? null,
     stepCount: opts.stepCount ?? 1,
+    steps: opts.steps ?? null,
     estimatedCostUsd: estimatedCostUsd?.toFixed(8) ?? null,
     streamed: opts.streamed ?? false,
     finishReason: opts.finishReason ?? null,
@@ -215,6 +246,7 @@ export async function trackedGenerate<T extends AiSdkResponse>(
       cachedReadTokens: usageData.cachedReadTokens,
       cachedWriteTokens: usageData.cachedWriteTokens,
       stepCount: usageData.stepCount,
+      steps: usageData.steps,
       finishReason: result.finishReason,
       generationDurationMs: durationMs,
       status: result.finishReason === 'other' ? 'timeout' : 'succeeded',
