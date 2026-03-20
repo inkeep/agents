@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.59.1
+
+### Patch Changes
+
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+
 ## 0.59.0
 
 ### Minor Changes
