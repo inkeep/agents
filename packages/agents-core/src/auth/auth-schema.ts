@@ -103,6 +103,7 @@ export const organization = pgTable(
     createdAt: timestamp('created_at').notNull(),
     metadata: text('metadata'),
     preferredAuthMethod: text('preferred_auth_method'),
+    allowedAuthMethods: text('allowed_auth_methods'),
     serviceAccountUserId: text('service_account_user_id'),
   },
   (table) => [uniqueIndex('organization_slug_uidx').on(table.slug)]

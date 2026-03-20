@@ -46,8 +46,17 @@ Cypress.Commands.add('login', (email?: string, password?: string) => {
     () => {
       cy.log(`🔐 Performing login for ${loginEmail}`);
       cy.visit('/login');
+
       cy.get('#email', { timeout: 10000 }).should('be.visible').type(loginEmail, { delay: 0 });
-      cy.get('#password').should('be.visible').type(loginPassword, { delay: 0 });
+      cy.get('button[type="submit"]').contains('Continue').click();
+
+      cy.contains('button', 'Continue with email and password', { timeout: 10000 })
+        .should('be.visible')
+        .click();
+
+      cy.get('#password', { timeout: 10000 })
+        .should('be.visible')
+        .type(loginPassword, { delay: 0 });
       cy.get('button[type="submit"]').contains('Sign in').click();
 
       // Wait for redirect after successful login to a projects page

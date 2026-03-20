@@ -25,7 +25,10 @@ function isPublicPath(pathname: string): boolean {
 
 function redirectToLogin(request: NextRequest): NextResponse {
   const loginUrl = new URL('/login', request.url);
-  loginUrl.searchParams.set('returnUrl', request.nextUrl.pathname + request.nextUrl.search);
+  const returnPath = request.nextUrl.pathname + request.nextUrl.search;
+  if (returnPath !== '/') {
+    loginUrl.searchParams.set('returnUrl', returnPath);
+  }
   return NextResponse.redirect(loginUrl);
 }
 
