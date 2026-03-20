@@ -15,14 +15,7 @@ export const metadata = {
 
 export default async function EditScheduledTriggerPage({
   params,
-}: {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    scheduledTriggerId: string;
-  }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/triggers/scheduled/[agentId]/[scheduledTriggerId]/edit'>) {
   const { tenantId, projectId, agentId, scheduledTriggerId } = await params;
 
   // Fetch agent to verify it exists

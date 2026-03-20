@@ -15,12 +15,10 @@ export const metadata = {
 export default async function InvocationsPage({
   params,
   searchParams,
-}: {
-  params: Promise<{ tenantId: string; projectId: string; agentId: string; triggerId: string }>;
-  searchParams: Promise<{ status?: 'pending' | 'success' | 'failed'; page?: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/triggers/webhooks/[agentId]/[triggerId]/invocations'>) {
   const { tenantId, projectId, agentId, triggerId } = await params;
-  const { status, page } = await searchParams;
+  const { status, page }: { status?: 'pending' | 'success' | 'failed'; page?: string } =
+    await searchParams;
 
   // Fetch agent to verify it exists
   const agent = await getFullAgentAction(tenantId, projectId, agentId);
