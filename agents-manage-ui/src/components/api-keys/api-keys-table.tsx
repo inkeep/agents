@@ -9,14 +9,17 @@ import type { Agent } from '@/lib/types/agent-full';
 import { formatDateAgo } from '@/lib/utils/format-date';
 import { ApiKeyItemMenu } from './api-key-item-menu';
 import { ExpirationIndicator } from './expiration-indicator';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 
 interface ApiKeysTableProps {
   apiKeys: ApiKey[];
   agentLookup: Record<string, Agent>;
-  canUse: boolean;
 }
 
-export function ApiKeysTable({ apiKeys, agentLookup, canUse }: ApiKeysTableProps) {
+export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
+  const {
+    data: { canUse },
+  } = useProjectPermissionsQuery();
   const columns = useMemo<ColumnDef<ApiKey>[]>(
     () => [
       {
