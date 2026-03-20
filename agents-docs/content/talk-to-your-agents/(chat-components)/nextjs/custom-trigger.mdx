@@ -16,15 +16,15 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/agents-ui
+npm install @inkeep/agents-ui-cloud
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/agents-ui
+yarn add @inkeep/agents-ui-cloud
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/agents-ui
+pnpm add @inkeep/agents-ui-cloud
 ```
 
 </CodeGroup>
@@ -41,10 +41,10 @@ pnpm add @inkeep/agents-ui
 
     import { useState } from 'react';
     import dynamic from 'next/dynamic';
-    import type { InkeepModalChatProps } from '@inkeep/agents-ui';
+    import type { InkeepModalChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepModalChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepModalChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepModalChat),
       { ssr: false },
     );
 
@@ -90,10 +90,10 @@ pnpm add @inkeep/agents-ui
 
     import { useState } from 'react';
     import dynamic from 'next/dynamic';
-    import type { InkeepModalChatProps } from '@inkeep/agents-ui';
+    import type { InkeepModalChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepModalChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepModalChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepModalChat),
       { ssr: false },
     );
 
@@ -131,7 +131,7 @@ pnpm add @inkeep/agents-ui
 
 <AutoTypeTable
   name="default"
-  type="export { InkeepModalChatProps as default } from '@inkeep/agents-ui'"
+  type="export { InkeepModalChatProps as default } from '@inkeep/agents-ui-cloud'"
 />
 
 <Snippet file="chat-components/base-settings.mdx" />
@@ -142,5 +142,5 @@ pnpm add @inkeep/agents-ui
 
 <AutoTypeTable
   name="default"
-  type="export { OpenSettingsModal as default } from '@inkeep/agents-ui/types'"
+  type="export { OpenSettingsModal as default } from '@inkeep/agents-ui-cloud/types'"
 />

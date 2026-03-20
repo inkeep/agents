@@ -16,15 +16,15 @@ The chat button component is a simple way to trigger the Inkeep chat bubble. In 
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/agents-ui
+npm install @inkeep/agents-ui-cloud
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/agents-ui
+yarn add @inkeep/agents-ui-cloud
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/agents-ui
+pnpm add @inkeep/agents-ui-cloud
 ```
 
 </CodeGroup>
@@ -40,10 +40,10 @@ pnpm add @inkeep/agents-ui
     'use client';
 
     import dynamic from 'next/dynamic';
-    import type { InkeepChatButtonProps } from '@inkeep/agents-ui';
+    import type { InkeepChatButtonProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepChatButton = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepChatButton),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepChatButton),
       { ssr: false },
     );
 
@@ -75,10 +75,10 @@ pnpm add @inkeep/agents-ui
     'use client';
 
     import dynamic from 'next/dynamic';
-    import type { InkeepChatButtonProps } from '@inkeep/agents-ui';
+    import type { InkeepChatButtonProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepChatButton = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepChatButton),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepChatButton),
       { ssr: false },
     );
 
@@ -103,7 +103,7 @@ pnpm add @inkeep/agents-ui
 
 <AutoTypeTable
   name="default"
-  type="export { InkeepChatButtonProps as default } from '@inkeep/agents-ui'"
+  type="export { InkeepChatButtonProps as default } from '@inkeep/agents-ui-cloud'"
 />
 
 <Snippet file="chat-components/base-settings.mdx" />
@@ -112,7 +112,7 @@ pnpm add @inkeep/agents-ui
 
 <AutoTypeTable
   name="default"
-  type="export { OpenSettingsChatButton as default } from '@inkeep/agents-ui/types'"
+  type="export { OpenSettingsChatButton as default } from '@inkeep/agents-ui-cloud/types'"
 />
 
 <Snippet file="chat-components/ai-chat-settings.mdx" />
