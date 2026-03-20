@@ -18,7 +18,8 @@
     "generate-openapi": "node --experimental-strip-types scripts/generate-openapi-docs.ts",
     "generate-classnames": "node --experimental-strip-types scripts/generate-classnames.ts",
     "generate-skill-collections": "node --experimental-strip-types scripts/generate-skill-collections.ts",
-    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link && pnpm validate-seo && pnpm generate-skill-collections",
+    "generate-widget-changelog": "node --experimental-strip-types scripts/generate-widget-changelog.ts",
+    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm generate-widget-changelog && pnpm validate-link && pnpm validate-seo && pnpm generate-skill-collections",
     "validate-link": "node --experimental-strip-types scripts/validate-link.ts",
     "validate-seo": "node --experimental-strip-types scripts/validate-seo.ts"
   },

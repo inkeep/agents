@@ -1,0 +1,38 @@
+name: Sync Widget Changelog
+
+on:
+  # Triggered from agents-ui repo on release (see agents-ui/.github/workflows/notify-agents-docs.yml)
+  repository_dispatch:
+    types: [widget-release]
+  # Manual trigger
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    name: Sync @inkeep/agents-ui-cloud changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install
+        uses: ./.github/composite-actions/install
+
+      - name: Generate widget changelog
+        run: pnpm --filter @inkeep/agents-docs generate-widget-changelog
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: sync/widget-changelog
+          commit-message: "docs: sync @inkeep/agents-ui-cloud changelog"
+          title: "docs: sync @inkeep/agents-ui-cloud changelog"
+          body: |
+            Automated sync of the `@inkeep/agents-ui-cloud` changelog from the [agents-ui](https://github.com/inkeep/agents-ui) repository.
+          labels: documentation
+          delete-branch: true
