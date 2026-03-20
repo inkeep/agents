@@ -262,7 +262,7 @@ vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   },
 }));
 
-vi.mock('../../../domains/run/services/blob-storage/image-upload-helpers', () => ({
+vi.mock('../../../domains/run/services/blob-storage/file-upload-helpers', () => ({
   buildPersistedMessageContent: buildPersistedMessageContentMock,
 }));
 
@@ -1506,6 +1506,40 @@ describe('Agent Image Support', () => {
             content: expect.arrayContaining([
               expect.objectContaining({ type: 'text' }),
               expect.objectContaining({ type: 'image', image: expectedDataUrl }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+
+  test('passes inline PDF data to generateText as file content', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+    const pdfBytes = Buffer.from(
+      '%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n',
+      'utf8'
+    ).toString('base64');
+
+    await agent.generate([
+      { kind: 'text', text: 'Summarize this PDF' },
+      {
+        kind: 'file',
+        file: {
+          bytes: pdfBytes,
+          mimeType: 'application/pdf',
+        },
+      },
+    ]);
+
+    const { generateText } = await import('ai');
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({ type: 'text' }),
+              expect.objectContaining({ type: 'file', mediaType: 'application/pdf' }),
             ]),
           }),
         ]),

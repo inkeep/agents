@@ -39188,6 +39188,33 @@
                               },
                               {
                                 "properties": {
+                                  "filename": {
+                                    "type": "string"
+                                  },
+                                  "mediaType": {
+                                    "type": "string"
+                                  },
+                                  "mimeType": {
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "file"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
                                   "text": {
                                     "type": "string"
                                   },
@@ -39196,8 +39223,7 @@
                                       {
                                         "enum": [
                                           "audio",
-                                          "video",
-                                          "file"
+                                          "video"
                                         ],
                                         "type": "string"
                                       },
@@ -39849,6 +39875,36 @@
                                     "required": [
                                       "type",
                                       "image_url"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  {
+                                    "properties": {
+                                      "file": {
+                                        "properties": {
+                                          "file_data": {
+                                            "pattern": "^data:application\\/pdf;base64,",
+                                            "type": "string"
+                                          },
+                                          "filename": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "file_data"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "file"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "file"
                                     ],
                                     "type": "object"
                                   }
