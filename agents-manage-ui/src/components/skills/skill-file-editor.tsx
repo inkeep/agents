@@ -54,7 +54,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const isDirty = canEdit && form.formState.isDirty;
-  const currentFilePath = (isCreateMode ? watchedFilePath : filePath)?.trim() || filePath;
+  const currentFilePath = (isCreateMode ? watchedFilePath ?? '' : filePath).trim();
   const isEntryFile = !isCreateMode && isSkillEntryFile(filePath);
 
   useEffect(() => {
