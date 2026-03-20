@@ -406,6 +406,9 @@ importers:
       '@inkeep/agents-ui':
         specifier: ^0.15.18
         version: 0.15.19(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
+      '@inkeep/agents-ui-cloud':
+        specifier: ^0.15.18
+        version: 0.15.19(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
       '@inkeep/cxkit-react':
         specifier: ^0.5.98
         version: 0.5.111(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(zod@4.3.6)
@@ -3616,6 +3619,9 @@ packages:
 
   '@inkeep/agents-manage-ui@0.41.1':
     resolution: {integrity: sha512-30g1KSk2zt+qOY+pWmjEohoSJLObCLG6sWheEOUuM0vED9xzLNd+gF/Np7dmrWSTtacDnAR23ARgMHlzeIWPhw==}
+
+  '@inkeep/agents-ui-cloud@0.15.19':
+    resolution: {integrity: sha512-p76yg3y2NPfdeuLvjKiZYIPNlN6MIgBnfWee+VhLcJ1kXIRifSQPsx7MXuWJy6lUPO9lm3sQkRPuaar88rs6zA==}
 
   '@inkeep/agents-ui@0.15.19':
     resolution: {integrity: sha512-4oMb2kSJ+9VE0oqcx/wT1cgTRfX4r0u/Ak+a/xtPV/RZV4N6UYqLNNfG2bQwoJRhzY8PchHLLfz5tHbHKAieGg==}
@@ -19129,6 +19135,19 @@ snapshots:
       - vue
       - webpack
       - ws
+
+  '@inkeep/agents-ui-cloud@0.15.19(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)':
+    dependencies:
+      '@inkeep/agents-ui': 0.15.19(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)
+      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.7)(react@19.3.0-canary-87ae75b3-20260128)
+      lucide-react: 0.503.0(react@19.3.0-canary-87ae75b3-20260128)
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - encoding
+      - react
+      - react-dom
+      - supports-color
 
   '@inkeep/agents-ui@0.15.19(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
