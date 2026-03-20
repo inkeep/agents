@@ -1,7 +1,8 @@
 'use client';
 
-import { ArrowRight, Lock, MoreVertical, Pencil, Trash2, Users } from 'lucide-react';
+import { ArrowRight, Loader2, Lock, MoreVertical, Pencil, Trash2, Users } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -48,11 +49,12 @@ export function ViewMCPServerDetailsProjectScope({
   tenantId: string;
   projectId: string;
 }) {
-  const { handleOAuthLogin } = useOAuthLogin({
+  const router = useRouter();
+  const { handleOAuthLogin, isConnecting } = useOAuthLogin({
     tenantId,
     projectId,
     onFinish: () => {
-      window.location.reload();
+      router.refresh();
     },
   });
   const {
@@ -148,6 +150,7 @@ export function ViewMCPServerDetailsProjectScope({
                           <Button
                             variant="ghost"
                             size="icon-sm"
+                            aria-label="Credential options"
                             className="p-0 hover:bg-accent hover:text-accent-foreground rounded-sm -mr-2"
                           >
                             <MoreVertical className="h-4 w-4 text-muted-foreground" />
@@ -203,6 +206,7 @@ export function ViewMCPServerDetailsProjectScope({
                   <Button
                     size="sm"
                     className="mt-3 w-fit"
+                    disabled={isConnecting}
                     onClick={() => {
                       handleOAuthLogin({
                         toolId: tool.id,
@@ -212,7 +216,8 @@ export function ViewMCPServerDetailsProjectScope({
                       });
                     }}
                   >
-                    Connect
+                    {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {isConnecting ? 'Connecting...' : 'Connect'}
                   </Button>
                 </ItemCardContent>
               </ItemCardRoot>

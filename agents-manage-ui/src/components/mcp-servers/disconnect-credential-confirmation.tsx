@@ -1,6 +1,8 @@
 'use client';
 
-import type { FC } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { type FC, useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -29,16 +31,24 @@ export const DisconnectCredentialConfirmation: FC<DisconnectCredentialConfirmati
   toolName,
   setIsOpen,
 }) => {
-  const handleDelete = async () => {
-    const result = await deleteCredentialAction(tenantId, projectId, credentialId);
-    if (!result.success) {
-      toast.error(result.error ?? 'Failed to delete credential');
-      return;
-    }
+  const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
 
-    toast.success(`Deleted credential for "${toolName}" successfully.`);
-    setIsOpen(false);
-    window.location.reload();
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await deleteCredentialAction(tenantId, projectId, credentialId);
+      if (!result.success) {
+        toast.error(result.error ?? 'Failed to delete credential');
+        return;
+      }
+
+      toast.success(`Deleted credential for "${toolName}" successfully.`);
+      setIsOpen(false);
+      router.refresh();
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -53,7 +63,8 @@ export const DisconnectCredentialConfirmation: FC<DisconnectCredentialConfirmati
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} variant="destructive">
+          <AlertDialogAction onClick={handleDelete} variant="destructive" disabled={isDeleting}>
+            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Delete
           </AlertDialogAction>
         </AlertDialogFooter>

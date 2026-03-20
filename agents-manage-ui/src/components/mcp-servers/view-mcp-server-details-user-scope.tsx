@@ -1,7 +1,8 @@
 'use client';
 
-import { ArrowRight, Lock, MoreVertical, Pencil, Trash2, User } from 'lucide-react';
+import { ArrowRight, Loader2, Lock, MoreVertical, Pencil, Trash2, User } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -44,15 +45,16 @@ export function ViewMCPServerDetailsUserScope({
   tenantId: string;
   projectId: string;
 }) {
+  const router = useRouter();
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
 
-  const { handleOAuthLogin } = useOAuthLogin({
+  const { handleOAuthLogin, isConnecting } = useOAuthLogin({
     tenantId,
     projectId,
     onFinish() {
-      window.location.reload();
+      router.refresh();
     },
   });
 
@@ -145,6 +147,7 @@ export function ViewMCPServerDetailsUserScope({
                         <Button
                           variant="ghost"
                           size="icon-sm"
+                          aria-label="Credential options"
                           className="p-0 hover:bg-accent hover:text-accent-foreground rounded-sm -mr-2"
                         >
                           <MoreVertical className="h-4 w-4 text-muted-foreground" />
@@ -169,8 +172,12 @@ export function ViewMCPServerDetailsUserScope({
               <ItemCardContent>
                 <div className="relative flex items-end justify-between">
                   <div className="space-y-0.5 text-xs text-muted-foreground">
-                    {tool.createdAt && <p>Created {formatDate(userCredential.createdAt)}</p>}
-                    {tool.createdBy && <p>Last Connected By {userCredential.createdBy}</p>}
+                    {userCredential.createdAt && (
+                      <p>Connected {formatDate(userCredential.createdAt)}</p>
+                    )}
+                    {userCredential.createdBy && (
+                      <p>Last Connected By {userCredential.createdBy}</p>
+                    )}
                     {tool.expiresAt && isExpired(tool.expiresAt) && (
                       <p>Expired {formatDate(tool.expiresAt)}</p>
                     )}
@@ -200,6 +207,7 @@ export function ViewMCPServerDetailsUserScope({
                 <Button
                   size="sm"
                   className="mt-3 w-fit"
+                  disabled={isConnecting}
                   onClick={() => {
                     handleOAuthLogin({
                       toolId: tool.id,
@@ -209,7 +217,8 @@ export function ViewMCPServerDetailsUserScope({
                     });
                   }}
                 >
-                  Connect
+                  {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {isConnecting ? 'Connecting...' : 'Connect'}
                 </Button>
               </ItemCardContent>
             </ItemCardRoot>

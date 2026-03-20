@@ -442,9 +442,13 @@ export const dbResultToMcpTool = async (
         userId
       );
 
-      if (!authResult.authenticated) {
+      if (!authResult.authenticated && !authResult.error) {
         status = 'needs_auth';
         lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+      } else if (authResult.error) {
+        status = 'unavailable';
+        lastErrorComputed =
+          'Could not verify third-party authentication status. The service may be temporarily unavailable.';
       }
     }
   }

@@ -5,7 +5,7 @@ import {
   generateIdFromName,
 } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
   OAuthLoginHandler,
@@ -29,6 +29,7 @@ interface UseOAuthLoginProps {
 
 interface OAuthLoginResult {
   handleOAuthLogin: OAuthLoginHandler;
+  isConnecting: boolean;
 }
 
 export function useOAuthLogin({
@@ -40,6 +41,7 @@ export function useOAuthLogin({
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { openNangoConnectHeadless } = useNangoConnect();
   const { user } = useAuthSession();
+  const [isConnecting, setIsConnecting] = useState(false);
 
   // Track active OAuth attempts to prevent conflicts
   const activeAttemptsRef = useRef(new Map<string, () => void>());
@@ -240,40 +242,46 @@ export function useOAuthLogin({
       const connectedAccountId = serverDetails?.data?.connectedAccountId;
       const authScheme = serverDetails?.data?.authScheme;
 
-      if (connectedAccountId) {
-        const isUserScoped = credentialScope === 'user';
+      if (!connectedAccountId) {
+        toast.error(
+          'Authentication completed but credential could not be saved. Please try again.'
+        );
+        navigateToTool(toolId);
+        return;
+      }
 
-        let userId: string | undefined;
-        if (isUserScoped) {
-          if (!user) {
-            throw new Error('User not found');
-          }
-          userId = user.id;
+      const isUserScoped = credentialScope === 'user';
+
+      let userId: string | undefined;
+      if (isUserScoped) {
+        if (!user) {
+          throw new Error('User not found');
         }
+        userId = user.id;
+      }
 
-        const newCredentialData = {
-          id: generateId(),
-          name: toolName,
-          type: CredentialStoreType.composio,
-          credentialStoreId: DEFAULT_COMPOSIO_STORE_ID,
-          createdBy: user?.email ?? undefined,
-          ...(isUserScoped && {
-            toolId,
-            userId,
-          }),
-          retrievalParams: {
-            connectedAccountId,
-            ...(authScheme && { authScheme }),
-          },
-        };
+      const newCredentialData = {
+        id: generateId(),
+        name: toolName,
+        type: CredentialStoreType.composio,
+        credentialStoreId: DEFAULT_COMPOSIO_STORE_ID,
+        createdBy: user?.email ?? undefined,
+        ...(isUserScoped && {
+          toolId,
+          userId,
+        }),
+        retrievalParams: {
+          connectedAccountId,
+          ...(authScheme && { authScheme }),
+        },
+      };
 
-        const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
+      const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
 
-        if (!isUserScoped) {
-          await updateMCPTool(tenantId, projectId, toolId, {
-            credentialReferenceId: newCredential.id,
-          });
-        }
+      if (!isUserScoped) {
+        await updateMCPTool(tenantId, projectId, toolId, {
+          credentialReferenceId: newCredential.id,
+        });
       }
 
       navigateToTool(toolId);
@@ -289,33 +297,34 @@ export function useOAuthLogin({
       thirdPartyConnectAccountUrl,
       credentialScope,
     }: OAuthLoginParams): Promise<void> => {
-      if (mcpServerUrl.includes('composio.dev')) {
-        const composioRedirectUrl =
-          (await getThirdPartyOAuthRedirectUrl(
-            tenantId,
-            projectId,
-            mcpServerUrl,
-            credentialScope
-          )) ?? undefined;
+      setIsConnecting(true);
+      try {
+        if (mcpServerUrl.includes('composio.dev')) {
+          const composioRedirectUrl =
+            (await getThirdPartyOAuthRedirectUrl(
+              tenantId,
+              projectId,
+              mcpServerUrl,
+              credentialScope
+            )) ?? undefined;
 
-        if (composioRedirectUrl) {
-          await handleOAuthLoginWithComposio({
-            toolId,
-            mcpServerUrl,
-            toolName,
-            thirdPartyConnectAccountUrl: composioRedirectUrl,
-            credentialScope,
-          });
+          if (composioRedirectUrl) {
+            await handleOAuthLoginWithComposio({
+              toolId,
+              mcpServerUrl,
+              toolName,
+              thirdPartyConnectAccountUrl: composioRedirectUrl,
+              credentialScope,
+            });
+            return;
+          }
+        }
+
+        if (thirdPartyConnectAccountUrl) {
+          await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
           return;
         }
-      }
 
-      if (thirdPartyConnectAccountUrl) {
-        await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
-        return;
-      }
-
-      try {
         const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
 
         const isNangoReady = credentialStoresStatus.some(
@@ -342,6 +351,8 @@ export function useOAuthLogin({
         const errorObj = error instanceof Error ? error : new Error('OAuth login failed');
         toast.error(errorObj.message);
         throw errorObj;
+      } finally {
+        setIsConnecting(false);
       }
     },
     [
@@ -355,5 +366,6 @@ export function useOAuthLogin({
 
   return {
     handleOAuthLogin,
+    isConnecting,
   };
 }

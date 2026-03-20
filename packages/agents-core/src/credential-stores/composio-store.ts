@@ -1,7 +1,10 @@
 import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
 import { getLogger } from '../utils/logger';
-import { getComposioInstance } from '../utils/third-party-mcp-servers';
+import {
+  deleteComposioConnectedAccount,
+  getComposioInstance,
+} from '../utils/third-party-mcp-servers';
 
 const logger = getLogger('composio-store');
 
@@ -35,28 +38,17 @@ export class ComposioCredentialStore implements CredentialStore {
     try {
       const account = await composio.connectedAccounts.get(key);
       return account?.status === 'ACTIVE';
-    } catch {
+    } catch (error) {
+      logger.warn(
+        { error, connectedAccountId: key },
+        'Failed to check Composio connected account status - treating as unavailable'
+      );
       return false;
     }
   }
 
   async delete(key: string): Promise<boolean> {
-    const composio = getComposioInstance();
-    if (!composio) {
-      logger.warn({}, 'Composio not configured, skipping connected account deletion');
-      return false;
-    }
-
-    try {
-      await composio.connectedAccounts.delete(key);
-      return true;
-    } catch (error) {
-      logger.error(
-        { error, connectedAccountId: key },
-        'Failed to delete Composio connected account'
-      );
-      return false;
-    }
+    return deleteComposioConnectedAccount(key);
   }
 
   async checkAvailability(): Promise<{ available: boolean; reason?: string }> {

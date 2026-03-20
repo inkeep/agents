@@ -170,7 +170,7 @@ export function extractComposioServerId(mcpUrl: string): string | null {
  * Delete a Composio connected account
  * Returns true if successful, false if failed (non-blocking)
  */
-async function deleteComposioConnectedAccount(accountId: string): Promise<boolean> {
+export async function deleteComposioConnectedAccount(accountId: string): Promise<boolean> {
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
     logger.info({}, 'Composio not configured, skipping account deletion');
@@ -215,6 +215,7 @@ async function fetchComposioConnectedAccounts(
 export interface ComposioAuthResult {
   authenticated: boolean;
   connectedAccountId?: string;
+  error?: boolean;
 }
 
 /**
@@ -290,7 +291,7 @@ export async function isComposioMCPServerAuthenticated(
     };
   } catch (error) {
     logger.error({ error, mcpServerUrl }, 'Error checking Composio authentication status');
-    return { authenticated: false };
+    return { authenticated: false, error: true };
   }
 }
 
