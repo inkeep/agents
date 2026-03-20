@@ -18,6 +18,7 @@ import {
   SPAN_KEYS,
   SPAN_NAMES,
   UNKNOWN_VALUE,
+  USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
 
 // ---------- String Constants for Type Safety
@@ -3160,6 +3161,348 @@ class SigNozStatsAPI {
         },
       },
       dataSource: DATA_SOURCES.TRACES,
+    };
+  }
+
+  async getUsageCostSummary(
+    startTime: number,
+    endTime: number,
+    groupBy: 'model' | 'agent' | 'day' | 'generation_type' | 'conversation',
+    projectId?: string
+  ): Promise<
+    Array<{
+      groupKey: string;
+      totalInputTokens: number;
+      totalOutputTokens: number;
+      totalTokens: number;
+      totalEstimatedCostUsd: number;
+      eventCount: number;
+    }>
+  > {
+    try {
+      const resp = await this.makeRequest(
+        this.buildUsageCostPayload(startTime, endTime, groupBy, projectId),
+        projectId
+      );
+
+      const inputSeries = this.extractSeries(resp, 'inputTokens');
+      const outputSeries = this.extractSeries(resp, 'outputTokens');
+      const costSeries = this.extractSeries(resp, 'cost');
+      const countSeries = this.extractSeries(resp, 'eventCount');
+
+      const groupByKey =
+        groupBy === 'model'
+          ? SPAN_KEYS.AI_MODEL_ID
+          : groupBy === 'agent'
+            ? SPAN_KEYS.AGENT_ID
+            : groupBy === 'generation_type'
+              ? 'ai.telemetry.metadata.generationType'
+              : groupBy === 'conversation'
+                ? SPAN_KEYS.CONVERSATION_ID
+                : 'timestamp';
+
+      const stats = new Map<
+        string,
+        { inputTokens: number; outputTokens: number; cost: number; count: number }
+      >();
+
+      for (const s of inputSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.inputTokens += val;
+        stats.set(key, existing);
+      }
+      for (const s of outputSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.outputTokens += val;
+        stats.set(key, existing);
+      }
+      for (const s of costSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.cost += val;
+        stats.set(key, existing);
+      }
+      for (const s of countSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = countFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.count += val;
+        stats.set(key, existing);
+      }
+
+      return [...stats.entries()]
+        .map(([groupKey, data]) => ({
+          groupKey,
+          totalInputTokens: data.inputTokens,
+          totalOutputTokens: data.outputTokens,
+          totalTokens: data.inputTokens + data.outputTokens,
+          totalEstimatedCostUsd: data.cost,
+          eventCount: data.count,
+        }))
+        .sort((a, b) => b.totalTokens - a.totalTokens);
+    } catch (e) {
+      console.error('getUsageCostSummary error:', e);
+      return [];
+    }
+  }
+
+  async getUsageEventsList(
+    startTime: number,
+    endTime: number,
+    projectId?: string,
+    conversationId?: string,
+    limit = 25
+  ): Promise<
+    Array<{
+      spanId: string;
+      parentSpanId: string;
+      traceId: string;
+      timestamp: string;
+      generationType: string;
+      model: string;
+      provider: string;
+      agentId: string;
+      subAgentId: string;
+      conversationId: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      estimatedCostUsd: number;
+      finishReason: string;
+      status: string;
+    }>
+  > {
+    try {
+      const filterItems: any[] = [
+        {
+          key: { key: SPAN_KEYS.AI_OPERATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          op: OPERATORS.IN,
+          value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+        },
+        {
+          key: { key: 'ai.telemetry.metadata.generationType', ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          op: OPERATORS.IN,
+          value: [...USAGE_GENERATION_TYPES],
+        },
+      ];
+
+      if (projectId) {
+        filterItems.push({
+          key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          op: OPERATORS.EQUALS,
+          value: projectId,
+        });
+      }
+      if (conversationId) {
+        filterItems.push({
+          key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          op: OPERATORS.EQUALS,
+          value: conversationId,
+        });
+      }
+
+      const selectColumns = [
+        { key: SPAN_KEYS.SPAN_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+        { key: SPAN_KEYS.PARENT_SPAN_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+        { key: SPAN_KEYS.TRACE_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+        { key: 'ai.telemetry.metadata.generationType', ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.AI_MODEL_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.AI_MODEL_PROVIDER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, ...QUERY_FIELD_CONFIGS.FLOAT64_TAG },
+        { key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, ...QUERY_FIELD_CONFIGS.FLOAT64_TAG },
+        { key: SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, ...QUERY_FIELD_CONFIGS.FLOAT64_TAG },
+        { key: 'ai.response.finishReason', ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.HAS_ERROR, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+      ];
+
+      const payload = {
+        start: startTime,
+        end: endTime,
+        step: QUERY_DEFAULTS.STEP,
+        variables: {},
+        compositeQuery: {
+          queryType: QUERY_TYPES.BUILDER,
+          panelType: PANEL_TYPES.LIST,
+          builderQueries: {
+            usageEvents: {
+              dataSource: DATA_SOURCES.TRACES,
+              queryName: 'usageEvents',
+              aggregateOperator: AGGREGATE_OPERATORS.NOOP,
+              aggregateAttribute: {},
+              filters: { op: OPERATORS.AND, items: filterItems },
+              selectColumns,
+              expression: 'usageEvents',
+              disabled: QUERY_DEFAULTS.DISABLED,
+              having: QUERY_DEFAULTS.HAVING,
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit,
+              orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+              groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
+              offset: QUERY_DEFAULTS.OFFSET,
+            },
+          },
+        },
+        dataSource: DATA_SOURCES.TRACES,
+        projectId,
+      };
+
+      const resp = await this.makeRequest(payload, projectId);
+      const list = resp?.data?.result?.find((r: any) => r?.queryName === 'usageEvents')?.list ?? [];
+
+      return list.map((row: any) => {
+        const d = row?.data ?? row;
+        const ts = row.timestamp || d.timestamp || '';
+
+        const inputTokens =
+          Number(d['gen_ai.usage.input_tokens'] || d['ai.usage.promptTokens']) || 0;
+        const outputTokens =
+          Number(d['gen_ai.usage.output_tokens'] || d['ai.usage.completionTokens']) || 0;
+        const cost = Number(d['gen_ai.cost.estimated_usd']) || 0;
+
+        return {
+          spanId: d.spanID || '',
+          parentSpanId: d.parentSpanID || '',
+          traceId: d.traceID || '',
+          timestamp: ts,
+          generationType: d['ai.telemetry.metadata.generationType'] || 'unknown',
+          model: d['ai.model.id'] || 'unknown',
+          provider: d['ai.model.provider'] || '',
+          agentId: d['agent.id'] || '',
+          subAgentId: d['subAgent.id'] || d['ai.telemetry.metadata.subAgentId'] || '',
+          conversationId: d['conversation.id'] || '',
+          inputTokens,
+          outputTokens,
+          totalTokens: inputTokens + outputTokens,
+          estimatedCostUsd: cost,
+          finishReason: d['ai.response.finishReason'] || '',
+          status: d.hasError === true || d.hasError === 'true' ? 'failed' : 'succeeded',
+        };
+      });
+    } catch (e) {
+      console.error('getUsageEventsList error:', e);
+      return [];
+    }
+  }
+
+  private buildUsageCostPayload(start: number, end: number, groupBy: string, projectId?: string) {
+    const baseFilters = [
+      {
+        key: { key: SPAN_KEYS.AI_OPERATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.IN,
+        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+      },
+      {
+        key: { key: 'ai.telemetry.metadata.generationType', ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.IN,
+        value: [
+          'sub_agent_generation',
+          'status_update',
+          'artifact_metadata',
+          'mid_generation_compression',
+          'conversation_compression',
+          'eval_simulation',
+          'eval_scoring',
+        ],
+      },
+      ...(projectId
+        ? [
+            {
+              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              op: OPERATORS.EQUALS,
+              value: projectId,
+            },
+          ]
+        : []),
+    ];
+
+    const groupByKey =
+      groupBy === 'model'
+        ? SPAN_KEYS.AI_MODEL_ID
+        : groupBy === 'agent'
+          ? SPAN_KEYS.AGENT_ID
+          : groupBy === 'generation_type'
+            ? 'ai.telemetry.metadata.generationType'
+            : groupBy === 'conversation'
+              ? SPAN_KEYS.CONVERSATION_ID
+              : SPAN_KEYS.TIMESTAMP;
+
+    const groupByConfig =
+      groupBy === 'day' ? QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN : QUERY_FIELD_CONFIGS.STRING_TAG;
+
+    const buildQuery = (
+      queryName: string,
+      aggregateOp: string,
+      aggregateKey: string,
+      dataType: string
+    ) => ({
+      dataSource: DATA_SOURCES.TRACES,
+      queryName,
+      aggregateOperator: aggregateOp,
+      aggregateAttribute: {
+        key: aggregateKey,
+        dataType,
+        type: 'tag',
+        isColumn: aggregateOp === AGGREGATE_OPERATORS.COUNT,
+        isJSON: false,
+      },
+      filters: { op: OPERATORS.AND, items: baseFilters },
+      groupBy: [{ key: groupByKey, ...groupByConfig }],
+      expression: queryName,
+      reduceTo: REDUCE_OPERATIONS.SUM,
+      stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+      orderBy: [],
+      offset: QUERY_DEFAULTS.OFFSET,
+      disabled: QUERY_DEFAULTS.DISABLED,
+      having: QUERY_DEFAULTS.HAVING,
+      legend: QUERY_DEFAULTS.LEGEND,
+      limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+    });
+
+    return {
+      start,
+      end,
+      step: QUERY_DEFAULTS.STEP,
+      variables: {},
+      compositeQuery: {
+        queryType: QUERY_TYPES.BUILDER,
+        panelType: PANEL_TYPES.TABLE,
+        builderQueries: {
+          inputTokens: buildQuery(
+            'inputTokens',
+            AGGREGATE_OPERATORS.SUM,
+            SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
+            DATA_TYPES.FLOAT64
+          ),
+          outputTokens: buildQuery(
+            'outputTokens',
+            AGGREGATE_OPERATORS.SUM,
+            SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
+            DATA_TYPES.FLOAT64
+          ),
+          cost: buildQuery(
+            'cost',
+            AGGREGATE_OPERATORS.SUM,
+            SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD,
+            DATA_TYPES.FLOAT64
+          ),
+          eventCount: buildQuery(
+            'eventCount',
+            AGGREGATE_OPERATORS.COUNT,
+            SPAN_KEYS.SPAN_ID,
+            DATA_TYPES.STRING
+          ),
+        },
+      },
+      dataSource: DATA_SOURCES.TRACES,
+      projectId,
     };
   }
 

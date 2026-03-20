@@ -10,7 +10,6 @@ import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import { generateText, Output, streamText } from 'ai';
-import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { agentSessionManager } from '../../session/AgentSession';
@@ -100,8 +99,13 @@ export function buildTelemetryConfig(ctx: AgentRunContext, phase?: string): obje
     recordOutputs: true,
     metadata: {
       ...(phase && { phase }),
+      tenantId: ctx.config.tenantId,
+      projectId: ctx.config.projectId,
+      agentId: ctx.config.agentId,
       subAgentId: ctx.config.id,
       subAgentName: ctx.config.name,
+      generationType: 'sub_agent_generation',
+      ...(ctx.conversationId && { conversationId: ctx.conversationId }),
     },
   };
 }
@@ -284,7 +288,6 @@ export async function runGenerate(
           rawResponse =
             usageContext && primaryModelSettings.model
               ? await trackedGenerate(
-                  runDbClient,
                   usageContext,
                   primaryModelSettings.model,
                   () =>
@@ -308,7 +311,6 @@ export async function runGenerate(
           rawResponse =
             usageContext && primaryModelSettings.model
               ? await trackedGenerate(
-                  runDbClient,
                   usageContext,
                   primaryModelSettings.model,
                   () =>

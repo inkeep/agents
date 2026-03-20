@@ -655,15 +655,10 @@ export const userProfileRelations = relations(userProfile, ({ one }) => ({
 // USAGE TRACKING
 // ============================================================================
 
-export type GenerationType =
-  | 'sub_agent_generation'
-  | 'conversation_compression'
-  | 'mid_generation_compression'
-  | 'artifact_metadata'
-  | 'status_update'
-  | 'eval_simulation'
-  | 'eval_scoring'
-  | 'component_render';
+import { USAGE_GENERATION_TYPES } from '../../constants/otel-attributes';
+
+export { USAGE_GENERATION_TYPES };
+export type GenerationType = (typeof USAGE_GENERATION_TYPES)[number];
 
 export type UsageEventStatus = 'succeeded' | 'failed' | 'timeout';
 

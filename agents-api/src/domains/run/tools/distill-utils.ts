@@ -2,7 +2,6 @@ import type { GenerationType, ModelSettings } from '@inkeep/agents-core';
 import { estimateTokens, ModelFactory, trackedGenerate } from '@inkeep/agents-core';
 import { generateText, Output } from 'ai';
 import type { z } from 'zod';
-import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS } from '../constants/execution-limits';
 import { getModelContextWindow } from '../utils/model-context-utils';
@@ -74,12 +73,26 @@ export async function distillWithTruncation<TSchema extends z.ZodType>(opts: {
         prompt,
         output: Output.object({ schema }),
         abortSignal: controller.signal,
+        ...(usageContext && {
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: `distill_${conversationId}`,
+            recordInputs: true,
+            recordOutputs: true,
+            metadata: {
+              generationType: usageContext.generationType,
+              tenantId: usageContext.tenantId,
+              projectId: usageContext.projectId,
+              agentId: usageContext.agentId,
+              conversationId,
+            },
+          },
+        }),
       };
 
       const result =
         usageContext && summarizerModel?.model
           ? await trackedGenerate(
-              runDbClient,
               { ...usageContext, conversationId },
               summarizerModel.model,
               () => generateText(genConfig as Parameters<typeof generateText>[0]),

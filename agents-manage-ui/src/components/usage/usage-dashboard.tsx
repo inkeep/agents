@@ -1,12 +1,11 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Coins, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
+import { Coins, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -17,8 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { UsageEvent, UsageSummaryRow } from '@/lib/api/usage';
-import { fetchUsageEvents, fetchUsageSummary } from '@/lib/api/usage';
+import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 import { formatDateAgo } from '@/lib/utils/format-date';
 
 export function formatCost(cost: number): string {
@@ -40,26 +38,37 @@ interface UsageDashboardProps {
   endTime: string;
 }
 
+interface UsageSummaryRow {
+  groupKey: string;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTokens: number;
+  totalEstimatedCostUsd: number;
+  eventCount: number;
+}
+
 export function UsageDashboard({ tenantId, projectId, startTime, endTime }: UsageDashboardProps) {
   const [summaryByModel, setSummaryByModel] = useState<UsageSummaryRow[]>([]);
-  const [summaryByDay, setSummaryByDay] = useState<UsageSummaryRow[]>([]);
   const [summaryByType, setSummaryByType] = useState<UsageSummaryRow[]>([]);
+  const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const baseParams = { tenantId, projectId, from: startTime, to: endTime };
+      const client = getSigNozStatsClient(tenantId);
+      const start = new Date(startTime).getTime();
+      const end = new Date(endTime).getTime();
 
-      const [byModel, byDay, byType] = await Promise.all([
-        fetchUsageSummary({ ...baseParams, groupBy: 'model' }),
-        fetchUsageSummary({ ...baseParams, groupBy: 'day' }),
-        fetchUsageSummary({ ...baseParams, groupBy: 'generation_type' }),
+      const [byModel, byType, eventsList] = await Promise.all([
+        client.getUsageCostSummary(start, end, 'model', projectId),
+        client.getUsageCostSummary(start, end, 'generation_type', projectId),
+        client.getUsageEventsList(start, end, projectId, undefined, 200),
       ]);
 
       setSummaryByModel(byModel);
-      setSummaryByDay(byDay);
       setSummaryByType(byType);
+      setEvents(eventsList);
     } catch (error) {
       console.error('Failed to fetch usage data:', error);
     } finally {
@@ -85,10 +94,17 @@ export function UsageDashboard({ tenantId, projectId, startTime, endTime }: Usag
   }, [summaryByModel]);
 
   const chartData = useMemo(() => {
-    return summaryByDay
-      .map((row) => ({ date: row.groupKey, tokens: row.totalTokens }))
+    const buckets = new Map<string, number>();
+    for (const event of events) {
+      if (!event.timestamp) continue;
+      const date = new Date(event.timestamp);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      buckets.set(key, (buckets.get(key) ?? 0) + event.estimatedCostUsd);
+    }
+    return [...buckets.entries()]
+      .map(([date, cost]) => ({ date, cost }))
       .sort((a, b) => a.date.localeCompare(b.date));
-  }, [summaryByDay]);
+  }, [events]);
 
   return (
     <>
@@ -109,28 +125,38 @@ export function UsageDashboard({ tenantId, projectId, startTime, endTime }: Usag
         <div className="min-h-0">
           {chartData.length > 0 && (
             <AreaChartCard
-              title="Token Usage Over Time"
+              title="Cost Over Time"
               className="h-full"
               chartContainerClassName="h-full min-h-[300px] w-full"
-              config={{ tokens: { color: 'var(--chart-1)', label: 'Tokens' } }}
+              config={{ cost: { color: 'var(--chart-2)', label: 'Cost (USD)' } }}
               data={chartData}
-              dataKeyOne="tokens"
+              dataKeyOne="cost"
               xAxisDataKey="date"
               isLoading={isLoading}
               tickFormatter={(value: string) => {
                 try {
-                  const [y, m, d] = value.split('-').map(Number);
-                  return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
+                  const date = new Date(value);
+                  if (Number.isNaN(date.getTime())) {
+                    const [y, m, d] = value.split('-').map(Number);
+                    return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    });
+                  }
+                  return date.toLocaleDateString(undefined, {
                     month: 'short',
                     day: 'numeric',
+                    year: 'numeric',
                   });
                 } catch {
                   return value;
                 }
               }}
-              yAxisTickFormatter={(value: number | string) =>
-                formatTokens(typeof value === 'string' ? Number.parseInt(value, 10) : value)
-              }
+              yAxisTickFormatter={(value: number | string) => {
+                const num = typeof value === 'string' ? Number.parseFloat(value) : value;
+                return num < 0.01 ? `$${num.toFixed(4)}` : `$${num.toFixed(2)}`;
+              }}
             />
           )}
         </div>
@@ -138,8 +164,8 @@ export function UsageDashboard({ tenantId, projectId, startTime, endTime }: Usag
           <UsageEventsTable
             tenantId={tenantId}
             projectId={projectId}
-            startTime={startTime}
-            endTime={endTime}
+            events={events}
+            isLoading={isLoading}
           />
         </div>
       </div>
@@ -243,87 +269,39 @@ const STATUS_COLORS: Record<string, string> = {
   timeout: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
 };
 
+interface SigNozUsageEvent {
+  spanId: string;
+  traceId: string;
+  timestamp: string;
+  generationType: string;
+  model: string;
+  provider: string;
+  agentId: string;
+  subAgentId: string;
+  conversationId: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+  finishReason: string;
+  status: string;
+}
+
 function UsageEventsTable({
   tenantId,
   projectId,
-  startTime,
-  endTime,
+  events,
+  isLoading,
 }: {
   tenantId: string;
   projectId?: string;
-  startTime: string;
-  endTime: string;
+  events: SigNozUsageEvent[];
+  isLoading: boolean;
 }) {
-  const [events, setEvents] = useState<UsageEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [prevCursors, setPrevCursors] = useState<string[]>([]);
-
-  const loadEvents = useCallback(
-    async (cursor?: string) => {
-      setIsLoading(true);
-      try {
-        const result = await fetchUsageEvents({
-          tenantId,
-          projectId,
-          from: startTime,
-          to: endTime,
-          cursor,
-          limit: 25,
-        });
-        setEvents(result.data);
-        setNextCursor(result.nextCursor);
-      } catch (error) {
-        console.error('Failed to fetch usage events:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [tenantId, projectId, startTime, endTime]
-  );
-
-  useEffect(() => {
-    setPrevCursors([]);
-    loadEvents();
-  }, [loadEvents]);
-
-  const handleNextPage = () => {
-    if (!nextCursor) return;
-    const currentFirst = events[0]?.createdAt;
-    if (currentFirst) setPrevCursors((prev) => [...prev, currentFirst]);
-    loadEvents(nextCursor);
-  };
-
-  const handlePrevPage = () => {
-    if (prevCursors.length === 0) return;
-    const prev = [...prevCursors];
-    prev.pop();
-    setPrevCursors(prev);
-    loadEvents(prev.length > 0 ? prev[prev.length - 1] : undefined);
-  };
-
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>Usage Events</CardTitle>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrevPage}
-            disabled={prevCursors.length === 0 || isLoading}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNextPage}
-            disabled={!nextCursor || isLoading}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -331,7 +309,7 @@ function UsageEventsTable({
         ) : events.length === 0 ? (
           <p className="text-sm text-muted-foreground">No usage events for this period</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -349,26 +327,22 @@ function UsageEventsTable({
               </TableHeader>
               <TableBody>
                 {events.map((event) => (
-                  <TableRow key={event.requestId}>
+                  <TableRow key={event.spanId}>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDateAgo(event.createdAt)}
+                      {formatDateAgo(event.timestamp)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-mono text-xs">
                         {event.generationType.replace(/_/g, ' ')}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {event.resolvedModel ?? event.requestedModel}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{event.agentId}</TableCell>
-                    <TableCell className="font-mono text-xs">{event.subAgentId ?? '—'}</TableCell>
+                    <TableCell className="font-mono text-xs">{event.model}</TableCell>
+                    <TableCell className="font-mono text-xs">{event.agentId || '—'}</TableCell>
+                    <TableCell className="font-mono text-xs">{event.subAgentId || '—'}</TableCell>
                     <TableCell className="text-right">{formatTokens(event.inputTokens)}</TableCell>
                     <TableCell className="text-right">{formatTokens(event.outputTokens)}</TableCell>
                     <TableCell className="text-right">
-                      {event.estimatedCostUsd
-                        ? formatCost(Number.parseFloat(event.estimatedCostUsd))
-                        : '—'}
+                      {event.estimatedCostUsd ? formatCost(event.estimatedCostUsd) : '—'}
                     </TableCell>
                     <TableCell>
                       <span
@@ -380,7 +354,7 @@ function UsageEventsTable({
                     <TableCell>
                       {event.conversationId ? (
                         <Link
-                          href={`/${tenantId}/projects/${event.projectId}/traces/conversations/${event.conversationId}`}
+                          href={`/${tenantId}/projects/${projectId}/traces/conversations/${event.conversationId}`}
                           className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                         >
                           <ExternalLink className="h-3 w-3" />

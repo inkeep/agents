@@ -21,6 +21,7 @@ import {
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { env } from './env';
 import { getLogger } from './logger';
+import { UsageCostSpanProcessor } from './usage-span-processor';
 
 const otlpExporter = new OTLPTraceExporter();
 const logger = getLogger('instrumentation');
@@ -73,6 +74,7 @@ export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrume
 
 export const defaultSpanProcessors: SpanProcessor[] = [
   new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
+  new UsageCostSpanProcessor(),
   defaultBatchProcessor,
 ];
 

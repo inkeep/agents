@@ -1136,33 +1136,28 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               recordInputs: true,
               recordOutputs: true,
               metadata: {
-                operation: 'structured_status_update_generation',
+                generationType: 'status_update',
+                tenantId: this.executionContext.tenantId,
+                projectId: this.executionContext.projectId,
+                agentId: this.executionContext.agentId,
+                subAgentId: this.executionContext.subAgentId,
+                conversationId: this.contextId,
                 sessionId: this.sessionId,
               },
             },
           };
 
-          const statusUpdateDb =
-            modelToUse?.model && this.executionContext.tenantId && this.executionContext.projectId
-              ? runDbClient
-              : null;
-          const statusUpdateContext =
-            modelToUse?.model && this.executionContext.tenantId && this.executionContext.projectId
-              ? {
-                  tenantId: this.executionContext.tenantId,
-                  projectId: this.executionContext.projectId,
-                  agentId: this.executionContext.agentId,
-                  subAgentId: this.executionContext.subAgentId,
-                  conversationId: this.contextId,
-                  generationType: 'status_update' as const,
-                }
-              : null;
-
           const statusUpdateResult =
-            statusUpdateDb && statusUpdateContext && modelToUse?.model
+            modelToUse?.model && this.executionContext.tenantId && this.executionContext.projectId
               ? await trackedGenerate(
-                  statusUpdateDb,
-                  statusUpdateContext,
+                  {
+                    tenantId: this.executionContext.tenantId,
+                    projectId: this.executionContext.projectId,
+                    agentId: this.executionContext.agentId,
+                    subAgentId: this.executionContext.subAgentId,
+                    conversationId: this.contextId,
+                    generationType: 'status_update' as const,
+                  },
                   modelToUse.model,
                   () => generateText(statusUpdateConfig as Parameters<typeof generateText>[0]),
                   statusUpdateConfig as Record<string, unknown>
@@ -1703,12 +1698,6 @@ Make the name extremely specific to what this tool call actually returned, not g
                 const maxRetries = 3;
                 let lastError: Error | null = null;
 
-                const artifactDb =
-                  this.statusUpdateState?.summarizerModel?.model &&
-                  this.executionContext.tenantId &&
-                  this.executionContext.projectId
-                    ? runDbClient
-                    : null;
                 const artifactUsageContext =
                   this.statusUpdateState?.summarizerModel?.model &&
                   this.executionContext.tenantId &&
@@ -1737,7 +1726,12 @@ Make the name extremely specific to what this tool call actually returned, not g
                         recordInputs: true,
                         recordOutputs: true,
                         metadata: {
-                          operation: 'artifact_name_description_generation',
+                          generationType: 'artifact_metadata',
+                          tenantId: this.executionContext.tenantId,
+                          projectId: this.executionContext.projectId,
+                          agentId: this.executionContext.agentId,
+                          subAgentId: this.executionContext.subAgentId,
+                          conversationId: this.contextId,
                           sessionId: this.sessionId,
                           attempt,
                         },
@@ -1745,11 +1739,8 @@ Make the name extremely specific to what this tool call actually returned, not g
                     };
 
                     const result =
-                      artifactDb &&
-                      artifactUsageContext &&
-                      this.statusUpdateState?.summarizerModel?.model
+                      artifactUsageContext && this.statusUpdateState?.summarizerModel?.model
                         ? await trackedGenerate(
-                            artifactDb,
                             artifactUsageContext,
                             this.statusUpdateState.summarizerModel.model,
                             () =>

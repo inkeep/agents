@@ -354,7 +354,6 @@ export class EvaluationService {
 
         const simulationResponse = simulationAgent.model?.model
           ? await trackedGenerate(
-              runDbClient,
               {
                 tenantId,
                 projectId,

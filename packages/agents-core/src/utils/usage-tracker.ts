@@ -1,16 +1,10 @@
 import { trace } from '@opentelemetry/api';
 import { SPAN_KEYS } from '../constants/otel-attributes';
-import type { UsageEventInsert } from '../data-access/runtime/usageEvents';
-import { insertUsageEvent } from '../data-access/runtime/usageEvents';
-import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
-import type { GenerationType, StepUsage } from '../db/runtime/runtime-schema';
-import { getLogger } from './logger';
+import type { GenerationType } from '../db/runtime/runtime-schema';
 import { ModelFactory } from './model-factory';
 import type { TokenUsage } from './pricing-service';
 import { getPricingService } from './pricing-service';
 import { estimateTokens } from './token-estimator';
-
-const logger = getLogger('UsageTracker');
 
 export type { GenerationType } from '../db/runtime/runtime-schema';
 
@@ -58,19 +52,6 @@ interface AiSdkResponse {
   finishReason?: string;
 }
 
-function extractSteps(steps: AiSdkStep[]): StepUsage[] {
-  return steps.map((step, i) => ({
-    stepIndex: i,
-    inputTokens: step.usage?.inputTokens ?? step.usage?.promptTokens ?? 0,
-    outputTokens: step.usage?.outputTokens ?? step.usage?.completionTokens ?? 0,
-    reasoningTokens: step.usage?.outputTokenDetails?.reasoningTokens ?? undefined,
-    cachedReadTokens: step.usage?.inputTokenDetails?.cacheReadTokens ?? undefined,
-    cachedWriteTokens: step.usage?.inputTokenDetails?.cacheWriteTokens ?? undefined,
-    finishReason: step.finishReason,
-    toolCalls: step.toolCalls?.map((tc) => tc.toolName).filter(Boolean) as string[] | undefined,
-  }));
-}
-
 function extractUsage(response: AiSdkResponse) {
   const usage = response.totalUsage ?? response.usage;
   return {
@@ -80,10 +61,6 @@ function extractUsage(response: AiSdkResponse) {
     cachedReadTokens: usage?.inputTokenDetails?.cacheReadTokens ?? undefined,
     cachedWriteTokens: usage?.inputTokenDetails?.cacheWriteTokens ?? undefined,
     stepCount: Array.isArray(response.steps) ? response.steps.length : 1,
-    steps:
-      Array.isArray(response.steps) && response.steps.length > 1
-        ? extractSteps(response.steps)
-        : undefined,
     resolvedModel: response.response?.modelId ?? undefined,
   };
 }
@@ -116,7 +93,6 @@ function estimateInputFromConfig(config: Record<string, unknown>): number {
 }
 
 function persistEvent(
-  db: AgentsRunDatabaseClient | null,
   context: UsageContext,
   requestedModel: string,
   inputTokens: number,
@@ -127,7 +103,6 @@ function persistEvent(
     cachedReadTokens?: number;
     cachedWriteTokens?: number;
     stepCount?: number;
-    steps?: StepUsage[];
     streamed?: boolean;
     finishReason?: string;
     generationDurationMs?: number;
@@ -160,10 +135,6 @@ function persistEvent(
   const estimatedCostUsd = pricing ? pricingService.calculateCost(tokenUsage, pricing) : null;
 
   const activeSpan = trace.getActiveSpan();
-  const spanContext = activeSpan?.spanContext();
-  const traceId = spanContext?.traceId;
-  const spanId = spanContext?.spanId;
-
   if (activeSpan) {
     activeSpan.setAttributes({
       [SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS]: inputTokens,
@@ -171,63 +142,41 @@ function persistEvent(
       [SPAN_KEYS.GEN_AI_USAGE_TOTAL_TOKENS]: inputTokens + outputTokens,
       [SPAN_KEYS.GEN_AI_GENERATION_STEP_COUNT]: opts.stepCount ?? 1,
       [SPAN_KEYS.GEN_AI_GENERATION_TYPE]: context.generationType,
+      [SPAN_KEYS.GEN_AI_REQUESTED_MODEL]: requestedModel,
+      [SPAN_KEYS.GEN_AI_PROVIDER]: provider,
+      [SPAN_KEYS.GEN_AI_GENERATION_STATUS]: opts.status,
+      [SPAN_KEYS.GEN_AI_GENERATION_STREAMED]: opts.streamed ?? false,
+      [SPAN_KEYS.GEN_AI_GENERATION_BYOK]: context.byok ?? false,
     });
 
-    if (opts.reasoningTokens != null) {
-      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_USAGE_REASONING_TOKENS, opts.reasoningTokens);
-    }
-    if (opts.cachedReadTokens != null) {
-      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_USAGE_CACHED_READ_TOKENS, opts.cachedReadTokens);
-    }
     if (opts.resolvedModel) {
       activeSpan.setAttribute(SPAN_KEYS.GEN_AI_RESPONSE_MODEL, opts.resolvedModel);
     }
     if (estimatedCostUsd != null) {
       activeSpan.setAttribute(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, estimatedCostUsd);
     }
+    if (opts.reasoningTokens != null) {
+      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_USAGE_REASONING_TOKENS, opts.reasoningTokens);
+    }
+    if (opts.cachedReadTokens != null) {
+      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_USAGE_CACHED_READ_TOKENS, opts.cachedReadTokens);
+    }
+    if (opts.finishReason) {
+      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_GENERATION_FINISH_REASON, opts.finishReason);
+    }
+    if (opts.generationDurationMs != null) {
+      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_GENERATION_DURATION_MS, opts.generationDurationMs);
+    }
+    if (opts.errorCode) {
+      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_GENERATION_ERROR_CODE, opts.errorCode);
+    }
+    if (context.messageId) {
+      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_MESSAGE_ID, context.messageId);
+    }
   }
-
-  if (!db) return;
-
-  const now = new Date().toISOString();
-  const event: UsageEventInsert = {
-    tenantId: context.tenantId,
-    projectId: context.projectId,
-    agentId: context.agentId,
-    subAgentId: context.subAgentId ?? null,
-    conversationId: context.conversationId ?? null,
-    messageId: context.messageId ?? null,
-    generationType: context.generationType,
-    traceId: traceId ?? null,
-    spanId: spanId ?? null,
-    requestedModel,
-    resolvedModel: opts.resolvedModel ?? null,
-    provider,
-    inputTokens,
-    outputTokens,
-    reasoningTokens: opts.reasoningTokens ?? null,
-    cachedReadTokens: opts.cachedReadTokens ?? null,
-    cachedWriteTokens: opts.cachedWriteTokens ?? null,
-    stepCount: opts.stepCount ?? 1,
-    steps: opts.steps ?? null,
-    estimatedCostUsd: estimatedCostUsd?.toFixed(8) ?? null,
-    streamed: opts.streamed ?? false,
-    finishReason: opts.finishReason ?? null,
-    generationDurationMs: opts.generationDurationMs ?? null,
-    byok: context.byok ?? false,
-    status: opts.status,
-    errorCode: opts.errorCode ?? null,
-    startedAt: now,
-    completedAt: now,
-  };
-
-  insertUsageEvent(db)(event).catch((err) => {
-    logger.error({ error: err, context }, 'Failed to insert usage event');
-  });
 }
 
 export async function trackedGenerate<T extends AiSdkResponse>(
-  db: AgentsRunDatabaseClient | null,
   context: UsageContext,
   requestedModel: string,
   generateFn: () => Promise<T>,
@@ -240,13 +189,12 @@ export async function trackedGenerate<T extends AiSdkResponse>(
     const durationMs = Date.now() - startTime;
     const usageData = extractUsage(result);
 
-    persistEvent(db, context, requestedModel, usageData.inputTokens, usageData.outputTokens, {
+    persistEvent(context, requestedModel, usageData.inputTokens, usageData.outputTokens, {
       resolvedModel: usageData.resolvedModel,
       reasoningTokens: usageData.reasoningTokens,
       cachedReadTokens: usageData.cachedReadTokens,
       cachedWriteTokens: usageData.cachedWriteTokens,
       stepCount: usageData.stepCount,
-      steps: usageData.steps,
       finishReason: result.finishReason,
       generationDurationMs: durationMs,
       status: result.finishReason === 'other' ? 'timeout' : 'succeeded',
@@ -258,14 +206,14 @@ export async function trackedGenerate<T extends AiSdkResponse>(
     const errorCode = error instanceof Error ? error.message.slice(0, 256) : 'unknown';
 
     if (isNonConsumingError(error)) {
-      persistEvent(db, context, requestedModel, 0, 0, {
+      persistEvent(context, requestedModel, 0, 0, {
         status: 'failed',
         generationDurationMs: durationMs,
         errorCode,
       });
     } else {
       const estimatedInput = config ? estimateInputFromConfig(config) : 0;
-      persistEvent(db, context, requestedModel, estimatedInput, 0, {
+      persistEvent(context, requestedModel, estimatedInput, 0, {
         status: 'failed',
         generationDurationMs: durationMs,
         errorCode,

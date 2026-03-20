@@ -84,6 +84,15 @@ export const SPAN_KEYS = {
   GEN_AI_COST_ESTIMATED_USD: 'gen_ai.cost.estimated_usd',
   GEN_AI_GENERATION_STEP_COUNT: 'gen_ai.generation.step_count',
   GEN_AI_GENERATION_TYPE: 'gen_ai.generation.type',
+  GEN_AI_REQUESTED_MODEL: 'gen_ai.requested_model',
+  GEN_AI_PROVIDER: 'gen_ai.provider',
+  GEN_AI_GENERATION_STATUS: 'gen_ai.generation.status',
+  GEN_AI_GENERATION_DURATION_MS: 'gen_ai.generation.duration_ms',
+  GEN_AI_GENERATION_FINISH_REASON: 'gen_ai.generation.finish_reason',
+  GEN_AI_GENERATION_ERROR_CODE: 'gen_ai.generation.error_code',
+  GEN_AI_GENERATION_BYOK: 'gen_ai.generation.byok',
+  GEN_AI_GENERATION_STREAMED: 'gen_ai.generation.streamed',
+  GEN_AI_MESSAGE_ID: 'gen_ai.message_id',
 
   // Context attributes
   CONTEXT_URL: 'context.url',
@@ -212,6 +221,18 @@ export const ACTIVITY_STATUS = {
   PENDING: 'pending',
   WARNING: 'warning',
 } as const;
+
+/** Valid generation types for usage tracking */
+export const USAGE_GENERATION_TYPES = [
+  'sub_agent_generation',
+  'conversation_compression',
+  'mid_generation_compression',
+  'artifact_metadata',
+  'status_update',
+  'eval_simulation',
+  'eval_scoring',
+  'component_render',
+] as const;
 
 /** Agent IDs */
 export const AGENT_IDS = {
