@@ -15,10 +15,7 @@ export const metadata = {
 export default async function NewTriggerPage({
   params,
   searchParams,
-}: {
-  params: Promise<{ tenantId: string; projectId: string; agentId: string }>;
-  searchParams: Promise<Record<string, string>>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/triggers/webhooks/[agentId]/new'>) {
   const { tenantId, projectId, agentId } = await params;
   const rawSearchParams = await searchParams;
 

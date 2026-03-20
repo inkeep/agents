@@ -25,9 +25,7 @@ const TIME_RANGES = {
 
 export default function AllProjectsToolCallsBreakdown({
   params,
-}: {
-  params: Promise<{ tenantId: string }>;
-}) {
+}: PageProps<'/[tenantId]/stats/tool-calls'>) {
   const { tenantId } = use(params);
 
   const backLink = `/${tenantId}/stats`;

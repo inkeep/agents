@@ -16,14 +16,7 @@ export const metadata = {
 
 export default async function ScheduledTriggerInvocationsPage({
   params,
-}: {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    scheduledTriggerId: string;
-  }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/triggers/scheduled/[agentId]/[scheduledTriggerId]/invocations'>) {
   const { tenantId, projectId, agentId, scheduledTriggerId } = await params;
 
   // Fetch agent to verify it exists
