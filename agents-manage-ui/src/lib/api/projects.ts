@@ -118,6 +118,6 @@ async function $fetchProjectPermissions(
   );
 
   return response.data;
-};
+}
 
 export const fetchProjectPermissions = cache($fetchProjectPermissions);
