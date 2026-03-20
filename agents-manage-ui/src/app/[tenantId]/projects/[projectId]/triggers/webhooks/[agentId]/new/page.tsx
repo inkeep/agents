@@ -33,7 +33,7 @@ export default async function NewTriggerPage({
     'enabled',
     'runAsUserId',
   ]) {
-    if (rawSearchParams[key]) {
+    if (typeof rawSearchParams[key] === 'string') {
       defaultsFromParams[key] = rawSearchParams[key];
     }
   }
