@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { CredentialBadgeFallback } from '@/components/credentials/credential-name-badge';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
-import { useProjectPermissions } from '@/contexts/project';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useThirdPartyMCPServerQuery } from '@/lib/query/mcp-catalog';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { MCPTool } from '@/lib/types/tools';
 import { Button } from '../ui/button';
 import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
@@ -43,7 +43,9 @@ export function ViewMCPServerDetailsProjectScope({
       window.location.reload();
     },
   });
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const isThirdPartyMCPServer = tool.config.mcp.server.url.includes('composio.dev');
   const shouldFetchThirdParty = isThirdPartyMCPServer && tool.status === 'needs_auth';

@@ -10,7 +10,7 @@ export interface UserProvider {
 
 /**
  * Get the authentication providers for a list of users.
- * Returns which providers each user has linked (e.g., 'credential', 'google', 'auth0').
+ * Returns which providers each user has linked (e.g., 'credential', 'google').
  * Requires the caller to be an admin/owner of the specified organization.
  */
 export async function getUserProviders(

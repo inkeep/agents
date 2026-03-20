@@ -1,6 +1,7 @@
 'use client';
 
-import { Loader2, MoreVertical, Trash2 } from 'lucide-react';
+import { Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -21,9 +22,9 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import { URLDisplay } from '@/components/url-display';
-import { useProjectPermissions } from '@/contexts/project';
 import { deleteToolAction } from '@/lib/actions/tools';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { MCPTool } from '@/lib/types/tools';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { formatDate } from '@/lib/utils/format-date';
@@ -34,9 +35,10 @@ import { MCPToolImage } from './mcp-tool-image';
 interface MCPToolDialogMenuProps {
   toolId: string;
   toolName?: string;
+  editPath: string;
 }
 
-function MCPToolDialogMenu({ toolId, toolName }: MCPToolDialogMenuProps) {
+function MCPToolDialogMenu({ toolId, toolName, editPath }: MCPToolDialogMenuProps) {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -77,6 +79,12 @@ function MCPToolDialogMenu({ toolId, toolName }: MCPToolDialogMenuProps) {
           align="end"
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
+          <DropdownMenuItem className="cursor-pointer" asChild>
+            <Link href={editPath}>
+              <Pencil className="size-4" />
+              Edit
+            </Link>
+          </DropdownMenuItem>
           <DialogTrigger asChild>
             <DropdownMenuItem variant="destructive">
               <Trash2 />
@@ -105,7 +113,9 @@ export function MCPToolItem({
   projectId: string;
   tool: MCPTool;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/mcp-servers/${initialTool.id}`;
 
   const { data: fetchedTool, isFetching: isLoadingStatus } = useMcpToolStatusQuery({
@@ -135,7 +145,9 @@ export function MCPToolItem({
             <span className="font-medium break-all">{tool.name}</span>
           </ItemCardTitle>
         </ItemCardLink>
-        {canEdit && <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} />}
+        {canEdit && (
+          <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} editPath={`${linkPath}/edit`} />
+        )}
       </ItemCardHeader>
       <ItemCardContent>
         <div className="space-y-3 min-w-0">

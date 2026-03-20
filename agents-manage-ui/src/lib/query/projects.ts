@@ -1,11 +1,16 @@
 'use client';
 
+import type { ProjectPermissions } from '@inkeep/agents-core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchProjects } from '@/lib/api/projects';
+import { useParams } from 'next/navigation';
+import { fetchProject, fetchProjectPermissions, fetchProjects } from '@/lib/api/projects';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
 import type { Project } from '@/lib/types/project';
 
-const projectQueryKeys = {
-  list: (tenantId: string) => ['projects', tenantId] as const,
+const defaultProjectPermissions: ProjectPermissions = {
+  canView: false,
+  canUse: false,
+  canEdit: false,
 };
 
 export function useProjectsQuery({
@@ -33,11 +38,57 @@ export function useProjectsQuery({
   });
 }
 
+export function useProjectQuery({ enabled = true }: { enabled?: boolean } = {}) {
+  'use memo';
+  const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
+
+  if (!tenantId || !projectId) {
+    throw new Error('tenantId and projectId are required');
+  }
+
+  return useQuery<Project | null>({
+    queryKey: projectQueryKeys.detail(tenantId, projectId),
+    async queryFn() {
+      const response = await fetchProject(tenantId, projectId);
+      return response.data;
+    },
+    enabled,
+    staleTime: 30_000,
+    initialData: null,
+    // force `queryFn` still runs on mount
+    initialDataUpdatedAt: 0,
+    meta: {
+      defaultError: 'Failed to load project',
+    },
+  });
+}
+
+export function useProjectPermissionsQuery({ enabled = true }: { enabled?: boolean } = {}) {
+  'use memo';
+  const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
+
+  if (!tenantId || !projectId) {
+    throw new Error('tenantId and projectId are required');
+  }
+
+  return useQuery<ProjectPermissions>({
+    queryKey: projectQueryKeys.permissions(tenantId, projectId),
+    queryFn: () => fetchProjectPermissions(tenantId, projectId),
+    enabled,
+    initialData: defaultProjectPermissions,
+    initialDataUpdatedAt: 0,
+    staleTime: 30_000,
+    meta: {
+      defaultError: 'Failed to load project permissions',
+    },
+  });
+}
+
 export function useProjectsInvalidation(tenantId: string) {
   'use memo';
   const queryClient = useQueryClient();
 
   return async () => {
-    await queryClient.invalidateQueries({ queryKey: projectQueryKeys.list(tenantId) });
+    await queryClient.invalidateQueries({ queryKey: projectQueryKeys.tenant(tenantId) });
   };
 }

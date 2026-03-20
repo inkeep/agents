@@ -1,6 +1,7 @@
+import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
 import FullPageError from '@/components/errors/full-page-error';
-import { ProjectProvider } from '@/contexts/project';
-import { fetchProject, fetchProjectPermissions } from '@/lib/api/projects';
+import { fetchProjectPermissions } from '@/lib/api/projects';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -12,14 +13,13 @@ export default async function ProjectLayout({
   const { tenantId, projectId } = await params;
 
   try {
-    const [project, permissions] = await Promise.all([
-      fetchProject(tenantId, projectId),
-      fetchProjectPermissions(tenantId, projectId),
-    ]);
+    const queryClient = new QueryClient();
+    const permissions = await fetchProjectPermissions(tenantId, projectId);
+    queryClient.setQueryData(projectQueryKeys.permissions(tenantId, projectId), permissions);
 
-    return (
-      <ProjectProvider value={{ project: project.data, permissions }}>{children}</ProjectProvider>
-    );
+    // Hydrates React Query before any child client component renders.
+    // That makes useProjectPermissionsQuery() in projects.ts start with real data
+    return <HydrationBoundary state={dehydrate(queryClient)}>{children}</HydrationBoundary>;
   } catch (error) {
     return (
       <FullPageError

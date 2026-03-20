@@ -139,6 +139,7 @@ async function init() {
     userId: user.id,
     organizationId: TENANT_ID,
     role: OrgRoles.ADMIN,
+    isServiceAccount: true,
   });
   console.log(`   ✅ User ${user.email} added as ${OrgRoles.ADMIN}`);
 
