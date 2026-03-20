@@ -95,12 +95,16 @@ function toVercelMessage(msg: {
         parts.push({ type: isArtifact ? 'data-artifact' : 'data-component', data: parsed });
       } else if (kind === 'file') {
         const url = typeof p.data === 'string' ? p.data : undefined;
+        if (!url) {
+          logger.warn({ part: p }, 'File part missing data, skipping');
+          continue;
+        }
         const meta = p.metadata as Record<string, unknown> | undefined;
         const mediaType = typeof meta?.mimeType === 'string' ? meta.mimeType : undefined;
         const filename = typeof meta?.filename === 'string' ? meta.filename : undefined;
         parts.push({
           type: 'file',
-          ...(url && { url }),
+          url,
           ...(mediaType && { mediaType }),
           ...(filename && { filename }),
         });
