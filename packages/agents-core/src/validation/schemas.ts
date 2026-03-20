@@ -2974,6 +2974,14 @@ export const PrebuiltMCPServerSchema = z.object({
     .url()
     .optional()
     .describe('URL to connect to the third party account'),
+  connectedAccountId: z
+    .string()
+    .optional()
+    .describe('The Composio connected account ID for the active connection'),
+  authScheme: z
+    .string()
+    .optional()
+    .describe('The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)'),
 });
 
 export const MCPCatalogListResponse = z

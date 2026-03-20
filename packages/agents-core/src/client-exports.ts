@@ -39,7 +39,10 @@ import type {
   TriggerInvocationApiSelectSchema,
 } from './validation/schemas';
 
-export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
+export {
+  DEFAULT_COMPOSIO_STORE_ID,
+  DEFAULT_NANGO_STORE_ID,
+} from './credential-stores/default-constants';
 export * from './validation/schemas';
 export * from './validation/schemas/shared';
 export * from './validation/schemas/skills';
