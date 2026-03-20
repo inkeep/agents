@@ -53,7 +53,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 22.x
 
@@ -78,7 +78,7 @@ jobs:
 
       - name: Setup pnpm cache
         if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -86,7 +86,7 @@ jobs:
 
       - name: Setup Turborepo cache
         if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
@@ -94,7 +94,7 @@ jobs:
 
       - name: Setup Playwright cache
         if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -182,7 +182,7 @@ jobs:
 
       - name: Upload Vitest Screenshots
         if: failure() && steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: vitest-screenshots
           path: agents-manage-ui/.vitest-attachments
@@ -274,7 +274,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 22.x
 
@@ -299,7 +299,7 @@ jobs:
 
       - name: Setup pnpm cache
         if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -308,7 +308,7 @@ jobs:
 
       - name: Setup Turborepo cache
         if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-create-agents-e2e-${{ github.sha }}
@@ -323,7 +323,7 @@ jobs:
 
       - name: Cache Playwright browsers
         if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
