@@ -12,15 +12,15 @@ vi.mock('../../utils/logger.js', () => ({
 }));
 
 const mockGet = vi.fn();
-const mockDelete = vi.fn();
+const mockDeleteAccount = vi.fn();
 
 vi.mock('../../utils/third-party-mcp-servers', () => ({
   getComposioInstance: vi.fn(() => ({
     connectedAccounts: {
       get: mockGet,
-      delete: mockDelete,
     },
   })),
+  deleteComposioConnectedAccount: (...args: unknown[]) => mockDeleteAccount(...args),
 }));
 
 describe('ComposioCredentialStore', () => {
@@ -91,16 +91,16 @@ describe('ComposioCredentialStore', () => {
 
   describe('delete', () => {
     it('should delete the connected account and return true', async () => {
-      mockDelete.mockResolvedValueOnce(undefined);
+      mockDeleteAccount.mockResolvedValueOnce(true);
 
       const result = await store.delete('ca_test-123');
 
       expect(result).toBe(true);
-      expect(mockDelete).toHaveBeenCalledWith('ca_test-123');
+      expect(mockDeleteAccount).toHaveBeenCalledWith('ca_test-123');
     });
 
     it('should return false when Composio API throws', async () => {
-      mockDelete.mockRejectedValueOnce(new Error('Delete failed'));
+      mockDeleteAccount.mockResolvedValueOnce(false);
 
       const result = await store.delete('ca_test-123');
 
@@ -108,8 +108,7 @@ describe('ComposioCredentialStore', () => {
     });
 
     it('should return false when Composio is not configured', async () => {
-      const { getComposioInstance } = await import('../../utils/third-party-mcp-servers');
-      vi.mocked(getComposioInstance).mockReturnValueOnce(null as any);
+      mockDeleteAccount.mockResolvedValueOnce(false);
 
       const result = await store.delete('ca_test-123');
 
