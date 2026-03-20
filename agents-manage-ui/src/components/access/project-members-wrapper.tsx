@@ -1,15 +1,9 @@
 'use client';
 
 import { ProjectRoles } from '@inkeep/agents-core/client-exports';
-import type { FC } from 'react';
+import { type FC, use } from 'react';
 import { useProjectAccess } from './hooks/use-project-access';
 import { ResourceMembersPage } from './resource-members-page';
-
-interface ProjectMembersWrapperProps {
-  projectId: string;
-  tenantId: string;
-  canManage: boolean;
-}
 
 const roles = [
   {
@@ -43,11 +37,10 @@ const membersConfig = {
  * - AgentMembersWrapper (uses useAgentAccess hook)
  * - McpServerMembersWrapper (uses useMcpServerAccess hook)
  */
-export const ProjectMembersWrapper: FC<ProjectMembersWrapperProps> = ({
-  projectId,
-  tenantId,
-  canManage,
+export const ProjectMembersWrapper: FC<PageProps<'/[tenantId]/projects/[projectId]/members'>> = ({
+  params,
 }) => {
+  const { tenantId, projectId } = use(params);
   const {
     principals,
     availablePrincipals,
@@ -67,7 +60,6 @@ export const ProjectMembersWrapper: FC<ProjectMembersWrapperProps> = ({
       inheritedAccess={inheritedAccess}
       principals={principals}
       membersConfig={membersConfig}
-      canManage={canManage}
       onAdd={addPrincipal}
       onRefresh={refetch}
       onRoleChange={changeRole}
