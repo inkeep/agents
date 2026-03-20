@@ -9,10 +9,10 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { Agent } from '@/lib/types/agent-full';
 import { formatDate } from '@/lib/utils/format-date';
 import { AgentItemMenu } from './agent-item-menu';
-import { useProjectPermissionsQuery } from '@/lib/query/projects';
 
 interface AgentItemProps extends Agent {
   tenantId: string;

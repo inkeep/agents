@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { PrincipalAvatar } from './principal-avatar';
 import { ProjectRoleSelector } from './project-role-selector';
 import type { AccessPrincipal, AccessRole, PrincipalType } from './types';
-import { useProjectPermissionsQuery } from '@/lib/query/projects';
 
 /**
  * Configuration for the explicit members section
