@@ -9,7 +9,6 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { Agent } from '@/lib/types/agent-full';
 import { formatDate } from '@/lib/utils/format-date';
 import { AgentItemMenu } from './agent-item-menu';
@@ -17,6 +16,7 @@ import { AgentItemMenu } from './agent-item-menu';
 interface AgentItemProps extends Agent {
   tenantId: string;
   projectId: string;
+  canEdit?: boolean;
 }
 
 export function AgentItem({
@@ -26,11 +26,10 @@ export function AgentItem({
   createdAt,
   tenantId,
   projectId,
+  canEdit = false,
 }: AgentItemProps) {
   const linkPath = `/${tenantId}/projects/${projectId}/agents/${id}`;
-  const {
-    data: { canEdit },
-  } = useProjectPermissionsQuery();
+
   return (
     <ItemCardRoot>
       <ItemCardHeader>
