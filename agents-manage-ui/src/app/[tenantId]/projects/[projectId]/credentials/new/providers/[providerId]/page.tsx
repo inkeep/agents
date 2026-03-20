@@ -206,6 +206,7 @@ function ProviderSetupPage({
         await updateNangoIntegrationCredentials({
           uniqueKey: formMode.integrationKey,
           credentials: payload,
+          tenantId,
         });
 
         toast.success('App credentials updated');
@@ -237,7 +238,7 @@ function ProviderSetupPage({
 
       setLoading(true);
       try {
-        await deleteNangoIntegration(uniqueKey);
+        await deleteNangoIntegration(uniqueKey, tenantId);
         toast.success('OAuth app deleted');
 
         try {

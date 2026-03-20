@@ -1,8 +1,8 @@
 'use client';
 
-import { Loader2, Mail, XCircle } from 'lucide-react';
+import { AlertTriangle, Loader2, Mail, XCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,37 +22,69 @@ export default function NoOrganizationPage() {
   const handleSignOut = useSignOut();
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function checkInvitations() {
-      if (!user?.email) {
-        setLoadingInvites(false);
-        return;
-      }
-
-      try {
-        const invitations = await getPendingInvitations(user.email);
-        setPendingInvites(
-          invitations.map((inv) => ({
-            id: inv.id,
-            organizationName: inv.organizationName,
-            role: inv.role,
-          }))
-        );
-      } catch {
-        // Silently fail -- still show the no-org page
-      } finally {
-        setLoadingInvites(false);
-      }
+  const checkInvitations = useCallback(async () => {
+    if (!user?.email) {
+      setLoadingInvites(false);
+      return;
     }
 
-    checkInvitations();
+    setLoadingInvites(true);
+    setInviteError(null);
+
+    const result = await getPendingInvitations(user.email);
+    if (result.success) {
+      setPendingInvites(
+        result.invitations.map((inv) => ({
+          id: inv.id,
+          organizationName: inv.organizationName,
+          role: inv.role,
+        }))
+      );
+    } else {
+      setInviteError(result.error);
+    }
+    setLoadingInvites(false);
   }, [user?.email]);
+
+  useEffect(() => {
+    checkInvitations();
+  }, [checkInvitations]);
 
   if (loadingInvites) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="size-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (inviteError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
+              <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+                Unable to load invitations
+              </CardTitle>
+            </div>
+            <CardDescription>
+              We couldn&apos;t check for pending invitations for{' '}
+              <span className="font-medium">{user?.email}</span>. You may have invitations waiting.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button onClick={checkInvitations} className="w-full">
+              Try Again
+            </Button>
+            <Button onClick={handleSignOut} variant="outline" className="w-full">
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

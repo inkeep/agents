@@ -79,15 +79,15 @@ function HomeContent() {
 
         // No organizations - check for pending invitations
         if (!userOrganizations || userOrganizations.length === 0) {
-          const pendingInvitations = await getPendingInvitations(user.email);
+          const result = await getPendingInvitations(user.email);
 
-          if (pendingInvitations.length > 0) {
+          if (result.success && result.invitations.length > 0) {
             setIsRedirecting(true);
-            router.push(`/accept-invitation/${pendingInvitations[0].id}`);
+            router.push(`/accept-invitation/${result.invitations[0].id}`);
             return;
           }
 
-          // No invitations either - show no-org page
+          // No invitations (or failed to fetch) - show no-org page
           setIsRedirecting(true);
           router.push('/no-organization');
           return;
