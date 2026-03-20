@@ -38,14 +38,13 @@ async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectI
   const { tenantId, projectId } = await params;
 
   try {
-    const [apiKeys, agent, permissions] = await Promise.all([
+    const [apiKeys, agent, { canUse }] = await Promise.all([
       fetchApiKeys(tenantId, projectId),
       fetchAgents(tenantId, projectId),
       fetchProjectPermissions(tenantId, projectId),
     ]);
     const agentLookup = createLookup(agent.data);
     const agentOptions = createAgentOptions(agent.data);
-    const canUse = permissions.canUse;
     return (
       <>
         <PageHeaderRoot>
@@ -70,7 +69,7 @@ async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectI
             </p>
           </AlertDescription>
         </Alert>
-        <ApiKeysTable apiKeys={apiKeys.data} agentLookup={agentLookup} canUse={canUse} />
+        <ApiKeysTable apiKeys={apiKeys.data} agentLookup={agentLookup} />
       </>
     );
   } catch (error) {

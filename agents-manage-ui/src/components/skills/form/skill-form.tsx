@@ -15,6 +15,7 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
 import type { SkillDetail } from '@/lib/types/skills';
 import { isRequired, serializeJson } from '@/lib/utils';
@@ -24,7 +25,6 @@ import { type SkillInput, SkillSchema as schema } from './validation';
 
 interface SkillFormProps {
   onSuccess?: () => void;
-  readOnly?: boolean;
 }
 
 const resolver = zodResolver(schema);
@@ -44,8 +44,12 @@ function formatFormData(data: SkillDetail | null): SkillInput {
   };
 }
 
-export const SkillForm: FC<SkillFormProps> = ({ onSuccess, readOnly = false }) => {
+export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
   'use memo';
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const readOnly = !canEdit;
   const { tenantId, projectId, skillId } = useParams<{
     tenantId: string;
     projectId: string;
