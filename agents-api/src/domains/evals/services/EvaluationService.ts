@@ -845,8 +845,11 @@ Generate the next user message:`;
       );
     }
 
-    // Fetch trace from SigNoz (similar to the example)
-    const prettifiedTrace = await this.fetchTraceFromSigNoz(conversation.id);
+    const prettifiedTrace = await this.fetchTraceFromSigNoz({
+      conversationId: conversation.id,
+      tenantId,
+      projectId,
+    });
 
     logger.info(
       {
@@ -1034,14 +1037,20 @@ Return your evaluation as a JSON object matching the schema above.`;
     }
   }
 
-  /**
-   * Fetch trace from SigNoz (similar to the example)
-   */
-  private async fetchTraceFromSigNoz(conversationId: string): Promise<any | null> {
+  private async fetchTraceFromSigNoz(params: {
+    conversationId: string;
+    tenantId: string;
+    projectId: string;
+  }): Promise<any | null> {
+    const { conversationId, tenantId, projectId } = params;
     const manageUIUrl = env.INKEEP_AGENTS_MANAGE_UI_URL;
     const maxRetries = 2;
     const retryDelayMs = 20000;
     const initialDelayMs = 30000;
+
+    const traceUrl = new URL(`${manageUIUrl}/api/traces/conversations/${conversationId}`);
+    traceUrl.searchParams.set('tenantId', tenantId);
+    traceUrl.searchParams.set('projectId', projectId);
 
     try {
       logger.info(
@@ -1063,10 +1072,7 @@ Return your evaluation as a JSON object matching the schema above.`;
             headers.Authorization = `Bearer ${this.manageApiBypassSecret}`;
           }
 
-          const traceResponse = await fetch(
-            `${manageUIUrl}/api/traces/conversations/${conversationId}`,
-            { headers }
-          );
+          const traceResponse = await fetch(traceUrl.toString(), { headers });
 
           if (!traceResponse.ok) {
             logger.warn(
