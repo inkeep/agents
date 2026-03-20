@@ -3,7 +3,7 @@ import path from 'node:path';
 
 // GitHub API endpoint — works for private repos when GITHUB_TOKEN is set
 const CHANGELOG_URL =
-  'https://api.github.com/repos/inkeep/agents-ui/contents/packages/react/CHANGELOG.md';
+  'https://api.github.com/repos/inkeep/agents-ui/contents/packages/agents-ui/CHANGELOG.md';
 
 const OUTPUT_PATH = path.join(process.cwd(), 'content/guides/widget-changelog.mdx');
 
@@ -22,8 +22,10 @@ export async function main(): Promise<void> {
 
   const raw = await response.text();
 
-  // Strip the package name heading and prepend MDX frontmatter
-  const body = raw.replace(/^# @inkeep\/agents-ui-cloud\n+/, '');
+  // Strip package name heading and pre-release (0.0.0-rc-*) sections
+  const body = raw
+    .replace(/^# @inkeep\/agents-ui\n+/, '')
+    .replace(/^## 0\.0\.0-rc-[^\n]*\n+/gm, '');
   const mdx = `---
 title: Widget Changelog
 sidebarTitle: Widget Changelog
