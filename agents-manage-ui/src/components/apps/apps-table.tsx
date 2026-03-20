@@ -11,10 +11,10 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import type { App } from '@/lib/api/apps';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { Agent } from '@/lib/types/agent-full';
 import { formatDateAgo } from '@/lib/utils/format-date';
 import { AppItemMenu } from './app-item-menu';
-import { useProjectPermissionsQuery } from '@/lib/query/projects';
 
 interface AppsTableProps {
   apps: App[];

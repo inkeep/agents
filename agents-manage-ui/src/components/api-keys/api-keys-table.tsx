@@ -5,11 +5,11 @@ import { useMemo } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import type { ApiKey } from '@/lib/api/api-keys';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { Agent } from '@/lib/types/agent-full';
 import { formatDateAgo } from '@/lib/utils/format-date';
 import { ApiKeyItemMenu } from './api-key-item-menu';
 import { ExpirationIndicator } from './expiration-indicator';
-import { useProjectPermissionsQuery } from '@/lib/query/projects';
 
 interface ApiKeysTableProps {
   apiKeys: ApiKey[];
