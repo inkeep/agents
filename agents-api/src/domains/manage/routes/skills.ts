@@ -1,21 +1,31 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   createSkill,
+  createSkillFileById,
   deleteSkill,
+  deleteSkillFileById,
   getSkillByIdWithFiles,
+  getSkillFileById,
   listSkills,
   PaginationQueryParamsSchema,
+  ResourceIdSchema,
+  SKILL_ENTRY_FILE_PATH,
   SkillApiInsertSchema,
   SkillApiUpdateSchema,
+  SkillFileApiInsertSchema,
+  SkillFileApiUpdateSchema,
+  SkillFileResponse,
   SkillListResponse,
   SkillWithFilesResponse,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateSkill,
+  updateSkillFileById,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { HTTPException } from 'hono/http-exception';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types';
 import {
@@ -25,6 +35,9 @@ import {
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+const TenantProjectSkillFileParamsSchema = TenantProjectIdParamsSchema.extend({
+  fileId: ResourceIdSchema,
+});
 
 app.openapi(
   createProtectedRoute({
@@ -62,6 +75,73 @@ app.openapi(
     });
 
     return c.json(result);
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{id}/files',
+    summary: 'Create Skill File',
+    operationId: 'create-skill-file',
+    tags: ['Skills'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: SkillFileApiInsertSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Skill file created successfully',
+        content: {
+          'application/json': {
+            schema: SkillFileResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, id } = c.req.valid('param');
+    const body = c.req.valid('json');
+
+    try {
+      const file = await createSkillFileById(db)({
+        scopes: { tenantId, projectId },
+        skillId: id,
+        data: body,
+      });
+
+      if (!file) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Skill not found',
+        });
+      }
+
+      return c.json({ data: file }, 201);
+    } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        throw createApiError({
+          code: error.message.includes('already exists') ? 'conflict' : 'unprocessable_entity',
+          message: error.message,
+        });
+      }
+
+      throw error;
+    }
   }
 );
 
@@ -227,53 +307,24 @@ const updateSkillHandler: ManageRouteHandler<typeof updateSkillRouteConfig> = as
   const db = c.get('db');
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
-  // let data: {
-  //   description: string;
-  //   metadata: Record<string, string> | null;
-  //   content: string;
-  //   files: Array<{ filePath: string; content: string }>;
-  // };
-  //
-  // try {
-  //   if (!body.files) {
-  //     throw new Error('Skill updates must include files');
-  //   }
-  //
-  //   const transformedBody = body as typeof body & {
-  //     name?: string;
-  //     description?: string;
-  //     metadata?: Record<string, string> | null;
-  //     content?: string;
-  //   };
-  //
-  //   const skillName = transformedBody.name;
-  //
-  //   if (typeof skillName === 'string' && skillName !== id) {
-  //     throw new Error(`${SKILL_ENTRY_FILE_PATH} name must match the skill id`);
-  //   }
-  //
-  //   if (transformedBody.description === undefined || transformedBody.content === undefined) {
-  //     throw new Error(`Skill updates with files must include ${SKILL_ENTRY_FILE_PATH}`);
-  //   }
-  //
-  //   data = {
-  //     description: transformedBody.description,
-  //     metadata: transformedBody.metadata ?? null,
-  //     content: transformedBody.content,
-  //     files: body.files,
-  //   };
-  // } catch (error) {
-  //   throw createApiError({
-  //     code: 'unprocessable_entity',
-  //     message: error instanceof Error ? error.message : 'Invalid skill update payload',
-  //   });
-  // }
+  const parsedBody = SkillApiUpdateSchema.parse(body);
+
+  if (!parsedBody.files) {
+    throw createApiError({
+      code: 'unprocessable_entity',
+      message: 'Skill updates must include files',
+    });
+  }
+
+  const files = parsedBody.files;
+  const data = files.some((file) => file.filePath === SKILL_ENTRY_FILE_PATH)
+    ? { ...parsedBody, files }
+    : { files: [] };
 
   const skill = await updateSkill(db)({
     scopes: { tenantId, projectId },
     skillId: id,
-    // @ts-expect-error -- fixme
-    data: SkillApiUpdateSchema.parse(body),
+    data,
   });
 
   if (!skill) {
