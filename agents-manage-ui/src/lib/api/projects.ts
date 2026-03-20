@@ -107,7 +107,7 @@ export async function deleteProject(tenantId: string, projectId: string): Promis
  * Fetch project permissions for the current user.
  * Wrapped with React's cache() to deduplicate calls within a single request.
  */
-export const fetchProjectPermissions = cache(
+const $fetchProjectPermissions = cache(
   async (tenantId: string, projectId: string): Promise<ProjectPermissions> => {
     validateTenantId(tenantId);
 
@@ -118,3 +118,5 @@ export const fetchProjectPermissions = cache(
     return response.data;
   }
 );
+
+export const fetchProjectPermissions = cache($fetchProjectPermissions);
