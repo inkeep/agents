@@ -2199,7 +2199,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           },
@@ -2259,7 +2260,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           },
@@ -2339,7 +2341,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           },
@@ -2370,7 +2373,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           }
@@ -5554,8 +5558,16 @@
           "data": {
             "items": {
               "properties": {
+                "authScheme": {
+                  "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
+                  "type": "string"
+                },
                 "category": {
                   "description": "Category of the MCP server (e.g., communication, project_management)",
+                  "type": "string"
+                },
+                "connectedAccountId": {
+                  "description": "The Composio connected account ID for the active connection",
                   "type": "string"
                 },
                 "description": {
@@ -8857,8 +8869,16 @@
           "data": {
             "nullable": true,
             "properties": {
+              "authScheme": {
+                "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
+                "type": "string"
+              },
               "category": {
                 "description": "Category of the MCP server (e.g., communication, project_management)",
+                "type": "string"
+              },
+              "connectedAccountId": {
+                "description": "The Composio connected account ID for the active connection",
                 "type": "string"
               },
               "description": {
