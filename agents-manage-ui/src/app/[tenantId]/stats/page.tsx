@@ -38,8 +38,7 @@ import {
   useStatsByProject,
 } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
-import { fetchProjectsAction } from '@/lib/actions/projects';
-import type { Project } from '@/lib/types/project';
+import { useProjectsQuery } from '@/lib/query/projects';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
@@ -60,28 +59,8 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
   } = useTracesQueryState();
 
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
-
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
-
-  // Fetch projects on mount
-  useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        setProjectsLoading(true);
-        const result = await fetchProjectsAction(tenantId);
-        if (result.success && result.data) {
-          setProjects(result.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch projects:', error);
-      } finally {
-        setProjectsLoading(false);
-      }
-    };
-    loadProjects();
-  }, [tenantId]);
+  const { data: projects, isFetching: projectsLoading } = useProjectsQuery({ tenantId });
 
   // Calculate time range based on selection
   const { startTime, endTime } = useMemo(() => {

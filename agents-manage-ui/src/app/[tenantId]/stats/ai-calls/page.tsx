@@ -23,9 +23,8 @@ import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
-import { fetchProjectsAction } from '@/lib/actions/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
-import type { Project } from '@/lib/types/project';
+import { useProjectsQuery } from '@/lib/query/projects';
 
 interface TokenUsageStats {
   byModel: Array<{
@@ -99,27 +98,8 @@ export default function AllProjectsAICallsBreakdown({
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState(true);
+  const { data: projects, isFetching: projectsLoading } = useProjectsQuery({ tenantId });
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
-
-  // Fetch projects on mount
-  useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        setProjectsLoading(true);
-        const result = await fetchProjectsAction(tenantId);
-        if (result.success && result.data) {
-          setProjects(result.data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch projects:', err);
-      } finally {
-        setProjectsLoading(false);
-      }
-    };
-    loadProjects();
-  }, [tenantId]);
 
   const handleTimeRangeChange = (value: TimeRange) => {
     setTimeRange(value);
