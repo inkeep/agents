@@ -41,7 +41,7 @@ async function replaceSkillFiles(
   }
 ) {
   const existingFiles = await db
-    .select({ id: skillFiles.id })
+    .select()
     .from(skillFiles)
     .where(
       and(
@@ -49,31 +49,34 @@ async function replaceSkillFiles(
         eq(skillFiles.projectId, params.scopes.projectId),
         eq(skillFiles.skillId, params.skillId)
       )
-    )
-    .limit(1);
+    );
 
-  if (existingFiles.length > 0) {
+  const nextFilePaths = new Set(params.files.map((file) => file.filePath));
+  const existingByPath = new Map(existingFiles.map((file) => [file.filePath, file]));
+  const fileIdsToDelete = existingFiles
+    .filter((file) => !nextFilePaths.has(file.filePath))
+    .map((file) => file.id);
+
+  if (fileIdsToDelete.length > 0) {
     await db
       .delete(skillFiles)
       .where(
         and(
-          eq(skillFiles.tenantId, params.scopes.tenantId),
-          eq(skillFiles.projectId, params.scopes.projectId),
-          eq(skillFiles.skillId, params.skillId)
+          projectScopedWhere(skillFiles, params.scopes),
+          eq(skillFiles.skillId, params.skillId),
+          inArray(skillFiles.id, fileIdsToDelete)
         )
       );
   }
 
-  if (!params.files.length) {
-    return [];
-  }
-
   const now = new Date().toISOString();
+  const filesToInsert: SkillFileSelect[] = [];
 
-  return await db
-    .insert(skillFiles)
-    .values(
-      params.files.map((file) => ({
+  for (const file of params.files) {
+    const existingFile = existingByPath.get(file.filePath);
+
+    if (!existingFile) {
+      filesToInsert.push({
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
         skillId: params.skillId,
@@ -82,9 +85,35 @@ async function replaceSkillFiles(
         content: file.content,
         createdAt: now,
         updatedAt: now,
-      }))
-    )
-    .returning();
+      });
+      continue;
+    }
+
+    await db
+      .update(skillFiles)
+      .set({
+        content: file.content,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          projectScopedWhere(skillFiles, params.scopes),
+          eq(skillFiles.skillId, params.skillId),
+          eq(skillFiles.id, existingFile.id)
+        )
+      );
+  }
+
+  if (filesToInsert.length > 0) {
+    await db.insert(skillFiles).values(filesToInsert);
+  }
+
+  const filesBySkillId = await getSkillFilesBySkillIds(db)({
+    scopes: params.scopes,
+    skillIds: [params.skillId],
+  });
+
+  return filesBySkillId[params.skillId] ?? [];
 }
 
 export const getSkillFilesBySkillIds =
@@ -163,6 +192,48 @@ export const getSkillFileById =
     });
 
     return file ?? null;
+  };
+
+export const createSkillFileById =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    skillId: string;
+    data: SkillFileApiInsert;
+  }): Promise<SkillFileSelect | null> => {
+    const skill = await getSkillByIdWithFiles(db)({
+      scopes: params.scopes,
+      skillId: params.skillId,
+    });
+
+    if (!skill) {
+      return null;
+    }
+
+    if (params.data.filePath === SKILL_ENTRY_FILE_PATH) {
+      throw new Error(`Use the skill update flow to manage ${SKILL_ENTRY_FILE_PATH}`);
+    }
+
+    if (skill.files.some((file) => file.filePath === params.data.filePath)) {
+      throw new Error(`Skill file already exists at path "${params.data.filePath}"`);
+    }
+
+    const now = new Date().toISOString();
+    const [createdFile] = await db
+      .insert(skillFiles)
+      .values({
+        tenantId: params.scopes.tenantId,
+        projectId: params.scopes.projectId,
+        skillId: params.skillId,
+        id: generateId(),
+        filePath: params.data.filePath,
+        content: params.data.content,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    return createdFile ?? null;
   };
 
 function buildEntryFileUpdateData(params: {
