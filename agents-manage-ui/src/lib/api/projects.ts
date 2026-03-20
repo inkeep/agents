@@ -107,10 +107,10 @@ export async function deleteProject(tenantId: string, projectId: string): Promis
  * Fetch project permissions for the current user.
  * Wrapped with React's cache() to deduplicate calls within a single request.
  */
-const $fetchProjectPermissions = async (
+async function $fetchProjectPermissions(
   tenantId: string,
   projectId: string
-): Promise<ProjectPermissions> => {
+): Promise<ProjectPermissions> {
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<{ data: ProjectPermissions }>(
