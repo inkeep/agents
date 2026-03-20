@@ -691,8 +691,8 @@ describe('Run API - End-User Conversation History', () => {
       expect(msg.parts[0]).toEqual({ type: 'text', text: 'Check this image' });
       expect(msg.parts[1]).toEqual({
         type: 'file',
-        data: 'base64data',
-        metadata: { mimeType: 'image/png' },
+        url: 'base64data',
+        mediaType: 'image/png',
       });
     });
 
