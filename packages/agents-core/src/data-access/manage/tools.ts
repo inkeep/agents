@@ -220,14 +220,27 @@ const discoverToolsFromServer = async (
       }
     }
 
-    // Inject user_id and x-api-key for Composio servers at discovery time
-    configureComposioMCPServer(
-      serverConfig,
-      tool.tenantId,
-      tool.projectId,
-      tool.credentialScope === 'user' ? 'user' : 'project',
-      userId
-    );
+    const composioConnectedAccountId = credentialReference?.retrievalParams?.connectedAccountId as
+      | string
+      | undefined;
+
+    // Only inject Composio auth params when connectedAccountId is available (both or none)
+    // to prevent cross-project credential leakage via user_id-only scoping
+    if (composioConnectedAccountId) {
+      configureComposioMCPServer(
+        serverConfig,
+        tool.tenantId,
+        tool.projectId,
+        tool.credentialScope === 'user' ? 'user' : 'project',
+        userId,
+        composioConnectedAccountId
+      );
+    } else if (serverConfig.url?.toString().includes('composio.dev')) {
+      logger.warn(
+        { toolName: tool.name, toolId: tool.id },
+        'Composio tool missing connectedAccountId — skipping auth injection to prevent credential leakage'
+      );
+    }
 
     const urlString = String(serverConfig.url);
 
@@ -413,18 +426,26 @@ export const dbResultToMcpTool = async (
   // Check third-party service status
   const isThirdPartyMCPServer = dbResult.config.mcp.server.url.includes('composio.dev');
   if (isThirdPartyMCPServer) {
-    const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
-    const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
-      dbResult.tenantId,
-      dbResult.projectId,
-      mcpServerUrl,
-      credentialScope,
-      userId
-    );
+    const hasConnectedAccountId = !!credentialReference?.retrievalParams?.connectedAccountId;
 
-    if (!isAuthenticated) {
+    if (!hasConnectedAccountId) {
       status = 'needs_auth';
-      lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+      lastErrorComputed =
+        'Third-party authentication required. Connect your account to pin a specific credential.';
+    } else {
+      const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
+      const authResult = await isThirdPartyMCPServerAuthenticated(
+        dbResult.tenantId,
+        dbResult.projectId,
+        mcpServerUrl,
+        credentialScope,
+        userId
+      );
+
+      if (!authResult.authenticated) {
+        status = 'needs_auth';
+        lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+      }
     }
   }
 
