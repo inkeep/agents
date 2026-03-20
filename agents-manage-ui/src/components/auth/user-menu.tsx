@@ -63,7 +63,8 @@ export function UserMenu() {
             </DropdownMenuItem>
           </>
         )}
-
+        )}
+        <DropdownMenuItem onClick={handleSignOut} className="gap-2">
         <DropdownMenuItem onClick={handleSignOut} className="gap-2">
           <LogOut className="h-4 w-4" aria-hidden="true" />
           Log out
