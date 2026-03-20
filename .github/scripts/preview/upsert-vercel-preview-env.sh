@@ -11,6 +11,8 @@ require_env_vars \
   VERCEL_API_PROJECT_ID \
   VERCEL_MANAGE_UI_PROJECT_ID \
   ANTHROPIC_API_KEY \
+  BETTER_AUTH_SECRET \
+  SPICEDB_PRESHARED_KEY \
   PR_BRANCH \
   API_URL \
   UI_URL
@@ -20,7 +22,7 @@ if ! [[ "${PR_BRANCH}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
   exit 1
 fi
 
-mask_env_vars ANTHROPIC_API_KEY MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT
+mask_env_vars ANTHROPIC_API_KEY BETTER_AUTH_SECRET SPICEDB_PRESHARED_KEY MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT
 
 if [ -z "${MANAGE_DB_URL:-}" ] || [ -z "${RUN_DB_URL:-}" ] || [ -z "${SPICEDB_ENDPOINT:-}" ]; then
   require_env_vars \
@@ -34,57 +36,16 @@ if [ -z "${MANAGE_DB_URL:-}" ] || [ -z "${RUN_DB_URL:-}" ] || [ -z "${SPICEDB_EN
 
   RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
 
-  if ! railway link \
-    --project "${RAILWAY_PROJECT_ID}" \
-    --service "${RAILWAY_OUTPUT_SERVICE}" \
-    --environment "${RAILWAY_ENV_NAME}" \
-    >/dev/null; then
-    echo "Failed to link Railway CLI to project ${RAILWAY_PROJECT_ID} service ${RAILWAY_OUTPUT_SERVICE} env ${RAILWAY_ENV_NAME}." >&2
-    exit 1
-  fi
-
-  extract_runtime_var() {
-    local key="$1"
-    local max_attempts="${2:-20}"
-    local sleep_seconds="${3:-2}"
-    local attempt=""
-    local value=""
-
-    for attempt in $(seq 1 "${max_attempts}"); do
-      value="$(
-        railway variable list \
-          --service "${RAILWAY_OUTPUT_SERVICE}" \
-          --environment "${RAILWAY_ENV_NAME}" \
-          --json |
-        jq -r --arg key "${key}" '.[$key] // empty'
-      )"
-
-      if [ -n "${value}" ] && ! printf '%s' "${value}" | grep -q '\$[{][{]'; then
-        printf '%s' "${value}"
-        return 0
-      fi
-
-      if [ "${attempt}" -lt "${max_attempts}" ]; then
-        sleep "${sleep_seconds}"
-      fi
-    done
-
-    if [ -z "${value:-}" ]; then
-      echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
-    else
-      echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
-    fi
-    exit 1
-  }
+  railway_link_service "${RAILWAY_PROJECT_ID}" "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}"
 
   if [ -z "${MANAGE_DB_URL:-}" ]; then
-    MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
+    MANAGE_DB_URL="$(railway_extract_runtime_var "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}" "${RAILWAY_MANAGE_DB_URL_KEY}")"
   fi
   if [ -z "${RUN_DB_URL:-}" ]; then
-    RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
+    RUN_DB_URL="$(railway_extract_runtime_var "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}" "${RAILWAY_RUN_DB_URL_KEY}")"
   fi
   if [ -z "${SPICEDB_ENDPOINT:-}" ]; then
-    SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
+    SPICEDB_ENDPOINT="$(railway_extract_runtime_var "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}" "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
   fi
 
   mask_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT
@@ -135,3 +96,6 @@ upsert_env "${VERCEL_API_PROJECT_ID}" "LOG_LEVEL" "info"
 upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_MANAGE_DATABASE_URL" "${MANAGE_DB_URL}"
 upsert_env "${VERCEL_API_PROJECT_ID}" "INKEEP_AGENTS_RUN_DATABASE_URL" "${RUN_DB_URL}"
 upsert_env "${VERCEL_API_PROJECT_ID}" "SPICEDB_ENDPOINT" "${SPICEDB_ENDPOINT}"
+upsert_env "${VERCEL_API_PROJECT_ID}" "SPICEDB_TLS_ENABLED" "false"
+upsert_env "${VERCEL_API_PROJECT_ID}" "BETTER_AUTH_SECRET" "${BETTER_AUTH_SECRET}"
+upsert_env "${VERCEL_API_PROJECT_ID}" "SPICEDB_PRESHARED_KEY" "${SPICEDB_PRESHARED_KEY}"
