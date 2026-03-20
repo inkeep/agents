@@ -3,6 +3,7 @@
 import {
   Activity,
   AppWindow,
+  ArrowLeft,
   BarChart3,
   Blocks,
   Component,
@@ -226,6 +227,23 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       <SidebarContent className="justify-between">
         {projectId ? (
           <div className="flex flex-col gap-1.5">
+            <div className="px-2 py-1">
+              <SidebarMenuButton asChild>
+                <Link
+                  className="font-mono uppercase text-xs hover:bg-transparent gap-1.5!"
+                  href={`/${tenantId}/projects`}
+                >
+                  <ArrowLeft
+                    className={cn(
+                      open ? 'size-3.5!' : 'size-4!',
+                      'transition-[size] duration-300 ease-in-out'
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span>Back to org</span>
+                </Link>
+              </SidebarMenuButton>
+            </div>
             <NavGroup items={configureNavItems} />
             <NavGroup label="Register" items={registerNavItems} />
             <NavGroup label="UI" items={uiNavItems} />

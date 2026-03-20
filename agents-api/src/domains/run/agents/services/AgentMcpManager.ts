@@ -68,12 +68,11 @@ export class AgentMcpManager {
     const conversationId = this.getConversationId();
 
     let serverConfig: McpServerConfig;
+    let storeReference:
+      | { credentialStoreId: string; retrievalParams: Record<string, unknown> }
+      | undefined;
 
     if (this.credentialStuffer) {
-      let storeReference:
-        | { credentialStoreId: string; retrievalParams: Record<string, unknown> }
-        | undefined;
-
       if (isUserScoped && userId) {
         const userCredRef = project.credentialReferences
           ? Object.values(project.credentialReferences).find(
@@ -157,13 +156,25 @@ export class AgentMcpManager {
       };
     }
 
-    configureComposioMCPServer(
-      serverConfig,
-      this.config.tenantId,
-      this.config.projectId,
-      isUserScoped ? 'user' : 'project',
-      userId
-    );
+    const composioConnectedAccountId = storeReference?.retrievalParams?.connectedAccountId as
+      | string
+      | undefined;
+
+    if (composioConnectedAccountId) {
+      configureComposioMCPServer(
+        serverConfig,
+        this.config.tenantId,
+        this.config.projectId,
+        isUserScoped ? 'user' : 'project',
+        userId,
+        composioConnectedAccountId
+      );
+    } else if (serverConfig.url?.toString().includes('composio.dev')) {
+      logger.warn(
+        { toolName: tool.name, toolId: tool.id },
+        'Composio tool missing connectedAccountId — skipping auth injection to prevent credential leakage'
+      );
+    }
 
     if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
       serverConfig.headers = {

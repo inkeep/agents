@@ -2,26 +2,26 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import * as ipaddr from 'ipaddr.js';
 import { getLogger } from '../../../../logger';
-import { ALLOWED_HTTP_PORTS } from './image-security-constants';
+import { ALLOWED_HTTP_PORTS } from './file-security-constants';
 import {
   BlockedDisallowedPortError,
   BlockedEmbeddedCredentialsError,
   BlockedUnsupportedSchemeError,
   BlockedUrlResolvingToPrivateIpError,
-  ImageSecurityError,
-  InvalidExternalImageUrlError,
+  FileSecurityError,
+  InvalidExternalFileUrlError,
   NoIpResolvedError,
   UnableToResolveHostError,
-} from './image-security-errors';
+} from './file-security-errors';
 
-const logger = getLogger('image-security');
+const logger = getLogger('file-security');
 
-export function validateExternalImageUrl(rawUrl: string): URL {
+export function validateExternalFileUrl(rawUrl: string): URL {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
   } catch {
-    throw new InvalidExternalImageUrlError(rawUrl);
+    throw new InvalidExternalFileUrlError(rawUrl);
   }
 
   const protocol = parsed.protocol.toLowerCase();
@@ -44,7 +44,7 @@ export async function validateUrlResolvesToPublicIp(url: URL): Promise<void> {
   try {
     candidateIps = await resolveCandidateIps(hostname);
   } catch (error) {
-    if (error instanceof ImageSecurityError) {
+    if (error instanceof FileSecurityError) {
       throw error;
     }
     throw new UnableToResolveHostError(hostname, { cause: error });
@@ -56,7 +56,7 @@ export async function validateUrlResolvesToPublicIp(url: URL): Promise<void> {
 
   for (const ip of candidateIps) {
     if (isBlockedIpAddress(ip)) {
-      logger.warn({ host: hostname, ip }, 'Blocked external image URL resolving to private IP');
+      logger.warn({ host: hostname, ip }, 'Blocked external file URL resolving to private IP');
       throw new BlockedUrlResolvingToPrivateIpError(ip);
     }
   }
@@ -70,7 +70,7 @@ async function resolveCandidateIps(hostname: string): Promise<string[]> {
   try {
     return (await lookup(hostname, { all: true, verbatim: true })).map((result) => result.address);
   } catch (error) {
-    logger.warn({ host: hostname, error }, 'DNS resolution failed for external image URL');
+    logger.warn({ host: hostname, error }, 'DNS resolution failed for external file URL');
     throw new UnableToResolveHostError(hostname, { cause: error });
   }
 }

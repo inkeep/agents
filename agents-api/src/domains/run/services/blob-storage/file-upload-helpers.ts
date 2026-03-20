@@ -4,10 +4,10 @@ import {
   hasFileParts,
   makeMessageContentParts,
   type UploadContext,
-  uploadPartsImages,
-} from './image-upload';
+  uploadPartsFiles,
+} from './file-upload';
 
-const logger = getLogger('image-upload-helpers');
+const logger = getLogger('file-upload-helpers');
 
 export async function buildPersistedMessageContent(
   text: string,
@@ -19,7 +19,7 @@ export async function buildPersistedMessageContent(
   }
 
   try {
-    const uploadedParts = await uploadPartsImages(parts, ctx);
+    const uploadedParts = await uploadPartsFiles(parts, ctx);
     const contentParts = makeMessageContentParts(uploadedParts);
 
     logger.debug(
@@ -29,7 +29,7 @@ export async function buildPersistedMessageContent(
         uploadedParts: contentParts.length,
         fileParts: contentParts.filter((p) => p.kind === 'file').length,
       },
-      'Built persisted message content with uploaded images'
+      'Built persisted message content with uploaded files'
     );
 
     return { text, parts: contentParts };
@@ -39,7 +39,7 @@ export async function buildPersistedMessageContent(
         error: error instanceof Error ? error.message : String(error),
         messageId: ctx.messageId,
       },
-      'Failed to upload images, persisting text only'
+      'Failed to upload files, persisting text only'
     );
     return { text };
   }
