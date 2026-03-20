@@ -1048,9 +1048,7 @@ Return your evaluation as a JSON object matching the schema above.`;
     const retryDelayMs = 20000;
     const initialDelayMs = 30000;
 
-    const traceUrl = new URL(`${manageUIUrl}/api/traces/conversations/${conversationId}`);
-    traceUrl.searchParams.set('tenantId', tenantId);
-    traceUrl.searchParams.set('projectId', projectId);
+    const traceUrl = `${manageUIUrl}/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`;
 
     try {
       logger.info(
@@ -1072,7 +1070,7 @@ Return your evaluation as a JSON object matching the schema above.`;
             headers.Authorization = `Bearer ${this.manageApiBypassSecret}`;
           }
 
-          const traceResponse = await fetch(traceUrl.toString(), { headers });
+          const traceResponse = await fetch(traceUrl, { headers });
 
           if (!traceResponse.ok) {
             logger.warn(
