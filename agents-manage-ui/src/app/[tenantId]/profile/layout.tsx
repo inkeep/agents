@@ -7,7 +7,7 @@ export const metadata = {
   description: 'Manage your personal preferences.',
 } satisfies Metadata;
 
-export default function Page({ children }: LayoutProps<'/[tenantId]/profile'>) {
+export default function Layout({ children }: LayoutProps<'/[tenantId]/profile'>) {
   return (
     <div className="space-y-6">
       <PageHeader title={metadata.title} description={metadata.description} />
