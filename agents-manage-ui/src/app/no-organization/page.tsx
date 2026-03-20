@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Loader2, Mail, XCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ export default function NoOrganizationPage() {
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   const checkInvitations = useCallback(async () => {
     if (!user?.email) {
@@ -30,10 +31,13 @@ export default function NoOrganizationPage() {
       return;
     }
 
+    const requestId = ++requestIdRef.current;
     setLoadingInvites(true);
     setInviteError(null);
 
     const result = await getPendingInvitations(user.email);
+    if (requestId !== requestIdRef.current) return;
+
     if (result.success) {
       setPendingInvites(
         result.invitations.map((inv) => ({
@@ -44,6 +48,7 @@ export default function NoOrganizationPage() {
       );
     } else {
       setInviteError(result.error);
+      setPendingInvites([]);
     }
     setLoadingInvites(false);
   }, [user?.email]);
@@ -77,8 +82,8 @@ export default function NoOrganizationPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button onClick={checkInvitations} className="w-full">
-              Try Again
+            <Button onClick={checkInvitations} disabled={loadingInvites} className="w-full">
+              {loadingInvites ? 'Checking...' : 'Try Again'}
             </Button>
             <Button onClick={handleSignOut} variant="outline" className="w-full">
               Sign Out

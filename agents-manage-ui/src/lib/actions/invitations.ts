@@ -64,7 +64,6 @@ export async function verifyInvitation(
     );
     return result;
   } catch (error) {
-    console.error('[verifyInvitation] Error:', error);
     const message = error instanceof ApiError ? error.message : 'Failed to validate invitation';
     return {
       valid: false,

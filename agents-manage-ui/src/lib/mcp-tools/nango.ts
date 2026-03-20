@@ -23,6 +23,9 @@ import { NangoError, wrapNangoError } from './nango-types';
  * which validates session cookies and tenant membership.
  * Throws if the user is not authenticated or not a member of the tenant.
  */
+// Intentionally used as an auth gate: the backend validates session cookies
+// and tenant membership on this request. If this endpoint ever becomes
+// public or cached, the tenant isolation check will silently break.
 async function verifyTenantAccess(tenantId: string): Promise<void> {
   await makeManagementApiRequest(`tenants/${tenantId}/projects?limit=1`);
 }
@@ -32,7 +35,9 @@ async function verifyTenantAccess(tenantId: string): Promise<void> {
  * Integration keys follow the convention: {provider}-{tenantId}-{suffix}
  */
 function assertKeyBelongsToTenant(uniqueKey: string, tenantId: string): void {
-  if (!uniqueKey.includes(`-${tenantId}`)) {
+  const tenantSegment = `-${tenantId}-`;
+  const tenantSuffix = `-${tenantId}`;
+  if (!uniqueKey.endsWith(tenantSuffix) && !uniqueKey.includes(tenantSegment)) {
     throw new NangoError(`Integration key '${uniqueKey}' does not belong to tenant '${tenantId}'`);
   }
 }

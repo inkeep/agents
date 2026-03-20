@@ -87,7 +87,7 @@ function HomeContent() {
             return;
           }
 
-          // No invitations (or failed to fetch) - show no-org page
+          // No invitations or fetch failed — the no-org page handles both cases
           setIsRedirecting(true);
           router.push('/no-organization');
           return;
