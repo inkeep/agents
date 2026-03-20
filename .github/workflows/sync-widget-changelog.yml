@@ -7,6 +7,10 @@ on:
   # Manual trigger
   workflow_dispatch:
 
+concurrency:
+  group: widget-changelog-sync
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
@@ -15,6 +19,7 @@ jobs:
   sync:
     name: Sync @inkeep/agents-ui-cloud changelog
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -24,6 +29,8 @@ jobs:
 
       - name: Generate widget changelog
         run: pnpm --filter @inkeep/agents-docs generate-widget-changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.AGENTS_UI_READ_PAT }}
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7

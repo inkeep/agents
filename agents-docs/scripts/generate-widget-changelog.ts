@@ -11,18 +11,31 @@ const OUTPUT_PATH = path.join(
   'content/talk-to-your-agents/(chat-components)/changelog.mdx'
 );
 
+const FETCH_TIMEOUT_MS = 30_000;
+
 async function fetchChangelog(url: string): Promise<string> {
-  const headers: Record<string, string> = {
-    Accept: 'application/vnd.github.raw+json',
-  };
-  if (process.env.GITHUB_TOKEN) {
-    headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  if (!process.env.GITHUB_TOKEN) {
+    throw new Error('GITHUB_TOKEN is required to fetch the private agents-ui changelog');
   }
-  const response = await fetch(url, { headers });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/vnd.github.raw+json',
+        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+      },
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+    }
+    return response.text();
+  } finally {
+    clearTimeout(timeout);
   }
-  return response.text();
 }
 
 // Parse a changelog into a map of version → list of "- HASH: description" entry strings.
@@ -114,6 +127,8 @@ sidebarTitle: Widget Changelog
 description: Changelog for the @inkeep/agents-ui-cloud package
 icon: LuHistory
 ---
+
+{/* AUTO-GENERATED — do not edit directly. Updated by the sync-widget-changelog workflow. */}
 
 ${formatChangelog(merged)}
 `;
