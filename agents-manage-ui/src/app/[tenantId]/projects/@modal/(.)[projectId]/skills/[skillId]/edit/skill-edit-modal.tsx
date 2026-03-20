@@ -27,7 +27,7 @@ export const SkillEditModal: FC = () => {
             {canEdit ? 'Edit skill details.' : 'View skill details.'}
           </DialogDescription>
         </DialogHeader>
-        <SkillForm onSuccess={router.back} readOnly={!canEdit} />
+        <SkillForm onSuccess={router.back} />
       </DialogContent>
     </Dialog>
   );
