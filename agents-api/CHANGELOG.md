@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.59.2
+
+### Patch Changes
+
+- 5aad291: Fix conversation endpoint to return Vercel AI SDK FileUIPart-compliant file parts with resolved blob URIs
+- c6bcd18: Fix fetchTraceFromSigNoz method in the EvaluationService
+  - @inkeep/agents-core@0.59.2
+  - @inkeep/agents-email@0.59.2
+  - @inkeep/agents-mcp@0.59.2
+  - @inkeep/agents-work-apps@0.59.2
+
 ## 0.59.1
 
 ### Patch Changes
