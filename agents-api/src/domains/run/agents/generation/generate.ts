@@ -1,9 +1,18 @@
 import { z } from '@hono/zod-openapi';
-import { type DataPart, type FilePart, type Part, SPAN_KEYS } from '@inkeep/agents-core';
+import {
+  createMessage,
+  type DataPart,
+  type FilePart,
+  generateId,
+  type Part,
+  SPAN_KEYS,
+  SPAN_NAMES,
+} from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
-import type { ToolSet } from 'ai';
+import type { StepResult, ToolSet } from 'ai';
 import { generateText, Output, streamText } from 'ai';
+import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { agentSessionManager } from '../../session/AgentSession';
@@ -22,6 +31,7 @@ import { configureModelSettings } from './model-config';
 import { formatFinalResponse } from './response-formatting';
 import { buildDataComponentsSchema } from './schema-builder';
 import { loadToolsAndPrompts } from './tool-loading';
+import { formatInvalidToolCallForHistory } from './tool-result-for-conversation-history';
 
 const logger = getLogger('Agent');
 
@@ -58,6 +68,125 @@ export function setupGenerationContext(
   return { contextId, taskId, streamRequestId: streamRequestId ?? '', sessionId };
 }
 
+type ToolErrorPart = Extract<
+  NonNullable<StepResult<ToolSet>['content']>[number],
+  { type: 'tool-error' }
+>;
+
+function isToolErrorPart(part: unknown): part is ToolErrorPart {
+  return (
+    typeof part === 'object' &&
+    part !== null &&
+    (part as Record<string, unknown>).type === 'tool-error'
+  );
+}
+
+async function handleInvalidToolResultsFromStep(
+  ctx: AgentRunContext,
+  step: StepResult<ToolSet>
+): Promise<void> {
+  const streamRequestId = ctx.streamRequestId;
+
+  for (const part of step.content ?? []) {
+    if (!isToolErrorPart(part)) continue;
+
+    const toolError = part;
+
+    // AI SDK v6 converts schema-validation errors to strings via getErrorMessage()
+    // before storing them in step.content. execute() errors remain Error objects and
+    // are already handled (OTEL span + session events) by executeToolCall / tool-wrapper.
+    if (typeof toolError.error !== 'string') continue;
+
+    const input = toolError.input;
+    const errorMessage = toolError.error;
+
+    // 1. Emit an OTEL span so SigNoz shows this as a tool_call activity.
+    await tracer.startActiveSpan(SPAN_NAMES.AI_TOOL_CALL, async (span) => {
+      span.setAttributes({
+        [SPAN_KEYS.AI_TOOL_CALL_NAME]: toolError.toolName,
+        [SPAN_KEYS.AI_TOOL_CALL_ARGS]: input !== undefined ? JSON.stringify(input) : '',
+        [SPAN_KEYS.AI_TOOL_CALL_RESULT]: JSON.stringify({
+          type: 'error-text',
+          value: errorMessage,
+        }),
+        [SPAN_KEYS.AI_TOOL_CALL_ID]: toolError.toolCallId,
+        [SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID]: ctx.config.id,
+        [SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID]: ctx.config.id,
+        [SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME]: ctx.config.name ?? '',
+        [SPAN_KEYS.SUB_AGENT_ID]: ctx.config.id,
+        [SPAN_KEYS.SUB_AGENT_NAME]: ctx.config.name ?? '',
+        'conversation.id': ctx.conversationId ?? '',
+      });
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      span.end();
+    });
+
+    // 2. Record session events for the SSE streaming feed.
+    if (streamRequestId) {
+      agentSessionManager.recordEvent(streamRequestId, 'tool_call', ctx.config.id, {
+        toolName: toolError.toolName,
+        input,
+        toolCallId: toolError.toolCallId,
+        inDelegatedAgent: ctx.isDelegatedAgent,
+      });
+      agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
+        toolName: toolError.toolName,
+        toolCallId: toolError.toolCallId,
+        output: null,
+        error: errorMessage,
+        inDelegatedAgent: ctx.isDelegatedAgent,
+      });
+    }
+
+    // 3. Persist to conversation history so the failure is visible in the DB.
+    if (ctx.conversationId) {
+      try {
+        const messageId = generateId();
+        await createMessage(runDbClient)({
+          id: messageId,
+          tenantId: ctx.config.tenantId,
+          projectId: ctx.config.projectId,
+          conversationId: ctx.conversationId,
+          role: 'assistant',
+          content: {
+            text: formatInvalidToolCallForHistory(
+              toolError.toolName,
+              toolError.toolCallId,
+              input,
+              new Error(errorMessage)
+            ),
+          },
+          visibility: 'internal',
+          messageType: 'tool-result',
+          fromSubAgentId: ctx.config.id,
+          metadata: {
+            a2a_metadata: {
+              toolName: toolError.toolName,
+              toolCallId: toolError.toolCallId,
+              toolArgs: input,
+              toolOutput: null,
+              error: errorMessage,
+              timestamp: Date.now(),
+              delegationId: ctx.delegationId,
+              isDelegated: ctx.isDelegatedAgent,
+            },
+          },
+        });
+      } catch (err) {
+        logger.warn(
+          {
+            err,
+            toolName: toolError.toolName,
+            toolCallId: toolError.toolCallId,
+            conversationId: ctx.conversationId,
+          },
+          'Failed to persist invalid tool call to conversation history'
+        );
+      }
+    }
+  }
+}
+
 export function buildBaseGenerationConfig(
   ctx: AgentRunContext,
   modelSettings: Record<string, unknown>,
@@ -79,6 +208,9 @@ export function buildBaseGenerationConfig(
     },
     stopWhen: async ({ steps }: { steps: unknown[] }) => {
       return await handleStopWhenConditions(ctx, steps);
+    },
+    onStepFinish: async (step: StepResult<ToolSet>) => {
+      await handleInvalidToolResultsFromStep(ctx, step);
     },
     experimental_telemetry: buildTelemetryConfig(ctx, phase),
     abortSignal: AbortSignal.timeout(timeoutMs),
