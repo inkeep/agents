@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { type FC, useEffect, useState } from 'react';
+import { type FC, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
@@ -78,71 +78,66 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
     mode: 'onChange',
   });
   const watchedFilePath = useWatch({ control: form.control, name: 'filePath' });
-  const [isSaving, setIsSaving] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const isDirty = canEdit && form.formState.isDirty;
+  const { isDirty, isValid, isSubmitting } = form.formState;
   const currentFilePath = isCreateMode
     ? buildCreateFilePath(createDirectoryPath, watchedFilePath ?? '')
     : filePath.trim();
   const createDirectorySegments = createDirectoryPath.split('/').filter(Boolean);
-  const canCreateFile = Boolean(normalizeCreateFilePathInput(watchedFilePath ?? ''));
+  const isSaveDisabled = isSubmitting || !canEdit || !isDirty || !isValid;
   const isEntryFile = !isCreateMode && isSkillEntryFile(filePath);
 
-  useEffect(() => {
-    form.reset({
-      filePath: isCreateMode ? '' : filePath,
-      content: initialContent,
-    });
-  }, [filePath, form, initialContent, isCreateMode]);
-
   const handleSave = async (): Promise<boolean> => {
-    if (!canEdit || (!isCreateMode && !form.formState.isDirty)) {
+    if (!canEdit || (!isCreateMode && !isDirty)) {
       return true;
     }
 
-    const nextFilePath = isCreateMode
-      ? buildCreateFilePath(createDirectoryPath, form.getValues('filePath'))
-      : form.getValues('filePath');
-    const nextContent = form.getValues('content');
-    setIsSaving(true);
-    const result = isCreateMode
-      ? await createSkillFileAction(tenantId, projectId, skillId, nextFilePath, nextContent)
-      : await updateSkillFileAction(tenantId, projectId, skillId, fileId, filePath, nextContent);
-    setIsSaving(false);
+    let didSave = false;
 
-    if (!result.success) {
-      toast.error(result.error ?? `Failed to ${isCreateMode ? 'create' : 'update'} skill file`);
-      return false;
-    }
+    await form.handleSubmit(async (data) => {
+      const nextFilePath = isCreateMode
+        ? buildCreateFilePath(createDirectoryPath, data.filePath)
+        : data.filePath;
 
-    toast.success(isCreateMode ? `Created ${currentFilePath}` : `Saved ${filePath}`);
-    if (isCreateMode) {
-      router.push(
-        buildSkillFileViewHref(
-          tenantId,
-          projectId,
-          skillId,
-          result.data?.filePath ?? currentFilePath
-        )
-      );
-      router.refresh();
-      return true;
-    }
+      try {
+        const result = isCreateMode
+          ? await createSkillFileAction(tenantId, projectId, skillId, nextFilePath, data.content)
+          : await updateSkillFileAction(
+              tenantId,
+              projectId,
+              skillId,
+              fileId,
+              filePath,
+              data.content
+            );
 
-    form.reset({ filePath, content: nextContent });
-    router.refresh();
-    return true;
+        if (!result.success) {
+          toast.error(result.error ?? `Failed to ${isCreateMode ? 'create' : 'update'} skill file`);
+          return;
+        }
+
+        const savedFilePath = result.data?.filePath ?? nextFilePath;
+        toast.success(isCreateMode ? `Created ${savedFilePath}` : `Saved ${filePath}`);
+
+        if (isCreateMode) {
+          router.push(buildSkillFileViewHref(tenantId, projectId, skillId, savedFilePath));
+          router.refresh();
+          didSave = true;
+          return;
+        }
+
+        form.reset({ filePath, content: data.content });
+        router.refresh();
+        didSave = true;
+      } catch {}
+    })();
+
+    return didSave;
   };
 
   return (
     <Form {...form}>
-      <form
-        className="contents"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void handleSave();
-        }}
-      >
+      <form className="contents" onSubmit={handleSave}>
         <div className="flex items-center border-b px-4 gap-2 h-(--header-height) shrink-0">
           <BreadcrumbNav>
             {isCreateMode ? (
