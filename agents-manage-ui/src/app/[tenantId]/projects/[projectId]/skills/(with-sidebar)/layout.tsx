@@ -19,10 +19,10 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { CollapseFileTree } from '../collapse-file-tree';
 import { fetchSkillsPageData } from '../skills-data';
-import { fetchProjectPermissions } from '@/lib/api/projects';
 
 export const metadata = {
   title: STATIC_LABELS.skills,

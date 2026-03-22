@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import {
   buildNewSkillFileHref,
   buildSkillFileViewHref,
+  buildSkillFolderViewHref,
   getSkillFileParentDirectory,
   getSkillFileRemovalLabel,
   isSkillEntryFile,
@@ -34,9 +35,9 @@ import {
 
 export const TreeNode: FC<{
   node: DemoTreeNode;
-  selectedRoutePath: string;
+  selectedNodePath: string;
   nested?: boolean;
-}> = ({ node, nested = false, selectedRoutePath }) => {
+}> = ({ node, nested = false, selectedNodePath }) => {
   'use memo';
   const {
     data: { canEdit },
@@ -48,17 +49,22 @@ export const TreeNode: FC<{
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const isFile = node.kind === 'file';
 
-  const isActive = isFile && node.routePath === selectedRoutePath;
+  const isActive = node.path === selectedNodePath;
   const IconToUse = isFile ? File : isCollapsed ? Folder : FolderOpenIcon;
   const isEntryFile = isFile && node.filePath ? isSkillEntryFile(node.filePath) : false;
   const isSelectedSkill =
-    isFile &&
     node.skillId &&
-    (selectedRoutePath === node.skillId || selectedRoutePath.startsWith(`${node.skillId}/`));
+    (selectedNodePath === node.skillId || selectedNodePath.startsWith(`${node.skillId}/`));
+  const directoryPath =
+    !isFile && node.skillId && node.path !== node.skillId
+      ? node.path.slice(node.skillId.length + 1)
+      : undefined;
   const href =
-    isFile && node.skillId && node.filePath
+    node.skillId && node.filePath
       ? buildSkillFileViewHref(tenantId, projectId, node.skillId, node.filePath)
-      : '';
+      : node.skillId
+        ? buildSkillFolderViewHref(tenantId, projectId, node.skillId, directoryPath)
+        : '';
   const ComponentToUse = nested ? SidebarMenuSubItem : SidebarMenuItem;
   const ButtonToUse = nested ? SidebarMenuSubButton : SidebarMenuButton;
 
@@ -165,9 +171,9 @@ export const TreeNode: FC<{
         : (() => {
             const button = (
               <div>
-                <SidebarMenuSubButton onClick={handleCollapse} className="cursor-pointer">
-                  {content}
-                </SidebarMenuSubButton>
+                <ButtonToUse asChild isActive={isActive} className="w-full pr-8">
+                  <NextLink href={href}>{content}</NextLink>
+                </ButtonToUse>
                 <SidebarMenuAction
                   className={cn('top-1', !isCollapsed && 'rotate-90')}
                   onClick={handleCollapse}
@@ -189,7 +195,7 @@ export const TreeNode: FC<{
       {node.children.length > 0 && !isCollapsed && (
         <SidebarMenuSub className="pr-0 mr-0">
           {node.children.map((child) => (
-            <TreeNode key={child.path} node={child} selectedRoutePath={selectedRoutePath} nested />
+            <TreeNode key={child.path} node={child} selectedNodePath={selectedNodePath} nested />
           ))}
         </SidebarMenuSub>
       )}

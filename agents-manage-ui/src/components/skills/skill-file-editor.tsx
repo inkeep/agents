@@ -117,23 +117,17 @@ export const SkillDirectoryBrowser: FC<SkillDirectoryBrowserProps> = ({
     <div className="flex h-full flex-col">
       <div className="flex items-center border-b px-4 gap-2 h-(--header-height) shrink-0">
         <BreadcrumbNav>
-          {segments.map((segment, index) => {
-            const href =
-              index === segments.length - 1
-                ? ''
-                : buildSkillFolderViewHref(
-                    tenantId,
-                    projectId,
-                    skillId,
-                    index === 0 ? undefined : segments.slice(1, index + 1).join('/')
-                  );
+          {segments.map((segment, index, arr) => {
+            const isLast = index === arr.length - 1;
+            const href = buildSkillFolderViewHref(
+              tenantId,
+              projectId,
+              skillId,
+              index === 0 ? undefined : arr.slice(1, index + 1).join('/')
+            );
 
             return (
-              <BreadcrumbNav.Item
-                key={`${segment}-${index}`}
-                href={href}
-                isLast={index === segments.length - 1}
-              >
+              <BreadcrumbNav.Item key={`${segment}-${index}`} href={href} isLast={isLast}>
                 {segment}
               </BreadcrumbNav.Item>
             );
@@ -219,6 +213,8 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   const currentFilePath = isCreateMode
     ? buildCreateFilePath(createDirectoryPath, watchedFilePath ?? '')
     : filePath;
+  const breadcrumbPath = isCreateMode ? createDirectoryPath : filePath;
+  const breadcrumbSegments = [skillId, ...breadcrumbPath.split('/').filter(Boolean)];
   const isSaveDisabled = isSubmitting || !canEdit || !isDirty || !isValid;
   const isEntryFile = !isCreateMode && isSkillEntryFile(filePath);
 
@@ -275,18 +271,22 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
       <form className="contents" onSubmit={handleSave}>
         <div className="flex items-center border-b px-4 gap-2 h-(--header-height) shrink-0">
           <BreadcrumbNav>
-            {currentFilePath.split('/').map(
-              (segment, idx, arr) =>
-                segment && (
-                  <BreadcrumbNav.Item
-                    key={`${segment}-${idx}`}
-                    href=""
-                    isLast={!isCreateMode && idx === arr.length - 1}
-                  >
-                    {segment}
-                  </BreadcrumbNav.Item>
-                )
-            )}
+            {breadcrumbSegments.map((segment, idx, arr) => {
+              const isLastPathSegment = idx === arr.length - 1;
+              const subPath = idx === 0 ? undefined : arr.slice(1, idx + 1).join('/');
+
+              const href = buildSkillFolderViewHref(tenantId, projectId, skillId, subPath);
+
+              return (
+                <BreadcrumbNav.Item
+                  key={`${segment}-${idx}`}
+                  href={href}
+                  isLast={!isCreateMode && isLastPathSegment}
+                >
+                  {segment}
+                </BreadcrumbNav.Item>
+              );
+            })}
             {isCreateMode && (
               <BreadcrumbNav.Item isLast href="">
                 <FormField

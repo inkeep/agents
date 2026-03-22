@@ -4,10 +4,10 @@ import { redirect } from 'next/navigation';
 import type { FC } from 'react';
 import EmptyState from '@/components/layout/empty-state';
 import { Button } from '@/components/ui/button';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { buildSkillFileViewHref } from '@/lib/utils/skill-files';
 import { resolveSkillFilePageData } from '../skills-data';
 import { metadata } from './layout';
-import { fetchProjectPermissions } from '@/lib/api/projects';
 
 const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({ params }) => {
   const { tenantId, projectId } = await params;
