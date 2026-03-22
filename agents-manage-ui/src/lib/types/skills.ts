@@ -4,6 +4,6 @@ import type {
   SkillWithFilesApiSelect,
 } from '@inkeep/agents-core';
 
-export type Skill = SkillApiSelect;
-export type SkillFile = SkillFileApiSelect;
+type Skill = SkillApiSelect;
+type SkillFile = SkillFileApiSelect;
 export type SkillDetail = SkillWithFilesApiSelect;

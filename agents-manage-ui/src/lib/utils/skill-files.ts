@@ -21,15 +21,15 @@ export interface SkillFileRecord {
   isEntryFile: boolean;
 }
 
-export function getSkillFileTreePath(skillId: string, filePath: string): string {
+function getSkillFileTreePath(skillId: string, filePath: string): string {
   return `${skillId}/${filePath}`;
 }
 
-export function getSkillFileRoutePath(skillId: string, filePath: string): string {
+function getSkillFileRoutePath(skillId: string, filePath: string): string {
   return isSkillEntryFile(filePath) ? skillId : getSkillFileTreePath(skillId, filePath);
 }
 
-export function encodeSkillFileRoutePath(routePath: string): string {
+function encodeSkillFileRoutePath(routePath: string): string {
   return routePath
     .split('/')
     .filter(Boolean)

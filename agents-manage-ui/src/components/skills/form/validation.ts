@@ -30,7 +30,7 @@ export const SkillSchema = BaseSkillSchema.transform((data) => ({
 
 export const SkillFileSchema = SkillFileContentInputSchema;
 
-export type SkillFileInput = z.input<typeof SkillFileSchema>;
+type SkillFileInput = z.input<typeof SkillFileSchema>;
 
 export type SkillInput = z.input<typeof SkillSchema>;
 export type SkillOutput = z.infer<typeof SkillSchema>;
