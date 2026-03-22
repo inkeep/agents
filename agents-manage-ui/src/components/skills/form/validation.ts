@@ -7,26 +7,26 @@ import {
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
-const SkillMetadata = SkillInsertSchema.shape.metadata;
+const SkillMetadataSchema = SkillInsertSchema.shape.metadata;
 
-export const SkillSchema = z
-  .strictObject({
-    ...SkillInsertSchema.shape,
-    metadata: z
-      .string()
-      .trim()
-      .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
-      .pipe(SkillMetadata)
-      .default(null),
-  })
-  .transform((data) => ({
-    files: [
-      {
-        filePath: SKILL_ENTRY_FILE_PATH,
-        content: serializeSkillToMarkdown(data),
-      },
-    ],
-  }));
+export const BaseSkillSchema = z.strictObject({
+  ...SkillInsertSchema.shape,
+  metadata: z
+    .string()
+    .trim()
+    .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
+    .pipe(SkillMetadataSchema)
+    .default(null),
+});
+
+export const SkillSchema = BaseSkillSchema.transform((data) => ({
+  files: [
+    {
+      filePath: SKILL_ENTRY_FILE_PATH,
+      content: serializeSkillToMarkdown(data),
+    },
+  ],
+}));
 
 export const SkillFileSchema = SkillFileContentInputSchema;
 
