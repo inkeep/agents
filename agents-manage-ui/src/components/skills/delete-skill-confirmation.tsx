@@ -17,7 +17,7 @@ interface DeleteSkillConfirmationProps {
 export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
   skillId,
   setIsOpen,
-  redirectOnDelete,
+  redirectOnDelete = true,
 }) => {
   'use memo';
   const router = useRouter();
