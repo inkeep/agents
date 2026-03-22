@@ -43,10 +43,7 @@ description: Extracts PDFs.
     });
     const [skill] = loadSkills(root);
     expect(skill).toEqual({
-      name: 'pdf-processing',
-      description: 'Extracts PDFs.',
-      metadata: null,
-      content: '',
+      id: 'pdf-processing',
       files: [
         {
           filePath: 'SKILL.md',
@@ -218,11 +215,12 @@ metadata:
         },
       });
       const [skill] = loadSkills(root);
-      expect(skill.metadata).toEqual({
-        // We don't trim `metadata` values
-        author: ' example-org ',
-        version: '1.0.0',
-      });
+      const content = skill.files?.[0].content;
+      // We don't trim `metadata` values
+      expect(content).toContain('author: " example-org "');
+      // YAML serializer only adds quotes when necessary
+      expect(content).toContain('version: 1.0.0');
+
       expect(skill.files).toEqual([
         {
           filePath: 'SKILL.md',
