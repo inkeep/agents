@@ -29,12 +29,14 @@ export function buildTree(files: readonly SkillFileRecord[]): DemoTreeNode[] {
         node = {
           name: segment,
           path,
-          routePath: isFile ? file.routePath : undefined,
+          ...(isFile && {
+            routePath: file.routePath,
+            filePath: file.filePath,
+            fileId: file.fileId,
+            content: file.content,
+          }),
           skillId: file.skillId,
-          filePath: isFile ? file.filePath : undefined,
-          fileId: isFile ? file.fileId : undefined,
           kind: isFile ? 'file' : 'folder',
-          content: isFile ? file.content : undefined,
           children: [],
         };
         children.push(node);
