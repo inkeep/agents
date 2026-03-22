@@ -13,7 +13,7 @@
     "public",
     "next.config.ts",
     "postcss.config.mjs",
-    "tailwind.config.mjs",
+"postcss.config.ts",
     "tsconfig.json",
     "index.js",
     "index.d.ts",
