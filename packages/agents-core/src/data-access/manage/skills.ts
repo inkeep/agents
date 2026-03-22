@@ -1,10 +1,11 @@
-import { generateId } from '@inkeep/agents-core';
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { skillFiles, skills, subAgentSkills } from '../../db/manage/manage-schema';
 import type {
+  SkillApiInsert,
+  SkillApiUpdate,
+  SkillFileApiInsert,
   SkillFileSelect,
-  SkillInsert,
   SkillSelect,
   SubAgentSkillInsert,
   SubAgentSkillWithIndex,
@@ -15,22 +16,21 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../../types/utility';
+import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
-import type { SkillFileInput } from '../../utils/skill-files';
+import {
+  parseSkillFromMarkdown,
+  SKILL_ENTRY_FILE_PATH,
+  type SkillFileInput,
+} from '../../utils/skill-files';
+import { SkillFrontmatterSchema } from '../../validation/schemas/skills';
 import { agentScopedWhere, projectScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
 const logger = getLogger('skills-dal');
 
-type SkillRecordWithFiles = SkillSelect & {
+interface SkillRecordWithFiles extends SkillSelect {
   files: SkillFileSelect[];
-};
-
-type SkillWriteData = {
-  description: string;
-  metadata: Record<string, string> | null;
-  content: string;
-  files: SkillFileInput[];
-};
+}
 
 async function replaceSkillFiles(
   db: AgentsManageDatabaseClient,
@@ -57,7 +57,7 @@ async function replaceSkillFiles(
     .filter((file) => !nextFilePaths.has(file.filePath))
     .map((file) => file.id);
 
-  if (fileIdsToDelete.length > 0) {
+  if (fileIdsToDelete.length) {
     await db
       .delete(skillFiles)
       .where(
@@ -104,7 +104,7 @@ async function replaceSkillFiles(
       );
   }
 
-  if (filesToInsert.length > 0) {
+  if (filesToInsert.length) {
     await db.insert(skillFiles).values(filesToInsert);
   }
 
@@ -240,7 +240,7 @@ function buildEntryFileUpdateData(params: {
   skillId: string;
   files: SkillFileInput[];
   content: string;
-}): SkillWriteData {
+}): SkillApiUpdate {
   const parsed = parseSkillFromMarkdown(params.content);
   const frontmatterResult = SkillFrontmatterSchema.safeParse(parsed.frontmatter);
 
@@ -404,9 +404,14 @@ export const listSkillsWithFiles =
     };
   };
 
+interface WithTenantIdProjectId {
+  tenantId: string;
+  projectId: string;
+}
+
 export const createSkill =
   (db: AgentsManageDatabaseClient) =>
-  async (data: SkillInsert): Promise<SkillRecordWithFiles> => {
+  async (data: SkillApiInsert & WithTenantIdProjectId): Promise<SkillRecordWithFiles> => {
     return await db.transaction(async (tx) => {
       const now = new Date().toISOString();
       const insertData: SkillSelect = {
@@ -506,7 +511,7 @@ export const upsertSkill =
 
 export const updateSkill =
   (db: AgentsManageDatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; skillId: string; data: SkillWriteData }) => {
+  async (params: { scopes: ProjectScopeConfig; skillId: string; data: SkillApiUpdate }) => {
     return await db.transaction(async (tx) => {
       const existing = await tx.query.skills.findFirst({
         where: and(
@@ -527,6 +532,10 @@ export const updateSkill =
       if (description !== undefined) updateData.description = description;
       if (metadata !== undefined) updateData.metadata = metadata;
       if (content !== undefined) updateData.content = content;
+
+      if (!params.data.files) {
+        throw new Error('Skill updates must include files');
+      }
 
       const [result] = await tx
         .update(skills)
