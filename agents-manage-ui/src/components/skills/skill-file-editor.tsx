@@ -137,7 +137,7 @@ export const SkillDirectoryBrowser: FC<SkillDirectoryBrowserProps> = ({
           <Button asChild size="sm" className="ml-auto">
             <NextLink href={createHref}>
               <Plus />
-              Create file
+              Add file
             </NextLink>
           </Button>
         )}
@@ -339,7 +339,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                 </Button>
               )}
               <Button type="submit" disabled={isSaveDisabled} size="sm">
-                {isCreateMode ? 'Create file' : 'Save changes'}
+                Save
               </Button>
               <UnsavedChangesDialog dirty={canEdit && isDirty} onSubmit={handleSave} />
             </div>
