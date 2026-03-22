@@ -16,15 +16,15 @@ The InkeepSidebarChat component provides a slide-out panel for conversing with y
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/agents-ui
+npm install @inkeep/agents-ui-cloud
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/agents-ui
+yarn add @inkeep/agents-ui-cloud
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/agents-ui
+pnpm add @inkeep/agents-ui-cloud
 ```
 
 </CodeGroup>
@@ -43,10 +43,10 @@ pnpm add @inkeep/agents-ui
 
     import { useState } from 'react';
     import dynamic from 'next/dynamic';
-    import type { InkeepSidebarChatProps } from '@inkeep/agents-ui';
+    import type { InkeepSidebarChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepSidebarChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepSidebarChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepSidebarChat),
       { ssr: false },
     );
 
@@ -82,10 +82,10 @@ pnpm add @inkeep/agents-ui
     'use client';
 
     import dynamic from 'next/dynamic';
-    import type { InkeepSidebarChatProps } from '@inkeep/agents-ui';
+    import type { InkeepSidebarChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepSidebarChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepSidebarChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepSidebarChat),
       { ssr: false },
     );
 
@@ -128,10 +128,10 @@ pnpm add @inkeep/agents-ui
 
     import { useState } from 'react';
     import dynamic from 'next/dynamic';
-    import type { InkeepSidebarChatProps } from '@inkeep/agents-ui';
+    import type { InkeepSidebarChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepSidebarChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepSidebarChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepSidebarChat),
       { ssr: false },
     );
 
@@ -167,10 +167,10 @@ pnpm add @inkeep/agents-ui
     'use client';
 
     import dynamic from 'next/dynamic';
-    import type { InkeepSidebarChatProps } from '@inkeep/agents-ui';
+    import type { InkeepSidebarChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepSidebarChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepSidebarChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepSidebarChat),
       { ssr: false },
     );
 

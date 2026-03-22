@@ -16,15 +16,15 @@ The InkeepEmbeddedChat component provides a fully embedded chat interface. In Ne
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/agents-ui
+npm install @inkeep/agents-ui-cloud
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/agents-ui
+yarn add @inkeep/agents-ui-cloud
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/agents-ui
+pnpm add @inkeep/agents-ui-cloud
 ```
 
 </CodeGroup>
@@ -40,10 +40,10 @@ pnpm add @inkeep/agents-ui
     'use client';
 
     import dynamic from 'next/dynamic';
-    import type { InkeepEmbeddedChatProps } from '@inkeep/agents-ui';
+    import type { InkeepEmbeddedChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepEmbeddedChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepEmbeddedChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepEmbeddedChat),
       { ssr: false },
     );
 
@@ -75,10 +75,10 @@ pnpm add @inkeep/agents-ui
     'use client';
 
     import dynamic from 'next/dynamic';
-    import type { InkeepEmbeddedChatProps } from '@inkeep/agents-ui';
+    import type { InkeepEmbeddedChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepEmbeddedChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepEmbeddedChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepEmbeddedChat),
       { ssr: false },
     );
 
