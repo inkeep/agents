@@ -9,6 +9,7 @@ import { PromptEditor } from '@/components/editors/prompt-editor';
 import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 import { DeleteSkillConfirmation } from '@/components/skills/delete-skill-confirmation';
 import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-file-confirmation';
+import type { SkillInput } from '@/components/skills/form/validation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createSkillFileAction, updateSkillFileAction } from '@/lib/actions/skill-files';
