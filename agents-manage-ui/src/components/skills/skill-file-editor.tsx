@@ -12,6 +12,7 @@ import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-fi
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createSkillFileAction, updateSkillFileAction } from '@/lib/actions/skill-files';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import {
   buildSkillFileViewHref,
   getSkillFileEditorUri,
@@ -28,7 +29,6 @@ interface SkillFileEditorProps {
   filePath: string;
   initialDirectoryPath?: string;
   initialContent: string;
-  canEdit?: boolean;
 }
 
 function normalizeDirectoryPath(path: string): string {
@@ -58,9 +58,11 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   filePath,
   initialDirectoryPath,
   initialContent,
-  canEdit = true,
 }) => {
   'use memo';
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const router = useRouter();
   const isCreateMode = !fileId;
   const createDirectoryPath = normalizeDirectoryPath(initialDirectoryPath ?? '');

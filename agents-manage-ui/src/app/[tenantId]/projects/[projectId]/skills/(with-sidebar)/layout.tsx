@@ -63,7 +63,7 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
         <SidebarProvider className="border border-border/70 rounded-[14px] overflow-hidden min-h-[80vh]">
           <Sidebar collapsible="icon" className="h-full border-r relative">
             <SidebarContent className="bg-background">
-              <SidebarHeader className="border-b px-4 h-(--header-height) text-sm text-muted-foreground flex flex-row items-center">
+              <SidebarHeader className="border-b h-(--header-height) px-4 text-sm text-muted-foreground flex flex-row items-center">
                 <CollapseFileTree />
                 <Separator
                   orientation="vertical"

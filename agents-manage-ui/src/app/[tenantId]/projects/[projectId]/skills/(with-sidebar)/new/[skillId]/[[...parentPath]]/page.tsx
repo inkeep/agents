@@ -1,7 +1,6 @@
 import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { SkillFileEditor } from '@/components/skills/skill-file-editor';
-import { fetchProjectPermissions } from '@/lib/api/projects';
 import { fetchSkill } from '@/lib/api/skills';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -11,10 +10,7 @@ const NewSkillFilePage: FC<
   const { tenantId, projectId, skillId, parentPath } = await params;
 
   try {
-    const [permissions, skill] = await Promise.all([
-      fetchProjectPermissions(tenantId, projectId),
-      fetchSkill(tenantId, projectId, skillId),
-    ]);
+    const skill = await fetchSkill(tenantId, projectId, skillId);
 
     return (
       <SkillFileEditor
@@ -24,7 +20,6 @@ const NewSkillFilePage: FC<
         filePath=""
         initialDirectoryPath={parentPath?.join('/')}
         initialContent=""
-        canEdit={permissions.canEdit}
       />
     );
   } catch (error) {
