@@ -21,6 +21,8 @@ export function parseSkillFromMarkdown(markdown: string): {
 }
 
 export function serializeSkillToMarkdown({ name, description, metadata, content }: SkillInsert) {
+  // Avoid including metadata in the frontmatter when it's null
+  metadata ??= undefined;
   const yaml = stringify({ name, description, metadata });
   const parts = ['---', yaml.trimEnd(), '---', '', content];
 
