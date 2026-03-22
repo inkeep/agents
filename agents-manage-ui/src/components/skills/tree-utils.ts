@@ -75,6 +75,24 @@ export function findNodeByRoutePath(
   return null;
 }
 
+export function findNodeByPath(
+  nodes: readonly DemoTreeNode[],
+  targetPath: string
+): DemoTreeNode | null {
+  for (const node of nodes) {
+    if (node.path === targetPath) {
+      return node;
+    }
+
+    const childMatch = findNodeByPath(node.children, targetPath);
+    if (childMatch) {
+      return childMatch;
+    }
+  }
+
+  return null;
+}
+
 export function findFirstFile(nodes: readonly DemoTreeNode[]): DemoTreeNode | null {
   for (const node of nodes) {
     if (node.kind === 'file') {
