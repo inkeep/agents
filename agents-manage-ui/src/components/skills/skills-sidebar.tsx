@@ -8,15 +8,16 @@ import {
   findFirstFile,
   findNodeByRoutePath,
 } from '@/components/skills/tree-utils';
+import { useInitialCollapsedSidebar } from '@/hooks/use-initial-collapsed-sidebar';
 
 interface SkillsSidebarProps {
   treeNodes: DemoTreeNode[];
   fileRouteAliases: Record<string, string>;
-  canEdit: boolean;
 }
 
-export const SkillsSidebar: FC<SkillsSidebarProps> = ({ treeNodes, fileRouteAliases, canEdit }) => {
+export const SkillsSidebar: FC<SkillsSidebarProps> = ({ treeNodes, fileRouteAliases }) => {
   const { fileSlug, skillId } = useParams<{ fileSlug?: string[]; skillId?: string }>();
+  useInitialCollapsedSidebar();
   const routeToken = fileSlug?.join('/');
   const requestedRoutePath = routeToken
     ? (fileRouteAliases[routeToken] ?? routeToken)
@@ -28,6 +29,6 @@ export const SkillsSidebar: FC<SkillsSidebarProps> = ({ treeNodes, fileRouteAlia
   const selectedRoutePath = selectedNode?.routePath ?? '';
 
   return treeNodes.map((node) => (
-    <TreeNode key={node.path} node={node} selectedRoutePath={selectedRoutePath} canEdit={canEdit} />
+    <TreeNode key={node.path} node={node} selectedRoutePath={selectedRoutePath} />
   ));
 };

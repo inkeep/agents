@@ -74,11 +74,7 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
               <SidebarGroup>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    <SkillsSidebar
-                      treeNodes={treeNodes}
-                      fileRouteAliases={fileRouteAliases}
-                      canEdit={permissions.canEdit}
-                    />
+                    <SkillsSidebar treeNodes={treeNodes} fileRouteAliases={fileRouteAliases} />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>

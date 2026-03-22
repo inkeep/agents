@@ -21,6 +21,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { cn } from '@/lib/utils';
 import {
   buildNewSkillFileHref,
@@ -34,11 +35,12 @@ import {
 export const TreeNode: FC<{
   node: DemoTreeNode;
   selectedRoutePath: string;
-  canEdit: boolean;
   nested?: boolean;
-}> = ({ node, nested = false, selectedRoutePath, canEdit }) => {
+}> = ({ node, nested = false, selectedRoutePath }) => {
   'use memo';
-
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const router = useRouter();
 
@@ -187,13 +189,7 @@ export const TreeNode: FC<{
       {node.children.length > 0 && !isCollapsed && (
         <SidebarMenuSub className="pr-0 mr-0">
           {node.children.map((child) => (
-            <TreeNode
-              key={child.path}
-              node={child}
-              selectedRoutePath={selectedRoutePath}
-              canEdit={canEdit}
-              nested
-            />
+            <TreeNode key={child.path} node={child} selectedRoutePath={selectedRoutePath} nested />
           ))}
         </SidebarMenuSub>
       )}
