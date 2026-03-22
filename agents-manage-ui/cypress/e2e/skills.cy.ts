@@ -12,6 +12,7 @@ describe('Skills', () => {
     cy.get('[name=name]').type(fixture.name);
     cy.get('textarea[name=description]').type(fixture.description);
     cy.typeInMonaco('content.md', fixture.content);
+    cy.contains('Advanced').click();
     cy.typeInMonaco('metadata.json', fixture.metadata);
     cy.contains('Save').click();
 
