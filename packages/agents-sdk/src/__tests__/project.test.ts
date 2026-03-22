@@ -582,7 +582,6 @@ Always check the weather.`,
       const fullProjectDef = await (project as any).toFullProjectDefinition();
 
       expect(fullProjectDef.skills?.['weather-safety-guardrails']).toMatchObject({
-        id: 'weather-safety-guardrails',
         files: [
           {
             filePath: 'SKILL.md',

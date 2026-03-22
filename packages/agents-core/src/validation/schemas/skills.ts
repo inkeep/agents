@@ -100,7 +100,7 @@ const SkillFileInsertSchema = createInsertSchema(skillFiles).extend({
 const SkillInsertSchema = createInsertSchema(skills)
   .extend({
     ...SkillFrontmatterSchema.shape,
-    content: z.string().trim().nonempty(),
+    content: z.string().trim(),
   })
   .omit({
     // We set id under the hood as skill.name
@@ -155,9 +155,10 @@ const SkillApiInsertSchema = z
     if (!skillFile) {
       throw new Error('should never happens');
     }
+    const extracted = transformSkill(skillFile.content);
     return {
       ...skill,
-      ...transformSkill(skillFile.content),
+      ...extracted,
     };
   })
   .pipe(SkillCreateDataSchema)
