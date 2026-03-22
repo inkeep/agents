@@ -29,7 +29,7 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
     cwd: directoryPath,
   });
 
-  const result = files.map((filePath) => {
+  return files.map((filePath) => {
     const skillDir = path.join(directoryPath, path.dirname(filePath));
     const result = SkillApiInsertSchema.safeParse({
       files: loadSkillFiles(skillDir),
@@ -43,11 +43,6 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
       throw new Error(`Skill name "${name}" does not match directory "${id}"`);
     }
 
-    return {
-      id,
-      files,
-    };
+    return { id, files };
   });
-  // @ts-expect-error -- fixme
-  return result;
 }

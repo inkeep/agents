@@ -7,7 +7,7 @@ import type {
   FullAgentDefinition,
   McpTransportConfig,
   ModelSettings,
-  SkillApiSelectSchema,
+  SkillApiInsertSchema,
   StatusUpdateSettings,
   SubAgentApiInsert,
   ToolInsert,
@@ -84,11 +84,8 @@ export interface ToolResult {
   error?: string;
 }
 
-export interface SkillDefinition extends z.infer<typeof SkillApiSelectSchema> {
-  files?: Array<{
-    filePath: string;
-    content: string;
-  }>;
+export interface SkillDefinition extends z.input<typeof SkillApiInsertSchema> {
+  id: string;
 }
 
 export type SkillReference =

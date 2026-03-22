@@ -560,10 +560,6 @@ describe('Project', () => {
         skills: () => [
           {
             id: 'weather-safety-guardrails',
-            name: 'weather-safety-guardrails',
-            description: 'Safety rules.',
-            content: 'Always check the weather.',
-            metadata: { author: 'acme' },
             files: [
               {
                 filePath: 'SKILL.md',
