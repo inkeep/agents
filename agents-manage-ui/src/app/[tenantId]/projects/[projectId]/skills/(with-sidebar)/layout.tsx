@@ -22,6 +22,7 @@ import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { CollapseFileTree } from '../collapse-file-tree';
 import { fetchSkillsPageData } from '../skills-data';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 
 export const metadata = {
   title: STATIC_LABELS.skills,
@@ -43,10 +44,10 @@ const SkillsLayout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/skills'>> =
   const { tenantId, projectId } = await params;
 
   try {
-    const { permissions, treeNodes, fileRouteAliases } = await fetchSkillsPageData(
-      tenantId,
-      projectId
-    );
+    const [{ treeNodes, fileRouteAliases }, permissions] = await Promise.all([
+      fetchSkillsPageData(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
 
     const action = permissions.canEdit && (
       <Button asChild className="flex items-center gap-2">

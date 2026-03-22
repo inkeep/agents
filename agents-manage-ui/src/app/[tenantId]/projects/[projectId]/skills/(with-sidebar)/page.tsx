@@ -7,10 +7,14 @@ import { Button } from '@/components/ui/button';
 import { buildSkillFileViewHref } from '@/lib/utils/skill-files';
 import { resolveSkillFilePageData } from '../skills-data';
 import { metadata } from './layout';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 
 const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({ params }) => {
   const { tenantId, projectId } = await params;
-  const { files, permissions } = await resolveSkillFilePageData(tenantId, projectId);
+  const [{ files }, permissions] = await Promise.all([
+    resolveSkillFilePageData(tenantId, projectId),
+    fetchProjectPermissions(tenantId, projectId),
+  ]);
 
   const action = permissions.canEdit && (
     <Button asChild className="flex items-center gap-2">

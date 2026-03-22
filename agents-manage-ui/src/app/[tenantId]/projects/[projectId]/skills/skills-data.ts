@@ -1,6 +1,5 @@
 import { cache } from 'react';
-import { buildTree } from '@/components/skills/tree-utils';
-import { fetchProjectPermissions } from '@/lib/api/projects';
+import { buildTree, findNodeByPath } from '@/components/skills/tree-utils';
 import { fetchSkill, fetchSkills } from '@/lib/api/skills';
 import {
   buildSkillFileRouteAliases,
@@ -9,20 +8,15 @@ import {
 } from '@/lib/utils/skill-files';
 
 async function $fetchSkillsPageData(tenantId: string, projectId: string) {
-  const [permissions, skillsResponse] = await Promise.all([
-    fetchProjectPermissions(tenantId, projectId),
-    fetchSkills(tenantId, projectId),
-  ]);
+  const { data } = await fetchSkills(tenantId, projectId);
   const skillDetails = await Promise.all(
-    skillsResponse.data.map((skill) => fetchSkill(tenantId, projectId, skill.id))
+    data.map((skill) => fetchSkill(tenantId, projectId, skill.id))
   );
   const files = flattenSkillFiles(skillDetails);
-  const treeNodes = buildTree(files);
 
   return {
-    permissions,
     files,
-    treeNodes,
+    treeNodes: buildTree(files),
     fileRouteAliases: buildSkillFileRouteAliases(files),
   };
 }
