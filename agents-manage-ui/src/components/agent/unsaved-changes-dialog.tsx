@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 type PendingNavigation = () => void;
 

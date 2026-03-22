@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { STATIC_LABELS } from '@/constants/theme';
 
 export const metadata = {
-  title: STATIC_LABELS['profile'],
+  title: STATIC_LABELS.profile,
   description: 'Manage your personal preferences.',
 } satisfies Metadata;
 

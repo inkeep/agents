@@ -541,8 +541,14 @@ export class Project implements ProjectInterface {
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
     const externalAgentsObject: Record<string, ExternalAgentApiInsert> = {};
-    const skillsObject: Record<string, any> = {};
-    const skillTimestamp = new Date().toISOString();
+    const skillsObject = Object.fromEntries(
+      this.skills.map((skill) => {
+        if (!skill.id) {
+          throw new Error('Invalid skill: missing required "id" field.');
+        }
+        return [skill.id, { files: skill.files }];
+      })
+    );
     // Track which resources use each credential
     const credentialUsageMap: Record<
       string,
@@ -889,15 +895,6 @@ export class Project implements ProjectInterface {
       }
     }
     logger.info({ externalAgentsObject }, 'External agents object');
-
-    for (const skill of this.skills) {
-      if (!skill.id) {
-        throw new Error('Invalid skill: missing required "id" field.');
-      }
-      skillsObject[skill.id] = {
-        files: skill.files,
-      };
-    }
 
     // Add project-level tools, dataComponents, and artifactComponents
     for (const tool of this.projectTools) {
