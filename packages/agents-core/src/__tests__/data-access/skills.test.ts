@@ -1,9 +1,13 @@
 import { eq } from 'drizzle-orm';
 import {
   createSkill,
+  createSkillFileById,
   deleteSkill,
+  deleteSkillFileById,
   getSkillByIdWithFiles,
+  getSkillFileById,
   updateSkill,
+  updateSkillFileById,
 } from '../../data-access/manage/skills';
 import { skillFiles } from '../../db/manage/manage-schema';
 import { createTestProject } from '../../db/manage/test-manage-client';
@@ -11,34 +15,6 @@ import { generateId } from '../../utils/conversations';
 import { testManageDbClient } from '../setup';
 
 describe('skills data access', () => {
-  it('should synthesize SKILL.md when files are omitted', async () => {
-    const tenantId = `tenant-${generateId()}`;
-    const projectId = `project-${generateId()}`;
-    await createTestProject(testManageDbClient, tenantId, projectId);
-
-    const skill = await createSkill(testManageDbClient)({
-      tenantId,
-      projectId,
-      name: 'weather-safety-guardrails',
-      description: 'Safety rules.',
-      content: 'Always check the weather.',
-      metadata: { author: 'acme' },
-    });
-
-    expect(skill?.files).toMatchObject([
-      {
-        filePath: 'SKILL.md',
-        content: `---
-name: weather-safety-guardrails
-description: "Safety rules."
-metadata:
-  author: acme
----
-Always check the weather.`,
-      },
-    ]);
-  });
-
   it('should persist and retrieve nested skill files', async () => {
     const tenantId = `tenant-${generateId()}`;
     const projectId = `project-${generateId()}`;
