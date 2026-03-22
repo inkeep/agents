@@ -137,7 +137,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   return (
     <Form {...form}>
       <form
-        className="flex h-full flex-col"
+        className="contents"
         onSubmit={(event) => {
           event.preventDefault();
           void handleSave();
@@ -155,7 +155,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                     isLast={false}
                   />
                 ))}
-                <li aria-current="page" className="shrink-0 font-medium text-foreground">
+                <li aria-current="page" className="shrink-0 font-medium text-foreground *:contents">
                   <GenericInput
                     control={form.control}
                     name="filePath"
@@ -218,8 +218,8 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
           control={form.control}
           name="content"
           render={({ field }) => (
-            <FormItem className="flex flex-1 flex-col gap-0">
-              <FormControl className="flex-1">
+            <FormItem className="contents">
+              <FormControl>
                 <PromptEditor
                   uri={getSkillFileEditorUri(currentFilePath)}
                   value={field.value}
@@ -232,7 +232,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                   }}
                 />
               </FormControl>
-              <FormMessage className="px-4 pb-3" />
+              <FormMessage className="p-4" />
             </FormItem>
           )}
         />
