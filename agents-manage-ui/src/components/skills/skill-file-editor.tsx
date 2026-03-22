@@ -13,6 +13,7 @@ import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-fi
 import { SkillFileSchema } from '@/components/skills/form/validation';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { createSkillFileAction, updateSkillFileAction } from '@/lib/actions/skill-files';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import {
@@ -22,7 +23,6 @@ import {
   isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
-import { Input } from '@/components/ui/input';
 
 interface SkillFileEditorProps {
   tenantId: string;

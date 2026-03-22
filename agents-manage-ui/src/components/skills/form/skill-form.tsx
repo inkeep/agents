@@ -11,6 +11,7 @@ import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
@@ -22,7 +23,6 @@ import { isRequired, serializeJson } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
 import { type SkillInput, SkillSchema as schema } from './validation';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SkillFormProps {
   onSuccess?: () => void;
