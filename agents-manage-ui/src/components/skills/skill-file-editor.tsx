@@ -1,6 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { File, Folder, Plus } from 'lucide-react';
+import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FC, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -11,14 +13,18 @@ import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 import { DeleteSkillConfirmation } from '@/components/skills/delete-skill-confirmation';
 import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-file-confirmation';
 import { SkillFileSchema } from '@/components/skills/form/validation';
+import type { DemoTreeNode } from '@/components/skills/tree-utils';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { createSkillFileAction, updateSkillFileAction } from '@/lib/actions/skill-files';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import {
+  buildNewSkillFileHref,
   buildSkillFileViewHref,
+  buildSkillFolderViewHref,
   getSkillFileEditorUri,
+  getSkillFileParentDirectory,
   getSkillFileRemovalLabel,
   isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
@@ -54,6 +60,134 @@ function buildCreateFilePath(directoryPath: string, pathInput: string): string {
 
   return [normalizedDirectoryPath, normalizedPathInput].filter(Boolean).join('/');
 }
+
+function getDirectoryPathFromNode(node: DemoTreeNode): string | undefined {
+  if (!node.skillId || node.path === node.skillId) {
+    return;
+  }
+
+  return node.path.slice(node.skillId.length + 1);
+}
+
+function sortDirectoryChildren(nodes: readonly DemoTreeNode[]): DemoTreeNode[] {
+  return nodes.toSorted((left, right) => {
+    if (left.kind !== right.kind) {
+      return left.kind === 'folder' ? -1 : 1;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+}
+
+interface SkillDirectoryBrowserProps {
+  tenantId: string;
+  projectId: string;
+  directoryNode: DemoTreeNode;
+}
+
+export const SkillDirectoryBrowser: FC<SkillDirectoryBrowserProps> = ({
+  tenantId,
+  projectId,
+  directoryNode,
+}) => {
+  'use memo';
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const skillId = directoryNode.skillId;
+
+  if (!skillId) {
+    return null;
+  }
+
+  const directoryPath = getDirectoryPathFromNode(directoryNode);
+  const parentDirectoryPath = directoryPath
+    ? getSkillFileParentDirectory(directoryPath)
+    : undefined;
+  const parentHref = directoryPath
+    ? buildSkillFolderViewHref(tenantId, projectId, skillId, parentDirectoryPath || undefined)
+    : undefined;
+  const createHref = canEdit
+    ? buildNewSkillFileHref(tenantId, projectId, skillId, directoryPath)
+    : undefined;
+  const segments = directoryNode.path.split('/').filter(Boolean);
+  const children = sortDirectoryChildren(directoryNode.children);
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center border-b px-4 gap-2 h-(--header-height) shrink-0">
+        <BreadcrumbNav>
+          {segments.map((segment, index) => {
+            const href =
+              index === segments.length - 1
+                ? ''
+                : buildSkillFolderViewHref(
+                    tenantId,
+                    projectId,
+                    skillId,
+                    index === 0 ? undefined : segments.slice(1, index + 1).join('/')
+                  );
+
+            return (
+              <BreadcrumbNav.Item
+                key={`${segment}-${index}`}
+                href={href}
+                isLast={index === segments.length - 1}
+              >
+                {segment}
+              </BreadcrumbNav.Item>
+            );
+          })}
+        </BreadcrumbNav>
+        {createHref && (
+          <Button asChild size="sm" className="ml-auto">
+            <NextLink href={createHref}>
+              <Plus />
+              Create file
+            </NextLink>
+          </Button>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="divide-y">
+          {parentHref && (
+            <NextLink
+              href={parentHref}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+            >
+              <Folder className="size-4" />
+              ..
+            </NextLink>
+          )}
+          {children.map((child) => {
+            const childDirectoryPath = getDirectoryPathFromNode(child);
+            const childHref =
+              child.kind === 'folder'
+                ? buildSkillFolderViewHref(tenantId, projectId, skillId, childDirectoryPath)
+                : child.filePath
+                  ? buildSkillFileViewHref(tenantId, projectId, skillId, child.filePath)
+                  : '';
+            const Icon = child.kind === 'folder' ? Folder : File;
+
+            return (
+              <NextLink
+                key={child.path}
+                href={childHref}
+                className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted/40"
+              >
+                <Icon className="size-4 text-muted-foreground" />
+                <span className="truncate">{child.name}</span>
+              </NextLink>
+            );
+          })}
+          {!children.length && (
+            <div className="px-4 py-6 text-sm text-muted-foreground">This folder is empty.</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   tenantId,
