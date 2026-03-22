@@ -108,6 +108,150 @@ Always check the weather and alerts.`,
     expect(updated?.files.map((file) => file.filePath)).toEqual(['SKILL.md', 'templates/alert.md']);
   });
 
+  it('should preserve file ids when updating existing file paths', async () => {
+    const tenantId = `tenant-${generateId()}`;
+    const projectId = `project-${generateId()}`;
+    await createTestProject(testManageDbClient, tenantId, projectId);
+
+    await createSkill(testManageDbClient)({
+      tenantId,
+      projectId,
+      name: 'weather-safety-guardrails',
+      description: 'Safety rules.',
+      content: 'Always check the weather.',
+      metadata: null,
+      files: [
+        {
+          filePath: 'SKILL.md',
+          content: `---
+name: weather-safety-guardrails
+description: "Safety rules."
+---
+Always check the weather.`,
+        },
+        {
+          filePath: 'reference/safety-checklist.txt',
+          content: 'Check weather alerts',
+        },
+      ],
+    });
+
+    const original = await getSkillByIdWithFiles(testManageDbClient)({
+      scopes: { tenantId, projectId },
+      skillId: 'weather-safety-guardrails',
+    });
+
+    const originalIds = Object.fromEntries(
+      (original?.files ?? []).map((file) => [file.filePath, file.id])
+    );
+
+    const updated = await updateSkill(testManageDbClient)({
+      scopes: { tenantId, projectId },
+      skillId: 'weather-safety-guardrails',
+      data: {
+        description: 'Updated safety rules.',
+        metadata: null,
+        content: 'Always check the weather and alerts.',
+        files: [
+          {
+            filePath: 'SKILL.md',
+            content: `---
+name: weather-safety-guardrails
+description: "Updated safety rules."
+---
+Always check the weather and alerts.`,
+          },
+          {
+            filePath: 'reference/safety-checklist.txt',
+            content: 'Check alerts twice',
+          },
+        ],
+      },
+    });
+
+    expect(
+      Object.fromEntries((updated?.files ?? []).map((file) => [file.filePath, file.id]))
+    ).toEqual(originalIds);
+  });
+
+  it('should create, update, and delete individual skill files by id', async () => {
+    const tenantId = `tenant-${generateId()}`;
+    const projectId = `project-${generateId()}`;
+    await createTestProject(testManageDbClient, tenantId, projectId);
+
+    await createSkill(testManageDbClient)({
+      tenantId,
+      projectId,
+      name: 'structured-itinerary-responses',
+      description: 'Structured itineraries.',
+      content: 'Use itinerary templates.',
+      metadata: null,
+      files: [
+        {
+          filePath: 'SKILL.md',
+          content: `---
+name: structured-itinerary-responses
+description: "Structured itineraries."
+---
+Use itinerary templates.`,
+        },
+      ],
+    });
+
+    const createdFile = await createSkillFileById(testManageDbClient)({
+      scopes: { tenantId, projectId },
+      skillId: 'structured-itinerary-responses',
+      data: {
+        filePath: 'templates/day/itinerary-card.html',
+        content: '<article>Plan</article>',
+      },
+    });
+
+    expect(createdFile).toEqual(
+      expect.objectContaining({
+        filePath: 'templates/day/itinerary-card.html',
+        content: '<article>Plan</article>',
+      })
+    );
+
+    const updatedFile = await updateSkillFileById(testManageDbClient)({
+      scopes: { tenantId, projectId },
+      skillId: 'structured-itinerary-responses',
+      fileId: createdFile!.id,
+      content: '<article>Updated plan</article>',
+    });
+
+    expect(updatedFile).toEqual(
+      expect.objectContaining({
+        id: createdFile!.id,
+        filePath: 'templates/day/itinerary-card.html',
+        content: '<article>Updated plan</article>',
+      })
+    );
+
+    const fetchedFile = await getSkillFileById(testManageDbClient)({
+      scopes: { tenantId, projectId },
+      skillId: 'structured-itinerary-responses',
+      fileId: createdFile!.id,
+    });
+    expect(fetchedFile?.content).toBe('<article>Updated plan</article>');
+
+    const removed = await deleteSkillFileById(testManageDbClient)({
+      scopes: { tenantId, projectId },
+      skillId: 'structured-itinerary-responses',
+      fileId: createdFile!.id,
+    });
+
+    expect(removed).toBe(true);
+
+    const afterDelete = await getSkillByIdWithFiles(testManageDbClient)({
+      scopes: { tenantId, projectId },
+      skillId: 'structured-itinerary-responses',
+    });
+
+    expect(afterDelete?.files.map((file) => file.filePath)).toEqual(['SKILL.md']);
+  });
+
   it('should cascade delete skill files when deleting a skill', async () => {
     const tenantId = `tenant-${generateId()}`;
     const projectId = `project-${generateId()}`;
