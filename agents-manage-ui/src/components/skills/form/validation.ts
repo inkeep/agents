@@ -14,6 +14,7 @@ export const BaseSkillSchema = z.strictObject({
   metadata: z
     .string()
     .trim()
+    .refine(value => value !== 'null', 'Cannot be null')
     .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
     .pipe(SkillMetadataSchema)
     .default(null),
