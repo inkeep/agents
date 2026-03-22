@@ -6,6 +6,7 @@ import { TreeNode } from '@/components/skills/tree-node';
 import {
   type DemoTreeNode,
   findFirstFile,
+  findNodeByPath,
   findNodeByRoutePath,
 } from '@/components/skills/tree-utils';
 
@@ -15,18 +16,27 @@ interface SkillsSidebarProps {
 }
 
 export const SkillsSidebar: FC<SkillsSidebarProps> = ({ treeNodes, fileRouteAliases }) => {
-  const { fileSlug, skillId } = useParams<{ fileSlug?: string[]; skillId?: string }>();
-  const routeToken = fileSlug?.join('/');
-  const requestedRoutePath = routeToken
-    ? (fileRouteAliases[routeToken] ?? routeToken)
-    : skillId || '';
+  const { fileSlug, folderSlug, parentPath, skillId } = useParams<{
+    fileSlug?: string[];
+    folderSlug?: string[];
+    parentPath?: string[];
+    skillId?: string;
+  }>();
+  const fileRouteToken = fileSlug?.join('/');
+  const requestedRoutePath = fileRouteToken
+    ? (fileRouteAliases[fileRouteToken] ?? fileRouteToken)
+    : '';
+  const requestedFolderPath =
+    folderSlug?.join('/') ??
+    (skillId ? [skillId, parentPath?.join('/')].filter(Boolean).join('/') : '');
   const selectedNode =
     (requestedRoutePath ? findNodeByRoutePath(treeNodes, requestedRoutePath) : null) ??
+    (requestedFolderPath ? findNodeByPath(treeNodes, requestedFolderPath) : null) ??
     findFirstFile(treeNodes) ??
     null;
-  const selectedRoutePath = selectedNode?.routePath ?? '';
+  const selectedNodePath = selectedNode?.path ?? '';
 
   return treeNodes.map((node) => (
-    <TreeNode key={node.path} node={node} selectedRoutePath={selectedRoutePath} />
+    <TreeNode key={node.path} node={node} selectedNodePath={selectedNodePath} />
   ));
 };

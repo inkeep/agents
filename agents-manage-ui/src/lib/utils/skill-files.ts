@@ -29,6 +29,10 @@ function getSkillFileRoutePath(skillId: string, filePath: string): string {
   return isSkillEntryFile(filePath) ? skillId : getSkillFileTreePath(skillId, filePath);
 }
 
+function getSkillFolderRoutePath(skillId: string, directoryPath?: string): string {
+  return [skillId, directoryPath].filter(Boolean).join('/');
+}
+
 function encodeSkillFileRoutePath(routePath: string): string {
   return routePath
     .split('/')
@@ -56,6 +60,17 @@ export function buildNewSkillFileHref(
 ): string {
   const suffix = directoryPath ? `/${encodeSkillFileRoutePath(directoryPath)}` : '';
   return `/${tenantId}/projects/${projectId}/skills/new/${encodeURIComponent(skillId)}${suffix}`;
+}
+
+export function buildSkillFolderViewHref(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  directoryPath?: string
+): string {
+  return `/${tenantId}/projects/${projectId}/skills/folders/${encodeSkillFileRoutePath(
+    getSkillFolderRoutePath(skillId, directoryPath)
+  )}`;
 }
 
 export function getSkillFileParentDirectory(filePath: string): string {

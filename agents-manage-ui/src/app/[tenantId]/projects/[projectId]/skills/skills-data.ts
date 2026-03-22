@@ -36,3 +36,17 @@ export async function resolveSkillFilePageData(
     selectedFile,
   };
 }
+
+export async function resolveSkillFolderPageData(
+  tenantId: string,
+  projectId: string,
+  folderSlug?: readonly string[]
+) {
+  const data = await fetchSkillsPageData(tenantId, projectId);
+  const selectedFolder = folderSlug ? findNodeByPath(data.treeNodes, folderSlug.join('/')) : null;
+
+  return {
+    ...data,
+    selectedFolder,
+  };
+}
