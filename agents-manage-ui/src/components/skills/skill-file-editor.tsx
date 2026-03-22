@@ -130,95 +130,98 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
 
   return (
     <>
-      <BreadcrumbNav className="h-(--header-height) border-b flex px-4">
-        {isCreateMode ? (
-          <>
-            {createDirectorySegments.map((segment, index) => (
+      <div className="flex items-center border-b px-4 gap-2 h-(--header-height) shrink-0">
+        <BreadcrumbNav>
+          {isCreateMode ? (
+            <>
+              {createDirectorySegments.map((segment, index) => (
+                <BreadcrumbNav.Item
+                  key={`${segment}-${index}`}
+                  href=""
+                  label={segment}
+                  isLast={false}
+                />
+              ))}
+              <li aria-current="page" className="shrink-0 font-medium text-foreground">
+                <Input
+                  id="skill-file-path"
+                  value={watchedFilePath ?? ''}
+                  onChange={(event) => {
+                    form.setValue('filePath', event.target.value, { shouldDirty: true });
+                  }}
+                  placeholder="itinerary-card.html"
+                  readOnly={!canEdit}
+                  autoFocus={canEdit}
+                  spellCheck={false}
+                  aria-label="File name"
+                />
+              </li>
+            </>
+          ) : (
+            (currentFilePath ? currentFilePath.split('/') : ['New file']).map((slug, idx, arr) => (
               <BreadcrumbNav.Item
-                key={`${segment}-${index}`}
+                key={idx}
                 href=""
-                label={segment}
-                isLast={false}
+                label={slug || 'New file'}
+                isLast={idx === arr.length - 1}
               />
-            ))}
-            <li aria-current="page" className="shrink-0 font-medium text-foreground">
-              <Input
-                id="skill-file-path"
-                value={watchedFilePath ?? ''}
-                onChange={(event) => {
-                  form.setValue('filePath', event.target.value, { shouldDirty: true });
-                }}
-                placeholder="itinerary-card.html"
-                readOnly={!canEdit}
-                autoFocus={canEdit}
-                spellCheck={false}
-                aria-label="File name"
-              />
-            </li>
-          </>
-        ) : (
-          (currentFilePath ? currentFilePath.split('/') : ['New file']).map((slug, idx, arr) => (
-            <BreadcrumbNav.Item
-              key={idx}
-              href=""
-              label={slug || 'New file'}
-              isLast={idx === arr.length - 1}
-            />
-          ))
-        )}
-      </BreadcrumbNav>
-      <div className="p-6 flex flex-col gap-6">
-        <PromptEditor
-          uri={getSkillFileEditorUri(currentFilePath)}
-          value={content ?? ''}
-          onChange={(value) => {
-            form.setValue('content', value ?? '', { shouldDirty: true });
-          }}
-          readOnly={!canEdit}
-        />
-
+            ))
+          )}
+        </BreadcrumbNav>
         {canEdit && (
-          <div className="flex gap-2 self-end">
+          <div className="ml-auto flex gap-1">
             {!isCreateMode && (
               <Button
                 type="button"
                 variant="destructive-outline"
                 onClick={() => setIsDeleteOpen(true)}
+                size="sm"
               >
                 {getSkillFileRemovalLabel(filePath)}
+                {isDeleteOpen &&
+                  (isEntryFile ? (
+                    <DeleteSkillConfirmation skillId={skillId} setIsOpen={setIsDeleteOpen} />
+                  ) : (
+                    <DeleteSkillFileConfirmation
+                      skillId={skillId}
+                      fileId={fileId}
+                      filePath={filePath}
+                      redirectPath={buildSkillFileViewHref(
+                        tenantId,
+                        projectId,
+                        skillId,
+                        SKILL_ENTRY_FILE_PATH
+                      )}
+                      setIsOpen={setIsDeleteOpen}
+                    />
+                  ))}
               </Button>
             )}
             <Button
               type="button"
               onClick={() => void handleSave()}
               disabled={isSaving || (isCreateMode ? !canCreateFile : !isDirty)}
+              size="sm"
             >
               {isCreateMode ? 'Create file' : 'Save changes'}
             </Button>
             <UnsavedChangesDialog dirty={isDirty} onSubmit={handleSave} />
-            {!isCreateMode && isDeleteOpen && (
-              <>
-                {isEntryFile ? (
-                  <DeleteSkillConfirmation skillId={skillId} setIsOpen={setIsDeleteOpen} />
-                ) : (
-                  <DeleteSkillFileConfirmation
-                    skillId={skillId}
-                    fileId={fileId}
-                    filePath={filePath}
-                    redirectPath={buildSkillFileViewHref(
-                      tenantId,
-                      projectId,
-                      skillId,
-                      SKILL_ENTRY_FILE_PATH
-                    )}
-                    setIsOpen={setIsDeleteOpen}
-                  />
-                )}
-              </>
-            )}
           </div>
         )}
       </div>
+      <PromptEditor
+        uri={getSkillFileEditorUri(currentFilePath)}
+        value={content ?? ''}
+        onChange={(value) => {
+          form.setValue('content', value ?? '', { shouldDirty: true });
+        }}
+        readOnly={!canEdit}
+        hasDynamicHeight={false}
+        className="grow border-none rounded-none has-[&>.focused]:ring-transparent"
+        editorOptions={{
+          lineNumbers: 'on',
+        }}
+      />
     </>
   );
 };
