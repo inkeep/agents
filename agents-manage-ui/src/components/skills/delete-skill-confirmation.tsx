@@ -1,18 +1,10 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import type { Dispatch, FC, SetStateAction } from 'react';
+import { type Dispatch, type FC, type SetStateAction, useTransition } from 'react';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
+import { Dialog } from '@/components/ui/dialog';
 import { deleteSkill } from '@/lib/api/skills';
 
 interface DeleteSkillConfirmationProps {
@@ -30,39 +22,35 @@ export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
   'use memo';
   const router = useRouter();
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
+  const [isSubmitting, startTransition] = useTransition();
 
-  async function handleDelete() {
-    try {
-      await deleteSkill(tenantId, projectId, skillId);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete skill');
-      return;
-    }
+  function handleDelete() {
+    startTransition(async () => {
+      try {
+        await deleteSkill(tenantId, projectId, skillId);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to delete skill');
+        return;
+      }
 
-    toast.success(`Skill "${skillId}" deleted.`);
-    setIsOpen(false);
-    if (redirectOnDelete) {
-      router.push(`/${tenantId}/projects/${projectId}/skills`);
-    }
+      toast.success(`Skill "${skillId}" deleted.`);
+      setIsOpen(false);
+      if (redirectOnDelete) {
+        router.push(`/${tenantId}/projects/${projectId}/skills`);
+      }
+    });
   }
 
   return (
-    <AlertDialog open onOpenChange={setIsOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete skill?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will remove "{skillId}" skill. Sub-agents referencing this skill will lose the
-            association.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} variant="destructive">
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog open onOpenChange={setIsOpen}>
+      <DeleteConfirmation
+        itemName={skillId}
+        isSubmitting={isSubmitting}
+        onDelete={handleDelete}
+        customTitle="Delete skill"
+        customDescription={`This will remove "${skillId}" skill.
+Sub-agents referencing this skill will lose the association.`}
+      />
+    </Dialog>
   );
 };

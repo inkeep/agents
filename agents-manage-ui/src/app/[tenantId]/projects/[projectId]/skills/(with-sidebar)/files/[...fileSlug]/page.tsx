@@ -10,11 +10,7 @@ const SkillFilePage: FC<
   const { tenantId, projectId, fileSlug } = await params;
 
   try {
-    const { permissions, selectedFile } = await resolveSkillFilePageData(
-      tenantId,
-      projectId,
-      fileSlug
-    );
+    const { selectedFile } = await resolveSkillFilePageData(tenantId, projectId, fileSlug);
 
     if (!selectedFile) {
       return <FullPageError errorCode="not_found" context="skill file" />;
@@ -28,7 +24,6 @@ const SkillFilePage: FC<
         fileId={selectedFile.fileId}
         filePath={selectedFile.filePath}
         initialContent={selectedFile.content}
-        canEdit={permissions.canEdit}
       />
     );
   } catch (error) {
