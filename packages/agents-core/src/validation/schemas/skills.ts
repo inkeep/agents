@@ -6,7 +6,6 @@ import {
   createAgentScopedApiSchema,
   createAgentScopedApiUpdateSchema,
   createApiSchema,
-  createApiUpdateSchema,
   PaginationSchema,
   ResourceIdSchema,
   StringRecordSchema,
@@ -219,7 +218,6 @@ const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
   alwaysLoaded: z.boolean(),
 }).openapi('SubAgentSkillWithIndex');
 
-const SkillResponse = z.object({ data: SkillApiSelectSchema }).openapi('SkillResponse');
 const SkillFileResponse = z.object({ data: SkillFileApiSelectSchema }).openapi('SkillFileResponse');
 
 const SkillWithFilesResponse = z
@@ -268,4 +266,5 @@ export {
   SkillWithFilesResponse,
   SkillListResponse,
   SkillFrontmatterSchema,
+  SkillFileContentInputSchema,
 };
