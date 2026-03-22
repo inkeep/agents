@@ -1,17 +1,17 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check, ChevronRight, Info, X } from 'lucide-react';
+import { Check, Info, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { type FC, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 import FullPageError from '@/components/errors/full-page-error';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
@@ -70,13 +70,14 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
 
   const onSubmit = form.handleSubmit(async (data) => {
     await upsertSkill({
-      skillId: initialData ? data.name : undefined,
+      skillId: initialData?.id,
       data,
     });
     onSuccess?.();
     if (!skillId) {
       router.push(`/${tenantId}/projects/${projectId}/skills`);
     }
+    // router.refresh();
   });
 
   useEffect(() => {
@@ -166,32 +167,19 @@ Use this skill when the user needs to work with PDF files...
 ...`}
           isRequired={isRequired(schema, 'content')}
         />
-        <Collapsible className="border rounded-md">
-          <CollapsibleTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start hover:bg-transparent! group"
-            >
-              <ChevronRight className="transition-transform group-data-[state=open]:rotate-90" />
-              Advanced
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-6 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
-            <GenericJsonEditor
-              control={form.control}
-              name="metadata"
-              label="Metadata (JSON)"
-              placeholder={`{
+        <CollapsibleSettings title="Advanced">
+          <GenericJsonEditor
+            control={form.control}
+            name="metadata"
+            label="Metadata (JSON)"
+            placeholder={`{
   "version": "1.0.0",
   "author": "example"
 }`}
-              isRequired={isRequired(schema, 'metadata')}
-              readOnly={readOnly}
-            />
-          </CollapsibleContent>
-        </Collapsible>
+            isRequired={isRequired(schema, 'metadata')}
+            readOnly={readOnly}
+          />
+        </CollapsibleSettings>
 
         {!readOnly && (
           <div className="flex w-full justify-between">
