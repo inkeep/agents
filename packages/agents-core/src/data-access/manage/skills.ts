@@ -18,11 +18,7 @@ import type {
 } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
-import {
-  parseSkillFromMarkdown,
-  SKILL_ENTRY_FILE_PATH,
-  type SkillFileInput,
-} from '../../utils/skill-files';
+import { parseSkillFromMarkdown, SKILL_ENTRY_FILE_PATH } from '../../utils/skill-files';
 import { SkillFrontmatterSchema } from '../../validation/schemas/skills';
 import { agentScopedWhere, projectScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
@@ -37,7 +33,7 @@ async function replaceSkillFiles(
   params: {
     scopes: ProjectScopeConfig;
     skillId: string;
-    files: SkillFileInput[];
+    files: SkillFileApiInsert[];
   }
 ) {
   const existingFiles = await db
@@ -238,7 +234,7 @@ export const createSkillFileById =
 
 function buildEntryFileUpdateData(params: {
   skillId: string;
-  files: SkillFileInput[];
+  files: SkillFileApiInsert[];
   content: string;
 }): SkillApiUpdate {
   const parsed = parseSkillFromMarkdown(params.content);

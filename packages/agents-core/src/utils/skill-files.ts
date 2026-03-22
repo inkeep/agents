@@ -4,11 +4,6 @@ import { stringify } from 'yaml';
 
 export const SKILL_ENTRY_FILE_PATH = 'SKILL.md';
 
-export interface SkillFileInput {
-  filePath: string;
-  content: string;
-}
-
 export function parseSkillFromMarkdown(markdown: string): {
   frontmatter: Record<string, unknown>;
   content: string;
