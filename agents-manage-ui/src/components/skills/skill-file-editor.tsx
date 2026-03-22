@@ -11,7 +11,6 @@ import { DeleteSkillConfirmation } from '@/components/skills/delete-skill-confir
 import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-file-confirmation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { createSkillFileAction, updateSkillFileAction } from '@/lib/actions/skill-files';
 import {
   buildSkillFileViewHref,
@@ -27,8 +26,28 @@ interface SkillFileEditorProps {
   skillId: string;
   fileId?: string;
   filePath: string;
+  initialDirectoryPath?: string;
   initialContent: string;
   canEdit?: boolean;
+}
+
+function normalizeDirectoryPath(path: string): string {
+  return path
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join('/');
+}
+
+function normalizeCreateFilePathInput(path: string): string {
+  return path.trim().replace(/^\/+/, '').replace(/\/+$/, '');
+}
+
+function buildCreateFilePath(directoryPath: string, pathInput: string): string {
+  const normalizedDirectoryPath = normalizeDirectoryPath(directoryPath);
+  const normalizedPathInput = normalizeCreateFilePathInput(pathInput);
+
+  return [normalizedDirectoryPath, normalizedPathInput].filter(Boolean).join('/');
 }
 
 export const SkillFileEditor: FC<SkillFileEditorProps> = ({
@@ -37,15 +56,17 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   skillId,
   fileId,
   filePath,
+  initialDirectoryPath,
   initialContent,
   canEdit = true,
 }) => {
   'use memo';
   const router = useRouter();
   const isCreateMode = !fileId;
+  const createDirectoryPath = normalizeDirectoryPath(initialDirectoryPath ?? '');
   const form = useForm<{ filePath: string; content: string }>({
     defaultValues: {
-      filePath,
+      filePath: isCreateMode ? '' : filePath,
       content: initialContent,
     },
   });
@@ -54,19 +75,28 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const isDirty = canEdit && form.formState.isDirty;
-  const currentFilePath = (isCreateMode ? (watchedFilePath ?? '') : filePath).trim();
+  const currentFilePath = isCreateMode
+    ? buildCreateFilePath(createDirectoryPath, watchedFilePath ?? '')
+    : filePath.trim();
+  const createDirectorySegments = createDirectoryPath.split('/').filter(Boolean);
+  const canCreateFile = Boolean(normalizeCreateFilePathInput(watchedFilePath ?? ''));
   const isEntryFile = !isCreateMode && isSkillEntryFile(filePath);
 
   useEffect(() => {
-    form.reset({ filePath, content: initialContent });
-  }, [filePath, form, initialContent]);
+    form.reset({
+      filePath: isCreateMode ? '' : filePath,
+      content: initialContent,
+    });
+  }, [filePath, form, initialContent, isCreateMode]);
 
   const handleSave = async (): Promise<boolean> => {
     if (!canEdit || (!isCreateMode && !form.formState.isDirty)) {
       return true;
     }
 
-    const nextFilePath = form.getValues('filePath');
+    const nextFilePath = isCreateMode
+      ? buildCreateFilePath(createDirectoryPath, form.getValues('filePath'))
+      : form.getValues('filePath');
     const nextContent = form.getValues('content');
     setIsSaving(true);
     const result = isCreateMode
@@ -101,30 +131,43 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   return (
     <>
       <BreadcrumbNav className="h-(--header-height) border-b flex px-4">
-        {(currentFilePath ? currentFilePath.split('/') : ['New file']).map((slug, idx, arr) => (
-          <BreadcrumbNav.Item
-            key={idx}
-            href=""
-            label={slug || 'New file'}
-            isLast={idx === arr.length - 1}
-          />
-        ))}
+        {isCreateMode ? (
+          <>
+            {createDirectorySegments.map((segment, index) => (
+              <BreadcrumbNav.Item
+                key={`${segment}-${index}`}
+                href=""
+                label={segment}
+                isLast={false}
+              />
+            ))}
+            <li aria-current="page" className="shrink-0 font-medium text-foreground">
+              <Input
+                id="skill-file-path"
+                value={watchedFilePath ?? ''}
+                onChange={(event) => {
+                  form.setValue('filePath', event.target.value, { shouldDirty: true });
+                }}
+                placeholder="itinerary-card.html"
+                readOnly={!canEdit}
+                autoFocus={canEdit}
+                spellCheck={false}
+                aria-label="File name"
+              />
+            </li>
+          </>
+        ) : (
+          (currentFilePath ? currentFilePath.split('/') : ['New file']).map((slug, idx, arr) => (
+            <BreadcrumbNav.Item
+              key={idx}
+              href=""
+              label={slug || 'New file'}
+              isLast={idx === arr.length - 1}
+            />
+          ))
+        )}
       </BreadcrumbNav>
       <div className="p-6 flex flex-col gap-6">
-        {isCreateMode && (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="skill-file-path">File path</Label>
-            <Input
-              id="skill-file-path"
-              value={watchedFilePath ?? ''}
-              onChange={(event) => {
-                form.setValue('filePath', event.target.value, { shouldDirty: true });
-              }}
-              placeholder="templates/day/itinerary-card.html"
-              readOnly={!canEdit}
-            />
-          </div>
-        )}
         <PromptEditor
           uri={getSkillFileEditorUri(currentFilePath)}
           value={content ?? ''}
@@ -148,7 +191,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
             <Button
               type="button"
               onClick={() => void handleSave()}
-              disabled={isSaving || (!isCreateMode && !isDirty)}
+              disabled={isSaving || (isCreateMode ? !canCreateFile : !isDirty)}
             >
               {isCreateMode ? 'Create file' : 'Save changes'}
             </Button>

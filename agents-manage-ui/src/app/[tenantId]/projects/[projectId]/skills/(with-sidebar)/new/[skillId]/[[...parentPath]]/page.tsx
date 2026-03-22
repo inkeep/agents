@@ -21,7 +21,8 @@ const NewSkillFilePage: FC<
         tenantId={tenantId}
         projectId={projectId}
         skillId={skill.id}
-        filePath={parentPath?.join('/') ? `${parentPath.join('/')}/` : ''}
+        filePath=""
+        initialDirectoryPath={parentPath?.join('/')}
         initialContent=""
         canEdit={permissions.canEdit}
       />
