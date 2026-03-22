@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "typeRoots": ["./node_modules/@types"],
+    "types": ["vitest/globals"],
     "verbatimModuleSyntax": true,
     "target": "ES2022",
     "module": "ESNext",

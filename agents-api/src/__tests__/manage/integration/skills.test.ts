@@ -1,10 +1,9 @@
 import { generateId } from '@inkeep/agents-core';
-import { afterEach, describe, expect, it } from 'vitest';
 import { cleanupTenants } from '../../utils/cleanup';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
-describe('Skill Routes - Integration Tests', () => {
+describe('Skill Routes', () => {
   const createdTenants = new Set<string>();
 
   afterEach(async () => {
@@ -12,13 +11,13 @@ describe('Skill Routes - Integration Tests', () => {
     createdTenants.clear();
   });
 
-  const createTrackedTenant = async (suffix: string) => {
+  async function createTrackedTenant(suffix: string) {
     const tenantId = await createTestTenantWithOrg(suffix);
     createdTenants.add(tenantId);
     return tenantId;
-  };
+  }
 
-  const createProject = async (tenantId: string, projectId: string) => {
+  async function createProject(tenantId: string, projectId: string) {
     const response = await makeRequest(`/manage/tenants/${tenantId}/projects`, {
       method: 'POST',
       body: JSON.stringify({
@@ -35,9 +34,9 @@ describe('Skill Routes - Integration Tests', () => {
     });
 
     expect(response.status).toBe(201);
-  };
+  }
 
-  it('should create, fetch, and update nested skill files', async () => {
+  test('should create, fetch, and update nested skill files', async () => {
     const tenantId = await createTrackedTenant('skills-crud');
     const projectId = `project-${generateId()}`;
     await createProject(tenantId, projectId);
