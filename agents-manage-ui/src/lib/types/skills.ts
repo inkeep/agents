@@ -1,9 +1,3 @@
-import type {
-  SkillApiSelect,
-  SkillFileApiSelect,
-  SkillWithFilesApiSelect,
-} from '@inkeep/agents-core';
+import type { SkillWithFilesApiSelect } from '@inkeep/agents-core';
 
-type Skill = SkillApiSelect;
-type SkillFile = SkillFileApiSelect;
 export type SkillDetail = SkillWithFilesApiSelect;
