@@ -46,6 +46,23 @@ async function $fetchSkill(
 }
 export const fetchSkill = cache($fetchSkill);
 
+async function $fetchSkillFile(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  fileId: string
+): Promise<SkillFile> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<SingleResponse<SkillFile>>(
+    `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files/${fileId}`
+  );
+
+  return response.data;
+}
+export const fetchSkillFile = cache($fetchSkillFile);
+
 export async function createSkill(
   tenantId: string,
   projectId: string,
@@ -101,6 +118,27 @@ export async function updateSkillFile(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files/${fileId}`,
     {
       method: 'PATCH',
+      body: JSON.stringify(file),
+    }
+  );
+  revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
+
+  return response.data;
+}
+
+export async function createSkillFile(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  file: SkillFileCreate
+): Promise<SkillFile> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<SingleResponse<SkillFile>>(
+    `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files`,
+    {
+      method: 'POST',
       body: JSON.stringify(file),
     }
   );
