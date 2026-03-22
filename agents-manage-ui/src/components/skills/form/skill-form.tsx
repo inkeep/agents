@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check, Info, X } from 'lucide-react';
+import { Check, ChevronRight, Info, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { type FC, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -22,6 +22,7 @@ import { isRequired, serializeJson } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
 import { type SkillInput, SkillSchema as schema } from './validation';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SkillFormProps {
   onSuccess?: () => void;
@@ -165,17 +166,32 @@ Use this skill when the user needs to work with PDF files...
 ...`}
           isRequired={isRequired(schema, 'content')}
         />
-        <GenericJsonEditor
-          control={form.control}
-          name="metadata"
-          label="Metadata (JSON)"
-          placeholder={`{
+        <Collapsible className="border rounded-md">
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start hover:bg-transparent! group"
+            >
+              <ChevronRight className="transition-transform group-data-[state=open]:rotate-90" />
+              Advanced
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-6 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
+            <GenericJsonEditor
+              control={form.control}
+              name="metadata"
+              label="Metadata (JSON)"
+              placeholder={`{
   "version": "1.0.0",
   "author": "example"
 }`}
-          isRequired={isRequired(schema, 'metadata')}
-          readOnly={readOnly}
-        />
+              isRequired={isRequired(schema, 'metadata')}
+              readOnly={readOnly}
+            />
+          </CollapsibleContent>
+        </Collapsible>
 
         {!readOnly && (
           <div className="flex w-full justify-between">
