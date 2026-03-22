@@ -541,7 +541,7 @@ export class Project implements ProjectInterface {
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
     const externalAgentsObject: Record<string, ExternalAgentApiInsert> = {};
-    const skillsObject = Object.fromEntries(
+    const skillsObject: Record<string, any> = Object.fromEntries(
       this.skills.map((skill) => {
         if (!skill.id) {
           throw new Error('Invalid skill: missing required "id" field.');
