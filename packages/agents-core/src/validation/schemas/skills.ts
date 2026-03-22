@@ -111,6 +111,12 @@ const SkillInsertSchema = createInsertSchema(skills)
     tenantId: true,
   });
 
+const SkillCreateDataSchema = z.strictObject({
+  ...SkillInsertSchema.shape,
+  metadata: SkillInsertSchema.shape.metadata.unwrap(),
+  files: SkillFilesInputSchema,
+});
+
 const SkillUpdateSchema = SkillInsertSchema.omit({
   // Name is persistent
   name: true,
@@ -154,8 +160,7 @@ const SkillApiInsertSchema = z
       ...transformSkill(skillFile.content),
     };
   })
-  // @ts-expect-error
-  .pipe(SkillFrontmatterSchema)
+  .pipe(SkillCreateDataSchema)
   .openapi('SkillCreate');
 
 const SkillApiUpdateSchema = SkillUpdateSchema.partial()
@@ -169,6 +174,7 @@ const SkillApiUpdateSchema = SkillUpdateSchema.partial()
       ...transformSkill(skillFile.content),
     };
   })
+  .pipe(SkillCreateDataSchema.partial())
   .openapi('SkillUpdate');
 
 const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
