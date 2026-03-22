@@ -4,7 +4,7 @@
 'use server';
 
 import type {
-  SkillApiInsert,
+  SkillApiInsertSchema,
   SkillApiSelect,
   SkillApiUpdate,
   SkillFileApiInsert,
@@ -14,6 +14,7 @@ import type {
 } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
+import type { z } from 'zod';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -52,7 +53,7 @@ export const fetchSkill = cache($fetchSkill);
 export async function createSkill(
   tenantId: string,
   projectId: string,
-  skill: SkillApiInsert
+  skill: z.input<typeof SkillApiInsertSchema>
 ): Promise<SkillDetail> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -154,9 +155,7 @@ export async function deleteSkillFile(
 
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files/${fileId}`,
-    {
-      method: 'DELETE',
-    }
+    { method: 'DELETE' }
   );
   revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
 }
