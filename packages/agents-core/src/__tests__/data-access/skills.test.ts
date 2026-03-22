@@ -213,17 +213,20 @@ Use itinerary templates.`,
         content: '<article>Plan</article>',
       })
     );
+    if (!createdFile) {
+      throw new Error('Failed to create skill file');
+    }
 
     const updatedFile = await updateSkillFileById(testManageDbClient)({
       scopes: { tenantId, projectId },
       skillId: 'structured-itinerary-responses',
-      fileId: createdFile!.id,
+      fileId: createdFile.id,
       content: '<article>Updated plan</article>',
     });
 
     expect(updatedFile).toEqual(
       expect.objectContaining({
-        id: createdFile!.id,
+        id: createdFile.id,
         filePath: 'templates/day/itinerary-card.html',
         content: '<article>Updated plan</article>',
       })
@@ -232,14 +235,14 @@ Use itinerary templates.`,
     const fetchedFile = await getSkillFileById(testManageDbClient)({
       scopes: { tenantId, projectId },
       skillId: 'structured-itinerary-responses',
-      fileId: createdFile!.id,
+      fileId: createdFile.id,
     });
     expect(fetchedFile?.content).toBe('<article>Updated plan</article>');
 
     const removed = await deleteSkillFileById(testManageDbClient)({
       scopes: { tenantId, projectId },
       skillId: 'structured-itinerary-responses',
-      fileId: createdFile!.id,
+      fileId: createdFile.id,
     });
 
     expect(removed).toBe(true);
