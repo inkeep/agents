@@ -24,6 +24,8 @@ import {
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
 
+const resolver = zodResolver(SkillFileSchema);
+
 interface SkillFileEditorProps {
   tenantId: string;
   projectId: string;
@@ -70,7 +72,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   const isCreateMode = !fileId;
   const createDirectoryPath = normalizeDirectoryPath(initialDirectoryPath ?? '');
   const form = useForm({
-    resolver: zodResolver(SkillFileSchema),
+    resolver,
     defaultValues: {
       filePath: isCreateMode ? '' : filePath,
       content: initialContent,
@@ -82,8 +84,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   const { isDirty, isValid, isSubmitting } = form.formState;
   const currentFilePath = isCreateMode
     ? buildCreateFilePath(createDirectoryPath, watchedFilePath ?? '')
-    : filePath.trim();
-  const createDirectorySegments = createDirectoryPath.split('/').filter(Boolean);
+    : filePath;
   const isSaveDisabled = isSubmitting || !canEdit || !isDirty || !isValid;
   const isEntryFile = !isCreateMode && isSkillEntryFile(filePath);
 
@@ -140,17 +141,20 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
       <form className="contents" onSubmit={handleSave}>
         <div className="flex items-center border-b px-4 gap-2 h-(--header-height) shrink-0">
           <BreadcrumbNav>
-            {currentFilePath.split('/').map((segment, idx, arr) => (
-              <BreadcrumbNav.Item
-                key={`${segment}-${idx}`}
-                href=""
-                isLast={!isCreateMode && idx === arr.length - 1}
-              >
-                {segment}
-              </BreadcrumbNav.Item>
-            ))}
+            {currentFilePath.split('/').map(
+              (segment, idx, arr) =>
+                segment && (
+                  <BreadcrumbNav.Item
+                    key={`${segment}-${idx}`}
+                    href=""
+                    isLast={!isCreateMode && idx === arr.length - 1}
+                  >
+                    {segment}
+                  </BreadcrumbNav.Item>
+                )
+            )}
             {isCreateMode && (
-              <BreadcrumbNav.Item isLast>
+              <BreadcrumbNav.Item isLast href="">
                 <FormField
                   control={form.control}
                   name="filePath"
