@@ -5,10 +5,10 @@ import { cn } from '@/lib/utils';
 const BreadcrumbNavItem: FC<{
   href: string;
   isLast: boolean;
-  label: string;
+  children: ReactNode;
   /** @default "/"  */
   separator?: '›' | '/' | string;
-}> = ({ href, isLast, label, separator = '/' }) => {
+}> = ({ href, isLast, children, separator = '/' }) => {
   'use memo';
 
   return (
@@ -26,10 +26,10 @@ const BreadcrumbNavItem: FC<{
       )}
     >
       {isLast || !href ? (
-        label
+        children
       ) : (
         <Link href={href} className="hover:text-foreground">
-          {label}
+          {children}
         </Link>
       )}
     </li>

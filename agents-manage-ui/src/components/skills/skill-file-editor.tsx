@@ -7,7 +7,6 @@ import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { PromptEditor } from '@/components/editors/prompt-editor';
-import { GenericInput } from '@/components/form/generic-input';
 import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 import { DeleteSkillConfirmation } from '@/components/skills/delete-skill-confirmation';
 import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-file-confirmation';
@@ -23,6 +22,7 @@ import {
   isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
+import { Input } from '@/components/ui/input';
 
 interface SkillFileEditorProps {
   tenantId: string;
@@ -140,37 +140,35 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
       <form className="contents" onSubmit={handleSave}>
         <div className="flex items-center border-b px-4 gap-2 h-(--header-height) shrink-0">
           <BreadcrumbNav>
-            {isCreateMode ? (
-              <>
-                {createDirectorySegments.map((segment, index) => (
-                  <BreadcrumbNav.Item
-                    key={`${segment}-${index}`}
-                    href=""
-                    label={segment}
-                    isLast={false}
-                  />
-                ))}
-                <li aria-current="page" className="shrink-0 font-medium text-foreground *:contents">
-                  <GenericInput
-                    control={form.control}
-                    name="filePath"
-                    label={<span className="sr-only">File name</span>}
-                    placeholder="itinerary-card.html"
-                    disabled={!canEdit}
-                  />
-                </li>
-              </>
-            ) : (
-              (currentFilePath ? currentFilePath.split('/') : ['New file']).map(
-                (slug, idx, arr) => (
-                  <BreadcrumbNav.Item
-                    key={idx}
-                    href=""
-                    label={slug || 'New file'}
-                    isLast={idx === arr.length - 1}
-                  />
-                )
-              )
+            {currentFilePath.split('/').map((segment, idx, arr) => (
+              <BreadcrumbNav.Item
+                key={`${segment}-${idx}`}
+                href=""
+                isLast={!isCreateMode && idx === arr.length - 1}
+              >
+                {segment}
+              </BreadcrumbNav.Item>
+            ))}
+            {isCreateMode && (
+              <BreadcrumbNav.Item isLast>
+                <FormField
+                  control={form.control}
+                  name="filePath"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center">
+                      <FormControl className="m-1">
+                        <Input
+                          {...field}
+                          placeholder="file-name.ext"
+                          disabled={!canEdit}
+                          className="w-auto"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </BreadcrumbNav.Item>
             )}
           </BreadcrumbNav>
           {canEdit && (

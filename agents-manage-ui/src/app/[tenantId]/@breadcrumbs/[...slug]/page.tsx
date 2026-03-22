@@ -14,7 +14,6 @@ import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { fetchWorkAppGitHubInstallationDetail } from '@/lib/api/github';
 import { fetchProject } from '@/lib/api/projects';
 import { getScheduledTrigger } from '@/lib/api/scheduled-triggers';
-import { fetchSkill } from '@/lib/api/skills';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
@@ -164,13 +163,9 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
 const BreadcrumbSlot: FC<BreadcrumbsProps> = async ({ params }) => {
   const crumbs = await getCrumbs(params);
   return crumbs.map(({ label, href }, idx, arr) => (
-    <BreadcrumbNav.Item
-      key={href}
-      href={href}
-      label={label}
-      isLast={idx === arr.length - 1}
-      separator="›"
-    />
+    <BreadcrumbNav.Item key={href} href={href} isLast={idx === arr.length - 1} separator="›">
+      {label}
+    </BreadcrumbNav.Item>
   ));
 };
 
