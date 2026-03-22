@@ -158,7 +158,7 @@ const SkillApiInsertSchema = z
   .pipe(SkillFrontmatterSchema)
   .openapi('SkillCreate');
 
-const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema)
+const SkillApiUpdateSchema = SkillUpdateSchema.partial()
   .transform((skill) => {
     const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
     if (!skillFile) {
