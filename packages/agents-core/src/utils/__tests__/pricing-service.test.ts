@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ModelPricing, TokenUsage } from '../pricing-service';
 import { PricingService } from '../pricing-service';
 
@@ -116,6 +116,155 @@ describe('PricingService', () => {
     it('returns null when no pricing data is loaded', () => {
       const result = service.getModelPricing('claude-sonnet-4', 'anthropic');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('initialize', () => {
+    it('is idempotent — concurrent calls share the same promise', async () => {
+      const modelsDevResponse = {
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            anthropic: {
+              models: {
+                'claude-sonnet-4': {
+                  id: 'claude-sonnet-4',
+                  cost: { input: 3, output: 15 },
+                },
+              },
+            },
+          }),
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(modelsDevResponse as any);
+
+      const [result1, result2] = await Promise.allSettled([
+        service.initialize(),
+        service.initialize(),
+      ]);
+
+      expect(result1.status).toBe('fulfilled');
+      expect(result2.status).toBe('fulfilled');
+      // models.dev fetch should only happen once despite two concurrent calls
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      fetchSpy.mockRestore();
+    });
+
+    it('loads pricing from models.dev and makes it available via getModelPricing', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            anthropic: {
+              models: {
+                'claude-sonnet-4': {
+                  id: 'claude-sonnet-4',
+                  cost: { input: 3, output: 15, cache_read: 0.3, cache_write: 3.75 },
+                },
+              },
+            },
+            openai: {
+              models: {
+                'gpt-4o': {
+                  id: 'gpt-4o',
+                  cost: { input: 2.5, output: 10 },
+                },
+              },
+            },
+          }),
+      } as any);
+
+      await service.initialize();
+
+      const anthropicPricing = service.getModelPricing('claude-sonnet-4', 'anthropic');
+      expect(anthropicPricing).not.toBeNull();
+      expect(anthropicPricing!.inputPerToken).toBeCloseTo(3 / 1_000_000);
+      expect(anthropicPricing!.outputPerToken).toBeCloseTo(15 / 1_000_000);
+      expect(anthropicPricing!.cachedReadPerToken).toBeCloseTo(0.3 / 1_000_000);
+      expect(anthropicPricing!.cachedWritePerToken).toBeCloseTo(3.75 / 1_000_000);
+
+      const openaiPricing = service.getModelPricing('gpt-4o', 'openai');
+      expect(openaiPricing).not.toBeNull();
+      expect(openaiPricing!.inputPerToken).toBeCloseTo(2.5 / 1_000_000);
+
+      fetchSpy.mockRestore();
+    });
+
+    it('strips date suffixes for pricing lookup', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            anthropic: {
+              models: {
+                'claude-sonnet-4': {
+                  cost: { input: 3, output: 15 },
+                },
+              },
+            },
+          }),
+      } as any);
+
+      await service.initialize();
+
+      // Should find pricing via date-stripped lookup
+      const pricing = service.getModelPricing('claude-sonnet-4-20250514', 'anthropic');
+      expect(pricing).not.toBeNull();
+
+      fetchSpy.mockRestore();
+    });
+
+    it('handles models.dev fetch failure gracefully', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network error'));
+
+      await service.initialize();
+
+      const pricing = service.getModelPricing('claude-sonnet-4', 'anthropic');
+      expect(pricing).toBeNull();
+
+      fetchSpy.mockRestore();
+    });
+
+    it('handles non-OK response from models.dev', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue({ ok: false, status: 500 } as any);
+
+      await service.initialize();
+
+      const pricing = service.getModelPricing('claude-sonnet-4', 'anthropic');
+      expect(pricing).toBeNull();
+
+      fetchSpy.mockRestore();
+    });
+  });
+
+  describe('destroy', () => {
+    it('clears caches and allows re-initialization', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            anthropic: {
+              models: {
+                'claude-sonnet-4': { cost: { input: 3, output: 15 } },
+              },
+            },
+          }),
+      } as any);
+
+      await service.initialize();
+      expect(service.getModelPricing('claude-sonnet-4', 'anthropic')).not.toBeNull();
+
+      service.destroy();
+      expect(service.getModelPricing('claude-sonnet-4', 'anthropic')).toBeNull();
+
+      // Can re-initialize after destroy
+      await service.initialize();
+      expect(service.getModelPricing('claude-sonnet-4', 'anthropic')).not.toBeNull();
+
+      fetchSpy.mockRestore();
     });
   });
 });

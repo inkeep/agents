@@ -102,7 +102,7 @@ export class PricingService {
   private async refreshGateway(): Promise<void> {
     const apiKey = process.env.AI_GATEWAY_API_KEY;
     if (!apiKey) {
-      logger.debug('Skipping gateway pricing refresh - AI_GATEWAY_API_KEY not set');
+      logger.debug({}, 'Skipping gateway pricing refresh - AI_GATEWAY_API_KEY not set');
       return;
     }
 
