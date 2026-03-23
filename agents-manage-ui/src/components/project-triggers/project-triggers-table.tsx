@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useOrgMembers } from '@/hooks/use-org-members';

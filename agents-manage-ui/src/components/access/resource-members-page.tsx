@@ -5,7 +5,7 @@ import { type FC, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { PrincipalAvatar } from './principal-avatar';

@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useSlack } from '../context/slack-provider';
