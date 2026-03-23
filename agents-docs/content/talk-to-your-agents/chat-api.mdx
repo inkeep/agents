@@ -83,6 +83,12 @@ The chat endpoint supports files in message content parts with different rules b
           "url": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...",
           "mediaType": "application/pdf",
           "filename": "report.pdf"
+        },
+        {
+          "type": "file",
+          "url": "https://example.com/document.pdf",
+          "mediaType": "application/pdf",
+          "filename": "document.pdf"
         }
       ]
     }
@@ -99,6 +105,7 @@ The chat endpoint supports files in message content parts with different rules b
 - **Content validation**:
   - Images are validated against supported image bytes
   - PDFs must start with the `%PDF-` signature bytes
+- **Remote PDF URLs**: must be reachable over `http` or `https` from the Run API. Unreachable hosts, non-PDF responses, or oversized bodies result in **HTTP 400** with an error message (query strings and fragments on the URL are not preserved in stored metadata).
 
 ### Optional Headers
 

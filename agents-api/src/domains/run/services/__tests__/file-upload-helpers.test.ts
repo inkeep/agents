@@ -1,5 +1,5 @@
 import type { FilePart, TextPart } from '@inkeep/agents-core';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadExternalFile } from '../blob-storage/external-file-downloader';
 import { PdfUrlIngestionError } from '../blob-storage/file-security-errors';
 import {
@@ -68,6 +68,10 @@ describe('buildPersistedMessageContent', () => {
 });
 
 describe('inlineExternalPdfUrlParts', () => {
+  beforeEach(() => {
+    vi.mocked(downloadExternalFile).mockReset();
+  });
+
   it('inlines external PDF URLs into base64 bytes and stores sanitized source URL metadata', async () => {
     vi.mocked(downloadExternalFile).mockResolvedValueOnce({
       data: Uint8Array.from(Buffer.from('%PDF-1.7\nstub\n', 'utf8')),
@@ -112,5 +116,20 @@ describe('inlineExternalPdfUrlParts', () => {
         },
       ])
     ).rejects.toBeInstanceOf(PdfUrlIngestionError);
+  });
+
+  it('does not download when the PDF uri is a data URI', async () => {
+    const dataPart: FilePart = {
+      kind: 'file',
+      file: {
+        uri: 'data:application/pdf;base64,JVBERi0xLjQK',
+        mimeType: 'application/pdf',
+      },
+    };
+
+    const result = await inlineExternalPdfUrlParts([dataPart]);
+
+    expect(result).toEqual([dataPart]);
+    expect(downloadExternalFile).not.toHaveBeenCalled();
   });
 });

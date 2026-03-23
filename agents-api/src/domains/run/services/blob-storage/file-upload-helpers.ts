@@ -12,6 +12,11 @@ import { makeSanitizedSourceUrl } from './file-url-security';
 
 const logger = getLogger('file-upload-helpers');
 
+function isRemoteHttpOrHttpsUrl(uri: string): boolean {
+  const lower = uri.toLowerCase();
+  return lower.startsWith('https://') || lower.startsWith('http://');
+}
+
 /**
  * Fetches each remote `application/pdf` file part (http(s) `uri`), replaces it with an inline
  * base64 `bytes` part. Full response bodies are buffered in memory up to the same limit as
@@ -27,7 +32,12 @@ export async function inlineExternalPdfUrlParts(parts: Part[]): Promise<Part[]> 
     }
 
     const file = part.file;
-    if (!('uri' in file) || !file.uri || file.mimeType?.toLowerCase() !== 'application/pdf') {
+    if (
+      !('uri' in file) ||
+      !file.uri ||
+      file.mimeType?.toLowerCase() !== 'application/pdf' ||
+      !isRemoteHttpOrHttpsUrl(file.uri)
+    ) {
       result.push(part);
       continue;
     }
