@@ -27,6 +27,7 @@ export async function getPendingInvitations(email: string): Promise<PendingInvit
     );
     return { success: true, invitations };
   } catch (error) {
+    console.error('[getPendingInvitations] Error:', error);
     const message = error instanceof ApiError ? error.message : 'Failed to load invitations';
     return { success: false, error: message };
   }
