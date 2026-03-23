@@ -1,11 +1,12 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import { createApiError } from '../utils/error';
 import { getLogger } from '../utils/logger';
 import type { ConflictResolution } from '../validation/dolt-schemas';
 import { doltCheckout } from './branch';
 import { doltAddAndCommit } from './commit';
 import { managePkMap } from './pk-map';
-import { applyResolutions } from './resolve-conflicts';
+import { applyResolutions, ResolutionValidationError } from './resolve-conflicts';
 
 const logger = getLogger('dolt-merge');
 
@@ -198,7 +199,18 @@ export const doltMerge =
         }
 
         const allResolutions = [...autoResolutions, ...userResolutions];
-        await applyResolutions(db)(allResolutions);
+        try {
+          await applyResolutions(db)(allResolutions);
+        } catch (error: any) {
+          if (error instanceof ResolutionValidationError) {
+            throw createApiError({
+              code: 'bad_request',
+              message: `Invalid resolution: ${error.message}`,
+            });
+          }
+          throw error;
+        }
+
         await doltAddAndCommit(db)({
           message: params.message
             ? `${params.message} (with conflict resolution)`

@@ -27,7 +27,13 @@ export function readProjectState(projectDir: string, projectId: string): Project
     const content = readFileSync(statePath, 'utf-8');
     const state: StateFile = JSON.parse(content);
     return state.projects?.[projectId];
-  } catch {
+  } catch (error: any) {
+    // File doesn't exist yet - that's fine
+    if (error?.code === 'ENOENT') {
+      return undefined;
+    }
+    // Log but don't throw for other errors (corrupted state, etc.)
+    console.warn(`Warning: Could not read state file: ${error.message}`);
     return undefined;
   }
 }

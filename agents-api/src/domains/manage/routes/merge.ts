@@ -14,11 +14,13 @@ import {
   doltPreviewMergeConflictsSummary,
   ErrorResponseSchema,
   getBranch,
+  MergeConflictError,
   MergeExecuteRequestSchema,
   MergeExecuteResponseSchema,
   MergePreviewRequestSchema,
   MergePreviewResponseSchema,
   managePkMap,
+  ResolutionValidationError,
   releaseAdvisoryLock,
   syncSchemaFromMain,
   TenantProjectParamsSchema,
@@ -277,6 +279,15 @@ app.openapi(
     let lockAcquired = false;
 
     try {
+      lockAcquired = await tryAdvisoryLock(db)(MERGE_LOCK_PREFIX, targetFullName);
+
+      if (!lockAcquired) {
+        throw createApiError({
+          code: 'conflict',
+          message: 'Another merge is in progress on the target branch. Please try again.',
+        });
+      }
+
       const [currentSourceHash, currentTargetHash] = await Promise.all([
         doltHashOf(db)({ revision: sourceFullName }),
         doltHashOf(db)({ revision: targetFullName }),
@@ -289,15 +300,6 @@ app.openapi(
         });
       }
 
-      lockAcquired = await tryAdvisoryLock(db)(MERGE_LOCK_PREFIX, targetFullName);
-
-      if (!lockAcquired) {
-        throw createApiError({
-          code: 'conflict',
-          message: 'Another merge is in progress on the target branch. Please try again.',
-        });
-      }
-
       try {
         await doltMerge(db)({
           fromBranch: sourceFullName,
@@ -307,9 +309,15 @@ app.openapi(
           resolutions,
         });
       } catch (error: any) {
-        if (error?.name === 'MergeConflictError') {
+        if (error instanceof MergeConflictError) {
           throw createApiError({
             code: 'conflict',
+            message: error.message,
+          });
+        }
+        if (error instanceof ResolutionValidationError) {
+          throw createApiError({
+            code: 'bad_request',
             message: error.message,
           });
         }

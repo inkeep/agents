@@ -3,6 +3,13 @@ import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import type { ConflictResolution } from '../validation/dolt-schemas';
 import { isValidManageTable, managePkMap } from './pk-map';
 
+export class ResolutionValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ResolutionValidationError';
+  }
+}
+
 function toSqlLiteral(val: unknown): string {
   if (val === null || val === undefined) return 'NULL';
   if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
@@ -16,13 +23,13 @@ export const applyResolutions =
 
     for (const resolution of resolutions) {
       if (!isValidManageTable(resolution.table)) {
-        throw new Error(`Invalid table name: ${resolution.table}`);
+        throw new ResolutionValidationError(`Invalid table name: ${resolution.table}`);
       }
       affectedTables.add(resolution.table);
 
       const pkColumns = managePkMap[resolution.table];
       if (!pkColumns) {
-        throw new Error(`No PK columns found for table: ${resolution.table}`);
+        throw new ResolutionValidationError(`No PK columns found for table: ${resolution.table}`);
       }
 
       const hasColumnOverrides = resolution.columns && Object.keys(resolution.columns).length > 0;
