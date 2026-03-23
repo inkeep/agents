@@ -7430,6 +7430,9 @@
             "type": "array"
           }
         },
+        "required": [
+          "files"
+        ],
         "type": "object"
       },
       "SkillWithFiles": {
