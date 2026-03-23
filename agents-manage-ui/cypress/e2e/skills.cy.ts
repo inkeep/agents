@@ -22,6 +22,6 @@ describe('Skills', () => {
     for (const text of Object.values(fixture)) {
       cy.contains(text).should('exist');
     }
-    cy.contains('foo: only-string').should('exist')
+    cy.contains('foo: only-string').should('exist');
   });
 });

@@ -157,20 +157,24 @@ const SkillApiInsertSchema = z
   .pipe(SkillCreateDataSchema)
   .openapi('SkillCreate');
 
-const SkillApiUpdateSchema = SkillUpdateSchema
-  .transform((skill) => {
-    const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
-    if (!skillFile) {
-      return skill;
-    }
-    return {
-      ...skill,
-      ...transformSkill(skillFile.content),
-    };
-  })
-  .pipe(SkillCreateDataSchema.partial().required({
-    files: true
-  }))
+const SkillApiUpdateSchema = SkillUpdateSchema.transform((skill) => {
+  const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
+  if (!skillFile) {
+    return skill;
+  }
+  return {
+    ...skill,
+    ...transformSkill(skillFile.content),
+  };
+})
+  .pipe(
+    SkillCreateDataSchema.extend({
+      // override skill's create files field
+      files: SkillUpdateFilesInputSchema,
+    })
+      .partial()
+      .required({ files: true })
+  )
   .openapi('SkillUpdate');
 
 const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');
