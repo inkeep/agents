@@ -246,6 +246,8 @@ export class ModelFactory {
     return wrapLanguageModel({
       model: model as Parameters<typeof wrapLanguageModel>[0]['model'],
       middleware: usageCostMiddleware,
+      modelId: modelString,
+      providerId: provider,
     });
   }
 

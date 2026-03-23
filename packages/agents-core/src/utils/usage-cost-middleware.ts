@@ -10,6 +10,7 @@ const logger = getLogger('usage-cost-middleware');
 
 function calculateAndSetCost(
   modelId: string,
+  providerId: string | undefined,
   usage: {
     inputTokens: number;
     outputTokens: number;
@@ -23,13 +24,18 @@ function calculateAndSetCost(
 
   let provider: string;
   let modelName: string;
-  try {
-    const parsed = ModelFactory.parseModelString(modelId);
-    provider = parsed.provider;
-    modelName = parsed.modelName;
-  } catch {
-    provider = 'unknown';
-    modelName = modelId;
+  if (providerId) {
+    provider = providerId;
+    modelName = modelId.includes('/') ? modelId.split('/').slice(1).join('/') : modelId;
+  } else {
+    try {
+      const parsed = ModelFactory.parseModelString(modelId);
+      provider = parsed.provider;
+      modelName = parsed.modelName;
+    } catch {
+      provider = 'unknown';
+      modelName = modelId;
+    }
   }
 
   const tokenUsage: TokenUsage = {
@@ -61,7 +67,7 @@ export const usageCostMiddleware: LanguageModelMiddleware = {
       const cachedReadTokens = result.usage.inputTokens.cacheRead ?? undefined;
       const cachedWriteTokens = result.usage.inputTokens.cacheWrite ?? undefined;
 
-      calculateAndSetCost(model.modelId, {
+      calculateAndSetCost(model.modelId, model.provider, {
         inputTokens,
         outputTokens,
         reasoningTokens,
@@ -79,6 +85,7 @@ export const usageCostMiddleware: LanguageModelMiddleware = {
     const { stream, ...rest } = await doStream();
 
     const modelId = model.modelId;
+    const providerId = model.provider;
     const wrappedStream = stream.pipeThrough(
       new TransformStream({
         transform(chunk, controller) {
@@ -92,7 +99,7 @@ export const usageCostMiddleware: LanguageModelMiddleware = {
               const cachedReadTokens = chunk.usage.inputTokens.cacheRead ?? undefined;
               const cachedWriteTokens = chunk.usage.inputTokens.cacheWrite ?? undefined;
 
-              calculateAndSetCost(modelId, {
+              calculateAndSetCost(modelId, providerId, {
                 inputTokens,
                 outputTokens,
                 reasoningTokens,

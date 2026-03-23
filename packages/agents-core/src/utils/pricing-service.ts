@@ -51,12 +51,45 @@ const GATEWAY_REFRESH_MS = 60 * 60 * 1000;
 const MODELS_DEV_REFRESH_MS = 6 * 60 * 60 * 1000;
 const MODELS_DEV_API_URL = 'https://models.dev/api.json';
 
+const DATE_SUFFIX_RE = /-\d{8}$/;
+
+function stripDateSuffix(modelId: string): string {
+  return modelId.replace(DATE_SUFFIX_RE, '');
+}
+
+const MODEL_ALIASES: Record<string, string[]> = {
+  'claude-sonnet-4': ['claude-sonnet-4'],
+  'claude-opus-4': ['claude-opus-4'],
+  'claude-haiku-3.5': ['claude-3-5-haiku', 'claude-3.5-haiku'],
+  'claude-sonnet-3.5': ['claude-3-5-sonnet', 'claude-3.5-sonnet'],
+  'claude-opus-3': ['claude-3-opus'],
+  'claude-haiku-3': ['claude-3-haiku'],
+};
+
+function buildReverseAliasMap(): Map<string, string[]> {
+  const reverse = new Map<string, string[]>();
+  for (const [canonical, aliases] of Object.entries(MODEL_ALIASES)) {
+    for (const alias of aliases) {
+      const existing = reverse.get(alias) ?? [];
+      existing.push(canonical);
+      reverse.set(alias, existing);
+    }
+    const existing = reverse.get(canonical) ?? [];
+    existing.push(...aliases);
+    reverse.set(canonical, [...new Set(existing)]);
+  }
+  return reverse;
+}
+
+const REVERSE_ALIASES = buildReverseAliasMap();
+
 export class PricingService {
   private gatewayCache = new Map<string, ModelPricing>();
   private modelsDevCache = new Map<string, ModelPricing>();
   private gatewayInterval: ReturnType<typeof setInterval> | null = null;
   private modelsDevInterval: ReturnType<typeof setInterval> | null = null;
   private initialized = false;
+  private loggedMisses = new Set<string>();
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -111,6 +144,7 @@ export class PricingService {
         this.gatewayCache.set(model.id, pricing);
       }
 
+      this.loggedMisses.clear();
       logger.info({ modelCount: models.length }, 'Gateway pricing refreshed');
     } catch (error) {
       logger.warn({ error }, 'Failed to fetch gateway pricing');
@@ -150,23 +184,70 @@ export class PricingService {
           if (model.id) {
             this.modelsDevCache.set(model.id, pricing);
           }
+
+          const dateStripped = stripDateSuffix(modelKey);
+          if (dateStripped !== modelKey) {
+            this.modelsDevCache.set(dateStripped, pricing);
+            this.modelsDevCache.set(`${providerKey}/${dateStripped}`, pricing);
+          }
+
           modelCount++;
         }
       }
 
+      this.loggedMisses.clear();
       logger.info({ modelCount }, 'models.dev pricing refreshed');
     } catch (error) {
       logger.warn({ error }, 'Failed to fetch models.dev pricing');
     }
   }
 
+  private lookupInCache(
+    cache: Map<string, ModelPricing>,
+    modelId: string,
+    provider: string
+  ): ModelPricing | null {
+    const withProvider = `${provider}/${modelId}`;
+    const result = cache.get(withProvider) ?? cache.get(modelId);
+    if (result) return result;
+
+    const stripped = stripDateSuffix(modelId);
+    if (stripped !== modelId) {
+      const strippedResult = cache.get(`${provider}/${stripped}`) ?? cache.get(stripped);
+      if (strippedResult) return strippedResult;
+    }
+
+    const aliases = REVERSE_ALIASES.get(modelId) ?? REVERSE_ALIASES.get(stripped);
+    if (aliases) {
+      for (const alias of aliases) {
+        const aliasResult = cache.get(`${provider}/${alias}`) ?? cache.get(alias);
+        if (aliasResult) return aliasResult;
+      }
+    }
+
+    return null;
+  }
+
   getModelPricing(modelId: string, provider: string): ModelPricing | null {
-    const gatewayKey = `${provider}/${modelId}`;
-    const gatewayResult = this.gatewayCache.get(gatewayKey) ?? this.gatewayCache.get(modelId);
+    const gatewayResult = this.lookupInCache(this.gatewayCache, modelId, provider);
     if (gatewayResult) return gatewayResult;
 
-    const modelsDevResult = this.modelsDevCache.get(gatewayKey) ?? this.modelsDevCache.get(modelId);
+    const modelsDevResult = this.lookupInCache(this.modelsDevCache, modelId, provider);
     if (modelsDevResult) return modelsDevResult;
+
+    const missKey = `${provider}/${modelId}`;
+    if (!this.loggedMisses.has(missKey)) {
+      this.loggedMisses.add(missKey);
+      logger.warn(
+        {
+          modelId,
+          provider,
+          gatewayCacheSize: this.gatewayCache.size,
+          modelsDevCacheSize: this.modelsDevCache.size,
+        },
+        'No pricing found for model'
+      );
+    }
 
     return null;
   }
