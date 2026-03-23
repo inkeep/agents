@@ -172,6 +172,7 @@ describe('usageCostMiddleware', () => {
       });
 
       // Consume the stream to trigger the finish handler
+      if (!result) throw new Error('wrapStream returned undefined');
       const reader = result.stream.getReader();
       const chunks = [];
       while (true) {
@@ -214,6 +215,38 @@ describe('usageCostMiddleware', () => {
       expect(chunks[0]).toHaveProperty('type', 'text-delta');
       expect(chunks[1]).toHaveProperty('type', 'finish');
     });
+
+    it('does not throw when no active span', async () => {
+      vi.mocked(trace.getActiveSpan).mockReturnValue(undefined);
+
+      const finishChunk = { type: 'finish' as const, usage: makeV3Usage() };
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(finishChunk);
+          controller.close();
+        },
+      });
+      const doStream = vi.fn().mockResolvedValue({ stream, rawCall: {} });
+      const model = { modelId: 'gpt-4o', provider: 'openai.chat' };
+      const result = await usageCostMiddleware.wrapStream?.({
+        doGenerate: vi.fn(),
+        doStream,
+        params: {} as any,
+        model: model as any,
+      });
+
+      if (!result) throw new Error('wrapStream returned undefined');
+      const reader = result.stream.getReader();
+      const chunks = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      expect(chunks).toHaveLength(1);
+      expect(mockSetAttribute).not.toHaveBeenCalled();
+    });
   });
 
   describe('model ID parsing', () => {
@@ -230,7 +263,20 @@ describe('usageCostMiddleware', () => {
       expect(mockGetModelPricing).toHaveBeenCalledWith('claude-sonnet-4', 'anthropic.chat');
     });
 
-    it('falls back to parseModelString when providerId contains slash', async () => {
+    it('trims provider prefix from modelId when provider is set', async () => {
+      const doGenerate = vi.fn().mockResolvedValue({ usage: makeV3Usage(), text: '' });
+      const model = { modelId: 'anthropic/claude-sonnet-4', provider: 'anthropic.chat' };
+      await usageCostMiddleware.wrapGenerate?.({
+        doGenerate,
+        doStream: vi.fn(),
+        params: {} as any,
+        model: model as any,
+      });
+
+      expect(mockGetModelPricing).toHaveBeenCalledWith('claude-sonnet-4', 'anthropic.chat');
+    });
+
+    it('falls back to parseModelString when provider is undefined', async () => {
       const doGenerate = vi.fn().mockResolvedValue({ usage: makeV3Usage(), text: '' });
       const model = { modelId: 'anthropic/claude-sonnet-4', provider: undefined };
       await usageCostMiddleware.wrapGenerate?.({

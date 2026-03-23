@@ -2766,15 +2766,7 @@ class SigNozStatsAPI {
       {
         key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
         op: OPERATORS.IN,
-        value: [
-          'sub_agent_generation',
-          'status_update',
-          'artifact_metadata',
-          'mid_generation_compression',
-          'conversation_compression',
-          'eval_simulation',
-          'eval_scoring',
-        ],
+        value: [...USAGE_GENERATION_TYPES],
       },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
