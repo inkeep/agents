@@ -119,8 +119,12 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // HASHOF
         .mockResolvedValueOnce({ rows: [{ hash: 'before-merge' }] })
+        // START TRANSACTION
+        .mockResolvedValueOnce({ rows: [] })
         // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
+        // COMMIT
+        .mockResolvedValueOnce({ rows: [] })
         // dolt_log for commit hash
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'after-merge' }] })
         // pg_advisory_unlock
@@ -275,8 +279,12 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // HASHOF
         .mockResolvedValueOnce({ rows: [{ hash: 'pre-merge' }] })
+        // START TRANSACTION
+        .mockResolvedValueOnce({ rows: [] })
         // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
+        // COMMIT
+        .mockResolvedValueOnce({ rows: [] })
         // dolt_log for getLatestCommitHash
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'post-merge' }] })
         // pg_advisory_unlock
@@ -586,9 +594,19 @@ describe('Branches API Module', () => {
         .fn()
         // dolt_branches - check if branch exists
         .mockResolvedValueOnce({ rows: [] })
-        // DOLT_BRANCH (from commit)
+        // doltHashOf for startPoint 'abc123def456':
+        //   dolt_branches (check if revision is a branch) - not a branch
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches (doltHashOf checks if revision is a branch)
+        //   dolt_tags (check if revision is a tag) - not a tag
+        .mockResolvedValueOnce({ rows: [] })
+        //   DOLT_HASHOF fallback
+        .mockResolvedValueOnce({ rows: [{ hash: 'abc123def456' }] })
+        // DOLT_BRANCH (create from resolved hash)
+        .mockResolvedValueOnce({ rows: [] })
+        // syncSchemaOnBranch: getSchemaDiff - no differences, so sync is skipped
+        .mockResolvedValueOnce({ rows: [] })
+        // doltHashOf for new branch name:
+        //   dolt_branches (check if revision is a branch) - yes
         .mockResolvedValueOnce({
           rows: [
             {
@@ -598,7 +616,7 @@ describe('Branches API Module', () => {
             },
           ],
         })
-        // dolt_log (doltHashOf gets HEAD commit)
+        //   dolt_log (get HEAD commit for branch)
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'new-hash' }] });
 
       const mockDb = { ...db, execute: mockExecute } as any;

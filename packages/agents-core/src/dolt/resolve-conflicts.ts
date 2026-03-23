@@ -94,7 +94,8 @@ async function readConflictRow(
       if (val === undefined) {
         throw new ResolutionValidationError(`Missing PK column ${col} for table ${table}`);
       }
-      return `base_${col} = '${val.replace(/'/g, "''")}'`;
+      const escapedVal = val.replace(/'/g, "''");
+      return `(base_${col} = '${escapedVal}' OR (base_${col} IS NULL AND (our_${col} = '${escapedVal}' OR their_${col} = '${escapedVal}')))`;
     })
     .join(' AND ');
 

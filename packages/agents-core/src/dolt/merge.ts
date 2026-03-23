@@ -346,9 +346,13 @@ export const doltPreviewMergeConflicts =
     mergeBranch: string;
     tableName: string;
   }): Promise<Record<string, unknown>[]> => {
+    const escapedBaseBranch = params.baseBranch.replace(/'/g, "''");
+    const escapedMergeBranch = params.mergeBranch.replace(/'/g, "''");
+    const escapedTableName = params.tableName.replace(/'/g, "''");
+
     const result = await db.execute(
       sql.raw(
-        `SELECT * FROM DOLT_PREVIEW_MERGE_CONFLICTS('${params.baseBranch}', '${params.mergeBranch}', '${params.tableName}')`
+        `SELECT * FROM DOLT_PREVIEW_MERGE_CONFLICTS('${escapedBaseBranch}', '${escapedMergeBranch}', '${escapedTableName}')`
       )
     );
     return result.rows as Record<string, unknown>[];
