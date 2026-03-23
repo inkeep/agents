@@ -7,7 +7,7 @@ import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigg
 import { Combobox } from '@/components/ui/combobox';
 import { UsageDashboard } from '@/components/usage/usage-dashboard';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
-import { fetchProjectsAction } from '@/lib/actions/projects';
+import { fetchProjects } from '@/lib/api/projects';
 import type { Project } from '@/lib/types/project';
 
 const TIME_RANGES = {
@@ -31,8 +31,8 @@ export default function TenantUsagePage({ params }: { params: Promise<{ tenantId
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    fetchProjectsAction(tenantId).then((result) => {
-      if (result.success && result.data) setProjects(result.data);
+    fetchProjects(tenantId).then((result) => {
+      if (result.data) setProjects(result.data);
     });
   }, [tenantId]);
 

@@ -57,44 +57,22 @@ function stripDateSuffix(modelId: string): string {
   return modelId.replace(DATE_SUFFIX_RE, '');
 }
 
-const MODEL_ALIASES: Record<string, string[]> = {
-  'claude-sonnet-4': ['claude-sonnet-4'],
-  'claude-opus-4': ['claude-opus-4'],
-  'claude-haiku-3.5': ['claude-3-5-haiku', 'claude-3.5-haiku'],
-  'claude-sonnet-3.5': ['claude-3-5-sonnet', 'claude-3.5-sonnet'],
-  'claude-opus-3': ['claude-3-opus'],
-  'claude-haiku-3': ['claude-3-haiku'],
-};
-
-function buildReverseAliasMap(): Map<string, string[]> {
-  const reverse = new Map<string, string[]>();
-  for (const [canonical, aliases] of Object.entries(MODEL_ALIASES)) {
-    for (const alias of aliases) {
-      const existing = reverse.get(alias) ?? [];
-      existing.push(canonical);
-      reverse.set(alias, existing);
-    }
-    const existing = reverse.get(canonical) ?? [];
-    existing.push(...aliases);
-    reverse.set(canonical, [...new Set(existing)]);
-  }
-  return reverse;
-}
-
-const REVERSE_ALIASES = buildReverseAliasMap();
-
 export class PricingService {
   private gatewayCache = new Map<string, ModelPricing>();
   private modelsDevCache = new Map<string, ModelPricing>();
   private gatewayInterval: ReturnType<typeof setInterval> | null = null;
   private modelsDevInterval: ReturnType<typeof setInterval> | null = null;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
   private loggedMisses = new Set<string>();
 
   async initialize(): Promise<void> {
-    if (this.initialized) return;
-    this.initialized = true;
+    if (!this.initPromise) {
+      this.initPromise = this.doInitialize();
+    }
+    return this.initPromise;
+  }
 
+  private async doInitialize(): Promise<void> {
     await Promise.allSettled([this.refreshGateway(), this.refreshModelsDev()]);
 
     this.gatewayInterval = setInterval(() => {
@@ -115,12 +93,18 @@ export class PricingService {
     if (this.modelsDevInterval) clearInterval(this.modelsDevInterval);
     this.gatewayInterval = null;
     this.modelsDevInterval = null;
-    this.initialized = false;
+    this.initPromise = null;
+    this.gatewayCache.clear();
+    this.modelsDevCache.clear();
+    this.loggedMisses.clear();
   }
 
   private async refreshGateway(): Promise<void> {
     const apiKey = process.env.AI_GATEWAY_API_KEY;
-    if (!apiKey) return;
+    if (!apiKey) {
+      logger.debug('Skipping gateway pricing refresh - AI_GATEWAY_API_KEY not set');
+      return;
+    }
 
     try {
       const { createGateway } = await import('@ai-sdk/gateway');
@@ -153,7 +137,7 @@ export class PricingService {
 
   private async refreshModelsDev(): Promise<void> {
     try {
-      const response = await fetch(MODELS_DEV_API_URL);
+      const response = await fetch(MODELS_DEV_API_URL, { signal: AbortSignal.timeout(10_000) });
       if (!response.ok) {
         logger.warn({ status: response.status }, 'models.dev API returned non-OK status');
         return;
@@ -215,14 +199,6 @@ export class PricingService {
     if (stripped !== modelId) {
       const strippedResult = cache.get(`${provider}/${stripped}`) ?? cache.get(stripped);
       if (strippedResult) return strippedResult;
-    }
-
-    const aliases = REVERSE_ALIASES.get(modelId) ?? REVERSE_ALIASES.get(stripped);
-    if (aliases) {
-      for (const alias of aliases) {
-        const aliasResult = cache.get(`${provider}/${alias}`) ?? cache.get(alias);
-        if (aliasResult) return aliasResult;
-      }
     }
 
     return null;

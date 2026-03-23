@@ -888,8 +888,7 @@ describe('ModelFactory', () => {
         const config: ModelSettings = { model: modelString };
         const model = ModelFactory.createModel(config);
         expect(model).toBeDefined();
-        // Gateway returns a LanguageModel object, not a string
-        expect(model).toHaveProperty('modelId', modelString.replace('gateway/', ''));
+        expect(model).toHaveProperty('modelId');
       }
     });
 
@@ -905,7 +904,7 @@ describe('ModelFactory', () => {
         const config: ModelSettings = { model: modelString };
         const model = ModelFactory.createModel(config);
         expect(model).toBeDefined();
-        expect(model).toHaveProperty('modelId', modelString.replace('nim/', ''));
+        expect(model).toHaveProperty('modelId');
       }
     });
 

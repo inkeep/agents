@@ -31,11 +31,14 @@ export async function handlePrepareStepCompression(
     const actualOutputTokens = lastStep?.usage.outputTokens;
     const hasReliableUsage = actualInputTokens != null && actualInputTokens > 0;
 
+    let usageSource: 'actual_sdk_usage' | 'estimated';
+
     if (hasReliableUsage) {
       // Use actual token counts from the last completed step
       // Next step's context ≈ last step's input + last step's output (assistant response appended)
       totalTokens = actualInputTokens + (actualOutputTokens ?? 0);
       compressionNeeded = compressor.isCompressionNeededFromActualUsage(totalTokens);
+      usageSource = 'actual_sdk_usage';
     } else {
       // No reliable usage data — fall back to estimate-based check
       logger.warn(
@@ -49,6 +52,7 @@ export async function handlePrepareStepCompression(
       const allMessages = [...originalMessages, ...generatedMessages];
       compressionNeeded = compressor.isCompressionNeeded(allMessages);
       totalTokens = compressor.calculateContextSize(allMessages);
+      usageSource = 'estimated';
     }
 
     if (compressionNeeded) {
@@ -66,7 +70,7 @@ export async function handlePrepareStepCompression(
             safetyBuffer,
             triggerAt,
             remaining: hardLimit - totalTokens,
-            source: steps.length > 0 ? 'actual_sdk_usage' : 'estimated',
+            source: usageSource,
           },
         },
         'Triggering layered mid-generation compression'

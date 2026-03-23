@@ -215,29 +215,24 @@ export default function ConversationDetail({
         setLoading(true);
         setError(null);
 
-        const traceResponse = await fetch(
-          `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
-        );
+        const client = getSigNozStatsClient(tenantId);
+        const start = new Date('2020-01-01T00:00:00Z').getTime();
+        const end = Date.now();
 
-        if (!traceResponse.ok) throw new Error('Failed to fetch conversation details');
-        const data = await traceResponse.json();
+        const [traceResponse, eventsResult] = await Promise.allSettled([
+          fetch(
+            `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
+          ),
+          client.getUsageEventsList(start, end, projectId, conversationId, 200),
+        ]);
+
+        if (traceResponse.status === 'rejected' || !traceResponse.value.ok) {
+          throw new Error('Failed to fetch conversation details');
+        }
+        const data = await traceResponse.value.json();
         setConversation(data);
 
-        try {
-          const client = getSigNozStatsClient(tenantId);
-          const start = new Date('2020-01-01T00:00:00Z').getTime();
-          const end = Date.now();
-          const events = await client.getUsageEventsList(
-            start,
-            end,
-            projectId,
-            conversationId,
-            200
-          );
-          setUsageEvents(events);
-        } catch {
-          setUsageEvents([]);
-        }
+        setUsageEvents(eventsResult.status === 'fulfilled' ? eventsResult.value : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {

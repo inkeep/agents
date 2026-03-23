@@ -8,6 +8,31 @@ import { getPricingService } from './pricing-service';
 
 const logger = getLogger('usage-cost-middleware');
 
+function extractUsageTokens(usage: any): {
+  inputTokens: number;
+  outputTokens: number;
+  reasoningTokens?: number;
+  cachedReadTokens?: number;
+  cachedWriteTokens?: number;
+} {
+  const inputTokens =
+    typeof usage?.inputTokens === 'object'
+      ? (usage.inputTokens.total ?? 0)
+      : (usage?.inputTokens ?? 0);
+  const outputTokens =
+    typeof usage?.outputTokens === 'object'
+      ? (usage.outputTokens.total ?? 0)
+      : (usage?.outputTokens ?? 0);
+  const reasoningTokens =
+    typeof usage?.outputTokens === 'object' ? usage.outputTokens.reasoning : undefined;
+  const cachedReadTokens =
+    typeof usage?.inputTokens === 'object' ? usage.inputTokens.cacheRead : undefined;
+  const cachedWriteTokens =
+    typeof usage?.inputTokens === 'object' ? usage.inputTokens.cacheWrite : undefined;
+
+  return { inputTokens, outputTokens, reasoningTokens, cachedReadTokens, cachedWriteTokens };
+}
+
 function calculateAndSetCost(
   modelId: string,
   providerId: string | undefined,
@@ -32,7 +57,11 @@ function calculateAndSetCost(
       const parsed = ModelFactory.parseModelString(modelId);
       provider = parsed.provider;
       modelName = parsed.modelName;
-    } catch {
+    } catch (parseError) {
+      logger.debug(
+        { modelId, error: parseError instanceof Error ? parseError.message : String(parseError) },
+        'Failed to parse model string for cost calculation, using unknown provider'
+      );
       provider = 'unknown';
       modelName = modelId;
     }
@@ -51,6 +80,8 @@ function calculateAndSetCost(
   if (pricing) {
     const cost = pricingService.calculateCost(tokenUsage, pricing);
     activeSpan.setAttribute(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, cost);
+  } else {
+    activeSpan.setAttribute('gen_ai.cost.pricing_unavailable', true);
   }
 }
 
@@ -61,19 +92,7 @@ export const usageCostMiddleware: LanguageModelMiddleware = {
     const result = await doGenerate();
 
     try {
-      const inputTokens = result.usage.inputTokens.total ?? 0;
-      const outputTokens = result.usage.outputTokens.total ?? 0;
-      const reasoningTokens = result.usage.outputTokens.reasoning ?? undefined;
-      const cachedReadTokens = result.usage.inputTokens.cacheRead ?? undefined;
-      const cachedWriteTokens = result.usage.inputTokens.cacheWrite ?? undefined;
-
-      calculateAndSetCost(model.modelId, model.provider, {
-        inputTokens,
-        outputTokens,
-        reasoningTokens,
-        cachedReadTokens,
-        cachedWriteTokens,
-      });
+      calculateAndSetCost(model.modelId, model.provider, extractUsageTokens(result.usage));
     } catch (error) {
       logger.warn({ error }, 'Failed to calculate cost in wrapGenerate');
     }
@@ -93,19 +112,7 @@ export const usageCostMiddleware: LanguageModelMiddleware = {
 
           if (chunk.type === 'finish') {
             try {
-              const inputTokens = chunk.usage.inputTokens.total ?? 0;
-              const outputTokens = chunk.usage.outputTokens.total ?? 0;
-              const reasoningTokens = chunk.usage.outputTokens.reasoning ?? undefined;
-              const cachedReadTokens = chunk.usage.inputTokens.cacheRead ?? undefined;
-              const cachedWriteTokens = chunk.usage.inputTokens.cacheWrite ?? undefined;
-
-              calculateAndSetCost(modelId, providerId, {
-                inputTokens,
-                outputTokens,
-                reasoningTokens,
-                cachedReadTokens,
-                cachedWriteTokens,
-              });
+              calculateAndSetCost(modelId, providerId, extractUsageTokens(chunk.usage));
             } catch (error) {
               logger.warn({ error }, 'Failed to calculate cost in wrapStream');
             }
