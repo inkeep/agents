@@ -1,5 +1,5 @@
 import { dash } from '@better-auth/infra';
-import { sso } from '@better-auth/sso';
+import { sso, type SSOOptions } from '@better-auth/sso';
 import { betterAuth, type Session, type User } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import {
@@ -188,12 +188,12 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       },
       ...config.advanced,
     },
-    trustedOrigins: (request?: Request) => getTrustedOrigins(config.dbClient, request),
+    trustedOrigins: (request) => getTrustedOrigins(config.dbClient, request),
     plugins: [
       bearer(),
       dash(),
       lastLoginMethod({
-        customResolveMethod: (ctx) => {
+        customResolveMethod(ctx) {
           const path = ctx.path;
           if (path === '/sign-in/email' || path === '/sign-up/email') return 'email';
           if (path.startsWith('/callback/') || path.startsWith('/oauth2/callback/'))
@@ -209,7 +209,10 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         organizationProvisioning: {
           disabled: true,
         },
-        provisionUser: async ({ user, provider }) => {
+        async provisionUser({
+          user,
+          provider,
+        }: Parameters<NonNullable<SSOOptions['provisionUser']>>[0]) {
           if (!provider.organizationId) {
             return;
           }
