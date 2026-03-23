@@ -1,19 +1,36 @@
 import { join } from 'node:path';
-import { SkillInsertSchema, serializeSkillToMarkdown } from '@inkeep/agents-core';
+import { serializeSkillToMarkdown, SkillWithFilesApiSelectSchema } from '@inkeep/agents-core';
 import { z } from 'zod';
 import type { GenerationTask } from '../generation-types';
 import { validateGeneratorInput } from '../simple-factory-generator';
 
-const MySchema = SkillInsertSchema;
+const MySchema = SkillWithFilesApiSelectSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 const SkillSchema = z.strictObject({
   ...MySchema.shape,
   metadata: MySchema.shape.metadata.transform((v) => (Object.keys(v ?? {}).length ? v : undefined)),
+  files: z.array(
+    MySchema.shape.files.element.omit({
+      createdAt: true,
+      updatedAt: true,
+      skillId: true,
+      id: true,
+    })
+  ),
 });
 
 type SkillInput = z.input<typeof SkillSchema>;
 
-export function generateSkillDefinition(data: SkillInput): string {
+export function generateSkillDefinition({
+  id,
+  createdAt,
+  updatedAt,
+  ...data
+}: SkillInput & Record<string, unknown>): string {
   const result = validateGeneratorInput(data, {
     schema: SkillSchema,
     errorLabel: 'skill',
