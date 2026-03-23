@@ -7,10 +7,12 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { JSONObject } from '@ai-sdk/provider';
 import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel } from 'ai';
+import { wrapLanguageModel } from 'ai';
 
 import type { ModelSettings } from '../validation/schemas.js';
 import { getLogger } from './logger';
 import { createMockModel } from './mock-provider.js';
+import { usageCostMiddleware } from './usage-cost-middleware';
 
 const logger = getLogger('ModelFactory');
 
@@ -201,38 +203,50 @@ export class ModelFactory {
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
 
     // Azure always needs custom configuration; mock never does
+    let model: LanguageModel;
     if (provider !== 'mock' && (provider === 'azure' || Object.keys(providerConfig).length > 0)) {
       logger.info({ config: providerConfig }, `Applying custom ${provider} provider configuration`);
       const customProvider = ModelFactory.createProvider(provider, providerConfig);
-      return customProvider.languageModel(modelName);
+      model = customProvider.languageModel(modelName);
+    } else {
+      switch (provider) {
+        case 'anthropic':
+          model = anthropic(modelName);
+          break;
+        case 'openai':
+          model = openai(modelName);
+          break;
+        case 'google':
+          model = google(modelName);
+          break;
+        case 'openrouter':
+          model = openrouter(modelName);
+          break;
+        case 'gateway':
+          model = gateway(modelName);
+          break;
+        case 'nim':
+          model = nimDefault(modelName);
+          break;
+        case 'mock':
+          return createMockModel(modelName) as unknown as LanguageModel;
+        case 'custom':
+          throw new Error(
+            'Custom provider requires configuration. Please provide baseURL in providerOptions.baseURL'
+          );
+        default:
+          throw new Error(
+            `Unsupported provider: ${provider}. ` +
+              `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
+              `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).`
+          );
+      }
     }
 
-    switch (provider) {
-      case 'anthropic':
-        return anthropic(modelName);
-      case 'openai':
-        return openai(modelName);
-      case 'google':
-        return google(modelName);
-      case 'openrouter':
-        return openrouter(modelName);
-      case 'gateway':
-        return gateway(modelName);
-      case 'nim':
-        return nimDefault(modelName);
-      case 'mock':
-        return createMockModel(modelName) as unknown as LanguageModel;
-      case 'custom':
-        throw new Error(
-          'Custom provider requires configuration. Please provide baseURL in providerOptions.baseURL'
-        );
-      default:
-        throw new Error(
-          `Unsupported provider: ${provider}. ` +
-            `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
-            `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).`
-        );
-    }
+    return wrapLanguageModel({
+      model: model as Parameters<typeof wrapLanguageModel>[0]['model'],
+      middleware: usageCostMiddleware,
+    });
   }
 
   /**

@@ -1,1 +1,0 @@
-ALTER TABLE "usage_events" ADD COLUMN "steps" jsonb;

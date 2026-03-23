@@ -34,7 +34,6 @@ import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import thirdPartyMCPServersRoutes from './thirdPartyMCPServers';
 import toolsRoutes from './tools';
 import triggersRoutes from './triggers';
-import usageRoutes from './usage';
 
 const app = new OpenAPIHono();
 
@@ -103,8 +102,5 @@ app.route('/projects/:projectId/agents/:agentId/scheduled-triggers', scheduledTr
 
 // Evaluation routes (datasets, evaluators, etc.)
 app.route('/projects/:projectId/evals', evalsRoutes);
-
-// Usage tracking routes (tenant-level, optional project filter)
-app.route('/usage', usageRoutes);
 
 export default app;

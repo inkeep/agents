@@ -425,6 +425,14 @@ export function TimelineItem({
               />
             )}
 
+          {/* AI generation result subtitle */}
+          {(activity.type === ACTIVITY_TYPES.AI_GENERATION ||
+            activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT) &&
+            activity.result &&
+            activity.status !== ACTIVITY_STATUS.ERROR && (
+              <p className="text-xs text-muted-foreground line-clamp-2">{activity.result}</p>
+            )}
+
           {/* tool purpose bubble */}
           {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
             (activity.toolType === TOOL_TYPES.MCP || activity.toolType === TOOL_TYPES.TOOL) &&

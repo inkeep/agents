@@ -3196,7 +3196,7 @@ class SigNozStatsAPI {
           : groupBy === 'agent'
             ? SPAN_KEYS.AGENT_ID
             : groupBy === 'generation_type'
-              ? 'ai.telemetry.metadata.generationType'
+              ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
               : groupBy === 'conversation'
                 ? SPAN_KEYS.CONVERSATION_ID
                 : 'timestamp';
@@ -3285,7 +3285,7 @@ class SigNozStatsAPI {
           value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
         },
         {
-          key: { key: 'ai.telemetry.metadata.generationType', ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          key: { key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           op: OPERATORS.IN,
           value: [...USAGE_GENERATION_TYPES],
         },
@@ -3310,16 +3310,17 @@ class SigNozStatsAPI {
         { key: SPAN_KEYS.SPAN_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
         { key: SPAN_KEYS.PARENT_SPAN_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
         { key: SPAN_KEYS.TRACE_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
-        { key: 'ai.telemetry.metadata.generationType', ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         { key: SPAN_KEYS.AI_MODEL_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         { key: SPAN_KEYS.AI_MODEL_PROVIDER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         { key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, ...QUERY_FIELD_CONFIGS.FLOAT64_TAG },
         { key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, ...QUERY_FIELD_CONFIGS.FLOAT64_TAG },
         { key: SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, ...QUERY_FIELD_CONFIGS.FLOAT64_TAG },
-        { key: 'ai.response.finishReason', ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        { key: SPAN_KEYS.AI_RESPONSE_FINISH_REASON, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         { key: SPAN_KEYS.HAS_ERROR, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
       ];
 
@@ -3362,27 +3363,30 @@ class SigNozStatsAPI {
         const ts = row.timestamp || d.timestamp || '';
 
         const inputTokens =
-          Number(d['gen_ai.usage.input_tokens'] || d['ai.usage.promptTokens']) || 0;
+          Number(d[SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_PROMPT_TOKENS]) ||
+          0;
         const outputTokens =
-          Number(d['gen_ai.usage.output_tokens'] || d['ai.usage.completionTokens']) || 0;
-        const cost = Number(d['gen_ai.cost.estimated_usd']) || 0;
+          Number(
+            d[SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_COMPLETION_TOKENS]
+          ) || 0;
+        const cost = Number(d[SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD]) || 0;
 
         return {
           spanId: d.spanID || '',
           parentSpanId: d.parentSpanID || '',
           traceId: d.traceID || '',
           timestamp: ts,
-          generationType: d['ai.telemetry.metadata.generationType'] || 'unknown',
-          model: d['ai.model.id'] || 'unknown',
-          provider: d['ai.model.provider'] || '',
-          agentId: d['agent.id'] || '',
-          subAgentId: d['subAgent.id'] || d['ai.telemetry.metadata.subAgentId'] || '',
-          conversationId: d['conversation.id'] || '',
+          generationType: d[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE] || 'unknown',
+          model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
+          provider: d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
+          agentId: d[SPAN_KEYS.AGENT_ID] || '',
+          subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
+          conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
           inputTokens,
           outputTokens,
           totalTokens: inputTokens + outputTokens,
           estimatedCostUsd: cost,
-          finishReason: d['ai.response.finishReason'] || '',
+          finishReason: d[SPAN_KEYS.AI_RESPONSE_FINISH_REASON] || '',
           status: d.hasError === true || d.hasError === 'true' ? 'failed' : 'succeeded',
         };
       });
@@ -3400,7 +3404,7 @@ class SigNozStatsAPI {
         value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
       },
       {
-        key: { key: 'ai.telemetry.metadata.generationType', ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        key: { key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         op: OPERATORS.IN,
         value: [
           'sub_agent_generation',
@@ -3429,7 +3433,7 @@ class SigNozStatsAPI {
         : groupBy === 'agent'
           ? SPAN_KEYS.AGENT_ID
           : groupBy === 'generation_type'
-            ? 'ai.telemetry.metadata.generationType'
+            ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
             : groupBy === 'conversation'
               ? SPAN_KEYS.CONVERSATION_ID
               : SPAN_KEYS.TIMESTAMP;

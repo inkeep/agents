@@ -1,19 +1,16 @@
-import { relations, sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 import {
   boolean,
-  check,
   foreignKey,
   index,
   integer,
   jsonb,
-  numeric,
   pgTable,
   primaryKey,
   text,
   timestamp,
   unique,
   uniqueIndex,
-  uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
 import { organization, user } from '../../auth/auth-schema';
@@ -652,93 +649,13 @@ export const userProfileRelations = relations(userProfile, ({ one }) => ({
 }));
 
 // ============================================================================
-// USAGE TRACKING
+// USAGE GENERATION TYPES (table removed — usage now tracked via OTel/SigNoz)
 // ============================================================================
 
 import { USAGE_GENERATION_TYPES } from '../../constants/otel-attributes';
 
 export { USAGE_GENERATION_TYPES };
 export type GenerationType = (typeof USAGE_GENERATION_TYPES)[number];
-
-export type UsageEventStatus = 'succeeded' | 'failed' | 'timeout';
-
-export interface StepUsage {
-  stepIndex: number;
-  inputTokens: number;
-  outputTokens: number;
-  reasoningTokens?: number;
-  cachedReadTokens?: number;
-  cachedWriteTokens?: number;
-  finishReason?: string;
-  toolCalls?: string[];
-}
-
-export const usageEvents = pgTable(
-  'usage_events',
-  {
-    requestId: uuid('request_id').primaryKey().defaultRandom(),
-
-    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
-    projectId: varchar('project_id', { length: 256 }).notNull(),
-    agentId: varchar('agent_id', { length: 256 }).notNull(),
-    subAgentId: varchar('sub_agent_id', { length: 256 }),
-
-    conversationId: varchar('conversation_id', { length: 256 }),
-    messageId: varchar('message_id', { length: 256 }),
-
-    generationType: varchar('generation_type', { length: 64 }).$type<GenerationType>().notNull(),
-
-    traceId: varchar('trace_id', { length: 256 }),
-    spanId: varchar('span_id', { length: 256 }),
-
-    requestedModel: varchar('requested_model', { length: 512 }).notNull(),
-    resolvedModel: varchar('resolved_model', { length: 512 }),
-    provider: varchar('provider', { length: 256 }).notNull(),
-
-    inputTokens: integer('input_tokens').notNull().default(0),
-    outputTokens: integer('output_tokens').notNull().default(0),
-    totalTokens: integer('total_tokens').generatedAlwaysAs(sql`input_tokens + output_tokens`),
-
-    reasoningTokens: integer('reasoning_tokens'),
-    cachedReadTokens: integer('cached_read_tokens'),
-    cachedWriteTokens: integer('cached_write_tokens'),
-
-    stepCount: integer('step_count').notNull().default(1),
-    steps: jsonb('steps').$type<StepUsage[]>(),
-
-    estimatedCostUsd: numeric('estimated_cost_usd', { precision: 20, scale: 8 }),
-
-    streamed: boolean('streamed').notNull().default(false),
-    finishReason: varchar('finish_reason', { length: 64 }),
-    generationDurationMs: integer('generation_duration_ms'),
-    byok: boolean('byok').notNull().default(false),
-
-    status: varchar('status', { length: 20 })
-      .$type<UsageEventStatus>()
-      .notNull()
-      .default('succeeded'),
-    errorCode: varchar('error_code', { length: 256 }),
-
-    startedAt: timestamp('started_at', { withTimezone: true, mode: 'string' })
-      .notNull()
-      .defaultNow(),
-    completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    check('usage_events_status_check', sql`${table.status} IN ('succeeded', 'failed', 'timeout')`),
-    index('usage_events_project_time_idx').on(table.projectId, table.createdAt),
-    index('usage_events_tenant_time_idx').on(table.tenantId, table.createdAt),
-    index('usage_events_agent_time_idx').on(table.agentId, table.subAgentId, table.createdAt),
-    index('usage_events_model_idx').on(table.provider, table.resolvedModel, table.createdAt),
-    index('usage_events_conversation_idx').on(table.conversationId),
-    index('usage_events_message_idx').on(table.messageId),
-    index('usage_events_trace_idx').on(table.traceId),
-    index('usage_events_type_idx').on(table.generationType, table.createdAt),
-  ]
-);
 
 // ============================================================================
 // RUNTIME RELATIONS

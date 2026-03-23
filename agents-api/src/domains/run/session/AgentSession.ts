@@ -15,7 +15,6 @@ import {
   estimateTokens,
   getLedgerArtifacts,
   ModelFactory,
-  trackedGenerate,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateText, Output } from 'ai';
@@ -1147,22 +1146,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
             },
           };
 
-          const statusUpdateResult =
-            modelToUse?.model && this.executionContext.tenantId && this.executionContext.projectId
-              ? await trackedGenerate(
-                  {
-                    tenantId: this.executionContext.tenantId,
-                    projectId: this.executionContext.projectId,
-                    agentId: this.executionContext.agentId,
-                    subAgentId: this.executionContext.subAgentId,
-                    conversationId: this.contextId,
-                    generationType: 'status_update' as const,
-                  },
-                  modelToUse.model,
-                  () => generateText(statusUpdateConfig as Parameters<typeof generateText>[0]),
-                  statusUpdateConfig as Record<string, unknown>
-                )
-              : await generateText(statusUpdateConfig as Parameters<typeof generateText>[0]);
+          const statusUpdateResult = await generateText(
+            statusUpdateConfig as Parameters<typeof generateText>[0]
+          );
 
           const result = statusUpdateResult.output as any;
           logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
@@ -1698,20 +1684,6 @@ Make the name extremely specific to what this tool call actually returned, not g
                 const maxRetries = 3;
                 let lastError: Error | null = null;
 
-                const artifactUsageContext =
-                  this.statusUpdateState?.summarizerModel?.model &&
-                  this.executionContext.tenantId &&
-                  this.executionContext.projectId
-                    ? {
-                        tenantId: this.executionContext.tenantId,
-                        projectId: this.executionContext.projectId,
-                        agentId: this.executionContext.agentId,
-                        subAgentId: this.executionContext.subAgentId,
-                        conversationId: this.contextId,
-                        generationType: 'artifact_metadata' as const,
-                      }
-                    : null;
-
                 for (let attempt = 1; attempt <= maxRetries; attempt++) {
                   try {
                     const artifactGenConfig = {
@@ -1738,18 +1710,9 @@ Make the name extremely specific to what this tool call actually returned, not g
                       },
                     };
 
-                    const result =
-                      artifactUsageContext && this.statusUpdateState?.summarizerModel?.model
-                        ? await trackedGenerate(
-                            artifactUsageContext,
-                            this.statusUpdateState.summarizerModel.model,
-                            () =>
-                              generateText(artifactGenConfig as Parameters<typeof generateText>[0]),
-                            artifactGenConfig as Record<string, unknown>
-                          )
-                        : await generateText(
-                            artifactGenConfig as Parameters<typeof generateText>[0]
-                          );
+                    const result = await generateText(
+                      artifactGenConfig as Parameters<typeof generateText>[0]
+                    );
 
                     generationSpan.setAttributes({
                       'artifact.id': artifactData.artifactId,

@@ -1,5 +1,5 @@
 import type { GenerationType, ModelSettings } from '@inkeep/agents-core';
-import { estimateTokens, ModelFactory, trackedGenerate } from '@inkeep/agents-core';
+import { estimateTokens, ModelFactory } from '@inkeep/agents-core';
 import { generateText, Output } from 'ai';
 import type { z } from 'zod';
 import { getLogger } from '../../../logger';
@@ -90,15 +90,7 @@ export async function distillWithTruncation<TSchema extends z.ZodType>(opts: {
         }),
       };
 
-      const result =
-        usageContext && summarizerModel?.model
-          ? await trackedGenerate(
-              { ...usageContext, conversationId },
-              summarizerModel.model,
-              () => generateText(genConfig as Parameters<typeof generateText>[0]),
-              genConfig as Record<string, unknown>
-            )
-          : await generateText(genConfig as Parameters<typeof generateText>[0]);
+      const result = await generateText(genConfig as Parameters<typeof generateText>[0]);
       return result.output as unknown as z.infer<TSchema>;
     } catch (llmError) {
       const message = llmError instanceof Error ? llmError.message : String(llmError);

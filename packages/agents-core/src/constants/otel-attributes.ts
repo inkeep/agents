@@ -59,7 +59,16 @@ export const SPAN_KEYS = {
   AI_TELEMETRY_SUB_AGENT_ID: 'ai.telemetry.metadata.subAgentId',
   AI_TELEMETRY_SUB_AGENT_NAME: 'ai.telemetry.metadata.subAgentName',
   AI_TELEMETRY_METADATA_PHASE: 'ai.telemetry.metadata.phase',
+  AI_TELEMETRY_GENERATION_TYPE: 'ai.telemetry.metadata.generationType',
+  AI_TELEMETRY_TENANT_ID: 'ai.telemetry.metadata.tenantId',
+  AI_TELEMETRY_PROJECT_ID: 'ai.telemetry.metadata.projectId',
+  AI_TELEMETRY_AGENT_ID: 'ai.telemetry.metadata.agentId',
+  AI_TELEMETRY_CONVERSATION_ID: 'ai.telemetry.metadata.conversationId',
+  AI_TELEMETRY_SESSION_ID: 'ai.telemetry.metadata.sessionId',
   AI_MODEL_ID: 'ai.model.id',
+  AI_RESPONSE_FINISH_REASON: 'ai.response.finishReason',
+  AI_USAGE_PROMPT_TOKENS: 'ai.usage.promptTokens',
+  AI_USAGE_COMPLETION_TOKENS: 'ai.usage.completionTokens',
 
   // Tool attributes
   AI_TOOL_CALL_NAME: 'ai.toolCall.name',

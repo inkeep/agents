@@ -5,6 +5,7 @@ import {
   AppWindow,
   BarChart3,
   Blocks,
+  Coins,
   Component,
   Globe,
   Key,
@@ -62,9 +63,9 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: BarChart3,
         },
         {
-          title: 'Usage',
+          title: 'Cost',
           url: `/${tenantId}/usage`,
-          icon: Activity,
+          icon: Coins,
         },
         ...(isWorkAppsEnabled
           ? [
@@ -179,9 +180,9 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: BarChart3,
         },
         {
-          title: 'Usage',
+          title: 'Cost',
           url: `/${tenantId}/projects/${projectId}/usage`,
-          icon: Activity,
+          icon: Coins,
         },
       ]
     : [];

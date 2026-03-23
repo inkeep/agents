@@ -186,7 +186,7 @@ export function renderPanelContent({
                 value={a.costUsd < 0.01 ? `$${a.costUsd.toFixed(6)}` : `$${a.costUsd.toFixed(4)}`}
               />
             )}
-            <Info label="Sub agent" value={a.subAgentName || '-'} />
+            {a.subAgentName && <Info label="Sub agent" value={a.subAgentName} />}
             {a.aiResponseText && (
               <LabeledBlock label="Response text">
                 <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">

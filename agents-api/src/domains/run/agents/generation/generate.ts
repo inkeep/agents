@@ -1,11 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import {
-  type DataPart,
-  type FilePart,
-  type Part,
-  SPAN_KEYS,
-  trackedGenerate,
-} from '@inkeep/agents-core';
+import { type DataPart, type FilePart, type Part, SPAN_KEYS } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
@@ -272,56 +266,19 @@ export async function runGenerate(
           'Starting generation'
         );
 
-        const usageContext = primaryModelSettings.model
-          ? {
-              tenantId: ctx.config.tenantId,
-              projectId: ctx.config.projectId,
-              agentId: ctx.config.agentId,
-              subAgentId: ctx.config.id,
-              conversationId: runtimeContext?.metadata?.conversationId,
-              generationType: 'sub_agent_generation' as const,
-            }
-          : null;
-
         let rawResponse: Record<string, unknown> | ResolvedGenerationResponse;
         if (shouldStream) {
-          rawResponse =
-            usageContext && primaryModelSettings.model
-              ? await trackedGenerate(
-                  usageContext,
-                  primaryModelSettings.model,
-                  () =>
-                    handleStreamGeneration(
-                      ctx,
-                      streamText(generationConfig as Parameters<typeof streamText>[0]),
-                      sessionId,
-                      contextId,
-                      !!dataComponentsSchema
-                    ),
-                  generationConfig as Record<string, unknown>
-                )
-              : await handleStreamGeneration(
-                  ctx,
-                  streamText(generationConfig as Parameters<typeof streamText>[0]),
-                  sessionId,
-                  contextId,
-                  !!dataComponentsSchema
-                );
+          rawResponse = await handleStreamGeneration(
+            ctx,
+            streamText(generationConfig as Parameters<typeof streamText>[0]),
+            sessionId,
+            contextId,
+            !!dataComponentsSchema
+          );
         } else {
-          rawResponse =
-            usageContext && primaryModelSettings.model
-              ? await trackedGenerate(
-                  usageContext,
-                  primaryModelSettings.model,
-                  () =>
-                    generateText(
-                      nonStreamingConfig as Parameters<typeof generateText>[0]
-                    ) as Promise<any>,
-                  nonStreamingConfig as Record<string, unknown>
-                )
-              : ((await generateText(
-                  nonStreamingConfig as Parameters<typeof generateText>[0]
-                )) as unknown as Record<string, unknown>);
+          rawResponse = (await generateText(
+            nonStreamingConfig as Parameters<typeof generateText>[0]
+          )) as unknown as Record<string, unknown>;
         }
 
         logger.info(
