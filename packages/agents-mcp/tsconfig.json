@@ -24,6 +24,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "esm",
+    "rootDir": "src",
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,

@@ -14,8 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "sourceMap": true,
-    "allowSyntheticDefaultImports": true,
-    "baseUrl": "."
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*", "src/env.ts"],
   "exclude": ["node_modules", "dist"]
