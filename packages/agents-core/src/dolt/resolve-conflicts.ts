@@ -46,7 +46,7 @@ export const applyResolutions =
       );
 
       if (!conflictRow) {
-        throw new Error(
+        throw new ResolutionValidationError(
           `No conflict found for table ${resolution.table} with PK ${JSON.stringify(resolution.primaryKey)}`
         );
       }
@@ -92,7 +92,7 @@ async function readConflictRow(
     .map((col) => {
       const val = primaryKey[col];
       if (val === undefined) {
-        throw new Error(`Missing PK column ${col} for table ${table}`);
+        throw new ResolutionValidationError(`Missing PK column ${col} for table ${table}`);
       }
       return `base_${col} = '${val.replace(/'/g, "''")}'`;
     })

@@ -320,9 +320,12 @@ export const doltPreviewMergeConflictsSummary =
     baseBranch: string;
     mergeBranch: string;
   }): Promise<{ table: string; numDataConflicts: number; numSchemaConflicts: number }[]> => {
+    const escapedBaseBranch = params.baseBranch.replace(/'/g, "''");
+    const escapedMergeBranch = params.mergeBranch.replace(/'/g, "''");
+
     const result = await db.execute(
       sql.raw(
-        `SELECT * FROM DOLT_PREVIEW_MERGE_CONFLICTS_SUMMARY('${params.baseBranch}', '${params.mergeBranch}')`
+        `SELECT * FROM DOLT_PREVIEW_MERGE_CONFLICTS_SUMMARY('${escapedBaseBranch}', '${escapedMergeBranch}')`
       )
     );
     return (result.rows as any[]).map((row) => ({
