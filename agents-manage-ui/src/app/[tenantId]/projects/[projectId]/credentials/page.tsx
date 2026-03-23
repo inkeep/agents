@@ -25,11 +25,10 @@ async function CredentialsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const [credentials, permissions] = await Promise.all([
+    const [credentials, { canEdit }] = await Promise.all([
       fetchCredentials(tenantId, projectId),
       fetchProjectPermissions(tenantId, projectId),
     ]);
-    const canEdit = permissions.canEdit;
     return credentials.length ? (
       <>
         <PageHeader

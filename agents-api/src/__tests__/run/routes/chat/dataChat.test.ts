@@ -193,6 +193,34 @@ describe('Chat Data Stream Route', () => {
     expect(text).toMatch(/response/);
   });
 
+  it('should accept inline PDF file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this PDF',
+          parts: [
+            { type: 'text', text: 'Summarize this PDF' },
+            {
+              type: 'file',
+              text: 'data:application/pdf;base64,JVBERi0xLjQK',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
   it('should stream approval UI events published to ToolApprovalUiBus (simulating delegated agent approval)', async () => {
     // Ensure deterministic requestId inside route subscription (chatds-${Date.now()})
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(12345);

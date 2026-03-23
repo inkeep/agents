@@ -15,10 +15,7 @@ export const metadata = {
 export default async function NewScheduledTriggerPage({
   params,
   searchParams,
-}: {
-  params: Promise<{ tenantId: string; projectId: string; agentId: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/triggers/scheduled/[agentId]/new'>) {
   const { tenantId, projectId, agentId } = await params;
   const rawSearchParams = await searchParams;
   const defaultsFromParams: Record<string, string> = {};

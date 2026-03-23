@@ -1,6 +1,7 @@
 import {
   createApiError,
   getEmailSendStatus,
+  getFilteredAuthMethodsForEmail,
   getPendingInvitationsByEmail,
 } from '@inkeep/agents-core';
 import { Hono } from 'hono';
@@ -53,7 +54,7 @@ invitationsRoutes.get('/verify', async (c) => {
 
     // Find the specific invitation by ID
     const invitation = Array.isArray(invitations)
-      ? invitations.find((inv: { id: string }) => inv.id === invitationId)
+      ? invitations.find((inv) => inv.id === invitationId)
       : null;
 
     if (!invitation) {
@@ -82,7 +83,11 @@ invitationsRoutes.get('/verify', async (c) => {
       });
     }
 
-    // Return limited, safe information
+    const filteredMethods = await getFilteredAuthMethodsForEmail(runDbClient)(
+      invitation.organizationId,
+      email
+    );
+
     return c.json({
       valid: true,
       email: invitation.email,
@@ -91,6 +96,7 @@ invitationsRoutes.get('/verify', async (c) => {
       role: invitation.role,
       expiresAt: invitation.expiresAt,
       authMethod: invitation.authMethod || null,
+      allowedAuthMethods: filteredMethods,
     });
   } catch (error) {
     // Re-throw API errors (HTTPExceptions from createApiError)

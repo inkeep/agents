@@ -1,8 +1,8 @@
 import { env } from './env';
 import './sentry';
-import { defaultSDK } from './instrumentation';
+import { startOpenTelemetrySDK } from './instrumentation';
 
-defaultSDK.start();
+startOpenTelemetrySDK();
 
 import {
   CredentialStoreRegistry,
@@ -14,12 +14,10 @@ import { getLogger } from './logger';
 
 const logger = getLogger('agents-api-init');
 
-import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { createEmailService } from '@inkeep/agents-email';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
 import { createAgentsAuth } from './factory';
-import { createAuth0Provider } from './ssoHelpers';
 import type { SandboxConfig } from './types';
 import { recoverOrphanedWorkflows, world } from './workflow/world';
 
@@ -39,8 +37,6 @@ export type { SSOProviderConfig, UserAuthConfig } from './factory';
 export {
   createAgentsApp,
   createAgentsHono,
-  createAuth0Provider,
-  createOIDCProvider,
 } from './factory';
 
 // Create default configuration
@@ -68,18 +64,6 @@ const sandboxConfig: SandboxConfig =
       }
     : { provider: 'native', runtime: 'node22', timeout: 30000, vcpus: 2 };
 
-// Module-level initialization for default app export
-// This only runs when importing the default app (legacy/simple deployments)
-const ssoProviders = await Promise.all([
-  process.env.AUTH0_DOMAIN && process.env.AUTH0_CLIENT_ID && process.env.AUTH0_CLIENT_SECRET
-    ? createAuth0Provider({
-        domain: process.env.AUTH0_DOMAIN,
-        clientId: process.env.AUTH0_CLIENT_ID,
-        clientSecret: process.env.AUTH0_CLIENT_SECRET,
-      })
-    : null,
-]);
-
 const socialProviders =
   process.env.PUBLIC_GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
     ? {
@@ -94,15 +78,7 @@ const socialProviders =
 
 const emailService = createEmailService();
 
-export const auth = createAgentsAuth(
-  {
-    ssoProviders: ssoProviders.filter(
-      (p: SSOProviderConfig | null): p is SSOProviderConfig => p !== null
-    ),
-    socialProviders,
-  },
-  emailService
-);
+export const auth = createAgentsAuth({ socialProviders }, emailService);
 
 // Create default credential stores
 const defaultStores = createDefaultCredentialStores();

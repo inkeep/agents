@@ -3,13 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   hasFileParts,
   makeMessageContentParts,
-  uploadPartsImages,
-} from '../blob-storage/image-upload';
-import { buildPersistedMessageContent } from '../blob-storage/image-upload-helpers';
+  uploadPartsFiles,
+} from '../blob-storage/file-upload';
+import { buildPersistedMessageContent } from '../blob-storage/file-upload-helpers';
 
-vi.mock('../blob-storage/image-upload', () => ({
+vi.mock('../blob-storage/file-upload', () => ({
   hasFileParts: vi.fn(),
-  uploadPartsImages: vi.fn(),
+  uploadPartsFiles: vi.fn(),
   makeMessageContentParts: vi.fn(),
 }));
 
@@ -26,7 +26,7 @@ describe('buildPersistedMessageContent', () => {
     const textPart: TextPart = { kind: 'text', text: 'hello' };
     const result = await buildPersistedMessageContent('hello', [textPart], ctx);
     expect(result).toEqual({ text: 'hello' });
-    expect(uploadPartsImages).not.toHaveBeenCalled();
+    expect(uploadPartsFiles).not.toHaveBeenCalled();
   });
 
   it('returns text plus transformed parts when upload succeeds', async () => {
@@ -35,7 +35,7 @@ describe('buildPersistedMessageContent', () => {
       kind: 'file',
       file: { uri: 'blob://a', mimeType: 'image/png' },
     };
-    vi.mocked(uploadPartsImages).mockResolvedValueOnce([uploadedFilePart]);
+    vi.mocked(uploadPartsFiles).mockResolvedValueOnce([uploadedFilePart]);
     vi.mocked(makeMessageContentParts).mockReturnValueOnce([
       { kind: 'file', data: 'blob://a', metadata: {} },
     ]);
@@ -50,7 +50,7 @@ describe('buildPersistedMessageContent', () => {
 
   it('falls back to text-only when upload throws', async () => {
     vi.mocked(hasFileParts).mockReturnValueOnce(true);
-    vi.mocked(uploadPartsImages).mockRejectedValueOnce(new Error('upload failed'));
+    vi.mocked(uploadPartsFiles).mockRejectedValueOnce(new Error('upload failed'));
 
     const inputFilePart: FilePart = { kind: 'file', file: { uri: 'https://example.com/img.png' } };
     const result = await buildPersistedMessageContent('hello', [inputFilePart], ctx);

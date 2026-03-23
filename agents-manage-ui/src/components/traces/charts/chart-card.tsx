@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { ChartError } from './chart-error';
 
@@ -58,16 +58,14 @@ export function ChartCard({
             {title}
           </div>
           {tooltip && (
-            <TooltipProvider>
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger>
-                  <Info className="w-4 h-4 text-gray-300 dark:text-white/300" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-sm text-gray-600 dark:text-white/60">{tooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger>
+                <Info className="w-4 h-4 text-gray-300 dark:text-white/300" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-sm text-gray-600 dark:text-white/60">{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
           )}
           {onClick && (
             <Button

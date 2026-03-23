@@ -104,7 +104,8 @@ export function wrapToolWithStreaming(
 
       const isInternalTool =
         toolName.includes('save_tool_result') || toolName.startsWith('transfer_to_');
-      const isInternalToolForUi = isInternalTool || toolName.startsWith('delegate_to_');
+      const isInternalToolForUi =
+        isInternalTool || toolName.startsWith('delegate_to_') || toolName === 'load_skill';
 
       const needsApproval = options?.needsApproval || false;
 

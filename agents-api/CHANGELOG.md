@@ -1,5 +1,44 @@
 # @inkeep/agents-api
 
+## 0.59.2
+
+### Patch Changes
+
+- 5aad291: Fix conversation endpoint to return Vercel AI SDK FileUIPart-compliant file parts with resolved blob URIs
+- c6bcd18: Fix fetchTraceFromSigNoz method in the EvaluationService
+  - @inkeep/agents-core@0.59.2
+  - @inkeep/agents-email@0.59.2
+  - @inkeep/agents-mcp@0.59.2
+  - @inkeep/agents-work-apps@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- fddbd38: Fix OpenTelemetry SDK startup crash during Vite HMR by making initialization idempotent
+- b396a88: Fix scheduled trigger invocations being skipped when trigger is edited without changing the next execution time
+- 65c151d: adding app.id to span attributes
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+  - @inkeep/agents-work-apps@0.59.1
+  - @inkeep/agents-email@0.59.1
+  - @inkeep/agents-mcp@0.59.1
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+  - @inkeep/agents-work-apps@0.59.0
+  - @inkeep/agents-email@0.59.0
+  - @inkeep/agents-mcp@0.59.0
+
 ## 0.58.21
 
 ### Patch Changes

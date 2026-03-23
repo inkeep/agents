@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { ArrowRight, Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   ItemCardContent,
-  ItemCardFooter,
   ItemCardHeader,
   ItemCardLink,
   ItemCardRoot,
@@ -193,9 +192,21 @@ export function MCPToolItem({
             )}
           </div>
         </div>
-        <ItemCardFooter
-          footerText={tool.createdAt ? `Created ${formatDate(tool.createdAt)}` : 'Created recently'}
-        />
+        <div className="relative flex items-end justify-between">
+          <div className="space-y-0.5">
+            <div className="text-xs text-muted-foreground">
+              {tool.createdAt ? `Created ${formatDate(tool.createdAt)}` : 'Created recently'}
+            </div>
+            {tool.createdBy && (
+              <div className="text-xs text-muted-foreground">
+                Last Connected By {tool.createdBy}
+              </div>
+            )}
+          </div>
+          <div className="opacity-0 group-hover:opacity-60 transform translate-x-1 group-hover:translate-x-0 transition-all duration-300">
+            <ArrowRight className="w-4 h-4 text-muted-foreground opacity-60" />
+          </div>
+        </div>
       </ItemCardContent>
     </ItemCardRoot>
   );

@@ -1,5 +1,38 @@
 # @inkeep/agents-manage-ui
 
+## 0.59.2
+
+### Patch Changes
+
+- 028a801: - Replace prop-drilled permission flags (`readOnly`, `canEdit`, `canUse`, `canManage`) with direct consumption via `useProjectPermissionsQuery()` hook in client components
+  - Fix empty breadcrumb on `/[tenantId]/profile` page
+- 6cc27ba: replace manual `useEffect` and `fetchProjectsAction` with `useProjectsQuery` hook and adopt `PageProps` types
+- 825690c: Add back link to sidebar and org settings link to user menu
+- 0b4669f: Fix user-scoped MCP credential card not updating after connect or disconnect without manual page refresh
+  - @inkeep/agents-core@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- eb3a4bb: Fix URL validation bypass and permission guard in credential provider setup
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+- 7ee7de1: Fix scopes field placeholder to show correct comma-separated format expected by Nango API
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+### Patch Changes
+
+- 3d54b6b: Remove `useProject`, `useProjectPermissions`, `useProjectActions`, `useProjectData` in favor of `useProjectPermissionsQuery` and `useProjectQuery` React Query hooks
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+
 ## 0.58.21
 
 ### Patch Changes

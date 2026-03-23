@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useOrgMembers } from '@/hooks/use-org-members';
@@ -159,18 +159,16 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
         enableSorting: false,
         cell: ({ row }) =>
           row.original.runAsUserId ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
-                    {getUserDisplayName(row.original.runAsUserId)}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <code className="font-mono text-xs">{row.original.runAsUserId}</code>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
+                  {getUserDisplayName(row.original.runAsUserId)}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <code className="font-mono text-xs">{row.original.runAsUserId}</code>
+              </TooltipContent>
+            </Tooltip>
           ) : (
             <span className="text-muted-foreground">—</span>
           ),

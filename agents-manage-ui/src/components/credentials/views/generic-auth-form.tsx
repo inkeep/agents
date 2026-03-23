@@ -33,28 +33,26 @@ function createFormSchema(formConfig: NonNullable<ReturnType<typeof getFormConfi
   const schemaObject: Record<string, z.ZodTypeAny> = {};
 
   for (const field of allFields) {
-    let fieldSchema: z.ZodTypeAny = z.string();
+    let fieldSchema: z.ZodTypeAny;
 
-    // Apply custom validation if provided
+    if (field.required) {
+      fieldSchema = z.string().min(1, `${field.label} is required`);
+    } else {
+      fieldSchema = z.string().optional().or(z.literal(''));
+    }
+
     if (field.validate) {
       fieldSchema = fieldSchema.refine(
         (value: unknown) => {
           const stringValue = String(value || '');
-          if (!stringValue && !field.required) return true; // Allow empty for non-required fields
-          const error = field.validate ? field.validate(stringValue) : undefined;
+          if (!stringValue && !field.required) return true;
+          const error = field.validate?.(stringValue);
           return !error;
         },
         {
           message: `Invalid ${field.label.toLowerCase()}`,
         }
       );
-    }
-
-    // Handle required vs optional fields
-    if (field.required) {
-      fieldSchema = z.string().min(1, `${field.label} is required`);
-    } else {
-      fieldSchema = z.string().optional().or(z.literal(''));
     }
 
     schemaObject[field.key] = fieldSchema;

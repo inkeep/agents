@@ -54,7 +54,7 @@ let composio: Composio | null = null;
  * Get or create a Composio instance
  * Returns null if COMPOSIO_API_KEY is not configured
  */
-function getComposioInstance(): Composio | null {
+export function getComposioInstance(): Composio | null {
   if (!process.env.COMPOSIO_API_KEY) {
     return null;
   }
@@ -103,6 +103,7 @@ export function getComposioUserId(
  * Configure a Composio MCP server config with the appropriate user_id and x-api-key.
  * Mutates serverConfig in place:
  *  - Injects user_id query param into the URL (scoped by tenant/project/user)
+ *  - Injects connected_account_id query param if provided (pins to a specific account)
  *  - Injects x-api-key header from COMPOSIO_API_KEY env var
  *
  * No-op if the URL is not a composio.dev URL or already has a user_id.
@@ -112,7 +113,8 @@ export function configureComposioMCPServer(
   tenantId: string,
   projectId: string,
   credentialScope: CredentialScope,
-  userId?: string
+  userId?: string,
+  connectedAccountId?: string
 ): void {
   const baseUrl = serverConfig.url?.toString();
   if (!baseUrl?.includes('composio.dev')) {
@@ -121,12 +123,16 @@ export function configureComposioMCPServer(
 
   const urlObj = new URL(baseUrl);
 
-  // Don't modify if already has user_id (external Composio URL)
   if (!urlObj.searchParams.has('user_id')) {
     const composioUserId = getComposioUserId(tenantId, projectId, credentialScope, userId);
     urlObj.searchParams.set('user_id', composioUserId);
-    serverConfig.url = urlObj.toString();
   }
+
+  if (connectedAccountId && !urlObj.searchParams.has('connected_account_id')) {
+    urlObj.searchParams.set('connected_account_id', connectedAccountId);
+  }
+
+  serverConfig.url = urlObj.toString();
 
   // Inject x-api-key header for Composio authentication
   const composioApiKey = process.env.COMPOSIO_API_KEY;
@@ -164,7 +170,7 @@ export function extractComposioServerId(mcpUrl: string): string | null {
  * Delete a Composio connected account
  * Returns true if successful, false if failed (non-blocking)
  */
-async function deleteComposioConnectedAccount(accountId: string): Promise<boolean> {
+export async function deleteComposioConnectedAccount(accountId: string): Promise<boolean> {
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
     logger.info({}, 'Composio not configured, skipping account deletion');
@@ -196,7 +202,7 @@ async function fetchComposioConnectedAccounts(
   try {
     const connectedAccounts = await composioInstance.connectedAccounts.list({
       userIds: [derivedUserId],
-      statuses: ['ACTIVE', 'INITIATED'],
+      statuses: ['ACTIVE', 'INITIATED', 'EXPIRED'],
     });
 
     return connectedAccounts;
@@ -206,9 +212,14 @@ async function fetchComposioConnectedAccounts(
   }
 }
 
+export interface ComposioAuthResult {
+  authenticated: boolean;
+  connectedAccountId?: string;
+  error?: boolean;
+}
+
 /**
  * Check if a Composio MCP server is authenticated for the given tenant/project/user
- * Returns true if authenticated, false otherwise
  * @param credentialScope - 'project' for shared team credentials, 'user' for per-user credentials
  * @param userId - The actual user ID (required if credentialScope is 'user')
  */
@@ -218,17 +229,17 @@ export async function isComposioMCPServerAuthenticated(
   mcpServerUrl: string,
   credentialScope: CredentialScope = 'project',
   userId?: string
-): Promise<boolean> {
+): Promise<ComposioAuthResult> {
   const composioApiKey = process.env.COMPOSIO_API_KEY;
   if (!composioApiKey) {
     logger.info({}, 'Composio API key not configured, skipping auth check');
-    return false;
+    return { authenticated: false };
   }
 
   const serverId = extractComposioServerId(mcpServerUrl);
   if (!serverId) {
     logger.info({ mcpServerUrl }, 'Could not extract Composio server ID from URL');
-    return false;
+    return { authenticated: false };
   }
 
   const composioUserId = getComposioUserId(tenantId, projectId, credentialScope, userId);
@@ -236,7 +247,7 @@ export async function isComposioMCPServerAuthenticated(
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
     logger.info({}, 'Composio not configured, skipping auth check');
-    return false;
+    return { authenticated: false };
   }
 
   try {
@@ -249,32 +260,38 @@ export async function isComposioMCPServerAuthenticated(
       composioMcpServer.authConfigIds.length > 0 ? composioMcpServer.authConfigIds[0] : null;
 
     if (!firstAuthConfigId) {
-      return false;
+      return { authenticated: false };
     }
 
     if (!connectedAccounts) {
-      return false;
+      return { authenticated: false };
     }
 
-    // Build a set of active auth config IDs for this user
-    const activeAuthConfigIds = new Set(
-      connectedAccounts.items
-        .filter((account) => account.status === 'ACTIVE')
-        .map((account) => account.authConfig.id)
-    );
+    const activeAccounts = connectedAccounts.items.filter((account) => account.status === 'ACTIVE');
 
-    // Check if at least one required auth config has an active account
-    // This matches the behavior in transformComposioServer which uses .some()
-    // Note: A server with multiple toolkits may have multiple auth configs,
-    // but having at least one active allows partial functionality
+    const activeAuthConfigIds = new Set(activeAccounts.map((account) => account.authConfig.id));
+
     const hasActiveAuth = composioMcpServer.authConfigIds.some((authConfigId) =>
       activeAuthConfigIds.has(authConfigId)
     );
 
-    return hasActiveAuth;
+    if (!hasActiveAuth) {
+      return { authenticated: false };
+    }
+
+    const matchingAccount = activeAccounts.find((account) =>
+      composioMcpServer.authConfigIds.includes(account.authConfig.id)
+    );
+
+    const connectedAccountId = matchingAccount?.id;
+
+    return {
+      authenticated: !!connectedAccountId,
+      connectedAccountId,
+    };
   } catch (error) {
     logger.error({ error, mcpServerUrl }, 'Error checking Composio authentication status');
-    return false;
+    return { authenticated: false, error: true };
   }
 }
 
@@ -285,7 +302,9 @@ function transformComposioServerData(
   composioMcpServer: Awaited<ReturnType<Composio['mcp']['list']>>['items'][number],
   isAuthenticated: boolean,
   url: string,
-  thirdPartyConnectAccountUrl?: string
+  thirdPartyConnectAccountUrl?: string,
+  connectedAccountId?: string,
+  authScheme?: string
 ): PrebuiltMCPServer {
   const firstToolkit = composioMcpServer.toolkits[0];
   const category = firstToolkit
@@ -307,6 +326,8 @@ function transformComposioServerData(
     description,
     isOpen: isAuthenticated,
     thirdPartyConnectAccountUrl,
+    connectedAccountId,
+    authScheme,
   };
 }
 
@@ -318,7 +339,7 @@ function transformComposioServerData(
 async function ensureComposioAccount(
   composioMcpServer: Awaited<ReturnType<Composio['mcp']['list']>>['items'][number],
   derivedUserId: string,
-  initiatedAccounts: Awaited<ReturnType<Composio['connectedAccounts']['list']>>['items']
+  staleAccounts: Awaited<ReturnType<Composio['connectedAccounts']['list']>>['items']
 ): Promise<string | null> {
   const firstAuthConfigId = composioMcpServer.authConfigIds[0];
   if (!firstAuthConfigId) {
@@ -326,13 +347,13 @@ async function ensureComposioAccount(
     return null;
   }
 
-  const existingInitiatedAccount = initiatedAccounts.find(
+  const existingStaleAccounts = staleAccounts.filter(
     (account) => account.authConfig.id === firstAuthConfigId
   );
 
-  if (existingInitiatedAccount) {
-    await deleteComposioConnectedAccount(existingInitiatedAccount.id);
-  }
+  await Promise.all(
+    existingStaleAccounts.map((account) => deleteComposioConnectedAccount(account.id))
+  );
 
   try {
     const composioInstance = getComposioInstance();
@@ -393,16 +414,16 @@ export async function getComposioOAuthRedirectUrl(
   try {
     const composioMcpServer = await composioInstance.mcp.get(serverId);
 
-    // Get any existing initiated accounts to clean up
     const connectedAccounts = await fetchComposioConnectedAccounts(composioUserId);
-    const initiatedAccounts =
-      connectedAccounts?.items.filter((account) => account.status === 'INITIATED') ?? [];
+    const staleAccounts =
+      connectedAccounts?.items.filter(
+        (account) => account.status === 'INITIATED' || account.status === 'EXPIRED'
+      ) ?? [];
 
-    // Generate the OAuth redirect URL
     const redirectUrl = await ensureComposioAccount(
       composioMcpServer,
       composioUserId,
-      initiatedAccounts
+      staleAccounts
     );
 
     return redirectUrl;
@@ -420,7 +441,8 @@ export async function getComposioOAuthRedirectUrl(
 async function transformComposioServer(
   composioMcpServer: Awaited<ReturnType<Composio['mcp']['list']>>['items'][number],
   authenticatedAuthConfigIds: Set<string>,
-  initiatedAccounts: Awaited<ReturnType<Composio['connectedAccounts']['list']>>['items'],
+  activeAccounts: Awaited<ReturnType<Composio['connectedAccounts']['list']>>['items'],
+  staleAccounts: Awaited<ReturnType<Composio['connectedAccounts']['list']>>['items'],
   derivedUserId: string
 ): Promise<PrebuiltMCPServer | null> {
   const isAuthenticated = composioMcpServer.authConfigIds.some((authConfigId) =>
@@ -428,12 +450,14 @@ async function transformComposioServer(
   );
 
   let thirdPartyConnectAccountUrl: string | undefined;
+  let connectedAccountId: string | undefined;
+  let authScheme: string | undefined;
 
   if (!isAuthenticated) {
     const redirectUrl = await ensureComposioAccount(
       composioMcpServer,
       derivedUserId,
-      initiatedAccounts
+      staleAccounts
     );
 
     if (!redirectUrl) {
@@ -441,13 +465,21 @@ async function transformComposioServer(
     }
 
     thirdPartyConnectAccountUrl = redirectUrl;
+  } else {
+    const matchingAccount = activeAccounts.find((account) =>
+      composioMcpServer.authConfigIds.includes(account.authConfig.id)
+    );
+    connectedAccountId = matchingAccount?.id;
+    authScheme = matchingAccount?.state?.authScheme;
   }
 
   return transformComposioServerData(
     composioMcpServer,
     isAuthenticated,
     composioMcpServer.MCPUrl,
-    thirdPartyConnectAccountUrl
+    thirdPartyConnectAccountUrl,
+    connectedAccountId,
+    authScheme
   );
 }
 
@@ -530,14 +562,14 @@ export async function fetchSingleComposioServer(
 
     const userConnectedAccounts = await composioInstance.connectedAccounts.list({
       userIds: [composioUserId],
-      statuses: ['ACTIVE', 'INITIATED'],
+      statuses: ['ACTIVE', 'INITIATED', 'EXPIRED'],
     });
 
     const activeAccounts = userConnectedAccounts?.items.filter(
       (account) => account.status === 'ACTIVE'
     );
-    const initiatedAccounts = userConnectedAccounts?.items.filter(
-      (account) => account.status === 'INITIATED'
+    const staleAccounts = userConnectedAccounts?.items.filter(
+      (account) => account.status === 'INITIATED' || account.status === 'EXPIRED'
     );
 
     const authenticatedAuthConfigIds = new Set(
@@ -547,7 +579,8 @@ export async function fetchSingleComposioServer(
     const transformedServer = await transformComposioServer(
       composioMcpServer,
       authenticatedAuthConfigIds,
-      initiatedAccounts ?? [],
+      activeAccounts ?? [],
+      staleAccounts ?? [],
       composioUserId
     );
 

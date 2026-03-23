@@ -13,10 +13,6 @@ export const dynamic = 'force-dynamic';
 
 const DEFAULT_LOOKBACK_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
-type RouteContext<_T> = {
-  params: Promise<Record<string, string>>;
-};
-
 export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
   const { spanId } = await context.params;
   if (!spanId) {

@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { capabilitiesHandler } from '../../routes/capabilities';
 import type { ManageAppVariables } from '../../types/app';
+import authLookupRoutes from './routes/authLookup';
 import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
 import githubRoutes from './routes/github';
@@ -24,6 +25,9 @@ export function createManageRoutes() {
   // Mount users routes - organizations, providers, and profile endpoints
   app.route('/api/users', usersRoutes);
   app.route('/api/users', userProfileRoutes);
+
+  // Mount auth lookup (email-first login flow)
+  app.route('/api/auth-lookup', authLookupRoutes);
 
   // Mount CLI auth routes - for CLI login flow
   app.route('/api/cli', cliAuthRoutes);

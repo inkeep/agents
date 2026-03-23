@@ -14,9 +14,7 @@ export const metadata = {
 
 export default async function EditTriggerPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string; agentId: string; triggerId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/triggers/webhooks/[agentId]/[triggerId]/edit'>) {
   const { tenantId, projectId, agentId, triggerId } = await params;
 
   // Fetch agent to verify it exists
