@@ -34,7 +34,7 @@ import { tracer } from '../utils/tracer.js';
 
 const logger = getLogger('ExecutionHandler');
 
-interface ExecutionHandlerParams {
+export interface ExecutionHandlerParams {
   executionContext: FullExecutionContext;
   conversationId: string;
   userMessage: string;

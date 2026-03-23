@@ -4,7 +4,7 @@ import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-
 import { getLogger } from '../../../../logger';
 import { downloadExternalFile } from './external-file-downloader';
 import { normalizeInlineFileBytes } from './file-content-security';
-import { BlockedExternalPdfUrlNotSupportedError } from './file-security-errors';
+import { makeSanitizedSourceUrl } from './file-url-security';
 import { getBlobStorageProvider, toBlobUri } from './index';
 import { buildStorageKey } from './storage-keys';
 
@@ -12,6 +12,15 @@ type MessageContentPart = NonNullable<MessageContent['parts']>[number];
 
 const logger = getLogger('file-upload');
 const FILE_UPLOAD_CONCURRENCY = 3;
+
+const isRemoteHttpAttachmentUrl = (rawUrl: string): boolean => {
+  try {
+    const { protocol } = new URL(rawUrl);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
 
 export interface UploadContext {
   tenantId: string;
@@ -36,10 +45,9 @@ async function uploadFilePart(
     data = normalized.data;
     mimeType = normalized.mimeType;
   } else if ('uri' in file && file.uri) {
-    if (file.mimeType?.toLowerCase().startsWith('application/pdf')) {
-      throw new BlockedExternalPdfUrlNotSupportedError();
-    }
-    const downloaded = await downloadExternalFile(file.uri);
+    const downloaded = await downloadExternalFile(file.uri, {
+      expectedMimeType: file.mimeType,
+    });
     data = downloaded.data;
     mimeType = downloaded.mimeType;
   } else {
@@ -63,13 +71,25 @@ async function uploadFilePart(
 
   logger.debug({ key, mimeType, size: data.length }, 'Uploaded file to blob storage');
 
+  const remoteAttachmentSourceUrl =
+    'uri' in file && file.uri && isRemoteHttpAttachmentUrl(file.uri) ? file.uri : undefined;
+
   return {
     kind: 'file',
     file: {
       uri: toBlobUri(key),
       mimeType,
     },
-    ...(part.metadata && { metadata: part.metadata }),
+    ...(part.metadata || remoteAttachmentSourceUrl
+      ? {
+          metadata: {
+            ...(part.metadata || {}),
+            ...(remoteAttachmentSourceUrl
+              ? { sourceUrl: makeSanitizedSourceUrl(remoteAttachmentSourceUrl) }
+              : {}),
+          },
+        }
+      : {}),
   };
 }
 

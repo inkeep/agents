@@ -37,16 +37,26 @@ export async function normalizeInlineFileBytes(file: {
   throw new BlockedInlineUnsupportedFileBytesError(file.mimeType || 'unknown');
 }
 
-export async function resolveDownloadedImageMimeType(
+export async function resolveDownloadedFileMimeType(
   data: Uint8Array,
-  headerContentType: string
+  headerContentType: string,
+  expectedMimeType?: string
 ): Promise<string> {
+  const expected = expectedMimeType?.split(';')[0]?.trim().toLowerCase();
+
+  if (expected === 'application/pdf') {
+    if (looksLikePdf(data)) {
+      return 'application/pdf';
+    }
+    throw new BlockedExternalUnsupportedBytesError(headerContentType || expected || 'unknown');
+  }
+
   const sniffedMime = await sniffAllowedImageMimeType(data);
   if (sniffedMime) {
     return sniffedMime;
   }
 
-  throw new BlockedExternalUnsupportedBytesError(headerContentType || 'unknown');
+  throw new BlockedExternalUnsupportedBytesError(headerContentType || expected || 'unknown');
 }
 
 function validateInlineFileSize(data: Uint8Array): void {

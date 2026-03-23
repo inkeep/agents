@@ -1,7 +1,8 @@
+import type { LookupAddress } from 'node:dns';
 import { lookup as dnsLookup } from 'node:dns';
 import { retryWithBackoff } from '@inkeep/agents-core';
 import { Agent } from 'undici';
-import { resolveDownloadedImageMimeType } from './file-content-security';
+import { resolveDownloadedFileMimeType } from './file-content-security';
 import {
   EXTERNAL_FETCH_TIMEOUT_MS,
   MAX_EXTERNAL_REDIRECTS,
@@ -35,28 +36,7 @@ const externalImageDispatcher = new Agent({
           return;
         }
 
-        if (Array.isArray(address)) {
-          const selected = address[0];
-          if (!selected) {
-            callback(new UnableToResolveHostError(hostname), '', 0);
-            return;
-          }
-
-          if (isBlockedIpAddress(selected.address)) {
-            callback(new BlockedConnectionToPrivateIpError(selected.address), '', 0);
-            return;
-          }
-
-          callback(null, selected.address, selected.family);
-          return;
-        }
-
-        if (isBlockedIpAddress(address)) {
-          callback(new BlockedConnectionToPrivateIpError(address), '', 0);
-          return;
-        }
-
-        callback(null, address, family);
+        forwardLookupResult(hostname, address, family, callback);
       });
     },
   },
@@ -64,8 +44,46 @@ const externalImageDispatcher = new Agent({
 
 const MAX_EXTERNAL_FETCH_ATTEMPTS = 3;
 
+type LookupCallback = (
+  error: Error | null,
+  address: string | LookupAddress[],
+  family?: number
+) => void;
+
+export function forwardLookupResult(
+  hostname: string,
+  address: string | LookupAddress[],
+  family: number | undefined,
+  callback: LookupCallback
+): void {
+  if (Array.isArray(address)) {
+    const selected = address[0];
+    if (!selected) {
+      callback(new UnableToResolveHostError(hostname), '', 0);
+      return;
+    }
+
+    const blocked = address.find((candidate) => isBlockedIpAddress(candidate.address));
+    if (blocked) {
+      callback(new BlockedConnectionToPrivateIpError(blocked.address), '', 0);
+      return;
+    }
+
+    callback(null, address);
+    return;
+  }
+
+  if (isBlockedIpAddress(address)) {
+    callback(new BlockedConnectionToPrivateIpError(address), '', 0);
+    return;
+  }
+
+  callback(null, address, family);
+}
+
 export async function downloadExternalFile(
-  url: string
+  url: string,
+  options?: { expectedMimeType?: string }
 ): Promise<{ data: Uint8Array; mimeType: string }> {
   let currentUrl = validateExternalFileUrl(url);
   await validateUrlResolvesToPublicIp(currentUrl);
@@ -110,7 +128,11 @@ export async function downloadExternalFile(
     }
 
     const data = await readResponseBytesWithLimit(response, MAX_FILE_BYTES);
-    const mimeType = await resolveDownloadedImageMimeType(data, headerContentType);
+    const mimeType = await resolveDownloadedFileMimeType(
+      data,
+      headerContentType,
+      options?.expectedMimeType
+    );
     return { data, mimeType };
   }
 
