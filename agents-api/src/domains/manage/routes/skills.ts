@@ -308,16 +308,8 @@ const updateSkillHandler: ManageRouteHandler<typeof updateSkillRouteConfig> = as
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
 
-  if (!body.files) {
-    throw createApiError({
-      code: 'unprocessable_entity',
-      message: 'Skill updates must include files',
-    });
-  }
-
-  const files = body.files;
-  const data = files.some((file) => file.filePath === SKILL_ENTRY_FILE_PATH)
-    ? { ...body, files }
+  const data = body.files.some((file) => file.filePath === SKILL_ENTRY_FILE_PATH)
+    ? body
     : { files: [] };
 
   const skill = await updateSkill(db)({

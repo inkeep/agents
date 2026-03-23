@@ -117,14 +117,7 @@ const SkillCreateDataSchema = z.strictObject({
   files: SkillFilesInputSchema,
 });
 
-const SkillUpdateSchema = SkillInsertSchema.omit({
-  // Name is persistent
-  name: true,
-  // Will be generated from SKILL.md
-  content: true,
-  description: true,
-  metadata: true,
-}).extend({
+const SkillUpdateSchema = z.object({
   files: SkillUpdateFilesInputSchema,
 });
 
@@ -164,7 +157,7 @@ const SkillApiInsertSchema = z
   .pipe(SkillCreateDataSchema)
   .openapi('SkillCreate');
 
-const SkillApiUpdateSchema = SkillUpdateSchema.partial()
+const SkillApiUpdateSchema = SkillUpdateSchema
   .transform((skill) => {
     const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
     if (!skillFile) {
@@ -175,7 +168,9 @@ const SkillApiUpdateSchema = SkillUpdateSchema.partial()
       ...transformSkill(skillFile.content),
     };
   })
-  .pipe(SkillCreateDataSchema.partial())
+  .pipe(SkillCreateDataSchema.partial().required({
+    files: true
+  }))
   .openapi('SkillUpdate');
 
 const SkillFileApiSelectSchema = createApiSchema(SkillFileSelectSchema).openapi('SkillFile');

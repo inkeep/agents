@@ -119,10 +119,28 @@ Always check alerts.`,
 
     expect(updateResponse.status).toBe(200);
     const updatedBody = await updateResponse.json();
+    expect(updatedBody.data).toEqual(
+      expect.objectContaining({
+        description: 'Updated safety rules.',
+        content: 'Always check alerts.',
+      })
+    );
     expect(updatedBody.data.files.map((file: any) => file.filePath)).toEqual([
       'SKILL.md',
       'templates/alert.md',
     ]);
+
+    const updatedDetailResponse = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/skills/weather-safety-guardrails`
+    );
+    expect(updatedDetailResponse.status).toBe(200);
+    const updatedDetailBody = await updatedDetailResponse.json();
+    expect(updatedDetailBody.data).toEqual(
+      expect.objectContaining({
+        description: 'Updated safety rules.',
+        content: 'Always check alerts.',
+      })
+    );
   });
 
   test('should remove all skill files when SKILL.md is removed from the file set', async () => {
