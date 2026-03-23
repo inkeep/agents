@@ -416,4 +416,116 @@ describe('Resolve Conflicts - Integration Tests', () => {
       ).rejects.toThrow(MergeConflictError);
     });
   });
+
+  describe('add-add conflict (null base PK)', () => {
+    const addAddAgentId = `test-add-add-agent-${Date.now()}`;
+
+    it('should resolve theirs when both branches independently add the same agent', async () => {
+      const oursBranch = getBranchName('add-ours');
+      const theirsBranch = getBranchName('add-theirs');
+      createdBranches.add(oursBranch);
+      createdBranches.add(theirsBranch);
+
+      await doltBranch(dbClient)({ name: oursBranch, startPoint: mainBranch });
+      await doltBranch(dbClient)({ name: theirsBranch, startPoint: mainBranch });
+
+      await doltCheckout(dbClient)({ branch: oursBranch });
+      await createAgent(dbClient)({
+        tenantId,
+        projectId,
+        id: addAddAgentId,
+        name: 'Ours New Agent',
+        description: 'Added on ours branch',
+      });
+      await doltAddAndCommit(dbClient)({ message: 'Ours add agent' });
+
+      await doltCheckout(dbClient)({ branch: theirsBranch });
+      await createAgent(dbClient)({
+        tenantId,
+        projectId,
+        id: addAddAgentId,
+        name: 'Theirs New Agent',
+        description: 'Added on theirs branch',
+      });
+      await doltAddAndCommit(dbClient)({ message: 'Theirs add agent' });
+
+      const result = await doltMerge(dbClient)({
+        fromBranch: theirsBranch,
+        toBranch: oursBranch,
+        message: 'Merge add-add conflict with theirs resolution',
+        resolutions: [
+          {
+            table: 'agent',
+            primaryKey: { tenant_id: tenantId, project_id: projectId, id: addAddAgentId },
+            rowDefaultPick: 'theirs',
+          },
+        ],
+      });
+
+      expect(result.status).toBe('success');
+      expect(result.hasConflicts).toBe(true);
+
+      await doltCheckout(dbClient)({ branch: oursBranch });
+      const agent = await getAgentById(dbClient)({
+        scopes: { tenantId, projectId, agentId: addAddAgentId },
+      });
+      expect(agent).toBeDefined();
+      expect(agent?.name).toBe('Theirs New Agent');
+      expect(agent?.description).toBe('Added on theirs branch');
+    });
+
+    it('should keep ours when both branches independently add the same agent with ours pick', async () => {
+      const oursBranch = getBranchName('add-keep-ours');
+      const theirsBranch = getBranchName('add-keep-theirs');
+      createdBranches.add(oursBranch);
+      createdBranches.add(theirsBranch);
+
+      await doltBranch(dbClient)({ name: oursBranch, startPoint: mainBranch });
+      await doltBranch(dbClient)({ name: theirsBranch, startPoint: mainBranch });
+
+      await doltCheckout(dbClient)({ branch: oursBranch });
+      await createAgent(dbClient)({
+        tenantId,
+        projectId,
+        id: addAddAgentId,
+        name: 'Ours Added Agent',
+        description: 'Ours version',
+      });
+      await doltAddAndCommit(dbClient)({ message: 'Ours add' });
+
+      await doltCheckout(dbClient)({ branch: theirsBranch });
+      await createAgent(dbClient)({
+        tenantId,
+        projectId,
+        id: addAddAgentId,
+        name: 'Theirs Added Agent',
+        description: 'Theirs version',
+      });
+      await doltAddAndCommit(dbClient)({ message: 'Theirs add' });
+
+      const result = await doltMerge(dbClient)({
+        fromBranch: theirsBranch,
+        toBranch: oursBranch,
+        message: 'Merge add-add conflict with ours resolution',
+        resolutions: [
+          {
+            table: 'agent',
+            primaryKey: { tenant_id: tenantId, project_id: projectId, id: addAddAgentId },
+            rowDefaultPick: 'ours',
+          },
+        ],
+      });
+
+      expect(result.status).toBe('success');
+      expect(result.hasConflicts).toBe(true);
+
+      await doltCheckout(dbClient)({ branch: oursBranch });
+      const agent = await getAgentById(dbClient)({
+        scopes: { tenantId, projectId, agentId: addAddAgentId },
+      });
+      expect(agent).toBeDefined();
+      expect(agent?.name).toBe('Ours Added Agent');
+      expect(agent?.description).toBe('Ours version');
+    });
+  });
 });

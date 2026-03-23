@@ -298,6 +298,50 @@ describe('applyResolutions', () => {
     expect(updateQuery).not.toContain('[object Object]');
   });
 
+  it('finds conflict row when base PK columns are NULL (add-add conflict)', async () => {
+    mockDb.queryResults['dolt_conflicts_agent'] = {
+      rows: [
+        {
+          our_diff_type: 'added',
+          their_diff_type: 'added',
+          base_tenant_id: null,
+          base_project_id: null,
+          base_id: null,
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: 'Our Added Agent',
+          their_name: 'Their Added Agent',
+          our_description: 'Our desc',
+          their_description: 'Their desc',
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'theirs',
+      },
+    ];
+
+    await applyResolutions(mockDb.db)(resolutions);
+
+    const selectQuery = mockDb.executedQueries.find((q) => q.includes('dolt_conflicts_agent'));
+    expect(selectQuery).toBeDefined();
+    expect(selectQuery).toContain('base_tenant_id IS NULL');
+    expect(selectQuery).toContain('our_tenant_id');
+    expect(selectQuery).toContain('their_tenant_id');
+
+    const updateQuery = mockDb.executedQueries.find((q) => q.includes('UPDATE'));
+    expect(updateQuery).toBeDefined();
+    expect(updateQuery).toContain('Their Added Agent');
+  });
+
   it('throws for invalid table name', async () => {
     const resolutions: ConflictResolution[] = [
       {
