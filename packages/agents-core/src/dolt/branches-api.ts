@@ -20,6 +20,13 @@ import {
 
 export const MAIN_BRANCH_SUFFIX = 'main';
 
+export class invalidBranchParamsError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'invalidBranchParamsError';
+  }
+}
+
 /**
  * Get the tenant-scoped main branch name
  */
@@ -185,11 +192,11 @@ export const createBranch =
     const { tenantId, projectId, name, fromBranch, fromCommit, syncSchemaOnSource = true } = params;
 
     if (fromBranch && fromCommit) {
-      throw new Error('Cannot specify both fromBranch and fromCommit');
+      throw new invalidBranchParamsError('Cannot specify both fromBranch and fromCommit');
     }
 
     if (!name || name.trim() === '') {
-      throw new Error('Branch name cannot be empty');
+      throw new invalidBranchParamsError('Branch name cannot be empty');
     }
 
     const fullName = doltGetBranchNamespace({ tenantId, projectId, branchName: name })();
@@ -198,7 +205,7 @@ export const createBranch =
     const branchExists = existingBranches.some((b) => b.name === fullName);
 
     if (branchExists) {
-      throw new Error(`Branch '${name}' already exists`);
+      throw new invalidBranchParamsError(`Branch '${name}' already exists`);
     }
     //For commits, sync schema onto the created branch
     if (fromCommit) {
@@ -250,7 +257,7 @@ export const deleteBranch =
     const { tenantId, projectId, branchName, force } = params;
 
     if (isProtectedBranchName(branchName)) {
-      throw new Error(`Cannot delete protected branch '${branchName}'`);
+      throw new invalidBranchParamsError(`Cannot delete protected branch '${branchName}'`);
     }
 
     const fullName = doltGetBranchNamespace({ tenantId, projectId, branchName: branchName })();
@@ -259,7 +266,7 @@ export const deleteBranch =
     const branchExists = existingBranches.some((b) => b.name === fullName);
 
     if (!branchExists) {
-      throw new Error(`Branch '${branchName}' not found`);
+      throw new invalidBranchParamsError(`Branch '${branchName}' not found`);
     }
 
     await doltDeleteBranch(db)({ name: fullName, force });

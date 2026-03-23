@@ -11,6 +11,7 @@ import {
   deleteBranch,
   ErrorResponseSchema,
   getBranch,
+  invalidBranchParamsError,
   listBranches,
   listBranchesForAgent,
   TenantProjectAgentParamsSchema,
@@ -194,11 +195,7 @@ app.openapi(
 
       throwIfUniqueConstraintError(error, `Branch '${name}' already exists`);
 
-      if (
-        message.includes('cannot be empty') ||
-        message.includes('invalid') ||
-        message.includes('Cannot specify both')
-      ) {
+      if (error instanceof invalidBranchParamsError) {
         throw createApiError({
           code: 'bad_request',
           message,
