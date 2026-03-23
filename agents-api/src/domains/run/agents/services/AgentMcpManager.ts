@@ -26,6 +26,7 @@ import { agentSessionManager } from '../../session/AgentSession';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentConfig } from '../Agent';
 import type { AiSdkToolDefinition } from '../agent-types';
+import { makeBaseInputSchema, makeRefAwareJsonSchema } from '../tools/ref-aware-schema';
 
 const logger = getLogger('AgentMcpManager');
 
@@ -379,16 +380,33 @@ export class AgentMcpManager {
     mcpToolName: string
   ) {
     const rawSchema = toolDef.inputSchema as Record<string, unknown>;
+    const baseSchema = (override.schema || rawSchema) as Record<string, unknown>;
+    const refAwareSchema = makeRefAwareJsonSchema(baseSchema);
+    let baseInputSchema: ReturnType<typeof z.fromJSONSchema> | undefined;
     let inputSchema: ReturnType<typeof z.fromJSONSchema> | ReturnType<typeof jsonSchema>;
+
     try {
-      inputSchema = override.schema ? z.fromJSONSchema(override.schema) : jsonSchema(rawSchema);
+      baseInputSchema = makeBaseInputSchema(baseSchema);
+    } catch (schemaError) {
+      logger.warn(
+        {
+          mcpToolName,
+          toolName,
+          schemaError: AgentMcpManager.errMsg(schemaError),
+        },
+        'Failed to build baseInputSchema; skipping resolved-args validation for this tool'
+      );
+    }
+
+    try {
+      inputSchema = override.schema ? z.fromJSONSchema(refAwareSchema) : jsonSchema(refAwareSchema);
     } catch (schemaError) {
       logger.error(
         {
           mcpToolName,
           toolName,
           schemaError: AgentMcpManager.errMsg(schemaError),
-          overrideSchema: override.schema,
+          overrideSchema: baseSchema,
         },
         'Failed to convert override schema, using original'
       );
@@ -398,62 +416,65 @@ export class AgentMcpManager {
     const finalName = override.displayName || toolName;
     const description = override.description || toolDef.description || `Tool ${finalName}`;
 
-    const definition = tool({
-      description,
-      inputSchema,
-      execute: async (simpleArgs: any) => {
-        let complexArgs = simpleArgs;
-        if (override.transformation) {
-          try {
-            if (typeof override.transformation === 'string') {
-              complexArgs = await JsonTransformer.transform(simpleArgs, override.transformation, {
-                timeout: 10000,
-              });
-            } else if (
-              typeof override.transformation === 'object' &&
-              override.transformation !== null
-            ) {
-              complexArgs = await JsonTransformer.transformWithConfig(
-                simpleArgs,
-                { objectTransformation: override.transformation },
-                { timeout: 10000 }
+    const definition = {
+      ...tool({
+        description,
+        inputSchema,
+        execute: async (simpleArgs: any) => {
+          let complexArgs = simpleArgs;
+          if (override.transformation) {
+            try {
+              if (typeof override.transformation === 'string') {
+                complexArgs = await JsonTransformer.transform(simpleArgs, override.transformation, {
+                  timeout: 10000,
+                });
+              } else if (
+                typeof override.transformation === 'object' &&
+                override.transformation !== null
+              ) {
+                complexArgs = await JsonTransformer.transformWithConfig(
+                  simpleArgs,
+                  { objectTransformation: override.transformation },
+                  { timeout: 10000 }
+                );
+              } else {
+                logger.warn(
+                  { mcpToolName, toolName, transformationType: typeof override.transformation },
+                  'Invalid transformation type, skipping transformation'
+                );
+              }
+            } catch (transformError) {
+              logger.error(
+                {
+                  mcpToolName,
+                  toolName,
+                  transformError: AgentMcpManager.errMsg(transformError),
+                  transformation: override.transformation,
+                },
+                'Failed to transform tool arguments, using original arguments'
               );
-            } else {
-              logger.warn(
-                { mcpToolName, toolName, transformationType: typeof override.transformation },
-                'Invalid transformation type, skipping transformation'
-              );
+              complexArgs = simpleArgs;
             }
-          } catch (transformError) {
-            logger.error(
-              {
-                mcpToolName,
-                toolName,
-                transformError: AgentMcpManager.errMsg(transformError),
-                transformation: override.transformation,
-              },
-              'Failed to transform tool arguments, using original arguments'
-            );
-            complexArgs = simpleArgs;
           }
-        }
 
-        if (typeof toolDef.execute !== 'function') {
-          throw new Error(`Original tool ${toolName} does not have a valid execute function`);
-        }
+          if (typeof toolDef.execute !== 'function') {
+            throw new Error(`Original tool ${toolName} does not have a valid execute function`);
+          }
 
-        try {
-          return await toolDef.execute(complexArgs);
-        } catch (executeError) {
-          const msg = AgentMcpManager.errMsg(executeError);
-          logger.error(
-            { mcpToolName, toolName, executeError: msg, complexArgs },
-            'Failed to execute original tool'
-          );
-          throw new Error(`Tool execution failed for ${toolName}: ${msg}`);
-        }
-      },
-    });
+          try {
+            return await toolDef.execute(complexArgs);
+          } catch (executeError) {
+            const msg = AgentMcpManager.errMsg(executeError);
+            logger.error(
+              { mcpToolName, toolName, executeError: msg, complexArgs },
+              'Failed to execute original tool'
+            );
+            throw new Error(`Tool execution failed for ${toolName}: ${msg}`);
+          }
+        },
+      }),
+      baseInputSchema,
+    };
 
     return { finalName, definition };
   }

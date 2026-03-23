@@ -5,11 +5,10 @@ import { z } from 'zod';
 
 const MAX_IMAGE_BASE64_BYTES = 25 * 1024 * 1024;
 
-type ImageInput = { data: string; encoding: 'base64'; mimeType: string };
+type ImageInput = { data: string; mimeType: string };
 
 export const imageInputSchema = z.object({
   data: z.string().describe('Base64-encoded image bytes'),
-  encoding: z.literal('base64').describe('Encoding of the data field — must be "base64"'),
   mimeType: z.string().describe('MIME type of the image (e.g. "image/png", "image/jpeg")'),
 });
 
@@ -26,7 +25,7 @@ export function registerImageTools(server: McpServer): void {
     {
       description: 'Get metadata about an image: dimensions, format, channels, and file size.',
       inputSchema: z.object({
-        image: imageInputSchema.describe('Image object with base64 data, encoding, and mimeType'),
+        image: imageInputSchema.describe('Image object with base64 data and mimeType'),
       }),
     },
     async ({ image }): Promise<CallToolResult> => {

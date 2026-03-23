@@ -148,6 +148,28 @@ function getIndexedPartsForConversationHistory(
   return indexedParts;
 }
 
+export function formatInvalidToolCallForHistory(
+  toolName: string,
+  toolCallId: string,
+  input: unknown,
+  error: unknown
+): string {
+  const inputStr =
+    input !== undefined
+      ? JSON.stringify(input, null, 2)
+      : 'No input (validation failed before parsing)';
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  return `## Tool: ${toolName}
+
+### 🔧 TOOL_CALL_ID: ${toolCallId}
+
+### Input
+${inputStr}
+
+### Error
+${errorMessage}`;
+}
+
 export async function buildToolResultForConversationHistory(
   ctx: AgentRunContext,
   toolName: string,

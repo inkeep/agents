@@ -1,6 +1,7 @@
 import { parseEmbeddedJson, unwrapError } from '@inkeep/agents-core';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { type ToolSet, tool } from 'ai';
+import { z } from 'zod';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
 import type { AgentRunContext } from '../agent-types';
@@ -10,9 +11,27 @@ import {
   enhanceToolResultWithStructureHints,
 } from '../generation/tool-result';
 import { toolSessionManager } from '../services/ToolSessionManager';
+import { makeBaseInputSchema, makeRefAwareJsonSchema } from './ref-aware-schema';
 import { parseAndCheckApproval } from './tool-approval';
 import { getRelationshipIdForTool } from './tool-utils';
 import { wrapToolWithStreaming } from './tool-wrapper';
+
+export function buildRefAwareInputSchema(inputSchema: unknown): {
+  refAwareInputSchema: ReturnType<typeof z.fromJSONSchema>;
+  baseInputSchema: ReturnType<typeof z.fromJSONSchema> | undefined;
+} {
+  try {
+    const rawJson = z.toJSONSchema(inputSchema as z.ZodType) as Record<string, unknown>;
+    const baseInputSchema = makeBaseInputSchema(rawJson);
+    const refAwareInputSchema = z.fromJSONSchema(makeRefAwareJsonSchema(rawJson));
+    return { refAwareInputSchema, baseInputSchema };
+  } catch {
+    return {
+      refAwareInputSchema: inputSchema as ReturnType<typeof z.fromJSONSchema>,
+      baseInputSchema: undefined,
+    };
+  }
+}
 
 const logger = getLogger('Agent');
 
@@ -78,129 +97,136 @@ export async function getMcpTools(
         'Tool approval check'
       );
 
-      const sessionWrappedTool = tool({
-        description: originalTool.description,
-        inputSchema: originalTool.inputSchema,
-        execute: async (args, { toolCallId, providerMetadata }: any) => {
-          const parsed = await parseAndCheckApproval(
-            ctx,
-            toolName,
-            toolCallId,
-            args,
-            providerMetadata,
-            needsApproval
-          );
-          if (parsed.denied) {
-            return parsed.result;
-          }
-          const finalArgs = parsed.args;
+      const { refAwareInputSchema, baseInputSchema } = buildRefAwareInputSchema(
+        originalTool.inputSchema
+      );
 
-          logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
+      const sessionWrappedTool = {
+        ...tool({
+          description: originalTool.description,
+          inputSchema: refAwareInputSchema,
+          execute: async (args, { toolCallId, providerMetadata }: any) => {
+            const parsed = await parseAndCheckApproval(
+              ctx,
+              toolName,
+              toolCallId,
+              args,
+              providerMetadata,
+              needsApproval
+            );
+            if (parsed.denied) {
+              return parsed.result;
+            }
+            const finalArgs = parsed.args;
 
-          try {
-            const rawResult = await originalTool.execute(finalArgs, { toolCallId });
+            logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
-            const result = rawResult as Record<string, unknown>;
-            if (result.isError) {
-              const errorMessage =
-                (result.content as Array<{ text?: string }>)?.[0]?.text ||
-                'MCP tool returned an error';
-              logger.error(
-                { toolName, toolCallId, errorMessage, rawResult },
-                'MCP tool returned error status'
+            try {
+              const rawResult = await originalTool.execute(finalArgs, { toolCallId });
+
+              const result = rawResult as Record<string, unknown>;
+              if (result.isError) {
+                const errorMessage =
+                  (result.content as Array<{ text?: string }>)?.[0]?.text ||
+                  'MCP tool returned an error';
+                logger.error(
+                  { toolName, toolCallId, errorMessage, rawResult },
+                  'MCP tool returned error status'
+                );
+
+                toolSessionManager.recordToolResult(sessionId, {
+                  toolCallId,
+                  toolName,
+                  args: finalArgs,
+                  result: { error: errorMessage, failed: true },
+                  timestamp: Date.now(),
+                });
+
+                if (streamRequestId) {
+                  const relationshipId = getRelationshipIdForTool(ctx, toolName, 'mcp');
+                  agentSessionManager.recordEvent(streamRequestId, 'error', ctx.config.id, {
+                    message: `MCP tool "${toolName}" failed: ${errorMessage}`,
+                    code: 'mcp_tool_error',
+                    severity: 'error',
+                    context: {
+                      toolName,
+                      toolCallId,
+                      errorMessage,
+                      relationshipId,
+                    },
+                    relationshipId,
+                  });
+                }
+
+                const activeSpan = trace.getActiveSpan();
+                if (activeSpan) {
+                  const error = new Error(
+                    `Tool "${toolName}" failed: ${errorMessage}. This tool is currently unavailable. Please try a different approach or inform the user of the issue.`
+                  );
+                  activeSpan.recordException(error);
+                  activeSpan.setStatus({
+                    code: SpanStatusCode.ERROR,
+                    message: `MCP tool returned error: ${errorMessage}`,
+                  });
+                }
+
+                throw new Error(
+                  `Tool "${toolName}" failed: ${errorMessage}. This tool is currently unavailable. Please try a different approach or inform the user of the issue.`
+                );
+              }
+
+              const parsedResult = parseEmbeddedJson(rawResult);
+
+              const contentPartArtifacts = buildContentPartArtifacts(parsedResult, toolCallId);
+              const enhancedResult = enhanceToolResultWithStructureHints(
+                ctx,
+                parsedResult,
+                toolCallId,
+                contentPartArtifacts
               );
+
+              if (streamRequestId) {
+                for (const cpa of contentPartArtifacts) {
+                  const cacheEntry = {
+                    data: cpa.contentItem,
+                    name: `Content part from ${toolName}`,
+                    description: `Content part ${cpa.index} (type: ${cpa.contentItem.type ?? 'unknown'}) from tool call ${cpa.toolCallId}`,
+                  };
+                  await agentSessionManager.setArtifactCache(
+                    streamRequestId,
+                    `${cpa.artifactId}:${cpa.toolCallId}`,
+                    cacheEntry
+                  );
+                  await agentSessionManager.setArtifactCache(
+                    streamRequestId,
+                    `${cpa.toolCallId}:${cpa.index}`,
+                    { ...cacheEntry, artifactId: cpa.artifactId }
+                  );
+                }
+              }
 
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
                 toolName,
                 args: finalArgs,
-                result: { error: errorMessage, failed: true },
+                result: parsedResult,
+                structureHints: enhancedResult._structureHints,
                 timestamp: Date.now(),
               });
 
-              if (streamRequestId) {
-                const relationshipId = getRelationshipIdForTool(ctx, toolName, 'mcp');
-                agentSessionManager.recordEvent(streamRequestId, 'error', ctx.config.id, {
-                  message: `MCP tool "${toolName}" failed: ${errorMessage}`,
-                  code: 'mcp_tool_error',
-                  severity: 'error',
-                  context: {
-                    toolName,
-                    toolCallId,
-                    errorMessage,
-                    relationshipId,
-                  },
-                  relationshipId,
-                });
-              }
-
-              const activeSpan = trace.getActiveSpan();
-              if (activeSpan) {
-                const error = new Error(
-                  `Tool "${toolName}" failed: ${errorMessage}. This tool is currently unavailable. Please try a different approach or inform the user of the issue.`
-                );
-                activeSpan.recordException(error);
-                activeSpan.setStatus({
-                  code: SpanStatusCode.ERROR,
-                  message: `MCP tool returned error: ${errorMessage}`,
-                });
-              }
-
-              throw new Error(
-                `Tool "${toolName}" failed: ${errorMessage}. This tool is currently unavailable. Please try a different approach or inform the user of the issue.`
+              return enhancedResult;
+            } catch (error) {
+              const rootCause = unwrapError(error);
+              logger.error(
+                { toolName, toolCallId, error: rootCause.message },
+                'MCP tool execution failed'
               );
+              throw rootCause;
             }
-
-            const parsedResult = parseEmbeddedJson(rawResult);
-
-            const contentPartArtifacts = buildContentPartArtifacts(parsedResult, toolCallId);
-            const enhancedResult = enhanceToolResultWithStructureHints(
-              ctx,
-              parsedResult,
-              toolCallId,
-              contentPartArtifacts
-            );
-
-            if (streamRequestId) {
-              for (const cpa of contentPartArtifacts) {
-                const cacheEntry = {
-                  data: cpa.contentItem,
-                  name: `Content part from ${toolName}`,
-                  description: `Content part ${cpa.index} (type: ${cpa.contentItem.type ?? 'unknown'}) from tool call ${cpa.toolCallId}`,
-                };
-                await agentSessionManager.setArtifactCache(
-                  streamRequestId,
-                  `${cpa.artifactId}:${cpa.toolCallId}`,
-                  cacheEntry
-                );
-                await agentSessionManager.setArtifactCache(
-                  streamRequestId,
-                  `${cpa.toolCallId}:${cpa.index}`,
-                  { ...cacheEntry, artifactId: cpa.artifactId }
-                );
-              }
-            }
-
-            toolSessionManager.recordToolResult(sessionId, {
-              toolCallId,
-              toolName,
-              args: finalArgs,
-              result: parsedResult,
-              structureHints: enhancedResult._structureHints,
-              timestamp: Date.now(),
-            });
-
-            return enhancedResult;
-          } catch (error) {
-            const rootCause = unwrapError(error);
-            logger.error(
-              { toolName, toolCallId, error: rootCause.message },
-              'MCP tool execution failed'
-            );
-            throw rootCause;
-          }
-        },
-      });
+          },
+        }),
+        baseInputSchema,
+      };
 
       wrappedTools[toolName] = wrapToolWithStreaming(
         ctx,

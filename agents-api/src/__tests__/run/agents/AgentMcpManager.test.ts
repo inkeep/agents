@@ -8,7 +8,9 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     McpClient: vi.fn(),
     configureComposioMCPServer: vi.fn(),
+    isBuiltInMcp: vi.fn(() => false),
     isGithubWorkAppTool: vi.fn(() => false),
+    getMcpServerUrl: vi.fn((server: { url?: string }) => server?.url),
   };
 });
 
@@ -254,6 +256,39 @@ describe('AgentMcpManager', () => {
 
       expect(result.tools.search).toBeDefined();
       expect(result.tools.search.description).toBe('Override description');
+    });
+
+    test('builds refAwareInputSchema and baseInputSchema for overridden tools', async () => {
+      mockMcpClient.tools.mockResolvedValue({
+        search: {
+          description: 'Original description',
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+          },
+          execute: vi.fn().mockResolvedValue('result'),
+        },
+      });
+
+      const mcpTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://test.example.com/mcp' },
+            toolOverrides: {
+              search: { description: 'Override description' },
+            },
+          },
+        },
+      });
+
+      const result = await createManager().getToolSet(mcpTool);
+
+      expect(result.tools.search.inputSchema).toBeDefined();
+      expect(result.tools.search.baseInputSchema).toBeDefined();
+      const baseValidation = result.tools.search.baseInputSchema.safeParse({ query: 'hello' });
+      expect(baseValidation.success).toBe(true);
     });
 
     test('falls back to original tool when override processing fails', async () => {

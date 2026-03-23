@@ -215,6 +215,11 @@ export type AiSdkToolDefinition = {
       args: unknown
     ) => { success: true; error?: never } | { success: false; error: { message: string } };
   };
+  baseInputSchema?: {
+    safeParse?: (
+      args: unknown
+    ) => { success: true; error?: never } | { success: false; error: { message: string } };
+  };
   execute?: (args: unknown, context?: unknown) => Promise<unknown>;
 };
 

@@ -11,6 +11,7 @@ import type { SandboxConfig } from '../../types/executionContext';
 import type { AgentRunContext } from '../agent-types';
 import { enhanceToolResultWithStructureHints } from '../generation/tool-result';
 import { toolSessionManager } from '../services/ToolSessionManager';
+import { makeBaseInputSchema, makeRefAwareJsonSchema } from './ref-aware-schema';
 import { parseAndCheckApproval } from './tool-approval';
 import { wrapToolWithStreaming } from './tool-wrapper';
 
@@ -75,9 +76,27 @@ export async function getFunctionTools(
         continue;
       }
 
-      const zodSchema = functionData.inputSchema
-        ? z.fromJSONSchema(functionData.inputSchema)
-        : z.string();
+      let baseInputSchema: ReturnType<typeof z.fromJSONSchema> | undefined;
+      let refAwareInputSchema: ReturnType<typeof z.fromJSONSchema> = z.string();
+      if (functionData.inputSchema) {
+        try {
+          baseInputSchema = makeBaseInputSchema(functionData.inputSchema);
+        } catch {
+          // baseInputSchema stays undefined
+        }
+        try {
+          refAwareInputSchema = z.fromJSONSchema(makeRefAwareJsonSchema(functionData.inputSchema));
+        } catch (schemaError) {
+          logger.warn(
+            {
+              functionToolName: functionToolDef.name,
+              schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
+            },
+            'Failed to build refAwareInputSchema; falling back to base schema'
+          );
+          refAwareInputSchema = z.fromJSONSchema(functionData.inputSchema);
+        }
+      }
       const toolPolicies = functionToolDef.toolPolicies;
       const needsApproval =
         !!toolPolicies?.['*']?.needsApproval ||
@@ -85,7 +104,7 @@ export async function getFunctionTools(
 
       const aiTool = tool({
         description: functionToolDef.description || functionToolDef.name,
-        inputSchema: zodSchema,
+        inputSchema: refAwareInputSchema,
         execute: async (args, { toolCallId, providerMetadata }: any) => {
           const parsed = await parseAndCheckApproval(
             ctx,
@@ -158,11 +177,15 @@ export async function getFunctionTools(
           }
         },
       });
+      const functionToolWithBaseInputSchema = {
+        ...aiTool,
+        baseInputSchema,
+      };
 
       functionTools[functionToolDef.name] = wrapToolWithStreaming(
         ctx,
         functionToolDef.name,
-        aiTool,
+        functionToolWithBaseInputSchema,
         streamRequestId || '',
         'tool',
         { needsApproval }

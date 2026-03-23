@@ -65,7 +65,13 @@ describe('Function tool approvals (toolPolicies)', () => {
       tools: {},
       functions: {
         fn_1: {
-          inputSchema: { type: 'object', properties: {} },
+          inputSchema: {
+            type: 'object',
+            properties: {
+              city: { type: 'string' },
+            },
+            required: ['city'],
+          },
           executeCode: 'return { ok: true };',
           dependencies: {},
         },
@@ -142,5 +148,19 @@ describe('Function tool approvals (toolPolicies)', () => {
       'req_2',
       expect.objectContaining({ type: 'approval-resolved', toolCallId: 'call_2', approved: true })
     );
+  });
+
+  it('accepts sentinel refs in function tool inputSchema', async () => {
+    const agent = new Agent(baseConfig, executionContext);
+    agent.setConversationId('conv_1');
+    agent.setDelegationStatus(true);
+    (agent as any).streamRequestId = 'req_3';
+
+    const tools = await agent.getFunctionTools('sess_3', 'req_3');
+    const schemaValidation = (tools.getWeather as any).inputSchema.safeParse({
+      city: { $tool: 'tool_call_123', $path: 'location.city' },
+    });
+
+    expect(schemaValidation.success).toBe(true);
   });
 });

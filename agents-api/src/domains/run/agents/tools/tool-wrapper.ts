@@ -156,17 +156,17 @@ export function wrapToolWithStreaming(
           ? await artifactParser.resolveArgs(parsedArgsForResolution)
           : args;
 
-        const parameters = (toolDefinition as AiSdkToolDefinition).parameters;
-        if (artifactParser && parameters?.safeParse) {
-          const resolvedChanged =
-            JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
-          if (resolvedChanged) {
-            const validation = parameters.safeParse(resolvedArgs);
-            if (!validation.success) {
-              throw new Error(
-                `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
-              );
-            }
+        const aiToolDefinition = toolDefinition as AiSdkToolDefinition;
+        const validationSchema = aiToolDefinition.baseInputSchema ?? aiToolDefinition.parameters;
+        const resolvedChanged =
+          JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
+
+        if (artifactParser && validationSchema?.safeParse && resolvedChanged) {
+          const validation = validationSchema.safeParse(resolvedArgs);
+          if (!validation.success) {
+            throw new Error(
+              `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
+            );
           }
         }
 
