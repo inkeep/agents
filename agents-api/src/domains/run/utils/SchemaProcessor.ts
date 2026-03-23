@@ -1,4 +1,7 @@
-import { stripUnsupportedConstraints } from '@inkeep/agents-core';
+import {
+  makeAllPropertiesRequired as makeAllPropertiesRequiredCore,
+  stripUnsupportedConstraints,
+} from '@inkeep/agents-core';
 import jmespath from 'jmespath';
 import type { JSONSchema } from 'zod/v4/core';
 import { getLogger } from '../../../logger';
@@ -227,59 +230,12 @@ export class SchemaProcessor {
 
   /**
    * Makes all properties required recursively throughout the schema.
-   * This ensures compatibility across all LLM providers (OpenAI/Azure require it, Anthropic accepts it).
+   * Delegates to the shared `makeAllPropertiesRequired` utility from agents-core.
    */
   static makeAllPropertiesRequired<
     T extends JSONSchema.BaseSchema | Record<string, unknown> | null | undefined,
   >(schema: T): T {
-    if (!schema || typeof schema !== 'object') {
-      return schema;
-    }
-
-    const normalized: any = { ...schema };
-
-    if (normalized.properties && typeof normalized.properties === 'object') {
-      const originalRequired: string[] = Array.isArray(normalized.required)
-        ? normalized.required
-        : [];
-      normalized.required = Object.keys(normalized.properties);
-
-      const normalizedProperties: any = {};
-      for (const [key, value] of Object.entries(normalized.properties)) {
-        const prop = value as Record<string, unknown>;
-        const processed = SchemaProcessor.makeAllPropertiesRequired(prop);
-        const alreadyNullable =
-          (Array.isArray(processed.anyOf) &&
-            processed.anyOf.some((s: any) => s?.type === 'null')) ||
-          processed.nullable === true;
-        normalizedProperties[key] =
-          originalRequired.includes(key) || alreadyNullable
-            ? processed
-            : { anyOf: [processed, { type: 'null' }] };
-      }
-      normalized.properties = normalizedProperties;
-    }
-
-    if (normalized.items) {
-      normalized.items = SchemaProcessor.makeAllPropertiesRequired(normalized.items as any);
-    }
-    if (Array.isArray(normalized.anyOf)) {
-      normalized.anyOf = normalized.anyOf.map((s: any) =>
-        SchemaProcessor.makeAllPropertiesRequired(s)
-      );
-    }
-    if (Array.isArray(normalized.oneOf)) {
-      normalized.oneOf = normalized.oneOf.map((s: any) =>
-        SchemaProcessor.makeAllPropertiesRequired(s)
-      );
-    }
-    if (Array.isArray(normalized.allOf)) {
-      normalized.allOf = normalized.allOf.map((s: any) =>
-        SchemaProcessor.makeAllPropertiesRequired(s)
-      );
-    }
-
-    return normalized;
+    return makeAllPropertiesRequiredCore(schema as Record<string, unknown>) as T;
   }
 
   /**
