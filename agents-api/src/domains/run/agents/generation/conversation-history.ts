@@ -1,11 +1,11 @@
 import type { FilePart } from '@inkeep/agents-core';
-import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
-import { getLogger } from '../../../../logger';
 import {
   type ContextBreakdown,
   calculateBreakdownTotal,
   estimateTokens,
 } from '@inkeep/agents-core';
+import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
+import { getLogger } from '../../../../logger';
 import {
   createDefaultConversationHistoryConfig,
   getConversationHistoryWithCompression,
