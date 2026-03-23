@@ -1,17 +1,19 @@
 import { Info } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 function SectionTitle({ title, tooltip }: { title: string; tooltip?: React.ReactNode }) {
   return (
     <h3 className="text-sm font-semibold flex items-center">
       {title}
       {tooltip && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Info className="w-3 h-3 text-muted-foreground ml-1" />
-          </TooltipTrigger>
-          <TooltipContent>{tooltip}</TooltipContent>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="w-3 h-3 text-muted-foreground ml-1" />
+            </TooltipTrigger>
+            <TooltipContent>{tooltip}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}{' '}
     </h3>
   );

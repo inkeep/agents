@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSkillsQuery } from '@/lib/query/skills';
 import { cn } from '@/lib/utils';
@@ -105,21 +105,24 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
         <div className="border rounded-md text-xs">
           <div className="flex gap-2 px-3 py-2.5 font-medium text-muted-foreground rounded-t-md">
             Skill
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {/* use span instead of button */}
-                <span className="cursor-help ml-auto">Always loaded</span>
-              </TooltipTrigger>
-              <TooltipContent>
-                When enabled, this skill is included in every prompt. Disable to load it on demand.
-                <ExternalLink
-                  href={`${DOCS_BASE_URL}/visual-builder/skills#always-loaded-and-on-demand-skills`}
-                  className="text-xs normal-case inline"
-                >
-                  Learn more
-                </ExternalLink>
-              </TooltipContent>
-            </Tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* use span instead of button */}
+                  <span className="cursor-help ml-auto">Always loaded</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  When enabled, this skill is included in every prompt. Disable to load it on
+                  demand.
+                  <ExternalLink
+                    href={`${DOCS_BASE_URL}/visual-builder/skills#always-loaded-and-on-demand-skills`}
+                    className="text-xs normal-case inline"
+                  >
+                    Learn more
+                  </ExternalLink>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <ul>
             {selectedSkills.map((skill) => (

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   type FieldObject,
   fieldsToJsonSchema,
@@ -84,22 +84,24 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
     <div className="flex gap-2 items-center" style={{ marginLeft: indentStyle }}>
       {prefix ||
         (hasInPreview && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
-              <div>
-                <Checkbox
-                  // !! fix warning: Checkbox is changing from uncontrolled to controlled.
-                  checked={!!field.isPreview}
-                  onCheckedChange={(checked) =>
-                    updateField(field.id, { isPreview: checked === true })
-                  }
-                  disabled={readOnly}
-                />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Mark this field as available immediately in UI</TooltipContent>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
+                <div>
+                  <Checkbox
+                    // !! fix warning: Checkbox is changing from uncontrolled to controlled.
+                    checked={!!field.isPreview}
+                    onCheckedChange={(checked) =>
+                      updateField(field.id, { isPreview: checked === true })
+                    }
+                    disabled={readOnly}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Mark this field as available immediately in UI</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ))}
       <PropertyIcon type={field.type} />
       <SelectType
@@ -133,36 +135,40 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
       {!prefix && !readOnly && (
         <>
           {!allRequired && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
+                  <div>
+                    <Checkbox
+                      checked={field.isRequired}
+                      onCheckedChange={(checked) =>
+                        updateField(field.id, { isRequired: checked === true })
+                      }
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>Mark this field as required</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
-                <div>
-                  <Checkbox
-                    checked={field.isRequired}
-                    onCheckedChange={(checked) =>
-                      updateField(field.id, { isRequired: checked === true })
-                    }
-                  />
-                </div>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => {
+                    removeField(field.id);
+                  }}
+                >
+                  <TrashIcon />
+                </Button>
               </TooltipTrigger>
-              <TooltipContent>Mark this field as required</TooltipContent>
+              <TooltipContent>Remove property</TooltipContent>
             </Tooltip>
-          )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                size="icon-sm"
-                variant="ghost"
-                onClick={() => {
-                  removeField(field.id);
-                }}
-              >
-                <TrashIcon />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Remove property</TooltipContent>
-          </Tooltip>
+          </TooltipProvider>
         </>
       )}
     </div>
@@ -304,23 +310,25 @@ export const JsonSchemaBuilder: FC<{
               <TableHead className="w-px p-0">
                 <div className="flex items-center gap-1">
                   In Preview
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="size-3" />
-                    </TooltipTrigger>
-                    <TooltipContent className="text-wrap">
-                      Specifies which fields will be immediately available.{' '}
-                      <a
-                        target="_blank"
-                        rel="noopener"
-                        href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#preview-fields"
-                        className="underline text-primary"
-                      >
-                        Learn more
-                      </a>
-                      .
-                    </TooltipContent>
-                  </Tooltip>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="size-3" />
+                      </TooltipTrigger>
+                      <TooltipContent className="text-wrap">
+                        Specifies which fields will be immediately available.{' '}
+                        <a
+                          target="_blank"
+                          rel="noopener"
+                          href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#preview-fields"
+                          className="underline text-primary"
+                        >
+                          Learn more
+                        </a>
+                        .
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </TableHead>
             )}

@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlowButton } from '@/components/agent/flow-button';
 import { Spinner } from '@/components/ui/spinner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { cn, isMacOs } from '@/lib/utils';
@@ -72,22 +72,24 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
         <>
           <ShipModal />
           {isDirty || hasOpenModelConfig ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {/**
-                 * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
-                 * don't trigger pointer events in the browser
-                 **/}
-                <div>{previewButton}</div>
-              </TooltipTrigger>
-              <TooltipContent>
-                {hasOpenModelConfig
-                  ? 'Please complete model configuration before trying the agent.'
-                  : isDirty
-                    ? 'Please save your changes before trying the agent.'
-                    : 'Please save the agent to try it.'}
-              </TooltipContent>
-            </Tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/**
+                   * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
+                   * don't trigger pointer events in the browser
+                   **/}
+                  <div>{previewButton}</div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {hasOpenModelConfig
+                    ? 'Please complete model configuration before trying the agent.'
+                    : isDirty
+                      ? 'Please save your changes before trying the agent.'
+                      : 'Please save the agent to try it.'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ) : (
             previewButton
           )}

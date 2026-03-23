@@ -6,7 +6,7 @@ import { ColorPickerInput } from '@/components/ui/color-picker';
 import { Form, FormItem } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export enum ChatUIComponent {
   EMBEDDED_CHAT = 'Embedded Chat',
@@ -61,14 +61,16 @@ export const ChatUIPreviewForm = ({ form }: ChatUIPreviewFormProps) => {
         <FormItem className="relative flex flex-row gap-2 items-center w-full justify-between">
           <div className="flex flex-row gap-2 items-center">
             <Label>Show data operations</Label>
-            <Tooltip>
-              <TooltipTrigger>
-                <Info className="w-3 h-3 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>
-                Controls whether data operations are included in the response stream.
-              </TooltipContent>
-            </Tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="w-3 h-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Controls whether data operations are included in the response stream.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <Controller
             control={form.control}

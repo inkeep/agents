@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
@@ -108,16 +108,18 @@ export function MetadataEditor() {
         <div className="space-y-2">
           <div className="text-sm leading-none font-medium flex items-center gap-1">
             Chat API Base URL
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="w-3 h-3 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>
-                Use this endpoint to chat with your agent by appending /run/api/chat or connect it
-                to the Inkeep widget via the baseUrl prop and specifying the appId. Supports
-                streaming responses with the Vercel AI SDK data stream protocol.
-              </TooltipContent>
-            </Tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-3 h-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Use this endpoint to chat with your agent by appending /run/api/chat or connect it
+                  to the Inkeep widget via the baseUrl prop and specifying the appId. Supports
+                  streaming responses with the Vercel AI SDK data stream protocol.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <CopyableSingleLineCode code={baseUrl} />
           {canUse && (

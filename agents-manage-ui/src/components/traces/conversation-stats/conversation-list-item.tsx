@@ -1,7 +1,7 @@
 import { Hash } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SLACK_BRAND_COLOR } from '@/constants/theme';
 import type { ConversationStats } from '@/lib/api/signoz-stats';
 import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
@@ -62,18 +62,20 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
                     return (
                       <>
                         <span className="text-gray-400 dark:text-white/40">•</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-gray-400 dark:text-white/40 cursor-help">
-                              {formatDateAgo(isoString)}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">
-                              Started: {formatDateTime(isoString, { local: true })}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-gray-400 dark:text-white/40 cursor-help">
+                                {formatDateAgo(isoString)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">
+                                Started: {formatDateTime(isoString, { local: true })}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </>
                     );
                   } catch (error) {
@@ -90,18 +92,20 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
           </div>
           <div className="flex items-center gap-2">
             {toolsUsed.length > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="primary" className="text-xs">
-                    {toolsUsed.length} tool{toolsUsed.length > 1 ? 's' : ''} used
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs font-mono text-muted-foreground">
-                    {toolsUsed.map((tool) => tool.name).join(', ')}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="primary" className="text-xs">
+                      {toolsUsed.length} tool{toolsUsed.length > 1 ? 's' : ''} used
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      {toolsUsed.map((tool) => tool.name).join(', ')}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             {hasErrors && (
               <Badge variant="error" className="flex items-center gap-1">

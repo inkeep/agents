@@ -50,7 +50,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { WorkAppIcon } from '../../common/components/work-app-icon';
 import { slackApi } from '../api/slack-api';
 import { useSlack } from '../context/slack-provider';
@@ -228,53 +228,59 @@ export function WorkspaceHero() {
                     </a>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge
-                          variant={
-                            health.healthy ? 'success' : health.checking ? 'warning' : 'error'
-                          }
-                        >
-                          {health.checking && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                          {health.checking ? 'Checking...' : health.healthy ? 'Healthy' : 'Issue'}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {health.healthy ? (
-                          <p>Bot is connected and working</p>
-                        ) : (
-                          <p>{health.error || 'Bot connection issue'}</p>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant={
+                              health.healthy ? 'success' : health.checking ? 'warning' : 'error'
+                            }
+                          >
+                            {health.checking && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                            {health.checking ? 'Checking...' : health.healthy ? 'Healthy' : 'Issue'}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {health.healthy ? (
+                            <p>Bot is connected and working</p>
+                          ) : (
+                            <p>{health.error || 'Bot connection issue'}</p>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     {workspace.hasDefaultAgent ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="code" className="text-xs">
-                            {workspace.defaultAgentName}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            The default agent for all <code>@Inkeep</code> mentions and{' '}
-                            <code>/inkeep</code> commands in {workspace.teamName}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="code" className="text-xs">
+                              {workspace.defaultAgentName}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              The default agent for all <code>@Inkeep</code> mentions and{' '}
+                              <code>/inkeep</code> commands in {workspace.teamName}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     ) : (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="warning" className="text-xs">
-                            No default agent
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            Channels without a dedicated agent won&apos;t respond to{' '}
-                            <code>@Inkeep</code> mentions or <code>/inkeep</code> commands
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="warning" className="text-xs">
+                              No default agent
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              Channels without a dedicated agent won&apos;t respond to{' '}
+                              <code>@Inkeep</code> mentions or <code>/inkeep</code> commands
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                   </div>
                 </div>

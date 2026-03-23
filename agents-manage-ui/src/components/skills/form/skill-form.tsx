@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
 import type { Skill } from '@/lib/types/skills';
@@ -126,19 +126,22 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           label={
             <>
               Description
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="size-3 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent className="text-wrap">
-                  <Check className="inline size-3 text-green-500" /> Good example: Extracts text and
-                  tables from PDF files, fills PDF forms, and merges multiple PDFs. Use when working
-                  with PDF documents or when the user mentions PDFs, forms, or document extraction.
-                  <br />
-                  <br />
-                  <X className="inline size-3 text-red-500" /> Bad example: Helps with PDFs.
-                </TooltipContent>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="size-3 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="text-wrap">
+                    <Check className="inline size-3 text-green-500" /> Good example: Extracts text
+                    and tables from PDF files, fills PDF forms, and merges multiple PDFs. Use when
+                    working with PDF documents or when the user mentions PDFs, forms, or document
+                    extraction.
+                    <br />
+                    <br />
+                    <X className="inline size-3 text-red-500" /> Bad example: Helps with PDFs.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </>
           }
           placeholder="High-level summary of what this skill enforces."

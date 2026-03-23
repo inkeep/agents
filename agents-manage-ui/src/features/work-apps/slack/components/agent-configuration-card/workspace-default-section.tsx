@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { ChannelAccessPopover } from './channel-access-popover';
 import type { DefaultAgentConfig, SlackAgentOption } from './types';
@@ -83,19 +83,21 @@ export function WorkspaceDefaultSection({
               </Button>
             </PopoverTrigger>
             {defaultAgent && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={onRemoveDefaultAgent}
-                    variant="outline"
-                    aria-label="Remove default agent"
-                    type="button"
-                  >
-                    <X />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Remove the default agent for this workspace.</TooltipContent>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={onRemoveDefaultAgent}
+                      variant="outline"
+                      aria-label="Remove default agent"
+                      type="button"
+                    >
+                      <X />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Remove the default agent for this workspace.</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </ButtonGroup>
           <PopoverContent className="w-full p-0" align="start">

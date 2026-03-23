@@ -14,7 +14,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
@@ -379,63 +379,65 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
             {/* Header */}
             <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md border-b">
               <div>Tool</div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1.5 cursor-help">
-                    <Shield className="w-3 h-3" />
-                    Needs Approval?
-                    {(() => {
-                      const enabledToolNames =
-                        selectedTools === null
-                          ? activeTools?.map((tool) => tool.name) || []
-                          : selectedTools.filter((toolName) =>
-                              activeTools?.some((tool) => tool.name === toolName)
-                            );
-                      const hasEnabledTools = enabledToolNames.length > 0;
-                      const allEnabledNeedApproval =
-                        hasEnabledTools &&
-                        enabledToolNames.every(
-                          (toolName) => currentToolPolicies[toolName]?.needsApproval
-                        );
-                      const someEnabledNeedApproval =
-                        hasEnabledTools &&
-                        enabledToolNames.some(
-                          (toolName) => currentToolPolicies[toolName]?.needsApproval
-                        );
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1.5 cursor-help">
+                      <Shield className="w-3 h-3" />
+                      Needs Approval?
+                      {(() => {
+                        const enabledToolNames =
+                          selectedTools === null
+                            ? activeTools?.map((tool) => tool.name) || []
+                            : selectedTools.filter((toolName) =>
+                                activeTools?.some((tool) => tool.name === toolName)
+                              );
+                        const hasEnabledTools = enabledToolNames.length > 0;
+                        const allEnabledNeedApproval =
+                          hasEnabledTools &&
+                          enabledToolNames.every(
+                            (toolName) => currentToolPolicies[toolName]?.needsApproval
+                          );
+                        const someEnabledNeedApproval =
+                          hasEnabledTools &&
+                          enabledToolNames.some(
+                            (toolName) => currentToolPolicies[toolName]?.needsApproval
+                          );
 
-                      return (
-                        <Checkbox
-                          checked={
-                            allEnabledNeedApproval
-                              ? true
-                              : someEnabledNeedApproval
-                                ? 'indeterminate'
-                                : false
-                          }
-                          disabled={!hasEnabledTools}
-                          onCheckedChange={() => toggleAllApprovalsForEnabledTools()}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label="Toggle approval for all enabled tools"
-                        />
-                      );
-                    })()}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <div className="text-sm">
-                    Tools requiring approval will pause execution and wait for user confirmation
-                    before running. Use the checkbox to toggle approval for all enabled tools.{' '}
-                    <a
-                      href="https://docs.inkeep.com/visual-builder/tools/tool-approvals"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:no-underline"
-                    >
-                      Learn more
-                    </a>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+                        return (
+                          <Checkbox
+                            checked={
+                              allEnabledNeedApproval
+                                ? true
+                                : someEnabledNeedApproval
+                                  ? 'indeterminate'
+                                  : false
+                            }
+                            disabled={!hasEnabledTools}
+                            onCheckedChange={() => toggleAllApprovalsForEnabledTools()}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Toggle approval for all enabled tools"
+                          />
+                        );
+                      })()}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <div className="text-sm">
+                      Tools requiring approval will pause execution and wait for user confirmation
+                      before running. Use the checkbox to toggle approval for all enabled tools.{' '}
+                      <a
+                        href="https://docs.inkeep.com/visual-builder/tools/tool-approvals"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:no-underline"
+                      >
+                        Learn more
+                      </a>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
             {/* Active tools */}
@@ -499,25 +501,27 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
                       checked={true}
                       onCheckedChange={() => toggleToolSelection(toolName)}
                     />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex-1 min-w-0 flex items-center gap-2">
-                          <div className="flex-1 max-w-full">
-                            <div className="text-sm font-medium truncate">{toolName}</div>
-                            <div className="flex items-center gap-1">
-                              <CircleAlert className="w-3 h-3 text-amber-500 shrink-0" />
-                              <div className="text-xs text-amber-600 dark:text-amber-400">
-                                Tool no longer available
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex-1 min-w-0 flex items-center gap-2">
+                            <div className="flex-1 max-w-full">
+                              <div className="text-sm font-medium truncate">{toolName}</div>
+                              <div className="flex items-center gap-1">
+                                <CircleAlert className="w-3 h-3 text-amber-500 shrink-0" />
+                                <div className="text-xs text-amber-600 dark:text-amber-400">
+                                  Tool no longer available
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs text-sm">
-                        This tool was selected but is not available in the MCP server. Uncheck to
-                        remove it.
-                      </TooltipContent>
-                    </Tooltip>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-sm">
+                          This tool was selected but is not available in the MCP server. Uncheck to
+                          remove it.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
                   <div className="items-center">

@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import type { FC, ReactNode } from 'react';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { cn, createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
@@ -40,17 +40,19 @@ const TruncateToolBadge: FC<{
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="relative max-w-full">
-          <TruncateBadge>{label}</TruncateBadge>
-          <div className="absolute -top-1 -right-2 rounded-full bg-background p-0.5">
-            <Shield className="h-3 w-3 text-muted-foreground" />
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="relative max-w-full">
+            <TruncateBadge>{label}</TruncateBadge>
+            <div className="absolute -top-1 -right-2 rounded-full bg-background p-0.5">
+              <Shield className="h-3 w-3 text-muted-foreground" />
+            </div>
           </div>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent>Requires approval</TooltipContent>
-    </Tooltip>
+        </TooltipTrigger>
+        <TooltipContent>Requires approval</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 

@@ -1,7 +1,7 @@
 import { AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils/format-date';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface ExpirationIndicatorProps {
   expiresAt: string | undefined;
@@ -50,36 +50,42 @@ export function ExpirationIndicator({ expiresAt }: ExpirationIndicatorProps) {
       )}
 
       {expired && (
-        <Tooltip>
-          <TooltipTrigger>
-            <Badge variant="error">Expired</Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>This API key expired on {expiresAt ? formatDate(expiresAt) : ''}</p>
-          </TooltipContent>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge variant="error">Expired</Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>This API key expired on {expiresAt ? formatDate(expiresAt) : ''}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
 
       {criticallyExpiring && (
-        <Tooltip>
-          <TooltipTrigger>
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Expires in less than 24 hours</p>
-          </TooltipContent>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <AlertCircle className="h-4 w-4 text-red-500" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Expires in less than 24 hours</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
 
       {expiringSoon && (
-        <Tooltip>
-          <TooltipTrigger>
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Expires in less than 7 days</p>
-          </TooltipContent>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Expires in less than 7 days</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
     </div>
   );

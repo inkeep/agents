@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { updateDataComponent } from '@/lib/api/data-components';
@@ -193,32 +193,34 @@ export function ComponentRenderGenerator({
         <div className="space-y-2">
           <div className="flex items-center gap-1">
             <h3 className="text-md font-medium">Component Renderer</h3>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="w-3 h-3 text-muted-foreground ml-1" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="text-sm text-muted-foreground">
-                  Generates a React/Tailwind component from your schema using your project's base
-                  model
-                  {baseModel && (
-                    <>
-                      {' '}
-                      <Badge variant="code">{baseModel}</Badge>
-                    </>
-                  )}
-                  .
-                  <div className="flex mt-1">
-                    <ExternalLink
-                      href={`/${tenantId}/projects/${projectId}/settings`}
-                      className="text-xs ml-0"
-                    >
-                      Edit in settings
-                    </ExternalLink>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-3 h-3 text-muted-foreground ml-1" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="text-sm text-muted-foreground">
+                    Generates a React/Tailwind component from your schema using your project's base
+                    model
+                    {baseModel && (
+                      <>
+                        {' '}
+                        <Badge variant="code">{baseModel}</Badge>
+                      </>
+                    )}
+                    .
+                    <div className="flex mt-1">
+                      <ExternalLink
+                        href={`/${tenantId}/projects/${projectId}/settings`}
+                        className="text-xs ml-0"
+                      >
+                        Edit in settings
+                      </ExternalLink>
+                    </div>
                   </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
         <div className="flex gap-2">

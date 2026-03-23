@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 export function ActiveToolBadge({
   toolName,
@@ -24,12 +24,14 @@ export function ActiveToolBadge({
 
   if (!isAvailable) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>{badge}</TooltipTrigger>
-        <TooltipContent>
-          <p>This tool is not available in the MCP server.</p>
-        </TooltipContent>
-      </Tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{badge}</TooltipTrigger>
+          <TooltipContent>
+            <p>This tool is not available in the MCP server.</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 

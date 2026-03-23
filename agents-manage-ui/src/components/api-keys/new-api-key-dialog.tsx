@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../ui/dialog';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { ApiKeyDisplay } from './api-key-display';
 import { ApiKeyForm } from './form/api-key-form';
 
@@ -40,22 +40,24 @@ export function NewApiKeyDialog({ agentsOptions }: NewApiKeyDialogProps) {
     <>
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>
-              <DialogTrigger asChild>
-                <Button disabled={!hasAgents}>
-                  <Plus className="size-4" /> New API key
-                </Button>
-              </DialogTrigger>
-            </div>
-          </TooltipTrigger>
-          {!hasAgents && (
-            <TooltipContent className="max-w-3xs">
-              Please create an agent first, then you will be able to create an API key.
-            </TooltipContent>
-          )}
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <DialogTrigger asChild>
+                  <Button disabled={!hasAgents}>
+                    <Plus className="size-4" /> New API key
+                  </Button>
+                </DialogTrigger>
+              </div>
+            </TooltipTrigger>
+            {!hasAgents && (
+              <TooltipContent className="max-w-3xs">
+                Please create an agent first, then you will be able to create an API key.
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New API key</DialogTitle>

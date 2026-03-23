@@ -1,6 +1,6 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code, Shield } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { cn } from '@/lib/utils';
 import { toolPoliciesNeedApproval } from '@/lib/utils/tool-policies';
@@ -44,18 +44,20 @@ export function FunctionToolNode({
               </div>
               <BaseNodeHeaderTitle className="flex-1 truncate">{name}</BaseNodeHeaderTitle>
               {needsApproval && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="shrink-0 text-muted-foreground"
-                      title="Requires approval"
-                    >
-                      <Shield className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Requires approval</TooltipContent>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="shrink-0 text-muted-foreground"
+                        title="Requires approval"
+                      >
+                        <Shield className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Requires approval</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
             {description && (

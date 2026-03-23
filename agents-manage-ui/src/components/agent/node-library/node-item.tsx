@@ -1,7 +1,7 @@
 import { GripVertical, type LucideIcon } from 'lucide-react';
 import type { ComponentProps, FC, ReactNode } from 'react';
 import { FlowButton } from '@/components/agent/flow-button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 export type NodeItem = {
@@ -47,12 +47,14 @@ export const NodeItem: FC<NodeItemProps> = ({ node, className }) => {
 
   if (disabled && disabledTooltip) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right" sideOffset={8}>
-          {disabledTooltip}
-        </TooltipContent>
-      </Tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>
+            {disabledTooltip}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 

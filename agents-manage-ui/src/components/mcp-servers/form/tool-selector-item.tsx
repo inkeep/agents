@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ToolOverrideDiff } from './tool-override-diff';
 
 interface ToolSelectorItemProps {
@@ -103,14 +103,16 @@ export function ToolSelectorItem({
             </div>
           </div>
 
-          <Tooltip delayDuration={800}>
-            <TooltipTrigger asChild>
-              <p className="text-sm text-muted-foreground line-clamp-1">{description}</p>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" align="start">
-              {description}
-            </TooltipContent>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip delayDuration={800}>
+              <TooltipTrigger asChild>
+                <p className="text-sm text-muted-foreground line-clamp-1">{description}</p>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start">
+                {description}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
       {isCompareOpen && override && (
