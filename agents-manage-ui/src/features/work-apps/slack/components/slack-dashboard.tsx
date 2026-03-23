@@ -63,73 +63,71 @@ export function SlackDashboard() {
   }, [installedWorkspaces]);
 
   return (
-    <TooltipProvider>
-      <div className="space-y-6 h-full flex flex-col">
-        {/* Header */}
-        <PageHeader
-          title={
-            <div className="flex items-center gap-2">
-              Slack Integration
-              {!isLoadingRole && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant={isAdmin ? 'primary' : 'code'} className="uppercase">
-                      {isAdmin ? 'Admin' : 'Member'}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isAdmin
-                      ? 'You can manage workspace settings and all channel configurations'
-                      : 'You can configure channels you are a member of'}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-          }
-          description={
-            <>
-              {isAdmin
-                ? 'Manage workspace settings, channel configurations, and linked users.'
-                : 'Configure AI agents for your Slack channels.'}
-              <ExternalLink href={`${DOCS_BASE_URL}/talk-to-your-agents/slack/overview`}>
-                Learn more
-              </ExternalLink>
-            </>
-          }
-        />
-
-        {/* Workspace Status */}
-        <WorkspaceHero />
-
-        {/* Main Content - Only show when workspace is connected */}
-        {hasWorkspace && (
-          <>
-            {isLoadingRole ? (
-              <div className="grid gap-6">
-                <Skeleton className="h-52 w-full rounded-lg" />
-                <Skeleton className="h-64 w-full rounded-lg" />
-              </div>
-            ) : isAdmin ? (
-              /* Admin Dashboard View */
-              <div className="grid gap-6">
-                {/* Agent Configuration  */}
-                <AgentConfigurationCard />
-                <LinkedUsersSection />
-                {/* Join from Workspace Toggle */}
-                <JoinFromWorkspaceToggle />
-              </div>
-            ) : (
-              /* Member Dashboard View */
-              <div className="grid gap-6 ">
-                {/* Agent Configuration */}
-                <AgentConfigurationCard />
-                {/* Sidebar - Member Tools */}
-                <MyLinkStatus currentUserId={user?.id} />
-              </div>
+    <div className="space-y-6 h-full flex flex-col">
+      {/* Header */}
+      <PageHeader
+        title={
+          <div className="flex items-center gap-2">
+            Slack Integration
+            {!isLoadingRole && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant={isAdmin ? 'primary' : 'code'} className="uppercase">
+                    {isAdmin ? 'Admin' : 'Member'}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isAdmin
+                    ? 'You can manage workspace settings and all channel configurations'
+                    : 'You can configure channels you are a member of'}
+                </TooltipContent>
+              </Tooltip>
             )}
+          </div>
+        }
+        description={
+          <>
+            {isAdmin
+              ? 'Manage workspace settings, channel configurations, and linked users.'
+              : 'Configure AI agents for your Slack channels.'}
+            <ExternalLink href={`${DOCS_BASE_URL}/talk-to-your-agents/slack/overview`}>
+              Learn more
+            </ExternalLink>
           </>
-        )}
-      </div>
-    </TooltipProvider>
+        }
+      />
+
+      {/* Workspace Status */}
+      <WorkspaceHero />
+
+      {/* Main Content - Only show when workspace is connected */}
+      {hasWorkspace && (
+        <>
+          {isLoadingRole ? (
+            <div className="grid gap-6">
+              <Skeleton className="h-52 w-full rounded-lg" />
+              <Skeleton className="h-64 w-full rounded-lg" />
+            </div>
+          ) : isAdmin ? (
+            /* Admin Dashboard View */
+            <div className="grid gap-6">
+              {/* Agent Configuration  */}
+              <AgentConfigurationCard />
+              <LinkedUsersSection />
+              {/* Join from Workspace Toggle */}
+              <JoinFromWorkspaceToggle />
+            </div>
+          ) : (
+            /* Member Dashboard View */
+            <div className="grid gap-6 ">
+              {/* Agent Configuration */}
+              <AgentConfigurationCard />
+              {/* Sidebar - Member Tools */}
+              <MyLinkStatus currentUserId={user?.id} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

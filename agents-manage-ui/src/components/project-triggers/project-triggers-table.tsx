@@ -159,18 +159,16 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
         enableSorting: false,
         cell: ({ row }) =>
           row.original.runAsUserId ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
-                    {getUserDisplayName(row.original.runAsUserId)}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <code className="font-mono text-xs">{row.original.runAsUserId}</code>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
+                  {getUserDisplayName(row.original.runAsUserId)}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <code className="font-mono text-xs">{row.original.runAsUserId}</code>
+              </TooltipContent>
+            </Tooltip>
           ) : (
             <span className="text-muted-foreground">—</span>
           ),

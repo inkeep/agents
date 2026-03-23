@@ -237,18 +237,16 @@ export function ProjectScheduledTriggersTable({
         enableSorting: false,
         cell: ({ row }) =>
           row.original.runAsUserId ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
-                    {getUserDisplayName(row.original.runAsUserId)}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <code className="font-mono text-xs">{row.original.runAsUserId}</code>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
+                  {getUserDisplayName(row.original.runAsUserId)}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <code className="font-mono text-xs">{row.original.runAsUserId}</code>
+              </TooltipContent>
+            </Tooltip>
           ) : (
             <span className="text-muted-foreground">—</span>
           ),
@@ -277,21 +275,19 @@ export function ProjectScheduledTriggersTable({
         enableSorting: false,
         cell: ({ row }) =>
           row.original.cronExpression ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
-                    {getCronDescription(row.original.cronExpression)}{' '}
-                    {getTimezoneAbbreviation(getTriggerTimezone(row.original))}
-                  </code>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <code className="font-mono">
-                    {row.original.cronExpression} ({getTriggerTimezone(row.original)})
-                  </code>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
+                  {getCronDescription(row.original.cronExpression)}{' '}
+                  {getTimezoneAbbreviation(getTriggerTimezone(row.original))}
+                </code>
+              </TooltipTrigger>
+              <TooltipContent>
+                <code className="font-mono">
+                  {row.original.cronExpression} ({getTriggerTimezone(row.original)})
+                </code>
+              </TooltipContent>
+            </Tooltip>
           ) : (
             <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
               {row.original.runAt ? formatDateTimeLocal(row.original.runAt) : '—'}

@@ -27,18 +27,16 @@ export function NangoProvidersGrid({ providers }: NangoProvidersGridProps) {
   const renderProviderHeader = (provider: ApiProvider) => (
     <div className="flex items-center gap-3 overflow-hidden">
       <ProviderIcon provider={provider.name} size={20} className="flex-shrink-0" />
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <CardTitle className="text-sm font-medium leading-tight truncate flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-              {provider.display_name || provider.name}
-            </CardTitle>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{provider.display_name || provider.name}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <CardTitle className="text-sm font-medium leading-tight truncate flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+            {provider.display_name || provider.name}
+          </CardTitle>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{provider.display_name || provider.name}</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 
