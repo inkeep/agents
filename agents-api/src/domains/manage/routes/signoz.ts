@@ -12,7 +12,7 @@ const logger = getLogger('signoz-proxy');
 type Ctx = Context<{ Variables: ManageAppVariables }>;
 
 function getSignozConfig() {
-  const url = env.SIGNOZ_URL || env.PUBLIC_SIGNOZ_URL;
+  const url = env.SIGNOZ_URL;
   const apiKey = env.SIGNOZ_API_KEY;
   if (!url || !apiKey) return null;
   return {

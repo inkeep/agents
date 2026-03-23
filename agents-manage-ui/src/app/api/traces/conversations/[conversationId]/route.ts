@@ -14,7 +14,10 @@ import {
   AI_OPERATIONS,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
+  ORDER_DIRECTIONS,
+  QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
+  QUERY_TYPES,
   REQUEST_TYPES,
   SIGNALS,
   SPAN_KEYS,
@@ -91,7 +94,7 @@ async function signozQuery(
     });
 
     const json = response.data;
-    const results = json?.data?.data?.results ?? json?.data?.results ?? [];
+    const results = json?.data?.data?.results ?? [];
     logger.debug(
       {
         responseData: results.map((r: any) => ({ queryName: r.queryName, count: r.rows?.length })),
@@ -161,16 +164,16 @@ function buildQueryEnvelope(
   limit = 10000
 ): any {
   return {
-    type: 'builder_query',
+    type: QUERY_TYPES.BUILDER_QUERY,
     spec: {
       name,
       signal: SIGNALS.TRACES,
       filter: { expression: filterExpression },
       selectFields,
-      order: [{ key: { name: SPAN_KEYS.TIMESTAMP }, direction: 'desc' }],
+      order: [{ key: { name: SPAN_KEYS.TIMESTAMP }, direction: ORDER_DIRECTIONS.DESC }],
       limit,
-      stepInterval: 60,
-      disabled: false,
+      stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+      disabled: QUERY_DEFAULTS.DISABLED,
     },
   };
 }
