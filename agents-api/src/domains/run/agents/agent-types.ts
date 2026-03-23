@@ -33,7 +33,14 @@ export type AiSdkImagePart = {
   experimental_providerMetadata?: { openai?: { imageDetail?: ImageDetail } };
 };
 
-export type AiSdkContentPart = AiSdkTextPart | AiSdkImagePart;
+export type AiSdkFilePart = {
+  type: 'file';
+  data: string | URL;
+  mediaType: string;
+  filename?: string;
+};
+
+export type AiSdkContentPart = AiSdkTextPart | AiSdkImagePart | AiSdkFilePart;
 
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix

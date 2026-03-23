@@ -149,10 +149,7 @@ export async function runGenerate(
           .join('')
       : '';
   const userMessage = `${textParts}${dataContext}`;
-  const imageParts = userParts.filter(
-    (part): part is FilePart =>
-      part.kind === 'file' && part.file.mimeType?.startsWith('image/') === true
-  );
+  const fileParts = userParts.filter((part): part is FilePart => part.kind === 'file');
   const conversationIdForSpan = runtimeContext?.metadata?.conversationId;
 
   return tracer.startActiveSpan(
@@ -200,6 +197,13 @@ export async function runGenerate(
 
         const { primaryModelSettings, modelSettings, hasStructuredOutput, timeoutMs } =
           configureModelSettings(ctx);
+        const inlinePdfFileCount = fileParts.filter(
+          (part) => part.file.mimeType?.toLowerCase().startsWith('application/pdf') === true
+        ).length;
+        span.setAttributes({
+          'input.file_count': fileParts.length,
+          'input.pdf_file_count': inlinePdfFileCount,
+        });
         let response: ResolvedGenerationResponse;
         let textResponse: string;
 
@@ -207,7 +211,7 @@ export async function runGenerate(
           systemPrompt,
           conversationHistory,
           userMessage,
-          imageParts
+          fileParts
         );
 
         const { originalMessageCount, compressor } = setupCompression(

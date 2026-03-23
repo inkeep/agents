@@ -531,6 +531,7 @@ export async function dispatchExecution(params: {
     projectId,
     agentId,
     conversationId,
+    ref: resolvedRef,
     status: 'pending',
     requestPayload: payload,
     transformedPayload: transformedPayload as Record<string, unknown> | undefined,
@@ -875,19 +876,20 @@ export async function executeAgentAsync(params: {
         });
 
         await createMessage(runDbClient)({
-          id: generateId(),
-          tenantId,
-          projectId,
-          conversationId,
-          role: 'user',
-          content: {
-            text: userMessage,
-            parts: messageParts,
-          },
-          metadata: {
-            a2a_metadata: {
-              triggerId,
-              invocationId,
+          scopes: { tenantId, projectId },
+          data: {
+            id: generateId(),
+            conversationId,
+            role: 'user',
+            content: {
+              text: userMessage,
+              parts: messageParts,
+            },
+            metadata: {
+              a2a_metadata: {
+                triggerId,
+                invocationId,
+              },
             },
           },
         });

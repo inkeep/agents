@@ -31,14 +31,13 @@ async function AppsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/
   const { tenantId, projectId } = await params;
 
   try {
-    const [apps, agents, permissions] = await Promise.all([
+    const [apps, agents, { canUse }] = await Promise.all([
       fetchApps(tenantId, projectId),
       fetchAgents(tenantId, projectId),
       fetchProjectPermissions(tenantId, projectId),
     ]);
     const agentLookup = createLookup(agents.data);
     const agentOptions = createAgentOptions(agents.data);
-    const canUse = permissions.canUse;
     return (
       <>
         <PageHeader
@@ -46,12 +45,7 @@ async function AppsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/
           description={metadata.description}
           action={canUse ? <NewAppDialog agentOptions={agentOptions} /> : undefined}
         />
-        <AppsTable
-          apps={apps.data}
-          agentLookup={agentLookup}
-          agentOptions={agentOptions}
-          canUse={canUse}
-        />
+        <AppsTable apps={apps.data} agentLookup={agentLookup} agentOptions={agentOptions} />
       </>
     );
   } catch (error) {

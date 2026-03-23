@@ -15,10 +15,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { headersTemplate } from '@/lib/templates';
 import { createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
@@ -33,7 +33,9 @@ interface MCPServerNodeEditorProps {
 
 export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) {
   'use memo';
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { deleteNode } = useNodeEditor({ selectedNodeId: selectedNode.id });
   const { updateNodeData } = useReactFlow();
 
@@ -249,17 +251,15 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
 
   return (
     <div className="space-y-8">
-      {toolData?.imageUrl && (
-        <div className="flex items-center gap-2">
-          <MCPToolImage
-            imageUrl={toolData.imageUrl}
-            name={toolData.name}
-            size={32}
-            className="rounded-lg"
-          />
-          <span className="font-medium text-sm truncate">{toolData.name}</span>
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        <MCPToolImage
+          imageUrl={toolData.imageUrl}
+          name={toolData.name}
+          size={32}
+          className="rounded-lg"
+        />
+        <span className="font-medium text-sm truncate">{toolData.name}</span>
+      </div>
 
       {/* Warning banner for needs_auth status */}
       {toolData?.status === 'needs_auth' && (

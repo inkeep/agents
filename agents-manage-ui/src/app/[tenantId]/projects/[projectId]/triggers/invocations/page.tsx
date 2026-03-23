@@ -13,12 +13,7 @@ export const metadata = {
 
 export default async function ProjectScheduledTriggerInvocationsPage({
   params,
-}: {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-  }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/triggers/invocations'>) {
   const { tenantId, projectId } = await params;
 
   const invocations = await getProjectScheduledTriggerInvocationsAction(tenantId, projectId, {

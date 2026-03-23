@@ -2199,7 +2199,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           },
@@ -2259,7 +2260,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           },
@@ -2339,7 +2341,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           },
@@ -2370,7 +2373,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           }
@@ -5554,8 +5558,16 @@
           "data": {
             "items": {
               "properties": {
+                "authScheme": {
+                  "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
+                  "type": "string"
+                },
                 "category": {
                   "description": "Category of the MCP server (e.g., communication, project_management)",
+                  "type": "string"
+                },
+                "connectedAccountId": {
+                  "description": "The Composio connected account ID for the active connection",
                   "type": "string"
                 },
                 "description": {
@@ -6193,6 +6205,7 @@
               "forbidden",
               "not_found",
               "conflict",
+              "too_many_requests",
               "internal_server_error",
               "unprocessable_entity"
             ],
@@ -6869,6 +6882,16 @@
             "maxLength": 256,
             "type": "string"
           },
+          "ref": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResolvedRef"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "resolvedPayload": {
             "additionalProperties": {
               "nullable": true
@@ -6954,10 +6977,6 @@
       },
       "ScheduledTriggerUpdate": {
         "properties": {
-          "agentId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -7009,10 +7028,6 @@
             "nullable": true,
             "type": "object"
           },
-          "projectId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "retryDelaySeconds": {
             "maximum": 3600,
             "minimum": 10,
@@ -7027,10 +7042,6 @@
             "description": "One-time execution timestamp",
             "format": "date-time",
             "nullable": true,
-            "type": "string"
-          },
-          "tenantId": {
-            "maxLength": 256,
             "type": "string"
           },
           "timeoutSeconds": {
@@ -8858,8 +8869,16 @@
           "data": {
             "nullable": true,
             "properties": {
+              "authScheme": {
+                "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
+                "type": "string"
+              },
               "category": {
                 "description": "Category of the MCP server (e.g., communication, project_management)",
+                "type": "string"
+              },
+              "connectedAccountId": {
+                "description": "The Composio connected account ID for the active connection",
                 "type": "string"
               },
               "description": {
@@ -9844,6 +9863,16 @@
             "maxLength": 256,
             "type": "string"
           },
+          "ref": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResolvedRef"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "requestPayload": {
             "anyOf": [
               {
@@ -10037,10 +10066,6 @@
       },
       "TriggerUpdate": {
         "properties": {
-          "agentId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "authentication": {
             "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
@@ -10086,10 +10111,6 @@
           },
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
-          },
-          "projectId": {
-            "maxLength": 256,
-            "type": "string"
           },
           "runAsUserId": {
             "description": "User ID to run the webhook as",
@@ -10150,10 +10171,6 @@
           "signingSecretCredentialReferenceId": {
             "description": "Reference to credential containing signing secret",
             "nullable": true,
-            "type": "string"
-          },
-          "tenantId": {
-            "maxLength": 256,
             "type": "string"
           },
           "updatedAt": {
@@ -39191,6 +39208,33 @@
                               },
                               {
                                 "properties": {
+                                  "filename": {
+                                    "type": "string"
+                                  },
+                                  "mediaType": {
+                                    "type": "string"
+                                  },
+                                  "mimeType": {
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "file"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
                                   "text": {
                                     "type": "string"
                                   },
@@ -39199,8 +39243,7 @@
                                       {
                                         "enum": [
                                           "audio",
-                                          "video",
-                                          "file"
+                                          "video"
                                         ],
                                         "type": "string"
                                       },
@@ -39852,6 +39895,36 @@
                                     "required": [
                                       "type",
                                       "image_url"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  {
+                                    "properties": {
+                                      "file": {
+                                        "properties": {
+                                          "file_data": {
+                                            "pattern": "^data:application\\/pdf;base64,",
+                                            "type": "string"
+                                          },
+                                          "filename": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "file_data"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "file"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "file"
                                     ],
                                     "type": "object"
                                   }

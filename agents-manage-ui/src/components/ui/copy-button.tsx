@@ -22,6 +22,7 @@ export function CopyButton({
   const { isCopied, copyToClipboard } = useCopyToClipboard({});
   return (
     <Button
+      type="button"
       variant={variant}
       size={size}
       className={cn(

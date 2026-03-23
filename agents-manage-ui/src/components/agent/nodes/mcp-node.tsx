@@ -74,9 +74,8 @@ export function MCPNode({ data, selected }: NodeProps & { data: MCPNodeData }) {
 
   // Use live data if available, fall back to skeleton
   const toolData = liveToolData ?? skeletonToolData;
-
-  const name = data.name || `Tool: ${data.toolId}`;
-  const imageUrl = data.imageUrl ?? toolData?.imageUrl;
+  const name = toolData?.name || `Tool: ${data.toolId}`;
+  const imageUrl = toolData?.imageUrl;
 
   const activeTools = getActiveTools({
     availableTools: toolData?.availableTools,

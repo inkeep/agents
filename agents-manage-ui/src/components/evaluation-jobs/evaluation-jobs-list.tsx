@@ -1,9 +1,12 @@
 'use client';
 
+import type { ColumnDef } from '@tanstack/react-table';
 import { ChevronRight, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,14 +14,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 import type {
   EvaluationJobConfig,
@@ -74,143 +69,154 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
     }
   }, [jobConfigs, tenantId, projectId]);
 
-  const handleDelete = (jobConfig: EvaluationJobConfig) => {
-    setDeletingJobConfig(jobConfig);
-  };
+  const formatFilters = useCallback(
+    (filters: EvaluationJobConfig['jobFilters']): string => {
+      if (!filters) return 'No filters';
+      const filterCriteria = filters as EvaluationJobFilterCriteria;
+      const parts: string[] = [];
 
-  const formatFilters = (filters: EvaluationJobConfig['jobFilters']): string => {
-    if (!filters) return 'No filters';
-    const filterCriteria = filters as EvaluationJobFilterCriteria;
-    const parts: string[] = [];
+      if (
+        filterCriteria.datasetRunIds &&
+        Array.isArray(filterCriteria.datasetRunIds) &&
+        filterCriteria.datasetRunIds.length > 0
+      ) {
+        const runNames = filterCriteria.datasetRunIds
+          .map((id) => datasetRunNames[id] || `Run ${id.slice(0, 8)}`)
+          .join(', ');
+        parts.push(runNames);
+      }
 
-    if (
-      filterCriteria.datasetRunIds &&
-      Array.isArray(filterCriteria.datasetRunIds) &&
-      filterCriteria.datasetRunIds.length > 0
-    ) {
-      const runNames = filterCriteria.datasetRunIds
-        .map((id) => datasetRunNames[id] || `Run ${id.slice(0, 8)}`)
-        .join(', ');
-      parts.push(runNames);
-    }
+      if (filterCriteria.dateRange?.startDate && filterCriteria.dateRange?.endDate) {
+        const startDate = new Date(filterCriteria.dateRange.startDate);
+        const endDate = new Date(filterCriteria.dateRange.endDate);
 
-    if (filterCriteria.dateRange?.startDate && filterCriteria.dateRange?.endDate) {
-      // Parse ISO timestamps and display as date-only in local timezone
-      const startDate = new Date(filterCriteria.dateRange.startDate);
-      const endDate = new Date(filterCriteria.dateRange.endDate);
+        const startFormatted = startDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+        const endFormatted = endDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
 
-      const startFormatted = startDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-      const endFormatted = endDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
+        parts.push(`${startFormatted} - ${endFormatted}`);
+      }
 
-      parts.push(`${startFormatted} - ${endFormatted}`);
-    }
+      return parts.length > 0 ? parts.join(' • ') : 'No filters';
+    },
+    [datasetRunNames]
+  );
 
-    return parts.length > 0 ? parts.join(' • ') : 'No filters';
-  };
+  const columns = useMemo<ColumnDef<EvaluationJobConfig>[]>(
+    () => [
+      {
+        id: 'name',
+        accessorFn: (row) => formatFilters(row.jobFilters),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+        sortingFn: 'text',
+        cell: ({ row }) =>
+          isLoadingNames ? (
+            <Skeleton className="h-4 w-48" />
+          ) : (
+            <span className="font-medium">{formatFilters(row.original.jobFilters)}</span>
+          ),
+      },
+      {
+        id: 'updatedAt',
+        accessorFn: (row) => new Date(row.updatedAt),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
+        sortingFn: 'datetime',
+        cell: ({ row }) =>
+          isLoadingNames ? (
+            <Skeleton className="h-4 w-24" />
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              {formatDate(row.original.updatedAt)}
+            </span>
+          ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: ({ row }) =>
+          isLoadingNames ? (
+            <Skeleton className="h-4 w-8" />
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeletingJobConfig(row.original);
+                  }}
+                  variant="destructive"
+                >
+                  <Trash2 className="text-inherit" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ),
+      },
+      {
+        id: 'chevron',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: () =>
+          isLoadingNames ? (
+            <Skeleton className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          ),
+      },
+    ],
+    [isLoadingNames, formatFilters]
+  );
 
   return (
     <>
       <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow noHover>
-              <TableHead>Name</TableHead>
-              <TableHead>Updated</TableHead>
-              <TableHead className="w-12" />
-              <TableHead className="w-12" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {jobConfigs.length === 0 ? (
-              <TableRow noHover>
-                <TableCell colSpan={4} className="py-12">
-                  <div className="flex flex-col items-center gap-4">
-                    <span className="text-muted-foreground">No batch evaluations yet</span>
-                    <EvaluationJobFormDialog
-                      tenantId={tenantId}
-                      projectId={projectId}
-                      isOpen={isCreateDialogOpen}
-                      onOpenChange={setIsCreateDialogOpen}
-                      trigger={
-                        <Button variant="outline" size="sm">
-                          <Plus className="h-4 w-4" />
-                          Add first batch evaluation
-                        </Button>
-                      }
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : isLoadingNames ? (
-              [...jobConfigs].map((jobConfig) => (
-                <TableRow key={jobConfig.id} noHover>
-                  <TableCell>
-                    <Skeleton className="h-4 w-48" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-8" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-4" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              [...jobConfigs]
-                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                .map((jobConfig) => (
-                  <TableRow
-                    key={jobConfig.id}
-                    className="cursor-pointer"
-                    onClick={() =>
-                      router.push(
-                        `/${tenantId}/projects/${projectId}/evaluations/jobs/${jobConfig.id}`
-                      )
-                    }
-                  >
-                    <TableCell className="font-medium">
-                      {formatFilters(jobConfig.jobFilters)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(jobConfig.updatedAt)}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(jobConfig)}
-                            className="!text-destructive"
-                          >
-                            <Trash2 className="text-inherit" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    <TableCell>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </TableCell>
-                  </TableRow>
-                ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          columns={columns}
+          data={jobConfigs}
+          defaultSort={[{ id: 'updatedAt', desc: true }]}
+          getRowId={(row) => row.id}
+          onRowClick={(jobConfig) =>
+            router.push(`/${tenantId}/projects/${projectId}/evaluations/jobs/${jobConfig.id}`)
+          }
+          emptyState={
+            <div className="flex flex-col items-center gap-4">
+              <span>No batch evaluations yet</span>
+              <EvaluationJobFormDialog
+                tenantId={tenantId}
+                projectId={projectId}
+                isOpen={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4" />
+                    Add first batch evaluation
+                  </Button>
+                }
+              />
+            </div>
+          }
+        />
       </div>
 
       {deletingJobConfig && (

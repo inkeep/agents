@@ -13,6 +13,7 @@ import {
   verifySlackUserToken,
   verifyTempToken,
 } from '@inkeep/agents-core';
+import { trace } from '@opentelemetry/api';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { errors, jwtVerify } from 'jose';
@@ -708,6 +709,9 @@ async function runApiKeyAuthHandler(
       c.set('executionContext', buildExecutionContext(createDevContext(reqData), reqData));
     }
 
+    if (reqData.appId && attempt.authResult) {
+      trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+    }
     await next();
     return;
   }
@@ -757,6 +761,9 @@ async function runApiKeyAuthHandler(
   );
 
   c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
+  if (reqData.appId) {
+    trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+  }
   await next();
 }
 

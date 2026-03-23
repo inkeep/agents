@@ -207,7 +207,7 @@ export default function ConversationDetail({
         setError(null);
 
         const response = await fetch(
-          `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
+          `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
         );
 
         if (!response.ok) throw new Error('Failed to fetch conversation details');

@@ -110,23 +110,24 @@ export async function saveA2AMessageResponse(
   }
 
   return await createMessage(runDbClient)({
-    id: generateId(),
-    tenantId: params.tenantId,
-    projectId: params.projectId,
-    conversationId: params.conversationId,
-    role: 'agent',
-    content: {
-      text: messageText,
+    scopes: { tenantId: params.tenantId, projectId: params.projectId },
+    data: {
+      id: generateId(),
+      conversationId: params.conversationId,
+      role: 'agent',
+      content: {
+        text: messageText,
+      },
+      visibility: params.visibility,
+      messageType: params.messageType,
+      fromSubAgentId: params.fromSubAgentId,
+      toSubAgentId: params.toSubAgentId,
+      fromExternalAgentId: params.fromExternalAgentId,
+      toExternalAgentId: params.toExternalAgentId,
+      a2aTaskId: params.a2aTaskId,
+      a2aSessionId: params.a2aSessionId,
+      metadata: params.metadata,
     },
-    visibility: params.visibility,
-    messageType: params.messageType,
-    fromSubAgentId: params.fromSubAgentId,
-    toSubAgentId: params.toSubAgentId,
-    fromExternalAgentId: params.fromExternalAgentId,
-    toExternalAgentId: params.toExternalAgentId,
-    a2aTaskId: params.a2aTaskId,
-    a2aSessionId: params.a2aSessionId,
-    metadata: params.metadata,
   });
 }
 
@@ -665,26 +666,27 @@ async function performActualCompression(
     // Save compression summary as a message in the database with proper ordering
     if (compressionResult.summary) {
       const compressionMessage = await createMessage(runDbClient)({
-        id: generateId(),
-        tenantId,
-        projectId,
-        conversationId,
-        role: 'system',
-        content: {
-          text: buildCompressionSummaryMessage(
-            compressionResult.summary,
-            compressionResult.artifactIds
-          ),
-        },
-        visibility: 'internal',
-        messageType: 'compression_summary',
-        metadata: {
-          a2a_metadata: {
-            compressionType: 'conversation_history',
-            artifactIds: compressionResult.artifactIds,
-            originalMessageCount: messages.length,
-            compressedAt: new Date().toISOString(),
-            summaryData: compressionResult.summary,
+        scopes: { tenantId, projectId },
+        data: {
+          id: generateId(),
+          conversationId,
+          role: 'system',
+          content: {
+            text: buildCompressionSummaryMessage(
+              compressionResult.summary,
+              compressionResult.artifactIds
+            ),
+          },
+          visibility: 'internal',
+          messageType: 'compression_summary',
+          metadata: {
+            a2a_metadata: {
+              compressionType: 'conversation_history',
+              artifactIds: compressionResult.artifactIds,
+              originalMessageCount: messages.length,
+              compressedAt: new Date().toISOString(),
+              summaryData: compressionResult.summary,
+            },
           },
         },
       });

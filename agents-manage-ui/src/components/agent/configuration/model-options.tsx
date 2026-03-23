@@ -61,6 +61,14 @@ export const modelOptions = {
       label: 'GPT-5.4',
     },
     {
+      value: OPENAI_MODELS.GPT_5_4_MINI,
+      label: 'GPT-5.4 Mini',
+    },
+    {
+      value: OPENAI_MODELS.GPT_5_4_NANO,
+      label: 'GPT-5.4 Nano',
+    },
+    {
       value: OPENAI_MODELS.GPT_5_3_CODEX,
       label: 'GPT-5.3 Codex',
     },

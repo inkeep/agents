@@ -1,5 +1,55 @@
 # @inkeep/ai-sdk-provider
 
+## 0.59.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+
+## 0.59.0
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+  - @inkeep/agents-core@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+
+## 0.58.18
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.18
+
 ## 0.58.17
 
 ### Patch Changes

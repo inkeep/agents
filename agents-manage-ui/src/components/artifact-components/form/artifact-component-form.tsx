@@ -16,6 +16,7 @@ import {
   createArtifactComponentAction,
   updateArtifactComponentAction,
 } from '@/lib/actions/artifact-components';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { isRequired } from '@/lib/utils';
 import { DeleteArtifactComponentConfirmation } from '../delete-artifact-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
@@ -29,7 +30,6 @@ interface ArtifactComponentFormProps {
   projectId: string;
   id?: string;
   defaultValues?: ArtifactComponentInput;
-  readOnly?: boolean;
 }
 
 export function ArtifactComponentForm({
@@ -37,8 +37,11 @@ export function ArtifactComponentForm({
   tenantId,
   projectId,
   defaultValues = initialData,
-  readOnly = false,
 }: ArtifactComponentFormProps) {
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const readOnly = !canEdit;
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm({
     resolver,
