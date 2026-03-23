@@ -74,7 +74,7 @@ describe('usageCostMiddleware', () => {
     const callWrapGenerate = async (usage: any) => {
       const doGenerate = vi.fn().mockResolvedValue({ usage, text: 'response' });
       const model = { modelId: 'claude-sonnet-4', provider: 'anthropic.chat' };
-      const result = await usageCostMiddleware.wrapGenerate!({
+      const result = await usageCostMiddleware.wrapGenerate?.({
         doGenerate,
         doStream: vi.fn(),
         params: {} as any,
@@ -164,7 +164,7 @@ describe('usageCostMiddleware', () => {
       });
       const doStream = vi.fn().mockResolvedValue({ stream, rawCall: {} });
       const model = { modelId: 'gpt-4o', provider: 'openai.chat' };
-      const result = await usageCostMiddleware.wrapStream!({
+      const result = await usageCostMiddleware.wrapStream?.({
         doGenerate: vi.fn(),
         doStream,
         params: {} as any,
@@ -220,7 +220,7 @@ describe('usageCostMiddleware', () => {
     it('uses providerId when available', async () => {
       const doGenerate = vi.fn().mockResolvedValue({ usage: makeV3Usage(), text: '' });
       const model = { modelId: 'claude-sonnet-4', provider: 'anthropic.chat' };
-      await usageCostMiddleware.wrapGenerate!({
+      await usageCostMiddleware.wrapGenerate?.({
         doGenerate,
         doStream: vi.fn(),
         params: {} as any,
@@ -233,7 +233,7 @@ describe('usageCostMiddleware', () => {
     it('falls back to parseModelString when providerId contains slash', async () => {
       const doGenerate = vi.fn().mockResolvedValue({ usage: makeV3Usage(), text: '' });
       const model = { modelId: 'anthropic/claude-sonnet-4', provider: undefined };
-      await usageCostMiddleware.wrapGenerate!({
+      await usageCostMiddleware.wrapGenerate?.({
         doGenerate,
         doStream: vi.fn(),
         params: {} as any,

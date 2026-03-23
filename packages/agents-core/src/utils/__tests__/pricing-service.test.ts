@@ -179,14 +179,14 @@ describe('PricingService', () => {
 
       const anthropicPricing = service.getModelPricing('claude-sonnet-4', 'anthropic');
       expect(anthropicPricing).not.toBeNull();
-      expect(anthropicPricing!.inputPerToken).toBeCloseTo(3 / 1_000_000);
-      expect(anthropicPricing!.outputPerToken).toBeCloseTo(15 / 1_000_000);
-      expect(anthropicPricing!.cachedReadPerToken).toBeCloseTo(0.3 / 1_000_000);
-      expect(anthropicPricing!.cachedWritePerToken).toBeCloseTo(3.75 / 1_000_000);
+      expect(anthropicPricing?.inputPerToken).toBeCloseTo(3 / 1_000_000);
+      expect(anthropicPricing?.outputPerToken).toBeCloseTo(15 / 1_000_000);
+      expect(anthropicPricing?.cachedReadPerToken).toBeCloseTo(0.3 / 1_000_000);
+      expect(anthropicPricing?.cachedWritePerToken).toBeCloseTo(3.75 / 1_000_000);
 
       const openaiPricing = service.getModelPricing('gpt-4o', 'openai');
       expect(openaiPricing).not.toBeNull();
-      expect(openaiPricing!.inputPerToken).toBeCloseTo(2.5 / 1_000_000);
+      expect(openaiPricing?.inputPerToken).toBeCloseTo(2.5 / 1_000_000);
 
       fetchSpy.mockRestore();
     });
