@@ -48,7 +48,7 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
     );
 
     const json = response.data;
-    const results = json?.data?.results ?? [];
+    const results = json?.data?.data?.results ?? [];
     const result = results?.[0];
     const columns: Array<{ name: string }> = result?.columns ?? [];
     const dataRows: unknown[][] = result?.data ?? [];
