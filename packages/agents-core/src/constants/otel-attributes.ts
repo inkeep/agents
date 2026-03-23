@@ -164,6 +164,7 @@ export const SPAN_KEYS = {
   CONTEXT_BREAKDOWN_THINKING_PREPARATION: 'context.breakdown.thinking_preparation_tokens',
   CONTEXT_BREAKDOWN_CONVERSATION_HISTORY: 'context.breakdown.conversation_history_tokens',
   CONTEXT_BREAKDOWN_TOTAL: 'context.breakdown.total_tokens',
+  CONTEXT_BREAKDOWN_ACTUAL_INPUT_TOKENS: 'context.breakdown.actual_input_tokens',
 
   // Compression telemetry
   COMPRESSION_TYPE: 'compression.type',

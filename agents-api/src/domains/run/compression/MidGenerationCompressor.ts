@@ -77,17 +77,40 @@ export class MidGenerationCompressor extends BaseCompressor {
   }
 
   /**
-   * Check if compression is needed (either automatic or manual)
-   * Supports manual compression requests unique to mid-generation
+   * Check if compression is needed using actual AI SDK token counts from previous steps.
+   * This is the preferred method — uses real data instead of character-based estimation.
+   */
+  isCompressionNeededFromActualUsage(actualContextTokens: number): boolean {
+    if (this.shouldCompress) return true;
+
+    const remaining = this.config.hardLimit - actualContextTokens;
+    const needsCompression = remaining <= this.config.safetyBuffer;
+
+    logger.debug(
+      {
+        sessionId: this.sessionId,
+        actualContextTokens,
+        hardLimit: this.config.hardLimit,
+        safetyBuffer: this.config.safetyBuffer,
+        remaining,
+        needsCompression,
+        manualRequest: this.shouldCompress,
+        source: 'actual_sdk_usage',
+      },
+      'Checking mid-generation compression criteria (actual usage)'
+    );
+
+    return needsCompression;
+  }
+
+  /**
+   * @deprecated Use isCompressionNeededFromActualUsage() with actual AI SDK step usage instead.
+   * Kept for ConversationCompressor which doesn't have step data.
    */
   isCompressionNeeded(messages: any[]): boolean {
-    // Check manual request first - no calculation needed
     if (this.shouldCompress) return true;
 
     const contextSize = this.calculateContextSize(messages);
-    // On 2nd+ cycles the injected summary message is in the LLM's context but not in
-    // stepMessages (AI SDK doesn't track prepareStep injections). Add its tokens so the
-    // threshold check reflects actual context size.
     const summaryTokens = this.cumulativeSummary
       ? this.estimateTokens(JSON.stringify(this.cumulativeSummary))
       : 0;
@@ -106,8 +129,9 @@ export class MidGenerationCompressor extends BaseCompressor {
         remaining,
         needsCompression,
         manualRequest: this.shouldCompress,
+        source: 'estimated',
       },
-      'Checking mid-generation compression criteria'
+      'Checking mid-generation compression criteria (estimated)'
     );
 
     return needsCompression;

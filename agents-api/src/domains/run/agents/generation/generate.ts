@@ -74,8 +74,19 @@ export function buildBaseGenerationConfig(
     toolChoice,
     messages,
     tools: sanitizedTools,
-    prepareStep: async ({ messages: stepMessages }: { messages: unknown[] }) => {
-      return await handlePrepareStepCompression(stepMessages, compressor, originalMessageCount);
+    prepareStep: async ({
+      messages: stepMessages,
+      steps,
+    }: {
+      messages: unknown[];
+      steps: Array<{ usage: { inputTokens?: number; outputTokens?: number } }>;
+    }) => {
+      return await handlePrepareStepCompression(
+        stepMessages,
+        steps,
+        compressor,
+        originalMessageCount
+      );
     },
     stopWhen: async ({ steps }: { steps: unknown[] }) => {
       return await handleStopWhenConditions(ctx, steps);
@@ -311,6 +322,11 @@ export async function runGenerate(
           textResponse = response.steps[response.steps.length - 1].text || '';
         } else {
           textResponse = response.text || '';
+        }
+
+        const actualInputTokens = response.totalUsage?.inputTokens ?? response.usage?.inputTokens;
+        if (actualInputTokens != null) {
+          span.setAttribute(SPAN_KEYS.CONTEXT_BREAKDOWN_ACTUAL_INPUT_TOKENS, actualInputTokens);
         }
 
         const isTimeoutAbort = response.finishReason === 'other';
