@@ -102,6 +102,7 @@ export const createRefMiddleware = (
     const path = c.req.path;
     const pathSplit = path.split('/');
 
+    // If ref is not provided, try to extract from body for merge route POST requests
     if (!ref && isMergeRoute(path) && c.req.method === 'POST') {
       try {
         const body = await c.req.json();

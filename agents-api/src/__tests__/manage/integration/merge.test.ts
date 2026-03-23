@@ -60,6 +60,8 @@ describe('Merge API - Integration Tests', () => {
               id: subAgentId,
               name: 'Default Sub',
               instructions: 'Test instructions',
+              type: 'internal' as const,
+              canUse: [],
             },
           },
           credentialReferences: {},
@@ -76,7 +78,7 @@ describe('Merge API - Integration Tests', () => {
       body: JSON.stringify(projectData),
     });
     expect(res.status).toBe(201);
-    return { projectId, agentId, subAgentId };
+    return { projectId, agentId, subAgentId, projectData };
   };
 
   const createBranch = async (tenantId: string, projectId: string, name: string) => {
@@ -99,16 +101,18 @@ describe('Merge API - Integration Tests', () => {
 
   const updateProjectFull = async (
     tenantId: string,
+    projectId: string,
     data: Record<string, unknown>,
     ref?: string
   ) => {
     const url = ref
-      ? `/manage/tenants/${tenantId}/project-full?ref=${ref}`
-      : `/manage/tenants/${tenantId}/project-full`;
+      ? `/manage/tenants/${tenantId}/project-full/${projectId}?ref=${ref}`
+      : `/manage/tenants/${tenantId}/project-full/${projectId}`;
     const res = await makeRequest(url, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    expect(res.status).toBe(200);
     return res;
   };
 
@@ -142,17 +146,29 @@ describe('Merge API - Integration Tests', () => {
     return res;
   };
 
+  const withAgentFields = (
+    base: Record<string, any>,
+    agentId: string,
+    overrides: Record<string, unknown>
+  ) => {
+    const copy = structuredClone(base);
+    Object.assign(copy.agents[agentId], overrides);
+    return copy;
+  };
+
   describe('Clean merge (no conflicts)', () => {
     it('should preview a clean merge and return hasConflicts=false', async () => {
       const tenantId = await createTrackedTenant('merge-clean-preview');
-      const { projectId, agentId } = await createProjectWithAgent(tenantId);
+      const { projectId, agentId, projectData } = await createProjectWithAgent(tenantId);
 
       await createBranch(tenantId, projectId, 'feature');
 
-      const currentProject = await getProjectFull(tenantId, projectId, 'feature');
-      const agents = currentProject.agents;
-      agents[agentId].name = 'Updated on Feature';
-      await updateProjectFull(tenantId, { ...currentProject, agents }, 'feature');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Updated on Feature' }),
+        'feature'
+      );
 
       const previewRes = await mergePreview(tenantId, projectId, {
         sourceBranch: 'feature',
@@ -170,13 +186,16 @@ describe('Merge API - Integration Tests', () => {
 
     it('should execute a clean merge successfully', async () => {
       const tenantId = await createTrackedTenant('merge-clean-execute');
-      const { projectId, agentId } = await createProjectWithAgent(tenantId);
+      const { projectId, agentId, projectData } = await createProjectWithAgent(tenantId);
 
       await createBranch(tenantId, projectId, 'feature');
 
-      const currentProject = await getProjectFull(tenantId, projectId, 'feature');
-      currentProject.agents[agentId].name = 'Merged Agent Name';
-      await updateProjectFull(tenantId, currentProject, 'feature');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Merged Agent Name' }),
+        'feature'
+      );
 
       const previewRes = await mergePreview(tenantId, projectId, {
         sourceBranch: 'feature',
@@ -209,17 +228,22 @@ describe('Merge API - Integration Tests', () => {
   describe('Conflicting merge with resolution', () => {
     it('should preview conflicts when both branches modify the same entity', async () => {
       const tenantId = await createTrackedTenant('merge-conflict-preview');
-      const { projectId, agentId } = await createProjectWithAgent(tenantId);
+      const { projectId, agentId, projectData } = await createProjectWithAgent(tenantId);
 
       await createBranch(tenantId, projectId, 'feature');
 
-      const mainProject = await getProjectFull(tenantId, projectId, 'main');
-      mainProject.agents[agentId].name = 'Main Version';
-      await updateProjectFull(tenantId, mainProject, 'main');
-
-      const featureProject = await getProjectFull(tenantId, projectId, 'feature');
-      featureProject.agents[agentId].name = 'Feature Version';
-      await updateProjectFull(tenantId, featureProject, 'feature');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Main Version' }),
+        'main'
+      );
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Feature Version' }),
+        'feature'
+      );
 
       const previewRes = await mergePreview(tenantId, projectId, {
         sourceBranch: 'feature',
@@ -241,17 +265,22 @@ describe('Merge API - Integration Tests', () => {
 
     it('should execute merge with conflict resolutions', async () => {
       const tenantId = await createTrackedTenant('merge-conflict-resolve');
-      const { projectId, agentId } = await createProjectWithAgent(tenantId);
+      const { projectId, agentId, projectData } = await createProjectWithAgent(tenantId);
 
       await createBranch(tenantId, projectId, 'feature');
 
-      const mainProject = await getProjectFull(tenantId, projectId, 'main');
-      mainProject.agents[agentId].name = 'Main Version';
-      await updateProjectFull(tenantId, mainProject, 'main');
-
-      const featureProject = await getProjectFull(tenantId, projectId, 'feature');
-      featureProject.agents[agentId].name = 'Feature Version';
-      await updateProjectFull(tenantId, featureProject, 'feature');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Main Version' }),
+        'main'
+      );
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Feature Version' }),
+        'feature'
+      );
 
       const previewRes = await mergePreview(tenantId, projectId, {
         sourceBranch: 'feature',
@@ -283,19 +312,28 @@ describe('Merge API - Integration Tests', () => {
   describe('Per-column resolution', () => {
     it('should apply mixed ours/theirs column picks', async () => {
       const tenantId = await createTrackedTenant('merge-percol');
-      const { projectId, agentId } = await createProjectWithAgent(tenantId);
+      const { projectId, agentId, projectData } = await createProjectWithAgent(tenantId);
 
       await createBranch(tenantId, projectId, 'feature');
 
-      const mainProject = await getProjectFull(tenantId, projectId, 'main');
-      mainProject.agents[agentId].name = 'Main Name';
-      mainProject.agents[agentId].description = 'Main Description';
-      await updateProjectFull(tenantId, mainProject, 'main');
-
-      const featureProject = await getProjectFull(tenantId, projectId, 'feature');
-      featureProject.agents[agentId].name = 'Feature Name';
-      featureProject.agents[agentId].description = 'Feature Description';
-      await updateProjectFull(tenantId, featureProject, 'feature');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, {
+          name: 'Main Name',
+          description: 'Main Description',
+        }),
+        'main'
+      );
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, {
+          name: 'Feature Name',
+          description: 'Feature Description',
+        }),
+        'feature'
+      );
 
       const previewRes = await mergePreview(tenantId, projectId, {
         sourceBranch: 'feature',
@@ -342,13 +380,16 @@ describe('Merge API - Integration Tests', () => {
   describe('Stale hash rejection', () => {
     it('should return 409 when hashes are stale', async () => {
       const tenantId = await createTrackedTenant('merge-stale');
-      const { projectId, agentId } = await createProjectWithAgent(tenantId);
+      const { projectId, agentId, projectData } = await createProjectWithAgent(tenantId);
 
       await createBranch(tenantId, projectId, 'feature');
 
-      const featureProject = await getProjectFull(tenantId, projectId, 'feature');
-      featureProject.agents[agentId].name = 'Feature Change';
-      await updateProjectFull(tenantId, featureProject, 'feature');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Feature Change' }),
+        'feature'
+      );
 
       const previewRes = await mergePreview(tenantId, projectId, {
         sourceBranch: 'feature',
@@ -356,9 +397,12 @@ describe('Merge API - Integration Tests', () => {
       });
       const preview = await previewRes.json();
 
-      const mainProject = await getProjectFull(tenantId, projectId, 'main');
-      mainProject.agents[agentId].description = 'Changed after preview';
-      await updateProjectFull(tenantId, mainProject, 'main');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { description: 'Changed after preview' }),
+        'main'
+      );
 
       const executeRes = await mergeExecute(tenantId, projectId, {
         sourceBranch: 'feature',
@@ -377,17 +421,22 @@ describe('Merge API - Integration Tests', () => {
   describe('Missing resolutions', () => {
     it('should return 409 when conflicts exist but no resolutions provided', async () => {
       const tenantId = await createTrackedTenant('merge-nores');
-      const { projectId, agentId } = await createProjectWithAgent(tenantId);
+      const { projectId, agentId, projectData } = await createProjectWithAgent(tenantId);
 
       await createBranch(tenantId, projectId, 'feature');
 
-      const mainProject = await getProjectFull(tenantId, projectId, 'main');
-      mainProject.agents[agentId].name = 'Main Change';
-      await updateProjectFull(tenantId, mainProject, 'main');
-
-      const featureProject = await getProjectFull(tenantId, projectId, 'feature');
-      featureProject.agents[agentId].name = 'Feature Change';
-      await updateProjectFull(tenantId, featureProject, 'feature');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Main Change' }),
+        'main'
+      );
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Feature Change' }),
+        'feature'
+      );
 
       const previewRes = await mergePreview(tenantId, projectId, {
         sourceBranch: 'feature',
@@ -410,17 +459,22 @@ describe('Merge API - Integration Tests', () => {
 
     it('should return 400 when resolutions do not cover all conflicts', async () => {
       const tenantId = await createTrackedTenant('merge-partial');
-      const { projectId, agentId } = await createProjectWithAgent(tenantId);
+      const { projectId, agentId, projectData } = await createProjectWithAgent(tenantId);
 
       await createBranch(tenantId, projectId, 'feature');
 
-      const mainProject = await getProjectFull(tenantId, projectId, 'main');
-      mainProject.agents[agentId].name = 'Main Change';
-      await updateProjectFull(tenantId, mainProject, 'main');
-
-      const featureProject = await getProjectFull(tenantId, projectId, 'feature');
-      featureProject.agents[agentId].name = 'Feature Change';
-      await updateProjectFull(tenantId, featureProject, 'feature');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Main Change' }),
+        'main'
+      );
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Feature Change' }),
+        'feature'
+      );
 
       const previewRes = await mergePreview(tenantId, projectId, {
         sourceBranch: 'feature',
@@ -459,13 +513,16 @@ describe('Merge API - Integration Tests', () => {
   describe('Temp branch cleanup', () => {
     it('should clean up temp branches after successful merge', async () => {
       const tenantId = await createTrackedTenant('merge-cleanup-success');
-      const { projectId, agentId } = await createProjectWithAgent(tenantId);
+      const { projectId, agentId, projectData } = await createProjectWithAgent(tenantId);
 
       await createBranch(tenantId, projectId, 'feature');
 
-      const featureProject = await getProjectFull(tenantId, projectId, 'feature');
-      featureProject.agents[agentId].name = 'Cleanup Test';
-      await updateProjectFull(tenantId, featureProject, 'feature');
+      await updateProjectFull(
+        tenantId,
+        projectId,
+        withAgentFields(projectData, agentId, { name: 'Cleanup Test' }),
+        'feature'
+      );
 
       const previewRes = await mergePreview(tenantId, projectId, {
         sourceBranch: 'feature',

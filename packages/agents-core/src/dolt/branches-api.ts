@@ -216,14 +216,18 @@ export const createBranch =
     } else {
       //For branches, sync schema onto the source branch. This has the benefit of ensuring the branch has the latest schema from the source branch.
       let fromFullBranchName: string;
-      if (fromBranch && fromBranch !== MAIN_BRANCH_SUFFIX) {
+      if (fromBranch) {
         fromFullBranchName = doltGetBranchNamespace({
           tenantId,
           projectId,
           branchName: fromBranch,
         })();
       } else {
-        fromFullBranchName = getTenantMainBranch(tenantId);
+        fromFullBranchName = doltGetBranchNamespace({
+          tenantId,
+          projectId,
+          branchName: MAIN_BRANCH_SUFFIX,
+        })();
       }
 
       if (syncSchemaOnSource && fromFullBranchName !== SCHEMA_SOURCE_BRANCH) {
