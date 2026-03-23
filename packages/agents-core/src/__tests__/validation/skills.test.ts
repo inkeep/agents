@@ -1,4 +1,4 @@
-import { SkillApiInsertSchema } from '../../validation/schemas/skills';
+import { SkillApiInsertSchema, SkillApiUpdateSchema } from '../../validation/schemas/skills';
 
 describe('SkillApiInsertSchema', () => {
   it('accepts nested files when SKILL.md matches the skill fields', () => {
@@ -134,6 +134,26 @@ test3`,
       expect(result.data.name).toBe('test1');
       expect(result.data.description).toBe('test2');
       expect(result.data.content).toBe('test3');
+    }
+  });
+});
+
+describe('SkillApiUpdateSchema', () => {
+  it('accepts updates that omit SKILL.md and clears the file set', () => {
+    const result = SkillApiUpdateSchema.safeParse({
+      files: [
+        {
+          filePath: 'reference/safety-checklist.txt',
+          content: 'Check alerts',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({
+        files: [],
+      });
     }
   });
 });

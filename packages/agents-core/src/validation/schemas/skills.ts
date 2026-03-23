@@ -160,7 +160,7 @@ const SkillApiInsertSchema = z
 const SkillApiUpdateSchema = SkillUpdateSchema.transform((skill) => {
   const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
   if (!skillFile) {
-    return skill;
+    return { files: [] } as any;
   }
   return {
     ...skill,
