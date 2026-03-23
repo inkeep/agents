@@ -248,8 +248,8 @@ railway_ensure_tcp_proxy() {
   local active=""
   local attempt=""
 
-  env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" "${max_attempts}" "${sleep_seconds}")"
-  service_id="$(railway_wait_for_service_id_for_env "${env_id}" "${service_name}" "${env_name}" "${max_attempts}" "${sleep_seconds}")"
+  env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" "${max_attempts}" "${sleep_seconds}")" || return 1
+  service_id="$(railway_wait_for_service_id_for_env "${env_id}" "${service_name}" "${env_name}" "${max_attempts}" "${sleep_seconds}")" || return 1
 
   response="$(
     railway_graphql "$(cat <<EOF
