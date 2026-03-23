@@ -117,18 +117,23 @@ export const doltMerge =
     const headResult = await db.execute(sql`SELECT HASHOF('HEAD') as hash`);
     const toHead = headResult.rows[0]?.hash as string;
 
-    const args: string[] = [`'${params.fromBranch}'`];
+    const cleanedFromBranch = params.fromBranch.replace(/'/g, "''");
+    const args: string[] = [`'${cleanedFromBranch}'`];
 
     if (params.noFastForward) {
       args.push("'--no-ff'");
     }
 
     if (params.message) {
-      args.push("'-m'", `'${params.message.replace(/'/g, "''")}'`);
+      const cleanedMessage = params.message.replace(/'/g, "''");
+      args.push("'-m'", `'${cleanedMessage}'`);
     }
 
+    const cleanedAuthor = params.author?.name?.replace(/'/g, "''");
+    const cleanedEmail = params.author?.email?.replace(/'/g, "''");
+
     if (params.author) {
-      args.push("'--author'", `'${params.author.name} <${params.author.email}>'`);
+      args.push("'--author'", `'${cleanedAuthor} <${cleanedEmail}>'`);
     }
 
     await db.execute(sql.raw('START TRANSACTION'));

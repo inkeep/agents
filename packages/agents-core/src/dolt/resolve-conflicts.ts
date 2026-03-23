@@ -175,8 +175,8 @@ async function applyMixedResolution(
   const ourDiffType = conflictRow.our_diff_type as string;
   const theirDiffType = conflictRow.their_diff_type as string;
 
-  // If one side deleted the row, column overrides don't make sense — delegate to theirs/ours resolution
   if (theirDiffType === 'removed' || ourDiffType === 'removed') {
+    if (rowDefaultPick === 'ours') return;
     await applyTheirsResolution(
       db,
       table,

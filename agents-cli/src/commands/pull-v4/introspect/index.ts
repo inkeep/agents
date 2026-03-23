@@ -311,7 +311,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
 
     let remoteProject: any;
 
-    if (localProjectForId) {
+    if (localProjectForId && lastPulledHash) {
       s.message('Checking for conflicts...');
 
       const tempBranchName = getTempBranchSuffix('cli-pull');
@@ -337,7 +337,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         if (preview.hasConflicts) {
           s.stop('Conflicts detected');
           const { resolveConflictsInteractive } = await import('../merge-conflicts');
-          console.log(preview.conflicts);
+          if (options.debug) console.log(preview.conflicts);
           const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
 
           s.start('Executing merge with resolutions...');

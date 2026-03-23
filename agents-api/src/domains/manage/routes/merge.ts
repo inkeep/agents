@@ -25,11 +25,9 @@ import {
   tryAdvisoryLock,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
-const logger = getLogger('merge');
 const TIMESTAMP_COLUMNS = new Set(['created_at', 'updated_at']);
 
 function isTimestampOnlyDiff(
@@ -245,8 +243,6 @@ app.openapi(
     const body = c.req.valid('json');
     const { sourceBranch, targetBranch, sourceHash, targetHash, message, author, resolutions } =
       body;
-
-    logger.info({ resolutions }, 'Resolutions');
 
     const sourceFullName = doltGetBranchNamespace({
       tenantId,
