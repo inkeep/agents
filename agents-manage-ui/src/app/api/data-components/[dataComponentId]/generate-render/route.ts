@@ -55,11 +55,6 @@ export async function POST(
     // Prepare model configuration
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models?.base as any);
 
-    // Define schema for generated output
-    // Dynamically create mockData schema from component's props JSON Schema.
-    // Normalize for cross-provider compatibility:
-    // - strips Anthropic-unsupported constraints (minimum/maximum on numbers)
-    // - ensures all properties are in required (OpenAI strict-mode requirement)
     const normalizedProps = normalizeDataComponentSchema(
       dataComponent.props as Record<string, unknown>
     );

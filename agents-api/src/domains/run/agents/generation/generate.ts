@@ -225,7 +225,7 @@ export async function runGenerate(
 
         const shouldStream = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
 
-        let dataComponentsSchema: ReturnType<typeof buildDataComponentsSchema> | null = null;
+        let dataComponentsSchema: z.ZodType<any> | null = null;
         if (hasStructuredOutput) {
           try {
             dataComponentsSchema = buildDataComponentsSchema(ctx);
