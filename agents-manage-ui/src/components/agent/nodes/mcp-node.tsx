@@ -8,6 +8,7 @@ import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getMcpRelationFormKey } from '@/features/agent/domain';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { cn, createLookup } from '@/lib/utils';
@@ -62,7 +63,10 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
   'use memo';
 
   const { control } = useFullAgentFormContext();
-  const relationKey = data.relationshipId ?? props.id;
+  const relationKey = getMcpRelationFormKey({
+    nodeId: props.id,
+    relationshipId: data.relationshipId,
+  });
   const mcpRelation = useWatch({
     control,
     name: `mcpRelations.${relationKey}`,

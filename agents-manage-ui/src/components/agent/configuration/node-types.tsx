@@ -25,7 +25,7 @@ export type PlaceholderType =
   | NodeType.SubAgentPlaceholder;
 
 interface NodeData extends Record<string, unknown> {
-  name: string;
+  name?: string;
   subAgentId?: string | null; // Optional for MCP nodes
   relationshipId?: string | null; // Optional for MCP nodes
   type?: PlaceholderType; // Optional for placeholder nodes
@@ -83,18 +83,13 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
     name: 'Select agent type',
     type: NodeType.SubAgentPlaceholder,
   },
-  [NodeType.SubAgent]: {
-    name: 'Sub Agent',
-  },
-  [NodeType.ExternalAgent]: {
-    name: '',
-  },
+  [NodeType.SubAgent]: {},
+  [NodeType.ExternalAgent]: {},
   [NodeType.ExternalAgentPlaceholder]: {
     name: 'Select external agent',
     type: NodeType.ExternalAgentPlaceholder,
   },
   [NodeType.MCP]: {
-    name: 'MCP',
     subAgentId: null,
     relationshipId: null,
   },
@@ -103,12 +98,10 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
     type: NodeType.MCPPlaceholder,
   },
   [NodeType.FunctionTool]: {
-    name: 'Function Tool',
     subAgentId: null,
+    relationshipId: null,
   },
   [NodeType.TeamAgent]: {
-    name: 'Team Agent',
-    subAgentId: null,
     relationshipId: null,
   },
   [NodeType.TeamAgentPlaceholder]: {

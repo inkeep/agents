@@ -2,7 +2,58 @@ import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import { deserializeAgentData } from '@/features/agent/domain/deserialize';
-import { serializeAgentData } from '@/features/agent/domain/serialize';
+import type { SerializeAgentFormState } from '@/features/agent/domain/serialize';
+import { serializeAgentData as serializeAgentDataInternal } from '@/features/agent/domain/serialize';
+
+function createSerializeAgentFormState(nodes: Node[]): SerializeAgentFormState {
+  return {
+    mcpRelations: Object.fromEntries(
+      nodes
+        .filter((node) => node.type === NodeType.MCP)
+        .map((node) => [
+          node.id,
+          {
+            selectedTools: null,
+            headers: undefined,
+            toolPolicies: undefined,
+          },
+        ])
+    ),
+    functionTools: {},
+    externalAgents: {},
+    teamAgents: {},
+    subAgents: Object.fromEntries(
+      nodes
+        .filter((node) => node.type === NodeType.SubAgent)
+        .map((node) => [
+          node.id,
+          {
+            id: typeof node.data.id === 'string' ? node.data.id : node.id,
+            name: typeof node.data.name === 'string' ? node.data.name : '',
+            description: typeof node.data.description === 'string' ? node.data.description : '',
+            prompt: typeof node.data.prompt === 'string' ? node.data.prompt : '',
+            type: 'internal' as const,
+            models: {
+              base: {},
+              structuredOutput: {},
+              summarizer: {},
+            },
+            canUse: [],
+            dataComponents: [],
+            artifactComponents: [],
+            stopWhen: {},
+            skills: [],
+          },
+        ])
+    ),
+    functions: {},
+    defaultSubAgentNodeId: undefined,
+  };
+}
+
+function serializeAgentData(nodes: Node[], edges: Edge[]) {
+  return serializeAgentDataInternal(nodes, edges, createSerializeAgentFormState(nodes));
+}
 
 describe('agent serialize/deserialize', () => {
   it('handles self-referencing agents correctly', () => {

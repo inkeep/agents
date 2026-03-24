@@ -37,17 +37,15 @@ describe('deserializeAgentData', () => {
 
     return {
       deserialized,
-      serialized: serializeAgentData(
-        deserialized.nodes,
-        deserialized.edges,
-        mcpRelations as any,
-        formData.functionTools,
-        externalAgents as any,
-        teamAgents as any,
-        formData.subAgents as any,
-        formData.functions as any,
-        formData.defaultSubAgentNodeId
-      ),
+      serialized: serializeAgentData(deserialized.nodes, deserialized.edges, {
+        mcpRelations,
+        functionTools: formData.functionTools ?? {},
+        externalAgents,
+        teamAgents,
+        subAgents: (formData.subAgents ?? {}) as any,
+        functions: (formData.functions ?? {}) as any,
+        defaultSubAgentNodeId: formData.defaultSubAgentNodeId,
+      }),
     };
   }
 

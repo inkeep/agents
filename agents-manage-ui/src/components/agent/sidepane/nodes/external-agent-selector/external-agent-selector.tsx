@@ -24,6 +24,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
         name: data.name,
         description: data.description,
         baseUrl: data.baseUrl,
+        headers: '{}',
       },
       { shouldDirty: true }
     );

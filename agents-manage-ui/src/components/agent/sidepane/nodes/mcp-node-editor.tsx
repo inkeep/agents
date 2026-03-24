@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getMcpRelationFormKey } from '@/features/agent/domain';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
@@ -36,7 +37,10 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   'use memo';
   const form = useFullAgentFormContext();
   const { toolId } = selectedNode.data;
-  const relationKey = selectedNode.data.relationshipId ?? selectedNode.id;
+  const relationKey = getMcpRelationFormKey({
+    nodeId: selectedNode.id,
+    relationshipId: selectedNode.data.relationshipId,
+  });
   const tool = useWatch({ control: form.control, name: `tools.${toolId}` });
   const mcpRelation = useWatch({
     control: form.control,
@@ -71,29 +75,6 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const toolData = liveToolData ?? skeletonToolData;
   const selectedTools = mcpRelation?.selectedTools ?? null;
   const currentToolPolicies = mcpRelation?.toolPolicies ?? {};
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally hydrate once per selected node
-  useEffect(() => {
-    const existingRelation = form.getValues(`mcpRelations.${relationKey}`);
-    // On mount, a relation may already exist but contain only empty headers,
-    // without `toolId` or `relationshipId`.
-    if (existingRelation?.toolId) {
-      return;
-    }
-
-    form.setValue(
-      `mcpRelations.${relationKey}`,
-      {
-        toolId,
-        relationshipId: selectedNode.data.relationshipId ?? undefined,
-        subAgentId: selectedNode.data.subAgentId ?? undefined,
-        selectedTools,
-        headers: existingRelation?.headers ?? '{}',
-        toolPolicies: currentToolPolicies,
-      },
-      { shouldDirty: false }
-    );
-  }, [relationKey]);
 
   const activeTools = getActiveTools({
     availableTools: toolData.availableTools,

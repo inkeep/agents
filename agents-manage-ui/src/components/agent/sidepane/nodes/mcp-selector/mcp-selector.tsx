@@ -1,6 +1,7 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { createMcpRelationFormInput } from '@/features/agent/domain';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { NodeType } from '../../../configuration/node-types';
@@ -26,6 +27,11 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
         name: data.name,
         config: data.config,
       },
+      { shouldDirty: true }
+    );
+    form.setValue(
+      `mcpRelations.${selectedNode.id}`,
+      createMcpRelationFormInput({ toolId: nodeId }),
       { shouldDirty: true }
     );
 
