@@ -1,5 +1,10 @@
-import { join } from 'node:path';
-import { serializeSkillToMarkdown, SkillWithFilesApiSelectSchema } from '@inkeep/agents-core';
+import { dirname, join } from 'node:path';
+import {
+  SkillWithFilesApiSelectSchema,
+  serializeSkillToMarkdown,
+  type SkillFileApiInsert,
+  SKILL_ENTRY_FILE_PATH,
+} from '@inkeep/agents-core';
 import { z } from 'zod';
 import type { GenerationTask } from '../generation-types';
 import { validateGeneratorInput } from '../simple-factory-generator';
@@ -25,32 +30,62 @@ const SkillSchema = z.strictObject({
 
 type SkillInput = z.input<typeof SkillSchema>;
 
+function parseSkillInput({
+  id,
+  createdAt,
+  updatedAt,
+  ...data
+}: SkillInput & Record<string, unknown>) {
+  return validateGeneratorInput(data, { schema: SkillSchema, errorLabel: 'skill' });
+}
+
 export function generateSkillDefinition({
   id,
   createdAt,
   updatedAt,
   ...data
 }: SkillInput & Record<string, unknown>): string {
-  const result = validateGeneratorInput(data, {
-    schema: SkillSchema,
-    errorLabel: 'skill',
-  });
+  const { files: _files, ...result } = parseSkillInput({ id, createdAt, updatedAt, ...data });
 
   return serializeSkillToMarkdown(result);
 }
 
-export const task: GenerationTask<Parameters<typeof generateSkillDefinition>[0]> = {
+export function generateSkillFiles(
+  data: SkillInput & Record<string, unknown>
+): SkillFileApiInsert[] {
+  const parsed = parseSkillInput(data);
+
+  if (!parsed.files.length) {
+    return [
+      {
+        filePath: SKILL_ENTRY_FILE_PATH,
+        content: serializeSkillToMarkdown(parsed),
+      },
+    ];
+  }
+
+  return parsed.files.map((file) => ({
+    filePath: file.filePath,
+    content: file.content,
+  }));
+}
+
+export const task: GenerationTask<SkillFileApiInsert> = {
   type: 'skill',
-  collect(context) {
-    return Object.entries(context.project.skills ?? {}).map(([skillId, payload]) => ({
-      id: skillId,
-      filePath: context.resolver.resolveOutputFilePath(
-        'skills',
-        skillId,
-        join(context.paths.skillsDir, skillId, 'SKILL.md')
-      ),
-      payload,
-    }));
+  collect(ctx) {
+    return Object.entries(ctx.project.skills ?? {}).flatMap(([skillId, payload]) => {
+      const entryPath = join(ctx.paths.skillsDir, skillId, SKILL_ENTRY_FILE_PATH);
+      const skillEntryFilePath = ctx.resolver.resolveOutputFilePath('skills', skillId, entryPath);
+      const skillDir = dirname(skillEntryFilePath);
+
+      return generateSkillFiles(payload).map((file) => ({
+        id: `${skillId}/${file.filePath}`,
+        filePath: join(skillDir, file.filePath),
+        payload: file,
+      }));
+    });
   },
-  generate: generateSkillDefinition,
+  generate(payload) {
+    return payload.content;
+  },
 };
