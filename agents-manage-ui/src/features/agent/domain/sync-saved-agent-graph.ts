@@ -5,6 +5,12 @@ import {
   type TeamAgentNodeData,
 } from '@/components/agent/configuration/node-types';
 import type { FullAgentFormValues, FullAgentResponse } from '@/lib/types/agent-full';
+import {
+  findEdgeByGraphKey,
+  findNodeByGraphKey,
+  getEdgeGraphKey,
+  getNodeGraphKey,
+} from './graph-identity';
 import { getSubAgentIdForNode } from './sub-agent-identity';
 
 interface SyncSavedAgentGraphParams {
@@ -43,6 +49,8 @@ export function syncSavedAgentGraph({
   edgeId,
   subAgentFormData,
 }: SyncSavedAgentGraphParams): SyncSavedAgentGraphResult {
+  const selectedNode = findNodeByGraphKey(nodes, nodeId, subAgentFormData);
+  const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId, subAgentFormData);
   const renamedSubAgentIds = new Map<string, string>();
 
   for (const node of nodes) {
@@ -216,27 +224,36 @@ export function syncSavedAgentGraph({
     (edge) => keptNodeIds.has(edge.source) && keptNodeIds.has(edge.target)
   );
 
-  const nextNodeId = nodeId
-    ? (() => {
-        const candidateNodeId = renameSubAgentId(nodeId);
-        return keptNodeIds.has(candidateNodeId)
-          ? candidateNodeId
-          : keptNodeIds.has(nodeId)
-            ? nodeId
-            : null;
-      })()
+  const selectedSyncedNode = selectedNode
+    ? syncedNodes.find(
+        (node) =>
+          node.id ===
+          (selectedNode.type === NodeType.SubAgent
+            ? renameSubAgentId(selectedNode.id)
+            : selectedNode.id)
+      )
+    : undefined;
+  const nextNodeId = selectedSyncedNode
+    ? getNodeGraphKey(selectedSyncedNode, subAgentFormData)
     : null;
 
-  const nextEdgeId = edgeId && keptEdges.some((edge) => edge.id === edgeId) ? edgeId : null;
+  const selectedSyncedEdge = selectedEdge
+    ? keptEdges.find((edge) => edge.id === selectedEdge.id)
+    : undefined;
+  const nextEdgeId = selectedSyncedEdge
+    ? getEdgeGraphKey(selectedSyncedEdge, syncedNodes, subAgentFormData)
+    : null;
 
   return {
     nodes: syncedNodes.map((node) => ({
       ...node,
-      selected: nextNodeId ? node.id === nextNodeId : false,
+      selected: nextNodeId ? getNodeGraphKey(node, subAgentFormData) === nextNodeId : false,
     })),
     edges: keptEdges.map((edge) => ({
       ...edge,
-      selected: nextEdgeId ? edge.id === nextEdgeId : false,
+      selected: nextEdgeId
+        ? getEdgeGraphKey(edge, syncedNodes, subAgentFormData) === nextEdgeId
+        : false,
     })),
     nodeId: nextNodeId,
     edgeId: nextEdgeId,

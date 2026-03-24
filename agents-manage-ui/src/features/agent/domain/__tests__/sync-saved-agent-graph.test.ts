@@ -1,5 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { describe, expect, it } from 'vitest';
+import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import { syncSavedAgentGraph } from '@/features/agent/domain/sync-saved-agent-graph';
 
@@ -82,7 +83,7 @@ describe('syncSavedAgentGraph', () => {
       } as any,
     });
 
-    expect(result.nodeId).toBe('sub-agent');
+    expect(result.nodeId).toBe('sub-agent:sub-agent');
     expect(result.edgeId).toBeNull();
     expect(result.nodes).toEqual(
       expect.arrayContaining([
@@ -275,6 +276,96 @@ describe('syncSavedAgentGraph', () => {
     ]);
   });
 
+  it('returns canonical agent edge query ids when connected sub-agent ids are renamed on save', () => {
+    const nodes: Node[] = [
+      {
+        id: 'tmp-sub-agent-1',
+        type: NodeType.SubAgent,
+        position: { x: 10, y: 20 },
+        data: {
+          id: 'sub-agent-1',
+          name: 'Sub Agent 1',
+        },
+      },
+      {
+        id: 'tmp-sub-agent-2',
+        type: NodeType.SubAgent,
+        position: { x: 300, y: 20 },
+        data: {
+          id: 'sub-agent-2',
+          name: 'Sub Agent 2',
+        },
+      },
+    ];
+    const edges: Edge[] = [
+      {
+        id: 'edge-tmp-sub-agent-1-tmp-sub-agent-2',
+        type: EdgeType.A2A,
+        source: 'tmp-sub-agent-1',
+        target: 'tmp-sub-agent-2',
+      },
+    ];
+
+    const result = syncSavedAgentGraph({
+      nodes,
+      edges,
+      nodeId: null,
+      edgeId: 'edge-tmp-sub-agent-1-tmp-sub-agent-2',
+      savedAgent: {
+        id: 'agent-1',
+        name: 'Agent',
+        description: '',
+        prompt: '',
+        contextConfig: null,
+        statusUpdates: null,
+        stopWhen: null,
+        models: {},
+        defaultSubAgentId: 'sub-agent-1',
+        subAgents: {
+          'sub-agent-1': {
+            id: 'sub-agent-1',
+            name: 'Sub Agent 1',
+            description: '',
+            prompt: '',
+            type: 'internal',
+            dataComponents: [],
+            artifactComponents: [],
+            canUse: [],
+            canTransferTo: ['sub-agent-2'],
+            canDelegateTo: [],
+          },
+          'sub-agent-2': {
+            id: 'sub-agent-2',
+            name: 'Sub Agent 2',
+            description: '',
+            prompt: '',
+            type: 'internal',
+            dataComponents: [],
+            artifactComponents: [],
+            canUse: [],
+            canTransferTo: ['sub-agent-1'],
+            canDelegateTo: [],
+          },
+        },
+        functions: {},
+        functionTools: {},
+        externalAgents: {},
+        teamAgents: {},
+        tools: {},
+      } as any,
+    });
+
+    expect(result.edgeId).toBe('a2a:sub-agent:sub-agent-1:sub-agent:sub-agent-2');
+    expect(result.edges).toEqual([
+      expect.objectContaining({
+        id: 'edge-tmp-sub-agent-1-tmp-sub-agent-2',
+        source: 'sub-agent-1',
+        target: 'sub-agent-2',
+        selected: true,
+      }),
+    ]);
+  });
+
   it('keeps connected external and team agent nodes and assigns saved relation ids', () => {
     const nodes: Node[] = [
       {
@@ -385,7 +476,7 @@ describe('syncSavedAgentGraph', () => {
       } as any,
     });
 
-    expect(result.nodeId).toBe('7ubfdp65rn5qvh7l788ae');
+    expect(result.nodeId).toBe('external-agent:external-1');
     expect(result.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

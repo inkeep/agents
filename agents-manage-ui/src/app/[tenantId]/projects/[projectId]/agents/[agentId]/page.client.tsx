@@ -54,7 +54,10 @@ import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   deserializeAgentData,
-  findSubAgentNodeId,
+  findEdgeByGraphKey,
+  findNodeByGraphKey,
+  getEdgeGraphKey,
+  getNodeGraphKey,
   serializeAgentData,
   syncSavedAgentGraph,
 } from '@/features/agent/domain';
@@ -163,6 +166,25 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     reset,
   } = useAgentActions();
 
+  const applySelectionFromQueryState = (nextNodes: Node[], nextEdges: Edge[]) => {
+    const subAgentFormData = form.getValues('subAgents');
+    const selectedNode = findNodeByGraphKey(nextNodes, nodeId, subAgentFormData);
+    const selectedEdge = findEdgeByGraphKey(nextEdges, nextNodes, edgeId, subAgentFormData);
+
+    return {
+      nodes: nextNodes.map((node) => ({
+        ...node,
+        selected: selectedNode ? node.id === selectedNode.id : false,
+      })),
+      edges: nextEdges.map((edge) => ({
+        ...edge,
+        selected: selectedEdge ? edge.id === selectedEdge.id : false,
+      })),
+      selectedNode,
+      selectedEdge,
+    };
+  };
+
   function onAddInitialNode(): void {
     const newNode = {
       ...initialNode,
@@ -198,20 +220,12 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
     const result = deserializeAgentData(agent);
-
-    const agentNodes = nodeId
-      ? result.nodes.map((node) => ({
-          ...node,
-          selected: node.id === nodeId,
-        }))
-      : result.nodes;
-
-    const agentEdges = edgeId
-      ? result.edges.map((edge) => ({
-          ...edge,
-          selected: edge.id === edgeId,
-        }))
-      : result.edges;
+    const {
+      nodes: agentNodes,
+      edges: agentEdges,
+      selectedNode,
+      selectedEdge,
+    } = applySelectionFromQueryState(result.nodes, result.edges);
 
     setInitial(agentNodes, agentEdges);
 
@@ -222,14 +236,14 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     }
 
     // If the nodeId or edgeId in URL doesn't exist in the agent, clear it
-    if (nodeId && !agentNodes.some((node) => node.id === nodeId)) {
+    if (nodeId && !selectedNode) {
       setQueryState((prev) => ({
         ...prev,
         nodeId: null,
         pane: 'agent',
       }));
     }
-    if (edgeId && !agentEdges.some((edge) => edge.id === edgeId)) {
+    if (edgeId && !selectedEdge) {
       setQueryState((prev) => ({
         ...prev,
         edgeId: null,
@@ -288,24 +302,31 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
       // Deserialize agent data to nodes and edges
       const { nodes, edges } = deserializeAgentData(updatedAgent);
-
-      // Preserve selection state based on current URL state
-      const nodesWithSelection = nodeId
-        ? nodes.map((node) => ({
-            ...node,
-            selected: node.id === nodeId,
-          }))
-        : nodes;
-
-      const edgesWithSelection = edgeId
-        ? edges.map((edge) => ({
-            ...edge,
-            selected: edge.id === edgeId,
-          }))
-        : edges;
+      const {
+        nodes: nodesWithSelection,
+        edges: edgesWithSelection,
+        selectedNode,
+        selectedEdge,
+      } = applySelectionFromQueryState(nodes, edges);
 
       // Update the store with all refreshed data
       setInitial(nodesWithSelection, edgesWithSelection);
+
+      if (nodeId && !selectedNode) {
+        setQueryState((prev) => ({
+          ...prev,
+          pane: 'agent',
+          nodeId: null,
+        }));
+      }
+
+      if (edgeId && !selectedEdge) {
+        setQueryState((prev) => ({
+          ...prev,
+          pane: 'agent',
+          edgeId: null,
+        }));
+      }
 
       // Update project data in React Query cache so components using useProjectQuery get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);
@@ -471,12 +492,13 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       (edges[0]?.type === EdgeType.A2A || edges[0]?.type === EdgeType.SelfLoop)
         ? edges[0]
         : null;
+    const subAgentFormData = form.getValues('subAgents');
     const defaultPane = isOpen ? 'agent' : null;
     setQueryState(
       {
         pane: node ? 'node' : edge ? 'edge' : defaultPane,
-        nodeId: node ? node.id : null,
-        edgeId: edge ? edge.id : null,
+        nodeId: node ? getNodeGraphKey(node, subAgentFormData) : null,
+        edgeId: edge ? getEdgeGraphKey(edge, nodes, subAgentFormData) : null,
       },
       { history: 'replace' }
     );
@@ -508,16 +530,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   const handleNavigateToNode = (nodeId: string) => {
     const subAgentFormData = form.getValues('subAgents');
-    const subAgentNodeId = findSubAgentNodeId(nodes, nodeId, subAgentFormData);
-    const targetNode = nodes.find(
-      (node) =>
-        node.id === nodeId ||
-        (subAgentNodeId !== null && node.id === subAgentNodeId) ||
-        (node.type === NodeType.ExternalAgent &&
-          (node.data as ExternalAgentNodeData).externalAgentId === nodeId) ||
-        (node.type === NodeType.TeamAgent &&
-          (node.data as TeamAgentNodeData).teamAgentId === nodeId)
-    );
+    const targetNode = findNodeByGraphKey(nodes, nodeId, subAgentFormData);
 
     if (targetNode) {
       // Clear selection and select the target node
@@ -531,7 +544,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       // Open the sidepane for the selected node
       setQueryState({
         pane: 'node',
-        nodeId: targetNode.id,
+        nodeId: getNodeGraphKey(targetNode, subAgentFormData),
         edgeId: null,
       });
     }
@@ -625,6 +638,9 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   const showEmptyState = !nodes.length && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
   const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
+  const currentSubAgentFormData = form.getValues('subAgents');
+  const selectedNode = findNodeByGraphKey(nodes, nodeId, currentSubAgentFormData);
+  const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId, currentSubAgentFormData);
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
@@ -778,8 +794,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
               order={2}
             >
               <SidePane
-                selectedNodeId={nodeId}
-                selectedEdgeId={edgeId}
+                selectedNodeId={selectedNode?.id ?? null}
+                selectedEdgeId={selectedEdge?.id ?? null}
                 onClose={closeSidePane}
                 backToAgent={backToAgent}
                 disabled={isCopilotStreaming || !canEdit}

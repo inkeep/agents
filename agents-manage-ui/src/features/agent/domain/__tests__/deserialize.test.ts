@@ -103,6 +103,7 @@ describe('deserializeAgentData', () => {
       subAgentId: 'sub-agent-1',
       relationshipId: 'relation-1',
     });
+    expect(mcpNode?.id).toBe('mcp:relation-1');
 
     expect(serialized.subAgents['sub-agent-1'].canUse).toEqual([
       {
@@ -119,6 +120,66 @@ describe('deserializeAgentData', () => {
         agentToolRelationId: 'relation-1',
       },
     ]);
+  });
+
+  it('uses deterministic ids for function tool nodes during deserialize', () => {
+    const fullAgent = {
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: '',
+      defaultSubAgentId: 'sub-agent-1',
+      subAgents: {
+        'sub-agent-1': {
+          id: 'sub-agent-1',
+          name: 'Sub agent 1',
+          description: '',
+          prompt: 'Handle requests',
+          type: 'internal',
+          dataComponents: [],
+          artifactComponents: [],
+          canUse: [
+            {
+              toolId: 'function-tool-1',
+              agentToolRelationId: 'function-relation-1',
+            },
+          ],
+          canTransferTo: [],
+          canDelegateTo: [],
+        },
+      },
+      functionTools: {
+        'function-tool-1': {
+          id: 'function-tool-1',
+          name: 'Lookup customer',
+          description: 'Looks up customer information',
+          functionId: 'function-1',
+        },
+      },
+      functions: {
+        'function-1': {
+          id: 'function-1',
+          executeCode: 'async function execute() { return { ok: true }; }',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              customerId: { type: 'string' },
+            },
+            required: ['customerId'],
+          },
+          dependencies: {},
+        },
+      },
+    } as any;
+
+    const deserialized = deserializeAgentData(fullAgent);
+    const functionToolNode = deserialized.nodes.find((node) => node.type === NodeType.FunctionTool);
+
+    expect(functionToolNode?.id).toBe('function-tool:function-tool-1');
+    expect(functionToolNode?.data).toMatchObject({
+      toolId: 'function-tool-1',
+      subAgentId: 'sub-agent-1',
+      relationshipId: 'function-relation-1',
+    });
   });
 
   it('keeps external agent nodes graph-focused and round-trips headers through RHF data', () => {

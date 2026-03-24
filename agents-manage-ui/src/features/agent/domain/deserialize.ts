@@ -11,7 +11,7 @@ import {
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
 import type { FullAgentPayload, FullAgentResponse } from '@/components/agent/form/validation';
-import { generateId } from '@/lib/utils/id-utils';
+import { getFunctionToolGraphKey, getMcpGraphKey } from './graph-identity';
 
 interface TransformResult {
   nodes: Node[];
@@ -181,11 +181,18 @@ export function deserializeAgentData(data: AgentGraphData): TransformResult {
     if (agent && 'canUse' in agent && agent.canUse && agent.canUse.length > 0) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
-        const toolNodeId = generateId();
         const relationshipId = canUseItem.agentToolRelationId;
 
         // Determine node type based on tool type
         const nodeType = data.tools?.[toolId] ? NodeType.MCP : NodeType.FunctionTool;
+        const toolNodeId =
+          nodeType === NodeType.FunctionTool
+            ? getFunctionToolGraphKey({ relationshipId, toolId })
+            : getMcpGraphKey({ relationshipId, toolId, subAgentId });
+
+        if (!toolNodeId) {
+          continue;
+        }
 
         const nodeData = {
           toolId,
