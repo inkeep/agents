@@ -6,7 +6,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.ENVIRONMENT !== 'test') {
     await import('./otel');
     const { getPricingService } = await import('@inkeep/agents-core');
-    await getPricingService()
+    getPricingService()
       .initialize()
       .catch(() => {});
   }

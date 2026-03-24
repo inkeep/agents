@@ -151,17 +151,16 @@ describe('PricingService', () => {
       fetchSpy.mockRestore();
     });
 
-    it('creates only one set of intervals despite concurrent calls', async () => {
+    it('does not create intervals — uses on-access refresh instead', async () => {
       const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       } as any);
 
-      await Promise.allSettled([service.initialize(), service.initialize()]);
+      await service.initialize();
 
-      // doInitialize sets 2 intervals (gateway + modelsDev); should only run once
-      expect(setIntervalSpy).toHaveBeenCalledTimes(2);
+      expect(setIntervalSpy).not.toHaveBeenCalled();
 
       fetchSpy.mockRestore();
       setIntervalSpy.mockRestore();
@@ -281,25 +280,6 @@ describe('PricingService', () => {
       expect(service.getModelPricing('claude-sonnet-4', 'anthropic')).not.toBeNull();
 
       fetchSpy.mockRestore();
-    });
-
-    it('clears both intervals on destroy', async () => {
-      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({}),
-      } as any);
-
-      await service.initialize();
-      clearIntervalSpy.mockClear();
-
-      service.destroy();
-
-      // Should clear both gateway and modelsDev intervals
-      expect(clearIntervalSpy).toHaveBeenCalledTimes(2);
-
-      fetchSpy.mockRestore();
-      clearIntervalSpy.mockRestore();
     });
   });
 });

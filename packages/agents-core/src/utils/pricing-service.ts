@@ -60,9 +60,10 @@ function stripDateSuffix(modelId: string): string {
 export class PricingService {
   private gatewayCache = new Map<string, ModelPricing>();
   private modelsDevCache = new Map<string, ModelPricing>();
-  private gatewayInterval: ReturnType<typeof setInterval> | null = null;
-  private modelsDevInterval: ReturnType<typeof setInterval> | null = null;
   private initPromise: Promise<void> | null = null;
+  private lastGatewayRefresh = 0;
+  private lastModelsDevRefresh = 0;
+  private refreshing = false;
   private loggedMisses = new Set<string>();
 
   async initialize(): Promise<void> {
@@ -74,26 +75,13 @@ export class PricingService {
 
   private async doInitialize(): Promise<void> {
     await Promise.allSettled([this.refreshGateway(), this.refreshModelsDev()]);
-
-    this.gatewayInterval = setInterval(() => {
-      this.refreshGateway().catch((e) =>
-        logger.warn({ error: e }, 'Gateway pricing refresh failed')
-      );
-    }, GATEWAY_REFRESH_MS);
-
-    this.modelsDevInterval = setInterval(() => {
-      this.refreshModelsDev().catch((e) =>
-        logger.warn({ error: e }, 'models.dev pricing refresh failed')
-      );
-    }, MODELS_DEV_REFRESH_MS);
   }
 
   destroy(): void {
-    if (this.gatewayInterval) clearInterval(this.gatewayInterval);
-    if (this.modelsDevInterval) clearInterval(this.modelsDevInterval);
-    this.gatewayInterval = null;
-    this.modelsDevInterval = null;
     this.initPromise = null;
+    this.refreshing = false;
+    this.lastGatewayRefresh = 0;
+    this.lastModelsDevRefresh = 0;
     this.gatewayCache.clear();
     this.modelsDevCache.clear();
     this.loggedMisses.clear();
@@ -109,7 +97,12 @@ export class PricingService {
     try {
       const { createGateway } = await import('@ai-sdk/gateway');
       const gw = createGateway({ apiKey });
-      const response = (await gw.getAvailableModels()) as { models?: GatewayModelEntry[] };
+      const response = await Promise.race([
+        gw.getAvailableModels() as Promise<{ models?: GatewayModelEntry[] }>,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Gateway pricing fetch timed out')), 10_000)
+        ),
+      ]);
       const models = response?.models ?? [];
 
       for (const model of models) {
@@ -128,6 +121,7 @@ export class PricingService {
         this.gatewayCache.set(model.id, pricing);
       }
 
+      this.lastGatewayRefresh = Date.now();
       this.loggedMisses.clear();
       logger.info({ modelCount: models.length }, 'Gateway pricing refreshed');
     } catch (error) {
@@ -179,11 +173,36 @@ export class PricingService {
         }
       }
 
+      this.lastModelsDevRefresh = Date.now();
       this.loggedMisses.clear();
       logger.info({ modelCount }, 'models.dev pricing refreshed');
     } catch (error) {
       logger.warn({ error }, 'Failed to fetch models.dev pricing');
     }
+  }
+
+  private refreshInBackground(): void {
+    if (this.refreshing) return;
+    this.refreshing = true;
+
+    const refreshes: Promise<void>[] = [];
+    const now = Date.now();
+
+    if (now - this.lastGatewayRefresh > GATEWAY_REFRESH_MS) {
+      refreshes.push(this.refreshGateway());
+    }
+    if (now - this.lastModelsDevRefresh > MODELS_DEV_REFRESH_MS) {
+      refreshes.push(this.refreshModelsDev());
+    }
+
+    if (refreshes.length === 0) {
+      this.refreshing = false;
+      return;
+    }
+
+    Promise.allSettled(refreshes).finally(() => {
+      this.refreshing = false;
+    });
   }
 
   private lookupInCache(
@@ -205,6 +224,14 @@ export class PricingService {
   }
 
   getModelPricing(modelId: string, provider: string): ModelPricing | null {
+    const now = Date.now();
+    if (
+      now - this.lastGatewayRefresh > GATEWAY_REFRESH_MS ||
+      now - this.lastModelsDevRefresh > MODELS_DEV_REFRESH_MS
+    ) {
+      this.refreshInBackground();
+    }
+
     const gatewayResult = this.lookupInCache(this.gatewayCache, modelId, provider);
     if (gatewayResult) return gatewayResult;
 
