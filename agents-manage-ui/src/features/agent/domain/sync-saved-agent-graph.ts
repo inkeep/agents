@@ -1,5 +1,9 @@
 import type { Edge, Node } from '@xyflow/react';
-import { NodeType } from '@/components/agent/configuration/node-types';
+import {
+  type ExternalAgentNodeData,
+  NodeType,
+  type TeamAgentNodeData,
+} from '@/components/agent/configuration/node-types';
 import type { FullAgentFormValues, FullAgentResponse } from '@/lib/types/agent-full';
 import { getSubAgentIdForNode } from './sub-agent-identity';
 
@@ -21,6 +25,14 @@ interface SyncSavedAgentGraphResult {
 
 function getCanUseKey(subAgentId: string, toolId: string): string {
   return `${subAgentId}:${toolId}`;
+}
+
+function getExternalDelegateKey(subAgentId: string, externalAgentId: string): string {
+  return `external:${subAgentId}:${externalAgentId}`;
+}
+
+function getTeamDelegateKey(subAgentId: string, teamAgentId: string): string {
+  return `team:${subAgentId}:${teamAgentId}`;
 }
 
 export function syncSavedAgentGraph({
@@ -45,12 +57,29 @@ export function syncSavedAgentGraph({
   const renameSubAgentId = (id: string) => renamedSubAgentIds.get(id) ?? id;
 
   const relationIdsByKey = new Map<string, string[]>();
+  const delegateRelationIdsByKey = new Map<string, string[]>();
   for (const [subAgentId, subAgent] of Object.entries(savedAgent.subAgents)) {
     for (const canUse of subAgent.canUse ?? []) {
       if (!canUse.agentToolRelationId) continue;
       const key = getCanUseKey(subAgentId, canUse.toolId);
       const current = relationIdsByKey.get(key) ?? [];
       relationIdsByKey.set(key, [...current, canUse.agentToolRelationId]);
+    }
+
+    for (const delegate of subAgent.canDelegateTo ?? []) {
+      if (typeof delegate !== 'object') continue;
+
+      if ('externalAgentId' in delegate && delegate.subAgentExternalAgentRelationId) {
+        const key = getExternalDelegateKey(subAgentId, delegate.externalAgentId);
+        const current = delegateRelationIdsByKey.get(key) ?? [];
+        delegateRelationIdsByKey.set(key, [...current, delegate.subAgentExternalAgentRelationId]);
+      }
+
+      if ('agentId' in delegate && delegate.subAgentTeamAgentRelationId) {
+        const key = getTeamDelegateKey(subAgentId, delegate.agentId);
+        const current = delegateRelationIdsByKey.get(key) ?? [];
+        delegateRelationIdsByKey.set(key, [...current, delegate.subAgentTeamAgentRelationId]);
+      }
     }
   }
 
@@ -73,7 +102,24 @@ export function syncSavedAgentGraph({
     return current ?? null;
   };
 
-  const syncedNodes = nodes
+  const claimDelegateRelationId = (key: string, current?: string | null) => {
+    if (current) {
+      usedRelationIds.add(current);
+      return current;
+    }
+
+    const relationIds = delegateRelationIdsByKey.get(key) ?? [];
+    while (relationIds.length > 0) {
+      const relationId = relationIds.shift();
+      if (!relationId || usedRelationIds.has(relationId)) continue;
+      usedRelationIds.add(relationId);
+      return relationId;
+    }
+
+    return current ?? null;
+  };
+
+  const preliminarilySyncedNodes = nodes
     .map((node) => {
       if (node.type === NodeType.SubAgent) {
         const nextId = renameSubAgentId(node.id);
@@ -81,10 +127,6 @@ export function syncSavedAgentGraph({
           ...node,
           id: nextId,
         };
-      }
-
-      if (node.type === NodeType.ExternalAgent || node.type === NodeType.TeamAgent) {
-        return node.data.relationshipId ? node : null;
       }
 
       if (node.type === NodeType.MCP || node.type === NodeType.FunctionTool) {
@@ -115,15 +157,64 @@ export function syncSavedAgentGraph({
     })
     .filter((node): node is Node => node !== null);
 
-  const keptNodeIds = new Set(syncedNodes.map((node) => node.id));
+  const syncedEdges = edges.map((edge) => ({
+    ...edge,
+    source: renameSubAgentId(edge.source),
+    target: renameSubAgentId(edge.target),
+  }));
 
-  const syncedEdges = edges
-    .map((edge) => ({
-      ...edge,
-      source: renameSubAgentId(edge.source),
-      target: renameSubAgentId(edge.target),
-    }))
-    .filter((edge) => keptNodeIds.has(edge.source) && keptNodeIds.has(edge.target));
+  const syncedNodes = preliminarilySyncedNodes
+    .map((node) => {
+      if (node.type === NodeType.ExternalAgent) {
+        const { externalAgentId, relationshipId: currentRelationshipId } =
+          node.data as ExternalAgentNodeData;
+        const incomingEdge = syncedEdges.find((edge) => edge.target === node.id);
+
+        if (!incomingEdge || !externalAgentId) {
+          return null;
+        }
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            relationshipId: claimDelegateRelationId(
+              getExternalDelegateKey(incomingEdge.source, externalAgentId),
+              currentRelationshipId
+            ),
+          },
+        };
+      }
+
+      if (node.type === NodeType.TeamAgent) {
+        const { teamAgentId, relationshipId: currentRelationshipId } =
+          node.data as TeamAgentNodeData;
+        const incomingEdge = syncedEdges.find((edge) => edge.target === node.id);
+
+        if (!incomingEdge || !teamAgentId) {
+          return null;
+        }
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            relationshipId: claimDelegateRelationId(
+              getTeamDelegateKey(incomingEdge.source, teamAgentId),
+              currentRelationshipId
+            ),
+          },
+        };
+      }
+
+      return node;
+    })
+    .filter((node): node is Node => node !== null);
+
+  const keptNodeIds = new Set(syncedNodes.map((node) => node.id));
+  const keptEdges = syncedEdges.filter(
+    (edge) => keptNodeIds.has(edge.source) && keptNodeIds.has(edge.target)
+  );
 
   const nextNodeId = nodeId
     ? (() => {
@@ -136,14 +227,14 @@ export function syncSavedAgentGraph({
       })()
     : null;
 
-  const nextEdgeId = edgeId && syncedEdges.some((edge) => edge.id === edgeId) ? edgeId : null;
+  const nextEdgeId = edgeId && keptEdges.some((edge) => edge.id === edgeId) ? edgeId : null;
 
   return {
     nodes: syncedNodes.map((node) => ({
       ...node,
       selected: nextNodeId ? node.id === nextNodeId : false,
     })),
-    edges: syncedEdges.map((edge) => ({
+    edges: keptEdges.map((edge) => ({
       ...edge,
       selected: nextEdgeId ? edge.id === nextEdgeId : false,
     })),

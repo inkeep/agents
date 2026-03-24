@@ -547,7 +547,7 @@ describe('serializeAgentData', () => {
       ]);
     });
 
-    it('should preserve function tool policies from node data when form state is missing', () => {
+    it('should omit function tool policies when form state is missing', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -566,15 +566,6 @@ describe('serializeAgentData', () => {
           position: { x: 300, y: 0 },
           data: {
             toolId: 'function-tool-1',
-            functionId: 'function-1',
-            name: 'Lookup customer',
-            description: 'Looks up customer information',
-            code: 'async function execute() { return { ok: true }; }',
-            inputSchema: { type: 'object', properties: {}, required: [] },
-            dependencies: {},
-            tempToolPolicies: {
-              '*': { needsApproval: true },
-            },
           },
         },
       ];
@@ -595,9 +586,6 @@ describe('serializeAgentData', () => {
           toolId: 'function-tool-1',
           toolSelection: null,
           headers: null,
-          toolPolicies: {
-            '*': { needsApproval: true },
-          },
         },
       ]);
     });
@@ -616,27 +604,21 @@ describe('serializeAgentData', () => {
           },
         },
         {
-          id: 'external-1',
+          id: 'external-node-1',
           type: NodeType.ExternalAgent,
           position: { x: 300, y: -100 },
           data: {
-            id: 'external-1',
-            name: 'External Agent',
-            baseUrl: 'https://example.com',
+            externalAgentId: 'external-1',
             relationshipId: 'ext-rel-1',
-            tempHeaders: { stale: 'node' },
           },
         },
         {
-          id: 'team-1',
+          id: 'team-node-1',
           type: NodeType.TeamAgent,
           position: { x: 300, y: 100 },
           data: {
-            id: 'team-1',
-            name: 'Team Agent',
-            description: '',
+            teamAgentId: 'team-1',
             relationshipId: 'team-rel-1',
-            tempHeaders: { stale: 'node' },
           },
         },
       ];
@@ -646,7 +628,7 @@ describe('serializeAgentData', () => {
           id: 'edge-ext',
           type: EdgeType.A2AExternal,
           source: 'agent1',
-          target: 'external-1',
+          target: 'external-node-1',
           data: {
             relationships: {
               transferTargetToSource: false,
@@ -660,7 +642,106 @@ describe('serializeAgentData', () => {
           id: 'edge-team',
           type: EdgeType.A2ATeam,
           source: 'agent1',
-          target: 'team-1',
+          target: 'team-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+      ];
+
+      const result = serializeAgentData(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        {
+          'external-1': {
+            id: 'external-1',
+            name: 'External Agent',
+            baseUrl: 'https://example.com',
+            headers: { authorization: 'Bearer external-token' },
+          },
+        } as any,
+        {
+          'team-1': {
+            id: 'team-1',
+            name: 'Team Agent',
+            description: '',
+            headers: { authorization: 'Bearer team-token' },
+          },
+        } as any
+      );
+
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        externalAgentId: 'external-1',
+        headers: { authorization: 'Bearer external-token' },
+        subAgentExternalAgentRelationId: 'ext-rel-1',
+      });
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        agentId: 'team-1',
+        headers: { authorization: 'Bearer team-token' },
+        subAgentTeamAgentRelationId: 'team-rel-1',
+      });
+    });
+
+    it('serializes delegations using external and team agent ids from node data', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: 'agent1',
+            name: 'Test Agent',
+            prompt: 'Test instructions',
+            skills: [],
+          },
+        },
+        {
+          id: '7ubfdp65rn5qvh7l788ae',
+          type: NodeType.ExternalAgent,
+          position: { x: 300, y: -100 },
+          data: {
+            externalAgentId: 'external-1',
+            relationshipId: 'ext-rel-1',
+          },
+        },
+        {
+          id: 'sxi5bgmobt6kl3i8cnxn7',
+          type: NodeType.TeamAgent,
+          position: { x: 300, y: 100 },
+          data: {
+            teamAgentId: 'team-1',
+            relationshipId: 'team-rel-1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-ext',
+          type: EdgeType.A2AExternal,
+          source: 'agent1',
+          target: '7ubfdp65rn5qvh7l788ae',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-team',
+          type: EdgeType.A2ATeam,
+          source: 'agent1',
+          target: 'sxi5bgmobt6kl3i8cnxn7',
           data: {
             relationships: {
               transferTargetToSource: false,
@@ -978,20 +1059,6 @@ describe('serializeAgentData', () => {
           position: { x: 300, y: 0 },
           data: {
             toolId: 'function-tool-1',
-            functionId: 'function-1',
-            name: 'Lookup customer',
-            description: 'Looks up customer information',
-            code: 'async function execute() { return { ok: true }; }',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                customerId: { type: 'string' },
-              },
-              required: ['customerId'],
-            },
-            dependencies: {
-              axios: '^1.7.0',
-            },
           },
         },
       ];
@@ -1005,7 +1072,36 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = serializeAgentData(
+        nodes,
+        edges,
+        undefined,
+        {
+          'function-tool-1': {
+            functionId: 'function-1',
+            name: 'Lookup customer',
+            description: 'Looks up customer information',
+          },
+        } as any,
+        undefined,
+        undefined,
+        undefined,
+        {
+          'function-1': {
+            executeCode: 'async function execute() { return { ok: true }; }',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                customerId: { type: 'string' },
+              },
+              required: ['customerId'],
+            },
+            dependencies: {
+              axios: '^1.7.0',
+            },
+          },
+        } as any
+      );
 
       expect(result.subAgents.agent1.canUse).toEqual([
         {
