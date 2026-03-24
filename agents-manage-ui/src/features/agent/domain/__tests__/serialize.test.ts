@@ -956,9 +956,6 @@ describe('serializeAgentData', () => {
         expect.arrayContaining([
           expect.objectContaining({
             id: 'sub-agent1',
-            data: expect.objectContaining({
-              id: 'sub-agent1',
-            }),
           }),
         ])
       );
