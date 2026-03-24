@@ -4,8 +4,8 @@ import {
   createApiError,
   createSubAgentRelation,
   deleteSubAgentRelation,
+  deriveRelationId,
   ErrorResponseSchema,
-  generateId,
   getAgentRelationById,
   getAgentRelationsBySource,
   getSubAgentRelationsByTarget,
@@ -214,7 +214,14 @@ app.openapi(
       ...body,
       agentId,
       tenantId,
-      id: generateId(),
+      id: deriveRelationId(
+        tenantId,
+        projectId,
+        agentId,
+        body.sourceSubAgentId,
+        body.targetSubAgentId ?? '',
+        body.relationType ?? ''
+      ),
       projectId,
     };
 

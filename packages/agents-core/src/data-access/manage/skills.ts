@@ -1,4 +1,3 @@
-import { generateId } from '@inkeep/agents-core';
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { skills, subAgentSkills } from '../../db/manage/manage-schema';
@@ -15,6 +14,7 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../../types/utility';
+import { deriveRelationId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 import { agentScopedWhere, projectScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
@@ -214,7 +214,13 @@ export const upsertSubAgentSkill =
 
     const insertData: SubAgentSkillInsert = {
       ...params.scopes,
-      id: generateId(),
+      id: deriveRelationId(
+        params.scopes.tenantId,
+        params.scopes.projectId,
+        params.scopes.agentId,
+        params.scopes.subAgentId,
+        params.skillId
+      ),
       skillId: params.skillId,
       index: params.index,
       alwaysLoaded: params.alwaysLoaded ?? false,

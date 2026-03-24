@@ -1,9 +1,9 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { agents, subAgents, subAgentTeamAgentRelations } from '../../db/manage/manage-schema';
 import type { SubAgentTeamAgentRelationInsert } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../../types/utility';
+import { deriveRelationId } from '../../utils/conversations';
 import { agentScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
 export const getSubAgentTeamAgentRelationById =
@@ -228,7 +228,15 @@ export const createSubAgentTeamAgentRelation =
       headers?: Record<string, string> | null;
     };
   }) => {
-    const finalRelationId = params.relationId ?? nanoid();
+    const finalRelationId =
+      params.relationId ??
+      deriveRelationId(
+        params.scopes.tenantId,
+        params.scopes.projectId,
+        params.scopes.agentId,
+        params.scopes.subAgentId,
+        params.data.targetAgentId
+      );
 
     const relation = await db
       .insert(subAgentTeamAgentRelations)
