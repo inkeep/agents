@@ -18,6 +18,7 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import { HTTPException } from 'hono/http-exception';
+import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -78,7 +79,7 @@ app.openapi(
 
     const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
-    const createdAgent = await createFullAgentServerSide(db)(
+    const createdAgent = await createFullAgentServerSide(db, logger, runDbClient)(
       { tenantId, projectId },
       validatedAgentData
     );
@@ -118,7 +119,8 @@ app.openapi(
     try {
       const agent: FullAgentDefinition | null = await getFullAgent(
         db,
-        logger
+        logger,
+        runDbClient
       )({
         scopes: { tenantId, projectId, agentId },
       });
@@ -205,17 +207,17 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
 
     const existingAgent: FullAgentDefinition | null = await getFullAgent(
       db,
-      logger
+      logger,
+      runDbClient
     )({
       scopes: { tenantId, projectId, agentId },
     });
     const isCreate = !existingAgent;
 
-    // Capture existing scheduled triggers before update for workflow reconciliation
     let existingScheduledTriggers: ScheduledTrigger[] = [];
     if (!isCreate) {
       try {
-        existingScheduledTriggers = await listScheduledTriggers(db)({
+        existingScheduledTriggers = await listScheduledTriggers(runDbClient)({
           scopes: { tenantId, projectId, agentId },
         });
       } catch (err) {
@@ -223,14 +225,18 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
       }
     }
 
-    // Update/create the full agent using server-side data layer operations
     const updatedAgent: FullAgentDefinition = isCreate
-      ? await createFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData)
-      : await updateFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData);
+      ? await createFullAgentServerSide(db, logger, runDbClient)(
+          { tenantId, projectId },
+          validatedAgentData
+        )
+      : await updateFullAgentServerSide(db, logger, runDbClient)(
+          { tenantId, projectId },
+          validatedAgentData
+        );
 
-    // Reconcile scheduled trigger workflows
     try {
-      const newScheduledTriggers = await listScheduledTriggers(db)({
+      const newScheduledTriggers = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       const existingTriggerMap = new Map(existingScheduledTriggers.map((t) => [t.id, t]));
