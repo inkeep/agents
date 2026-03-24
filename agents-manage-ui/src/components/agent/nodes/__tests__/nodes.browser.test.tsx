@@ -83,18 +83,18 @@ function Nodes() {
         defaultSubAgentNodeId: 'SubAgent',
         subAgents: {
           // @ts-expect-error
-          SubAgent: data,
+          SubAgent: DATA,
         },
         externalAgents: {
           // @ts-expect-error
-          ExternalAgent: data,
+          ExternalAgent: DATA,
         },
         teamAgents: {
           // @ts-expect-error
-          TeamAgent: data,
+          TeamAgent: DATA,
         },
         tools: {
-          Tool: {
+          [TOOL_ID]: {
             ...DATA,
             config: {
               type: 'mcp',
@@ -105,7 +105,7 @@ function Nodes() {
         },
         functionTools: {
           // @ts-expect-error
-          Tool: data,
+          [TOOL_ID]: DATA,
         },
         // @ts-expect-error
         models: {
@@ -114,17 +114,17 @@ function Nodes() {
       }}
     >
       <ReactFlowProvider>
-        <ExternalAgentNode {...baseProps} data={{ ...DATA, id: 'ExternalAgent', baseUrl: 'foo' }} />
+        <ExternalAgentNode {...baseProps} id="ExternalAgent" />
         {divider}
-        <FunctionToolNode {...baseProps} data={{ ...DATA, toolId: 'Tool' }} />
+        <FunctionToolNode {...baseProps} data={{ toolId: TOOL_ID }} />
         {divider}
-        <MCPNode {...baseProps} data={{ ...DATA, toolId: TOOL_ID }} />
+        <MCPNode {...baseProps} data={{ toolId: TOOL_ID }} />
         {divider}
-        <PlaceholderNode {...baseProps} data={{ ...DATA, type: NodeType.MCPPlaceholder }} />
+        <PlaceholderNode {...baseProps} data={{ name: DATA.name, type: NodeType.MCPPlaceholder }} />
         {divider}
-        <SubAgentNode {...baseProps} id="SubAgent" data={{ ...DATA, skills: [] }} />
+        <SubAgentNode {...baseProps} id="SubAgent" />
         {divider}
-        <TeamAgentNode {...baseProps} data={{ ...DATA, id: 'TeamAgent' }} />
+        <TeamAgentNode {...baseProps} id="TeamAgent" />
       </ReactFlowProvider>
     </FullAgentFormProvider>
   );
