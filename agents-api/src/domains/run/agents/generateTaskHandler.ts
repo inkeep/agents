@@ -12,7 +12,7 @@ import {
   type TextPart,
   withRef,
 } from '@inkeep/agents-core';
-import manageDbPool from 'src/data/db/manageDbPool';
+import manageDbPool from '../../../data/db/manageDbPool';
 import { getLogger } from '../../../logger';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { agentSessionManager } from '../session/AgentSession';

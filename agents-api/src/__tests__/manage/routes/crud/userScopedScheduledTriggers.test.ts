@@ -8,7 +8,7 @@ import {
   type ScheduledTrigger,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { isEntityChanged } from 'src/utils/entityDiff';
+import { isEntityChanged } from '../../../../utils/entityDiff';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';

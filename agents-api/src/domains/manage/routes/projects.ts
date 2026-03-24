@@ -28,8 +28,8 @@ import {
   updateProject,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
-import { requirePermission } from 'src/middleware/requirePermission';
-import type { ManageAppVariables } from 'src/types/app';
+import { requirePermission } from '../../../middleware/requirePermission';
+import type { ManageAppVariables } from '../../../types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';

@@ -25,7 +25,7 @@ import {
   updateDatasetRunConfig,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import { queueDatasetRunItems } from 'src/domains/evals/services/datasetRun';
+import { queueDatasetRunItems } from '../../../evals/services/datasetRun';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
