@@ -1,0 +1,11 @@
+import { project } from '@inkeep/agents-sdk';
+
+export const emptyArraysProject = project({
+  id: 'empty-arrays-project',
+  name: 'Empty Arrays Project',
+  models: {
+    base: {
+      model: 'gpt-4o-mini',
+    },
+  },
+});

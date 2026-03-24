@@ -1,8 +1,8 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { requireProjectPermission } from '../../../middleware/projectAccess';
 import agentRoutes from './agent';
 import agentFullRoutes from './agentFull';
 import apiKeysRoutes from './apiKeys';
+import appsRoutes from './apps';
 import artifactComponentsRoutes from './artifactComponents';
 import branchesRoutes from './branches';
 import contextConfigsRoutes from './contextConfigs';
@@ -15,15 +15,19 @@ import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
+import mergeRoutes from './merge';
 import projectMembersRoutes from './projectMembers';
 import projectPermissionsRoutes from './projectPermissions';
 import projectsRoutes from './projects';
 import refRoutes from './ref';
+import scheduledTriggersRoutes from './scheduledTriggers';
+import skillsRoutes from './skills';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
 import subAgentExternalAgentRelationsRoutes from './subAgentExternalAgentRelations';
 import subAgentFunctionToolsRoutes from './subAgentFunctionTools';
 import subAgentRelationsRoutes from './subAgentRelations';
+import subAgentSkillsRoutes from './subAgentSkills';
 // Import existing route modules (others can be added as they're created)
 import subAgentsRoutes from './subAgents';
 import subAgentTeamAgentRelationsRoutes from './subAgentTeamAgentRelations';
@@ -31,7 +35,6 @@ import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import thirdPartyMCPServersRoutes from './thirdPartyMCPServers';
 import toolsRoutes from './tools';
 import triggersRoutes from './triggers';
-import userProjectMembershipsRoutes from './userProjectMemberships';
 
 const app = new OpenAPIHono();
 
@@ -39,13 +42,9 @@ const app = new OpenAPIHono();
 // Note: projects.ts handles its own access checks internally
 app.route('/projects', projectsRoutes);
 
-// Apply project access check to all project-scoped routes BEFORE mounting them
-// This middleware checks 'view' permission by default
-// Individual routes can require higher permissions (use, edit)
-app.use('/projects/:projectId/*', requireProjectPermission('view'));
-
 // Mount branches route under project scope
 app.route('/projects/:projectId/branches', branchesRoutes);
+app.route('/projects/:projectId/branches', mergeRoutes);
 
 // Mount ref routes under project scope
 app.route('/projects/:projectId/refs', refRoutes);
@@ -83,6 +82,8 @@ app.route(
   '/projects/:projectId/agents/:agentId/sub-agent-function-tools',
   subAgentFunctionToolsRoutes
 );
+app.route('/projects/:projectId/skills', skillsRoutes);
+app.route('/projects/:projectId/agents/:agentId/sub-agent-skills', subAgentSkillsRoutes);
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/conversations', conversationsRoutes);
@@ -94,15 +95,14 @@ app.route('/projects/:projectId/agents/:agentId/function-tools', functionToolsRo
 app.route('/projects/:projectId/functions', functionsRoutes);
 app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);
+app.route('/projects/:projectId/apps', appsRoutes);
 app.route('/projects/:projectId/agent', agentFullRoutes);
 app.route('/projects/:projectId/mcp-catalog', mcpCatalogRoutes);
 app.route('/projects/:projectId/third-party-mcp-servers', thirdPartyMCPServersRoutes);
 app.route('/projects/:projectId/agents/:agentId/triggers', triggersRoutes);
+app.route('/projects/:projectId/agents/:agentId/scheduled-triggers', scheduledTriggersRoutes);
 
 // Evaluation routes (datasets, evaluators, etc.)
 app.route('/projects/:projectId/evals', evalsRoutes);
-
-// User-level routes (not project-scoped)
-app.route('/users/:userId/project-memberships', userProjectMembershipsRoutes);
 
 export default app;

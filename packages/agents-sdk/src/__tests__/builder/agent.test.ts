@@ -1,5 +1,6 @@
-import { CredentialStoreType } from '@inkeep/agents-core';
+import { CredentialStoreType, type JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { Agent } from '../../agent';
 import { ExternalAgent } from '../../external-agent';
 import { SubAgent } from '../../subAgent';
@@ -564,6 +565,42 @@ describe('Agent', () => {
           transferCountIs: 10,
         },
       });
+    });
+
+    it('should serialize sub-agent skill references without inline skill fields', async () => {
+      const skilledSubAgent = new SubAgent({
+        id: 'skilled-agent',
+        name: 'Skilled Agent',
+        description: 'Agent with skills',
+        prompt: 'Use skills when needed.',
+        skills: () => [
+          { id: 'weather-safety-guardrails', index: 0 },
+          { id: 'structured-itinerary-responses', index: 1, alwaysLoaded: true },
+        ],
+      });
+
+      const agent = new Agent({
+        id: 'test-agent-skills',
+        name: 'Test Agent Skills',
+        defaultSubAgent: skilledSubAgent,
+      });
+
+      await agent.init();
+
+      const { updateFullAgentViaAPI } = await import('../../agentFullClient.js');
+      const createCall = vi.mocked(updateFullAgentViaAPI).mock.calls[0][4];
+
+      expect(createCall.subAgents['skilled-agent'].skills).toEqual([
+        { id: 'weather-safety-guardrails', index: 0 },
+        { id: 'structured-itinerary-responses', index: 1, alwaysLoaded: true },
+      ]);
+      const skill = createCall.subAgents['skilled-agent'].skills?.[0];
+      expect(skill).not.toHaveProperty('name');
+      expect(skill).not.toHaveProperty('description');
+      expect(skill).not.toHaveProperty('metadata');
+      expect(skill).not.toHaveProperty('content');
+      expect(skill).not.toHaveProperty('createdAt');
+      expect(skill).not.toHaveProperty('updatedAt');
     });
   });
 
@@ -1350,20 +1387,20 @@ describe('Agent', () => {
         id: 'data1',
         name: 'Data Component 1',
         description: 'Test data component',
-        props: { key: 'value' },
+        props: { key: 'value' } as unknown as JsonSchemaForLlmSchemaType,
       };
-
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          summary: { type: 'string', inPreview: true },
+          full: { type: 'string', inPreview: false },
+        },
+      };
       const artifactComponent = {
         id: 'artifact1',
         name: 'Artifact Component 1',
         description: 'Test artifact component',
-        props: {
-          type: 'object',
-          properties: {
-            summary: { type: 'string', inPreview: true },
-            full: { type: 'string', inPreview: false },
-          },
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const agent = new SubAgent({

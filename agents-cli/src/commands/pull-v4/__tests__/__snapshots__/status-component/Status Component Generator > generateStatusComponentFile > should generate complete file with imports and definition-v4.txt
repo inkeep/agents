@@ -1,0 +1,8 @@
+import { statusComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const toolSummary = statusComponent({
+  type: 'tool_summary',
+  description: 'Summary of tool calls and their purpose',
+  detailsSchema: z.object({ "tool_name": z.string().describe("Name of tool used"), "purpose": z.string().describe("Why this tool was called"), "outcome": z.string().describe("What was discovered or accomplished"), "success": z.boolean().describe("Whether the tool call was successful").optional() }),
+});

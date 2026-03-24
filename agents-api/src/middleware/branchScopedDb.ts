@@ -93,12 +93,13 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
     // Execute the route handler
     await next();
 
-    // Auto-commit for successful writes on branches
+    // Auto-commit for successful writes on branches (skip for read-only methods)
+    const isReadMethod = method === 'GET' || method === 'HEAD';
     const status = c.res.status;
     const projectDeleteOperation = isProjectDeleteOperation(c.req.path, method);
     const operationSuccess = status >= 200 && status < 300;
     const shouldCommit =
-      resolvedRef.type === 'branch' && operationSuccess && !projectDeleteOperation;
+      resolvedRef.type === 'branch' && operationSuccess && !projectDeleteOperation && !isReadMethod;
 
     if (shouldCommit) {
       try {

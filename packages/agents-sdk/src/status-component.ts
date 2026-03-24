@@ -1,6 +1,9 @@
-import type { StatusComponent as StatusComponentType } from '@inkeep/agents-core';
-import { getLogger } from '@inkeep/agents-core';
-import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
+import {
+  convertZodToJsonSchema,
+  getLogger,
+  isZodSchema,
+  type StatusComponent as StatusComponentType,
+} from '@inkeep/agents-core';
 import type { z } from 'zod';
 
 const logger = getLogger('statusComponent');

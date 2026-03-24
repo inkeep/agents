@@ -388,13 +388,12 @@ See [MCP Tools](/typescript-sdk/tools/mcp-tools) for more information about regi
 
 ## Deployment Guides
 
-To build and run your own images you can follow the [Build a Custom Image](https://docs.inkeep.com/self-hosting/docker-build) docs.
+To build and run your own images you can follow the [Build a Custom Docker Image](https://docs.inkeep.com/deployment/docker-build) docs.
 
-This repostory contains a `docker-compose.yml` and template `Dockerfile` for each service:
-- `Dockerfile.manage-ui`
-- `Dockerfile.manage-api`
-- `Dockerfile.run-ui`
-- `Dockerfile.migrate`
+This repostory contains a `docker-compose.yml` and a template `Dockerfile` for each service:
+- `Dockerfile.agents-api`
+- `Dockerfile.agents-manage-ui`
+- `Dockerfile.agents-migrate`
 
 To build and run:
 ```bash
@@ -403,10 +402,9 @@ docker compose up -d
 ```
 
 ### Deploy using official prebuilt images
-- [Deploy to Vercel](https://docs.inkeep.com/self-hosting/vercel)
-- [Docker (Local Dev)](https://docs.inkeep.com/self-hosting/docker-local)
-- [GCP Compute Engine](https://docs.inkeep.com/self-hosting/gcp-compute-engine)
-- [GCP Cloud Run](https://docs.inkeep.com/self-hosting/gcp-cloud-run)
-- [AWS EC2](https://docs.inkeep.com/self-hosting/aws-ec2)
-- [Hetzner](https://docs.inkeep.com/self-hosting/hetzner)
-
+- [Deploy to Vercel](https://docs.inkeep.com/deployment/vercel)
+- [Docker (Local Dev)](https://docs.inkeep.com/deployment/docker-local)
+- [AWS EC2](https://docs.inkeep.com/deployment/aws-ec2)
+- [Azure VM](https://docs.inkeep.com/deployment/azure-vm)
+- [GCP Compute Engine](https://docs.inkeep.com/deployment/gcp-compute-engine)
+- [Hetzner](https://docs.inkeep.com/deployment/hetzner)

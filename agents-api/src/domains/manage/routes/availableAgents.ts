@@ -1,10 +1,11 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   createApiError,
-  listAgentsAcrossProjectBranches,
+  listAgentsAcrossProjectMainBranches,
   listUsableProjectIds,
   verifyTempToken,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedAuth } from '@inkeep/agents-core/middleware';
 import manageDbClient from '../../../data/db/manageDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
@@ -104,7 +105,7 @@ const AvailableAgentsResponseSchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List available agents',
@@ -112,6 +113,10 @@ app.openapi(
     tags: ['Agents'],
     description: 'List all agents the user can invoke. Requires a valid JWT token.',
     security: [{ bearerAuth: [] }],
+    permission: inheritedAuth({
+      description:
+        'Requires a valid JWT token (temp-jwt or work-app user token). Auth and SpiceDB authorization are enforced in the handler.',
+    }),
     responses: {
       200: {
         description: 'List of available agents',
@@ -159,14 +164,14 @@ app.openapi(
     const { userId, tenantId } = user;
 
     // Get list of project IDs the user can use (SpiceDB lookup)
-    const projectIds = await listUsableProjectIds({ userId });
+    const projectIds = await listUsableProjectIds({ userId, tenantId });
 
     if (projectIds.length === 0) {
       return c.json({ data: [] });
     }
 
     // Fetch agents across all usable project branches
-    const agents = await listAgentsAcrossProjectBranches(manageDbClient, {
+    const agents = await listAgentsAcrossProjectMainBranches(manageDbClient, {
       tenantId,
       projectIds,
     });

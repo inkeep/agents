@@ -13,10 +13,11 @@
 import { computeDiff, extractFieldsToUpdate, fetchCurrentEntityState } from './tool-approval.utils';
 import type { ActionResult } from './types';
 
-interface FieldDiff {
+export interface FieldDiff {
   field: string;
   oldValue: any;
   newValue: any;
+  renderAsCode?: boolean;
 }
 
 interface FetchToolApprovalDiffParams {
@@ -48,7 +49,13 @@ export async function fetchToolApprovalDiff(
     }
 
     const newValues = extractFieldsToUpdate(input);
-    const diffs = computeDiff(currentState, newValues);
+    const rawDiffs = computeDiff(currentState, newValues);
+    const CODE_FIELDS = ['executeCode'];
+    const diffs = rawDiffs.map(({ field, oldValue, newValue }) => {
+      const bothStrings = typeof oldValue === 'string' && typeof newValue === 'string';
+      const renderAsCode = bothStrings && CODE_FIELDS.includes(field);
+      return { field, oldValue, newValue, renderAsCode };
+    });
 
     return {
       success: true,

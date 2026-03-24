@@ -219,8 +219,12 @@ describe('Schema Sync Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // HASHOF('HEAD') for merge
         .mockResolvedValueOnce({ rows: [{ hash: 'abc123' }] })
+        // START TRANSACTION
+        .mockResolvedValueOnce({ rows: [] })
         // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
+        // COMMIT
+        .mockResolvedValueOnce({ rows: [] })
         // dolt_log for commit hash
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'def456' }] })
         // pg_advisory_unlock
@@ -259,9 +263,20 @@ describe('Schema Sync Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // HASHOF('HEAD')
         .mockResolvedValueOnce({ rows: [{ hash: 'abc123' }] })
+        // START TRANSACTION
+        .mockResolvedValueOnce({ rows: [] })
         // DOLT_MERGE - has conflicts
         .mockResolvedValueOnce({ rows: [{ conflicts: 2 }] })
-        // DOLT_MERGE --abort
+        // dolt_conflicts - list tables with conflicts
+        .mockResolvedValueOnce({ rows: [{ table: 'agents', num_conflicts: 2 }] })
+        // dolt_conflicts_agents - conflict rows (non-timestamp-only)
+        .mockResolvedValueOnce({
+          rows: [
+            { our_diff_type: 'added', their_diff_type: 'modified' },
+            { our_diff_type: 'added', their_diff_type: 'modified' },
+          ],
+        })
+        // ROLLBACK (from doltMerge finally block after MergeConflictError)
         .mockResolvedValueOnce({ rows: [] })
         // pg_advisory_unlock
         .mockResolvedValueOnce({ rows: [] });
@@ -368,8 +383,12 @@ describe('Schema Sync Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // HASHOF
         .mockResolvedValueOnce({ rows: [{ hash: 'abc' }] })
+        // START TRANSACTION
+        .mockResolvedValueOnce({ rows: [] })
         // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
+        // COMMIT
+        .mockResolvedValueOnce({ rows: [] })
         // dolt_log
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'merged123' }] })
         // pg_advisory_unlock

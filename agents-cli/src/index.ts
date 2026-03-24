@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import './env'; // Load environment files first (needed by instrumentation)
 import './instrumentation'; // Initialize Langfuse tracing second
 
@@ -7,9 +8,6 @@ import { getLogger } from '@inkeep/agents-core';
 const configLogger = getLogger('config');
 configLogger.updateOptions({ level: 'silent' });
 
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { addCommand } from './commands/add';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
@@ -25,33 +23,32 @@ import {
   profileRemoveCommand,
   profileUseCommand,
 } from './commands/profile';
-import { pullV3Command } from './commands/pull-v3/index';
+import { pullV4Command } from './commands/pull-v4/introspect';
 import { pushCommand } from './commands/push';
 import { statusCommand } from './commands/status';
 import { updateCommand } from './commands/update';
 import { whoamiCommand } from './commands/whoami';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const packageJsonPath = join(__dirname, '..', 'package.json');
-const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+import { PACKAGE_VERSION } from './utils/version-check';
 
 const program = new Command();
 
-program
-  .name('inkeep')
-  .description('CLI tool for Inkeep Agent Framework')
-  .version(packageJson.version);
+program.name('inkeep').description('CLI tool for Inkeep Agent Framework').version(PACKAGE_VERSION);
 
 program
   .command('add [template]')
   .description('Add a new template to the project')
   .option('--project <template>', 'Project template to add')
   .option('--mcp <template>', 'MCP template to add')
+  .option(
+    '--ui [component-id]',
+    'Add UI component(s) to apps/agents-ui/src/ui (omit id to add all)'
+  )
+  .option('--list', 'List available UI components (use with --ui)')
   .option('--target-path <path>', 'Target path to add the template to')
   .option('--local-prefix <path_prefix>', 'Use local templates from the given path prefix')
   .option('--config <path>', 'Path to configuration file')
+  .option('--profile <name>', 'Profile to use for authentication')
+  .option('--quiet', 'Suppress profile/config logging')
   .action(async (template, options) => {
     await addCommand({ template, ...options });
   });
@@ -117,9 +114,7 @@ program
     'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
   )
   .option('--quiet', 'Suppress profile/config logging')
-  .action(async (options) => {
-    await pushCommand(options);
-  });
+  .action(pushCommand);
 
 program
   .command('pull')
@@ -138,7 +133,6 @@ program
   .option('--debug', 'Enable debug logging')
   .option('--verbose', 'Enable verbose logging')
   .option('--force', 'Force regeneration even if no changes detected')
-  .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
   .option('--all', 'Pull all projects for current tenant')
   .option(
     '--tag <tag>',
@@ -146,7 +140,7 @@ program
   )
   .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
-    await pullV3Command(options);
+    await pullV4Command(options);
   });
 
 program
@@ -189,80 +183,54 @@ program
   .description('Update @inkeep/agents-cli to the latest version')
   .option('--check', 'Check for updates without installing')
   .option('--force', 'Force update even if already on latest version')
-  .action(async (options) => {
-    await updateCommand(options);
-  });
+  .action(updateCommand);
 
 // Authentication commands
 program
   .command('login')
   .description('Authenticate with Inkeep Cloud')
   .option('--profile <name>', 'Profile to authenticate (defaults to active profile)')
-  .action(async (options) => {
-    await loginCommand(options);
-  });
+  .action(loginCommand);
 
 program
   .command('logout')
   .description('Log out of Inkeep Cloud')
   .option('--profile <name>', 'Profile to log out (defaults to active profile)')
-  .action(async (options) => {
-    await logoutCommand(options);
-  });
+  .action(logoutCommand);
 
 program
   .command('status')
   .description('Show current profile, authentication state, and remote URLs')
   .option('--profile <name>', 'Profile to show status for (defaults to active profile)')
-  .action(async (options) => {
-    await statusCommand(options);
-  });
+  .action(statusCommand);
 
 program
   .command('whoami')
   .description('Display current authentication status (alias for status)')
-  .action(async () => {
-    await whoamiCommand();
-  });
+  .action(whoamiCommand);
 
 // Profile management commands
 const profileCommand = program
   .command('profile')
   .description('Manage CLI profiles for connecting to different remotes');
 
-profileCommand
-  .command('list')
-  .description('List all profiles')
-  .action(async () => {
-    await profileListCommand();
-  });
+profileCommand.command('list').description('List all profiles').action(profileListCommand);
 
-profileCommand
-  .command('add [name]')
-  .description('Add a new profile')
-  .action(async (name) => {
-    await profileAddCommand(name);
-  });
+profileCommand.command('add [name]').description('Add a new profile').action(profileAddCommand);
 
 profileCommand
   .command('use <name>')
   .description('Set the active profile')
-  .action(async (name) => {
-    await profileUseCommand(name);
-  });
+  .action(profileUseCommand);
 
 profileCommand
   .command('current')
   .description('Display the active profile details')
-  .action(async () => {
-    await profileCurrentCommand();
-  });
+  .action(profileCurrentCommand);
 
 profileCommand
   .command('remove <name>')
   .description('Remove a profile')
-  .action(async (name) => {
-    await profileRemoveCommand(name);
-  });
+  .action(profileRemoveCommand);
 
 program.parse();

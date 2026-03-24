@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   BranchListResponseSchema,
   BranchNameParamsSchema,
@@ -11,40 +11,30 @@ import {
   deleteBranch,
   ErrorResponseSchema,
   getBranch,
+  invalidBranchParamsError,
   listBranches,
   listBranchesForAgent,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
+  throwIfUniqueConstraintError,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:branchName', async (c, next) => {
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 // List branches for a project
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Branches',
     description: 'List all branches within a project',
     operationId: 'list-branches',
     tags: ['Branches'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -71,13 +61,14 @@ app.openapi(
 
 // Get a single branch
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{branchName}',
     summary: 'Get Branch',
     description: 'Get a single branch by name',
     operationId: 'get-branch',
     tags: ['Branches'],
+    permission: requireProjectPermission('view'),
     request: {
       params: BranchNameParamsSchema,
     },
@@ -112,13 +103,14 @@ app.openapi(
 
 // List branches for an agent
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/agents/{agentId}',
     summary: 'List Branches for Agent',
     description: 'List all branches within a project that contain the agent',
     operationId: 'list-branches-for-agent',
     tags: ['Branches'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
     },
@@ -145,13 +137,14 @@ app.openapi(
 
 // Create a new branch
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Branch',
     description: 'Create a new branch',
     operationId: 'create-branch',
     tags: ['Branches'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -185,28 +178,24 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
-    const { name, from } = c.req.valid('json');
+    const { name, fromBranch, fromCommit } = c.req.valid('json');
 
     try {
       const branch = await createBranch(db)({
         tenantId,
         projectId,
         name,
-        from,
+        fromBranch,
+        fromCommit,
       });
 
       return c.json({ data: branch }, 201);
     } catch (error: any) {
       const message = error?.message || 'Unknown error';
 
-      if (message.includes('already exists')) {
-        throw createApiError({
-          code: 'conflict',
-          message: `Branch '${name}' already exists`,
-        });
-      }
+      throwIfUniqueConstraintError(error, `Branch '${name}' already exists`);
 
-      if (message.includes('cannot be empty') || message.includes('invalid')) {
+      if (error instanceof invalidBranchParamsError) {
         throw createApiError({
           code: 'bad_request',
           message,
@@ -218,17 +207,25 @@ app.openapi(
   }
 );
 
-// Delete a branch
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{branchName}',
     summary: 'Delete Branch',
     description: 'Delete a branch. Cannot delete protected branches like main.',
     operationId: 'delete-branch',
     tags: ['Branches'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: BranchNameParamsSchema,
+      query: z.object({
+        force: z
+          .enum(['true', 'false'])
+          .optional()
+          .default('false')
+          .transform((v) => v === 'true')
+          .openapi({ param: { name: 'force', in: 'query' } }),
+      }),
     },
     responses: {
       204: {
@@ -248,17 +245,17 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, branchName } = c.req.valid('param');
+    const { force } = c.req.valid('query');
 
     try {
-      // First delete runtime entities associated with this branch
       const fullBranchName = `${tenantId}_${projectId}_${branchName}`;
       await cascadeDeleteByBranch(runDbClient)({
         scopes: { tenantId, projectId },
         fullBranchName,
       });
 
-      // Then delete the branch from the config DB
-      await deleteBranch(db)({ tenantId, projectId, name: branchName });
+      await deleteBranch(db)({ tenantId, projectId, branchName, force });
+
       return c.body(null, 204);
     } catch (error: any) {
       const message = error?.message || 'Unknown error';

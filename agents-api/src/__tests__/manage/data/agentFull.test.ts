@@ -75,8 +75,6 @@ describe('Agent Full Service Layer - Unit Tests', () => {
         [subAgentId1]: subAgent1,
         [subAgentId2]: subAgent2,
       },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
     // Note: DataComponents are now project-scoped and should be created separately
@@ -121,8 +119,6 @@ describe('Agent Full Service Layer - Unit Tests', () => {
             type: 'internal' as const,
           },
         },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       const result = await createFullAgentServerSide(manageDbClient)(
@@ -194,8 +190,6 @@ describe('Agent Full Service Layer - Unit Tests', () => {
           },
         },
         // Note: tools are now project-scoped and not part of the agent definition
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       const result = await createFullAgentServerSide(manageDbClient)(
@@ -797,8 +791,6 @@ describe('Agent Full Service Layer - Unit Tests', () => {
         description: 'Test description',
         defaultSubAgentId: 'non-existent-subAgent',
         subAgents: {}, // Empty subAgents but defaultSubAgentId references non-existent subAgent
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       // This should handle the error gracefully

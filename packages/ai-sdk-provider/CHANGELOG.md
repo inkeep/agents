@@ -1,5 +1,572 @@
 # @inkeep/ai-sdk-provider
 
+## 0.59.3
+
+### Patch Changes
+
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+
+## 0.59.0
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+  - @inkeep/agents-core@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+
+## 0.58.18
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.18
+
+## 0.58.17
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.17
+
+## 0.58.16
+
+### Patch Changes
+
+- Updated dependencies [5065552]
+  - @inkeep/agents-core@0.58.16
+
+## 0.58.15
+
+### Patch Changes
+
+- Updated dependencies [abaefda]
+  - @inkeep/agents-core@0.58.15
+
+## 0.58.14
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.14
+
+## 0.58.13
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.13
+
+## 0.58.12
+
+### Patch Changes
+
+- Updated dependencies [ad8a7cd]
+- Updated dependencies [ad8a7cd]
+  - @inkeep/agents-core@0.58.12
+
+## 0.58.11
+
+### Patch Changes
+
+- Updated dependencies [c87dc3e]
+  - @inkeep/agents-core@0.58.11
+
+## 0.58.10
+
+### Patch Changes
+
+- Updated dependencies [fa64456]
+- Updated dependencies [02bcd0e]
+- Updated dependencies [f41500b]
+- Updated dependencies [41af59e]
+  - @inkeep/agents-core@0.58.10
+
+## 0.58.9
+
+### Patch Changes
+
+- Updated dependencies [f150b28]
+- Updated dependencies [49909bf]
+- Updated dependencies [4816f02]
+  - @inkeep/agents-core@0.58.9
+
+## 0.58.8
+
+### Patch Changes
+
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+
+## 0.58.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- Updated dependencies [a9c2857]
+- Updated dependencies [16e5e8d]
+  - @inkeep/agents-core@0.58.6
+
+## 0.58.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [f475d74]
+  - @inkeep/agents-core@0.58.4
+
+## 0.58.3
+
+### Patch Changes
+
+- Updated dependencies [0714ac6]
+  - @inkeep/agents-core@0.58.3
+
+## 0.58.2
+
+### Patch Changes
+
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+
+## 0.58.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.1
+
+## 0.58.0
+
+### Patch Changes
+
+- Updated dependencies [3d88636]
+  - @inkeep/agents-core@0.58.0
+
+## 0.57.0
+
+### Patch Changes
+
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-core@0.57.0
+
+## 0.56.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.56.1
+
+## 0.56.0
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+
+## 0.55.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+
+## 0.54.0
+
+### Patch Changes
+
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-core@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- Updated dependencies [e915ef8]
+  - @inkeep/agents-core@0.53.13
+
+## 0.53.12
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+  - @inkeep/agents-core@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
+## 0.53.0
+
+### Patch Changes
+
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
+## 0.52.0
+
+### Patch Changes
+
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+  - @inkeep/agents-core@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-core@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+  - @inkeep/agents-core@0.50.3
+
+## 0.50.2
+
+### Patch Changes
+
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+
+## 0.50.0
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.0
+
+## 0.49.0
+
+### Patch Changes
+
+- @inkeep/agents-core@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+
+## 0.48.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.1
+
+## 0.48.0
+
+### Patch Changes
+
+- Updated dependencies [f981006]
+- Updated dependencies [e11fae9]
+- Updated dependencies [228d4e2]
+- Updated dependencies [7ad7e21]
+- Updated dependencies [95a3abc]
+- Updated dependencies [b2a6078]
+  - @inkeep/agents-core@0.48.0
+
+## 0.47.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-core@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-core@0.47.3
+
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-core@0.46.1
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-core@0.45.1
+
 ## 0.45.0
 
 ### Patch Changes

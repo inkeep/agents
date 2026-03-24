@@ -1,3 +1,4 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
@@ -287,6 +288,7 @@ describe('Agent Builder', () => {
             id: 'test-data-component',
             name: 'Test Data Component',
             description: 'Test description',
+            props: undefined as unknown as JsonSchemaForLlmSchemaType,
           },
         ],
       });

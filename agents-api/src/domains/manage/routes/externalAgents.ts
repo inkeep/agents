@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -17,34 +17,26 @@ import {
   TenantProjectParamsSchema,
   updateExternalAgent,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 // Write operations require 'edit' permission on the project
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List External Agents',
     operationId: 'list-external-agents',
     tags: ['External Agents'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -85,12 +77,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get External Agent',
     operationId: 'get-external-agent-by-id',
     tags: ['External Agents'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -132,12 +125,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create External Agent',
     operationId: 'create-external-agent',
     tags: ['External Agents'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -166,12 +160,10 @@ app.openapi(
     const body = c.req.valid('json');
 
     const externalAgentData = {
+      ...body,
       tenantId,
       projectId,
       id: body.id ? String(body.id) : generateId(),
-      name: body.name,
-      description: body.description,
-      baseUrl: body.baseUrl,
       credentialReferenceId: body.credentialReferenceId || undefined,
     };
 
@@ -187,70 +179,79 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update External Agent',
-    operationId: 'update-external-agent',
-    tags: ['External Agents'],
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: ExternalAgentApiUpdateSchema,
-          },
+const updateExternalAgentRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update External Agent',
+  tags: ['External Agents'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ExternalAgentApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'External agent updated successfully',
-        content: {
-          'application/json': {
-            schema: ExternalAgentResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'External agent updated successfully',
+      content: {
+        'application/json': {
+          schema: ExternalAgentResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    const updatedExternalAgent = await updateExternalAgent(db)({
-      scopes: { tenantId, projectId },
-      externalAgentId: id,
-      data: body,
+const updateExternalAgentHandler: ManageRouteHandler<
+  typeof updateExternalAgentRouteConfig
+> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const updatedExternalAgent = await updateExternalAgent(db)({
+    scopes: { tenantId, projectId },
+    externalAgentId: id,
+    data: body,
+  });
+
+  if (!updatedExternalAgent) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'External agent not found',
     });
+  }
 
-    if (!updatedExternalAgent) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'External agent not found',
-      });
-    }
+  const agentWithType = {
+    ...updatedExternalAgent,
+    type: 'external' as const,
+  };
 
-    // Add type field to the external agent response
-    const agentWithType = {
-      ...updatedExternalAgent,
-      type: 'external' as const,
-    };
+  return c.json({ data: agentWithType });
+};
 
-    return c.json({ data: agentWithType });
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateExternalAgentRouteConfig,
+  updateExternalAgentHandler,
+  {
+    operationId: 'update-external-agent',
   }
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete External Agent',
     operationId: 'delete-external-agent',
     tags: ['External Agents'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
     },

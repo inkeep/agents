@@ -1,12 +1,12 @@
-import { Play, Settings, Webhook } from 'lucide-react';
+import { Activity, Play, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { FlowButton } from '@/components/agent/flow-button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
 
@@ -19,27 +19,23 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
-  const dirty = useAgentStore((state) => state.dirty);
+  const isDirty = useAgentStore((state) => state.dirty);
+  const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
     projectId: string;
     agentId: string;
   }>();
+  const {
+    data: { canView, canUse, canEdit },
+  } = useProjectPermissionsQuery();
 
-  const { canView, canUse, canEdit } = useProjectPermissions();
-
-  const commonProps = {
-    className: 'backdrop-blur-3xl',
-    type: 'button',
-    variant: 'outline',
-  } satisfies ComponentProps<typeof Button>;
-
-  const PreviewButton = (
-    <Button {...commonProps} disabled={dirty} onClick={() => setShowPlayground(true)}>
-      <Play className="size-4 text-muted-foreground" />
+  const previewButton = (
+    <FlowButton disabled={isDirty || hasOpenModelConfig} onClick={() => setShowPlayground(true)}>
+      <Play className="text-muted-foreground" />
       Try it
-    </Button>
+    </FlowButton>
   );
 
   useEffect(() => {
@@ -65,51 +61,56 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
   }, [onSubmit]);
 
   return (
-    <div className="flex gap-2 flex-wrap justify-end content-start">
-      {canUse && <ShipModal buttonClassName={commonProps.className} />}
-      {dirty && canUse ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/**
-             * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
-             * don't trigger pointer events in the browser
-             **/}
-            <div>{PreviewButton}</div>
-          </TooltipTrigger>
-          <TooltipContent>
-            {dirty
-              ? 'Please save your changes before trying the agent.'
-              : 'Please save the agent to try it.'}
-          </TooltipContent>
-        </Tooltip>
-      ) : canUse ? (
-        PreviewButton
-      ) : null}
+    <div className="pointer-events-auto flex gap-2 flex-wrap justify-end content-start">
+      <FlowButton asChild>
+        <Link href={`/${tenantId}/projects/${projectId}/traces?agentId=${agentId}`}>
+          <Activity className="text-muted-foreground" />
+          Traces
+        </Link>
+      </FlowButton>
+      {canUse && (
+        <>
+          <ShipModal />
+          {isDirty || hasOpenModelConfig ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/**
+                 * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
+                 * don't trigger pointer events in the browser
+                 **/}
+                <div>{previewButton}</div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {hasOpenModelConfig
+                  ? 'Please complete model configuration before trying the agent.'
+                  : isDirty
+                    ? 'Please save your changes before trying the agent.'
+                    : 'Please save the agent to try it.'}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            previewButton
+          )}
+        </>
+      )}
       {canEdit && (
-        <Button
-          {...commonProps}
+        <FlowButton
+          // fix layout shift, variant="default" doesn't have a border
+          className="border"
           onClick={saveAgent}
-          variant={dirty ? 'default' : 'outline'}
-          disabled={isSubmitting || !dirty}
+          variant={isDirty ? 'default' : 'outline'}
+          disabled={isSubmitting || !isDirty || hasOpenModelConfig}
           ref={saveButtonRef}
         >
           <Spinner className={cn(!isSubmitting && 'hidden')} />
           Save changes
-        </Button>
+        </FlowButton>
       )}
       {canView && (
-        <Button {...commonProps} onClick={toggleSidePane}>
-          <Settings className="size-4" />
+        <FlowButton onClick={toggleSidePane}>
+          <Settings className="text-muted-foreground" />
           Agent Settings
-        </Button>
-      )}
-      {canEdit && (
-        <Button {...commonProps} asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`}>
-            <Webhook className="size-4" />
-            Triggers
-          </Link>
-        </Button>
+        </FlowButton>
       )}
     </div>
   );

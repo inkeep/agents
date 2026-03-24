@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { PageHeader } from '@/components/layout/page-header';
+import { notFound } from 'next/navigation';
 import { WorkAppsNav } from '@/components/work-apps/work-apps-nav';
 
 export const metadata = {
@@ -8,11 +8,15 @@ export const metadata = {
 } satisfies Metadata;
 
 export default async function Layout({ children, params }: LayoutProps<'/[tenantId]/work-apps'>) {
+  // Gatekeep: only show Work Apps when enabled for this tenant
+  if (process.env.NEXT_PUBLIC_ENABLE_WORK_APPS !== 'true') {
+    notFound();
+  }
+
   const { tenantId } = await params;
 
   return (
     <>
-      <PageHeader title={metadata.title} description={metadata.description} />
       <WorkAppsNav tenantId={tenantId} />
       {children}
     </>

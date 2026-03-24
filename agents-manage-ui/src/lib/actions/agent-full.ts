@@ -9,18 +9,16 @@
 
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
-import { cache } from 'react';
 import {
-  ApiError,
   createAgent as apiCreateAgent,
   createFullAgent as apiCreateFullAgent,
   deleteFullAgent as apiDeleteFullAgent,
-  fetchAgents as apiFetchAgents,
   getFullAgent as apiGetFullAgent,
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
-import type { Agent, FullAgentDefinition } from '../types/agent-full';
+import type { FullAgentDefinition } from '../types/agent-full';
+import { ApiError } from '../types/errors';
 
 /**
  * Result type for server actions - follows a consistent pattern
@@ -35,25 +33,6 @@ type ActionResult<T = void> =
       error: string;
       code?: string;
     };
-
-export async function getAllAgentsAction(
-  tenantId: string,
-  projectId: string
-): Promise<ActionResult<Agent[]>> {
-  try {
-    const response = await apiFetchAgents(tenantId, projectId);
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch agent',
-      code: 'unknown_error',
-    };
-  }
-}
 
 export async function createAgentAction(
   tenantId: string,
@@ -159,7 +138,7 @@ export async function createFullAgentAction(
 /**
  * Get a full agent by ID
  */
-async function $getFullAgentAction(
+export async function getFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string
@@ -187,8 +166,6 @@ async function $getFullAgentAction(
     };
   }
 }
-
-export const getFullAgentAction = cache($getFullAgentAction);
 
 /**
  * Update or create a full agent (upsert)

@@ -1,4 +1,5 @@
-import type { SubAgentStopWhen } from '@inkeep/agents-core';
+import type { SkillApiSelect } from '@inkeep/agents-core';
+import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
 import { Bot, Code, Globe, Hammer, Users } from 'lucide-react';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
@@ -42,10 +43,10 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   toolId: string;
   subAgentId?: string | null; // null when unconnected, string when connected to specific agent
   relationshipId?: string | null; // null when unconnected, maps to specific DB agent_tool_relation row
-  name?: string;
-  imageUrl?: string;
   provider?: string;
-  tempToolPolicies?: Record<string, { needsApproval?: boolean }>;
+  tempSelectedTools?: string[] | null;
+  tempHeaders?: Record<string, string> | null;
+  tempToolPolicies?: Record<string, { needsApproval?: boolean }> | null;
 }
 
 export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
@@ -55,6 +56,7 @@ export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   prompt?: string;
   dataComponents?: string[];
   artifactComponents?: string[];
+  skills: (SkillApiSelect & { index: number; alwaysLoaded: boolean })[];
   models?: AgentModels; // Use same structure as agent
   stopWhen?: SubAgentStopWhen;
   isDefault?: boolean;
@@ -67,6 +69,7 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
   baseUrl: string;
   relationshipId?: string | null;
   credentialReferenceId?: string | null;
+  tempHeaders?: Record<string, string> | null;
 }
 
 export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedNode {
@@ -87,6 +90,7 @@ export interface TeamAgentNodeData extends Record<string, unknown> {
   name: string;
   description?: string;
   relationshipId?: string | null;
+  tempHeaders?: Record<string, string> | null;
 }
 
 export const nodeTypes = {

@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   type AgentsManageDatabaseClient,
   CredentialReferenceApiSelectSchema,
@@ -24,10 +24,16 @@ import {
   ToolStatusSchema,
   updateTool,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { z } from 'zod';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import { oauthService } from '../../../utils/oauthService';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const logger = getLogger('tools');
@@ -35,30 +41,14 @@ const logger = getLogger('tools');
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 // Write operations require 'edit' permission on the project
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Tools',
     operationId: 'list-tools',
     tags: ['Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -152,12 +142,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Tool',
     operationId: 'get-tool',
     tags: ['Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -194,12 +185,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Tool',
     operationId: 'create-tool',
     tags: ['Tools'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -234,16 +226,10 @@ app.openapi(
     const id = body.id || generateId();
 
     const tool = await createTool(db)({
+      ...body,
       tenantId,
       projectId,
       id,
-      name: body.name,
-      config: body.config,
-      credentialReferenceId: body.credentialReferenceId,
-      credentialScope: body.credentialScope,
-      imageUrl: body.imageUrl,
-      headers: body.headers,
-      isWorkApp: body.isWorkApp,
     });
 
     return c.json(
@@ -255,84 +241,79 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Tool',
-    operationId: 'update-tool',
-    tags: ['Tools'],
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: ToolApiUpdateSchema,
-          },
+const updateToolRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Tool',
+  tags: ['Tools'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ToolApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Tool updated successfully',
-        content: {
-          'application/json': {
-            schema: McpToolResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Tool updated successfully',
+      content: {
+        'application/json': {
+          schema: McpToolResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
-    const credentialStores = c.get('credentialStores');
-    const userId = c.get('userId');
+    ...commonGetErrorResponses,
+  },
+};
 
-    if (Object.keys(body).length === 0) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'No fields to update',
-      });
-    }
+const updateToolHandler: ManageRouteHandler<typeof updateToolRouteConfig> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const credentialStores = c.get('credentialStores');
+  const userId = c.get('userId');
 
-    const updatedTool = await updateTool(db)({
-      scopes: { tenantId, projectId },
-      toolId: id,
-      data: {
-        name: body.name,
-        config: body.config,
-        credentialReferenceId: body.credentialReferenceId,
-        credentialScope: body.credentialScope,
-        imageUrl: body.imageUrl,
-        headers: body.headers,
-        isWorkApp: body.isWorkApp,
-      },
-    });
-
-    if (!updatedTool) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Tool not found',
-      });
-    }
-
-    return c.json({
-      data: await dbResultToMcpTool(updatedTool, db, credentialStores, undefined, userId),
+  if (Object.keys(body).length === 0) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'No fields to update',
     });
   }
-);
+
+  const updatedTool = await updateTool(db)({
+    scopes: { tenantId, projectId },
+    toolId: id,
+    data: body,
+  });
+
+  if (!updatedTool) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Tool not found',
+    });
+  }
+
+  return c.json({
+    data: await dbResultToMcpTool(updatedTool, db, credentialStores, undefined, userId),
+  });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateToolRouteConfig, updateToolHandler, {
+  operationId: 'update-tool',
+});
 
 // Get user-scoped credential for a tool
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}/user-credential',
     summary: 'Get User Credential for Tool',
     operationId: 'get-user-credential-for-tool',
     tags: ['Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -379,12 +360,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Tool',
     operationId: 'delete-tool',
     tags: ['Tools'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -408,6 +390,83 @@ app.openapi(
     }
 
     return c.body(null, 204);
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{id}/oauth/login',
+    summary: 'Initiate OAuth login for MCP tool',
+    description:
+      'Detects OAuth requirements and redirects to the authorization server for the specified tool',
+    operationId: 'initiate-tool-oauth-login',
+    tags: ['Tools'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectIdParamsSchema,
+    },
+    responses: {
+      302: {
+        description: 'Redirect to OAuth authorization server',
+      },
+      400: {
+        description: 'OAuth not supported or configuration error',
+        content: {
+          'text/html': {
+            schema: z.string(),
+          },
+        },
+      },
+      404: {
+        description: 'Tool not found',
+        content: {
+          'text/html': {
+            schema: z.string(),
+          },
+        },
+      },
+      500: {
+        description: 'Internal server error',
+        content: {
+          'text/html': {
+            schema: z.string(),
+          },
+        },
+      },
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, id: toolId } = c.req.valid('param');
+    const db = c.get('db');
+
+    try {
+      const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId });
+
+      if (!tool) {
+        logger.error({ toolId, tenantId, projectId }, 'Tool not found for OAuth login');
+        return c.text('Tool not found', 404);
+      }
+
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.protocol}//${url.host}`;
+      const { redirectUrl } = await oauthService.initiateOAuthFlow({
+        tenantId,
+        projectId,
+        toolId,
+        userId: c.get('userId'),
+        mcpServerUrl: tool.config.mcp.server.url,
+        baseUrl,
+      });
+
+      return c.redirect(redirectUrl, 302);
+    } catch (error) {
+      logger.error({ toolId, tenantId, projectId, error }, 'OAuth login failed');
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to initiate OAuth login';
+      return c.text(`OAuth Error: ${errorMessage}`, 500);
+    }
   }
 );
 

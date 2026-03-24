@@ -1,5 +1,9 @@
-import { type DataComponentInsert as DataComponentType, getLogger } from '@inkeep/agents-core';
-import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
+import {
+  convertZodToJsonSchema,
+  type DataComponentInsert as DataComponentType,
+  getLogger,
+  isZodSchema,
+} from '@inkeep/agents-core';
 import type { z } from 'zod';
 import { generateIdFromName } from './utils/generateIdFromName';
 
@@ -10,7 +14,7 @@ type DataComponentConfigWithZod = Omit<
   DataComponentType,
   'tenantId' | 'projectId' | 'props' | 'render'
 > & {
-  props?: Record<string, unknown> | z.ZodObject<any> | null;
+  props: DataComponentType['props'] | z.ZodObject<any>;
   render?: {
     component: string;
     mockData: Record<string, unknown>;
@@ -39,12 +43,9 @@ export class DataComponent implements DataComponentInterface {
     this.id = config.id || generateIdFromName(config.name);
 
     // Convert Zod schema to JSON Schema if needed
-    let processedProps: Record<string, unknown> | null | undefined;
-    if (config.props && isZodSchema(config.props)) {
-      processedProps = convertZodToJsonSchema(config.props) as Record<string, unknown>;
-    } else {
-      processedProps = config.props as Record<string, unknown> | null | undefined;
-    }
+    const processedProps = isZodSchema(config.props)
+      ? (convertZodToJsonSchema(config.props) as DataComponentType['props'])
+      : config.props;
 
     this.config = {
       ...config,

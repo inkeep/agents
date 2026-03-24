@@ -2,14 +2,36 @@ import {
   type BaseExecutionContext,
   getLogger,
   isInternalServiceToken,
+  isSlackUserToken,
   validateAndGetApiKey,
   verifyInternalServiceAuthHeader,
+  verifySlackUserToken,
 } from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
+import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
+import { sessionAuth } from './sessionAuth';
+
+/**
+ * Legacy exception: allow database API keys on GET /manage/tenants/:t/projects/:p/conversations/:id
+ * A customer uses the deprecated API key and needs read access to this single endpoint.
+ * The caller must already know the conversationId. Only GET with a specific conversation ID is allowed —
+ * list, bounds, media, and all other manage endpoints remain session-only.
+ */
+const LEGACY_API_KEY_CONVERSATION_ROUTE =
+  /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/conversations\/[^/]+\/?$/;
+
+function isLegacyApiKeyAllowedRoute(method: string, path: string): boolean {
+  return method === 'GET' && LEGACY_API_KEY_CONVERSATION_ROUTE.test(path);
+}
+
+function extractProjectIdFromPath(path: string): string | undefined {
+  const match = path.match(/\/projects\/([^/]+)\//);
+  return match?.[1];
+}
 
 const logger = getLogger('env-key-auth');
 /**
@@ -17,17 +39,21 @@ const logger = getLogger('env-key-auth');
  * Authentication priority:
  * 1. Bypass secret (INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET)
  * 2. Better-auth session token (from device authorization flow)
- * 3. Database API key
+ * 3. Slack user JWT token (for Slack work app delegation)
  * 4. Internal service token
+ *
+ * NOTE: Database API keys are intentionally NOT accepted on manage endpoints,
+ * EXCEPT for the legacy exception on GET /manage/tenants/:t/projects/:p/conversations/:id
+ * (see isLegacyApiKeyAllowedRoute). API keys are otherwise restricted to the run domain only.
  */
-export const manageApiKeyAuth = () =>
+export const manageBearerAuth = () =>
   createMiddleware<{
     Variables: {
       executionContext: BaseExecutionContext;
       userId?: string;
       userEmail?: string;
       tenantId?: string;
-      auth: ReturnType<typeof createAuth> | null;
+      auth: ReturnType<typeof createAuth>;
     };
   }>(async (c, next) => {
     const authHeader = c.req.header('Authorization');
@@ -58,58 +84,66 @@ export const manageApiKeyAuth = () =>
 
     // 2. Try to validate as a better-auth session token (from device authorization flow or cookie)
     const auth = c.get('auth');
-    if (auth) {
-      try {
-        // Create headers with the Authorization header for bearer token validation
-        const headers = new Headers();
-        headers.set('Authorization', authHeader);
+    try {
+      // Create headers with the Authorization header for bearer token validation
+      const headers = new Headers();
+      headers.set('Authorization', authHeader);
 
-        // Also include cookie for session validation - check x-forwarded-cookie first (from MCP/SDK calls)
-        const forwardedCookie = c.req.header('x-forwarded-cookie');
-        const cookie = c.req.header('cookie');
-        if (forwardedCookie) {
-          headers.set('cookie', forwardedCookie);
-          logger.debug(
-            { source: 'x-forwarded-cookie' },
-            'Using x-forwarded-cookie for session validation'
-          );
-        } else if (cookie) {
-          headers.set('cookie', cookie);
-          logger.debug({ source: 'cookie' }, 'Using cookie for session validation');
-        }
-
-        const session = await auth.api.getSession({ headers });
-
-        if (session?.user) {
-          logger.info(
-            { userId: session.user.id },
-            'Better-auth session authenticated successfully'
-          );
-
-          c.set('userId', session.user.id);
-          c.set('userEmail', session.user.email);
-          // Note: tenantId will be validated by tenant-access middleware based on the route
-
-          await next();
-          return;
-        }
-      } catch (error) {
-        // Session validation failed, continue to API key validation
-        logger.debug({ error }, 'Better-auth session validation failed, trying API key');
+      // Also include cookie for session validation - check x-forwarded-cookie first (from MCP/SDK calls)
+      const forwardedCookie = c.req.header('x-forwarded-cookie');
+      const cookie = c.req.header('cookie');
+      if (forwardedCookie) {
+        headers.set('cookie', forwardedCookie);
+        logger.debug(
+          { source: 'x-forwarded-cookie' },
+          'Using x-forwarded-cookie for session validation'
+        );
+      } else if (cookie) {
+        headers.set('cookie', cookie);
+        logger.debug({ source: 'cookie' }, 'Using cookie for session validation');
       }
+
+      const session = await auth.api.getSession({ headers });
+
+      if (session?.user) {
+        logger.info({ userId: session.user.id }, 'Better-auth session authenticated successfully');
+
+        c.set('userId', session.user.id);
+        c.set('userEmail', session.user.email);
+        // Note: tenantId will be validated by tenant-access middleware based on the route
+
+        await next();
+        return;
+      }
+    } catch (error) {
+      logger.debug({ error }, 'Better-auth session validation failed, trying other auth methods');
     }
 
-    // 3. Validate against database API keys
-    const validatedKey = await validateAndGetApiKey(token, runDbClient);
+    // 3. Validate as a Slack user JWT token (for Slack work app delegation)
+    if (isSlackUserToken(token)) {
+      const result = await verifySlackUserToken(token);
 
-    if (validatedKey) {
-      logger.info({ keyId: validatedKey.id }, 'API key authenticated successfully');
+      if (!result.valid || !result.payload) {
+        throw new HTTPException(401, {
+          message: result.error || 'Invalid Slack user token',
+        });
+      }
 
-      // Set context from the validated API key
-      c.set('userId', `apikey:${validatedKey.id}`);
-      c.set('userEmail', `apikey-${validatedKey.id}@internal`);
-      // The tenantId from the API key can be used for access control
-      c.set('tenantId', validatedKey.tenantId);
+      logger.info(
+        {
+          inkeepUserId: result.payload.sub,
+          tenantId: result.payload.tenantId,
+          slackTeamId: result.payload.slack.teamId,
+          slackUserId: result.payload.slack.userId,
+        },
+        'Slack user JWT authenticated successfully'
+      );
+
+      c.set('userId', result.payload.sub);
+      if (result.payload.slack.email) {
+        c.set('userEmail', result.payload.slack.email);
+      }
+      c.set('tenantId', result.payload.tenantId);
 
       await next();
       return;
@@ -146,8 +180,76 @@ export const manageApiKeyAuth = () =>
       return;
     }
 
+    // 5. Legacy exception: allow database API keys on the get-conversation-by-ID endpoint only
+    if (isLegacyApiKeyAllowedRoute(c.req.method, c.req.path)) {
+      try {
+        const apiKeyRecord = await validateAndGetApiKey(token, runDbClient);
+        if (apiKeyRecord) {
+          // Validate that the API key's project matches the route's project
+          const routeProjectId = extractProjectIdFromPath(c.req.path);
+          if (routeProjectId && apiKeyRecord.projectId !== routeProjectId) {
+            logger.warn(
+              {
+                apiKeyId: apiKeyRecord.id,
+                apiKeyProjectId: apiKeyRecord.projectId,
+                routeProjectId,
+              },
+              'Legacy API key project mismatch'
+            );
+            throw new HTTPException(403, {
+              message: 'API key does not have access to this project',
+            });
+          }
+
+          logger.info(
+            { apiKeyId: apiKeyRecord.id, tenantId: apiKeyRecord.tenantId },
+            'Legacy API key authenticated for manage conversation endpoint'
+          );
+          c.set('userId', `apikey:${apiKeyRecord.id}`);
+          c.set('tenantId', apiKeyRecord.tenantId);
+          await next();
+          return;
+        }
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error;
+        }
+        // Intentional fallthrough to 401 on transient DB errors — a broken run DB
+        // should not block session-based manage auth on other routes. The customer
+        // will see "Invalid Token" rather than 503, which is acceptable for a legacy path.
+        logger.error({ error }, 'Legacy API key validation failed');
+      }
+    }
+
     // None of the authentication methods succeeded
     throw new HTTPException(401, {
       message: 'Invalid Token',
     });
   });
+
+/**
+ * Middleware that gates a route with manage-domain authentication.
+ * Uses Bearer token → manage bearer auth (bypass secret, session, Slack JWT, internal service),
+ * otherwise falls back to session auth.
+ */
+export const manageBearerOrSessionAuth = () => {
+  const mw = createMiddleware(async (c, next) => {
+    if (env.ENVIRONMENT === 'test') {
+      await next();
+      return;
+    }
+
+    const authHeader = c.req.header('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      return manageBearerAuth()(c as any, next);
+    }
+
+    return sessionAuth()(c as any, next);
+  });
+  registerAuthzMeta(mw, {
+    resource: 'organization',
+    permission: 'member',
+    description: 'Requires session cookie authentication',
+  });
+  return mw;
+};

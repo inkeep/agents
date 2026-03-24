@@ -1,4 +1,6 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { SubAgent } from '../../subAgent';
 import type { SubAgentConfig } from '../../types';
 import { createTestTenantId } from '../utils/testTenant';
@@ -7,6 +9,27 @@ describe('Agent with DataComponents Integration', () => {
   const _tenantId = createTestTenantId('agent-datacomponents');
 
   it('should handle agents with data components configuration', () => {
+    const props1: JSONSchema.BaseSchema = {
+      type: 'object',
+      properties: {
+        orders: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Order items to display',
+        },
+      },
+      required: ['orders'],
+    };
+    const props2: JSONSchema.BaseSchema = {
+      type: 'object',
+      properties: {
+        label: {
+          type: 'string',
+          description: 'Button label text',
+        },
+      },
+      required: ['label'],
+    };
     const agentConfig: SubAgentConfig = {
       id: 'test-agent-with-datacomponents',
       name: 'TestAgentWithDataComponents',
@@ -17,32 +40,13 @@ describe('Agent with DataComponents Integration', () => {
           id: 'orders-list-1',
           name: 'OrdersList',
           description: 'Display a list of user orders',
-          props: {
-            type: 'object',
-            properties: {
-              orders: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Order items to display',
-              },
-            },
-            required: ['orders'],
-          },
+          props: props1 as JsonSchemaForLlmSchemaType,
         },
         {
           id: 'sales-button-1',
           name: 'SalesButton',
           description: 'Button to contact sales team',
-          props: {
-            type: 'object',
-            properties: {
-              label: {
-                type: 'string',
-                description: 'Button label text',
-              },
-            },
-            required: ['label'],
-          },
+          props: props2 as JsonSchemaForLlmSchemaType,
         },
       ],
     };

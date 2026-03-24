@@ -1,0 +1,11 @@
+import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const simpleArtifact = artifactComponent({
+  id: 'simple-artifact',
+  name: 'Simple Artifact',
+  description: 'A simple artifact component',
+  props: z.object({
+      value: z.string().describe("Simple value"),
+    }),
+});

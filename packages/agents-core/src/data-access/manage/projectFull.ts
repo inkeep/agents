@@ -41,6 +41,7 @@ import { deleteDataComponent, listDataComponents, upsertDataComponent } from './
 import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { deleteFunction, listFunctions, upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
+import { listSkills, upsertSkill } from './skills';
 import { deleteTool, listTools, upsertTool } from './tools';
 
 const defaultLogger = getLogger('projectFull');
@@ -90,6 +91,33 @@ export const createFullProjectServerSide =
       logger.info({ projectId: typed.id }, 'Creating project metadata');
       await createProject(db)(projectPayload);
       logger.info({ projectId: typed.id }, 'Project metadata created successfully');
+
+      if (typed.skills && Object.keys(typed.skills).length) {
+        logger.info(
+          { projectId: typed.id, count: Object.keys(typed.skills).length },
+          'Creating project skills'
+        );
+
+        const skillPromises = Object.entries(typed.skills).map(async ([skillId, skill]) => {
+          try {
+            await upsertSkill(db)({
+              ...skill,
+              tenantId,
+              projectId: typed.id,
+            });
+            logger.info({ projectId: typed.id, skillId }, 'Skill processed');
+          } catch (error) {
+            logger.error({ projectId: typed.id, skillId, error }, 'Failed to create skill');
+            throw error;
+          }
+        });
+
+        await Promise.all(skillPromises);
+        logger.info(
+          { projectId: typed.id, count: Object.keys(typed.skills).length },
+          'All project skills created successfully'
+        );
+      }
 
       if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
         logger.info(
@@ -547,6 +575,33 @@ export const updateFullProjectServerSide =
         data: projectUpdatePayload,
       });
       logger.info({ projectId: typed.id }, 'Project metadata updated successfully');
+
+      if (typed.skills && Object.keys(typed.skills).length) {
+        logger.info(
+          { projectId: typed.id, count: Object.keys(typed.skills).length },
+          'Updating project skills'
+        );
+
+        const skillPromises = Object.entries(typed.skills).map(async ([skillId, skill]) => {
+          try {
+            await upsertSkill(db)({
+              ...skill,
+              tenantId,
+              projectId: typed.id,
+            });
+            logger.info({ projectId: typed.id, skillId }, 'Skill processed');
+          } catch (error) {
+            logger.error({ projectId: typed.id, skillId, error }, 'Failed to update skill');
+            throw error;
+          }
+        });
+
+        await Promise.all(skillPromises);
+        logger.info(
+          { projectId: typed.id, count: Object.keys(typed.skills).length },
+          'All project skills updated successfully'
+        );
+      }
 
       if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
         logger.info(
@@ -1301,6 +1356,33 @@ const getFullProjectInternal =
         logger.warn({ tenantId, projectId, error }, 'Failed to retrieve functions for project');
       }
 
+      const projectSkills: Record<string, any> = {};
+      try {
+        const skillsList = await listSkills(db)({
+          scopes: { tenantId, projectId },
+          pagination: { page: 1, limit: 1000 },
+        });
+
+        for (const skill of skillsList.data) {
+          projectSkills[skill.id] = {
+            id: skill.id,
+            name: skill.name,
+            description: skill.description,
+            content: skill.content,
+            metadata: skill.metadata,
+            createdAt: skill.createdAt,
+            updatedAt: skill.updatedAt,
+          };
+        }
+
+        logger.info(
+          { tenantId, projectId, skillCount: Object.keys(projectSkills).length },
+          'Skills retrieved for project'
+        );
+      } catch (error) {
+        logger.warn({ tenantId, projectId, error }, 'Failed to retrieve skills for project');
+      }
+
       const agents: Record<string, any> = {};
 
       if (agentList.length > 0) {
@@ -1371,6 +1453,7 @@ const getFullProjectInternal =
           Object.keys(projectCredentialReferences).length > 0 ? projectCredentialReferences : null,
         statusUpdates: null, // Not currently loaded
         functionTools: null, // Loaded at agent level
+        skills: Object.keys(projectSkills).length > 0 ? projectSkills : undefined,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       };

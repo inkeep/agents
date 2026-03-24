@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as apiConfig from '../../api/api-config';
+import { fetchToolApprovalDiff } from '../tool-approval';
 import {
   computeDiff,
   extractFieldsToUpdate,
@@ -361,6 +362,107 @@ describe('tool-approval-mapper', () => {
         'tenants/default/projects/test-project/sub-agent-relations/test-relation',
         { method: 'GET' }
       );
+    });
+  });
+
+  describe('fetchToolApprovalDiff', () => {
+    const mockMakeManagementApiRequest = vi.mocked(apiConfig.makeManagementApiRequest);
+
+    it('sets renderAsCode true for executeCode field', async () => {
+      mockMakeManagementApiRequest.mockResolvedValue({
+        data: {
+          id: 'func-1',
+          executeCode: 'async () => ({ ok: true })',
+        },
+      });
+
+      const result = await fetchToolApprovalDiff({
+        toolName: 'functions-update-function',
+        input: {
+          request: {
+            toolId: 'func-1',
+            tenantId: 'default',
+            projectId: 'test-project',
+            body: {
+              executeCode: 'async () => ({ ok: true, updated: true })',
+            },
+          },
+        },
+        tenantId: 'default',
+        projectId: 'test-project',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data?.[0]).toMatchObject({
+        field: 'executeCode',
+        renderAsCode: true,
+      });
+    });
+
+    it('sets renderAsCode false for non-code fields', async () => {
+      mockMakeManagementApiRequest.mockResolvedValue({
+        data: {
+          id: 'func-1',
+          executeCode: 'async () => ({})',
+          description: 'Old description',
+        },
+      });
+
+      const result = await fetchToolApprovalDiff({
+        toolName: 'functions-update-function',
+        input: {
+          request: {
+            toolId: 'func-1',
+            tenantId: 'default',
+            projectId: 'test-project',
+            body: {
+              description: 'async () => 1',
+            },
+          },
+        },
+        tenantId: 'default',
+        projectId: 'test-project',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data?.[0]).toMatchObject({
+        field: 'description',
+        renderAsCode: false,
+      });
+    });
+
+    it('sets renderAsCode false when values are not both strings', async () => {
+      mockMakeManagementApiRequest.mockResolvedValue({
+        data: {
+          id: 'func-1',
+          config: { enabled: false },
+        },
+      });
+
+      const result = await fetchToolApprovalDiff({
+        toolName: 'functions-update-function',
+        input: {
+          request: {
+            toolId: 'func-1',
+            tenantId: 'default',
+            projectId: 'test-project',
+            body: {
+              config: { enabled: true },
+            },
+          },
+        },
+        tenantId: 'default',
+        projectId: 'test-project',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data?.[0]).toMatchObject({
+        field: 'config',
+        renderAsCode: false,
+      });
     });
   });
 });

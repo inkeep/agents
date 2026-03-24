@@ -3,29 +3,21 @@ import {
   type AgentApiInsert,
   type AgentApiSelect,
   apiFetch,
+  type FullProjectSelectResponse,
   OPENAI_MODELS,
 } from '@inkeep/agents-core';
+import type { z } from 'zod';
+
+type FullProjectResponse = z.infer<typeof FullProjectSelectResponse>;
 
 abstract class BaseApiClient {
-  protected apiUrl: string;
-  protected tenantId: string | undefined;
-  protected projectId: string;
-  protected apiKey: string | undefined;
-  protected isCI: boolean;
-
   protected constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    this.apiUrl = apiUrl;
-    this.tenantId = tenantId;
-    this.projectId = projectId;
-    this.apiKey = apiKey;
-    this.isCI = isCI;
-  }
+    protected apiUrl: string,
+    protected tenantId: string | undefined,
+    protected projectId: string,
+    protected apiKey?: string,
+    protected isCI = false
+  ) {}
 
   protected checkTenantId(): string {
     if (!this.tenantId) {
@@ -41,7 +33,7 @@ abstract class BaseApiClient {
   protected async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     // Build headers with auth if API key is present
     const headers: Record<string, string> = {
-      ...((options.headers as Record<string, string>) || {}),
+      ...(options.headers as Record<string, string>),
     };
 
     // Add auth header based on mode
@@ -78,15 +70,17 @@ abstract class BaseApiClient {
   }
 }
 
+type ConstructorParams = [
+  apiUrl: string,
+  tenantId: string | undefined,
+  projectId: string,
+  apiKey?: string,
+  isCI?: boolean,
+];
+
 export class ManagementApiClient extends BaseApiClient {
-  private constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    super(apiUrl, tenantId, projectId, apiKey, isCI);
+  private constructor(...args: ConstructorParams) {
+    super(...args);
   }
 
   static async create(
@@ -174,7 +168,7 @@ export class ManagementApiClient extends BaseApiClient {
     return data.data;
   }
 
-  async getFullProject(projectId: string): Promise<any> {
+  async getFullProject(projectId: string): Promise<FullProjectResponse['data']> {
     const tenantId = this.checkTenantId();
 
     const response = await this.authenticatedFetch(
@@ -274,17 +268,125 @@ export class ManagementApiClient extends BaseApiClient {
 
     return allProjects;
   }
+
+  async getDataComponent(componentId: string): Promise<{
+    id: string;
+    name: string;
+    render: { component: string; mockData: Record<string, unknown> } | null;
+  } | null> {
+    const tenantId = this.checkTenantId();
+    const projectId = this.getProjectId();
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/data-components/${componentId}`,
+      { method: 'GET' }
+    );
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      const err = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to fetch data component: ${response.statusText}${err ? `\n${err}` : ''}`
+      );
+    }
+    const json = await response.json();
+    return json.data ?? null;
+  }
+
+  async listDataComponents(): Promise<
+    {
+      id: string;
+      name: string;
+      render: { component: string; mockData: Record<string, unknown> } | null;
+    }[]
+  > {
+    const tenantId = this.checkTenantId();
+    const projectId = this.getProjectId();
+    const all: {
+      id: string;
+      name: string;
+      render: { component: string; mockData: Record<string, unknown> } | null;
+    }[] = [];
+    let page = 1;
+    const limit = 100;
+    let result: { data: any[]; pagination: { total: number } };
+    do {
+      const response = await this.authenticatedFetch(
+        `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/data-components?page=${page}&limit=${limit}`,
+        { method: 'GET' }
+      );
+      if (!response.ok) {
+        const err = await response.text().catch(() => '');
+        throw new Error(
+          `Failed to list data components: ${response.statusText}${err ? `\n${err}` : ''}`
+        );
+      }
+      result = await response.json();
+      all.push(...(result.data || []));
+      page++;
+    } while (result.data?.length === limit && all.length < (result.pagination?.total ?? 0));
+    return all;
+  }
+
+  async getArtifactComponent(componentId: string): Promise<{
+    id: string;
+    name: string;
+    render: { component: string; mockData: Record<string, unknown> } | null;
+  } | null> {
+    const tenantId = this.checkTenantId();
+    const projectId = this.getProjectId();
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${componentId}`,
+      { method: 'GET' }
+    );
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      const err = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to fetch artifact component: ${response.statusText}${err ? `\n${err}` : ''}`
+      );
+    }
+    const json = await response.json();
+    return json.data ?? null;
+  }
+
+  async listArtifactComponents(): Promise<
+    {
+      id: string;
+      name: string;
+      render: { component: string; mockData: Record<string, unknown> } | null;
+    }[]
+  > {
+    const tenantId = this.checkTenantId();
+    const projectId = this.getProjectId();
+    const all: {
+      id: string;
+      name: string;
+      render: { component: string; mockData: Record<string, unknown> } | null;
+    }[] = [];
+    let page = 1;
+    const limit = 100;
+    let result: { data: any[]; pagination: { total: number } };
+    do {
+      const response = await this.authenticatedFetch(
+        `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/artifact-components?page=${page}&limit=${limit}`,
+        { method: 'GET' }
+      );
+      if (!response.ok) {
+        const err = await response.text().catch(() => '');
+        throw new Error(
+          `Failed to list artifact components: ${response.statusText}${err ? `\n${err}` : ''}`
+        );
+      }
+      result = await response.json();
+      all.push(...(result.data || []));
+      page++;
+    } while (result.data?.length === limit && all.length < (result.pagination?.total ?? 0));
+    return all;
+  }
 }
 
 export class ExecutionApiClient extends BaseApiClient {
-  private constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    super(apiUrl, tenantId, projectId, apiKey, isCI);
+  private constructor(...args: ConstructorParams) {
+    super(...args);
   }
 
   static async create(

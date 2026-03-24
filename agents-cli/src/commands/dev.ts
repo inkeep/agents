@@ -181,18 +181,6 @@ async function buildNextApp({ outputDir }: { outputDir: string }) {
 
     await fs.writeJson(join(outputDir, 'package.json'), packageJson, { spaces: 2 });
 
-    // 6. Create setup instructions
-    const instructions = `
-## Environment Variables
-
-Make sure to set these in your Vercel project settings:
-- INKEEP_API_URL
-- INKEEP_TENANT_ID
-- Any other variables from your .env file
-`;
-
-    await fs.writeFile(join(outputDir, 'README.md'), instructions);
-
     s.stop(`Build created at ${outputDir}/`);
 
     console.log('');
@@ -205,8 +193,6 @@ Make sure to set these in your Vercel project settings:
     console.log(chalk.blue('🌐 Or with pnpm:'));
     console.log(chalk.gray('  cd'), chalk.white(outputDir));
     console.log(chalk.gray('  pnpm start'));
-    console.log('');
-    console.log(chalk.yellow('📖 See README.md for deployment instructions'));
     console.log('');
   } catch (error) {
     s.stop('Failed to build dashboard');
@@ -262,53 +248,6 @@ async function exportNextApp({ outputDir }: { outputDir: string }) {
       }
     }
 
-    // Create a README for the exported project
-    const readme = `# Inkeep Dashboard
-
-This is an exported copy of the Inkeep Dashboard UI.
-
-## Getting Started
-
-1. Install dependencies:
-   \`\`\`bash
-   npm install
-   # or
-   pnpm install
-   \`\`\`
-
-2. Start the development server:
-   \`\`\`bash
-   npm run dev
-   # or
-   pnpm dev
-   \`\`\`
-
-3. Build for production:
-   \`\`\`bash
-   npm run build
-   # or
-   pnpm build
-   \`\`\`
-
-## Environment Variables
-
-Make sure to set these environment variables:
-- \`INKEEP_API_URL\` - Your Inkeep API URL
-- \`INKEEP_TENANT_ID\` - Your tenant ID
-- Any other variables from your .env file
-
-## Deployment
-
-This project can be deployed to any platform that supports Next.js:
-- Vercel
-- Netlify
-- AWS Amplify
-- Railway
-- And more...
-`;
-
-    await fs.writeFile(join(outputDir, 'README.md'), readme);
-
     s.stop(`Project exported to ${outputDir}/`);
 
     console.log('');
@@ -318,8 +257,6 @@ This project can be deployed to any platform that supports Next.js:
     console.log(chalk.gray('  cd'), chalk.white(outputDir));
     console.log(chalk.gray('  npm install'));
     console.log(chalk.gray('  npm run dev'));
-    console.log('');
-    console.log(chalk.yellow('📖 See README.md for more instructions'));
     console.log('');
   } catch (error) {
     s.stop('Failed to export project');

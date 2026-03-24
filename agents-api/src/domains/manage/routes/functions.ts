@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -15,40 +15,28 @@ import {
   TenantProjectParamsSchema,
   upsertFunction,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const logger = getLogger('functions');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Write operations require 'edit' permission on the project
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Functions',
     operationId: 'list-functions',
     tags: ['Functions'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -90,9 +78,10 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
+    permission: requireProjectPermission('view'),
     summary: 'Get Function by ID',
     operationId: 'get-function',
     tags: ['Functions'],
@@ -141,9 +130,10 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
+    permission: requireProjectPermission('edit'),
     summary: 'Create Function',
     operationId: 'create-function',
     tags: ['Functions'],
@@ -204,83 +194,86 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Function',
-    operationId: 'update-function',
-    tags: ['Functions'],
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: FunctionApiUpdateSchema,
-          },
+const updateFunctionRouteConfig = {
+  path: '/{id}' as const,
+  permission: requireProjectPermission('edit'),
+  summary: 'Update Function',
+  tags: ['Functions'],
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: FunctionApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Function updated',
-        content: {
-          'application/json': {
-            schema: FunctionResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Function updated',
+      content: {
+        'application/json': {
+          schema: FunctionResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const updateData = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    try {
-      const existing = await getFunction(db)({
-        functionId: id,
-        scopes: { tenantId, projectId },
-      });
-      if (!existing) {
-        return c.json(
-          createApiError({ code: 'not_found', message: 'Function not found' }),
-          404
-        ) as any;
-      }
+const updateFunctionHandler: ManageRouteHandler<typeof updateFunctionRouteConfig> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const updateData = c.req.valid('json');
 
-      await upsertFunction(db)({
-        data: {
-          ...existing,
-          ...updateData,
-          id,
-        },
-        scopes: { tenantId, projectId },
-      });
-
-      const updated = await getFunction(db)({
-        functionId: id,
-        scopes: { tenantId, projectId },
-      });
-
-      logger.info({ tenantId, functionId: id }, 'Function updated');
-
-      return c.json({ data: updated as any }) as any;
-    } catch (error) {
-      logger.error({ error, tenantId, id, updateData }, 'Failed to update function');
+  try {
+    const existing = await getFunction(db)({
+      functionId: id,
+      scopes: { tenantId, projectId },
+    });
+    if (!existing) {
       return c.json(
-        createApiError({ code: 'internal_server_error', message: 'Failed to update function' }),
-        500
+        createApiError({ code: 'not_found', message: 'Function not found' }),
+        404
       ) as any;
     }
+
+    await upsertFunction(db)({
+      data: {
+        ...existing,
+        ...updateData,
+        id,
+      },
+      scopes: { tenantId, projectId },
+    });
+
+    const updated = await getFunction(db)({
+      functionId: id,
+      scopes: { tenantId, projectId },
+    });
+
+    logger.info({ tenantId, functionId: id }, 'Function updated');
+
+    return c.json({ data: updated as any }) as any;
+  } catch (error) {
+    logger.error({ error, tenantId, id, updateData }, 'Failed to update function');
+    return c.json(
+      createApiError({ code: 'internal_server_error', message: 'Failed to update function' }),
+      500
+    ) as any;
   }
-);
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateFunctionRouteConfig, updateFunctionHandler, {
+  operationId: 'update-function',
+});
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
+    permission: requireProjectPermission('edit'),
     summary: 'Delete Function',
     operationId: 'delete-function',
     tags: ['Functions'],

@@ -1,7 +1,7 @@
 ---
-title: Headers
+title: Headers in Visual Builder
 sidebarTitle: Headers
-description: Pass dynamic context to your agents via HTTP headers for personalized interactions
+description: Configure HTTP headers in the Visual Builder to pass dynamic context for personalized agent interactions.
 icon: LuBoxes
 keywords: headers, context fetchers, prompt variables, personalization
 ---
@@ -47,6 +47,10 @@ You can generate custom schemas using this [JSON Schema generator](https://trans
 2. Click on the "Custom headers" button in the top right corner.
 3. Enter the custom headers in JSON format.
 4. Click on the "Apply" button.
+
+## Header Validation
+
+When you enter custom headers in the playground, they are validated in real-time against the configured headers schema. If the headers are invalid or missing required fields, the chat input is disabled and an error message is displayed. You must fix validation errors before you can send messages.
 
 ## Using Headers in Your Agent Prompts
 

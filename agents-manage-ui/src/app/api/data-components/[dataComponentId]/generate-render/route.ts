@@ -9,7 +9,7 @@
  * 4. Streams NDJSON response back to client
  */
 
-import { jsonSchemaToZod, ModelFactory } from '@inkeep/agents-core';
+import { ModelFactory, normalizeDataComponentSchema } from '@inkeep/agents-core';
 import { Output, streamText } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -28,14 +28,6 @@ export async function POST(
     if (!tenantId || !projectId) {
       return new Response('Missing tenantId or projectId', { status: 400 });
     }
-
-    console.log('Generating component render', {
-      tenantId,
-      projectId,
-      dataComponentId,
-      hasInstructions: !!instructions,
-      hasExistingCode: !!existingCode,
-    });
 
     // Fetch data component from agents-api
     const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
@@ -63,10 +55,10 @@ export async function POST(
     // Prepare model configuration
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models?.base as any);
 
-    // Define schema for generated output
-    // Dynamically create mockData schema from component's props JSON Schema.
-    // This ensures Anthropic gets proper types instead of z.any() which it rejects.
-    const mockDataSchema = jsonSchemaToZod(dataComponent.props);
+    const normalizedProps = normalizeDataComponentSchema(
+      dataComponent.props as Record<string, unknown>
+    );
+    const mockDataSchema = z.fromJSONSchema(normalizedProps);
     const renderSchema = z.object({
       component: z.string().describe('The React component code'),
       mockData: mockDataSchema.describe('Sample data matching the props schema'),

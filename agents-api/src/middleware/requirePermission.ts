@@ -1,4 +1,5 @@
 import { createApiError } from '@inkeep/agents-core';
+import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import type { ManageAppVariables } from '../types/app';
@@ -7,23 +8,12 @@ type Permission = {
   [resource: string]: string | string[];
 };
 
-function formatPermissionsForDisplay(permissions: Permission): string[] {
-  const formatted: string[] = [];
-  for (const [resource, actions] of Object.entries(permissions)) {
-    const actionList = Array.isArray(actions) ? actions : [actions];
-    for (const action of actionList) {
-      formatted.push(`${resource}:${action}`);
-    }
-  }
-  return formatted;
-}
-
 export const requirePermission = <
   Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
 >(
   permissions: Permission
-) =>
-  createMiddleware<Env>(async (c, next) => {
+) => {
+  const mw = createMiddleware<Env>(async (c, next) => {
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
 
     const auth = c.get('auth');
@@ -36,7 +26,6 @@ export const requirePermission = <
     const userId = c.get('userId');
     const tenantId = c.get('tenantId');
     const tenantRole = c.get('tenantRole');
-    const requiredPermissions = formatPermissionsForDisplay(permissions);
 
     // System users and API key users bypass permission checks
     // They have full access within their authorized scope (enforced by tenant-access middleware)
@@ -52,7 +41,7 @@ export const requirePermission = <
           'User or organization context not found. Ensure you are authenticated and belong to an organization.',
         instance: c.req.path,
         extensions: {
-          requiredPermissions,
+          permissions,
           context: {
             hasUserId: !!userId,
             hasTenantId: !!tenantId,
@@ -73,10 +62,10 @@ export const requirePermission = <
       if (!result || !result.success) {
         throw createApiError({
           code: 'forbidden',
-          message: `Permission denied. Required: ${requiredPermissions.join(', ')}`,
+          message: 'Permission denied. Required: organization admin.',
           instance: c.req.path,
           extensions: {
-            requiredPermissions,
+            permissions,
             context: {
               userId,
               organizationId: tenantId,
@@ -99,9 +88,16 @@ export const requirePermission = <
         message: 'Failed to verify permissions',
         instance: c.req.path,
         extensions: {
-          requiredPermissions,
+          permissions,
           internalError: errorMessage,
         },
       });
     }
   });
+  registerAuthzMeta(mw, {
+    resource: 'organization',
+    permission: 'admin',
+    description: 'Requires organization admin role',
+  });
+  return mw;
+};

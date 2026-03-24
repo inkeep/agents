@@ -3,9 +3,10 @@
   "pages": [
     "docker-local",
     "authentication",
-    "gcp-compute-engine",
-    "gcp-cloud-run",
+    "email",
     "aws-ec2",
+    "azure-vm",
+    "gcp-compute-engine",
     "hetzner",
     "docker-build",
     "..."

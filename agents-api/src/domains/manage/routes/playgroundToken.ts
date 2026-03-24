@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   canUseProject,
   createApiError,
@@ -9,9 +9,11 @@ import {
   signTempToken,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
+import { isCopilotAgent } from '../../../utils/copilot';
 
 const logger = getLogger('playgroundToken');
 
@@ -28,7 +30,7 @@ const PlaygroundTokenResponseSchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Generate temporary API key for playground',
@@ -37,6 +39,7 @@ app.openapi(
     description:
       'Generates a short-lived API key (1 hour expiry) for authenticated users to access the run-api from the playground',
     security: [{ cookieAuth: [] }],
+    permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema,
       body: {
@@ -85,20 +88,38 @@ app.openapi(
       'Generating temporary JWT token for playground'
     );
 
-    // Check SpiceDB 'use' permission for this project
-    // This allows project_admin and project_member roles, but not project_viewer
-    const canUse = await canUseProject({
-      userId,
-      projectId,
-      orgRole: tenantRole,
-    });
+    // Copilot bypass — skip SpiceDB check when targeting the copilot agent.
+    // Any authenticated user can use the copilot; target-resource authz is
+    // enforced by the copilot agent via forwarded session cookies.
+    const isCopilotRequest = isCopilotAgent({ tenantId, projectId, agentId });
 
-    if (!canUse) {
-      logger.warn({ userId, tenantId, projectId }, 'User does not have use permission on project');
-      throw createApiError({
-        code: 'not_found',
-        message: 'Project not found',
+    if (isCopilotRequest) {
+      logger.info(
+        { userId, tenantId, projectId, agentId },
+        'Copilot bypass: skipping canUseProject check'
+      );
+    }
+
+    if (!isCopilotRequest) {
+      // Check SpiceDB 'use' permission for this project
+      // This allows project_admin and project_member roles, but not project_viewer
+      const canUse = await canUseProject({
+        userId,
+        tenantId,
+        projectId,
+        orgRole: tenantRole,
       });
+
+      if (!canUse) {
+        logger.warn(
+          { userId, tenantId, projectId },
+          'User does not have use permission on project'
+        );
+        throw createApiError({
+          code: 'not_found',
+          message: 'Project not found',
+        });
+      }
     }
 
     // Verify project exists and belongs to the tenant

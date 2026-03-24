@@ -1,8 +1,10 @@
 import type * as Monaco from 'monaco-editor';
+import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import {
+  INKEEP_BRAND_COLOR,
   MONACO_THEME_NAME,
   TEMPLATE_LANGUAGE,
   TEMPLATE_VARIABLE_REGEX,
@@ -27,6 +29,47 @@ interface MonacoState extends MonacoStateData {
 }
 
 let wasInitialized = false;
+
+async function formatJS(value: string): Promise<string> {
+  const [{ default: prettier }, { default: parserBabel }, { default: parserEstree }] =
+    await Promise.all([
+      import('prettier/standalone'),
+      import('prettier/plugins/babel'),
+      import('prettier/plugins/estree'),
+    ]);
+
+  const formatted = await prettier.format(value, {
+    parser: 'babel',
+    plugins: [parserBabel, parserEstree],
+  });
+  return formatted.trimEnd();
+}
+async function formatMarkdown(value: string): Promise<string> {
+  const [{ default: prettier }, { default: parserMarkdown }] = await Promise.all([
+    import('prettier/standalone'),
+    import('prettier/plugins/markdown'),
+  ]);
+
+  const formatted = await prettier.format(value, {
+    parser: 'mdx',
+    plugins: [parserMarkdown],
+  });
+  return formatted.trimEnd();
+}
+
+function provideDocumentFormattingEdits(
+  formatter: typeof formatJS
+): Monaco.languages.DocumentFormattingEditProvider['provideDocumentFormattingEdits'] {
+  return async (model) => {
+    let text = model.getValue();
+    try {
+      text = await formatter(text);
+    } catch (error) {
+      toast.error(`Could not format: ${error instanceof Error ? error.message : 'invalid syntax'}`);
+    }
+    return [{ text, range: model.getFullModelRange() }];
+  };
+}
 
 const monacoState: StateCreator<MonacoState> = (set, get) => ({
   monaco: null,
@@ -89,6 +132,14 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         documentRangeFormattingEdits: true,
       });
 
+      // Setup formatters
+      monaco.languages.registerDocumentFormattingEditProvider('javascript', {
+        provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatJS),
+      });
+      monaco.languages.registerDocumentFormattingEditProvider(['markdown', TEMPLATE_LANGUAGE], {
+        provideDocumentFormattingEdits: provideDocumentFormattingEdits(formatMarkdown),
+      });
+
       monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
         triggerCharacters: ['{'],
         provideCompletionItems(model, position) {
@@ -104,7 +155,6 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
           // Check if we're inside a template variable (after {)
           const match = textUntilPosition.match(/\{([^}]*)$/);
           if (!match) {
-            console.log('No template variable match found');
             return { suggestions: [] };
           }
 
@@ -163,8 +213,8 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
             colors: {
               ...githubLightTheme.colors,
               'editor.background': 'transparent',
-              'diffEditor.insertedLineBackground': '#3784ff0d',
-              'diffEditor.insertedTextBackground': '#3784ff19',
+              'diffEditor.insertedLineBackground': `${INKEEP_BRAND_COLOR}0d`,
+              'diffEditor.insertedTextBackground': `${INKEEP_BRAND_COLOR}19`,
               'editorHoverWidget.background': '#fff',
             },
             tokenColors: [
@@ -199,6 +249,7 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
           'typescript',
           'json',
           'html-derivative',
+          'markdown',
           {
             ...markdownShikiGrammar,
             aliases: [],

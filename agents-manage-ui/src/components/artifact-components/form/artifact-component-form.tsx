@@ -6,8 +6,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
-import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
@@ -16,46 +16,40 @@ import {
   createArtifactComponentAction,
   updateArtifactComponentAction,
 } from '@/lib/actions/artifact-components';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import { formatJsonField } from '@/lib/utils';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
+import { isRequired } from '@/lib/utils';
 import { DeleteArtifactComponentConfirmation } from '../delete-artifact-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
-import { defaultValues } from './form-configuration';
-import { type ArtifactComponentFormData, artifactComponentSchema } from './validation';
+import { initialData } from './form-configuration';
+import { type ArtifactComponentInput, ArtifactComponentSchema as schema } from './validation';
+
+const resolver = zodResolver(schema);
 
 interface ArtifactComponentFormProps {
   tenantId: string;
   projectId: string;
   id?: string;
-  initialData?: ArtifactComponentFormData;
-  readOnly?: boolean;
+  defaultValues?: ArtifactComponentInput;
 }
-
-const formatFormData = (data?: ArtifactComponentFormData): ArtifactComponentFormData => {
-  if (!data) return defaultValues;
-
-  const formatted = { ...data };
-  // Handle both null and undefined props, as well as empty strings
-  if (formatted.props) {
-    formatted.props = formatJsonField(formatted.props);
-  }
-  return formatted;
-};
 
 export function ArtifactComponentForm({
   id,
   tenantId,
   projectId,
-  initialData,
-  readOnly = false,
+  defaultValues = initialData,
 }: ArtifactComponentFormProps) {
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const readOnly = !canEdit;
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const form = useForm<ArtifactComponentFormData>({
-    resolver: zodResolver(artifactComponentSchema),
-    defaultValues: formatFormData(initialData),
+  const form = useForm({
+    resolver,
+    defaultValues,
+    mode: 'onChange',
   });
 
-  const { isSubmitting } = form.formState;
+  const { isSubmitting, isValid } = form.formState;
   const router = useRouter();
 
   // Auto-prefill ID based on name field (only for new components)
@@ -66,15 +60,8 @@ export function ArtifactComponentForm({
     isEditing: !!id,
   });
 
-  const onSubmit = async (data: ArtifactComponentFormData) => {
+  const onSubmit = form.handleSubmit(async (payload) => {
     try {
-      const payload = { ...data } as ArtifactComponent;
-
-      // Explicitly set props to null if it's undefined to ensure it gets cleared
-      if (payload.props === undefined) {
-        payload.props = null;
-      }
-
       if (id) {
         const res = await updateArtifactComponentAction(tenantId, projectId, payload);
         if (!res.success) {
@@ -96,18 +83,18 @@ export function ArtifactComponentForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl mx-auto space-y-8">
+        <form onSubmit={onSubmit} className="max-w-3xl mx-auto space-y-8">
           <GenericInput
             control={form.control}
             name="name"
             label="Name"
             placeholder="Document Artifact"
-            isRequired
+            isRequired={isRequired(schema, 'name')}
             disabled={readOnly}
           />
           <GenericInput
@@ -116,7 +103,7 @@ export function ArtifactComponentForm({
             label="Id"
             placeholder="my-artifact"
             disabled={!!id || readOnly}
-            isRequired
+            isRequired={isRequired(schema, 'id')}
             description={
               !id &&
               'Choose a unique identifier for this artifact. Using an existing id will replace that artifact.'
@@ -129,8 +116,9 @@ export function ArtifactComponentForm({
             placeholder="Structured factual information extracted from search results"
             className="min-h-[80px]"
             disabled={readOnly}
+            isRequired={isRequired(schema, 'description')}
           />
-          <JsonSchemaInput
+          <GenericJsonSchemaEditor
             control={form.control}
             name="props"
             label="Properties"
@@ -139,6 +127,7 @@ export function ArtifactComponentForm({
             uri="custom-json-schema-artifact-component.json"
             hasInPreview
             readOnly={readOnly}
+            isRequired={isRequired(schema, 'props')}
           />
 
           {id && !readOnly && (
@@ -146,7 +135,8 @@ export function ArtifactComponentForm({
               tenantId={tenantId}
               projectId={projectId}
               artifactComponentId={id}
-              existingRender={initialData?.render || null}
+              artifactComponentName={form.watch('name')}
+              existingRender={defaultValues.render}
               onRenderChanged={(render) => {
                 form.setValue('render', render);
               }}
@@ -155,7 +145,7 @@ export function ArtifactComponentForm({
 
           {!readOnly && (
             <div className="flex w-full justify-between">
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !isValid}>
                 Save
               </Button>
               {id && (
@@ -174,7 +164,7 @@ export function ArtifactComponentForm({
           artifactComponentId={id}
           artifactComponentName={form.getValues('name')}
           setIsOpen={setIsDeleteOpen}
-          redirectOnDelete={true}
+          redirectOnDelete
         />
       )}
     </Dialog>

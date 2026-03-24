@@ -12,6 +12,7 @@ import type {
 } from '../../types/index';
 import { getConversationId } from '../../utils/conversations';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 export const listConversations =
   (db: AgentsRunDatabaseClient) =>
@@ -26,10 +27,7 @@ export const listConversations =
     const limit = Math.min(pagination?.limit || 20, 200);
     const offset = (page - 1) * limit;
 
-    const whereConditions = [
-      eq(conversations.tenantId, params.scopes.tenantId),
-      eq(conversations.projectId, params.scopes.projectId),
-    ];
+    const whereConditions = [projectScopedWhere(conversations, params.scopes)];
 
     if (userId) {
       whereConditions.push(eq(conversations.userId, userId));
@@ -89,8 +87,7 @@ export const updateConversation =
       })
       .where(
         and(
-          eq(conversations.tenantId, params.scopes.tenantId),
-          eq(conversations.projectId, params.scopes.projectId),
+          projectScopedWhere(conversations, params.scopes),
           eq(conversations.id, params.conversationId)
         )
       )
@@ -107,8 +104,7 @@ export const deleteConversation =
         .delete(messages)
         .where(
           and(
-            eq(messages.tenantId, params.scopes.tenantId),
-            eq(messages.projectId, params.scopes.projectId),
+            projectScopedWhere(messages, params.scopes),
             eq(messages.conversationId, params.conversationId)
           )
         );
@@ -117,8 +113,7 @@ export const deleteConversation =
         .delete(conversations)
         .where(
           and(
-            eq(conversations.tenantId, params.scopes.tenantId),
-            eq(conversations.projectId, params.scopes.projectId),
+            projectScopedWhere(conversations, params.scopes),
             eq(conversations.id, params.conversationId)
           )
         );
@@ -152,8 +147,7 @@ export const getConversation =
   async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
-        eq(conversations.tenantId, params.scopes.tenantId),
-        eq(conversations.projectId, params.scopes.projectId),
+        projectScopedWhere(conversations, params.scopes),
         eq(conversations.id, params.conversationId)
       ),
     });
@@ -273,7 +267,6 @@ export const getConversationHistory =
     options?: ConversationHistoryConfig;
   }) => {
     const { scopes, conversationId, options = {} } = params;
-    const { tenantId, projectId } = scopes;
 
     const {
       limit = options.limit ?? 50,
@@ -283,8 +276,7 @@ export const getConversationHistory =
     } = options;
 
     const whereConditions = [
-      eq(messages.tenantId, tenantId),
-      eq(messages.projectId, projectId),
+      projectScopedWhere(messages, scopes),
       eq(messages.conversationId, conversationId),
     ];
 
@@ -324,8 +316,7 @@ export const getActiveAgentForConversation =
   async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
-        eq(conversations.tenantId, params.scopes.tenantId),
-        eq(conversations.projectId, params.scopes.projectId),
+        projectScopedWhere(conversations, params.scopes),
         eq(conversations.id, params.conversationId)
       ),
     });
@@ -342,6 +333,7 @@ export const setActiveAgentForConversation =
     subAgentId: string;
     agentId: string;
     ref: ResolvedRef;
+    userId?: string;
   }): Promise<void> => {
     await db
       .insert(conversations)
@@ -352,6 +344,7 @@ export const setActiveAgentForConversation =
         activeSubAgentId: params.subAgentId,
         agentId: params.agentId,
         ref: params.ref,
+        userId: params.userId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })

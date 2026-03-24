@@ -1,0 +1,12 @@
+import { subAgent } from '@inkeep/agents-sdk';
+import { onlytool } from '../../tools/onlytool';
+import { onlycomponent } from '../../data-components/onlyComponent';
+
+export const singleItemAgent = subAgent({
+  id: 'single-item-agent',
+  prompt: 'I am a single item agent.',
+  description: 'Agent with single items',
+  name: 'Single Item Agent',
+  canUse: () => [onlytool],
+  dataComponents: () => [onlycomponent],
+});

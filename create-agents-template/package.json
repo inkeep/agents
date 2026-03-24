@@ -14,26 +14,32 @@
     "db:drop": "tsx scripts/db-drop.ts",
     "db:manage:migrate": "tsx scripts/migrate-dolt.ts",
     "db:run:migrate": "drizzle-kit migrate --config=drizzle.run.config.ts",
-    "upgrade-agents": "node scripts/upgrade.ts --experimental-strip-types",
-    "postinstall": "node scripts/postinstall.ts --experimental-strip-types",
+    "upgrade-agents": "node --experimental-strip-types scripts/upgrade.ts",
+    "postinstall": "node --experimental-strip-types scripts/postinstall.ts",
     "setup-dev": "node scripts/setup.js",
     "setup-dev:cloud": "node scripts/setup.js --cloud",
-    "generate-jwt-keys": "bash scripts/generate-jwt-keys.sh"
+    "setup-dev:optional": "sh scripts/setup-optional.sh",
+    "optional:stop": "sh scripts/setup-optional.sh --stop",
+    "optional:status": "sh scripts/setup-optional.sh --status",
+    "optional:reset": "sh scripts/setup-optional.sh --reset",
+    "generate-jwt-keys": "bash scripts/generate-jwt-keys.sh",
+    "db:auth:init": "node node_modules/@inkeep/agents-core/dist/auth/init.js"
   },
   "dependencies": {
-    "@inkeep/agents-core": "^0.42.0",
-    "@inkeep/agents-manage-ui": "^0.42.0",
-    "@inkeep/agents-sdk": "^0.42.0",
+    "@inkeep/agents-core": "^0.58.5",
+    "@inkeep/agents-manage-ui": "^0.58.5",
+    "@inkeep/agents-sdk": "^0.58.5",
     "@tailwindcss/vite": "^4.1.14",
     "dotenv": "^17.2.3",
     "tailwindcss": "^4.1.14",
-    "zod": "^4.1.5"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@inkeep/agents-cli": "^0.42.0",
+    "@inkeep/agents-cli": "^0.58.5",
     "@types/node": "^22.13.14",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.44.4",
     "mprocs": "^0.7.3",
     "pg": "^8.16.3",
     "tsx": "^4.19.0",
@@ -45,7 +51,17 @@
   "packageManager": "pnpm@10.10.0",
   "pnpm": {
     "overrides": {
-      "@modelcontextprotocol/sdk": "1.24.3"
+      "@hono/node-server": ">=1.19.10",
+      "@modelcontextprotocol/sdk": ">=1.26.0",
+      "@workflow/core": ">=4.2.0-beta.64",
+      "dompurify": ">=3.3.2",
+      "fast-xml-parser": ">=5.3.8",
+      "serialize-javascript": ">=7.0.3",
+      "svgo": ">=3.3.3",
+      "minimatch": ">=5.1.8",
+      "lodash": ">=4.17.23",
+      "lodash-es": ">=4.17.23",
+      "express-rate-limit": ">=8.2.2"
     }
   }
 }

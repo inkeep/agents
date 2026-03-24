@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   ArtifactComponentArrayResponse,
   associateArtifactComponentWithAgent,
@@ -19,32 +19,20 @@ import {
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/agent/:subAgentId/component/:artifactComponentId', async (c, next) => {
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/agent/{subAgentId}',
     summary: 'Get Artifact Components for Agent',
     operationId: 'get-artifact-components-for-agent',
     tags: ['Agents', 'Artifact Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -75,12 +63,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/component/{artifactComponentId}/agents',
     summary: 'Get Agents Using Artifact Component',
     operationId: 'get-agents-using-artifact-component',
     tags: ['Agents', 'Artifact Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         artifactComponentId: z.string(),
@@ -112,12 +101,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Associate Artifact Component with Agent',
     operationId: 'associate-artifact-component-with-agent',
     tags: ['Agents', 'Artifact Components'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -199,12 +189,13 @@ app.openapi(
 
 // Remove agent artifact component association
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/agent/{subAgentId}/component/{artifactComponentId}',
     summary: 'Remove Artifact Component from Agent',
     operationId: 'remove-artifact-component-from-agent',
     tags: ['Agents', 'Artifact Components'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         artifactComponentId: z.string(),
@@ -246,12 +237,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/agent/{subAgentId}/component/{artifactComponentId}/exists',
     summary: 'Check if Artifact Component is Associated with Agent',
     operationId: 'check-artifact-component-agent-association',
     tags: ['Agents', 'Artifact Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         artifactComponentId: z.string(),

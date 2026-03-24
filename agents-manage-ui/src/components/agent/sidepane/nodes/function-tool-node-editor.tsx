@@ -1,14 +1,25 @@
 import type { Node } from '@xyflow/react';
-import { Trash2 } from 'lucide-react';
+import { Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
+import { JsonSchemaEditor } from '@/components/editors/json-schema-editor';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useProjectPermissions } from '@/contexts/project';
+import { Textarea } from '@/components/ui/textarea';
+import { useCopilotContext } from '@/contexts/copilot';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
 import { TextareaField } from '../form-components/text-area';
@@ -22,18 +33,24 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     selectedNodeId: selectedNode.id,
   });
 
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
 
   const nodeData = selectedNode.data;
+
+  const [isWriteWithAIDialogOpen, setIsWriteWithAIDialogOpen] = useState(false);
+  const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');
 
   // Local state for form fields - initialize from node data
   const [name, setName] = useState(String(nodeData.name || ''));
   const [description, setDescription] = useState(String(nodeData.description || ''));
   const [code, setCode] = useState(String(nodeData.code || ''));
-  const [inputSchema, setInputSchema] = useState(
+  const [inputSchema, setInputSchema] = useState(() =>
     nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : ''
   );
-  const [dependencies, setDependencies] = useState(
+  const [dependencies, setDependencies] = useState(() =>
     nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : ''
   );
   const [needsApproval, setNeedsApproval] = useState(
@@ -119,6 +136,22 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     [updatePath]
   );
 
+  const handleWriteWithAISubmit = useCallback(() => {
+    if (!chatFunctionsRef?.current) return;
+    const baseMessage = `I want to update the code for the function tool "${name || 'this function tool'}".`;
+    const message = writeWithAIInstructions.trim()
+      ? `${baseMessage}\n\n${writeWithAIInstructions.trim()}`
+      : baseMessage;
+    openCopilot();
+    setTimeout(() => {
+      chatFunctionsRef.current?.submitMessage(message);
+    }, 100);
+    setIsWriteWithAIDialogOpen(false);
+    setWriteWithAIInstructions('');
+  }, [chatFunctionsRef, name, writeWithAIInstructions, openCopilot]);
+
+  const canWriteWithAI = isCopilotConfigured && canEdit;
+
   return (
     <div className="space-y-8">
       <InputField
@@ -141,7 +174,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         onChange={handleDescriptionChange}
         placeholder="Enter function tool description..."
         error={getFieldError('description')}
-        maxHeight="max-h-32"
+        className="max-h-32"
       />
       <div className="space-y-2">
         <ExpandableCodeEditor
@@ -149,23 +182,77 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           label="Code"
           value={code}
           onChange={handleCodeChange}
-          placeholder="Enter function code here..."
+          placeholder={`async function execute({ param1, param2 }) {
+  // Your function logic here
+  const result = await doSomething(param1, param2);
+  return {
+    success: true,
+    data: result
+  };
+}`}
           error={getFieldError('code')}
           isRequired
+          actions={
+            canWriteWithAI ? (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="text-xs h-6 gap-1"
+                onClick={() => setIsWriteWithAIDialogOpen(true)}
+              >
+                <Sparkles className="size-3.5" />
+                Write with AI
+              </Button>
+            ) : null
+          }
         />
         <p className="text-xs text-muted-foreground">
           JavaScript function code to be executed by the tool. The function will receive arguments
           based on the input schema and should return a result.
         </p>
       </div>
-      <div className="space-y-2">
-        <div className="text-sm font-medium">
-          Input Schema <span className="text-red-500">*</span>
-        </div>
-
-        <StandaloneJsonEditor
+      <Dialog open={isWriteWithAIDialogOpen} onOpenChange={setIsWriteWithAIDialogOpen}>
+        <DialogContent className="max-w-2xl!">
+          <DialogHeader>
+            <DialogTitle>Write with AI</DialogTitle>
+            <DialogDescription className="sr-only">
+              Optional instructions for the copilot to update the function tool code.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="write-with-ai-instructions">Instructions (optional)</Label>
+              <Textarea
+                id="write-with-ai-instructions"
+                placeholder="e.g. use fetch to call the API and return JSON"
+                value={writeWithAIInstructions}
+                onChange={(e) => setWriteWithAIInstructions(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsWriteWithAIDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleWriteWithAISubmit}>
+                <Sparkles className="size-4" />
+                Open Copilot
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <div className="space-y-2 relative">
+        <FieldLabel label="Input Schema" isRequired />
+        <JsonSchemaEditor
           value={inputSchema}
           onChange={handleInputSchemaChange}
+          aria-invalid={!!getFieldError('inputSchema')}
           placeholder={`{
   "type": "object",
   "properties": {

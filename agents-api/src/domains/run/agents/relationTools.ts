@@ -7,6 +7,7 @@ import {
   type FullExecutionContext,
   generateId,
   generateServiceToken,
+  getInProcessFetch,
   getMcpToolById,
   headers,
   type McpTool,
@@ -28,7 +29,7 @@ import {
 } from '../constants/execution-limits';
 import { ContextResolver } from '../context';
 import { saveA2AMessageResponse } from '../data/conversations';
-import { agentSessionManager } from '../services/AgentSession';
+import { agentSessionManager } from '../session/AgentSession';
 import { getUserIdFromContext } from '../types/executionContext';
 import {
   getExternalAgentRelationsForTargetSubAgent,
@@ -37,7 +38,7 @@ import {
   type InternalRelation,
 } from '../utils/project';
 import type { AgentConfig, DelegateRelation } from './Agent';
-import { toolSessionManager } from './ToolSessionManager';
+import { toolSessionManager } from './services/ToolSessionManager';
 
 const logger = getLogger('relationships Tools');
 
@@ -359,10 +360,24 @@ export function createDelegateToAgentTool({
           projectId,
           originAgentId: agentId,
           targetAgentId: delegateConfig.config.id,
+          initiatedBy: executionContext.metadata?.initiatedBy,
         })}`;
       } else {
+        // Always generate a service token for internal A2A self-calls.
+        // The original apiKey may be any auth type (app credential, API key, etc.)
+        // but internal calls need a service token that the runApiKeyAuth middleware
+        // can verify via verifyServiceToken(). Since we use getInProcessFetch(),
+        // signing and verification happen in the same process with the same secret.
+        const authToken = await generateServiceToken({
+          tenantId,
+          projectId,
+          originAgentId: agentId,
+          targetAgentId: delegateConfig.config.id,
+          initiatedBy: executionContext.metadata?.initiatedBy,
+        });
+
         resolvedHeaders = {
-          Authorization: `Bearer ${metadata.apiKey}`,
+          Authorization: `Bearer ${authToken}`,
           'x-inkeep-tenant-id': tenantId,
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
@@ -383,6 +398,7 @@ export function createDelegateToAgentTool({
             maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
+        ...(isInternal || isTeam ? { fetchFn: getInProcessFetch() } : {}),
       });
 
       const messageToSend = {
@@ -403,20 +419,21 @@ export function createDelegateToAgentTool({
       logger.info({ messageToSend }, 'messageToSend');
 
       await createMessage(runDbClient)({
-        id: generateId(),
-        tenantId: tenantId,
-        projectId: projectId,
-        conversationId: contextId,
-        role: 'agent',
-        content: {
-          text: input.message,
+        scopes: { tenantId, projectId },
+        data: {
+          id: generateId(),
+          conversationId: contextId,
+          role: 'agent',
+          content: {
+            text: input.message,
+          },
+          visibility: isInternal ? 'internal' : 'external',
+          messageType: 'a2a-request',
+          fromSubAgentId: callingAgentId,
+          ...(isInternal
+            ? { toSubAgentId: delegateConfig.config.id }
+            : { toExternalAgentId: delegateConfig.config.id }),
         },
-        visibility: isInternal ? 'internal' : 'external',
-        messageType: 'a2a-request',
-        fromSubAgentId: callingAgentId,
-        ...(isInternal
-          ? { toSubAgentId: delegateConfig.config.id }
-          : { toExternalAgentId: delegateConfig.config.id }),
       });
 
       logger.info({ messageToSend }, 'Created message in database');

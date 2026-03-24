@@ -1,6 +1,7 @@
 ---
-title: Embedded Chat
-description: Integrate Inkeep's embedded chat component directly into your React application for inline agent conversations.
+title: Embedded Chat for JavaScript
+sidebarTitle: Embedded Chat
+description: Integrate Inkeep's embedded chat component directly into your JavaScript application for inline agent conversations.
 icon: LuMonitor
 ---
 
@@ -15,10 +16,11 @@ The EmbeddedChat widget provides a fully embedded chat interface that you can in
     ```html
     <script
         type="module"
-        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
+        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js-cloud@0.15/dist/embed.js"
         defer
 
 > </script>
+
     ```
 
   </Step>
@@ -41,8 +43,8 @@ The EmbeddedChat widget provides a fully embedded chat interface that you can in
     <script type="module">
       const config = {
         aiChatSettings: {
-          agentUrl: "https://your-api.example.com/run/api/chat",
-          apiKey: process.env.INKEEP_API_KEY, // Your API key
+          baseUrl: "https://your-api.example.com",
+          appId: process.env.INKEEP_APP_ID, // Your app ID
         },
       };
 
@@ -56,7 +58,10 @@ The EmbeddedChat widget provides a fully embedded chat interface that you can in
 
 ## Config
 
-<AutoTypeTable name="default" type="export { InkeepEmbeddedChatProps as default } from '@inkeep/agents-ui'" />
+<AutoTypeTable
+  name="default"
+  type="export { InkeepEmbeddedChatProps as default } from '@inkeep/agents-ui'"
+/>
 
 <Snippet file="chat-components/base-settings.mdx" />
 

@@ -1,6 +1,11 @@
 import type { KnipConfig } from 'knip';
 
 export default {
+  ignoreDependencies: [
+    // Dynamically imported by @inkeep/agents-core's getWaitUntil() at runtime.
+    // Must remain a dependency of agents-api so the dynamic import resolves.
+    '@vercel/functions',
+  ],
   ignoreIssues: {
     'agents-api/tsdown.config.ts': ['files'],
     // these are being disabled for now

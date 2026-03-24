@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getBaseDomain } from '../../middleware/cors';
+import { getBaseDomain, getRootDomain } from '../../middleware/cors';
 
 vi.mock('../../env', () => ({
   env: {
@@ -31,6 +31,22 @@ describe('getBaseDomain', () => {
 
   it('should handle empty string', () => {
     expect(getBaseDomain('')).toBe('');
+  });
+});
+
+describe('getRootDomain', () => {
+  it('should return the last 2 parts for multi-part hostnames', () => {
+    expect(getRootDomain('api.agents.inkeep.com')).toBe('inkeep.com');
+    expect(getRootDomain('app.inkeep.com')).toBe('inkeep.com');
+    expect(getRootDomain('agents-manage-ui.preview.inkeep.com')).toBe('inkeep.com');
+  });
+
+  it('should return hostname as-is for 2-part domains', () => {
+    expect(getRootDomain('inkeep.com')).toBe('inkeep.com');
+  });
+
+  it('should return hostname as-is for single-part hostnames', () => {
+    expect(getRootDomain('localhost')).toBe('localhost');
   });
 });
 
@@ -66,6 +82,7 @@ describe('isOriginAllowed', () => {
         env: {
           INKEEP_AGENTS_API_URL: 'http://localhost:3002',
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
+          ENVIRONMENT: 'development',
         },
       }));
     });
@@ -96,6 +113,7 @@ describe('isOriginAllowed', () => {
         env: {
           INKEEP_AGENTS_API_URL: 'http://127.0.0.1:3002',
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
+          ENVIRONMENT: 'development',
         },
       }));
     });
@@ -107,7 +125,7 @@ describe('isOriginAllowed', () => {
     });
   });
 
-  describe('production mode with explicit UI URL', () => {
+  describe('production mode with explicit UI URL (same base domain)', () => {
     beforeEach(() => {
       vi.doMock('../../env', () => ({
         env: {
@@ -122,17 +140,40 @@ describe('isOriginAllowed', () => {
       expect(isOriginAllowed('https://agents-manage-ui.inkeep.com')).toBe(true);
     });
 
-    it('should reject different 3-part subdomains (base domain includes subdomain)', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
-      expect(isOriginAllowed('https://other-app.inkeep.com')).toBe(false);
-    });
-
     it('should allow 4-part hostnames with matching base domain', async () => {
       const { isOriginAllowed } = await import('../../middleware/cors');
       expect(isOriginAllowed('https://app.agents-api.inkeep.com')).toBe(true);
     });
 
-    it('should reject origins from different domains', async () => {
+    it('should reject origins from different root domains', async () => {
+      const { isOriginAllowed } = await import('../../middleware/cors');
+      expect(isOriginAllowed('https://malicious-site.com')).toBe(false);
+      expect(isOriginAllowed('https://inkeep.com.evil.com')).toBe(false);
+    });
+  });
+
+  describe('production mode with different 3-part bases (app.inkeep.com + api.agents.inkeep.com)', () => {
+    beforeEach(() => {
+      vi.doMock('../../env', () => ({
+        env: {
+          INKEEP_AGENTS_API_URL: 'https://api.agents.inkeep.com',
+          INKEEP_AGENTS_MANAGE_UI_URL: 'https://app.inkeep.com',
+        },
+      }));
+    });
+
+    it('should allow the exact UI URL hostname', async () => {
+      const { isOriginAllowed } = await import('../../middleware/cors');
+      expect(isOriginAllowed('https://app.inkeep.com')).toBe(true);
+    });
+
+    it('should allow origins sharing the same root domain as both API and UI', async () => {
+      const { isOriginAllowed } = await import('../../middleware/cors');
+      expect(isOriginAllowed('https://other.inkeep.com')).toBe(true);
+      expect(isOriginAllowed('https://api.agents.inkeep.com')).toBe(true);
+    });
+
+    it('should reject origins from different root domains', async () => {
       const { isOriginAllowed } = await import('../../middleware/cors');
       expect(isOriginAllowed('https://malicious-site.com')).toBe(false);
       expect(isOriginAllowed('https://inkeep.com.evil.com')).toBe(false);
@@ -166,12 +207,29 @@ describe('isOriginAllowed', () => {
     });
   });
 
+  describe('root domain fallback requires UI URL to be set', () => {
+    beforeEach(() => {
+      vi.doMock('../../env', () => ({
+        env: {
+          INKEEP_AGENTS_API_URL: 'https://api.agents.inkeep.com',
+          INKEEP_AGENTS_MANAGE_UI_URL: undefined,
+        },
+      }));
+    });
+
+    it('should NOT allow root domain match when UI URL is not configured', async () => {
+      const { isOriginAllowed } = await import('../../middleware/cors');
+      expect(isOriginAllowed('https://app.inkeep.com')).toBe(false);
+    });
+  });
+
   describe('fallback when API URL is not set', () => {
     beforeEach(() => {
       vi.doMock('../../env', () => ({
         env: {
           INKEEP_AGENTS_API_URL: undefined,
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
+          ENVIRONMENT: 'development',
         },
       }));
     });

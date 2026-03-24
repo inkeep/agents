@@ -9,9 +9,11 @@ import {
   Cpu,
   Database,
   Hammer,
+  Hash,
   Library,
   Settings,
   Sparkles,
+  Timer,
   User,
   X,
   Zap,
@@ -29,6 +31,7 @@ import {
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
+import { SLACK_BRAND_COLOR } from '@/constants/theme';
 import { formatDateTime } from '@/lib/utils/format-date';
 
 function truncateWords(s: string, nWords: number) {
@@ -79,7 +82,9 @@ function MessagePartsDisplay({
   if (!parts || !Array.isArray(parts) || parts.length === 0) {
     return messageContent ? (
       <Bubble>
-        <div className="line-clamp-2">{messageContent}</div>
+        <div className="line-clamp-3">
+          <Streamdown>{messageContent}</Streamdown>
+        </div>
       </Bubble>
     ) : null;
   }
@@ -90,7 +95,9 @@ function MessagePartsDisplay({
         if (part.kind === 'text' && part.text) {
           return (
             <Bubble key={`${activityId}-part-${index}`}>
-              <div className="line-clamp-2">{part.text}</div>
+              <div className="line-clamp-3">
+                <Streamdown>{part.text}</Streamdown>
+              </div>
             </Bubble>
           );
         }
@@ -130,11 +137,14 @@ function statusIcon(
     | 'tool_approval_approved'
     | 'tool_approval_denied'
     | 'trigger_invocation'
-    | 'max_steps_reached',
+    | 'slack_message'
+    | 'max_steps_reached'
+    | 'stream_lifetime_exceeded',
   status: ActivityItem['status']
 ) {
-  const base: Record<string, { Icon: any; cls: string }> = {
+  const base: Record<string, { Icon: any; cls: string; style?: React.CSSProperties }> = {
     trigger_invocation: { Icon: Zap, cls: 'text-amber-500' },
+    slack_message: { Icon: Hash, cls: '', style: { color: SLACK_BRAND_COLOR } },
     user_message: { Icon: User, cls: 'text-primary' },
     ai_generation: { Icon: Sparkles, cls: 'text-primary' },
     agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
@@ -153,6 +163,7 @@ function statusIcon(
     tool_approval_denied: { Icon: X, cls: 'text-red-500' },
     compression: { Icon: Archive, cls: 'text-orange-500' },
     max_steps_reached: { Icon: AlertTriangle, cls: 'text-yellow-500' },
+    stream_lifetime_exceeded: { Icon: Timer, cls: 'text-red-500' },
   };
 
   const map = base[type] || base.tool_call;
@@ -167,7 +178,7 @@ function statusIcon(
             ? 'text-yellow-500'
             : map.cls;
 
-  return { Icon: map.Icon, className: cls };
+  return { Icon: map.Icon, className: cls, style: map.style };
 }
 
 interface TimelineItemProps {
@@ -197,24 +208,27 @@ export function TimelineItem({
     // Trigger invocations get their own icon (Zap)
     activity.type === ACTIVITY_TYPES.USER_MESSAGE && activity.invocationType === 'trigger'
       ? 'trigger_invocation'
-      : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
-        ? 'transfer'
-        : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolName?.includes('delegate')
-          ? 'delegation'
-          : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolPurpose
-            ? 'tool_purpose'
-            : activity.type === ACTIVITY_TYPES.TOOL_CALL
-              ? 'generic_tool'
-              : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED
-                ? 'tool_approval_requested'
-                : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED
-                  ? 'tool_approval_approved'
-                  : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED
-                    ? 'tool_approval_denied'
-                    : activity.type;
+      : // Slack messages get their own icon (Hash)
+        activity.type === ACTIVITY_TYPES.USER_MESSAGE && activity.invocationType === 'slack'
+        ? 'slack_message'
+        : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
+          ? 'transfer'
+          : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolName?.includes('delegate')
+            ? 'delegation'
+            : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolPurpose
+              ? 'tool_purpose'
+              : activity.type === ACTIVITY_TYPES.TOOL_CALL
+                ? 'generic_tool'
+                : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED
+                  ? 'tool_approval_requested'
+                  : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED
+                    ? 'tool_approval_approved'
+                    : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED
+                      ? 'tool_approval_denied'
+                      : activity.type;
 
-  const { Icon, className } = statusIcon(typeForIcon as any, activity.status);
-  const formattedDateTime = formatDateTime(activity.timestamp);
+  const { Icon, className, style: iconStyle } = statusIcon(typeForIcon as any, activity.status);
+  const formattedDateTime = formatDateTime(activity.timestamp, { local: true });
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
   // Determine text color based on status
@@ -233,7 +247,7 @@ export function TimelineItem({
       <div className="flex items-start">
         <div className="mr-2 py-2" style={{ width: '16px' }}>
           <div className="absolute left-[7px] top-[8px] -translate-x-1/2 flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-background z-10">
-            <Icon className={`w-4 h-4 ${className}`} />
+            <Icon className={`w-4 h-4 ${className}`} style={iconStyle} />
           </div>
         </div>
 
@@ -426,6 +440,20 @@ export function TimelineItem({
           {activity.type === ACTIVITY_TYPES.ARTIFACT_PROCESSING && (
             <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 rounded-lg max-w-4xl">
               <div className="flex flex-col gap-2 text-sm text-emerald-900 dark:text-emerald-300">
+                {/* Oversized artifact warning */}
+                {activity.artifactIsOversized && (
+                  <div className="flex items-center gap-2 p-2 bg-amber-100 border border-amber-300 dark:bg-amber-900/30 dark:border-amber-700 rounded text-amber-900 dark:text-amber-300">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                    <div className="flex-1 text-xs font-medium">
+                      Oversized artifact
+                      {activity.artifactOriginalTokenSize && (
+                        <span className="ml-1 font-normal">
+                          (~{Math.floor(activity.artifactOriginalTokenSize / 1000)}K tokens)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {/* Basic artifact info */}
                 <div className="space-y-1">
                   {activity.artifactType && TagRow('Type', activity.artifactType, 'emerald')}
@@ -517,6 +545,18 @@ export function TimelineItem({
                 <div className="text-sm text-yellow-900 dark:text-yellow-300">
                   <span className="font-medium">Steps:</span> {activity.stepsCompleted} /{' '}
                   {activity.maxSteps}
+                </div>
+              </div>
+            )}
+
+          {/* Stream lifetime exceeded display */}
+          {activity.type === ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED &&
+            activity.streamMaxLifetimeMs != null &&
+            activity.streamMaxLifetimeMs > 0 && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800 rounded-lg max-w-4xl">
+                <div className="text-sm text-red-900 dark:text-red-300">
+                  <span className="font-medium">Lifetime limit:</span>{' '}
+                  {Math.round(activity.streamMaxLifetimeMs / 1000)}s
                 </div>
               </div>
             )}

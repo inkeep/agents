@@ -19,7 +19,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 
 // Dynamically discover env.ts files, excluding:
 // - node_modules
-// - Auto-generated Speakeasy SDK files (agents-mcp, agents-manage-mcp)
+// - Auto-generated Speakeasy SDK files (agents-mcp)
 // - dist/build directories
 const ENV_FILES = fs
   .globSync('**/env.ts', {
@@ -28,7 +28,6 @@ const ENV_FILES = fs
       return (
         name.includes('node_modules') ||
         name.includes('agents-mcp') ||
-        name.includes('agents-manage-mcp') ||
         name.includes('/dist/') ||
         name.includes('/build/')
       );
@@ -84,7 +83,7 @@ function parseEnvFile(filePath) {
   const results = [];
 
   // Find z.object( and then extract the schema content
-  const schemaStartMatch = content.match(/z\.object\s*\(/);
+  const schemaStartMatch = content.match(/z\s*\.object\s*\(/);
   if (!schemaStartMatch) {
     return { error: 'Could not find z.object() schema', results: [] };
   }

@@ -7,14 +7,20 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 ### Build & Development
 - **Build**: `pnpm build` (root) or `turbo build`
 - **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
-- **Lint**: `pnpm lint` (check) or `pnpm lint:fix` (auto-fix) or `pnpm check:fix` (Biome fix)
-- **Format**: `pnpm format` (auto) or `pnpm format:check` (verify)
-- **Typecheck**: `pnpm typecheck`
+- **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
+- **Setup (isolated)**: `pnpm setup-dev --isolated <name>` — same as above but in a parallel environment (see [Isolated Environments](#isolated-parallel-environments))
+- **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
+- **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
 
-### Testing
-- **Test (all)**: `pnpm test` or `turbo test`
-- **Test (single file)**: `cd <package> && pnpm test --run <file-path>` (use `--run` to avoid watch mode)
-- **Test (package)**: `cd <package> && pnpm test --run`
+### Verification
+
+**Pre-push** (run both, in order):
+```bash
+pnpm format     # auto-fix formatting
+pnpm check      # lint + typecheck + test + format:check + env-descriptions + route-handler-patterns + dal-boundary + knip
+```
+
+**Single-command iteration:** `pnpm typecheck`, `pnpm lint` (`lint:fix`), `pnpm test`, `cd <pkg> && pnpm test --run <file>`
 
 ### Database Operations (run from monorepo root)
 - **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema changes
@@ -22,6 +28,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Drop migrations**: `pnpm db:drop` - Drop migration files (use this to remove migrations, don't manually delete)
 - **Database studio**: `pnpm db:studio` - Open Drizzle Studio for database inspection
 - **Check schema**: `pnpm db:check`
+- **Initialize auth**: `pnpm db:auth:init` - Create default organization and admin user for local development
 
 ### Creating Changelog Entries (Changesets)
 
@@ -40,7 +47,7 @@ pnpm bump patch --pkg agents-core "Fix race condition in agent message queue"
 pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response support"
 ```
 
-**Valid package names:** `agents-cli`, `agents-core`, `agents-api`, `agents-manage-ui`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
+**Valid package names:** `agents-cli`, `agents-core`, `agents-api`, `agents-manage-ui`, `agents-work-apps`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
 
 **Semver guidance:**
 - **Major**: Reserved - do not use without explicit approval
@@ -68,6 +75,10 @@ pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response suppo
 - "update dependencies" (not user-facing, doesn't need changeset)
 - "Refactored the agent connection handler to use async/await" (implementation detail, not user impact)
 - "changes" (meaningless)
+
+**When to create a changeset (MANDATORY):**
+- Any bug fix, feature, or behavior change to a published package — even if the package is "internal-facing" (e.g., `agents-work-apps`, `agents-api`). If the code ships to users or affects runtime behavior, it needs a changeset.
+- This includes work-app integrations (Slack, GitHub), API route changes, SDK changes, CLI changes, and core library changes.
 
 **When NOT to create a changeset:**
 - Documentation-only changes
@@ -108,6 +119,26 @@ pnpm build           # Build documentation for production
 ## Package Manager
 - Always use `pnpm` (not npm, yarn, or bun)
 
+### pnpm-lock.yaml Resolution Strategy
+
+⚠️ **NEVER delete `pnpm-lock.yaml` and regenerate it from scratch.** Deleting the lockfile and running `pnpm install` allows the resolver to pick different (often lower) versions of transitive dependencies, causing silent downgrades that break tests or change runtime behavior.
+
+**Correct approach when the lockfile has merge conflicts or needs updating:**
+
+1. **Start from the base branch's lockfile** — check out the `pnpm-lock.yaml` from the target base (usually `main`):
+   ```bash
+   git checkout main -- pnpm-lock.yaml
+   ```
+2. **Re-install to layer your branch's dependency changes on top:**
+   ```bash
+   pnpm install
+   ```
+   This preserves all existing resolutions from `main` and only adds/updates what your branch's `package.json` changes require.
+
+3. **Commit the updated lockfile** with your other changes.
+
+**Why this matters:** The lockfile pins exact transitive dependency versions. Regenerating from scratch lets the resolver freely re-resolve the entire tree, which can silently pick different versions even when `package.json` ranges haven't changed. Starting from the base lockfile ensures only your intentional changes affect resolution.
+
 ## Architecture Overview
 
 This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent-to-Agent) communication capabilities. The system provides OpenAI Chat Completions compatible API while supporting sophisticated agent orchestration.
@@ -127,6 +158,44 @@ The `agents-api` package contains all API domains under a single service:
 - [runtime-schema.ts](./packages/agents-core/src/db/runtime/runtime-schema.ts) - Runtime tables (Postgres)
 
 ## Key Implementation Details
+
+### CRUD HTTP Method Conventions (RFC 9110, RFC 5789)
+
+| Operation | Method | Path Pattern | Example |
+|-----------|--------|-------------|---------|
+| Create | POST | `/resources` | `POST /agents` |
+| Read (list) | GET | `/resources` | `GET /agents` |
+| Read (single) | GET | `/resources/{id}` | `GET /agents/{id}` |
+| Update (partial) | PATCH | `/resources/{id}` | `PATCH /agents/{id}` |
+| Delete | DELETE | `/resources/{id}` | `DELETE /agents/{id}` |
+
+- **PATCH** for partial updates (RFC 5789) — canonical method for standard CRUD update operations
+- **PUT** for full-resource replacement, upsert, and set/replace operations (RFC 9110 §9.3.4)
+- **POST** for creates and non-idempotent actions (sync, reconnect, cancel, etc.)
+- **GET** for reads — never mutates state
+- **DELETE** for resource removal
+
+#### Exceptions: PUT-canonical routes
+
+The following routes use **PUT as the canonical method** because they perform full-resource replacement or upsert semantics, not partial updates:
+
+| Route | Reason | OperationId |
+|-------|--------|-------------|
+| `PUT /project-full/{projectId}` | Upsert — creates or fully replaces a project | `update-full-project` |
+| `PUT /agents-full/{agentId}` | Upsert — creates or fully replaces an agent | `update-full-agent` |
+| `PUT /tools/{toolId}/github-access` | Set/replace — replaces entire GitHub access config | `set-mcp-tool-github-access` |
+| `PUT /tools/{toolId}/slack-access` | Set/replace — replaces entire Slack access config | `set-mcp-tool-slack-access` |
+| `PUT /projects/{projectId}/github-access` | Set/replace — replaces entire project GitHub access | `set-project-github-access` |
+
+These routes still register a PATCH method for backward compatibility (with `x-speakeasy-ignore: true`).
+
+#### Dual-registration helper
+
+All update routes register both PUT and PATCH methods using `openapiRegisterPutPatchRoutesForLegacy()` from `agents-api/src/utils/openapiDualRoute.ts`. The legacy method gets `x-speakeasy-ignore: true` and a suffixed operationId (e.g., `update-agent-put`). To find all legacy routes, search for usages of this helper. When legacy methods are no longer needed, remove the helper calls and replace with single `app.openapi()` registrations.
+
+#### Backward compatibility
+
+All existing PUT update routes remain functional — they share the same handler as PATCH. New update routes must use PATCH as canonical (or PUT for upsert/set-replace semantics). Do not remove existing PUT routes without a deprecation period.
 
 ### Database Migration Workflow
 
@@ -181,6 +250,54 @@ OPENAI_API_KEY=optional
 LOG_LEVEL=debug|info|warn|error
 ```
 
+### Isolated Parallel Environments
+
+Run multiple full dev stacks simultaneously with zero port conflicts. Each isolated environment gets its own Docker containers, volumes, and network with dynamically assigned ports.
+
+**When to use:** Running multiple features in parallel, AI coding agents executing concurrently, or testing against an isolated database without affecting the default environment.
+
+#### Quick Start
+
+```bash
+# Create an isolated environment (Docker + migrations + auth)
+pnpm setup-dev --isolated my-feature
+
+# Point your shell at it
+source <(./scripts/isolated-env.sh env my-feature)
+
+# Run the app (uses isolated databases + dynamic app ports)
+pnpm dev
+
+# Tear down when done
+./scripts/isolated-env.sh down my-feature
+```
+
+#### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `./scripts/isolated-env.sh setup <name>` | Full setup: Docker + health checks + migrations + auth init |
+| `./scripts/isolated-env.sh up <name>` | Start containers only (no migrations) |
+| `./scripts/isolated-env.sh down <name>` | Stop and remove containers + volumes |
+| `./scripts/isolated-env.sh status` | List all running isolated environments with ports |
+| `./scripts/isolated-env.sh env <name>` | Print source-able env var exports |
+
+#### How It Works
+
+- Uses `docker-compose.isolated.yml` with `COMPOSE_PROJECT_NAME` for namespace isolation
+- Docker assigns random available host ports (no hardcoded bindings)
+- Ports are discovered post-startup via `docker compose port` and saved to `.isolated-envs/<name>.json`
+- The `env` command outputs `export` statements that override database URLs (`INKEEP_AGENTS_MANAGE_DATABASE_URL`, `INKEEP_AGENTS_RUN_DATABASE_URL`, `SPICEDB_ENDPOINT`) and app ports (`AGENTS_API_PORT`, `MANAGE_UI_PORT`, `INKEEP_AGENTS_API_URL`)
+- Default environment (`docker-compose.dbs.yml` on fixed ports) continues to work unchanged
+
+#### Key Files
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.isolated.yml` | Compose file with dynamic port allocation |
+| `scripts/isolated-env.sh` | CLI for managing isolated environments |
+| `.isolated-envs/<name>.json` | Port state files (gitignored) |
+
 ## High Product-level Thinking
 
 This repo is a product with multiple user-facing surfaces and shared contracts. A “small” change in one place can have real side effects elsewhere.
@@ -206,16 +323,17 @@ Your responsibility is to think through the work that is being done from all dim
 - **Resources, endpoints, or actions** (create/update/delete, new capabilities)
 - **Auth / permissions / tenancy** (view/use/edit boundaries, RBAC, fine-grained authz, multi-tenant scoping)
 
-### Surfaces to consider (examples)
-- **Templates & onboarding**: `@inkeep/create-agents`, cookbook template projects
-- **Inkeep CLI workflows**: onboarding (`init`), sync (`push`/`pull`), template import (`add`)
-- **TypeScript SDK**: builder APIs/types/examples
-- **APIs**: configuration layer (manage), runtime layer (run), evaluation layer (evals)
-- **Manage UI dashboard**: forms/builders/serialization, permissions gating, traces views
-- **Widgets UX** (`agents-ui`): runtime chat + stream parsing compatibility
-- **Observability**: traces UX expectations, OTEL attribute stability, SigNoz queries
-- **Protocols / data formats**: OpenAI-compatible SSE, Vercel AI SDK data streams, A2A JSON-RPC
-- **Documentation**: docs pages + embedded snippets
+### Surface area analysis (load before planning or implementing)
+
+This product has **50+ customer-facing** and **100+ internal tooling/devops** surfaces with complex dependency chains. When planning or implementing any feature or change, load the relevant surface area skill to map the blast radius and plan "to-dos" of all areas that need to be addressed before writing a line of code:
+
+| Skill | Scope | Load when |
+|---|---|---|
+| `audience-impact` | Who is affected and how fast does it reach them? Maps roles (Contributor, Builder, Platform User) × deployment modes (Cloud, Self-hosted) to impact propagation. | Start here — identifies which audiences a change affects and what deliverables are needed |
+| `product-surface-areas` | APIs, SDKs, CLI, UIs, Widgets, Event Streams, docs, protocols, templates, etc. | Change affects anything a customer (developer or no-code admin) uses or depends on |
+| `internal-surface-areas` | Build, CI/CD, DB, auth, runtime engine, test infra, internal AI tooling, etc. | Change affects infrastructure, tooling, or shared internals |
+
+**Tip**: Start with `audience-impact` to quickly identify who cares and how changes propagate, then load the catalog skills for detailed surface tracing. Both catalog skills include dependency graphs, breaking change impact matrices, and transitive chain tracing.
 
 ## Development Guidelines
 
@@ -243,41 +361,18 @@ Your responsibility is to think through the work that is being done from all dim
 - Follow the **write-docs** skill whenever creating or modifying documentation
 
 **Before marking any feature complete, verify:**
-- [ ] Tests written and passing (`pnpm test`)
+- [ ] `pnpm check` passes
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
-- [ ] All linting passes (`pnpm lint`)
-- [ ] Code is formatted (`pnpm format` to auto-fix, `pnpm format:check` to verify)
 - [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
 
 ### 📋 Standard Development Workflow
 
-**After completing a feature and ensuring all tests, typecheck, and build are passing:**
+1. Create a branch: `git checkout -b feature/your-feature-name`
+2. Run [Verification](#verification) before pushing
+3. Commit, then `gh pr create`
 
-1. **Create a new branch** (if not already on one):
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Run verification commands** to ensure everything passes:
-   ```bash
-   pnpm test
-   pnpm typecheck  # or pnpm tsc --noEmit
-   pnpm build
-   pnpm lint
-   pnpm format     # IMPORTANT: Always run formatter before committing
-   ```
-
-3. **Commit your changes** with a descriptive message
-
-4. **Open a GitHub Pull Request** once all checks pass:
-   ```bash
-   gh pr create --title "feat: Your feature description" --body "Description of changes"
-   ```
-   
-   This is the standard development procedure to ensure code review and CI/CD processes.
-   
-   **Note**: The user may override this workflow if they prefer to work directly on main or have different branch strategies.
+The user may override this workflow (e.g., work directly on main).
 
 ### 📁 Git Worktrees for Parallel Feature Development
 
@@ -349,6 +444,80 @@ git worktree prune
 - **Parallelize database operations** using `Promise.all()` instead of sequential `await` calls
 - **Optimize array processing** with `flatMap()` and `filter()` instead of nested loops
 - **Implement cleanup mechanisms** for debug files and logs to prevent memory leaks
+
+### Internal Self-Calls: `getInProcessFetch()` vs `fetch`
+Any code in `agents-api` or `agents-work-apps` that makes **internal A2A calls or self-referencing API calls** (i.e. calling another route on the same service) **MUST** use `getInProcessFetch()` from `@inkeep/agents-core` instead of the global `fetch`.
+
+- `getInProcessFetch()` routes the request through the Hono app's middleware stack **in-process**, guaranteeing it stays on the same instance.
+- Global `fetch` sends the request over the network, where a load balancer may route it to a **different** instance — breaking features that depend on process-local state (e.g. the stream helper registry for SSE streaming).
+- This bug only manifests under load in multi-instance deployments and is extremely difficult to diagnose.
+
+**When to use:**
+| Scenario | Use |
+|---|---|
+| Internal A2A delegation/transfer (same service) | `getInProcessFetch()` |
+| Eval service calling the chat API on itself | `getInProcessFetch()` |
+| Forwarding requests to internal workflow routes | `getInProcessFetch()` |
+| Slack/work-app calls to `/run/api/chat` or `/manage/` routes | `getInProcessFetch()` |
+| Calling an **external** service or third-party API | Global `fetch` |
+| Test environments (falls back automatically) | Either (auto-fallback) |
+
+### Route Authorization Pattern (`createProtectedRoute`)
+All API routes in `agents-api` **must** use `createProtectedRoute()` from `@inkeep/agents-core/middleware` instead of the plain `createRoute()` from `@hono/zod-openapi`. This is enforced by Biome lint rules and ensures every route has explicit authorization metadata (`x-authz`) in the OpenAPI spec.
+
+```typescript
+import { createProtectedRoute, noAuth, inheritedAuth } from '@inkeep/agents-core/middleware';
+import { requireProjectPermission } from '../../middleware/projectAccess';
+
+// Standard protected route — pass the permission middleware directly
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/',
+    permission: requireProjectPermission('view'),
+    // ... rest of route config
+  }),
+  handler,
+);
+
+// Public route (no auth) — use noAuth()
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/callback',
+    permission: noAuth(),
+    security: [],
+    // ... rest of route config
+  }),
+  handler,
+);
+
+// Route where auth is enforced by parent middleware — use inheritedAuth()
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/',
+    permission: inheritedAuth({
+      resource: 'organization',
+      permission: 'member',
+      description: 'Auth enforced by parent middleware in createApp.ts',
+    }),
+    // ... rest of route config
+  }),
+  handler,
+);
+```
+
+**Key helpers:**
+| Helper | When to use |
+|---|---|
+| `requireProjectPermission('view' \| 'edit')` | Routes scoped to a project |
+| `requirePermission({ project: 'create' })` | Org-level permission checks (admin) |
+| `noAuth()` | Truly public endpoints (webhooks, OAuth callbacks) |
+| `inheritedAuth(meta)` | Auth enforced by parent/global middleware |
+| `inheritedRunApiKeyAuth()` | Run-domain routes behind API key middleware |
+| `inheritedManageTenantAuth()` | Manage-domain routes behind session/API key middleware |
+| `inheritedWorkAppsAuth()` | Work-apps routes behind OIDC/Slack middleware |
 
 ### Common Gotchas
 - **Empty Task Messages**: Ensure task messages contain actual text content

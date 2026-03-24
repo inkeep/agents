@@ -11,6 +11,7 @@ export const runeMarketCard = dataComponent({
     properties: {
       rune: {
         type: 'object',
+        description: 'Comprehensive market data for a Rune token',
         properties: {
           name: {
             type: 'string',
@@ -22,6 +23,7 @@ export const runeMarketCard = dataComponent({
           },
           currentPrice: {
             type: 'object',
+            description: 'Current price in multiple denominations',
             properties: {
               usd: {
                 type: 'string',
@@ -40,6 +42,7 @@ export const runeMarketCard = dataComponent({
           },
           volume24h: {
             type: 'object',
+            description: '24-hour trading volume statistics',
             properties: {
               tokens: {
                 type: 'string',
@@ -58,6 +61,7 @@ export const runeMarketCard = dataComponent({
           },
           priceRange24h: {
             type: 'object',
+            description: '24-hour price range with low, high, and spread',
             properties: {
               low: {
                 type: 'string',
@@ -76,10 +80,11 @@ export const runeMarketCard = dataComponent({
           },
           tradingActivity: {
             type: 'object',
+            description: 'Trading activity and exchange information',
             properties: {
               primaryDexs: {
                 type: 'array',
-                items: { type: 'string' },
+                items: { type: 'string', description: 'DEX name' },
                 description: 'Primary DEXs (e.g., ["Magic Eden", "DotSwap"])',
               },
               liquidity: {

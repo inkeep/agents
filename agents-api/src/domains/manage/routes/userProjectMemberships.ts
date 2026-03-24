@@ -1,9 +1,10 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   listUserProjectMembershipsInSpiceDb,
   ProjectRoles,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -17,14 +18,14 @@ const UserProjectMembershipParamsSchema = z.object({
 
 // List user's project memberships
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List User Project Memberships',
-    description:
-      'List all projects a user has explicit access to and their role in each. Requires authz to be enabled.',
+    description: 'List all projects a user has explicit access to and their role in each.',
     operationId: 'list-user-project-memberships',
     tags: ['User Project Memberships'],
+    permission: inheritedManageTenantAuth(),
     request: {
       params: UserProjectMembershipParamsSchema,
     },

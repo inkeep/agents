@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import { type Profile, ProfileError, ProfileManager } from '../utils/profiles';
+import { LOCAL_REMOTE, type Profile, ProfileError, ProfileManager } from '../utils/profiles';
 
 const profileManager = new ProfileManager();
 
@@ -75,7 +75,8 @@ export async function profileAddCommand(name?: string): Promise<void> {
       message: 'Remote type:',
       options: [
         { value: 'cloud', label: 'Inkeep Cloud', hint: 'Default cloud deployment' },
-        { value: 'custom', label: 'Custom', hint: 'Local or self-hosted deployment' },
+        { value: 'local', label: 'Local', hint: 'Local development (localhost, no auth)' },
+        { value: 'custom', label: 'Custom', hint: 'Self-hosted or staging deployment' },
       ],
     });
 
@@ -88,13 +89,14 @@ export async function profileAddCommand(name?: string): Promise<void> {
 
     if (remoteType === 'cloud') {
       remote = 'cloud';
+    } else if (remoteType === 'local') {
+      remote = { ...LOCAL_REMOTE };
     } else {
-      // Get custom URLs
       const api = await p.text({
         message: 'Agents API URL:',
-        placeholder: 'http://localhost:3002',
-        initialValue: 'http://localhost:3002',
+        placeholder: 'https://your-agents-api.example.com',
         validate: (value) => {
+          if (!value?.trim()) return 'URL is required';
           try {
             new URL(value);
             return undefined;
@@ -111,9 +113,9 @@ export async function profileAddCommand(name?: string): Promise<void> {
 
       const manageUi = await p.text({
         message: 'Manage UI URL:',
-        placeholder: 'http://localhost:3000',
-        initialValue: 'http://localhost:3000',
+        placeholder: 'https://your-manage-ui.example.com',
         validate: (value) => {
+          if (!value?.trim()) return 'URL is required';
           try {
             new URL(value);
             return undefined;
@@ -134,11 +136,12 @@ export async function profileAddCommand(name?: string): Promise<void> {
       };
     }
 
-    // Get environment name
+    // Cloud and custom (self-hosted/staging) default to 'production'; only local dev defaults to 'development'
+    const envDefault = remoteType === 'local' ? 'development' : 'production';
     const environment = await p.text({
       message: 'Environment name:',
-      placeholder: remoteType === 'cloud' ? 'production' : 'development',
-      initialValue: remoteType === 'cloud' ? 'production' : 'development',
+      placeholder: envDefault,
+      initialValue: envDefault,
       validate: (value) => {
         if (!value) return 'Environment is required';
         return undefined;
@@ -151,20 +154,28 @@ export async function profileAddCommand(name?: string): Promise<void> {
     }
 
     // Generate credential reference name
-    const credentialDefault = `inkeep-${profileName}`;
-    const credential = await p.text({
-      message: 'Credential reference:',
-      placeholder: credentialDefault,
-      initialValue: credentialDefault,
-      validate: (value) => {
-        if (!value) return 'Credential reference is required';
-        return undefined;
-      },
-    });
+    let credential: string;
 
-    if (p.isCancel(credential)) {
-      p.cancel('Profile creation cancelled');
-      process.exit(0);
+    if (remoteType === 'local') {
+      credential = 'none';
+    } else {
+      const credentialDefault = `inkeep-${profileName}`;
+      const credentialInput = await p.text({
+        message: 'Credential reference:',
+        placeholder: credentialDefault,
+        initialValue: credentialDefault,
+        validate: (value) => {
+          if (!value) return 'Credential reference is required';
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(credentialInput)) {
+        p.cancel('Profile creation cancelled');
+        process.exit(0);
+      }
+
+      credential = credentialInput;
     }
 
     // Create the profile
@@ -179,12 +190,14 @@ export async function profileAddCommand(name?: string): Promise<void> {
     console.log();
     console.log(chalk.green('✓'), `Profile '${chalk.cyan(profileName)}' created successfully.`);
 
-    // Check if credential exists and warn if not
-    const credentialExists = await profileManager.checkCredentialExists(credential);
-    if (!credentialExists) {
-      console.log();
-      console.log(chalk.yellow('⚠'), `Credential '${credential}' not found in keychain.`);
-      console.log(chalk.gray('  Run "inkeep login" to authenticate and store credentials.'));
+    // Check if credential exists and warn if not (skip for 'none')
+    if (credential !== 'none') {
+      const credentialExists = await profileManager.checkCredentialExists(credential);
+      if (!credentialExists) {
+        console.log();
+        console.log(chalk.yellow('⚠'), `Credential '${credential}' not found in keychain.`);
+        console.log(chalk.gray('  Run "inkeep login" to authenticate and store credentials.'));
+      }
     }
 
     // Ask if user wants to switch to this profile
@@ -237,12 +250,14 @@ export async function profileCurrentCommand(): Promise<void> {
     console.log(`  Environment: ${profile.environment}`);
     console.log(`  Credential:  ${profile.credential}`);
 
-    // Check if credential exists
-    const credentialExists = await profileManager.checkCredentialExists(profile.credential);
-    if (!credentialExists) {
-      console.log();
-      console.log(chalk.yellow('⚠'), `Credential '${profile.credential}' not found in keychain.`);
-      console.log(chalk.gray('  Run "inkeep login" to authenticate.'));
+    // Check if credential exists and warn if not (skip for 'none')
+    if (profile.credential !== 'none') {
+      const credentialExists = await profileManager.checkCredentialExists(profile.credential);
+      if (!credentialExists) {
+        console.log();
+        console.log(chalk.yellow('⚠'), `Credential '${profile.credential}' not found in keychain.`);
+        console.log(chalk.gray('  Run "inkeep login" to authenticate.'));
+      }
     }
   } catch (error) {
     handleProfileError(error);

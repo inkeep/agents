@@ -229,7 +229,8 @@ sync_projects() {
       echo "  Project: $project_id → org:$tenant_id"
     fi
     
-    write_relationship "project" "$project_id" "organization" "organization" "$tenant_id"
+    # Use tenant-scoped composite project ID: tenantId/projectId
+    write_relationship "project" "${tenant_id}/${project_id}" "organization" "organization" "$tenant_id"
     ((PROJECTS_PROCESSED++)) || true
     ((project_count++)) || true
   done <<< "$projects"
@@ -262,7 +263,7 @@ fi
 
 echo ""
 echo -e "${BLUE}📋 Next Steps:${NC}"
-echo "   1. Verify relationships: pnpm spicedb:read"
+echo "   1. Verify relationships: `pnpm spicedb:read:orgs` and `pnpm spicedb:read:projects`"
 echo "   2. Org admins should assign users to projects via the UI"
 echo "   3. Test access: zed permission check $ZED_ARGS project:<id> view user:<id>"
 echo ""

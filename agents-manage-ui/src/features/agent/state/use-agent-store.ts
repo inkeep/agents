@@ -7,23 +7,10 @@ import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
-import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
-import {
-  type AnimatedNode,
-  mcpNodeHandleId,
-  NodeType,
-} from '@/components/agent/configuration/node-types';
+import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { DataComponent } from '@/lib/api/data-components';
-import { sentry } from '@/lib/sentry';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-} from '@/lib/types/agent-full';
-import type { ExternalAgent } from '@/lib/types/external-agents';
-import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
+import { generateId } from '@/lib/utils/id-utils';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
@@ -31,12 +18,6 @@ interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
   metadata: AgentMetadata;
-  dataComponentLookup: Record<string, DataComponent>;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
-  toolLookup: Record<string, MCPTool>;
-  externalAgentLookup: Record<string, ExternalAgent>;
-  agentToolConfigLookup: AgentToolConfigLookup;
-  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
@@ -47,6 +28,12 @@ interface AgentStateData {
    */
   isSidebarSessionOpen: boolean;
   variableSuggestions: string[];
+  /**
+   * Tracks if any model configuration modal is currently open (azure, openrouter, gateway, nim).
+   * Used to disable save button while configuration is in progress.
+   */
+  hasOpenModelConfig: boolean;
+  playgroundConversationId: string;
 }
 
 interface AgentPersistedStateData {
@@ -59,26 +46,8 @@ interface AgentPersistedStateData {
 }
 
 interface AgentActions {
-  setInitial(
-    nodes: Node[],
-    edges: Edge[],
-    metadata: AgentMetadata,
-    dataComponentLookup?: Record<string, DataComponent>,
-    artifactComponentLookup?: Record<string, ArtifactComponent>,
-    toolLookup?: Record<string, MCPTool>,
-    agentToolConfigLookup?: AgentToolConfigLookup,
-    externalAgentLookup?: Record<string, ExternalAgent>,
-    subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup
-  ): void;
+  setInitial(nodes: Node[], edges: Edge[], metadata: AgentMetadata): void;
   reset(): void;
-  setDataComponentLookup(dataComponentLookup: Record<string, DataComponent>): void;
-  setArtifactComponentLookup(artifactComponentLookup: Record<string, ArtifactComponent>): void;
-  setToolLookup(toolLookup: Record<string, MCPTool>): void;
-  setAgentToolConfigLookup(agentToolConfigLookup: AgentToolConfigLookup): void;
-  setExternalAgentLookup(externalAgentLookup: Record<string, ExternalAgent>): void;
-  setSubAgentExternalAgentConfigLookup(
-    subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup
-  ): void;
   setNodes(updater: (prev: Node[]) => Node[]): void;
   setEdges(updater: (prev: Edge[]) => Edge[]): void;
   onNodesChange(changes: NodeChange[]): void;
@@ -111,9 +80,12 @@ interface AgentActions {
    */
   toggleTextWrap(): void;
 
-  animateGraph: EventListenerOrEventListenerObject;
-
   setVariableSuggestions: (variableSuggestions: string[]) => void;
+  /**
+   * Setter for `hasOpenModelConfig` field.
+   */
+  setHasOpenModelConfig: (hasOpenModelConfig: boolean) => void;
+  resetPlaygroundConversationId: () => void;
 }
 
 type AllAgentStateData = AgentStateData & AgentPersistedStateData;
@@ -138,12 +110,6 @@ const initialAgentState: AgentStateData = {
     prompt: undefined,
     statusUpdates: undefined,
   },
-  dataComponentLookup: {},
-  artifactComponentLookup: {},
-  toolLookup: {},
-  agentToolConfigLookup: {},
-  externalAgentLookup: {},
-  subAgentExternalAgentConfigLookup: {},
   dirty: false,
   history: [],
   future: [],
@@ -151,6 +117,8 @@ const initialAgentState: AgentStateData = {
   showErrors: false,
   isSidebarSessionOpen: true,
   variableSuggestions: [],
+  hasOpenModelConfig: false,
+  playgroundConversationId: generateId(),
 };
 
 const NODE_MODIFIED_CHANGE = new Set<NodeChange['type']>(['remove', 'add', 'replace']);
@@ -163,27 +131,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   variableSuggestions: [],
   // Separate "namespace" for actions
   actions: {
-    setInitial(
-      nodes,
-      edges,
-      metadata,
-      dataComponentLookup = {},
-      artifactComponentLookup = {},
-      toolLookup = {},
-      agentToolConfigLookup = {},
-      externalAgentLookup = {},
-      subAgentExternalAgentConfigLookup = {}
-    ) {
+    setInitial(nodes, edges, metadata) {
       set({
         nodes,
         edges,
         metadata,
-        dataComponentLookup,
-        artifactComponentLookup,
-        toolLookup,
-        agentToolConfigLookup,
-        externalAgentLookup,
-        subAgentExternalAgentConfigLookup,
         dirty: false,
         history: [],
         future: [],
@@ -196,25 +148,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       // If we kept it, the sidebar on the agents page would collapse (from the temp state)
       // and then immediately re-expand due to the user’s persisted preference.
       const { isSidebarSessionOpen: _, ...state } = initialAgentState;
-      set(state);
-    },
-    setDataComponentLookup(dataComponentLookup) {
-      set({ dataComponentLookup });
-    },
-    setArtifactComponentLookup(artifactComponentLookup) {
-      set({ artifactComponentLookup });
-    },
-    setToolLookup(toolLookup) {
-      set({ toolLookup });
-    },
-    setAgentToolConfigLookup(agentToolConfigLookup) {
-      set({ agentToolConfigLookup });
-    },
-    setExternalAgentLookup(externalAgentLookup) {
-      set({ externalAgentLookup });
-    },
-    setSubAgentExternalAgentConfigLookup(subAgentExternalAgentConfigLookup) {
-      set({ subAgentExternalAgentConfigLookup });
+      set({ ...state, playgroundConversationId: generateId() });
     },
     setNodes(updater) {
       set((state) => ({ nodes: updater(state.nodes) }));
@@ -366,173 +300,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     setJsonSchemaMode(jsonSchemaMode) {
       set({ jsonSchemaMode });
     },
-    animateGraph(event) {
-      // @ts-expect-error -- improve types
-      const data = event.detail;
-      console.info('Data operation received:', data);
-
-      set((state) => {
-        const { edges: prevEdges, nodes: prevNodes } = state;
-
-        function updateNodeStatus(
-          cb: (node: Node<AnimatedNode & Record<string, unknown>>) => AnimatedNode['status']
-        ) {
-          return prevNodes.map((node) => {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                status: cb(node),
-              },
-            };
-          });
-        }
-        function updateEdgeStatus(
-          cb: (edge: Edge<AnimatedEdge & Record<string, unknown>>) => AnimatedEdge['status']
-        ) {
-          return prevEdges.map((node) => {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                status: cb(node),
-              },
-            };
-          });
-        }
-        switch (data.type) {
-          case 'agent_initializing': {
-            return {
-              nodes: updateNodeStatus((node) => {
-                // this prevents the node from highlighting if the copilot triggers this event
-                if (data?.details?.agentId !== state.metadata.id) {
-                  return;
-                }
-                if (node.data.isDefault) {
-                  return 'delegating';
-                }
-                return node.data.status;
-              }),
-            };
-          }
-          case 'delegation_sent':
-          case 'transfer': {
-            const { fromSubAgent, targetSubAgent } = data.details?.data || {};
-
-            return {
-              edges: updateEdgeStatus((edge) =>
-                edge.source === fromSubAgent && edge.target === targetSubAgent
-                  ? 'delegating'
-                  : edge.data?.status
-              ),
-              nodes: updateNodeStatus((node) =>
-                node.id === fromSubAgent || node.id === targetSubAgent
-                  ? 'delegating'
-                  : node.data.status
-              ),
-            };
-          }
-          case 'delegation_returned': {
-            const { targetSubAgent, fromSubAgent } = data.details?.data || {};
-            return {
-              edges: updateEdgeStatus((edge) =>
-                edge.source === targetSubAgent && edge.target === fromSubAgent
-                  ? 'inverted-delegating'
-                  : edge.data?.status
-              ),
-              nodes: updateNodeStatus((node) => {
-                if (node.id === targetSubAgent) {
-                  return 'delegating';
-                }
-                return node.id === fromSubAgent ? 'inverted-delegating' : node.data.status;
-              }),
-            };
-          }
-          case 'tool_call': {
-            const relationshipId = data.details?.data?.relationshipId;
-            if (!relationshipId) {
-              const error = new Error('[type: tool_call] relationshipId is missing');
-              sentry.captureException(error, { extra: data });
-              console.warn(error);
-            }
-            return {
-              edges: updateEdgeStatus((edge) => {
-                const node = prevNodes.find((node) => node.id === edge.target);
-                return !!relationshipId && relationshipId === node?.data.relationshipId
-                  ? 'delegating'
-                  : edge.data?.status;
-              }),
-              nodes: updateNodeStatus((node) =>
-                node.data.id === data.details?.subAgentId ||
-                (relationshipId && relationshipId === node.data.relationshipId)
-                  ? 'delegating'
-                  : node.data.status
-              ),
-            };
-          }
-          case 'error': {
-            const { relationshipId, agent } = data.details?.data ?? {};
-            if (!relationshipId && !data.agent && !agent) {
-              const error = new Error(`[type: error] relationshipId is missing`);
-              sentry.captureException(error, { extra: data });
-              console.warn(error);
-            }
-            return {
-              nodes: updateNodeStatus((node) =>
-                relationshipId === node.data.relationshipId ||
-                [agent, data.agent].includes(node.data.id)
-                  ? 'error'
-                  : node.data.status
-              ),
-            };
-          }
-          case 'tool_result': {
-            const relationshipId = data.details?.data?.relationshipId;
-            if (!relationshipId) {
-              const error = new Error('[type: tool_result] relationshipId is missing');
-              sentry.captureException(error, { extra: data });
-              console.warn(error);
-            }
-            return {
-              edges: updateEdgeStatus((edge) => {
-                const node = prevNodes.find((node) => node.id === edge.target);
-
-                return data.details?.subAgentId === edge.source &&
-                  relationshipId &&
-                  relationshipId === node?.data.relationshipId
-                  ? 'inverted-delegating'
-                  : edge.data?.status;
-              }),
-              nodes: updateNodeStatus((node) => {
-                if (relationshipId && relationshipId === node.data.relationshipId) {
-                  return data.details?.data?.error ? 'error' : 'inverted-delegating';
-                }
-                if (node.id === data.details?.subAgentId) {
-                  return 'delegating';
-                }
-
-                return node.data.status;
-              }),
-            };
-          }
-          case 'completion': {
-            return {
-              edges: updateEdgeStatus(() => null),
-              nodes: updateNodeStatus(() => null),
-            };
-          }
-          case 'agent_reasoning':
-          case 'agent_generate': {
-            return {
-              nodes: updateNodeStatus((node) =>
-                node.id === data.details?.subAgentId ? 'executing' : node.data.status
-              ),
-            };
-          }
-        }
-        return state;
-      });
-    },
     setSidebarOpen({ isSidebarSessionOpen, isSidebarPinnedOpen }) {
       set({
         isSidebarSessionOpen,
@@ -546,6 +313,12 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     setVariableSuggestions(variableSuggestions) {
       set({ variableSuggestions });
+    },
+    setHasOpenModelConfig(hasOpenModelConfig) {
+      set({ hasOpenModelConfig });
+    },
+    resetPlaygroundConversationId() {
+      set({ playgroundConversationId: generateId() });
     },
   },
 });

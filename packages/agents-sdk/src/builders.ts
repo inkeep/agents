@@ -1,5 +1,6 @@
 import type {
   CredentialReferenceApiInsert,
+  JsonSchemaForLlmSchemaType,
   McpToolSelection,
   ToolPolicy,
 } from '@inkeep/agents-core';
@@ -58,11 +59,11 @@ export interface ComponentConfig {
 }
 
 export interface ArtifactComponentConfig extends ComponentConfig {
-  props: Record<string, unknown> | z.ZodObject<any>;
+  props: JsonSchemaForLlmSchemaType | z.ZodObject<any>;
 }
 
 export interface DataComponentConfig extends ComponentConfig {
-  props: Record<string, unknown> | z.ZodObject<any>;
+  props: JsonSchemaForLlmSchemaType | z.ZodObject<any>;
   render?: {
     component: string;
     mockData: Record<string, unknown>;

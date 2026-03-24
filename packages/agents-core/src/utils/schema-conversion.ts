@@ -14,67 +14,6 @@ type PreviewZodType = z.ZodTypeAny & {
 };
 
 /**
- * Converts JSON Schema to Zod schema at runtime.
- *
- * This is useful for dynamically creating Zod schemas from JSON Schema definitions,
- * such as when using AI SDK's structured generateText/streamText with data component props.
- *
- * Note: Uses z.string() as fallback for unknown types to ensure Anthropic compatibility
- * (Anthropic requires explicit types - z.any()/z.unknown() produce invalid JSON Schema).
- */
-export function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
-  if (!jsonSchema || typeof jsonSchema !== 'object') {
-    logger.warn({ jsonSchema }, 'Invalid JSON schema provided, using string fallback');
-    return z.string();
-  }
-
-  const schemaType = jsonSchema.type as string | undefined;
-
-  switch (schemaType) {
-    case 'object': {
-      const properties = jsonSchema.properties as
-        | Record<string, Record<string, unknown>>
-        | undefined;
-      if (properties && typeof properties === 'object') {
-        const shape: Record<string, z.ZodType<unknown>> = {};
-        for (const [key, prop] of Object.entries(properties)) {
-          shape[key] = jsonSchemaToZod(prop);
-        }
-        return z.object(shape);
-      }
-      // Object without defined properties - use record with string values as safe fallback
-      return z.record(z.string(), z.string());
-    }
-
-    case 'array': {
-      const items = jsonSchema.items as Record<string, unknown> | undefined;
-      const itemSchema = items ? jsonSchemaToZod(items) : z.string();
-      return z.array(itemSchema);
-    }
-
-    case 'string':
-      return z.string();
-
-    case 'number':
-    case 'integer':
-      return z.number();
-
-    case 'boolean':
-      return z.boolean();
-
-    case 'null':
-      return z.null();
-
-    default:
-      logger.warn(
-        { unsupportedType: schemaType, schema: jsonSchema },
-        'Unsupported JSON schema type, using string fallback'
-      );
-      return z.string();
-  }
-}
-
-/**
  * Utility function for converting Zod schemas to JSON Schema
  * Uses Zod's built-in toJSONSchema method
  */
@@ -140,6 +79,135 @@ export function convertZodToJsonSchemaWithPreview(
  */
 export function isZodSchema(value: any): value is z.ZodObject<any> {
   return value?._def?.type === 'object';
+}
+
+/**
+ * Strips JSON Schema numeric constraints that are not supported by all LLM providers.
+ *
+ * Anthropic structured output rejects `minimum`, `maximum`, `exclusiveMinimum`,
+ * `exclusiveMaximum`, and `multipleOf` on `number`/`integer` types.
+ * Applied recursively to handle nested objects and arrays.
+ */
+export function stripUnsupportedConstraints<T extends Record<string, unknown> | null | undefined>(
+  schema: T
+): T {
+  if (!schema || typeof schema !== 'object') {
+    return schema;
+  }
+
+  const stripped: any = { ...schema };
+
+  if (stripped.type === 'number' || stripped.type === 'integer') {
+    delete stripped.minimum;
+    delete stripped.maximum;
+    delete stripped.exclusiveMinimum;
+    delete stripped.exclusiveMaximum;
+    delete stripped.multipleOf;
+  }
+
+  if (stripped.properties && typeof stripped.properties === 'object') {
+    const strippedProperties: any = {};
+    for (const [key, value] of Object.entries(stripped.properties)) {
+      strippedProperties[key] = stripUnsupportedConstraints(value as Record<string, unknown>);
+    }
+    stripped.properties = strippedProperties;
+  }
+
+  if (stripped.items) {
+    stripped.items = stripUnsupportedConstraints(stripped.items as Record<string, unknown>);
+  }
+  if (Array.isArray(stripped.anyOf)) {
+    stripped.anyOf = stripped.anyOf.map((s: any) =>
+      stripUnsupportedConstraints(s as Record<string, unknown>)
+    );
+  }
+  if (Array.isArray(stripped.oneOf)) {
+    stripped.oneOf = stripped.oneOf.map((s: any) =>
+      stripUnsupportedConstraints(s as Record<string, unknown>)
+    );
+  }
+  if (Array.isArray(stripped.allOf)) {
+    stripped.allOf = stripped.allOf.map((s: any) =>
+      stripUnsupportedConstraints(s as Record<string, unknown>)
+    );
+  }
+
+  return stripped;
+}
+
+/**
+ * Makes all properties required in an object schema, wrapping originally-optional
+ * fields as `{ anyOf: [<schema>, { type: 'null' }] }`.
+ *
+ * OpenAI strict-mode structured output requires every key in `properties` to also
+ * appear in `required`. Applied recursively to handle nested objects and arrays.
+ */
+export function makeAllPropertiesRequired<T extends Record<string, unknown> | null | undefined>(
+  schema: T
+): T {
+  if (!schema || typeof schema !== 'object') {
+    return schema;
+  }
+
+  const normalized: any = { ...schema };
+
+  if (normalized.properties && typeof normalized.properties === 'object') {
+    const originalRequired: string[] = Array.isArray(normalized.required)
+      ? normalized.required
+      : [];
+    normalized.required = Object.keys(normalized.properties);
+
+    const normalizedProperties: any = {};
+    for (const [key, value] of Object.entries(normalized.properties)) {
+      const prop = value as Record<string, unknown>;
+      const processed = makeAllPropertiesRequired(prop);
+      const alreadyNullable =
+        (Array.isArray(processed.anyOf) &&
+          (processed.anyOf as any[]).some((s: any) => s?.type === 'null')) ||
+        processed.nullable === true;
+      normalizedProperties[key] =
+        originalRequired.includes(key) || alreadyNullable
+          ? processed
+          : { anyOf: [processed, { type: 'null' }] };
+    }
+    normalized.properties = normalizedProperties;
+  }
+
+  if (normalized.items) {
+    normalized.items = makeAllPropertiesRequired(normalized.items as Record<string, unknown>);
+  }
+  if (Array.isArray(normalized.anyOf)) {
+    normalized.anyOf = normalized.anyOf.map((s: any) =>
+      makeAllPropertiesRequired(s as Record<string, unknown>)
+    );
+  }
+  if (Array.isArray(normalized.oneOf)) {
+    normalized.oneOf = normalized.oneOf.map((s: any) =>
+      makeAllPropertiesRequired(s as Record<string, unknown>)
+    );
+  }
+  if (Array.isArray(normalized.allOf)) {
+    normalized.allOf = normalized.allOf.map((s: any) =>
+      makeAllPropertiesRequired(s as Record<string, unknown>)
+    );
+  }
+
+  return normalized;
+}
+
+/**
+ * Normalizes a data component JSON Schema for cross-provider LLM compatibility.
+ *
+ * Applies two transformations in order:
+ * 1. `stripUnsupportedConstraints` — removes `minimum`/`maximum`/etc. from numbers
+ *    (Anthropic structured output rejects these)
+ * 2. `makeAllPropertiesRequired` — ensures every property appears in `required`,
+ *    wrapping optional fields as nullable (OpenAI strict-mode requires this)
+ */
+export function normalizeDataComponentSchema<T extends Record<string, unknown> | null | undefined>(
+  schema: T
+): T {
+  return makeAllPropertiesRequired(stripUnsupportedConstraints(schema));
 }
 
 /**

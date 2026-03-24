@@ -122,6 +122,10 @@ const activitiesPlanner = subAgent({
   )} in the timezone ${headersSchema.toTemplate(
     'tz'
   )}. When the user asks about activities in a given location, first ask the coordinates agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast. Then based on the weather forecast, ask the websearch MCP tool to search the web for good activities given the weather. Once you have the activities, use the calculate-activity-score tool to calculate a score for one of the activities based on the weather conditions- and then show the user the activity score in your response. When you receive web search results, create citation artifacts to document your sources.`,
+  skills: () => [
+    { id: 'weather-safety-guardrails', index: 0 },
+    { id: 'structured-itinerary-responses', index: 1 },
+  ],
   canDelegateTo: () => [weatherForecaster, coordinatesAgent],
   canUse: () => [calculateActivityScore, exaMcpTool.with({ selectedTools: ['web_search_exa'] })],
   dataComponents: () => [activities],

@@ -1,0 +1,16 @@
+import { functionTool } from '@inkeep/agents-sdk';
+
+export const multiplyTool = functionTool({
+  inputSchema: {
+    type: 'object',
+    properties: {
+      value: {
+        type: 'number',
+      },
+    },
+  },
+  name: 'multiply-tool',
+  execute: async ({ value }) => {
+      return { result: value * 2 };
+    },
+});

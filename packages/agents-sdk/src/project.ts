@@ -6,11 +6,7 @@ import type {
   StopWhen,
   ToolApiInsert,
 } from '@inkeep/agents-core';
-import { getLogger } from '@inkeep/agents-core';
-import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
-
-const logger = getLogger('project');
-
+import { convertZodToJsonSchema, getLogger, isZodSchema } from '@inkeep/agents-core';
 import type { Agent } from './agent';
 import type { ArtifactComponent } from './artifact-component';
 import type { DataComponent } from './data-component';
@@ -18,7 +14,9 @@ import type { ExternalAgent } from './external-agent';
 import { FunctionTool } from './function-tool';
 import { updateFullProjectViaAPI } from './projectFullClient';
 import type { Tool } from './tool';
-import type { AgentTool, ModelSettings } from './types';
+import type { AgentTool, ModelSettings, SkillDefinition } from './types';
+
+const logger = getLogger('project');
 
 /**
  * Project configuration interface for the SDK
@@ -39,6 +37,7 @@ export interface ProjectConfig {
   dataComponents?: () => DataComponent[];
   artifactComponents?: () => ArtifactComponent[];
   credentialReferences?: () => CredentialReferenceApiInsert[];
+  skills?: () => SkillDefinition[];
 }
 
 /**
@@ -106,13 +105,14 @@ export class Project implements ProjectInterface {
   };
   private stopWhen?: StopWhen;
   private agents: Agent[] = [];
-  private agentMap: Map<string, Agent> = new Map();
+  private agentMap = new Map<string, Agent>();
   private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
   private projectTools: Tool[] = [];
   private projectDataComponents: DataComponent[] = [];
   private projectArtifactComponents: ArtifactComponent[] = [];
   private projectExternalAgents: ExternalAgent[] = [];
-  private externalAgentMap: Map<string, ExternalAgent> = new Map();
+  private externalAgentMap = new Map<string, ExternalAgent>();
+  private skills: SkillDefinition[] = [];
 
   constructor(config: ProjectConfig) {
     this.projectId = config.id;
@@ -123,6 +123,7 @@ export class Project implements ProjectInterface {
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     this.models = config.models;
     this.stopWhen = config.stopWhen;
+    this.skills = config.skills ? config.skills() : [];
 
     // Initialize agent if provided
     if (config.agents) {
@@ -540,6 +541,8 @@ export class Project implements ProjectInterface {
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
     const externalAgentsObject: Record<string, ExternalAgentApiInsert> = {};
+    const skillsObject: Record<string, any> = {};
+    const skillTimestamp = new Date().toISOString();
     // Track which resources use each credential
     const credentialUsageMap: Record<
       string,
@@ -886,6 +889,20 @@ export class Project implements ProjectInterface {
       }
     }
     logger.info({ externalAgentsObject }, 'External agents object');
+
+    for (const skill of this.skills) {
+      if (!skill.id) continue;
+      skillsObject[skill.id] = {
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        content: skill.content,
+        metadata: skill.metadata ?? null,
+        createdAt: skill.createdAt ?? skillTimestamp,
+        updatedAt: skill.updatedAt ?? skillTimestamp,
+      };
+    }
+
     // Add project-level tools, dataComponents, and artifactComponents
     for (const tool of this.projectTools) {
       const toolId = tool.getId();
@@ -995,6 +1012,7 @@ export class Project implements ProjectInterface {
         Object.keys(externalAgentsObject).length > 0 ? externalAgentsObject : undefined,
       credentialReferences:
         Object.keys(credentialReferencesObject).length > 0 ? credentialReferencesObject : undefined,
+      skills: Object.keys(skillsObject).length > 0 ? skillsObject : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

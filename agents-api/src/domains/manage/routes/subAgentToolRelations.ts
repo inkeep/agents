@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createAgentToolRelation,
@@ -9,6 +9,7 @@ import {
   getAgentToolRelationByAgent,
   getAgentToolRelationById,
   getAgentToolRelationByTool,
+  isForeignKeyViolation,
   listAgentToolRelations,
   PaginationQueryParamsSchema,
   SubAgentToolRelationApiInsertSchema,
@@ -20,36 +21,25 @@ import {
   TenantProjectAgentParamsSchema,
   updateAgentToolRelation,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List SubAgent Tool Relations',
     operationId: 'list-subagent-tool-relations',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -125,12 +115,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get SubAgent Tool Relation',
     operationId: 'get-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -166,12 +157,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/tool/{toolId}/sub-agents',
     summary: 'Get SubAgents for Tool',
     operationId: 'get-subagents-for-tool',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         toolId: z.string(),
@@ -206,12 +198,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create SubAgent Tool Relation',
     operationId: 'create-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -262,8 +255,7 @@ app.openapi(
       });
       return c.json({ data: agentToolRelation }, 201);
     } catch (error) {
-      // Handle foreign key constraint violations (PostgreSQL foreign key violation)
-      if ((error as any)?.cause?.code === '23503') {
+      if (isForeignKeyViolation(error)) {
         throw createApiError({
           code: 'bad_request',
           message: 'Invalid subAgent ID or tool ID - referenced entity does not exist',
@@ -274,71 +266,81 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update SubAgent Tool Relation',
-    operationId: 'update-subagent-tool-relation',
-    tags: ['SubAgents', 'Tools'],
-    request: {
-      params: TenantProjectAgentIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: SubAgentToolRelationApiUpdateSchema,
-          },
+const updateSubAgentToolRelationRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update SubAgent Tool Relation',
+  tags: ['SubAgents', 'Tools'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectAgentIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: SubAgentToolRelationApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'SubAgent tool relation updated successfully',
-        content: {
-          'application/json': {
-            schema: SubAgentToolRelationResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'SubAgent tool relation updated successfully',
+      content: {
+        'application/json': {
+          schema: SubAgentToolRelationResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const body = await c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    if (Object.keys(body).length === 0) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'No fields to update',
-      });
-    }
+const updateSubAgentToolRelationHandler: ManageRouteHandler<
+  typeof updateSubAgentToolRelationRouteConfig
+> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, agentId, id } = c.req.valid('param');
+  const body = await c.req.valid('json');
 
-    const updatedAgentToolRelation = await updateAgentToolRelation(db)({
-      scopes: { tenantId, projectId, agentId },
-      relationId: id,
-      data: body,
+  if (Object.keys(body).length === 0) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'No fields to update',
     });
+  }
 
-    if (!updatedAgentToolRelation) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'SubAgent tool relation not found',
-      });
-    }
+  const updatedAgentToolRelation = await updateAgentToolRelation(db)({
+    scopes: { tenantId, projectId, agentId },
+    relationId: id,
+    data: body,
+  });
 
-    return c.json({ data: updatedAgentToolRelation });
+  if (!updatedAgentToolRelation) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'SubAgent tool relation not found',
+    });
+  }
+
+  return c.json({ data: updatedAgentToolRelation });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateSubAgentToolRelationRouteConfig,
+  updateSubAgentToolRelationHandler,
+  {
+    operationId: 'update-subagent-tool-relation',
   }
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete SubAgent Tool Relation',
     operationId: 'delete-subagent-tool-relation',
     tags: ['SubAgents', 'Tools'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

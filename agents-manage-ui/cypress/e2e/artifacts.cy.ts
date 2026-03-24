@@ -2,7 +2,7 @@
 
 describe('Artifacts', () => {
   it('should have `inPreview` on page and should add `inPreview` fields to JSON schema', () => {
-    cy.visit('/default/projects/my-weather-project/artifacts/new');
+    cy.visit('/default/projects/activities-planner/artifacts/new');
     cy.contains('In Preview').should('exist');
     cy.contains('Add property').click();
     // Add object `obj` with `inPreview`

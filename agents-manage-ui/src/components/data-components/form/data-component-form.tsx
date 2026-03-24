@@ -6,8 +6,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
-import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -17,47 +17,41 @@ import {
   createDataComponentAction,
   updateDataComponentAction,
 } from '@/lib/actions/data-components';
-import type { DataComponent } from '@/lib/api/data-components';
-import { cn, formatJsonField } from '@/lib/utils';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
+import { cn, isRequired } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
-import { defaultValues } from './form-configuration';
-import { type DataComponentFormData, dataComponentSchema } from './validation';
+import { initialData } from './form-configuration';
+import { type DataComponentInput, DataComponentSchema as schema } from './validation';
+
+const resolver = zodResolver(schema);
 
 interface DataComponentFormProps {
   tenantId: string;
   projectId: string;
   id?: string;
-  initialData?: DataComponentFormData;
-  readOnly?: boolean;
+  defaultValues?: DataComponentInput;
   className?: string;
 }
-
-const formatFormData = (data?: DataComponentFormData): DataComponentFormData => {
-  if (!data) return defaultValues;
-
-  const formatted = { ...data };
-  if (formatted.props) {
-    formatted.props = formatJsonField(formatted.props);
-  }
-  return formatted;
-};
 
 export function DataComponentForm({
   tenantId,
   projectId,
   id,
-  initialData,
-  readOnly = false,
+  defaultValues = initialData,
   className,
 }: DataComponentFormProps) {
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const readOnly = !canEdit;
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const form = useForm<DataComponentFormData>({
-    resolver: zodResolver(dataComponentSchema),
-    defaultValues: formatFormData(initialData),
+  const form = useForm({
+    resolver,
+    defaultValues,
+    mode: 'onChange',
   });
-
-  const { isSubmitting } = form.formState;
+  const { isSubmitting, isValid } = form.formState;
   const router = useRouter();
 
   // Auto-prefill ID based on name field (only for new components)
@@ -68,18 +62,17 @@ export function DataComponentForm({
     isEditing: !!id,
   });
 
-  const onSubmit = async (data: DataComponentFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
-      const payload = { ...data } as DataComponent;
       if (id) {
-        const res = await updateDataComponentAction(tenantId, projectId, payload);
+        const res = await updateDataComponentAction(tenantId, projectId, data);
         if (!res.success) {
           toast.error(res.error || 'Failed to update component');
           return;
         }
         toast.success('Component updated');
       } else {
-        const res = await createDataComponentAction(tenantId, projectId, payload);
+        const res = await createDataComponentAction(tenantId, projectId, data);
         if (!res.success) {
           toast.error(res.error || 'Failed to create component');
           return;
@@ -92,12 +85,12 @@ export function DataComponentForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
+        <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
           <GenericInput
             control={form.control}
             name="name"
@@ -114,7 +107,7 @@ export function DataComponentForm({
                 </ExternalLink>
               </>
             }
-            isRequired
+            isRequired={isRequired(schema, 'name')}
             disabled={readOnly}
           />
           <GenericInput
@@ -128,7 +121,7 @@ export function DataComponentForm({
                 ? ''
                 : 'Choose a unique identifier for this component. Using an existing id will replace that component.'
             }
-            isRequired
+            isRequired={isRequired(schema, 'id')}
           />
           <GenericTextarea
             control={form.control}
@@ -136,15 +129,16 @@ export function DataComponentForm({
             label="Description"
             placeholder="Display a list of user orders with interactive options"
             className="min-h-[80px]"
+            isRequired={isRequired(schema, 'description')}
             disabled={readOnly}
           />
-          <JsonSchemaInput
+          <GenericJsonSchemaEditor
             control={form.control}
             name="props"
             label="Properties"
             placeholder="Enter a valid JSON Schema..."
             uri="json-schema-data-component.json"
-            isRequired
+            isRequired={isRequired(schema, 'props')}
             readOnly={readOnly}
           />
 
@@ -153,7 +147,8 @@ export function DataComponentForm({
               tenantId={tenantId}
               projectId={projectId}
               dataComponentId={id}
-              existingRender={initialData?.render || null}
+              dataComponentName={form.watch('name')}
+              existingRender={defaultValues.render}
               onRenderChanged={(render) => {
                 form.setValue('render', render);
               }}
@@ -162,7 +157,7 @@ export function DataComponentForm({
 
           {!readOnly && (
             <div className="flex w-full justify-between">
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !isValid}>
                 Save
               </Button>
               {id && (
@@ -181,7 +176,7 @@ export function DataComponentForm({
           dataComponentId={id}
           dataComponentName={form.getValues('name')}
           setIsOpen={setIsDeleteOpen}
-          redirectOnDelete={true}
+          redirectOnDelete
         />
       )}
     </Dialog>

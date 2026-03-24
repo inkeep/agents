@@ -11,6 +11,7 @@ export const topHoldersList = dataComponent({
     properties: {
       holders: {
         type: 'object',
+        description: 'Holder data including top holders list and price info',
         properties: {
           runeName: {
             type: 'string',
@@ -21,6 +22,7 @@ export const topHoldersList = dataComponent({
             description: 'Array of top holder addresses with their balances',
             items: {
               type: 'object',
+              description: 'A single top holder entry with rank and balance details',
               properties: {
                 rank: {
                   type: 'number',
@@ -50,6 +52,7 @@ export const topHoldersList = dataComponent({
           },
           priceInfo: {
             type: 'object',
+            description: 'Current price information for the token',
             properties: {
               tokenPrice: {
                 type: 'string',

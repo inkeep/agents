@@ -6,7 +6,7 @@ describe('GET /capabilities', () => {
     const app = createAgentsHono({
       serverConfig: { port: 3002, serverOptions: {} },
       credentialStores: { getAll: () => [], get: () => null } as any,
-      auth: null,
+      auth: null as any,
     });
 
     const res = await app.request('/manage/capabilities');
@@ -18,7 +18,7 @@ describe('GET /capabilities', () => {
     const app = createAgentsHono({
       serverConfig: { port: 3002, serverOptions: {} },
       credentialStores: { getAll: () => [], get: () => null } as any,
-      auth: null,
+      auth: null as any,
       sandboxConfig: { provider: 'native', runtime: 'node22', timeout: 123, vcpus: 2 },
     });
 

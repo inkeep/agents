@@ -117,9 +117,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       tabSize: 2,
       readOnly,
       // Monaco doesn't render whitespace at the beginning of the lines
-      placeholder: placeholder.replaceAll(/^\s+/gm, (substring) =>
-        '\u00A0'.repeat(substring.length)
-      ),
+      placeholder: placeholder.replaceAll(' ', '\u00A0'),
       fontSize: 12,
       lineDecorationsWidth: 0, // removes the blank margin where the extra caret shows
       editContext: false,
@@ -201,7 +199,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         disabled
           ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
-        'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
+        'inkeep-aria-invalid',
         className,
         !monaco && 'px-3 py-4'
       )}

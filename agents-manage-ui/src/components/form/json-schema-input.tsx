@@ -1,15 +1,12 @@
 'use client';
 
 import { type Control, type FieldPath, type FieldValues, useFormState } from 'react-hook-form';
-import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
-import { Switch } from '@/components/ui/switch';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { StandaloneJsonEditor } from '../editors/standalone-json-editor';
+import { JsonSchemaEditor } from '@/components/editors/json-schema-editor';
 import { FormFieldWrapper } from './form-field-wrapper';
 
-interface JsonSchemaInputProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
+interface GenericJsonSchemaEditorProps<FV extends FieldValues, TV = FV> {
+  control: Control<FV, unknown, TV>;
+  name: FieldPath<FV>;
   label?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -27,7 +24,10 @@ interface JsonSchemaInputProps<T extends FieldValues> {
   customTemplate?: string;
 }
 
-export function JsonSchemaInput<T extends FieldValues>({
+export function GenericJsonSchemaEditor<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({
   control,
   name,
   label = 'JSON Schema',
@@ -40,9 +40,7 @@ export function JsonSchemaInput<T extends FieldValues>({
   allRequired = false,
   uri,
   customTemplate,
-}: JsonSchemaInputProps<T>) {
-  const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
-  const { setJsonSchemaMode } = useAgentActions();
+}: GenericJsonSchemaEditorProps<TFieldValues, TTransformedValues>) {
   const formState = useFormState({ name });
   const fieldState = control.getFieldState(name, formState);
 
@@ -54,40 +52,20 @@ export function JsonSchemaInput<T extends FieldValues>({
       description={description}
       isRequired={isRequired}
     >
-      {(field) => {
-        const value = field.value || ''; // can be `null`
-
-        return (
-          <div className="pt-2 flex flex-col gap-2">
-            {isJsonSchemaModeChecked ? (
-              <StandaloneJsonEditor
-                placeholder={placeholder}
-                {...field}
-                value={value}
-                onChange={field.onChange}
-                readOnly={readOnly}
-                disabled={disabled}
-                aria-invalid={!!fieldState.error}
-                uri={uri}
-                customTemplate={customTemplate}
-              />
-            ) : (
-              <JsonSchemaBuilder
-                value={value}
-                onChange={field.onChange}
-                hasInPreview={hasInPreview}
-                hasError={!!fieldState.error}
-                allRequired={allRequired}
-                readOnly={readOnly}
-              />
-            )}
-            <span className="absolute flex items-center end-0 -top-[2.5px] gap-2 text-sm font-medium">
-              JSON
-              <Switch checked={isJsonSchemaModeChecked} onCheckedChange={setJsonSchemaMode} />
-            </span>
-          </div>
-        );
-      }}
+      {({ value, ...args }) => (
+        <JsonSchemaEditor
+          value={value ?? ''} // can be `null`
+          {...args}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          disabled={disabled}
+          uri={uri}
+          customTemplate={customTemplate}
+          aria-invalid={!!fieldState.error}
+          hasInPreview={hasInPreview}
+          allRequired={allRequired}
+        />
+      )}
     </FormFieldWrapper>
   );
 }

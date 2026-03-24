@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   ArtifactComponentApiInsertSchema,
   ArtifactComponentApiUpdateSchema,
@@ -15,40 +15,29 @@ import {
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
+  throwIfUniqueConstraintError,
   updateArtifactComponent,
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Write operations require 'edit' permission on the project
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH' || c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Artifact Components',
     operationId: 'list-artifact-components',
     tags: ['Artifact Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -81,12 +70,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Artifact Component',
     operationId: 'get-artifact-component-by-id',
     tags: ['Artifact Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -122,12 +112,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Artifact Component',
     operationId: 'create-artifact-component',
     tags: ['Artifact Components'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -170,6 +161,7 @@ app.openapi(
 
     const finalId = body.id ? String(body.id) : generateId();
     const componentData = {
+      ...body,
       tenantId,
       projectId,
       id: finalId,
@@ -186,13 +178,7 @@ app.openapi(
 
       return c.json({ data: artifactComponent }, 201);
     } catch (error: any) {
-      // Handle duplicate artifact component (PostgreSQL unique constraint violation)
-      if (error?.cause?.code === '23505') {
-        throw createApiError({
-          code: 'conflict',
-          message: `Artifact component with ID '${finalId}' already exists`,
-        });
-      }
+      throwIfUniqueConstraintError(error, `Artifact component with ID '${finalId}' already exists`);
 
       // Re-throw other errors to be handled by the global error handler
       throw error;
@@ -200,93 +186,95 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Artifact Component',
-    operationId: 'update-artifact-component',
-    tags: ['Artifact Components'],
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: ArtifactComponentApiUpdateSchema,
-          },
+const updateArtifactComponentRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Artifact Component',
+  tags: ['Artifact Components'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ArtifactComponentApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Artifact component updated successfully',
-        content: {
-          'application/json': {
-            schema: ArtifactComponentResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Artifact component updated successfully',
+      content: {
+        'application/json': {
+          schema: ArtifactComponentResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    if (body.props !== undefined && body.props !== null) {
-      const propsValidation = validatePropsAsJsonSchema(body.props);
-      if (!propsValidation.isValid) {
-        const errorMessages = propsValidation.errors
-          .map((e) => `${e.field}: ${e.message}`)
-          .join(', ');
-        throw createApiError({
-          code: 'bad_request',
-          message: `Invalid props schema: ${errorMessages}`,
-        });
-      }
-    }
+const updateArtifactComponentHandler: ManageRouteHandler<
+  typeof updateArtifactComponentRouteConfig
+> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
 
-    const updateData: any = {};
-
-    // Only include fields that are actually provided in the request
-    if (body.name !== undefined) {
-      updateData.name = String(body.name);
-    }
-    if (body.description !== undefined) {
-      updateData.description = String(body.description);
-    }
-    if (body.props !== undefined) {
-      updateData.props = body.props ?? null;
-    }
-    if (body.render !== undefined) {
-      updateData.render = body.render ?? null;
-    }
-
-    const updatedArtifactComponent = await updateArtifactComponent(db)({
-      scopes: { tenantId, projectId },
-      id,
-      data: updateData,
-    });
-
-    if (!updatedArtifactComponent) {
+  if (body.props !== undefined && body.props !== null) {
+    const propsValidation = validatePropsAsJsonSchema(body.props);
+    if (!propsValidation.isValid) {
+      const errorMessages = propsValidation.errors
+        .map((e) => `${e.field}: ${e.message}`)
+        .join(', ');
       throw createApiError({
-        code: 'not_found',
-        message: 'Artifact component not found',
+        code: 'bad_request',
+        message: `Invalid props schema: ${errorMessages}`,
       });
     }
+  }
 
-    return c.json({ data: updatedArtifactComponent });
+  const updateData: any = {
+    ...body,
+    ...(body.name !== undefined && { name: String(body.name) }),
+    ...(body.description !== undefined && { description: String(body.description) }),
+    ...(body.props !== undefined && { props: body.props ?? null }),
+    ...(body.render !== undefined && { render: body.render ?? null }),
+  };
+
+  const updatedArtifactComponent = await updateArtifactComponent(db)({
+    scopes: { tenantId, projectId },
+    id,
+    data: updateData,
+  });
+
+  if (!updatedArtifactComponent) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Artifact component not found',
+    });
+  }
+
+  return c.json({ data: updatedArtifactComponent });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateArtifactComponentRouteConfig,
+  updateArtifactComponentHandler,
+  {
+    operationId: 'update-artifact-component',
   }
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Artifact Component',
     operationId: 'delete-artifact-component',
     tags: ['Artifact Components'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
     },

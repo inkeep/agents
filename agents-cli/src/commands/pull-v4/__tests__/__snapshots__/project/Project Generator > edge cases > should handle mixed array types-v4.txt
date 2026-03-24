@@ -1,0 +1,15 @@
+import { project } from '@inkeep/agents-sdk';
+import { stringagent } from './agents/stringAgent';
+import { stringtool } from './tools/stringTool';
+
+export const mixedTypesProject = project({
+  id: 'mixed-types-project',
+  name: 'Mixed Types Project',
+  models: {
+    base: {
+      model: 'gpt-4o-mini',
+    },
+  },
+  agents: () => [stringagent],
+  tools: () => [stringtool],
+});

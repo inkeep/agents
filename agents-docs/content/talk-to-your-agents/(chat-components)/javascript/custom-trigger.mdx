@@ -1,5 +1,6 @@
 ---
-title: Custom Trigger
+title: Custom Trigger for JavaScript
+sidebarTitle: Custom Trigger
 description: Create custom UI elements to trigger Inkeep modals with complete control over appearance and behavior in JavaScript.
 icon: LuMousePointerClick
 ---
@@ -17,20 +18,20 @@ Custom triggers give you complete control over how users open Inkeep modals in y
     ```html
     <script
       type="module"
-      src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
+      src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js-cloud@0.15/dist/embed.js"
       defer
     ></script>
     ```
+
   </Step>
   <Step>
     Insert the ModalChat widget by using the `Inkeep.ModalChat()` function.
 
     ```js
     const config = {
-      baseSettings: {
-        apiKey: "YOUR_API_KEY",
-      },
       aiChatSettings: {
+        baseUrl: "https://your-api.example.com",
+        appId: process.env.INKEEP_APP_ID, // Your app ID
         aiAssistantName: "Keepie",
       },
       openSettings: {
@@ -53,17 +54,24 @@ Custom triggers give you complete control over how users open Inkeep modals in y
     // Access chat methods
     modalChat.clearChat();
     ```
+
   </Step>
 </Steps>
 
 ## Config
 
-<AutoTypeTable name="default" type="export { InkeepModalChatProps as default } from '@inkeep/agents-ui'" />
+<AutoTypeTable
+  name="default"
+  type="export { InkeepModalChatProps as default } from '@inkeep/agents-ui'"
+/>
 
 <Snippet file="chat-components/base-settings.mdx" />
 
 <Snippet file="chat-components/ai-chat-settings.mdx" />
 
-### Open Settings
+### OpenSettingsModal
 
-<AutoTypeTable name="default" type="export { OpenSettingsModal as default } from '@inkeep/agents-ui/types'" />
+<AutoTypeTable
+  name="default"
+  type="export { OpenSettingsModal as default } from '@inkeep/agents-ui/types'"
+/>

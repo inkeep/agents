@@ -36,6 +36,7 @@ const {
   getCredentialReferenceMock,
   createKeyChainStoreMock,
   keychainGetMock,
+  canUseProjectStrictMock,
 } = vi.hoisted(() => {
   const keychainGetMock = vi.fn();
   return {
@@ -54,6 +55,7 @@ const {
       delete: vi.fn(),
     })),
     keychainGetMock,
+    canUseProjectStrictMock: vi.fn().mockResolvedValue(true),
   };
 });
 
@@ -79,6 +81,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     JsonTransformer: actual.JsonTransformer,
     hashTriggerHeaderValue: actual.hashTriggerHeaderValue,
     verifySignatureWithConfig: actual.verifySignatureWithConfig,
+    canUseProjectStrict: canUseProjectStrictMock,
     generateId: () => 'test-id-123',
     getConversationId: () => 'conv-test-123',
   };
@@ -104,7 +107,7 @@ vi.mock('../../../data/db/runDbClient', () => ({
 }));
 
 // Mock stream helpers
-vi.mock('../../domains/run/utils/stream-helpers.js', () => ({
+vi.mock('../../domains/run/stream/stream-helpers.js', () => ({
   createSSEStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn(),
     writeContent: vi.fn(),
@@ -256,6 +259,7 @@ describe('Webhook Endpoint Tests', () => {
     createMessageMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     getCredentialReferenceMock.mockReturnValue(vi.fn().mockResolvedValue(null));
     keychainGetMock.mockResolvedValue(null);
+    canUseProjectStrictMock.mockResolvedValue(true);
   });
 
   describe('Success path', () => {
@@ -1632,15 +1636,21 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.objectContaining({
-            parts: [
-              { kind: 'text', text: 'Webhook message: Hello webhook!' },
-              {
-                kind: 'data',
-                data: { message: 'Hello webhook!' },
-                metadata: { source: 'trigger', triggerId: 'trigger-123' },
-              },
-            ],
+          scopes: expect.objectContaining({
+            tenantId: 'tenant-123',
+            projectId: 'project-123',
+          }),
+          data: expect.objectContaining({
+            content: expect.objectContaining({
+              parts: [
+                { kind: 'text', text: 'Webhook message: Hello webhook!' },
+                {
+                  kind: 'data',
+                  data: { message: 'Hello webhook!' },
+                  metadata: { source: 'trigger', triggerId: 'trigger-123' },
+                },
+              ],
+            }),
           }),
         })
       );
@@ -1669,14 +1679,20 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.objectContaining({
-            parts: [
-              {
-                kind: 'data',
-                data: { message: 'test data' },
-                metadata: { source: 'trigger', triggerId: 'trigger-123' },
-              },
-            ],
+          scopes: expect.objectContaining({
+            tenantId: 'tenant-123',
+            projectId: 'project-123',
+          }),
+          data: expect.objectContaining({
+            content: expect.objectContaining({
+              parts: [
+                {
+                  kind: 'data',
+                  data: { message: 'test data' },
+                  metadata: { source: 'trigger', triggerId: 'trigger-123' },
+                },
+              ],
+            }),
           }),
         })
       );
@@ -1705,14 +1721,20 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.objectContaining({
-            parts: [
-              {
-                kind: 'data',
-                data: {},
-                metadata: { source: 'trigger', triggerId: 'trigger-123' },
-              },
-            ],
+          scopes: expect.objectContaining({
+            tenantId: 'tenant-123',
+            projectId: 'project-123',
+          }),
+          data: expect.objectContaining({
+            content: expect.objectContaining({
+              parts: [
+                {
+                  kind: 'data',
+                  data: {},
+                  metadata: { source: 'trigger', triggerId: 'trigger-123' },
+                },
+              ],
+            }),
           }),
         })
       );
@@ -1750,18 +1772,255 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.objectContaining({
-            parts: [
-              { kind: 'text', text: 'User: Alice' },
-              {
-                kind: 'data',
-                data: { userName: 'Alice' },
-                metadata: { source: 'trigger', triggerId: 'trigger-123' },
-              },
-            ],
+          scopes: expect.objectContaining({
+            tenantId: 'tenant-123',
+            projectId: 'project-123',
+          }),
+          data: expect.objectContaining({
+            content: expect.objectContaining({
+              parts: [
+                { kind: 'text', text: 'User: Alice' },
+                {
+                  kind: 'data',
+                  data: { userName: 'Alice' },
+                  metadata: { source: 'trigger', triggerId: 'trigger-123' },
+                },
+              ],
+            }),
           }),
         })
       );
+    });
+  });
+
+  describe('Background execution error handling', () => {
+    it('should update invocation status to failed when project is not found', async () => {
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      // Make getFullProjectWithRelationIds return null (project not found)
+      getFullProjectWithRelationIdsMock.mockReturnValue(vi.fn().mockResolvedValue(null));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      // Webhook still returns 202 (async execution)
+      expect(response.status).toBe(202);
+
+      // Wait for background execution to fail and update status
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(updateStatusFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'failed',
+            errorMessage: expect.stringContaining('not found'),
+          }),
+        })
+      );
+    });
+
+    it('should update invocation status to failed when agent is not in project', async () => {
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      // Return project with no matching agent
+      const projectWithoutAgent = {
+        ...testProject,
+        agents: {},
+      };
+      getFullProjectWithRelationIdsMock.mockReturnValue(
+        vi.fn().mockResolvedValue(projectWithoutAgent)
+      );
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(updateStatusFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'failed',
+            errorMessage: expect.stringContaining('not found in project'),
+          }),
+        })
+      );
+    });
+
+    it('should update invocation status to failed when agent has no default sub-agent', async () => {
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      // Return project where agent has no defaultSubAgentId
+      const projectNoSubAgent = {
+        ...testProject,
+        agents: {
+          'agent-123': {
+            ...testProject.agents['agent-123'],
+            defaultSubAgentId: null,
+          },
+        },
+      };
+      getFullProjectWithRelationIdsMock.mockReturnValue(
+        vi.fn().mockResolvedValue(projectNoSubAgent)
+      );
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(updateStatusFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'failed',
+            errorMessage: expect.stringContaining('no default sub-agent'),
+          }),
+        })
+      );
+    });
+  });
+
+  describe('User-scoped execution', () => {
+    const userScopedTrigger = {
+      ...testTrigger,
+      runAsUserId: 'user-abc',
+    };
+
+    it('should check permission and proceed when runAsUserId is set and user has access', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(userScopedTrigger));
+      canUseProjectStrictMock.mockResolvedValue(true);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await vi.waitFor(() => {
+        expect(canUseProjectStrictMock).toHaveBeenCalledWith({
+          userId: 'user-abc',
+          tenantId: 'tenant-123',
+          projectId: 'project-123',
+        });
+        expect(createOrGetConversationMock).toHaveBeenCalled();
+      });
+    });
+
+    it('should mark invocation failed and skip execution when user lacks permission', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(userScopedTrigger));
+      canUseProjectStrictMock.mockResolvedValue(false);
+
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await vi.waitFor(() => {
+        expect(updateStatusFn).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: 'failed',
+              errorMessage: expect.stringContaining("no longer has 'use' permission"),
+            }),
+          })
+        );
+      });
+      expect(createOrGetConversationMock).not.toHaveBeenCalled();
+    });
+
+    it('should mark invocation failed when permission check throws', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(userScopedTrigger));
+      canUseProjectStrictMock.mockRejectedValue(new Error('SpiceDB unavailable'));
+
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await vi.waitFor(() => {
+        expect(updateStatusFn).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: 'failed',
+              errorMessage: expect.stringContaining('Permission check failed'),
+            }),
+          })
+        );
+      });
+      expect(createOrGetConversationMock).not.toHaveBeenCalled();
+    });
+
+    it('should skip permission check and use anonymous initiatedBy when trigger has no runAsUserId', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await vi.waitFor(() => {
+        expect(createOrGetConversationMock).toHaveBeenCalled();
+      });
+      expect(canUseProjectStrictMock).not.toHaveBeenCalled();
     });
   });
 });

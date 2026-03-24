@@ -137,7 +137,7 @@ export function MessagesInputForm<T extends FieldValues>({
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Messages</Label>
           <Button type="button" variant="outline" size="sm" onClick={addMessage}>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Add Message
           </Button>
         </div>
@@ -146,7 +146,7 @@ export function MessagesInputForm<T extends FieldValues>({
           <div className="text-center py-8 border border-dashed rounded-md">
             <p className="text-sm text-muted-foreground mb-3">No messages yet</p>
             <Button type="button" variant="outline" size="sm" onClick={addMessage}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Add First Message
             </Button>
           </div>

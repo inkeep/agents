@@ -1,15 +1,8 @@
 import { getLogger } from '@inkeep/agents-core';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
-import { ConsoleMetricExporter, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-/*instrumentation.ts*/
-import { NodeSDK } from '@opentelemetry/sdk-node';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import manageDbClient from '../data/db/manageDbClient';
 import runDbClient from '../data/db/runDbClient';
-
-const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 
 // Mock the local logger module globally - this will be hoisted automatically by Vitest
 vi.mock('../logger.js', () => {
@@ -78,26 +71,6 @@ vi.mock('src/data/db/manageDbPool', () => {
     },
   };
 });
-
-const sdk = new NodeSDK({
-  serviceName: 'inkeep-agents-api-test',
-  spanProcessors: [
-    new SimpleSpanProcessor(
-      new OTLPTraceExporter({
-        // optional - default url is http://localhost:4318/v1/traces
-        // url: 'http://localhost:4318/v1/traces',
-      })
-    ),
-  ],
-  instrumentations: [getNodeAutoInstrumentations()],
-  // optional - default url is http://localhost:4318/v1/metrics
-  // url: 'http://localhost:4318/v1/metrics',
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new ConsoleMetricExporter(),
-  }),
-});
-
-sdk.start();
 
 // Initialize database schema for in-memory test databases using Drizzle migrations
 beforeAll(async () => {

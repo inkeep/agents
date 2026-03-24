@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -14,20 +14,23 @@ import {
   SingleResponseSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRuns');
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/by-dataset/{datasetId}',
     summary: 'List Dataset Runs by Dataset ID',
     operationId: 'list-dataset-runs',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ datasetId: z.string() }),
     },
@@ -93,12 +96,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{runId}',
     summary: 'Get Dataset Run by ID',
     operationId: 'get-dataset-run',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ runId: z.string() }),
     },

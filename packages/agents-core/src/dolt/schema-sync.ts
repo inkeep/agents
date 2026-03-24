@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltAddAndCommit, doltStatus } from './commit';
-import { doltAbortMerge, doltMerge } from './merge';
+import { doltMerge, MergeConflictError } from './merge';
 
 /**
  * The branch that serves as the source of truth for schema.
@@ -258,29 +258,28 @@ export const syncSchemaFromMain =
         }
       }
 
-      // Perform the merge from schema source branch
       const mergeSchemaMessage = `Synced schema from ${SCHEMA_SOURCE_BRANCH}`;
       const schemaSyncAuthor = { name: 'Schema Sync System', email: 'system@inkeep.com' };
-      const mergeResult = await doltMerge(db)({
-        fromBranch: SCHEMA_SOURCE_BRANCH,
-        toBranch: currentBranch,
-        message: mergeSchemaMessage,
-        noFastForward: true,
-        author: schemaSyncAuthor,
-      });
-
-      if (mergeResult.status === 'conflicts') {
-        // Abort the merge - conflicts require manual resolution
-        await doltAbortMerge(db)();
-
-        return {
-          synced: false,
-          hadDifferences: true,
-          differences,
-          error:
-            'Schema merge produced conflicts that require manual resolution. ' +
-            'Merge has been aborted.',
-        };
+      try {
+        await doltMerge(db)({
+          fromBranch: SCHEMA_SOURCE_BRANCH,
+          toBranch: currentBranch,
+          message: mergeSchemaMessage,
+          noFastForward: true,
+          author: schemaSyncAuthor,
+        });
+      } catch (error) {
+        if (error instanceof MergeConflictError) {
+          return {
+            synced: false,
+            hadDifferences: true,
+            differences,
+            error:
+              'Schema merge produced conflicts that require manual resolution. ' +
+              'Merge has been rolled back.',
+          };
+        }
+        throw error;
       }
 
       const mergeCommitHash = await getLatestCommitHash(db)();
@@ -292,13 +291,6 @@ export const syncSchemaFromMain =
         mergeCommitHash,
       };
     } catch (error) {
-      // Attempt to abort merge if something went wrong
-      try {
-        await doltAbortMerge(db)();
-      } catch {
-        // Ignore abort errors - might not be in a merge state
-      }
-
       return {
         synced: false,
         hadDifferences: true,

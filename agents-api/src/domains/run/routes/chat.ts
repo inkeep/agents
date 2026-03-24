@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
@@ -8,18 +8,25 @@ import {
   generateId,
   getActiveAgentForConversation,
   getConversationId,
+  PartSchema,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
+import { HTTPException } from 'hono/http-exception';
 import { streamSSE } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
-import type { ContentItem, Message } from '../types/chat';
+import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
+import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
+import { createSSEStreamHelper } from '../stream/stream-helpers';
+import type { Message } from '../types/chat';
+import { FileContentItemSchema, ImageContentItemSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
-import { createSSEStreamHelper } from '../utils/stream-helpers';
+import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -30,7 +37,7 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('completionsHandler');
 
-const chatCompletionsRoute = createRoute({
+const chatCompletionsRoute = createProtectedRoute({
   method: 'post',
   path: '/completions',
   tags: ['Chat'],
@@ -38,6 +45,7 @@ const chatCompletionsRoute = createRoute({
   description:
     'Creates a new chat completion with streaming SSE response using the configured agent',
   security: [{ bearerAuth: [] }],
+  permission: inheritedRunApiKeyAuth(),
   request: {
     body: {
       content: {
@@ -54,10 +62,14 @@ const chatCompletionsRoute = createRoute({
                     .union([
                       z.string(),
                       z.array(
-                        z.strictObject({
-                          type: z.string(),
-                          text: z.string().optional(),
-                        })
+                        z.discriminatedUnion('type', [
+                          z.object({
+                            type: z.literal('text'),
+                            text: z.string(),
+                          }),
+                          ImageContentItemSchema,
+                          FileContentItemSchema,
+                        ])
                       ),
                     ])
                     .describe('The message content'),
@@ -240,6 +252,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         agentId: agentId,
         activeSubAgentId: defaultSubAgentId,
         ref: executionContext.resolvedRef,
+        userId: executionContext.metadata?.endUserId,
       });
 
       const activeAgent = await getActiveAgentForConversation(runDbClient)({
@@ -299,31 +312,56 @@ app.openapi(chatCompletionsRoute, async (c) => {
       const lastUserMessage = body.messages
         .filter((msg: Message) => msg.role === 'user')
         .slice(-1)[0];
-      const userMessage = lastUserMessage ? getMessageText(lastUserMessage.content) : '';
 
+      // Build Part[] for execution (text + image parts), validated against core PartSchema
+      const messageParts = z
+        .array(PartSchema)
+        .parse(lastUserMessage ? getMessagePartsFromOpenAIContent(lastUserMessage.content) : []);
+
+      // Extract text content from parts
+      const userMessage = extractTextFromParts(messageParts);
+
+      const agentName = agent.name;
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
         messageSpan.setAttributes({
           'message.content': userMessage,
           'message.timestamp': Date.now(),
+          'agent.name': agentName,
         });
+        const invocationType = c.req.header('x-inkeep-invocation-type');
+        if (invocationType) {
+          messageSpan.setAttribute('invocation.type', invocationType);
+        }
+        const invocationEntryPoint = c.req.header('x-inkeep-invocation-entry-point');
+        if (invocationEntryPoint) {
+          messageSpan.setAttribute('invocation.entryPoint', invocationEntryPoint);
+        }
         // Add user information from execution context metadata if available
         if (executionContext.metadata?.initiatedBy) {
           messageSpan.setAttribute('user.type', executionContext.metadata.initiatedBy.type);
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-      await createMessage(runDbClient)({
-        id: generateId(),
+      const userMessageId = generateId();
+
+      const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
         tenantId,
         projectId,
         conversationId,
-        role: 'user',
-        content: {
-          text: userMessage,
+        messageId: userMessageId,
+      });
+
+      await createMessage(runDbClient)({
+        scopes: { tenantId, projectId },
+        data: {
+          id: userMessageId,
+          conversationId,
+          role: 'user',
+          content: messageContent,
+          visibility: 'user-facing',
+          messageType: 'chat',
         },
-        visibility: 'user-facing',
-        messageType: 'chat',
       });
 
       if (messageSpan) {
@@ -456,6 +494,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             executionContext,
             conversationId,
             userMessage,
+            messageParts: messageParts.length > 0 ? messageParts : undefined,
             initialAgentId: subAgentId,
             requestId,
             sseHelper,
@@ -503,10 +542,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
           try {
             unsubscribe?.();
           } catch (_e) {}
+          await flushBatchProcessor();
         }
       });
     });
   } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
     logger.error(
       {
         error: error instanceof Error ? error.message : error,
@@ -515,27 +558,11 @@ app.openapi(chatCompletionsRoute, async (c) => {
       'Error in chat completions endpoint before streaming'
     );
 
-    if (error && typeof error === 'object' && 'status' in error) {
-      throw error;
-    }
-
     throw createApiError({
       code: 'internal_server_error',
-      message: error instanceof Error ? error.message : 'Failed to process chat completion',
+      message: 'Failed to process chat completion',
     });
   }
 });
-
-const getMessageText = (content: string | ContentItem[]): string => {
-  if (typeof content === 'string') {
-    return content;
-  }
-
-  // For content arrays, extract text from all text items
-  return content
-    .filter((item) => item.type === 'text' && item.text)
-    .map((item) => item.text)
-    .join(' ');
-};
 
 export default app;

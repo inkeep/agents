@@ -107,6 +107,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
   const subAgentIds: string[] = Object.keys(data.subAgents);
   for (const subAgentId of subAgentIds) {
     const subAgent = data.subAgents[subAgentId];
+    if (!subAgent) continue;
     const isDefault = subAgentId === data.defaultSubAgentId;
 
     const nodeType = NodeType.SubAgent;
@@ -147,30 +148,25 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
                 : undefined,
             }
           : undefined,
+        skills: subAgent.skills,
         stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
         type: subAgent.type,
         tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],
         selectedTools: subAgent.canUse
-          ? subAgent.canUse.reduce(
-              (acc, item) => {
-                if (item.toolSelection) {
-                  acc[item.toolId] = item.toolSelection;
-                }
-                return acc;
-              },
-              {} as Record<string, string[]>
-            )
+          ? subAgent.canUse.reduce<Record<string, string[]>>((acc, item) => {
+              if (item.toolSelection) {
+                acc[item.toolId] = item.toolSelection;
+              }
+              return acc;
+            }, {})
           : undefined,
         headers: subAgent.canUse
-          ? subAgent.canUse.reduce(
-              (acc, item) => {
-                if (item.headers) {
-                  acc[item.toolId] = item.headers;
-                }
-                return acc;
-              },
-              {} as Record<string, Record<string, string>>
-            )
+          ? subAgent.canUse.reduce<Record<string, Record<string, string>>>((acc, item) => {
+              if (item.headers) {
+                acc[item.toolId] = item.headers;
+              }
+              return acc;
+            }, {})
           : undefined,
       };
     })();
@@ -187,7 +183,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
 
   for (const subAgentId of subAgentIds) {
     const agent = data.subAgents[subAgentId];
-    if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
+    if (agent && 'canUse' in agent && agent.canUse && agent.canUse.length > 0) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
         const toolNodeId = generateId();
@@ -209,12 +205,15 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
           imageUrl: (tool as any)?.imageUrl,
         };
 
-        if (nodeType === NodeType.FunctionTool) {
-          nodeData.tempToolPolicies = canUseItem.toolPolicies ?? {};
+        if (nodeType === NodeType.MCP) {
+          nodeData.tempSelectedTools = canUseItem.toolSelection ?? null;
+          nodeData.tempHeaders = canUseItem.headers ?? null;
+          nodeData.tempToolPolicies = canUseItem.toolPolicies ?? null;
         }
 
         // Add function details for function tools
         if (nodeType === NodeType.FunctionTool && data.functionTools?.[toolId]) {
+          nodeData.tempToolPolicies = canUseItem.toolPolicies ?? {};
           const functionTool = data.functionTools[toolId];
           const functionId = functionTool.functionId;
           if (functionId) {
@@ -261,6 +260,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
   const processedPairs = new Set<string>();
   for (const sourceSubAgentId of subAgentIds) {
     const sourceAgent = data.subAgents[sourceSubAgentId];
+    if (!sourceAgent) continue;
 
     if ('canTransferTo' in sourceAgent && sourceAgent.canTransferTo) {
       for (const targetSubAgentId of sourceAgent.canTransferTo) {

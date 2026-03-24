@@ -1,0 +1,169 @@
+import { flushTraces } from '@inkeep/agents-core';
+import { SpanStatusCode } from '@opentelemetry/api';
+import { getLogger } from '../logger';
+import { dispatchSlackEvent } from './dispatcher';
+import { handleCommand } from './services';
+import type { SlackCommandPayload } from './services/types';
+import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, tracer } from './tracer';
+
+const logger = getLogger('slack-socket-mode');
+const GLOBAL_KEY = '__inkeep_slack_socket_mode_client__';
+
+export async function startSocketMode(appToken: string): Promise<void> {
+  const existing = (globalThis as Record<string, unknown>)[GLOBAL_KEY];
+  if (existing) {
+    logger.info({}, 'Socket Mode client already running (HMR reload detected), skipping');
+    return;
+  }
+
+  const { SocketModeClient } = await import('@slack/socket-mode');
+  const client = new SocketModeClient({ appToken });
+
+  setupSocketModeListeners(client);
+
+  await client.start();
+  (globalThis as Record<string, unknown>)[GLOBAL_KEY] = client;
+  logger.info({}, 'Slack Socket Mode client started');
+}
+
+interface SocketModeEventEmitter {
+  on: (event: string, listener: (...args: unknown[]) => void) => void;
+}
+
+function registerBackgroundWork(work: Promise<unknown>): void {
+  work.catch((err) => {
+    logger.error({ error: err }, 'Background work failed in Socket Mode');
+  });
+}
+
+function setupSocketModeListeners(client: SocketModeEventEmitter): void {
+  client.on('error', (...args: unknown[]) => {
+    logger.error({ error: args[0] }, 'Socket Mode client error');
+  });
+
+  client.on('disconnected', () => {
+    logger.warn({}, 'Socket Mode client disconnected');
+  });
+
+  client.on('reconnecting', () => {
+    logger.info({}, 'Socket Mode client reconnecting...');
+  });
+
+  client.on('slack_event', async (...args: unknown[]) => {
+    const { ack, body, type } = args[0] as {
+      ack: () => Promise<void>;
+      body: Record<string, unknown>;
+      type: string;
+    };
+
+    if (type !== 'events_api') return;
+    await ack();
+
+    await tracer.startActiveSpan(SLACK_SPAN_NAMES.WEBHOOK, async (span) => {
+      try {
+        const eventType = (body.event as { type?: string })?.type
+          ? 'event_callback'
+          : (body.type as string) || '';
+        span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, eventType);
+        span.updateName(`${SLACK_SPAN_NAMES.WEBHOOK} ${eventType}`);
+
+        await dispatchSlackEvent(eventType, body, { registerBackgroundWork }, span);
+      } catch (error) {
+        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
+        span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+        if (error instanceof Error) {
+          span.recordException(error);
+        }
+        logger.error({ error }, 'Error handling Socket Mode event');
+      } finally {
+        span.end();
+        await flushTraces();
+      }
+    });
+  });
+
+  client.on('interactive', async (...args: unknown[]) => {
+    const { ack, body } = args[0] as {
+      ack: (response?: Record<string, unknown>) => Promise<void>;
+      body: Record<string, unknown>;
+    };
+
+    const eventType = (body.type as string) || '';
+
+    const result = await tracer.startActiveSpan(
+      `${SLACK_SPAN_NAMES.WEBHOOK} ${eventType}`,
+      async (span) => {
+        try {
+          span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, eventType);
+          const r = await dispatchSlackEvent(eventType, body, { registerBackgroundWork }, span);
+          return r;
+        } catch (error) {
+          span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
+          span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+          if (error instanceof Error) {
+            span.recordException(error);
+          }
+          logger.error({ error }, 'Error handling Socket Mode interactive event');
+          return { outcome: 'error' as const };
+        } finally {
+          span.end();
+        }
+      }
+    );
+
+    await ack(result.response);
+    await flushTraces();
+  });
+
+  client.on('slash_commands', async (...args: unknown[]) => {
+    const { ack, body } = args[0] as {
+      ack: (response?: Record<string, unknown>) => Promise<void>;
+      body: Record<string, string>;
+    };
+
+    // Ack immediately to avoid Slack's 3-second timeout ("dispatch_failed").
+    // Command responses are sent asynchronously via response_url.
+    await ack();
+
+    await tracer.startActiveSpan(`${SLACK_SPAN_NAMES.WEBHOOK} slash_command`, async (span) => {
+      try {
+        span.setAttribute(SLACK_SPAN_KEYS.EVENT_TYPE, 'slash_command');
+        if (body.command) span.setAttribute('slack.command', body.command);
+        if (body.team_id) span.setAttribute(SLACK_SPAN_KEYS.TEAM_ID, body.team_id);
+
+        const commandPayload: SlackCommandPayload = {
+          command: body.command || '',
+          text: body.text || '',
+          userId: body.user_id || '',
+          userName: body.user_name || '',
+          teamId: body.team_id || '',
+          teamDomain: body.team_domain || '',
+          enterpriseId: body.enterprise_id,
+          channelId: body.channel_id || '',
+          channelName: body.channel_name || '',
+          responseUrl: body.response_url || '',
+          triggerId: body.trigger_id || '',
+        };
+
+        const response = await handleCommand(commandPayload);
+        if (Object.keys(response).length > 0 && commandPayload.responseUrl) {
+          await fetch(commandPayload.responseUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(response),
+          });
+        }
+      } catch (error) {
+        span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, 'error');
+        span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+        if (error instanceof Error) {
+          span.recordException(error);
+        }
+        logger.error({ error }, 'Error handling Socket Mode slash command');
+      } finally {
+        span.end();
+        await flushTraces();
+      }
+    });
+  });
+}

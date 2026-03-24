@@ -11,13 +11,17 @@ import {
   cloneTemplateLocal,
   getAvailableTemplates,
 } from '../utils/templates';
+import { addUiCommand } from './add-ui';
 
 export interface AddOptions {
   project?: string;
   mcp?: string;
+  ui?: string | true;
+  list?: boolean;
   targetPath?: string;
   config?: string;
-  list: boolean;
+  profile?: string;
+  quiet?: boolean;
   localPrefix?: string;
 }
 
@@ -58,6 +62,16 @@ export const defaultAnthropicModelConfigurations: ModelSettings = {
 };
 
 export async function addCommand(options: AddOptions): Promise<void> {
+  if (options.ui !== undefined) {
+    await addUiCommand({
+      ui: options.ui,
+      list: options.list,
+      config: options.config,
+      profile: options.profile,
+      quiet: options.quiet,
+    });
+    return;
+  }
   const projectTemplates = await getAvailableTemplates('template-projects', options.localPrefix);
   const mcpTemplates = await getAvailableTemplates('template-mcps', options.localPrefix);
   if (!options.project && !options.mcp) {

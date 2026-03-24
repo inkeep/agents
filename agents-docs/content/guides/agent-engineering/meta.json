@@ -1,0 +1,5 @@
+{
+  "title": "Agent Engineering",
+  "icon": "LuBrain",
+  "pages": ["index", "prompt-structure", "multiagent-workflows", "troubleshooting"]
+}

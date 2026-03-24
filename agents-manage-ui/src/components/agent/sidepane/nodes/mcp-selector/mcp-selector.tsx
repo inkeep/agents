@@ -1,6 +1,6 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { NodeType } from '../../../configuration/node-types';
 import { EmptyState } from '../empty-state';
@@ -13,8 +13,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
     tenantId: string;
     projectId: string;
   }>();
-  const toolLookup = useAgentStore((state) => state.toolLookup);
-  const tools = Object.values(toolLookup);
+  const { data: tools } = useMcpToolsQuery({ skipDiscovery: true });
 
   const handleSelect = (mcp: MCPTool) => {
     updateNode(selectedNode.id, {

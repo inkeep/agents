@@ -1,6 +1,6 @@
-import type { ApiKeyFormData } from './validation';
+import type { ApiKeyInput } from './validation';
 
-export const defaultValues: ApiKeyFormData = {
+export const defaultValues: ApiKeyInput = {
   name: '',
   agentId: '',
   expiresAt: 'never',

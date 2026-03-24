@@ -1,4 +1,10 @@
-import { parseAsJson, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
+import {
+  parseAsBoolean,
+  parseAsJson,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryStates,
+} from 'nuqs';
 
 // Define the time range options as a const assertion for type safety
 const timeRanges = ['24h', '7d', '15d', '30d', 'custom'] as const;
@@ -33,6 +39,7 @@ export interface SpanAttribute {
  * - Time range selection (24h, 7d, 15d, 30d, custom)
  * - Custom date range (start/end dates)
  * - Span filtering (name and attributes)
+ * - Agent filtering (agentId)
  */
 export function useTracesQueryState() {
   const [queryState, setQueryState] = useQueryStates({
@@ -42,6 +49,12 @@ export function useTracesQueryState() {
     // Custom date range - using descriptive names
     customStartDate: parseAsString.withDefault(''),
     customEndDate: parseAsString.withDefault(''),
+
+    // Agent filtering
+    agentId: parseAsString.withDefault(''),
+
+    // Error filtering
+    hasErrors: parseAsBoolean.withDefault(false),
 
     // Span filtering
     spanName: parseAsString.withDefault(''),
@@ -63,6 +76,8 @@ export function useTracesQueryState() {
     timeRange: queryState.timeRange,
     customStartDate: queryState.customStartDate,
     customEndDate: queryState.customEndDate,
+    agentId: queryState.agentId || undefined,
+    hasErrors: queryState.hasErrors,
     spanName: queryState.spanName,
     spanAttributes: queryState.spanAttributes,
 
@@ -73,10 +88,14 @@ export function useTracesQueryState() {
     setTimeRange: (timeRange: TimeRange) => setQueryState({ timeRange }),
     setCustomDateRange: (start: string, end: string) =>
       setQueryState({ customStartDate: start, customEndDate: end }),
+    setAgentFilter: (agentId?: string) => setQueryState({ agentId: agentId ?? '' }),
+    setHasErrorsFilter: (hasErrors: boolean) => setQueryState({ hasErrors }),
     setSpanFilter: (name: string, attributes: SpanAttribute[] = []) =>
       setQueryState({ spanName: name, spanAttributes: attributes }),
     clearFilters: () =>
       setQueryState({
+        agentId: '',
+        hasErrors: false,
         spanName: '',
         spanAttributes: [],
         timeRange: '30d',

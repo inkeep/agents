@@ -2,7 +2,7 @@
  * Resource ID validation utility
  *
  * Provides centralized validation for all resource IDs (tenant, project, etc.)
- * Follows the same pattern as backend resourceIdSchema validation
+ * Follows the same pattern as backend ResourceIdSchema validation
  */
 
 class ResourceValidationError extends Error {

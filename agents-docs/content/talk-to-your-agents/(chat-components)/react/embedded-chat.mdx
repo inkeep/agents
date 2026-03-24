@@ -10,15 +10,15 @@ The InkeepEmbeddedChat component provides a fully embedded chat interface that y
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/agents-ui
+npm install @inkeep/agents-ui-cloud
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/agents-ui
+yarn add @inkeep/agents-ui-cloud
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/agents-ui
+pnpm add @inkeep/agents-ui-cloud
 ```
 
 </CodeGroup>
@@ -31,13 +31,13 @@ pnpm add @inkeep/agents-ui
     Use an API key for secure authentication in production:
 
     ```tsx
-    import { InkeepEmbeddedChat, type InkeepEmbeddedChatProps } from "@inkeep/agents-ui";
+    import { InkeepEmbeddedChat, type InkeepEmbeddedChatProps } from "@inkeep/agents-ui-cloud";
 
     export default function App() {
       const embeddedChatProps: InkeepEmbeddedChatProps = {
         aiChatSettings: {
-          agentUrl: "https://your-api.example.com/run/api/chat",
-          apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+          baseUrl: "https://your-api.example.com",
+          appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
         },
       };
 
@@ -61,17 +61,13 @@ pnpm add @inkeep/agents-ui
     import {
       InkeepEmbeddedChat,
       type InkeepEmbeddedChatProps,
-    } from "@inkeep/agents-ui";
+    } from "@inkeep/agents-ui-cloud";
 
     export default function App() {
       const embeddedChatProps: InkeepEmbeddedChatProps = {
         aiChatSettings: {
-          agentUrl: "http://localhost:3002/run/api/chat",
-          headers: {
-            "x-inkeep-tenant-id": "your-tenant-id",
-            "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-agent-id": "your-agent-id",
-          },
+          baseUrl: "http://localhost:3003",
+          appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
         },
       };
 
@@ -86,7 +82,10 @@ pnpm add @inkeep/agents-ui
 
 ## Props
 
-<AutoTypeTable name="default" type="export { InkeepEmbeddedChatProps as default } from '@inkeep/agents-ui'" />
+<AutoTypeTable
+  name="default"
+  type="export { InkeepEmbeddedChatProps as default } from '@inkeep/agents-ui'"
+/>
 
 <Snippet file="chat-components/base-settings.mdx" />
 

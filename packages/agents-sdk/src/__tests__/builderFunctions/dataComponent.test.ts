@@ -1,18 +1,22 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { dataComponent } from '../../builderFunctions';
 import type { DataComponentConfig } from '../../builders';
 
 describe('dataComponent builder function', () => {
   it('should create a data component with basic config', () => {
+    const props: JSONSchema.BaseSchema = {
+      type: 'object',
+      properties: {
+        items: { type: 'array', items: { type: 'string' } },
+      },
+    };
+
     const config: DataComponentConfig = {
       name: 'Test Data Component',
       description: 'Test data component',
-      props: {
-        type: 'object',
-        properties: {
-          items: { type: 'array', items: { type: 'string' } },
-        },
-      },
+      props: props as JsonSchemaForLlmSchemaType,
     };
 
     const component = dataComponent(config);
@@ -23,7 +27,7 @@ describe('dataComponent builder function', () => {
   });
 
   it('should handle complex props structure', () => {
-    const complexProps = {
+    const complexProps: JSONSchema.Schema = {
       type: 'object',
       properties: {
         items: {
@@ -58,7 +62,7 @@ describe('dataComponent builder function', () => {
     const config: DataComponentConfig = {
       name: 'Complex Data Component',
       description: 'Data component with complex structure',
-      props: complexProps,
+      props: complexProps as JsonSchemaForLlmSchemaType,
     };
 
     const component = dataComponent(config);
@@ -71,7 +75,7 @@ describe('dataComponent builder function', () => {
     const config: DataComponentConfig = {
       name: 'Data Component With Spaces & Special!@# Characters',
       description: 'Test description',
-      props: { type: 'object' },
+      props: { type: 'object' } as JsonSchemaForLlmSchemaType,
     };
 
     const component = dataComponent(config);
@@ -82,7 +86,7 @@ describe('dataComponent builder function', () => {
     const config: DataComponentConfig = {
       name: 'Default Tenant Data Component',
       description: 'Data component without tenant',
-      props: { type: 'object' },
+      props: { type: 'object' } as JsonSchemaForLlmSchemaType,
     };
 
     const component = dataComponent(config);
@@ -96,7 +100,7 @@ describe('dataComponent builder function', () => {
     const config: DataComponentConfig = {
       name: 'Empty Props Component',
       description: 'Component with empty props',
-      props: {},
+      props: {} as JsonSchemaForLlmSchemaType,
     };
 
     const component = dataComponent(config);
@@ -104,10 +108,14 @@ describe('dataComponent builder function', () => {
   });
 
   it('should handle render attribute with component and mockData', () => {
+    const props: JSONSchema.BaseSchema = {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+    };
     const config: DataComponentConfig = {
       name: 'Render Data Component',
       description: 'Data component with render config',
-      props: { type: 'object', properties: { name: { type: 'string' } } },
+      props: props as JsonSchemaForLlmSchemaType,
       render: {
         component: 'function Component({ name }) { return <div>Hello {name}</div>; }',
         mockData: { name: 'World' },

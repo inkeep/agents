@@ -1,6 +1,7 @@
 'use client';
 
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { FormControl } from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -16,9 +17,9 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-interface GenericSelectProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
+interface GenericSelectProps<FV extends FieldValues, TV = FieldValues> {
+  control: Control<FV, unknown, TV>;
+  name: FieldPath<FV>;
   label: string;
   placeholder?: string;
   options: SelectOption[];
@@ -28,7 +29,10 @@ interface GenericSelectProps<T extends FieldValues> {
   isRequired?: boolean;
 }
 
-export function GenericSelect<T extends FieldValues>({
+export function GenericSelect<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({
   control,
   name,
   label,
@@ -38,7 +42,7 @@ export function GenericSelect<T extends FieldValues>({
   selectTriggerClassName,
   description,
   isRequired = false,
-}: GenericSelectProps<T>) {
+}: GenericSelectProps<TFieldValues, TTransformedValues>) {
   return (
     <FormFieldWrapper
       control={control}
@@ -49,9 +53,11 @@ export function GenericSelect<T extends FieldValues>({
     >
       {(field) => (
         <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disabled}>
-          <SelectTrigger disabled={disabled} className={selectTriggerClassName}>
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
+          <FormControl>
+            <SelectTrigger disabled={disabled} className={selectTriggerClassName}>
+              <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+          </FormControl>
           <SelectContent>
             {options.map((option) => (
               <SelectItem key={option.value} value={option.value} disabled={option.disabled}>

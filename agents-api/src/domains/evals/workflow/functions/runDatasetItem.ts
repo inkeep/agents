@@ -11,12 +11,13 @@ import {
   getConversation,
   getEvaluatorById,
   getProjectScopedRef,
+  isForeignKeyViolation,
   resolveRef,
   updateEvaluationResult,
   withRef,
 } from '@inkeep/agents-core';
-import { manageDbClient } from 'src/data/db';
-import manageDbPool from 'src/data/db/manageDbPool';
+import { manageDbClient } from '../../../../data/db';
+import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { EvaluationService } from '../../services/EvaluationService';
@@ -114,9 +115,8 @@ async function createRelationStep(payload: RunDatasetItemPayload, conversationId
     );
 
     return { relationId, success: true };
-  } catch (error: any) {
-    // If foreign key constraint fails, the conversation doesn't exist
-    if (error?.cause?.code === '23503' || error?.code === '23503') {
+  } catch (error) {
+    if (isForeignKeyViolation(error)) {
       logger.warn(
         { tenantId, projectId, datasetItemId, datasetRunId, conversationId },
         'Conversation does not exist, skipping relation creation'
@@ -276,5 +276,5 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
 // This ID must match what workflow:build generates in .well-known/workflow/v1/flow.cjs
 export const runDatasetItemWorkflow = Object.assign(_runDatasetItemWorkflow, {
   workflowId:
-    'workflow//src/domains/evals/workflow/functions/runDatasetItem.ts//_runDatasetItemWorkflow',
+    'workflow//./src/domains/evals/workflow/functions/runDatasetItem//_runDatasetItemWorkflow',
 });

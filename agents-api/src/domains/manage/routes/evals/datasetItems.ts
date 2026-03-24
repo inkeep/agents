@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -16,6 +16,7 @@ import {
   TenantProjectParamsSchema,
   updateDatasetItem,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
@@ -23,34 +24,14 @@ import type { ManageAppVariables } from '../../../../types/app';
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetItems');
 
-app.use('/:datasetId/items', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:datasetId/items/bulk', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:datasetId/items/:itemId', async (c, next) => {
-  if (['PATCH', 'DELETE'].includes(c.req.method)) {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{datasetId}',
     summary: 'List Dataset Items by Dataset ID',
     operationId: 'list-dataset-items',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ datasetId: z.string() }),
     },
@@ -97,12 +78,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{datasetId}/items/{itemId}',
     summary: 'Get Dataset Item by ID',
     operationId: 'get-dataset-item',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({
         datasetId: z.string(),
@@ -149,12 +131,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{datasetId}/items',
     summary: 'Create Dataset Item',
     operationId: 'create-dataset-item',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ datasetId: z.string() }),
       body: {
@@ -211,12 +194,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{datasetId}/items/bulk',
     summary: 'Create Multiple Dataset Items',
     operationId: 'create-dataset-items-bulk',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ datasetId: z.string() }),
       body: {
@@ -285,12 +269,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{datasetId}/items/{itemId}',
     summary: 'Update Dataset Item',
     operationId: 'update-dataset-item',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({
         datasetId: z.string(),
@@ -347,12 +332,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{datasetId}/items/{itemId}',
     summary: 'Delete Dataset Item by ID',
     operationId: 'delete-dataset-item',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({
         datasetId: z.string(),

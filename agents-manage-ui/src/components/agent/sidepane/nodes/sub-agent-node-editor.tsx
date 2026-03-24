@@ -1,7 +1,8 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback } from 'react';
+import type { FC } from 'react';
+import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -11,14 +12,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
-import { useProjectData } from '@/hooks/use-project-data';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { DataComponent } from '@/lib/api/data-components';
+import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
+import { createLookup } from '@/lib/utils';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import type { AgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
@@ -52,27 +53,28 @@ const ExecutionLimitInheritanceInfo = () => {
 
 interface SubAgentNodeEditorProps {
   selectedNode: Node<AgentNodeData>;
-  dataComponentLookup: Record<string, DataComponent>;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
   errorHelpers?: ErrorHelpers;
 }
 
-export function SubAgentNodeEditor({
-  selectedNode,
-  dataComponentLookup,
-  artifactComponentLookup,
-  errorHelpers,
-}: SubAgentNodeEditorProps) {
+export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode, errorHelpers }) => {
+  'use memo';
+
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
-  const { canEdit } = useProjectPermissions();
-  const selectedDataComponents = selectedNode.data?.dataComponents || [];
-  const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
-  const isDefaultSubAgent = selectedNode.data?.isDefault || false;
-  const { project } = useProjectData();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const selectedDataComponents = selectedNode.data.dataComponents ?? [];
+  const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
+  const isDefaultSubAgent = selectedNode.data.isDefault ?? false;
+  const { data: project } = useProjectQuery();
+  const { data: artifactComponents } = useArtifactComponentsQuery();
+  const { data: dataComponents } = useDataComponentsQuery();
   const metadata = useAgentStore((state) => state.metadata);
+  const artifactComponentsById = createLookup(artifactComponents);
+  const dataComponentsById = createLookup(dataComponents);
 
   const {
     updatePath,
@@ -86,19 +88,13 @@ export function SubAgentNodeEditor({
     errorHelpers,
   });
 
-  const updateModelPath = useCallback(
-    (path: string, value: any) => {
-      updateNestedPath(path, value, selectedNode.data);
-    },
-    [updateNestedPath, selectedNode.data]
-  );
+  const updateModelPath = (path: string, value: any) => {
+    updateNestedPath(path, value, selectedNode.data);
+  };
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updatePath('id', generatedId);
-    },
-    [updatePath]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updatePath('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (always enabled for agent nodes)
   useAutoPrefillIdZustand({
@@ -141,18 +137,20 @@ export function SubAgentNodeEditor({
         placeholder="This sub agent is responsible for..."
         error={getFieldError('description')}
       />
-
-      <div className="space-y-2">
-        <ExpandablePromptEditor
-          key={selectedNode.id}
-          name="prompt"
-          value={selectedNode.data.prompt}
-          onChange={(value) => updatePath('prompt', value)}
-          placeholder="You are a helpful assistant..."
-          error={getFieldError('prompt')}
-          label="Prompt"
-        />
-      </div>
+      <SkillSelector
+        selectedSkills={selectedNode.data.skills}
+        onChange={(value) => updatePath('skills', value)}
+        error={getFieldError('skills')}
+      />
+      <ExpandablePromptEditor
+        key={selectedNode.id}
+        name="prompt"
+        value={selectedNode.data.prompt}
+        onChange={(value) => updatePath('prompt', value)}
+        placeholder="You are a helpful assistant..."
+        error={getFieldError('prompt')}
+        label="Prompt"
+      />
       <div className="space-y-2">
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -173,7 +171,7 @@ export function SubAgentNodeEditor({
         models={selectedNode.data.models}
         updatePath={updateModelPath}
         projectModels={project?.models}
-        agentModels={metadata?.models}
+        agentModels={metadata.models}
       />
       <Separator />
       {/* Agent Execution Limits */}
@@ -224,7 +222,7 @@ export function SubAgentNodeEditor({
       <Separator />
       <ComponentSelector
         label="Components"
-        componentLookup={dataComponentLookup}
+        componentLookup={dataComponentsById}
         selectedComponents={selectedDataComponents}
         onSelectionChange={(newSelection) => {
           updatePath('dataComponents', newSelection);
@@ -237,7 +235,7 @@ export function SubAgentNodeEditor({
 
       <ComponentSelector
         label="Artifacts"
-        componentLookup={artifactComponentLookup}
+        componentLookup={artifactComponentsById}
         selectedComponents={selectedArtifactComponents}
         onSelectionChange={(newSelection) => {
           updatePath('artifactComponents', newSelection);
@@ -246,6 +244,7 @@ export function SubAgentNodeEditor({
         emptyStateActionText="Create artifact"
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
         placeholder="Select artifacts..."
+        commandInputPlaceholder="Search artifacts..."
       />
       {!isDefaultSubAgent && canEdit && (
         <>
@@ -260,4 +259,4 @@ export function SubAgentNodeEditor({
       )}
     </div>
   );
-}
+};

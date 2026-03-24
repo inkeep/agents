@@ -2,12 +2,18 @@ import { createApiError, getUserOrganizationsFromDb, OrgRoles } from '@inkeep/ag
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../data/db/runDbClient';
+import { env } from '../env';
+import { getLogger } from '../logger';
+import { isCopilotAgent } from '../utils/copilot';
+
+const logger = getLogger('tenantAccess');
 
 /**
  * Middleware to enforce tenant access control.
  * Verifies that the authenticated user has access to the requested tenant/organization.
  *
  * Access rules:
+ * - Test environment: Grants anonymous owner access (bypasses all checks)
  * - System user (bypass auth): Full access to all tenants
  * - API key user: Access only to the tenant associated with the API key
  * - Session user: Access based on organization membership
@@ -20,8 +26,19 @@ export const requireTenantAccess = () =>
       tenantRole: string;
     };
   }>(async (c, next) => {
-    const userId = c.get('userId');
     const tenantId = c.req.param('tenantId');
+
+    if (env.ENVIRONMENT === 'test') {
+      if (tenantId) {
+        c.set('tenantId', tenantId);
+        c.set('userId', 'anonymous');
+        c.set('tenantRole', OrgRoles.OWNER);
+      }
+      await next();
+      return;
+    }
+
+    const userId = c.get('userId');
 
     if (!userId) {
       throw createApiError({
@@ -41,6 +58,17 @@ export const requireTenantAccess = () =>
     if (userId === 'system') {
       c.set('tenantId', tenantId);
       c.set('tenantRole', OrgRoles.OWNER);
+      await next();
+      return;
+    }
+
+    // Copilot tenant bypass — scoped to the playground token endpoint only.
+    // Any authenticated user can obtain a copilot playground token without
+    // being a member of the copilot tenant.
+    if (c.req.path.includes('/playground/token') && isCopilotAgent({ tenantId })) {
+      logger.info({ userId, tenantId }, 'Copilot tenant bypass: granting MEMBER access');
+      c.set('tenantId', tenantId);
+      c.set('tenantRole', OrgRoles.MEMBER);
       await next();
       return;
     }

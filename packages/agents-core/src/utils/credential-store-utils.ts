@@ -24,5 +24,9 @@ export function getCredentialStoreLookupKeyFromRetrievalParams({
     });
   }
 
+  if (credentialStoreType === CredentialStoreType.composio) {
+    return (retrievalParams.connectedAccountId as string) ?? null;
+  }
+
   return null;
 }

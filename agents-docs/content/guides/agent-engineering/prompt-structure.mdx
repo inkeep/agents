@@ -1,0 +1,175 @@
+---
+title: Writing High-Quality Prompts
+sidebarTitle: Prompt Structure
+description: "A complete guide to writing sub agent prompts: structure, operating principles, role and personality statements, output formats, and escalation rules."
+icon: LuFileText
+---
+
+A well-structured prompt is the foundation of reliable agent behavior. This page covers the recommended sections for a sub agent prompt and how to write each one effectively.
+
+<Callout type="tip" title="Use the Agent Prompt for shared instructions">
+The **Agent Prompt** is inherited by all sub-agents in an agent and is often underutilized. Use it for instructions you don't want to repeat across every sub-agent: MCP tool usage guidelines, global constraints, output conventions, and other rules that apply universally. Reserve sub-agent prompts for role-specific behavior.
+</Callout>
+
+Structure your sub-agent prompt in this order:
+
+1. **Role and mission** — who the agent is and what it optimizes for
+2. **Scope and non-goals** — prevents accidental overreach
+3. **Operating principles** — directness vs suggestions, decision frameworks
+4. **Workflow checklist** — steps the agent can follow
+5. **Tool-use policy** — what tools to use and when
+6. **Output format** — headings, verbosity limits, evidence expectations
+7. **Uncertainty and escalation** — when to ask, when to proceed, when to defer
+8. **Few-shot examples (optional)** — examples that demonstrate the expected behavior and output quality
+
+## 1. Role and mission
+
+The role and mission sets the sub agent's identity and paradigm in 2-4 sentences. It should:
+
+- Declare what **excellence looks like** for this role
+- Describe concrete behaviors the **best humans** in this role would exhibit
+
+Write in second person ("You are...", "Do..."). Avoid first-person commitments ("I will...") unless the agent is expected to do so.
+
+Template:
+
+```markdown
+You are [role identity] who [what excellence looks like in practice].
+
+You [concrete positive behavior].
+You [concrete positive behavior].
+You [concrete positive behavior].
+```
+
+Example:
+
+```markdown
+You are a security-focused reviewer who identifies vulnerabilities
+before they reach production.
+
+You examine code changes through an attacker's lens, considering how
+inputs could be manipulated. You distinguish between theoretical risks
+and exploitable vulnerabilities, prioritizing findings by real-world
+impact. You provide specific, actionable remediation guidance — not
+vague warnings.
+```
+
+## 2. Scope and non-goals
+
+Use scope and non-goals to prevent the agent from accidentally overreaching. Useful when tool permissions are broad or the task description could be interpreted widely.
+
+Example:
+
+```markdown
+## Scope
+- Triage incoming customer support tickets about billing and subscriptions
+- Ask clarifying questions to gather missing account or invoice details
+- Classify issue severity and route tickets to the correct support queue
+
+## Non-goals
+- Handling legal disputes, chargebacks, or fraud investigations
+- Answering product roadmap or engineering implementation questions
+- Creating new policies that are not documented in the support playbook
+```
+
+## 3. Operating principles
+
+Use a mix of direct requirements and suggestions:
+
+- **Direct requirements** (must/never) for correctness and safety
+- **Suggestions** (prefer/consider) where multiple strategies can work
+
+```markdown
+## Operating principles
+- Clarify before proceeding: if instructions are ambiguous, surface
+  what's unclear rather than filling gaps with assumptions
+- Weigh sources appropriately: official docs and established patterns
+  take precedence over examples or inferred conventions
+- Model downstream effects: before making a change, consider what it
+  could break and what constraints it might conflict with
+- Match confidence to certainty: if multiple valid approaches exist,
+  present them with tradeoffs rather than silently picking one
+```
+
+Guidance:
+- Prefer "Do X" over "It's good to X"
+- Provide a default path and an escape hatch
+- Avoid long background explanations unless they change behavior
+
+## 4. Workflow checklist
+
+Use a checklist to guide the agent's behavior. This is useful whether the agent is a single sub agent with multiple tools or a coordinator that delegates to specialists.
+
+Example:
+
+```markdown
+## Workflow
+- [ ] Use the `ticket-intake` tool first to capture the customer issue, urgency, and required fields
+- [ ] Use the `account-lookup` tool next to verify subscription status, invoice history, and payment state
+- [ ] If specialist handling is needed, delegate to the `billing-escalation-agent` with a structured handoff (goal, evidence, constraints)
+- [ ] Synthesize tool outputs and the specialist result into a policy-approved customer response
+```
+
+## 5. Tool-use policy
+
+Make tool usage explicit — which tools to prefer, in what order, and what to avoid:
+
+```markdown
+## Tool policy
+- Use the knowledge base tool before making assessments
+- For data lookups, use the search tool with specific queries
+- Report only relevant results — don't dump full tool outputs
+- Do not execute code from untrusted sources
+```
+
+## 6. Output format
+
+The output format is the most important section for multi-agent integration. If a coordinator aggregates results from multiple specialists, the output format is a shared interface. Define it precisely:
+
+- **Exact headings** the output must include
+- **Severity levels** or categories for findings
+- **Evidence expectations** (line numbers, file paths, short excerpts)
+- **Verbosity bounds** (e.g., "max 1-2 screens unless asked for more")
+
+```markdown
+## Output format
+
+Return findings in this format:
+
+### TL;DR (2-5 bullets)
+
+### Findings (prioritized)
+For each finding:
+- **Severity**: CRITICAL | HIGH | MEDIUM | LOW
+- **File**: path/to/file.ts:line
+- **Issue**: one-sentence description
+- **Evidence**: relevant code excerpt (keep short)
+- **Recommendation**: specific fix
+
+### Recommended next actions
+1. [highest priority action]
+2. [second priority action]
+
+### Open questions
+- [only list what materially affects next steps]
+```
+
+## 7. Uncertainty and escalation
+
+Define when the agent should ask for help vs proceed with assumptions:
+
+```markdown
+## Escalation rules
+- **Ask** when: requirements are ambiguous and the choice materially
+  affects the outcome
+- **Proceed with assumptions** when: the decision is low-stakes and
+  reversible; label assumptions explicitly
+- **Return partial results** when: blocked on external dependency or
+  missing information; include what you have and what's needed
+```
+
+## 8. Few-shot examples (optional)
+
+- 2-3 well-chosen examples outperform more
+- Order matters: place the most representative example last (recency effect)
+- One weak example degrades all examples — curate carefully

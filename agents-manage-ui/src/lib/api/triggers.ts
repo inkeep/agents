@@ -7,6 +7,7 @@
 
 'use server';
 
+import type { Part } from '@inkeep/agents-core';
 import type {
   TriggerApiSelect,
   TriggerInvocationApiSelect,
@@ -122,6 +123,31 @@ export async function deleteTrigger(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`,
     {
       method: 'DELETE',
+    }
+  );
+}
+
+/**
+ * Rerun a trigger with a given user message
+ */
+export async function rerunTrigger(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  triggerId: string,
+  params: {
+    userMessage: string;
+    messageParts?: Part[];
+  }
+): Promise<{ success: boolean; invocationId: string; conversationId: string }> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  return makeManagementApiRequest(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
+    {
+      method: 'POST',
+      body: JSON.stringify(params),
     }
   );
 }

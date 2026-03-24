@@ -17,7 +17,7 @@ export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
   }>();
   const { data: agents, isFetching, isError } = useAgentsQuery();
   // Filter out the current agent to prevent self-selection
-  const availableAgents = agentId ? agents.filter((agent) => agent.id !== agentId) : agents;
+  const availableAgents = agents.filter((agent) => agent.id !== agentId);
 
   const handleSelect = (agent: Agent) => {
     updateNode(selectedNode.id, {

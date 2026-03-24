@@ -8,6 +8,8 @@ vi.mock('ai', () => ({
   }),
 }));
 
+import { generateServiceToken } from '@inkeep/agents-core';
+import { A2AClient } from '../../../domains/run/a2a/client';
 import type { AgentConfig, ExternalAgentRelationConfig } from '../../../domains/run/agents/Agent';
 import {
   createDelegateToAgentTool,
@@ -229,12 +231,12 @@ vi.mock('../../../domains/run/utils/agent-operations.js', () => ({
 }));
 
 // Mock stream registry
-vi.mock('../../../domains/run/utils/stream-registry.js', () => ({
+vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn(),
 }));
 
 // Mock the session managers to prevent loading heavy dependencies
-vi.mock('../../../domains/run/services/AgentSession.js', () => ({
+vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     getSession: vi.fn(),
     createSession: vi.fn(),
@@ -529,17 +531,21 @@ describe('Relationship Tools', () => {
       const innerMock = createMessageMock.mock.results[0]?.value;
       expect(innerMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          conversationId: 'test-context',
-          role: 'agent',
-          content: {
-            text: 'Test message',
-          },
-          visibility: 'external',
-          messageType: 'a2a-request',
-          fromSubAgentId: 'test-calling-agent',
-          toExternalAgentId: 'external-agent',
+          scopes: expect.objectContaining({
+            tenantId: 'test-tenant',
+            projectId: 'test-project',
+          }),
+          data: expect.objectContaining({
+            conversationId: 'test-context',
+            role: 'agent',
+            content: {
+              text: 'Test message',
+            },
+            visibility: 'external',
+            messageType: 'a2a-request',
+            fromSubAgentId: 'test-calling-agent',
+            toExternalAgentId: 'external-agent',
+          }),
         })
       );
     });
@@ -653,17 +659,21 @@ describe('Relationship Tools', () => {
       const innerMock = createMessageMock.mock.results[0]?.value;
       expect(innerMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          conversationId: 'test-context',
-          role: 'agent',
-          content: {
-            text: 'Test message',
-          },
-          visibility: 'internal',
-          messageType: 'a2a-request',
-          fromSubAgentId: 'test-calling-agent',
-          toSubAgentId: 'target-agent',
+          scopes: expect.objectContaining({
+            tenantId: 'test-tenant',
+            projectId: 'test-project',
+          }),
+          data: expect.objectContaining({
+            conversationId: 'test-context',
+            role: 'agent',
+            content: {
+              text: 'Test message',
+            },
+            visibility: 'internal',
+            messageType: 'a2a-request',
+            fromSubAgentId: 'test-calling-agent',
+            toSubAgentId: 'target-agent',
+          }),
         })
       );
     });
@@ -763,6 +773,174 @@ describe('Relationship Tools', () => {
 
       expect(tool).toHaveProperty('description');
       expect(tool).toHaveProperty('execute');
+    });
+  });
+
+  describe('Team Delegation JWT Regeneration', () => {
+    it('should generate fresh JWT for internal delegation in team delegation context', async () => {
+      mockExecutionContext = createMockExecutionContext();
+      mockExecutionContext.metadata = { teamDelegation: true };
+
+      mockSendMessage.mockResolvedValue({ result: 'team delegation success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Team delegation test' }, mockToolCallOptions);
+
+      // Verify generateServiceToken was called to create a fresh JWT for the target sub-agent
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+      });
+
+      // Verify A2AClient was constructed with the fresh JWT, not the inherited apiKey
+      expect(vi.mocked(A2AClient)).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-service-token',
+          }),
+        })
+      );
+    });
+
+    it('should generate service token for internal A2A calls even without team delegation', async () => {
+      mockExecutionContext = createMockExecutionContext();
+      // No teamDelegation metadata
+
+      mockSendMessage.mockResolvedValue({ result: 'normal delegation success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Normal delegation test' }, mockToolCallOptions);
+
+      // generateServiceToken should always be called for internal A2A calls
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+      });
+
+      // A2AClient should use the generated service token
+      expect(vi.mocked(A2AClient)).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-service-token',
+          }),
+        })
+      );
+    });
+
+    it('should include correct routing headers in team delegation context', async () => {
+      mockExecutionContext = createMockExecutionContext();
+      mockExecutionContext.metadata = { teamDelegation: true };
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Header test' }, mockToolCallOptions);
+
+      expect(vi.mocked(A2AClient)).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'x-inkeep-tenant-id': 'test-tenant',
+            'x-inkeep-project-id': 'test-project',
+            'x-inkeep-agent-id': 'test-agent',
+            'x-inkeep-sub-agent-id': 'target-agent',
+          }),
+        })
+      );
+    });
+
+    it('should pass initiatedBy to generateServiceToken for internal delegation', async () => {
+      mockExecutionContext = createMockExecutionContext();
+      mockExecutionContext.metadata = {
+        initiatedBy: { type: 'user', id: 'user_abc123' },
+      };
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'User delegation test' }, mockToolCallOptions);
+
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: { type: 'user', id: 'user_abc123' },
+      });
+    });
+
+    it('should pass initiatedBy when metadata includes teamDelegation flag', async () => {
+      mockExecutionContext = createMockExecutionContext();
+      mockExecutionContext.metadata = {
+        teamDelegation: true,
+        initiatedBy: { type: 'user', id: 'user_xyz789' },
+      };
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Team delegation with user test' }, mockToolCallOptions);
+
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: { type: 'user', id: 'user_xyz789' },
+      });
+    });
+
+    it('should not include initiatedBy when metadata has no initiatedBy', async () => {
+      mockExecutionContext = createMockExecutionContext();
+
+      mockSendMessage.mockResolvedValue({ result: 'success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'No user test' }, mockToolCallOptions);
+
+      expect(vi.mocked(generateServiceToken)).toHaveBeenCalledWith({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        originAgentId: 'test-agent',
+        targetAgentId: 'target-agent',
+        initiatedBy: undefined,
+      });
     });
   });
 });

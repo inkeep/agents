@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.45.0",
+  "version": "0.59.3",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -42,6 +42,10 @@
       "types": "./dist/validation/index.d.ts",
       "import": "./dist/validation/index.js"
     },
+    "./auth/auth-types": {
+      "types": "./dist/auth/auth-types.d.ts",
+      "import": "./dist/auth/auth-types.js"
+    },
     "./client-exports": {
       "types": "./dist/client-exports.d.ts",
       "import": "./dist/client-exports.js"
@@ -54,6 +58,10 @@
       "types": "./dist/constants/schema-validation/index.d.ts",
       "import": "./dist/constants/schema-validation/index.js"
     },
+    "./constants/allowed-file-formats": {
+      "types": "./dist/constants/allowed-file-formats.d.ts",
+      "import": "./dist/constants/allowed-file-formats.js"
+    },
     "./credential-stores": {
       "types": "./dist/credential-stores/index.d.ts",
       "import": "./dist/credential-stores/index.js"
@@ -61,6 +69,10 @@
     "./db/test-client": {
       "types": "./dist/db/test-client.d.ts",
       "import": "./dist/db/test-client.js"
+    },
+    "./utils/env-detection": {
+      "types": "./dist/utils/env-detection.d.ts",
+      "import": "./dist/utils/env-detection.js"
     },
     "./utils/schema-conversion": {
       "types": "./dist/utils/schema-conversion.d.ts",
@@ -73,6 +85,10 @@
     "./auth": {
       "types": "./dist/auth/auth.d.ts",
       "import": "./dist/auth/auth.js"
+    },
+    "./auth/cookie-names": {
+      "types": "./dist/auth/cookie-names.d.ts",
+      "import": "./dist/auth/cookie-names.js"
     },
     "./auth/schema": {
       "types": "./dist/auth/auth-schema.d.ts",
@@ -90,11 +106,23 @@
       "types": "./dist/auth/authz/index.d.ts",
       "import": "./dist/auth/authz/index.js"
     },
+    "./auth/password-reset-link-store": {
+      "types": "./dist/auth/password-reset-link-store.d.ts",
+      "import": "./dist/auth/password-reset-link-store.js"
+    },
+    "./middleware": {
+      "types": "./dist/middleware/index.d.ts",
+      "import": "./dist/middleware/index.js"
+    },
+    "./setup": {
+      "types": "./dist/setup/index.d.ts",
+      "import": "./dist/setup/index.js"
+    },
     "./drizzle": "./drizzle/",
     "./package.json": "./package.json"
   },
   "scripts": {
-    "knip": "knip --directory ../.. --workspace packages/agents-core --dependencies",
+    "knip": "knip --directory ../.. --workspace packages/agents-core --config packages/agents-core/knip.config.ts --dependencies",
     "build": "tsdown",
     "dev": "pnpm build --watch",
     "test": "vitest --run",
@@ -135,18 +163,23 @@
     "@ai-sdk/google": "3.0.4",
     "@ai-sdk/openai": "3.0.7",
     "@ai-sdk/openai-compatible": "2.0.4",
+    "@ai-sdk/provider": "3.0.2",
     "@authzed/authzed-node": "^1.6.1",
     "@babel/parser": "^7.28.6",
     "@better-auth/sso": "catalog:",
+    "@better-auth/infra": "catalog:",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
-    "@modelcontextprotocol/sdk": "^1.17.2",
-    "@nangohq/node": "^0.69.5",
-    "@nangohq/types": "^0.69.5",
-    "@openrouter/ai-sdk-provider": "^1.2.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@nangohq/node": "^0.69.41",
+    "@nangohq/types": "^0.69.41",
+    "@napi-rs/keyring": "^1.2.0",
+    "@openrouter/ai-sdk-provider": "^2.1.0",
     "@opentelemetry/api": "^1.9.0",
+    "@vercel/functions": "^1.6.0",
     "ai": "6.0.14",
-    "ajv": "^8.17.1",
+    "ajv": "^8.18.0",
+    "altcha-lib": "^1.4.1",
     "better-auth": "catalog:",
     "destr": "^2.0.3",
     "dotenv": "^17.2.1",
@@ -155,7 +188,7 @@
     "drizzle-zod": "^0.8.2",
     "exit-hook": "^4.0.0",
     "find-up": "^7.0.0",
-    "hono": "^4.10.4",
+    "hono": "^4.12.7",
     "iwanthue": "^2.0.0",
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
@@ -165,12 +198,11 @@
     "pino-pretty": "^13.1.1",
     "postgres": "^3.4.8",
     "traverse": "^0.6.10",
-    "ts-pattern": "^5.7.1",
-    "@napi-rs/keyring": "^1.2.0"
+    "ts-pattern": "^5.7.1"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "zod": "^4.1.11"
+    "zod": "^4.3.6"
   },
   "optionalDependencies": {
     "@opentelemetry/auto-instrumentations-node": "^0.62.0",

@@ -4,7 +4,9 @@ import type {
   ResolvedRef,
   ServerConfig,
 } from '@inkeep/agents-core';
-import type { auth as authForTypes, createAuth } from '@inkeep/agents-core/auth';
+import type { createAuth } from '@inkeep/agents-core/auth';
+
+type AuthInstance = ReturnType<typeof createAuth>;
 
 interface CommonSandboxConfig {
   runtime: 'node22' | 'typescript';
@@ -25,7 +27,7 @@ export interface VercelSandboxConfig extends CommonSandboxConfig {
 
 export type SandboxConfig = NativeSandboxConfig | VercelSandboxConfig;
 
-export type BaseAppVariables = {
+type BaseAppVariables = {
   requestId: string;
   userId?: string;
   userEmail?: string;
@@ -37,16 +39,16 @@ export type BaseAppVariables = {
 export type AppVariables = BaseAppVariables & {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
-  auth: ReturnType<typeof createAuth> | null;
-  user: typeof authForTypes.$Infer.Session.user | null;
-  session: typeof authForTypes.$Infer.Session.session | null;
+  auth: AuthInstance;
+  user: AuthInstance['$Infer']['Session']['user'] | null;
+  session: AuthInstance['$Infer']['Session']['session'] | null;
   sandboxConfig?: SandboxConfig;
   requestBody?: unknown;
 };
 
 export type ManageAppVariables = AppVariables & {
   db: AgentsManageDatabaseClient;
-  auth: ReturnType<typeof createAuth> | null;
+  auth: AuthInstance;
   resolvedRef: ResolvedRef;
   /** Cached by projectFull middleware to avoid duplicate DB lookup for PUT upsert */
   isProjectCreate?: boolean;
@@ -55,7 +57,7 @@ export type ManageAppVariables = AppVariables & {
 export type AppConfig = {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
-  auth: ReturnType<typeof createAuth> | null;
+  auth: AuthInstance;
   sandboxConfig?: SandboxConfig;
 };
 

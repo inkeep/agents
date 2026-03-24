@@ -21,10 +21,11 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         content: { type: 'string', description: `Content field${suffix}`, inPreview: false },
         metadata: {
           type: 'object',
+          description: `Metadata for the artifact${suffix}`,
           inPreview: false,
           properties: {
-            author: { type: 'string' },
-            created: { type: 'string', format: 'date-time' },
+            author: { type: 'string', description: 'Author name' },
+            created: { type: 'string', description: 'Creation timestamp', format: 'date-time' },
           },
         },
       },
@@ -286,6 +287,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         id: `minimal-artifact-component-${generateId(6)}`,
         name: 'MinimalArtifactComponent',
         description: 'Minimal test artifact component',
+        props: null,
       };
 
       const res = await makeRequest(
@@ -299,6 +301,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(201);
 
       const body = await res.json();
+
       expect(body.data).toMatchObject({
         name: minimalData.name,
         description: minimalData.description,
@@ -374,7 +377,62 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('POST / - render field persistence', () => {
+    it('should persist render field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('artifact-components-create-render');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const render = {
+        component: 'function MyComponent() { return <div>Test</div>; }',
+        mockData: { title: 'Test' },
+      };
+      const artifactData = { ...createArtifactComponentData(), render };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components`,
+        { method: 'POST', body: JSON.stringify(artifactData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.render).toEqual(render);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.render).toEqual(render);
+    });
+  });
+
+  describe('PATCH /{id} - render field persistence', () => {
+    it('should update render field', async () => {
+      const tenantId = await createTestTenantWithOrg('artifact-components-update-render');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
+
+      const render = {
+        component: 'function UpdatedComponent() { return <span>Updated</span>; }',
+        mockData: { value: 42 },
+      };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
+        { method: 'PATCH', body: JSON.stringify({ render }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.render).toEqual(render);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.render).toEqual(render);
+    });
+  });
+
+  describe('PATCH /{id}', () => {
     it('should update an existing artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -395,7 +453,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -426,7 +484,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(partialUpdate),
         }
       );
@@ -451,7 +509,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${nonExistentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated Name' }),
         }
       );
@@ -469,7 +527,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId2}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated Name' }),
         }
       );
@@ -487,7 +545,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({}),
         }
       );
@@ -502,6 +560,24 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         props: artifactComponentData.props,
         tenantId,
       });
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing artifact component via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('artifact-components-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PutUpdatedArtifactComponent' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 
@@ -581,7 +657,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated E2E Artifact Component' }),
         }
       );
@@ -624,9 +700,13 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         props: {
           type: 'object',
           properties: {
-            title: { type: 'string', minLength: 1 },
-            count: { type: 'number', minimum: 0 },
-            tags: { type: 'array', items: { type: 'string' } },
+            title: { type: 'string', description: 'Title text', minLength: 1 },
+            count: { type: 'number', description: 'Item count', minimum: 0 },
+            tags: {
+              type: 'array',
+              description: 'Tag list',
+              items: { type: 'string', description: 'A tag' },
+            },
           },
           required: ['title'],
         },
@@ -657,22 +737,26 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
           properties: {
             user: {
               type: 'object',
+              description: 'User data',
               properties: {
                 profile: {
                   type: 'object',
+                  description: 'User profile',
                   properties: {
                     personal: {
                       type: 'object',
+                      description: 'Personal information',
                       properties: {
-                        name: { type: 'string' },
-                        age: { type: 'number', minimum: 0 },
+                        name: { type: 'string', description: 'Full name' },
+                        age: { type: 'number', description: 'Age in years', minimum: 0 },
                       },
                     },
                     professional: {
                       type: 'object',
+                      description: 'Professional information',
                       properties: {
-                        title: { type: 'string' },
-                        company: { type: 'string' },
+                        title: { type: 'string', description: 'Job title' },
+                        company: { type: 'string', description: 'Company name' },
                       },
                     },
                   },

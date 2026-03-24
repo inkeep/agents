@@ -1,9 +1,10 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import type {
   CredentialStoreRegistry,
   FullExecutionContext,
   ResolvedRef,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import { getLogger } from '../../../logger';
 import { processWebhook } from '../services/TriggerService';
 
@@ -21,13 +22,14 @@ const logger = getLogger('webhooks');
  * Webhook endpoint for trigger invocation
  * POST /tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}
  */
-const triggerWebhookRoute = createRoute({
+const triggerWebhookRoute = createProtectedRoute({
   method: 'post',
   path: '/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}',
   tags: ['Webhooks'],
   summary: 'Invoke agent via trigger webhook',
   description:
     'Webhook endpoint for third-party services to invoke an agent via a configured trigger',
+  permission: noAuth(),
   request: {
     params: z.object({
       tenantId: z.string().describe('Tenant ID'),
@@ -111,7 +113,7 @@ const triggerWebhookRoute = createRoute({
 });
 
 app.openapi(triggerWebhookRoute, async (c) => {
-  const { tenantId, projectId, agentId, triggerId } = c.req.param();
+  const { tenantId, projectId, agentId, triggerId } = c.req.valid('param');
   const resolvedRef = c.get('resolvedRef');
 
   logger.info({ tenantId, projectId, agentId, triggerId }, 'Processing trigger webhook');

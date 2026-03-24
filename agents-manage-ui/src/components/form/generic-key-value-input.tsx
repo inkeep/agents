@@ -5,20 +5,13 @@ import { useCallback, useMemo } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-interface GenericKeyValueInputProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
+interface GenericKeyValueInputProps<FV extends FieldValues, TV = FieldValues> {
+  control: Control<FV, unknown, TV>;
+  name: FieldPath<FV>;
   label: string;
   description?: string;
   keyPlaceholder?: string;
@@ -43,7 +36,10 @@ interface GenericKeyValueInputProps<T extends FieldValues> {
  *
  * Convert to record on submit using `keyValuePairsToRecord()` helper.
  */
-export function GenericKeyValueInput<T extends FieldValues>({
+export function GenericKeyValueInput<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({
   control,
   name,
   label,
@@ -53,7 +49,7 @@ export function GenericKeyValueInput<T extends FieldValues>({
   addButtonLabel = 'Add item',
   isRequired,
   disabled = false,
-}: GenericKeyValueInputProps<T>) {
+}: GenericKeyValueInputProps<TFieldValues, TTransformedValues>) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: name as never,
@@ -82,16 +78,16 @@ export function GenericKeyValueInput<T extends FieldValues>({
       if (e.key === 'Enter') {
         e.preventDefault();
         if (field === 'key') {
-          const valueInput = document.querySelector(
+          const valueInput = document.querySelector<HTMLInputElement>(
             `[data-index="${index}"][data-field="value"]`
-          ) as HTMLInputElement;
+          );
           valueInput?.focus();
         } else {
           append({ key: '', value: '' } as never);
           setTimeout(() => {
-            const keyInput = document.querySelector(
+            const keyInput = document.querySelector<HTMLInputElement>(
               `[data-index="${index + 1}"][data-field="key"]`
-            ) as HTMLInputElement;
+            );
             keyInput?.focus();
           }, 0);
         }
@@ -101,8 +97,11 @@ export function GenericKeyValueInput<T extends FieldValues>({
   );
 
   return (
-    <FormItem>
-      <FormLabel isRequired={isRequired}>{label}</FormLabel>
+    <div className="grid gap-2">
+      <span className="text-sm font-medium leading-none">
+        {label}
+        {isRequired && <span className="text-red-500">*</span>}
+      </span>
       <div className="space-y-2">
         {fields.map((field, index) => {
           const currentKey = watchedFields?.[index]?.key?.trim() || '';
@@ -112,41 +111,43 @@ export function GenericKeyValueInput<T extends FieldValues>({
             <div key={field.id} className="flex items-center gap-2">
               <FormField
                 control={control}
-                name={`${name}.${index}.key` as FieldPath<T>}
+                name={`${name}.${index}.key` as FieldPath<TFieldValues>}
                 render={({ field: keyField }) => (
-                  <FormControl>
-                    <Input
-                      {...keyField}
-                      data-index={index}
-                      data-field="key"
-                      placeholder={keyPlaceholder}
-                      onKeyDown={(e) => handleKeyDown(e, index, 'key')}
-                      className={cn(
-                        'flex-1',
-                        isDuplicate && 'ring-2 ring-destructive/50 focus-visible:ring-destructive'
-                      )}
-                      aria-invalid={isDuplicate || undefined}
-                      disabled={disabled}
-                    />
-                  </FormControl>
+                  <FormItem className="flex-1">
+                    <FormControl>
+                      <Input
+                        {...keyField}
+                        data-index={index}
+                        data-field="key"
+                        placeholder={keyPlaceholder}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'key')}
+                        className={cn(
+                          isDuplicate && 'ring-2 ring-destructive/50 focus-visible:ring-destructive'
+                        )}
+                        aria-invalid={isDuplicate || undefined}
+                        disabled={disabled}
+                      />
+                    </FormControl>
+                  </FormItem>
                 )}
               />
               <span className="text-muted-foreground select-none">:</span>
               <FormField
                 control={control}
-                name={`${name}.${index}.value` as FieldPath<T>}
-                render={({ field: valueField }) => (
-                  <FormControl>
-                    <Input
-                      {...valueField}
-                      data-index={index}
-                      data-field="value"
-                      placeholder={valuePlaceholder}
-                      onKeyDown={(e) => handleKeyDown(e, index, 'value')}
-                      className="flex-1"
-                      disabled={disabled}
-                    />
-                  </FormControl>
+                name={`${name}.${index}.value` as FieldPath<TFieldValues>}
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormControl>
+                      <Input
+                        {...field}
+                        data-index={index}
+                        data-field="value"
+                        placeholder={valuePlaceholder}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'value')}
+                        disabled={disabled}
+                      />
+                    </FormControl>
+                  </FormItem>
                 )}
               />
               {!disabled && (
@@ -178,13 +179,12 @@ export function GenericKeyValueInput<T extends FieldValues>({
         )}
       </div>
 
-      {description && <FormDescription>{description}</FormDescription>}
+      {description && <p className="text-[0.8rem] text-muted-foreground">{description}</p>}
       {duplicateKeys.size > 0 && (
         <p className="text-sm font-medium text-destructive">
           Keys must be unique. Duplicate keys: {Array.from(duplicateKeys).join(', ')}
         </p>
       )}
-      <FormMessage />
-    </FormItem>
+    </div>
   );
 }

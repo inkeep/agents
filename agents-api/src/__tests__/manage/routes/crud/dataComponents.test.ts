@@ -18,7 +18,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       properties: {
         items: {
           type: 'array',
-          items: { type: 'string' },
+          items: { type: 'string', description: `A test item${suffix}` },
           description: `Test items${suffix}`,
         },
       },
@@ -420,16 +420,23 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
           properties: {
             items: {
               type: 'array',
+              description: 'List of items',
               items: {
                 type: 'object',
+                description: 'A single item entry',
                 properties: {
-                  id: { type: 'string' },
-                  name: { type: 'string' },
+                  id: { type: 'string', description: 'Item identifier' },
+                  name: { type: 'string', description: 'Item name' },
                   metadata: {
                     type: 'object',
+                    description: 'Item metadata',
                     properties: {
-                      tags: { type: 'array', items: { type: 'string' } },
-                      priority: { type: 'number' },
+                      tags: {
+                        type: 'array',
+                        description: 'Item tags',
+                        items: { type: 'string', description: 'A tag' },
+                      },
+                      priority: { type: 'number', description: 'Item priority' },
                     },
                   },
                 },
@@ -438,9 +445,10 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
             },
             config: {
               type: 'object',
+              description: 'Configuration options',
               properties: {
-                theme: { type: 'string', enum: ['light', 'dark'] },
-                sortBy: { type: 'string', default: 'name' },
+                theme: { type: 'string', description: 'UI theme', enum: ['light', 'dark'] },
+                sortBy: { type: 'string', description: 'Sort field', default: 'name' },
               },
             },
           },
@@ -468,7 +476,75 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('POST / - render field persistence', () => {
+    it('should persist render field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('data-components-create-render');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const render = {
+        component: 'function DataRenderer() { return <ul><li>item</li></ul>; }',
+        mockData: { items: ['a', 'b'] },
+      };
+      const componentData = { ...createDataComponentData(), render };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components`,
+        { method: 'POST', body: JSON.stringify(componentData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.render).toEqual(render);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.render).toEqual(render);
+    });
+  });
+
+  describe('PATCH /{id} - render field persistence', () => {
+    it('should update render field', async () => {
+      const tenantId = await createTestTenantWithOrg('data-components-update-render');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { dataComponentId } = await createTestDataComponent({ tenantId });
+
+      const render = {
+        component: 'function UpdatedRenderer() { return <span>Updated</span>; }',
+        mockData: { value: 42 },
+      };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: 'Updated Component',
+            description: 'Updated Description',
+            props: {
+              type: 'object',
+              properties: {
+                item: { type: 'string', description: 'An item' },
+              },
+            },
+            render,
+          }),
+        }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.render).toEqual(render);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.render).toEqual(render);
+    });
+  });
+
+  describe('PATCH /{id}', () => {
     it('should update an existing data component', async () => {
       const tenantId = await createTestTenantWithOrg('data-components-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -482,7 +558,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
           properties: {
             updatedItems: {
               type: 'array',
-              items: { type: 'string' },
+              items: { type: 'string', description: 'An updated item' },
               description: 'Updated items',
             },
           },
@@ -493,7 +569,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -521,7 +597,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
           properties: {
             items: {
               type: 'array',
-              items: { type: 'string' },
+              description: 'Test items',
+              items: { type: 'string', description: 'A test item' },
             },
           },
           required: ['items'],
@@ -531,12 +608,43 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing data component via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('data-components-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { dataComponentId } = await createTestDataComponent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: 'PUT Updated Component',
+            description: 'Updated Description',
+            props: {
+              type: 'object',
+              properties: {
+                item: { type: 'string', description: 'An item' },
+              },
+            },
+            render: {
+              component: 'function Renderer() { return <span>Test</span>; }',
+              mockData: { value: 1 },
+            },
+          }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 

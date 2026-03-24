@@ -1,0 +1,25 @@
+import { registerEnvironmentSettings } from '@inkeep/agents-sdk';
+
+export const development = registerEnvironmentSettings({
+  credentials: {
+    stripe_api_key: {
+      id: 'stripe-api-key',
+      name: 'Stripe API Key',
+      type: 'memory',
+      credentialStoreId: 'memory-default',
+      retrievalParams: {
+        key: 'STRIPE_API_KEY_DEV',
+      },
+    },
+    database_url: {
+      id: 'database-url',
+      name: 'Database URL',
+      type: 'keychain',
+      credentialStoreId: 'env-default',
+      retrievalParams: {
+        key: 'DATABASE_URL',
+        fallback: 'postgresql://localhost:5432/dev',
+      },
+    },
+  },
+});

@@ -1,0 +1,9 @@
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const taskList = dataComponent({
+  id: 'task-list',
+  name: 'Task List',
+  description: 'Display user tasks with status',
+  props: z.object({ "tasks": z.array(z.object({ "id": z.string().describe("Unique task identifier"), "title": z.string().describe("Task title"), "completed": z.boolean().describe("Whether the task is completed"), "priority": z.enum(["low","medium","high"]).describe("Task priority").optional() })).describe("Array of user tasks"), "totalCount": z.number().describe("Total number of tasks") }),
+});

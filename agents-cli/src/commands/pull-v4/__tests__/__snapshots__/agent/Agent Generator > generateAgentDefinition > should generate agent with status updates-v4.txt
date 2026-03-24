@@ -1,0 +1,25 @@
+import { agent } from '@inkeep/agents-sdk';
+import { mainassistant } from './sub-agents/mainAssistant';
+import { helperagent } from './sub-agents/helperAgent';
+import { coordinatoragent } from './sub-agents/coordinatorAgent';
+import { complexagentcontext } from '../context-configs/complexAgentContext';
+import { toolsummary } from '../status-components/toolSummary';
+import { progressupdate } from '../status-components/progressUpdate';
+
+export const complexAgent = agent({
+  id: 'complex-agent',
+  name: 'Complex Personal Agent',
+  description: 'A complex agent with status updates and transfer limits',
+  stopWhen: {
+    transferCountIs: 5,
+  },
+  defaultSubAgent: mainassistant,
+  subAgents: () => [mainassistant, helperagent, coordinatoragent],
+  contextConfig: complexagentcontext,
+  statusUpdates: {
+    numEvents: 3,
+    timeInSeconds: 15,
+    prompt: 'Provide status updates on task progress and tool usage',
+    statusComponents: [toolsummary.config, progressupdate.config],
+  },
+});

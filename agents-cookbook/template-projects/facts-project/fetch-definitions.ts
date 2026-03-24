@@ -14,7 +14,7 @@ export const projectDescriptionFetchDefinition = fetchDefinition({
       Authorization: `Bearer ${process.env.INKEEP_API_KEY}`,
     },
     body: {
-      query: `
+      query: /* GraphQL */ `
       query GetProjectAutogenInfo {
         projectByIntegrationAuth {
           chatSubjectName

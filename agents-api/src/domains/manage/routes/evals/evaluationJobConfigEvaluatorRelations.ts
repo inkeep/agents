@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -8,6 +8,7 @@ import {
   getEvaluationJobConfigEvaluatorRelations,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
@@ -16,20 +17,14 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluationJobConfigEvaluatorRelations');
 
 // Require edit permission for write operations
-app.use('/:configId/evaluators/:evaluatorId', async (c, next) => {
-  if (['POST', 'DELETE'].includes(c.req.method)) {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{configId}/evaluators',
     summary: 'List Evaluators for Evaluation Job Config',
     operationId: 'list-evaluation-job-config-evaluators',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ configId: z.string() }),
     },
@@ -68,12 +63,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/{configId}/evaluators/{evaluatorId}',
     summary: 'Add Evaluator to Evaluation Job Config',
     operationId: 'add-evaluator-to-job-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({
         configId: z.string(),
@@ -125,12 +121,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{configId}/evaluators/{evaluatorId}',
     summary: 'Remove Evaluator from Evaluation Job Config',
     operationId: 'remove-evaluator-from-job-config',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({
         configId: z.string(),

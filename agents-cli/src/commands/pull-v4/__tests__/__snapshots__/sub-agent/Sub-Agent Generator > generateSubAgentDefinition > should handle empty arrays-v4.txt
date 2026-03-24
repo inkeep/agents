@@ -1,0 +1,8 @@
+import { subAgent } from '@inkeep/agents-sdk';
+
+export const emptyArraysAgent = subAgent({
+  id: 'empty-arrays-agent',
+  prompt: 'I have empty arrays.',
+  description: 'Agent with empty arrays',
+  name: 'Empty Arrays Agent',
+});

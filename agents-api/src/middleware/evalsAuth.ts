@@ -4,6 +4,7 @@ import {
   isInternalServiceToken,
   verifyInternalServiceAuthHeader,
 } from '@inkeep/agents-core';
+import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../env';
@@ -13,8 +14,8 @@ const logger = getLogger('eval-auth');
  * Middleware to authenticate API requests using Bearer token authentication
  * First checks if token matches INKEEP_AGENTS_EVAL_API_BYPASS_SECRET,
  */
-export const evalApiKeyAuth = () =>
-  createMiddleware<{
+export const evalApiKeyAuth = () => {
+  const mw = createMiddleware<{
     Variables: {
       executionContext: BaseExecutionContext;
     };
@@ -87,3 +88,8 @@ export const evalApiKeyAuth = () =>
       message: 'Invalid Token',
     });
   });
+  registerAuthzMeta(mw, {
+    description: 'Requires eval API key (bypass secret or internal service token)',
+  });
+  return mw;
+};

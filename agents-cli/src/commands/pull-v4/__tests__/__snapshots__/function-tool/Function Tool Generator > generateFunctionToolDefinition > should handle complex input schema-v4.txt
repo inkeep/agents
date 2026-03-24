@@ -1,0 +1,49 @@
+import { functionTool } from '@inkeep/agents-sdk';
+
+export const complexTool = functionTool({
+  inputSchema: {
+    type: 'object',
+    properties: {
+      user: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'User ID',
+          },
+          preferences: {
+            type: 'object',
+            properties: {
+              theme: {
+                type: 'string',
+                enum: ['light', 'dark'],
+              },
+              notifications: {
+                type: 'boolean',
+              },
+            },
+          },
+        },
+        required: ['id'],
+      },
+      items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+            },
+            value: {
+              type: 'number',
+            },
+          },
+        },
+      },
+    },
+    required: ['user'],
+  },
+  name: 'complex-tool',
+  description: 'Complex tool with nested schema',
+  execute: () => ({ processed: true }),
+});

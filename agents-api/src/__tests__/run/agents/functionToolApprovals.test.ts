@@ -47,8 +47,8 @@ vi.mock('ai', () => ({
 
 import type { FullExecutionContext } from '@inkeep/agents-core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
-import { pendingToolApprovalManager } from '../../../domains/run/services/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../../../domains/run/services/ToolApprovalUiBus';
+import { pendingToolApprovalManager } from '../../../domains/run/session/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../../../domains/run/session/ToolApprovalUiBus';
 
 describe('Function tool approvals (toolPolicies)', () => {
   beforeEach(() => {
@@ -107,7 +107,7 @@ describe('Function tool approvals (toolPolicies)', () => {
       { toolCallId: 'call_1' }
     );
 
-    expect(result).toMatchObject({ __inkeepToolDenied: true, toolCallId: 'call_1' });
+    expect(result).toBe('no');
     expect(sandboxExecutorMock.executeFunctionTool).not.toHaveBeenCalled();
     expect(publishSpy).toHaveBeenCalledWith(
       'req_1',
@@ -136,7 +136,7 @@ describe('Function tool approvals (toolPolicies)', () => {
       { toolCallId: 'call_2' }
     );
 
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual(expect.objectContaining({ ok: true }));
     expect(sandboxExecutorMock.executeFunctionTool).toHaveBeenCalled();
     expect(publishSpy).toHaveBeenCalledWith(
       'req_2',

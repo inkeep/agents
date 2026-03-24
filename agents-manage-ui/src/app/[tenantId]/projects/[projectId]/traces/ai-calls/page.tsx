@@ -1,20 +1,26 @@
 'use client';
 
-import { ArrowLeft, Bot, Brain, Calendar, Coins, Cpu, MessageSquare } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowLeftFromLine,
+  ArrowRightToLine,
+  Bot,
+  Brain,
+  Coins,
+  Cpu,
+  MessageSquare,
+  SparklesIcon,
+} from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '@/components/layout/page-header';
+import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
+import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
@@ -216,192 +222,128 @@ export default function AICallsBreakdown({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild className="gap-2">
+      <div className="flex items-center gap-4 mb-6">
+        <Button asChild variant="ghost" size="icon-sm">
           <NextLink href={backLink}>
             <ArrowLeft className="h-4 w-4" />
-            Back to Overview
+            <span className="sr-only">Back to Traces</span>
           </NextLink>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">AI Calls Breakdown</h1>
-          <p className="text-sm text-muted-foreground">
-            Detailed view of conversation-scoped AI calls by agent
-          </p>
-        </div>
+        <PageHeader title="AI Calls Breakdown" className="mb-0" />
       </div>
 
       {/* Filters Card */}
-      <Card className="shadow-none bg-background">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-foreground text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex flex-col md:flex-row gap-2 md:gap-4 max-w-4xl">
-            {/* Agent Filter */}
-            <div className="space-y-1 flex-1">
-              <Label htmlFor="agent-filter" className="text-sm">
-                Agent
-              </Label>
-              <Select value={selectedAgent} onValueChange={setAgentFilter}>
-                <SelectTrigger id="agent-filter">
-                  <SelectValue placeholder="Select agent" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Agent</SelectItem>
-                  {agent.map((agent) => (
-                    <SelectItem key={agent} value={agent}>
-                      {agent}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="flex flex-col md:flex-row gap-2 md:gap-4">
+        {/* Agent Filter */}
+        <Combobox
+          defaultValue={selectedAgent}
+          notFoundMessage={'No agents found.'}
+          onSelect={(value) => {
+            setAgentFilter(value);
+          }}
+          options={agent.map((agent) => ({
+            value: agent,
+            label: agent,
+          }))}
+          TriggerComponent={
+            <FilterTriggerComponent
+              disabled={loading}
+              filterLabel={selectedAgent === 'all' ? 'All agents' : 'Agent'}
+              isRemovable={true}
+              onDeleteFilter={() => {
+                setAgentFilter('all');
+              }}
+              multipleCheckboxValues={
+                selectedAgent && selectedAgent !== 'all' ? [selectedAgent] : []
+              }
+              options={agent.map((agent) => ({
+                value: agent,
+                label: agent,
+              }))}
+            />
+          }
+        />
+        {/* Model Filter */}
+        <Combobox
+          defaultValue={selectedModel}
+          notFoundMessage={'No models found.'}
+          onSelect={(value) => {
+            setModelFilter(value);
+          }}
+          options={models.map((model) => ({
+            value: model,
+            label: model,
+          }))}
+          TriggerComponent={
+            <FilterTriggerComponent
+              disabled={loading}
+              filterLabel={selectedModel === 'all' ? 'All models' : 'Model'}
+              isRemovable={true}
+              onDeleteFilter={() => {
+                setModelFilter('all');
+              }}
+              multipleCheckboxValues={
+                selectedModel && selectedModel !== 'all' ? [selectedModel] : []
+              }
+              options={models.map((model) => ({
+                value: model,
+                label: model,
+              }))}
+            />
+          }
+        />
 
-            {/* Model Filter */}
-            <div className="space-y-1 flex-1">
-              <Label htmlFor="model-filter" className="text-sm">
-                Model
-              </Label>
-              <Select value={selectedModel} onValueChange={setModelFilter}>
-                <SelectTrigger id="model-filter">
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Models</SelectItem>
-                  {models.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Time Range Filter */}
-            <div className="space-y-1 flex-1">
-              <Label htmlFor="time-filter" className="text-sm">
-                Time Range
-              </Label>
-              <DatePickerWithPresets
-                label="Time range"
-                onRemove={() => setTimeRange('30d')}
-                value={
-                  timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange
-                }
-                onAdd={(value: TimeRange) => handleTimeRangeChange(value)}
-                setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
-                options={Object.entries(TIME_RANGES)
-                  .filter(([key]) => key !== 'custom')
-                  .map(([value, config]) => ({
-                    value,
-                    label: config.label,
-                  }))}
-                showCalendarDirectly={false}
-              />
-            </div>
-          </div>
-
-          {!loading && (
-            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-              <div>
-                {selectedAgent === 'all' && selectedModel === 'all'
-                  ? `Showing ${agentCalls.length} agents across all agent and models`
-                  : selectedAgent === 'all'
-                    ? `Showing agents for all agent, model: ${selectedModel}`
-                    : selectedModel === 'all'
-                      ? `Showing agents for ${selectedAgent}, all models`
-                      : `Showing agents for ${selectedAgent}, model: ${selectedModel}`}
-              </div>
-              <div className="flex items-center gap-1 text-xs">
-                <Calendar className="h-3 w-3" />
-                Time range:{' '}
-                {timeRange === 'custom'
-                  ? 'Custom range'
-                  : TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.label || timeRange}
-                <span className="text-muted-foreground/70">
-                  ({new Date(startTime).toLocaleDateString()} -{' '}
-                  {new Date(endTime).toLocaleDateString()})
-                </span>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* Time Range Filter */}
+        <DatePickerWithPresets
+          label="Time range"
+          onRemove={() => setTimeRange('30d')}
+          value={timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange}
+          onAdd={(value: TimeRange) => handleTimeRangeChange(value)}
+          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          options={Object.entries(TIME_RANGES)
+            .filter(([key]) => key !== 'custom')
+            .map(([value, config]) => ({
+              value,
+              label: config.label,
+            }))}
+          showCalendarDirectly={false}
+        />
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Total AI Calls</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mb-2" />
-            ) : (
-              <div className="text-2xl font-bold text-foreground">
-                {totalAICalls.toLocaleString()}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {selectedAgent === 'all'
-                ? `Across ${agentCalls.length} agents`
-                : 'For selected agent'}
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total AI Calls"
+          stat={totalAICalls}
+          statDescription={
+            selectedAgent === 'all' ? `Across ${agentCalls.length} agents` : 'For selected agent'
+          }
+          isLoading={loading}
+          Icon={SparklesIcon}
+        />
+        <StatCard
+          title="Total Tokens"
+          stat={formatTokenCount(tokenUsage.totals.totalTokens)}
+          statDescription="Input + Output tokens"
+          isLoading={loading}
+          Icon={Coins}
+        />
 
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Total Tokens</CardTitle>
-            <Coins className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mb-2" />
-            ) : (
-              <div className="text-2xl font-bold text-foreground">
-                {formatTokenCount(tokenUsage.totals.totalTokens)}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Input + Output tokens</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Input Tokens"
+          stat={formatTokenCount(tokenUsage.totals.inputTokens)}
+          statDescription="Prompt tokens used"
+          isLoading={loading}
+          Icon={ArrowRightToLine}
+        />
 
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Input Tokens</CardTitle>
-            <Coins className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mb-2" />
-            ) : (
-              <div className="text-2xl font-bold text-blue-600">
-                {formatTokenCount(tokenUsage.totals.inputTokens)}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Prompt tokens used</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Output Tokens</CardTitle>
-            <Coins className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mb-2" />
-            ) : (
-              <div className="text-2xl font-bold text-green-600">
-                {formatTokenCount(tokenUsage.totals.outputTokens)}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Completion tokens generated</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Output Tokens"
+          stat={formatTokenCount(tokenUsage.totals.outputTokens)}
+          statDescription="Completion tokens generated"
+          isLoading={loading}
+          Icon={ArrowLeftFromLine}
+        />
       </div>
 
       {/* Agent Calls List */}

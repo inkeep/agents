@@ -1,0 +1,10 @@
+import { functionTool } from '@inkeep/agents-sdk';
+
+export const simpleTool = functionTool({
+  inputSchema: {
+    type: 'object',
+    properties: {},
+  },
+  name: 'simple-tool',
+  execute: () => ({ message: "Hello World" }),
+});

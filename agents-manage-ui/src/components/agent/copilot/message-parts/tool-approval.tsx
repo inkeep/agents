@@ -1,35 +1,17 @@
-import type { DataOperationEvent } from '@inkeep/agents-core';
-import { CheckIcon, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
+import type { ToolUIPart } from 'ai';
+import { CheckIcon, ChevronDown, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { Heading } from '@/components/agent/sidepane/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import type { FieldDiff } from '@/lib/actions/tool-approval';
 import { fetchToolApprovalDiff } from '@/lib/actions/tool-approval';
+import { cn } from '@/lib/utils';
 import { parseToolNameForDisplay } from '@/lib/utils/tool-name-display';
 import { DiffField } from '../components/diff-viewer';
 import { LoadingIndicator } from './loading';
 
-interface ToolCallData {
-  toolName: string;
-  input: Record<string, any>;
-  toolCallId: string;
-  needsApproval: true;
-  conversationId: string;
-}
-
-type ToolCallApprovalData = DataOperationEvent & {
-  type: 'tool_call';
-  details: DataOperationEvent['details'] & {
-    data: ToolCallData;
-  };
-};
-
-interface FieldDiff {
-  field: string;
-  oldValue: any;
-  newValue: any;
-}
+const PEEK_COUNT = 3;
 
 interface EntityData {
   id: string;
@@ -39,13 +21,8 @@ interface EntityData {
 }
 
 interface ToolApprovalProps {
-  data: ToolCallApprovalData;
-  copilotAgentId?: string;
-  copilotProjectId?: string;
-  copilotTenantId?: string;
-  apiUrl?: string;
-  cookieHeader?: string;
-  copilotToken?: string;
+  tool: ToolUIPart;
+  approve: (approved?: boolean) => Promise<void>;
 }
 
 const FallbackApproval = ({ toolName }: { toolName: string }) => {
@@ -69,12 +46,33 @@ const DeleteEntityApproval = ({ entityData }: { entityData: EntityData }) => {
   );
 };
 
-const DiffApproval = ({ diffs }: { diffs: FieldDiff[] }) => {
+const DiffApproval = ({
+  diffs,
+  expanded,
+  isCollapsible,
+}: {
+  diffs: FieldDiff[];
+  expanded: boolean;
+  isCollapsible: boolean;
+}) => {
+  const visibleDiffs = isCollapsible && !expanded ? diffs.slice(0, PEEK_COUNT) : diffs;
+
   return (
-    <div className="flex flex-col gap-5">
-      {diffs.map(({ field, oldValue, newValue }) => (
-        <DiffField key={field} field={field} originalValue={oldValue} newValue={newValue} />
-      ))}
+    <div className="relative">
+      <div className="flex flex-col gap-5">
+        {visibleDiffs.map(({ field, oldValue, newValue, renderAsCode }) => (
+          <DiffField
+            key={field}
+            field={field}
+            originalValue={oldValue}
+            newValue={newValue}
+            renderAsCode={renderAsCode}
+          />
+        ))}
+      </div>
+      {isCollapsible && !expanded && (
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+      )}
     </div>
   );
 };
@@ -107,55 +105,46 @@ const ApprovalWrapper = ({
   );
 };
 
-export const ToolApproval = ({
-  data,
-  copilotAgentId,
-  copilotProjectId,
-  copilotTenantId,
-  apiUrl,
-  cookieHeader,
-  copilotToken,
-}: ToolApprovalProps) => {
+const ApprovalButtons = ({
+  state,
+  approve,
+  approveLabel = 'Approve',
+  approveVariant = 'default' as 'default' | 'destructive',
+  rejectLabel = 'Reject',
+  approveIcon = <CheckIcon className="size-3" />,
+}: {
+  state: string;
+  approve: (approved?: boolean) => Promise<void>;
+  approveLabel?: string;
+  approveVariant?: 'default' | 'destructive' | 'destructive-outline';
+  rejectLabel?: string;
+  approveIcon?: React.ReactNode;
+}) =>
+  state === 'approval-requested' && (
+    <div className="flex gap-2">
+      <Button variant="outline" size="xs" type="button" onClick={() => approve(false)}>
+        {rejectLabel}
+      </Button>
+      <Button variant={approveVariant} size="xs" type="button" onClick={() => approve(true)}>
+        {approveIcon}
+        {approveLabel}
+      </Button>
+    </div>
+  );
+
+export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
   const [diffs, setDiffs] = useState<FieldDiff[]>([]);
   const [entityData, setEntityData] = useState<EntityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
-  const { conversationId, toolCallId, input, toolName } = data.details.data;
+  const { toolCallId, input, type } = tool;
+
+  const toolName = type.replace(/^tool-/, '');
   const { displayName: entityType, operationType, icon } = parseToolNameForDisplay(toolName);
-  const { projectId, tenantId } = input.request || input;
+  const { projectId, tenantId } = (input as Record<string, any>).request || input;
   const isDeleteOperation = toolName.includes('delete');
-
-  const handleApproval = async (approved: boolean) => {
-    setSubmitted(true);
-    try {
-      const response = await fetch(`${apiUrl}/run/api/tool-approvals`, {
-        method: 'POST',
-        headers: {
-          ...(copilotTenantId && { 'x-inkeep-tenant-id': copilotTenantId }),
-          ...(copilotProjectId && { 'x-inkeep-project-id': copilotProjectId }),
-          ...(copilotAgentId && { 'x-inkeep-agent-id': copilotAgentId }),
-          ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
-          Authorization: `Bearer ${copilotToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          conversationId,
-          toolCallId,
-          approved,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${approved ? 'approve' : 'reject'} tool call`);
-      }
-    } catch (error) {
-      setSubmitted(false);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      toast.error(errorMessage);
-    }
-  };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Only run once per unique toolCallId to prevent re-fetching on stream updates
   useEffect(() => {
@@ -166,7 +155,7 @@ export const ToolApproval = ({
 
         const result = await fetchToolApprovalDiff({
           toolName,
-          input,
+          input: input as Record<string, any>,
           tenantId,
           projectId,
         });
@@ -204,53 +193,52 @@ export const ToolApproval = ({
     return <div className="text-sm text-destructive">Error: {error}</div>;
   }
 
-  const ApprovalButtons = ({
-    approveLabel = 'Approve',
-    approveVariant = 'default' as 'default' | 'destructive',
-    rejectLabel = 'Reject',
-    approveIcon = <CheckIcon className="size-3" />,
-  }: {
-    approveLabel?: string;
-    approveVariant?: 'default' | 'destructive' | 'destructive-outline';
-    rejectLabel?: string;
-    approveIcon?: React.ReactNode;
-  }) =>
-    !submitted && (
-      <div className="flex gap-2 justify-end">
-        <Button variant="outline" size="xs" type="button" onClick={() => handleApproval(false)}>
-          {rejectLabel}
-        </Button>
-        <Button
-          variant={approveVariant}
-          size="xs"
-          type="button"
-          onClick={() => handleApproval(true)}
-        >
-          {approveIcon}
-          {approveLabel}
-        </Button>
-      </div>
-    );
-
   if (isDeleteOperation && entityData) {
     return (
       <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
         <DeleteEntityApproval entityData={entityData} />
-        <ApprovalButtons
-          approveLabel="Delete"
-          approveVariant="destructive"
-          rejectLabel="Cancel"
-          approveIcon={<Trash2Icon className="size-3" />}
-        />
+        <div className="flex items-center justify-end">
+          <ApprovalButtons
+            state={tool.state}
+            approve={approve}
+            approveLabel="Delete"
+            approveVariant="destructive"
+            rejectLabel="Cancel"
+            approveIcon={<Trash2Icon className="size-3" />}
+          />
+        </div>
       </ApprovalWrapper>
     );
   }
 
   if (diffs.length > 0) {
+    const isCollapsible = diffs.length > PEEK_COUNT;
+    const hiddenCount = Math.max(0, diffs.length - PEEK_COUNT);
+
     return (
       <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
-        <DiffApproval diffs={diffs} />
-        <ApprovalButtons />
+        <DiffApproval diffs={diffs} expanded={expanded} isCollapsible={isCollapsible} />
+        <div className={cn('flex items-center', isCollapsible ? 'justify-between' : 'justify-end')}>
+          {isCollapsible && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((prev) => !prev)}
+            >
+              <ChevronDown
+                aria-hidden="true"
+                className={cn(
+                  'size-3 motion-safe:transition-transform motion-safe:duration-200',
+                  expanded && 'rotate-180'
+                )}
+              />
+              {expanded ? 'Show less' : `Show ${hiddenCount} more`}
+            </Button>
+          )}
+          <ApprovalButtons state={tool.state} approve={approve} />
+        </div>
       </ApprovalWrapper>
     );
   }
@@ -258,7 +246,9 @@ export const ToolApproval = ({
   return (
     <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
       <FallbackApproval toolName={toolName} />
-      <ApprovalButtons />
+      <div className="flex items-center justify-end">
+        <ApprovalButtons state={tool.state} approve={approve} />
+      </div>
     </ApprovalWrapper>
   );
 };

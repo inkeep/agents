@@ -1,3 +1,4 @@
+import type { WithTimestamps } from '@inkeep/agents-core/validation/extend-schemas';
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { CredentialStoreRegistry } from '../../credential-stores';
@@ -8,6 +9,7 @@ import { subAgentToolRelations, tools } from '../../db/manage/manage-schema';
 import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import { env } from '../../env';
+import { isSerializationError } from '../../retry/retryable-errors';
 import type { CredentialReferenceSelect } from '../../types/index';
 import {
   type AgentScopeConfig,
@@ -24,10 +26,12 @@ import {
   type ToolUpdate,
 } from '../../types/index';
 import {
-  buildComposioMCPUrl,
+  configureComposioMCPServer,
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
+  isTrustedWorkAppMcpUrl,
+  TRUSTED_WORK_APP_MCP_PATHS,
   toISODateString,
 } from '../../utils';
 import { generateId } from '../../utils/conversations';
@@ -35,7 +39,9 @@ import { getLogger } from '../../utils/logger';
 import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
 import { cascadeDeleteByTool } from '../runtime/cascade-delete';
 import { isGithubWorkAppTool } from '../runtime/github-work-app-installations';
+import { isSlackWorkAppTool } from '../runtime/slack-work-app-mcp';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
+import { agentScopedWhere, projectScopedWhere } from './scope-helpers';
 import { updateAgentToolRelation } from './subAgentRelations';
 
 /**
@@ -161,12 +167,17 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
   };
 };
 
+type DiscoveryResult = {
+  tools: McpToolDefinition[];
+  serverInstructions?: string;
+};
+
 const discoverToolsFromServer = async (
   tool: ToolSelect,
   credentialReference?: CredentialReferenceSelect,
   credentialStoreRegistry?: CredentialStoreRegistry,
   userId?: string
-): Promise<McpToolDefinition[]> => {
+): Promise<DiscoveryResult> => {
   if (tool.config.type !== 'mcp') {
     throw new Error(`Cannot discover tools from non-MCP tool: ${tool.id}`);
   }
@@ -209,22 +220,57 @@ const discoverToolsFromServer = async (
       }
     }
 
-    // Inject user_id for Composio servers at discovery time
-    if (serverConfig.url) {
-      serverConfig.url = buildComposioMCPUrl(
-        serverConfig.url.toString(),
+    const composioConnectedAccountId = credentialReference?.retrievalParams?.connectedAccountId as
+      | string
+      | undefined;
+
+    // Only inject Composio auth params when connectedAccountId is available (both or none)
+    // to prevent cross-project credential leakage via user_id-only scoping
+    if (composioConnectedAccountId) {
+      configureComposioMCPServer(
+        serverConfig,
         tool.tenantId,
         tool.projectId,
         tool.credentialScope === 'user' ? 'user' : 'project',
-        userId
+        userId,
+        composioConnectedAccountId
+      );
+    } else if (serverConfig.url?.toString().includes('composio.dev')) {
+      logger.warn(
+        { toolName: tool.name, toolId: tool.id },
+        'Composio tool missing connectedAccountId — skipping auth injection to prevent credential leakage'
       );
     }
 
-    if (isGithubWorkAppTool(tool)) {
+    const urlString = String(serverConfig.url);
+
+    if (
+      isGithubWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(
+        urlString,
+        TRUSTED_WORK_APP_MCP_PATHS.github,
+        env.INKEEP_AGENTS_API_URL
+      )
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': tool.tenantId,
+        'x-inkeep-project-id': tool.projectId,
         Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
+      };
+    }
+
+    if (
+      isSlackWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(urlString, TRUSTED_WORK_APP_MCP_PATHS.slack, env.INKEEP_AGENTS_API_URL)
+    ) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': tool.tenantId,
+        'x-inkeep-project-id': tool.projectId,
+        Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
       };
     }
 
@@ -236,6 +282,9 @@ const discoverToolsFromServer = async (
     await client.connect();
 
     const serverTools = await client.tools();
+    const rawServerInstructions = client.getInstructions();
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: Intentionally matching control chars to remove them
+    const serverInstructions = rawServerInstructions?.replace(/\u0000/g, '');
 
     await client.disconnect();
 
@@ -252,7 +301,7 @@ const discoverToolsFromServer = async (
       }
     );
 
-    return toolDefinitions;
+    return { tools: toolDefinitions, serverInstructions };
   } catch (error) {
     logger.error({ toolId: tool.id, error }, 'Tool discovery failed');
     throw error;
@@ -267,7 +316,7 @@ const discoverToolsFromServer = async (
 export const dbResultToMcpToolSkeleton = (
   dbResult: ToolSelect,
   relationshipId?: string
-): McpTool => {
+): WithTimestamps<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
   return {
@@ -291,7 +340,7 @@ export const dbResultToMcpTool = async (
   credentialStoreRegistry?: CredentialStoreRegistry,
   relationshipId?: string,
   userId?: string
-): Promise<McpTool> => {
+): Promise<WithTimestamps<McpTool>> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
   if (dbResult.config.type !== 'mcp') {
@@ -315,6 +364,7 @@ export const dbResultToMcpTool = async (
   let lastErrorComputed: string | null;
   let expiresAt: string | undefined;
   let createdBy: string | undefined;
+  let serverInstructions: string | undefined;
 
   // Look up credential reference based on scope
   const credentialReference =
@@ -339,12 +389,14 @@ export const dbResultToMcpTool = async (
   const mcpServerUrl = dbResult.config.mcp.server.url;
 
   try {
-    availableTools = await discoverToolsFromServer(
+    const discoveryResult = await discoverToolsFromServer(
       dbResult,
       credentialReference,
       credentialStoreRegistry,
       userId
     );
+    availableTools = discoveryResult.tools;
+    serverInstructions = discoveryResult.serverInstructions;
     status = 'healthy';
     lastErrorComputed = null;
   } catch (error) {
@@ -374,18 +426,30 @@ export const dbResultToMcpTool = async (
   // Check third-party service status
   const isThirdPartyMCPServer = dbResult.config.mcp.server.url.includes('composio.dev');
   if (isThirdPartyMCPServer) {
-    const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
-    const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
-      dbResult.tenantId,
-      dbResult.projectId,
-      mcpServerUrl,
-      credentialScope,
-      userId
-    );
+    const hasConnectedAccountId = !!credentialReference?.retrievalParams?.connectedAccountId;
 
-    if (!isAuthenticated) {
+    if (!hasConnectedAccountId) {
       status = 'needs_auth';
-      lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+      lastErrorComputed =
+        'Third-party authentication required. Connect your account to pin a specific credential.';
+    } else {
+      const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
+      const authResult = await isThirdPartyMCPServerAuthenticated(
+        dbResult.tenantId,
+        dbResult.projectId,
+        mcpServerUrl,
+        credentialScope,
+        userId
+      );
+
+      if (!authResult.authenticated && !authResult.error) {
+        status = 'needs_auth';
+        lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+      } else if (authResult.error) {
+        status = 'unavailable';
+        lastErrorComputed =
+          'Could not verify third-party authentication status. The service may be temporarily unavailable.';
+      }
     }
   }
 
@@ -393,6 +457,11 @@ export const dbResultToMcpTool = async (
 
   // Update tool metadata - wrap in try-catch to handle serialization conflicts gracefully.
   // Concurrent Tool reads can cause serialization conflicts, so we need to handle them gracefully.
+  const updatedCapabilities = {
+    ...capabilities,
+    ...(serverInstructions !== undefined && { serverInstructions }),
+  };
+
   try {
     await updateTool(dbClient)({
       scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
@@ -400,17 +469,11 @@ export const dbResultToMcpTool = async (
       data: {
         updatedAt: now,
         lastError: lastErrorComputed,
+        capabilities: updatedCapabilities,
       },
     });
-  } catch (updateError: unknown) {
-    // Check for serialization conflict (sqlstate 40001, errno 1213)
-    const isSerializationConflict =
-      updateError instanceof Error &&
-      (updateError.message.includes('serialization failure') ||
-        updateError.message.includes('40001') ||
-        (updateError as any).cause?.code === 'XX000');
-
-    if (isSerializationConflict) {
+  } catch (updateError) {
+    if (isSerializationError(updateError)) {
       logger.debug(
         { toolId: dbResult.id },
         'Skipping tool metadata update due to serialization conflict (concurrent request)'
@@ -428,7 +491,7 @@ export const dbResultToMcpTool = async (
     ...rest,
     status,
     availableTools,
-    capabilities: capabilities || undefined,
+    capabilities: Object.keys(updatedCapabilities).length > 0 ? updatedCapabilities : undefined,
     credentialReferenceId: credentialReferenceId || undefined,
     createdAt: toISODateString(createdAt),
     createdBy: createdBy || undefined,
@@ -445,11 +508,7 @@ export const getToolById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const result = await db.query.tools.findFirst({
-      where: and(
-        eq(tools.tenantId, params.scopes.tenantId),
-        eq(tools.projectId, params.scopes.projectId),
-        eq(tools.id, params.toolId)
-      ),
+      where: and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)),
     });
     return result ?? null;
   };
@@ -483,10 +542,7 @@ export const listTools =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(tools.tenantId, params.scopes.tenantId),
-      eq(tools.projectId, params.scopes.projectId)
-    );
+    const whereClause = projectScopedWhere(tools, params.scopes);
 
     const [toolsDbResults, totalResult] = await Promise.all([
       db
@@ -525,7 +581,11 @@ export const createTool = (db: AgentsManageDatabaseClient) => async (params: Too
 
 export const updateTool =
   (db: AgentsManageDatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; toolId: string; data: ToolUpdate }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    toolId: string;
+    data: WithTimestamps<ToolUpdate>;
+  }) => {
     const now = new Date().toISOString();
 
     const [updated] = await db
@@ -534,13 +594,7 @@ export const updateTool =
         ...params.data,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(tools.tenantId, params.scopes.tenantId),
-          eq(tools.projectId, params.scopes.projectId),
-          eq(tools.id, params.toolId)
-        )
-      )
+      .where(and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)))
       .returning();
 
     return updated ?? null;
@@ -551,13 +605,7 @@ export const deleteTool =
   async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const [deleted] = await db
       .delete(tools)
-      .where(
-        and(
-          eq(tools.tenantId, params.scopes.tenantId),
-          eq(tools.projectId, params.scopes.projectId),
-          eq(tools.id, params.toolId)
-        )
-      )
+      .where(and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)))
       .returning();
 
     if (!deleted) {
@@ -569,13 +617,17 @@ export const deleteTool =
     const isWorkApp = deleted.isWorkApp;
     const isGithub = isWorkApp && deleted.config.mcp.server.url.includes('/github/mcp');
 
-    if (isGithub) {
+    if (isGithub || isSlackWorkAppTool(deleted)) {
       try {
         // getActiveBranch uses Dolt-specific SQL (active_branch()) which isn't available in pglite/postgres
         const currentBranch = await getActiveBranch(db)();
         if (currentBranch === `${params.scopes.tenantId}_${params.scopes.projectId}_main`) {
           const runDbClient = createAgentsRunDatabaseClient();
-          await cascadeDeleteByTool(runDbClient)({ toolId: params.toolId });
+          await cascadeDeleteByTool(runDbClient)({
+            toolId: params.toolId,
+            tenantId: params.scopes.tenantId,
+            projectId: params.scopes.projectId,
+          });
         }
       } catch (error) {
         // If we can't get the active branch (e.g., not using Dolt), skip the cascade delete
@@ -630,9 +682,7 @@ export const removeToolFromAgent =
       .delete(subAgentToolRelations)
       .where(
         and(
-          eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentToolRelations.projectId, params.scopes.projectId),
-          eq(subAgentToolRelations.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentToolRelations, params.scopes),
           eq(subAgentToolRelations.subAgentId, params.subAgentId),
           eq(subAgentToolRelations.toolId, params.toolId)
         )

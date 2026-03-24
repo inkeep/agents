@@ -28,21 +28,17 @@ _openapi:
       - content: Remove Project Member
         id: remove-project-member
     contents:
-      - content: >-
-          List all users with explicit project access. Requires authz to be
-          enabled.
+      - content: List all users with explicit project access.
         heading: list-project-members
-      - content: >-
-          Add a user to a project with a specified role. Requires authz to be
-          enabled.
+      - content: Add a user to a project with a specified role.
         heading: add-project-member
       - content: >-
-          Update a project member's role. Requires authz to be enabled. Include
-          previousRole to specify which role to revoke.
+          Update a project member's role. Include previousRole to specify which
+          role to revoke.
         heading: update-project-member-role
       - content: >-
-          Remove a user from a project. Requires authz to be enabled. Pass role
-          as query param to specify which role to revoke.
+          Remove a user from a project. Pass role as query param to specify
+          which role to revoke.
         heading: remove-project-member
 ---
 

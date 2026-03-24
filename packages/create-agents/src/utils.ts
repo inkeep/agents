@@ -1,7 +1,9 @@
 import { exec } from 'node:child_process';
 import crypto from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
@@ -43,6 +45,105 @@ const execAsync = promisify(exec);
 
 const agentsApiPort = '3002';
 
+const DIVERGENT_PACKAGES = new Set(['@inkeep/agents-ui']);
+
+function getCliVersion(): string {
+  try {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const pkgJson = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+    return pkgJson.version;
+  } catch {
+    return '';
+  }
+}
+
+async function fetchLatestVersion(packageName: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetch(`https://registry.npmjs.org/${packageName}/latest`, {
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { version?: string };
+    return data.version ?? null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function syncTemplateDependencies(templatePath: string): Promise<void> {
+  const cliVersion = getCliVersion();
+  if (!cliVersion) return;
+
+  const packageJsonPaths = await findPackageJsonFiles(templatePath);
+
+  const divergentVersions = new Map<string, string>();
+  const allDeps = new Set<string>();
+  const pkgDataList: { pkgPath: string; pkg: Record<string, unknown> }[] = [];
+
+  for (const pkgPath of packageJsonPaths) {
+    const pkg = await fs.readJson(pkgPath);
+    pkgDataList.push({ pkgPath, pkg });
+    for (const depType of ['dependencies', 'devDependencies'] as const) {
+      const deps = pkg[depType] as Record<string, string> | undefined;
+      if (!deps) continue;
+      for (const name of Object.keys(deps)) {
+        if (name.startsWith('@inkeep/') && DIVERGENT_PACKAGES.has(name)) {
+          allDeps.add(name);
+        }
+      }
+    }
+  }
+
+  await Promise.all(
+    [...allDeps].map(async (name) => {
+      const version = await fetchLatestVersion(name);
+      if (version) divergentVersions.set(name, version);
+    })
+  );
+
+  await Promise.all(
+    pkgDataList.map(async ({ pkgPath, pkg }) => {
+      for (const depType of ['dependencies', 'devDependencies'] as const) {
+        const deps = pkg[depType] as Record<string, string> | undefined;
+        if (!deps) continue;
+        for (const name of Object.keys(deps)) {
+          if (!name.startsWith('@inkeep/')) continue;
+          if (DIVERGENT_PACKAGES.has(name)) {
+            const resolved = divergentVersions.get(name);
+            if (resolved) deps[name] = `^${resolved}`;
+          } else {
+            deps[name] = `^${cliVersion}`;
+          }
+        }
+      }
+      await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+    })
+  );
+}
+
+async function findPackageJsonFiles(dir: string): Promise<string[]> {
+  const results: string[] = [];
+  const rootPkg = path.join(dir, 'package.json');
+  if (await fs.pathExists(rootPkg)) {
+    results.push(rootPkg);
+  }
+
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === 'node_modules' || entry.name.startsWith('.')) {
+      continue;
+    }
+    const nested = await findPackageJsonFiles(path.join(dir, entry.name));
+    results.push(...nested);
+  }
+
+  return results;
+}
+
 export const defaultGoogleModelConfigurations = {
   base: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
@@ -79,6 +180,10 @@ export const defaultAnthropicModelConfigurations = {
   },
 };
 
+export const defaultMockModelConfigurations = {
+  base: { model: 'mock/default' },
+};
+
 type FileConfig = {
   dirName: string;
   tenantId: string;
@@ -110,6 +215,7 @@ export const createAgents = async (
     skipInkeepCli?: boolean;
     skipInkeepMcp?: boolean;
     skipInstall?: boolean;
+    skipProvider?: boolean;
   } = {}
 ) => {
   let {
@@ -126,6 +232,7 @@ export const createAgents = async (
     skipInkeepCli,
     skipInkeepMcp,
     skipInstall,
+    skipProvider,
   } = args;
 
   const tenantId = 'default';
@@ -176,7 +283,7 @@ export const createAgents = async (
     }
   }
 
-  if (!anthropicKey && !openAiKey && !googleKey && !azureKey) {
+  if (!skipProvider && !anthropicKey && !openAiKey && !googleKey && !azureKey) {
     const providerChoice = await p.select({
       message: 'Which AI provider would you like to use?',
       options: [
@@ -184,6 +291,7 @@ export const createAgents = async (
         { value: 'openai', label: 'OpenAI' },
         { value: 'google', label: 'Google' },
         { value: 'azure', label: 'Azure' },
+        { value: 'skip', label: 'Skip', hint: 'scaffolds with mock provider, no API key needed' },
       ],
     });
 
@@ -256,11 +364,20 @@ export const createAgents = async (
         process.exit(0);
       }
       azureKey = azureKeyResponse as string;
+    } else if (providerChoice === 'skip') {
+      skipProvider = true;
     }
   }
 
   let defaultModelSettings = {};
-  if (anthropicKey) {
+  if (skipProvider) {
+    defaultModelSettings = defaultMockModelConfigurations;
+    if (openAiKey || anthropicKey || googleKey || azureKey) {
+      p.log.warn(
+        '--skip-provider is active. Provider key flags are ignored; mock/default model will be used.'
+      );
+    }
+  } else if (anthropicKey) {
     defaultModelSettings = defaultAnthropicModelConfigurations;
   } else if (openAiKey) {
     defaultModelSettings = defaultOpenaiModelConfigurations;
@@ -383,6 +500,8 @@ export const createAgents = async (
 
     process.chdir(directoryPath);
 
+    await syncTemplateDependencies('.');
+
     const config = {
       dirName,
       tenantId,
@@ -471,20 +590,20 @@ export const createAgents = async (
       await addInkeepMcp();
     }
 
+    p.log.success(`Workspace created at: ${color.cyan(directoryPath)}`);
+
     p.note(
-      `${color.green('✓')} Workspace created at: ${color.cyan(directoryPath)}\n\n` +
-        `${color.yellow('Next steps:')}\n` +
-        `  cd ${dirName}\n` +
-        `  pnpm setup   # Setup project in database\n` +
-        `  pnpm dev     # Start development servers\n\n` +
-        `${color.yellow('Available services:')}\n` +
-        `  • Agents API: http://127.0.0.1:3002\n` +
-        `  • Manage UI: Available with management API\n` +
-        `\n${color.yellow('Configuration:')}\n` +
-        `  • Edit .env for environment variables\n` +
-        `  • Edit files in src/projects/${projectId}/ for agent definitions\n` +
-        `  • Use 'inkeep push' to deploy agents to the platform\n`,
-      'Ready to go!'
+      `${color.yellow('1. Start:')}\n` +
+        `   cd ${dirName}\n` +
+        `   pnpm setup-dev\n` +
+        `   pnpm dev\n\n` +
+        `${color.yellow('2. Explore:')}\n` +
+        `   • Dashboard:  http://localhost:3000\n` +
+        `   • Agents API: http://localhost:3002\n\n` +
+        `${color.yellow('3. Customize:')}\n` +
+        `   • Edit your agents in src/projects/\n` +
+        `   • Use 'inkeep push' to apply`,
+      'Next steps 🚀'
     );
   } catch (error) {
     s.stop();
@@ -500,85 +619,36 @@ async function createWorkspaceStructure() {
 }
 
 async function createEnvironmentFiles(config: FileConfig) {
-  // Convert to forward slashes for cross-platform SQLite URI compatibility
+  const bypassSecret = crypto.randomBytes(32).toString('hex');
 
-  const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
-
-  const betterAuthSecret = crypto.randomBytes(32).toString('hex');
-
-  const manageUiPassword = crypto.randomBytes(6).toString('base64url');
-
-  // Generate RSA key pair for temporary JWT tokens
-  let tempJwtPrivateKey = '';
-  let tempJwtPublicKey = '';
+  let envExampleContent: string;
   try {
-    const { generateKeyPairSync } = await import('node:crypto');
-    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    });
-    tempJwtPrivateKey = Buffer.from(privateKey).toString('base64');
-    tempJwtPublicKey = Buffer.from(publicKey).toString('base64');
+    envExampleContent = await fs.readFile('.env.example', 'utf-8');
   } catch {
-    console.warn('Warning: Failed to generate JWT keys. Playground may not work.');
-    console.warn('You can manually generate keys later with: pnpm run generate-jwt-keys');
+    throw new Error(
+      'Could not read .env.example from the template. The template may be corrupted — try running the command again.'
+    );
+  }
+  const lines = envExampleContent.split('\n');
+
+  const injections: Record<string, string> = {
+    ANTHROPIC_API_KEY: config.anthropicKey || '',
+    OPENAI_API_KEY: config.openAiKey || '',
+    GOOGLE_GENERATIVE_AI_API_KEY: config.googleKey || '',
+    AZURE_API_KEY: config.azureKey || '',
+    DEFAULT_PROJECT_ID: config.projectId,
+    INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: bypassSecret,
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    for (const [varName, value] of Object.entries(injections)) {
+      if (lines[i].startsWith(`${varName}=`)) {
+        lines[i] = `${varName}=${value}`;
+      }
+    }
   }
 
-  const envContent = `# Environment
-ENVIRONMENT=development
-
-# Database Configuration (Split Database Setup)
-# Management entities database uses DoltgreSQL on port 5432 for version control features
-INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
-# Runtime entities database uses PostgreSQL on port 5433 for runtime operations
-INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents
-
-# AI Provider Keys  
-ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
-OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
-GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
-AZURE_API_KEY=${config.azureKey || 'your-azure-key-here'}
-
-# Inkeep API URLs
-# Internal URLs (server-side, Docker internal networking)
-# Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
-INKEEP_AGENTS_API_URL="http://127.0.0.1:3002"
-
-# Public URLs (client-side, browser accessible)
-PUBLIC_INKEEP_AGENTS_API_URL="http://127.0.0.1:3002"
-
-# SigNoz Configuration
-SIGNOZ_URL=your-signoz-url-here
-SIGNOZ_API_KEY=your-signoz-api-key-here
-
-# OTEL Configuration
-OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
-OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
-
-# Nango Configuration
-NANGO_SECRET_KEY=
-
-# JWT Signing Secret
-INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
-
-# Temporary JWT Keys for Playground
-INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${tempJwtPrivateKey}
-INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${tempJwtPublicKey}
-
-# initial project information
-DEFAULT_PROJECT_ID=${config.projectId}
-
-# Auth Configuration
-INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
-INKEEP_AGENTS_MANAGE_UI_PASSWORD=${manageUiPassword}
-BETTER_AUTH_SECRET=${betterAuthSecret}
-SPICEDB_ENDPOINT=localhost:50051
-SPICEDB_PRESHARED_KEY=dev-secret-key
-
-`;
-
-  await fs.writeFile('.env', envContent);
+  await fs.writeFile('.env', lines.join('\n'));
 }
 
 async function createInkeepConfig(config: FileConfig) {
@@ -589,7 +659,9 @@ const config = defineConfig({
   agentsApi: {
     // Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
     url: 'http://127.0.0.1:3002',
+    apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
   },
+  manageUiUrl: 'http://localhost:3000',
 });
     
 export default config;`;

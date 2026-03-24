@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import type { StatusCode } from 'hono/utils/http-status';
 import type { ZodIssue } from 'zod';
 import { getLogger } from '../logger';
+import { sentry } from '../sentry';
 
 const logger = getLogger('error-handler');
 
@@ -98,9 +99,13 @@ export async function errorHandler(err: Error, c: Context): Promise<Response> {
     return formatZodValidationError(c, zodIssues);
   }
 
-  // Log server errors
+  // Log and report server errors
   if (status >= 500) {
     logServerError(err, c.req.path, requestId, status, isExpectedError);
+
+    sentry.captureException(err, {
+      extra: { requestId, path: c.req.path, status },
+    });
   }
 
   // Format as RFC 7807 Problem Details

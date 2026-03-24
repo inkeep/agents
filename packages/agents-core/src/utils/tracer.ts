@@ -4,4 +4,4 @@ import { getTracer } from './tracer-factory';
 export const tracer = getTracer('agents-core');
 
 // Re-export utilities
-export { setSpanWithError } from './tracer-factory';
+export { setSpanWithError, unwrapError } from './tracer-factory';

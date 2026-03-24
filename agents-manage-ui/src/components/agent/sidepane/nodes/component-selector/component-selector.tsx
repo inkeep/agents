@@ -1,4 +1,4 @@
-import { ComponentDropdown } from './component-dropdown';
+import { type BaseComponentDropdownProps, ComponentDropdown } from './component-dropdown';
 import { ComponentHeader } from './component-header';
 import { SelectedComponents } from './selected-components';
 
@@ -8,15 +8,19 @@ interface ComponentItem {
   description?: string | null;
 }
 
-interface ComponentSelectorProps<T extends ComponentItem> {
+interface ComponentSelectorProps<T extends ComponentItem>
+  extends Pick<
+    BaseComponentDropdownProps,
+    | 'selectedComponents'
+    | 'emptyStateMessage'
+    | 'emptyStateActionText'
+    | 'emptyStateActionHref'
+    | 'placeholder'
+    | 'commandInputPlaceholder'
+  > {
   label: string;
   componentLookup: Record<string, T>;
-  selectedComponents: string[];
   onSelectionChange: (newSelection: string[]) => void;
-  emptyStateMessage?: string;
-  emptyStateActionText?: string;
-  emptyStateActionHref?: string;
-  placeholder?: string;
 }
 
 export function ComponentSelector<T extends ComponentItem>({
@@ -24,10 +28,7 @@ export function ComponentSelector<T extends ComponentItem>({
   componentLookup,
   selectedComponents,
   onSelectionChange,
-  emptyStateMessage,
-  emptyStateActionText,
-  emptyStateActionHref,
-  placeholder = 'Select components...',
+  ...props
 }: ComponentSelectorProps<T>) {
   const handleToggle = (componentId: string) => {
     const newSelection = selectedComponents.includes(componentId)
@@ -52,10 +53,7 @@ export function ComponentSelector<T extends ComponentItem>({
         selectedComponents={selectedComponents}
         handleToggle={handleToggle}
         availableComponents={Object.values(componentLookup)}
-        emptyStateMessage={emptyStateMessage}
-        emptyStateActionText={emptyStateActionText}
-        emptyStateActionHref={emptyStateActionHref}
-        placeholder={placeholder}
+        {...props}
       />
     </div>
   );

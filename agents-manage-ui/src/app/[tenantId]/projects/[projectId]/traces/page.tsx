@@ -1,6 +1,13 @@
 'use client';
 
-import { AlertTriangle, ArrowRightLeft, SparklesIcon, Users, Wrench } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  CircleAlert,
+  SparklesIcon,
+  Users,
+  Wrench,
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
@@ -10,11 +17,12 @@ import { AgentFilter } from '@/components/traces/filters/agent-filter';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { SpanFilters } from '@/components/traces/filters/span-filters';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
-import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
+import { useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
 
@@ -36,21 +44,21 @@ export default function TracesOverview({
     timeRange: selectedTimeRange,
     customStartDate,
     customEndDate,
+    agentId: selectedAgent,
+    hasErrors,
     spanName,
     spanAttributes: attributes,
     setTimeRange: setSelectedTimeRange,
     setCustomDateRange,
+    setAgentFilter: setSelectedAgent,
+    setHasErrorsFilter,
     setSpanFilter,
   } = useTracesQueryState();
 
   // Check if Signoz is configured
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
-
-  const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
-  const [spanNamesLoading, setSpanNamesLoading] = useState(false);
   const [activityData, setActivityData] = useState<{ date: string; count: number }[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
 
@@ -113,20 +121,7 @@ export default function TracesOverview({
     return filters;
   }, [spanName, attributes]);
 
-  const {
-    aggregateStats,
-    loading: aggregateLoading,
-    error: aggregateError,
-  } = useAggregateStats({
-    startTime,
-    endTime,
-    filters: spanFilters,
-    projectId,
-    tenantId,
-    agentId: selectedAgent,
-  });
-
-  const { stats, loading, error, pagination } = useConversationStats({
+  const { stats, loading, error, pagination, aggregateStats } = useConversationStats({
     startTime,
     endTime,
     filters: spanFilters,
@@ -135,7 +130,11 @@ export default function TracesOverview({
     searchQuery: debouncedSearchQuery,
     pagination: { pageSize: 10 },
     agentId: selectedAgent,
+    hasErrors: hasErrors || undefined,
   });
+
+  const aggregateLoading = loading;
+  const aggregateError = error;
 
   // Aggregate stats now come directly from server-side aggregation
 
@@ -146,14 +145,7 @@ export default function TracesOverview({
         setActivityLoading(true);
         const client = getSigNozStatsClient(tenantId);
         const agentId = selectedAgent ? selectedAgent : undefined;
-        console.log('🔍 Fetching activity data:', {
-          startTime,
-          endTime,
-          agentId,
-          selectedAgent,
-        });
         const data = await client.getConversationsPerDay(startTime, endTime, agentId, projectId);
-        console.log('🔍 Activity data received:', data);
         setActivityData(data);
       } catch (e) {
         console.error('Failed to fetch conversation activity:', e);
@@ -164,35 +156,6 @@ export default function TracesOverview({
     };
     if (startTime && endTime && tenantId) {
       fetchActivity();
-    }
-  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
-
-  // Fetch available span names when time range or selected agent changes
-  useEffect(() => {
-    const fetchSpanNames = async () => {
-      if (!startTime || !endTime || !tenantId) return;
-
-      setSpanNamesLoading(true);
-      try {
-        const client = getSigNozStatsClient(tenantId);
-        const spanNames = await client.getAvailableSpanNames(
-          startTime,
-          endTime,
-          selectedAgent,
-          projectId
-        );
-        setAvailableSpanNames(spanNames);
-      } catch (error) {
-        console.error('Failed to fetch span names:', error);
-        setAvailableSpanNames([]);
-      } finally {
-        setSpanNamesLoading(false);
-      }
-    };
-
-    // Only fetch if we have valid time range
-    if (startTime && endTime && tenantId) {
-      fetchSpanNames();
     }
   }, [startTime, endTime, selectedAgent, projectId, tenantId]);
 
@@ -274,6 +237,21 @@ export default function TracesOverview({
       <div className="flex items-center gap-4">
         {/* Agent Filter */}
         <AgentFilter onSelect={setSelectedAgent} selectedValue={selectedAgent} />
+        {/* Error Filter */}
+        <Button
+          variant="gray-outline"
+          size="sm"
+          onClick={() => setHasErrorsFilter(!hasErrors)}
+          aria-pressed={hasErrors}
+          className={
+            hasErrors
+              ? 'border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive'
+              : ''
+          }
+        >
+          <CircleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+          Errors only
+        </Button>
         {/* Time Range Filter */}
         <DatePickerWithPresets
           label="Time range"
@@ -295,7 +273,6 @@ export default function TracesOverview({
       <div className="flex flex-col gap-4">
         {/* Span Filter Toggle */}
         <SpanFilters
-          availableSpanNames={availableSpanNames}
           spanName={spanName}
           setSpanFilter={setSpanFilter}
           attributes={attributes}
@@ -303,8 +280,11 @@ export default function TracesOverview({
           removeAttribute={removeAttribute}
           updateAttribute={updateAttribute}
           isNumeric={isNumeric}
-          spanNamesLoading={spanNamesLoading}
           selectedAgent={selectedAgent}
+          tenantId={tenantId}
+          projectId={projectId}
+          startTime={startTime}
+          endTime={endTime}
         />
       </div>
 

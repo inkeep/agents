@@ -1,0 +1,27 @@
+Index: agents/weather-agent.ts
+===================================================================
+--- agents/weather-agent.ts	before
++++ agents/weather-agent.ts	after
+@@ -9,14 +9,16 @@
+   id: 'geocoder-agent',
+   name: 'Geocoder agent'
+ });
++export const weatherAssistant = subAgent({
++  id: 'weather-assistant',
++  description: 'Main weather assistant',
++  name: 'Weather assistant',
++  canDelegateTo: () => [weatherForecaster, geocoderAgent],
++});
+ 
+ export const weatherAgent = agent({
+   id: 'weather-agent',
+   name: 'Weather agent',
+-  subAgents: () => [weatherForecaster, geocoderAgent],
+-  defaultSubAgent: subAgent({
+-    id: 'weather-assistant',
+-    name: 'Weather assistant',
+-    description: 'Legacy inline weather assistant'
+-  })
++  subAgents: () => [weatherForecaster, geocoderAgent, weatherAssistant],
++  defaultSubAgent: weatherAssistant
+ });

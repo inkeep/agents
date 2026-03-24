@@ -1,11 +1,10 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   AgentApiInsertSchema,
   AgentApiUpdateSchema,
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
-  cascadeDeleteByAgent,
   commonGetErrorResponses,
   createAgent,
   createApiError,
@@ -16,43 +15,35 @@ import {
   getAgentSubAgentInfos,
   getFullAgentDefinition,
   listAgentsPaginated,
-  listSubAgents,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
+  throwIfUniqueConstraintError,
   updateAgent,
 } from '@inkeep/agents-core';
-import runDbClient from '../../../data/db/runDbClient';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (['PUT', 'PATCH', 'DELETE'].includes(c.req.method)) {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Agents',
     operationId: 'list-agents',
     tags: ['Agents'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -85,12 +76,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Agent',
     operationId: 'get-agent',
     tags: ['Agents'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -126,12 +118,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{agentId}/sub-agents/{subAgentId}/related',
     summary: 'Get Related Agent Infos',
     operationId: 'get-related-agent-infos',
     tags: ['Agents'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -170,12 +163,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{agentId}/full',
     summary: 'Get Full Agent Definition',
     operationId: 'get-full-agent-definition',
     tags: ['Agents'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
     },
@@ -211,12 +205,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Agent',
     operationId: 'create-agent',
     tags: ['Agents'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -246,25 +241,18 @@ app.openapi(
 
     try {
       const agent = await createAgent(db)({
+        ...validatedBody,
+        id: validatedBody.id || generateId(),
         tenantId,
         projectId,
-        id: validatedBody.id || generateId(),
-        name: validatedBody.name,
-        description: validatedBody.description,
-        defaultSubAgentId: validatedBody.defaultSubAgentId,
-        contextConfigId: validatedBody.contextConfigId ?? undefined,
       });
 
       return c.json({ data: agent }, 201);
     } catch (error: any) {
-      // Handle duplicate agent (PostgreSQL unique constraint violation)
-      if (error?.cause?.code === '23505') {
-        const agentId = validatedBody.id || 'unknown';
-        throw createApiError({
-          code: 'conflict',
-          message: `An agent with ID '${agentId}' already exists`,
-        });
-      }
+      throwIfUniqueConstraintError(
+        error,
+        `An agent with ID '${validatedBody.id || 'unknown'}' already exists`
+      );
 
       // Re-throw other errors to be handled by the global error handler
       throw error;
@@ -272,68 +260,66 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Agent',
-    operationId: 'update-agent',
-    tags: ['Agents'],
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: AgentApiUpdateSchema,
-          },
+const updateAgentRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Agent',
+  tags: ['Agents'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: AgentApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Agent updated successfully',
-        content: {
-          'application/json': {
-            schema: AgentResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Agent updated successfully',
+      content: {
+        'application/json': {
+          schema: AgentResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const validatedBody = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    const updatedAgent = await updateAgent(db)({
-      scopes: { tenantId, projectId, agentId: id },
-      data: {
-        name: validatedBody.name,
-        description: validatedBody.description,
-        defaultSubAgentId: validatedBody.defaultSubAgentId,
-        contextConfigId: validatedBody.contextConfigId ?? undefined,
-      },
+const updateAgentHandler: ManageRouteHandler<typeof updateAgentRouteConfig> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const validatedBody = c.req.valid('json');
+
+  const updatedAgent = await updateAgent(db)({
+    scopes: { tenantId, projectId, agentId: id },
+    data: validatedBody,
+  });
+
+  if (!updatedAgent) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Agent not found',
     });
-
-    if (!updatedAgent) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Agent not found',
-      });
-    }
-
-    return c.json({ data: updatedAgent });
   }
-);
+
+  return c.json({ data: updatedAgent });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateAgentRouteConfig, updateAgentHandler, {
+  operationId: 'update-agent',
+});
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Agent',
     operationId: 'delete-agent',
     tags: ['Agents'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -353,23 +339,8 @@ app.openapi(
   }),
   async (c) => {
     const db = c.get('db');
-    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    // Get all subAgentIds for this agent before deleting
-    const subAgents = await listSubAgents(db)({
-      scopes: { tenantId, projectId, agentId: id },
-    });
-    const subAgentIds = subAgents.map((sa) => sa.id);
-
-    // Delete runtime entities for this agent on this branch
-    await cascadeDeleteByAgent(runDbClient)({
-      scopes: { tenantId, projectId, agentId: id },
-      fullBranchName: resolvedRef.name,
-      subAgentIds,
-    });
-
-    // Delete the agent from the config DB
     const deleted = await deleteAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
     });
@@ -380,6 +351,8 @@ app.openapi(
         message: 'Agent not found',
       });
     }
+
+    clearWorkspaceConnectionCache();
 
     return c.body(null, 204);
   }

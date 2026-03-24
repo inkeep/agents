@@ -17,6 +17,7 @@ export const SPAN_NAMES = {
   TOOL_APPROVAL_DENIED: 'tool.approval_denied',
   COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
+  STREAM_FORCE_CLEANUP: 'stream.force_cleanup',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -71,6 +72,7 @@ export const SPAN_KEYS = {
   TOOL_PURPOSE: 'tool.purpose',
   TOOL_NAME: 'tool.name',
   TOOL_CALL_ID: 'tool.callId',
+  TOOL_APPROVAL_REASON: 'tool.approval.reason',
 
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
@@ -108,6 +110,7 @@ export const SPAN_KEYS = {
 
   // Trigger/Invocation attributes
   INVOCATION_TYPE: 'invocation.type',
+  INVOCATION_ENTRY_POINT: 'invocation.entryPoint',
   TRIGGER_ID: 'trigger.id',
   TRIGGER_INVOCATION_ID: 'trigger.invocation.id',
 
@@ -118,6 +121,10 @@ export const SPAN_KEYS = {
   ARTIFACT_DATA: 'artifact.data',
   ARTIFACT_NAME: 'artifact.name',
   ARTIFACT_DESCRIPTION: 'artifact.description',
+  ARTIFACT_IS_OVERSIZED: 'artifact.is_oversized',
+  ARTIFACT_RETRIEVAL_BLOCKED: 'artifact.retrieval_blocked',
+  ARTIFACT_ORIGINAL_TOKEN_SIZE: 'artifact.original_token_size',
+  ARTIFACT_CONTEXT_WINDOW_SIZE: 'artifact.context_window_size',
 
   // Context breakdown attributes (estimated token counts)
   CONTEXT_BREAKDOWN_SYSTEM_TEMPLATE: 'context.breakdown.system_template_tokens',
@@ -132,9 +139,43 @@ export const SPAN_KEYS = {
   CONTEXT_BREAKDOWN_THINKING_PREPARATION: 'context.breakdown.thinking_preparation_tokens',
   CONTEXT_BREAKDOWN_CONVERSATION_HISTORY: 'context.breakdown.conversation_history_tokens',
   CONTEXT_BREAKDOWN_TOTAL: 'context.breakdown.total_tokens',
+
+  // Compression telemetry
+  COMPRESSION_TYPE: 'compression.type',
+  COMPRESSION_SESSION_ID: 'compression.session_id',
+  COMPRESSION_MESSAGE_COUNT: 'compression.message_count',
+  COMPRESSION_BASE_CONTEXT_TOKENS: 'compression.base_context_tokens',
+  COMPRESSION_GENERATED_TOKENS: 'compression.generated_tokens',
+  COMPRESSION_TOTAL_CONTEXT_TOKENS: 'compression.total_context_tokens',
+  COMPRESSION_HARD_LIMIT: 'compression.hard_limit',
+  COMPRESSION_TRIGGER_AT: 'compression.trigger_at',
+  COMPRESSION_SAFETY_BUFFER: 'compression.safety_buffer',
+  COMPRESSION_OVERAGE: 'compression.overage',
+  COMPRESSION_SUCCESS: 'compression.success',
+  COMPRESSION_ERROR: 'compression.error',
+  COMPRESSION_RESULT_ARTIFACT_COUNT: 'compression.result.artifact_count',
+  COMPRESSION_RESULT_ARTIFACT_IDS: 'compression.result.artifact_ids',
+  COMPRESSION_RESULT_OUTPUT_TOKENS: 'compression.result.output_tokens',
+  COMPRESSION_RESULT_COMPRESSION_RATIO: 'compression.result.compression_ratio',
+  COMPRESSION_RESULT_HIGH_LEVEL: 'compression.result.high_level',
+  COMPRESSION_RESULT_USER_INTENT: 'compression.result.user_intent',
+  COMPRESSION_RESULT_DECISIONS_COUNT: 'compression.result.decisions_count',
+  COMPRESSION_RESULT_NEXT_STEPS_FOR_AGENT_COUNT: 'compression.result.next_steps_for_agent_count',
+  COMPRESSION_RESULT_OPEN_QUESTIONS_COUNT: 'compression.result.open_questions_count',
+  COMPRESSION_RESULT_RELATED_ARTIFACT_COUNT: 'compression.result.related_artifact_count',
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
   AGENT_STEPS_COMPLETED: 'agent.steps_completed',
   AGENT_MAX_STEPS: 'agent.max_steps',
+
+  // Generation timeout attributes
+  GENERATION_TIMEOUT_MS: 'generation.timeout_ms',
+
+  // Stream lifetime attributes
+  STREAM_CLEANUP_REASON: 'stream.cleanup.reason',
+  STREAM_MAX_LIFETIME_MS: 'stream.max_lifetime_ms',
+  STREAM_BUFFER_SIZE_BYTES: 'stream.buffer_size_bytes',
+  STREAM_SENT_ITEMS_COUNT: 'stream.sent_items_count',
+  STREAM_COMPLETED_ITEMS_COUNT: 'stream.completed_items_count',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;
@@ -154,6 +195,7 @@ export const ACTIVITY_TYPES = {
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
   COMPRESSION: 'compression',
   MAX_STEPS_REACHED: 'max_steps_reached',
+  STREAM_LIFETIME_EXCEEDED: 'stream_lifetime_exceeded',
 } as const;
 
 /** Activity Status Values */

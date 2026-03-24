@@ -1,6 +1,7 @@
 services:
   doltgres-db:
     image: dolthub/doltgresql:latest
+    pull_policy: always
     restart: unless-stopped
     environment:
       DOLTGRES_USER: appuser
@@ -77,6 +78,13 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+
+  mailpit:
+    image: axllent/mailpit:v1.29.2
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+    restart: unless-stopped
 
 volumes:
   doltgres-data:

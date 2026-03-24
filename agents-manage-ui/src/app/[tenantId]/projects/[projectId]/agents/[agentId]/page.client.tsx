@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Background,
   ConnectionMode,
@@ -15,7 +16,7 @@ import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { type ComponentProps, type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
+import { EdgeType, edgeTypes } from '@/components/agent/configuration/edge-types';
 import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
@@ -36,9 +37,10 @@ import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loadin
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
+import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
+import { useAnimateGraph } from '@/components/agent/use-animate-graph';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
-import { useProjectPermissions } from '@/contexts/project';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
@@ -50,29 +52,15 @@ import {
   validateSerializedData,
 } from '@/features/agent/domain';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
-import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
-import { fetchToolsAction } from '@/lib/actions/tools';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { Credential } from '@/lib/api/credentials';
-import type { DataComponent } from '@/lib/api/data-components';
-import type { ExternalAgent } from '@/lib/api/external-agents';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { saveAgent } from '@/lib/services/save-agent';
-import type {
-  AgentToolConfig,
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfig,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfig,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
-import type { MCPTool } from '@/lib/types/tools';
-import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
@@ -88,9 +76,7 @@ const Playground = dynamic(
 
 const CopilotChat = dynamic(
   () => import('@/components/agent/copilot/copilot-chat').then((mod) => mod.CopilotChat),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 
 function getEdgeId(a: string, b: string) {
@@ -100,11 +86,6 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  dataComponentLookup?: Record<string, DataComponent>;
-  artifactComponentLookup?: Record<string, ArtifactComponent>;
-  toolLookup?: Record<string, MCPTool>;
-  credentialLookup?: Record<string, Credential>;
-  sandboxEnabled: boolean;
 }
 
 type ReactFlowProps = ComponentProps<typeof ReactFlow>;
@@ -120,14 +101,7 @@ const nonValidationErrors = new Set([
   'bad_request',
 ]);
 
-export const Agent: FC<AgentProps> = ({
-  agent,
-  dataComponentLookup = {},
-  artifactComponentLookup = {},
-  toolLookup = {},
-  credentialLookup = {},
-  sandboxEnabled,
-}) => {
+export const Agent: FC<AgentProps> = ({ agent }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
@@ -135,16 +109,13 @@ export const Agent: FC<AgentProps> = ({
     isCopilotConfigured,
     isStreaming: isCopilotStreaming,
   } = useCopilotContext();
-
-  const { canEdit } = useProjectPermissions();
-
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const queryClient = useQueryClient();
   const router = useRouter();
-
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
+  const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
   const initialNode: Node = {
@@ -155,137 +126,9 @@ export const Agent: FC<AgentProps> = ({
     deletable: false,
   };
 
-  const initialNodes = [initialNode];
-
-  // Helper to enrich MCP nodes with tool data
-  const enrichNodes = (nodes: Node[]): Node[] => {
-    return nodes.map((node) => {
-      if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
-        const tool = toolLookup[node.data.toolId as string];
-        if (tool) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              name: tool.name,
-              imageUrl: tool.imageUrl,
-            },
-          };
-        }
-      }
-      return node;
-    });
-  };
-
-  const result = agent ? deserializeAgentData(agent) : { nodes: initialNodes, edges: initialEdges };
-
-  const agentNodes = nodeId
-    ? enrichNodes(result.nodes).map((node) => ({
-        ...node,
-        selected: node.id === nodeId,
-      }))
-    : enrichNodes(result.nodes);
-
-  const agentEdges = edgeId
-    ? result.edges.map((edge) => ({
-        ...edge,
-        selected: edge.id === edgeId,
-      }))
-    : result.edges;
-
-  // Helper functions to compute lookups from agent data
-  const computeAgentToolConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
-  ): AgentToolConfigLookup => {
-    if (!agentData?.subAgents) return {} as AgentToolConfigLookup;
-
-    const lookup: AgentToolConfigLookup = {};
-    Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-      if (subAgentData?.canUse) {
-        const toolsMap: Record<string, AgentToolConfig> = {};
-        subAgentData.canUse.forEach((tool) => {
-          if (tool.agentToolRelationId) {
-            const config: AgentToolConfig = {
-              toolId: tool.toolId,
-            };
-
-            if (tool.toolSelection !== undefined) {
-              config.toolSelection = tool.toolSelection;
-            }
-
-            if (tool.headers) {
-              config.headers = tool.headers;
-            }
-
-            if (tool.toolPolicies) {
-              config.toolPolicies = tool.toolPolicies;
-            }
-
-            toolsMap[tool.agentToolRelationId] = config;
-          }
-        });
-        if (Object.keys(toolsMap).length > 0) {
-          lookup[subAgentId] = toolsMap;
-        }
-      }
-    });
-    return lookup;
-  };
-
-  const computeSubAgentExternalAgentConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
-  ): SubAgentExternalAgentConfigLookup => {
-    if (!agentData?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
-    const lookup: SubAgentExternalAgentConfigLookup = {};
-    Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-      if (subAgentData && 'canDelegateTo' in subAgentData && subAgentData.canDelegateTo) {
-        const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
-        subAgentData.canDelegateTo
-          .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
-          .forEach((delegate) => {
-            externalAgentConfigs[delegate.externalAgentId] = {
-              externalAgentId: delegate.externalAgentId,
-              headers: delegate.headers ?? undefined,
-            };
-          });
-        if (Object.keys(externalAgentConfigs).length > 0) {
-          lookup[subAgentId] = externalAgentConfigs;
-        }
-      }
-    });
-    return lookup;
-  };
-
-  const agentToolConfigLookup = computeAgentToolConfigLookup(agent);
-
-  const subAgentExternalAgentConfigLookup = computeSubAgentExternalAgentConfigLookup(agent);
-
-  const subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup = (() => {
-    if (!agent.subAgents) return {};
-    const lookup: SubAgentTeamAgentConfigLookup = {};
-    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
-      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
-        const teamAgentConfigs: Record<string, SubAgentTeamAgentConfig> = {};
-        agentData.canDelegateTo
-          .filter((delegate) => typeof delegate === 'object' && 'agentId' in delegate)
-          .forEach((delegate) => {
-            // For team agents, the delegate is just the target agent ID string
-            teamAgentConfigs[delegate.agentId] = {
-              agentId: delegate.agentId,
-              headers: delegate.headers ?? undefined,
-            };
-          });
-        if (Object.keys(teamAgentConfigs).length > 0) {
-          lookup[subAgentId] = teamAgentConfigs;
-        }
-      }
-    });
-    return lookup;
-  })();
-
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
-  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
-    storeNodes: state.nodes,
+  const { nodes, edges, metadata } = useAgentStore((state) => ({
+    nodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
   }));
@@ -300,12 +143,7 @@ export const Agent: FC<AgentProps> = ({
     clearSelection,
     markUnsaved,
     reset,
-    animateGraph,
   } = useAgentActions();
-  const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
-
-  // Always use enriched nodes for ReactFlow
-  const nodes = enrichNodes(storeNodes);
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
   const onAddInitialNode = () => {
@@ -315,7 +153,7 @@ export const Agent: FC<AgentProps> = ({
     };
     clearSelection();
     markUnsaved();
-    commandManager.execute(new AddNodeCommand(newNode as Node));
+    commandManager.execute(new AddNodeCommand(newNode));
     // Wait for sidebar to open (350ms for CSS transition) then center the node
     setTimeout(() => {
       fitView({
@@ -328,15 +166,23 @@ export const Agent: FC<AgentProps> = ({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
-    setInitial(
-      agentNodes,
-      agentEdges,
-      extractAgentMetadata(agent),
-      dataComponentLookup,
-      artifactComponentLookup,
-      toolLookup,
-      agentToolConfigLookup
-    );
+    const result = deserializeAgentData(agent);
+
+    const agentNodes = nodeId
+      ? result.nodes.map((node) => ({
+          ...node,
+          selected: node.id === nodeId,
+        }))
+      : result.nodes;
+
+    const agentEdges = edgeId
+      ? result.edges.map((edge) => ({
+          ...edge,
+          selected: edge.id === edgeId,
+        }))
+      : result.edges;
+
+    setInitial(agentNodes, agentEdges, extractAgentMetadata(agent));
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
     // Only auto-add if user has edit permission
@@ -344,16 +190,6 @@ export const Agent: FC<AgentProps> = ({
       onAddInitialNode();
     }
 
-    return () => {
-      // we need to reset the agent store when the component unmounts otherwise the agent store will persist the changes from the previous agent
-      reset();
-      // Also reset the project store to prevent stale data
-      resetProjectStore();
-    };
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
-  useEffect(() => {
     // If the nodeId or edgeId in URL doesn't exist in the agent, clear it
     if (nodeId && !agentNodes.some((node) => node.id === nodeId)) {
       setQueryState((prev) => ({
@@ -369,6 +205,11 @@ export const Agent: FC<AgentProps> = ({
         pane: 'agent',
       }));
     }
+
+    return () => {
+      // we need to reset the agent store when the component unmounts otherwise the agent store will persist the changes from the previous agent
+      reset();
+    };
   }, []);
 
   // Auto-center agent when sidepane opens/closes
@@ -404,11 +245,9 @@ export const Agent: FC<AgentProps> = ({
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doRequest(): Promise<void> {
-      const [fullProjectResult, toolsResult] = await Promise.all([
+      const [fullProjectResult] = await Promise.all([
         getFullProjectAction(tenantId, projectId),
-        options?.fetchTools
-          ? fetchToolsAction(tenantId, projectId, { skipDiscovery: true })
-          : Promise.resolve(null),
+        options?.fetchTools ? refetchMcpTools() : Promise.resolve(null),
       ]);
 
       if (!fullProjectResult.success) {
@@ -419,11 +258,6 @@ export const Agent: FC<AgentProps> = ({
       const updatedAgent = fullProject?.agents?.[
         agent.id as keyof typeof fullProject.agents
       ] as ExtendedFullAgentDefinition;
-
-      // Update tool lookup if tools were fetched
-      const updatedToolLookup = toolsResult?.success
-        ? createLookup(toolsResult.data)
-        : fullProject.tools || {};
 
       // Deserialize agent data to nodes and edges
       const { nodes, edges } = deserializeAgentData(updatedAgent);
@@ -446,33 +280,12 @@ export const Agent: FC<AgentProps> = ({
       // Extract metadata
       const metadata = extractAgentMetadata(updatedAgent);
 
-      // Create lookups from full project data
-      const updatedDataComponentLookup = fullProject.dataComponents || {};
-      const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
-      const updatedExternalAgentLookup = fullProject.externalAgents || {};
-
-      // Recompute agent-specific lookups from the updated agent data
-      const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
-      const updatedSubAgentExternalAgentConfigLookup =
-        computeSubAgentExternalAgentConfigLookup(updatedAgent);
-
       // Update the store with all refreshed data
-      setInitial(
-        enrichNodes(nodesWithSelection),
-        edgesWithSelection,
-        metadata,
-        updatedDataComponentLookup as Record<string, DataComponent>,
-        updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
-        updatedToolLookup as unknown as Record<string, MCPTool>,
-        updatedAgentToolConfigLookup,
-        updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
-        updatedSubAgentExternalAgentConfigLookup
-      );
+      setInitial(nodesWithSelection, edgesWithSelection, metadata);
 
-      // Update project data in store so components using useProjectData get fresh data
+      // Update project data in React Query cache so components using useProjectQuery get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);
-
-      setProjectStore(convertedProject);
+      queryClient.setQueryData(projectQueryKeys.detail(tenantId, projectId), convertedProject);
     }
 
     try {
@@ -564,11 +377,13 @@ export const Agent: FC<AgentProps> = ({
     ) {
       const targetNode = nodes.find((n) => n.id === params.target);
       if (targetNode && targetNode.type === NodeType.MCP) {
-        const subAgentId = params.source;
+        if (edges.some((edge) => edge.target === targetNode.id)) {
+          toast.error('This MCP tool is already connected. Connect to a new MCP server node.');
+          return;
+        }
         updateNodeData(targetNode.id, {
           ...targetNode.data,
-          subAgentId,
-          relationshipId: null, // Will be set after saving to database
+          subAgentId: params.source,
         });
       }
     }
@@ -657,7 +472,7 @@ export const Agent: FC<AgentProps> = ({
     const targetNode = nodes.find(
       (node) =>
         node.id === nodeId || // Direct match (no custom ID set)
-        (node.data as any)?.id === nodeId // Custom agent ID match
+        node.data?.id === nodeId // Custom agent ID match
     );
 
     if (targetNode) {
@@ -705,16 +520,7 @@ export const Agent: FC<AgentProps> = ({
   const onSubmit = async (): Promise<boolean> => {
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
-      serializedData = serializeAgentData(
-        nodes,
-        edges,
-        metadata,
-        dataComponentLookup,
-        artifactComponentLookup,
-        agentToolConfigLookup,
-        subAgentExternalAgentConfigLookup,
-        subAgentTeamAgentConfigLookup
-      );
+      serializedData = serializeAgentData(nodes, edges, metadata);
     } catch (error) {
       if (isContextConfigParseError(error)) {
         const errorObjects = [
@@ -793,8 +599,9 @@ export const Agent: FC<AgentProps> = ({
                 const subAgentId = mcpNode.data.subAgentId;
                 const toolId = mcpNode.data.toolId;
 
-                if (res.data.subAgents[subAgentId]?.canUse) {
-                  const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
+                const savedSubAgent = res.data.subAgents[subAgentId];
+                if (savedSubAgent?.canUse) {
+                  const matchingRelationship = savedSubAgent.canUse.find(
                     (tool: any) =>
                       tool.toolId === toolId &&
                       tool.agentToolRelationId &&
@@ -855,23 +662,7 @@ export const Agent: FC<AgentProps> = ({
     return false;
   };
 
-  useEffect(() => {
-    const onCompletion = () => {
-      // @ts-expect-error
-      animateGraph({
-        detail: {
-          type: 'completion',
-        },
-      });
-    };
-
-    document.addEventListener('ikp-data-operation', animateGraph);
-    document.addEventListener('ikp-aborted', onCompletion);
-    return () => {
-      document.removeEventListener('ikp-data-operation', animateGraph);
-      document.removeEventListener('ikp-aborted', onCompletion);
-    };
-  }, []);
+  useAnimateGraph();
 
   const onNodeClick: ReactFlowProps['onNodeClick'] = (_, node) => {
     if (isOpen) {
@@ -889,8 +680,7 @@ export const Agent: FC<AgentProps> = ({
   const [showTraces, setShowTraces] = useState(false);
   const isMounted = useIsMounted();
 
-  const showEmptyState =
-    nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
+  const showEmptyState = !nodes.length && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
 
   return (
     <ResizablePanelGroup
@@ -963,7 +753,7 @@ export const Agent: FC<AgentProps> = ({
           <Controls className="text-foreground" showInteractive={false} />
           {!showEmptyState && canEdit && (
             <Panel position="top-left">
-              <NodeLibrary sandboxEnabled={sandboxEnabled} />
+              <NodeLibrary />
             </Panel>
           )}
 
@@ -975,8 +765,8 @@ export const Agent: FC<AgentProps> = ({
           {!showEmptyState && (
             <Panel
               position="top-right"
-              // width of NodeLibrary
-              className="left-40"
+              // width of NodeLibrary; pointer-events-none so handles below are reachable
+              className="left-40 pointer-events-none"
             >
               <Toolbar
                 onSubmit={onSubmit}
@@ -1024,12 +814,6 @@ export const Agent: FC<AgentProps> = ({
                 selectedEdgeId={edgeId}
                 onClose={closeSidePane}
                 backToAgent={backToAgent}
-                dataComponentLookup={dataComponentLookup}
-                artifactComponentLookup={artifactComponentLookup}
-                agentToolConfigLookup={agentToolConfigLookup}
-                subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-                subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-                credentialLookup={credentialLookup}
                 disabled={isCopilotStreaming || !canEdit}
               />
             </ResizablePanel>
@@ -1052,7 +836,6 @@ export const Agent: FC<AgentProps> = ({
               tenantId={tenantId}
               setShowPlayground={setShowPlayground}
               closeSidePane={closeSidePane}
-              dataComponentLookup={dataComponentLookup}
               showTraces={showTraces}
               setShowTraces={setShowTraces}
             />

@@ -30,14 +30,13 @@ import {
 import { createEvaluationSuiteConfigAction } from '@/lib/actions/evaluation-suite-configs';
 import type { ActionResult } from '@/lib/actions/types';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
-import type { Evaluator } from '@/lib/api/evaluators';
 import { useAgentsQuery } from '@/lib/query/agents';
 import {
   useEvaluationSuiteConfigEvaluatorsQuery,
   useEvaluationSuiteConfigQuery,
 } from '@/lib/query/evaluation-suite-configs';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
-import type { Agent } from '@/lib/types/agent-full';
+import { createLookup } from '@/lib/utils';
 
 const evaluationRunConfigSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -157,17 +156,10 @@ export function EvaluationRunConfigFormDialog({
     });
   }, [isOpen, initialData, form, suiteConfigForm]);
 
-  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
-    acc[evaluator.id] = evaluator;
-    return acc;
-  }, {});
+  const evaluatorLookup = createLookup(evaluators);
+  const agentLookup = createLookup(agents);
 
-  const agentLookup = agents.reduce<Record<string, Agent>>((acc, agent) => {
-    acc[agent.id] = agent;
-    return acc;
-  }, {});
   const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
-  const suiteEvaluatorIds = useWatch({ control: suiteConfigForm.control, name: 'evaluatorIds' });
   const { isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -215,7 +207,6 @@ export function EvaluationRunConfigFormDialog({
       }
 
       if (result.success) {
-        console.log('Run config created/updated successfully');
         toast.success(`Continuous test ${runConfigId ? 'updated' : 'created'}`);
         form.reset();
         suiteConfigForm.reset();
@@ -227,10 +218,7 @@ export function EvaluationRunConfigFormDialog({
         }
         // Call success callback to refresh data
         if (onSuccess) {
-          console.log('Calling onSuccess callback');
           onSuccess();
-        } else {
-          console.log('No onSuccess callback provided');
         }
         // Also refresh router for server components
         router.refresh();
@@ -333,12 +321,12 @@ export function EvaluationRunConfigFormDialog({
               <FormField
                 control={suiteConfigForm.control}
                 name="evaluatorIds"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FormLabel isRequired>Evaluators</FormLabel>
-                        <Badge variant="count">{suiteEvaluatorIds.length}</Badge>
+                        <Badge variant="count">{field.value.length}</Badge>
                       </div>
                       <Link
                         href={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
@@ -353,10 +341,8 @@ export function EvaluationRunConfigFormDialog({
                     <ComponentSelector
                       label=""
                       componentLookup={evaluatorLookup}
-                      selectedComponents={suiteEvaluatorIds}
-                      onSelectionChange={(newSelection) => {
-                        suiteConfigForm.setValue('evaluatorIds', newSelection);
-                      }}
+                      selectedComponents={field.value}
+                      onSelectionChange={field.onChange}
                       emptyStateMessage="No evaluators available."
                       emptyStateActionText="Create evaluator"
                       emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}

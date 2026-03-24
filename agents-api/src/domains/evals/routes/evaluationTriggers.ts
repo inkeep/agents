@@ -1,23 +1,23 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   createEvaluationRun,
   generateId,
   getConversation,
-  getEvaluationSuiteConfigById,
-  getEvaluationSuiteConfigEvaluatorRelations,
   getEvaluatorsByIds,
-  listEvaluationRunConfigsWithSuiteConfigs,
   type ResolvedRef,
   TenantProjectParamsSchema,
   TriggerEvaluationJobSchema,
   withRef,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { start } from 'workflow/api';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { evalApiKeyAuth } from '../../../middleware/evalsAuth';
+import { triggerConversationEvaluation } from '../services/conversationEvaluation';
 import { queueEvaluationJobConversations } from '../services/evaluationJob';
 import { evaluateConversationWorkflow } from '../workflow';
 
@@ -29,12 +29,13 @@ const TriggerConversationSchema = z.object({
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/evaluate-conversation',
     summary: 'Trigger evaluation on a single conversation',
     operationId: 'evaluate-conversation',
     tags: ['Evaluations'],
+    permission: evalApiKeyAuth(),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -63,171 +64,41 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const body = c.req.valid('json');
+    const { conversationId } = c.req.valid('json');
     const resolvedRef = c.get('resolvedRef');
 
-    const { conversationId } = body;
-
     try {
-      logger.info(
-        { tenantId, projectId, conversationId },
-        'Triggering conversation evaluation (eval-api handling all logic)'
-      );
-
-      // Get the conversation
-      const conversation = await getConversation(runDbClient)({
-        scopes: { tenantId, projectId },
+      const result = await triggerConversationEvaluation({
+        tenantId,
+        projectId,
         conversationId,
+        resolvedRef,
       });
 
-      if (!conversation) {
-        logger.warn({ conversationId }, 'Conversation not found');
-        return c.json(
-          createApiError({
-            code: 'not_found',
-            message: 'Conversation not found',
-          }),
-          404
-        ) as any;
-      }
-
-      // Get all active evaluation run configs
-      // const allRunConfigs = await client.listEvaluationRunConfigs();
-      const configs = await withRef(manageDbPool, resolvedRef, (db) =>
-        listEvaluationRunConfigsWithSuiteConfigs(db)({
-          scopes: { tenantId, projectId },
-        })
-      );
-
-      const runConfigs = configs.filter((config) => config.isActive);
-
-      if (runConfigs.length === 0) {
-        logger.debug({ tenantId, projectId }, 'No active evaluation run configs found');
-        return c.json({
-          success: true,
-          message: 'No active evaluation run configs',
-          evaluationsTriggered: 0,
-        });
-      }
-
-      let evaluationsTriggered = 0;
-
-      for (const runConfig of runConfigs) {
-        // Check if run config matches conversation (using filters)
-        // For now, we match all - can add filter logic later if needed
-
-        for (const suiteConfigId of runConfig.suiteConfigIds) {
-          const suiteConfig = await withRef(manageDbPool, resolvedRef, (db) =>
-            getEvaluationSuiteConfigById(db)({
-              scopes: { tenantId, projectId, evaluationSuiteConfigId: suiteConfigId },
-            })
-          );
-
-          if (!suiteConfig) {
-            logger.warn({ suiteConfigId }, 'Suite config not found, skipping');
-            continue;
-          }
-
-          // Apply sample rate check
-          if (suiteConfig.sampleRate !== null && suiteConfig.sampleRate !== undefined) {
-            const random = Math.random();
-            if (random > suiteConfig.sampleRate) {
-              logger.info(
-                {
-                  suiteConfigId: suiteConfig.id,
-                  sampleRate: suiteConfig.sampleRate,
-                  random,
-                  conversationId,
-                },
-                'Conversation filtered out by sample rate'
-              );
-              continue;
-            }
-          }
-
-          // Get evaluators for this suite config
-          const evaluatorRelations = await withRef(manageDbPool, resolvedRef, (db) =>
-            getEvaluationSuiteConfigEvaluatorRelations(db)({
-              scopes: { tenantId, projectId, evaluationSuiteConfigId: suiteConfigId },
-            })
-          );
-
-          const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
-
-          if (evaluatorIds.length === 0) continue;
-
-          // Create evaluation run
-          const evaluationRunId = generateId();
-          await createEvaluationRun(runDbClient)({
-            id: evaluationRunId,
-            tenantId,
-            projectId,
-            evaluationRunConfigId: runConfig.id,
-          });
-
-          logger.info(
-            {
-              conversationId,
-              runConfigId: runConfig.id,
-              evaluationRunId,
-              evaluatorCount: evaluatorIds.length,
-              sampleRate: suiteConfig.sampleRate,
-            },
-            'Created evaluation run, starting workflow'
-          );
-
-          // Start the evaluation workflow
-          await start(evaluateConversationWorkflow, [
-            {
-              tenantId,
-              projectId,
-              conversationId,
-              evaluatorIds,
-              evaluationRunId,
-            },
-          ]);
-
-          evaluationsTriggered++;
-        }
-      }
-
-      return c.json({
-        success: true,
-        message:
-          evaluationsTriggered > 0
-            ? `Triggered ${evaluationsTriggered} evaluation(s)`
-            : 'No evaluations matched (filtered by sample rate or no evaluators)',
-        evaluationsTriggered,
-      });
+      return c.json(result);
     } catch (error: any) {
-      logger.error(
-        {
-          error,
-          errorStack: error?.stack,
-          tenantId,
-          projectId,
-          conversationId,
-        },
-        'Failed to trigger conversation evaluation'
-      );
+      const message = error?.message || 'Failed to trigger evaluation';
+      const isNotFound = message.includes('Conversation not found');
+
       return c.json(
         createApiError({
-          code: 'internal_server_error',
-          message: error?.message || 'Failed to trigger evaluation',
+          code: isNotFound ? 'not_found' : 'internal_server_error',
+          message,
         }),
-        500
+        isNotFound ? 404 : 500
       ) as any;
     }
   }
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/evaluate-conversations',
     summary: 'Trigger evaluations on conversations with specified evaluators',
     operationId: 'start-conversations-evaluations',
     tags: ['Evaluations'],
+    permission: evalApiKeyAuth(),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -310,6 +181,7 @@ app.openapi(
         id: evaluationRunId,
         tenantId,
         projectId,
+        ref: resolvedRef,
       });
 
       // Trigger evaluations via Workflow
@@ -358,10 +230,11 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/evaluate-conversations-by-job',
     summary: 'Trigger evaluations on conversations by evaluation job config',
+    permission: evalApiKeyAuth(),
     description:
       'Filters conversations based on job filters, creates an evaluation run, and enqueues workflows',
     operationId: 'evaluate-conversations-by-job',
@@ -411,6 +284,7 @@ app.openapi(
           evaluationJobConfigId,
           evaluatorIds,
           jobFilters,
+          resolvedRef: c.get('resolvedRef'),
         });
 
       logger.info(

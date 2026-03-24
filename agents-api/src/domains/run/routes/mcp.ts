@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import type { FullExecutionContext } from '@inkeep/agents-core';
 import {
   type CredentialStoreRegistry,
@@ -11,6 +11,7 @@ import {
   HeadersScopeSchema,
   updateConversation,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -20,7 +21,7 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { createMCPStreamHelper } from '../utils/stream-helpers';
+import { createMCPStreamHelper } from '../stream/stream-helpers';
 
 const logger = getLogger('mcp');
 
@@ -214,16 +215,17 @@ const processUserMessage = async (
     });
   }
   await createMessage(runDbClient)({
-    id: generateId(),
-    tenantId,
-    projectId,
-    conversationId,
-    role: 'user',
-    content: {
-      text: query,
+    scopes: { tenantId, projectId },
+    data: {
+      id: generateId(),
+      conversationId,
+      role: 'user',
+      content: {
+        text: query,
+      },
+      visibility: 'user-facing',
+      messageType: 'chat',
     },
-    visibility: 'user-facing',
-    messageType: 'chat',
   });
 };
 
@@ -615,13 +617,14 @@ const createErrorResponse = (code: number, message: string, id: any = null) => (
 });
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     tags: ['MCP'],
     summary: 'MCP Protocol',
     description: 'Handles Model Context Protocol (MCP) JSON-RPC requests',
     security: [{ bearerAuth: [] }],
+    permission: inheritedRunApiKeyAuth(),
     request: {
       headers: HeadersScopeSchema,
     },

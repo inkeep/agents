@@ -14,8 +14,9 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    # --- Phase 1: Cache + install (no dependencies) ---
     - name: Setup Cypress cache
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: ~/.cache/Cypress
         key: ${{ runner.os }}-cypress-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -23,17 +24,78 @@ runs:
 
     - name: Install Cypress binary
       shell: bash
-      run: cd agents-manage-ui && npx cypress install
+      run: cd agents-manage-ui && pnpm exec cypress install
 
-    - run: pnpm setup-dev
+    # --- Phase 2: Build while DB initializes ---
+    - name: Build agents-core (required by setup-dev.js)
       shell: bash
+      run: pnpm exec turbo run build --filter=@inkeep/agents-core
+
+    - name: Wait for DoltGres to be fully initialized
+      shell: bash
+      run: |
+        echo "Waiting for DoltGres system tables to be available..."
+        for i in $(seq 1 30); do
+          if PGPASSWORD=password psql -h localhost -p 5432 -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' 2>/dev/null; then
+            echo "DoltGres is ready!"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Timeout waiting for DoltGres after 60 seconds"
+            exit 1
+          fi
+          echo "  Attempt $i/30..."
+          sleep 2
+        done
+
+    # --- Phase 3: DB setup ---
+    - name: Setup development environment
+      shell: bash
+      env:
+        ENVIRONMENT: development
+      run: pnpm setup-dev --skip-push
+
+    - name: Export generated secrets to GITHUB_ENV
+      shell: bash
+      run: |
+        # setup-dev generated fresh secrets in .env — export only the ones needed
+        # by subsequent steps (project push, Cypress login). The API server reads
+        # .env from disk via findUpSync so it doesn't need $GITHUB_ENV.
+        # IMPORTANT: Do not export all .env vars — extra env vars in $GITHUB_ENV
+        # leak into the Next.js build and cause prerender failures.
+        grep -E '^(BETTER_AUTH_SECRET|INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET|INKEEP_AGENTS_MANAGE_UI_USERNAME|INKEEP_AGENTS_MANAGE_UI_PASSWORD)=' .env >> "$GITHUB_ENV"
+
+    # --- Phase 4: Dashboard build + API startup (reordered) ---
+    - name: Build dashboard and monorepo dependencies
+      shell: bash
+      env:
+        # Next.js prerender executes server components at build time. With
+        # ENVIRONMENT=development, agents-core's ref-scope.ts attempts real DB
+        # queries during prerender (doltStatus().length), which fails.
+        # ENVIRONMENT=test makes ref-scope take an early-return path that skips
+        # DB operations — correct for a build step that should never hit the DB.
+        ENVIRONMENT: test
+      run: pnpm exec turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-sdk'
+
+    - name: Write AI provider keys to .env
+      shell: bash
+      run: |
+        # Append AI provider API keys from the workflow env into .env so the API
+        # server picks them up via loadEnvironmentFiles(). We cannot export them
+        # to $GITHUB_ENV because that leaks into the Next.js build step.
+        if [ -n "$ANTHROPIC_API_KEY" ]; then
+          sed -i "s|^ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}|" .env
+          echo "Wrote ANTHROPIC_API_KEY to .env"
+        fi
 
     - name: Start backend API server
       shell: bash
       env:
-        INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
-        BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
-      run: pnpm dev --filter='@inkeep/agents-api' & # & means run job in background
+        ENVIRONMENT: development
+      run: |
+        # Start API server and capture logs using nohup to ensure child process output is captured
+        nohup pnpm exec turbo dev --filter='@inkeep/agents-api' > /tmp/api-server.log 2>&1 &
+        echo "API server started with PID $!"
 
     - name: Wait for API server to be ready
       shell: bash
@@ -56,32 +118,58 @@ runs:
           elapsed=$((elapsed + 2))
         done
 
-    - name: Build dashboard and cookbook monorepo dependencies
-      shell: bash
-      run: npx turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-core' --filter='@inkeep/agents-sdk'
-
-    - name: Push Weather Example Project
+    # --- Phase 5: Seed + test ---
+    - name: Push Activities Planner Project
       shell: bash
       env:
         INKEEP_API_KEY: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
-      run: cd agents-cookbook/template-projects && npx inkeep push --project weather-project
+      run: |
+        max_attempts=3
+        attempt=1
+        while [ $attempt -le $max_attempts ]; do
+          echo "Push attempt $attempt/$max_attempts..."
+          if cd agents-cookbook/template-projects && npx inkeep push --project activities-planner; then
+            echo "Push succeeded on attempt $attempt"
+            exit 0
+          fi
+          echo "Push failed, retrying in $((attempt * 5)) seconds..."
+          sleep $((attempt * 5))
+          cd "$GITHUB_WORKSPACE"
+          attempt=$((attempt + 1))
+        done
+        echo "::error::Push failed after $max_attempts attempts"
+        exit 1
 
     - name: Run Cypress E2E Tests
       shell: bash
+      env:
+        CYPRESS_E2E_PROJECT_ID: activities-planner
+        CYPRESS_E2E_AGENT_ID: friendly-agent
       run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
 
     - name: Upload Cypress Screenshots
-      if: failure()
-      uses: actions/upload-artifact@v4
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: cypress-screenshots
         path: agents-manage-ui/cypress/screenshots
+        if-no-files-found: ignore
         retention-days: 7
 
     - name: Upload Cypress Videos
-      if: failure()
-      uses: actions/upload-artifact@v4
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
+        if-no-files-found: ignore
+        retention-days: 7
+
+    - name: Upload API Server Logs
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: api-server-logs
+        path: /tmp/api-server.log
+        if-no-files-found: ignore
         retention-days: 7

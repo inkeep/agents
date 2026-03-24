@@ -1,3 +1,4 @@
+'use server';
 /**
  * API Client for Agent Full Operations
  *
@@ -6,6 +7,7 @@
  */
 
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
+import { cache } from 'react';
 import type {
   Agent,
   CreateAgentResponse,
@@ -15,15 +17,11 @@ import type {
   UpdateAgentResponse,
   UpdateFullAgentResponse,
 } from '../types/agent-full';
-import { ApiError } from '../types/errors';
 import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
-export async function fetchAgents(
-  tenantId: string,
-  projectId: string
-): Promise<ListResponse<Agent>> {
+async function $fetchAgents(tenantId: string, projectId: string): Promise<ListResponse<Agent>> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
@@ -31,6 +29,8 @@ export async function fetchAgents(
     `tenants/${tenantId}/projects/${projectId}/agents?limit=100`
   );
 }
+
+export const fetchAgents = cache($fetchAgents);
 
 export async function createAgent(
   tenantId: string,
@@ -92,7 +92,7 @@ export async function createFullAgent(
 /**
  * Get a full agent by ID
  */
-export async function getFullAgent(
+async function $getFullAgent(
   tenantId: string,
   projectId: string,
   agentId: string
@@ -107,6 +107,8 @@ export async function getFullAgent(
     }
   );
 }
+
+export const getFullAgent = cache($getFullAgent);
 
 /**
  * Update or create a full agent (upsert)
@@ -144,6 +146,3 @@ export async function deleteFullAgent(
     method: 'DELETE',
   });
 }
-
-// Export the error class for use in server actions
-export { ApiError };

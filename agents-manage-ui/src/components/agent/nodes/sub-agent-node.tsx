@@ -1,6 +1,5 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
-import { useMemo } from 'react';
 import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
@@ -10,7 +9,10 @@ import { STATIC_LABELS } from '@/constants/theme';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
-import { cn } from '@/lib/utils';
+import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { useProjectQuery } from '@/lib/query/projects';
+import { cn, createLookup } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
@@ -43,13 +45,17 @@ const ListSection = ({
 };
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
-  const { name, isDefault, description, models, status } = data;
-  const modelName = models?.base?.model;
+  'use memo';
+  const { name, isDefault, description, status } = data;
+  const { data: artifactComponents } = useArtifactComponentsQuery();
 
-  const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
-    dataComponentLookup: state.dataComponentLookup,
-    artifactComponentLookup: state.artifactComponentLookup,
-  }));
+  const agentModel = useAgentStore((state) => state.metadata.models);
+  const { data: project } = useProjectQuery();
+  const modelName = (data.models ?? agentModel ?? project?.models)?.base?.model ?? '';
+
+  const { data: dataComponents } = useDataComponentsQuery();
+  const dataComponentsById = createLookup(dataComponents);
+  const artifactComponentsById = createLookup(artifactComponents);
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
@@ -57,22 +63,22 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const nodeErrors = getNodeErrors(subAgentId);
   const hasErrors = hasNodeErrors(subAgentId);
 
-  const dataComponentNames = useMemo(
-    () =>
-      data?.dataComponents?.map((id: string) => dataComponentLookup[id]?.name).filter(Boolean) ||
-      [],
-    [data?.dataComponents, dataComponentLookup]
-  );
-  const artifactComponentNames = useMemo(
-    () =>
-      data?.artifactComponents
-        ?.map((id: string) => artifactComponentLookup[id]?.name)
-        .filter(Boolean) || [],
-    [data?.artifactComponents, artifactComponentLookup]
-  );
+  const dataComponentNames =
+    data.dataComponents?.map((id) => dataComponentsById[id]?.name).filter(Boolean) || [];
+  const artifactComponentNames =
+    data.artifactComponents?.map((id) => artifactComponentsById[id]?.name).filter(Boolean) || [];
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';
+
+  const [modelSlug] = modelName.split('/', 1);
+
+  const ModelIcon = {
+    openai: OpenAIIcon,
+    anthropic: AnthropicIcon,
+    google: GoogleIcon,
+  }[modelSlug];
+
   return (
     <div className="relative">
       {isDefault && <NodeTab isSelected={selected || isDelegating}>Default</NodeTab>}
@@ -104,18 +110,10 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
           >
             {description || 'No description'}
           </div>
-          {models && modelName ? (
-            <Badge className="text-xs max-w-full flex-1" variant="code">
-              {modelName?.startsWith('openai') ? (
-                <OpenAIIcon className="size-3 text-xs text-muted-foreground flex-shrink-0" />
-              ) : modelName?.startsWith('anthropic') ? (
-                <AnthropicIcon className="size-3 text-xs flex-shrink-0" />
-              ) : modelName?.startsWith('google') ? (
-                <GoogleIcon className="size-3 text-xs flex-shrink-0" />
-              ) : null}
-              <div className="truncate w-full">{modelName || ''}</div>
-            </Badge>
-          ) : null}
+          <Badge className="text-xs max-w-full" variant="code">
+            {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
+            <span className="truncate">{modelName}</span> {!data.models && '(inherited)'}
+          </Badge>
           {dataComponentNames?.length > 0 && (
             <ListSection
               title={STATIC_LABELS.components}

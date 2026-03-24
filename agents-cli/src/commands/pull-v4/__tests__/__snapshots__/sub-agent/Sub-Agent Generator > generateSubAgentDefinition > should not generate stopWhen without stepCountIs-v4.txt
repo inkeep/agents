@@ -1,0 +1,9 @@
+import { subAgent } from '@inkeep/agents-sdk';
+
+export const noStepCountAgent = subAgent({
+  id: 'no-step-agent',
+  prompt: 'I do not have step count.',
+  description: 'Agent without step count',
+  stopWhen: {},
+  name: 'No Step Count Agent',
+});

@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   changeProjectRole,
   commonGetErrorResponses,
@@ -8,6 +8,7 @@ import {
   ProjectRoles,
   revokeProjectAccess,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
@@ -46,13 +47,14 @@ const UpdateRoleSchema = z.object({
 
 // List project members - requires view permission
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Project Members',
-    description: 'List all users with explicit project access. Requires authz to be enabled.',
+    description: 'List all users with explicit project access.',
     operationId: 'list-project-members',
     tags: ['Project Members'],
+    permission: requireProjectPermission('view'),
     request: {
       params: ProjectMemberParamsSchema,
     },
@@ -85,23 +87,16 @@ app.openapi(
 );
 
 // Middleware: require edit permission for write operations (includes member management)
-app.use('/*', async (c, next) => {
-  // GET requests don't need edit permission (handled above)
-  if (c.req.method === 'GET') {
-    return next();
-  }
-  return requireProjectPermission('edit')(c, next);
-});
-
 // Add project member
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Add Project Member',
-    description: 'Add a user to a project with a specified role. Requires authz to be enabled.',
+    description: 'Add a user to a project with a specified role.',
     operationId: 'add-project-member',
     tags: ['Project Members'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: ProjectMemberParamsSchema,
       body: {
@@ -150,14 +145,15 @@ app.openapi(
 
 // Update project member role
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{userId}',
     summary: 'Update Project Member Role',
     description:
-      "Update a project member's role. Requires authz to be enabled. Include previousRole to specify which role to revoke.",
+      "Update a project member's role. Include previousRole to specify which role to revoke.",
     operationId: 'update-project-member',
     tags: ['Project Members'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: ProjectMemberUserParamsSchema,
       body: {
@@ -222,14 +218,15 @@ app.openapi(
 
 // Remove project member
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{userId}',
     summary: 'Remove Project Member',
     description:
-      'Remove a user from a project. Requires authz to be enabled. Pass role as query param to specify which role to revoke.',
+      'Remove a user from a project. Pass role as query param to specify which role to revoke.',
     operationId: 'remove-project-member',
     tags: ['Project Members'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: ProjectMemberUserParamsSchema,
       query: z.object({

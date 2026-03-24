@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -26,6 +26,7 @@ import {
   TenantProjectParamsSchema,
   updateDataset,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 // import { and, eq } from 'drizzle-orm';
 // import runDbClient from '../../data/db/runDbClient';
 // import { env } from '../../env';
@@ -37,27 +38,14 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasets');
 
 // Require edit permission for write operations
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:datasetId', async (c, next) => {
-  if (['PATCH', 'DELETE'].includes(c.req.method)) {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List all Datasets',
     operationId: 'list-datasets',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -99,12 +87,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{datasetId}',
     summary: 'Get Dataset by ID',
     operationId: 'get-dataset',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ datasetId: z.string() }),
     },
@@ -148,12 +137,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Dataset',
     operationId: 'create-dataset',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -203,12 +193,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{datasetId}',
     summary: 'Update Dataset by ID',
     operationId: 'update-dataset',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ datasetId: z.string() }),
       body: {
@@ -262,12 +253,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{datasetId}',
     summary: 'Delete Dataset by ID',
     operationId: 'delete-dataset',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ datasetId: z.string() }),
     },
@@ -308,7 +300,7 @@ app.openapi(
 
 // Temporarily commented out - dataset run capability disabled
 // app.openapi(
-//   createRoute({
+//   createProtectedRoute({
 //     method: 'post',
 //     path: '/{datasetId}/trigger',
 //     summary: 'Trigger Dataset Run',

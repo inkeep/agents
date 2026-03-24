@@ -1,5 +1,473 @@
 # @inkeep/agents-core
 
+## 0.59.3
+
+### Patch Changes
+
+- 51d6dfd: Verify Work App domain.
+- 6ca8164: v4 to v5 signoz migration
+
+## 0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+## 0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- 3a868c0: Add isDevelopment, isTest, and isProduction environment detection helpers
+- 15c6752: Add ref fields to runtime tables for branch tracking support
+- 62aad0e: Fix API key leakage vulnerability in Slack/GitHub MCP integrations by adding URL trust validation
+
+## 0.58.19
+
+### Patch Changes
+
+- f8f16f4: Add GPT-5.4 Mini and GPT-5.4 Nano to model constants, UI picker, and CLI
+- 1571ef1: Fix project-level auth bypass in app CRUD endpoints — GET, UPDATE, and DELETE now filter by projectId in addition to tenantId, preventing cross-project access within a tenant
+- 9660fc2: Strip tenantId/projectId/agentId from trigger, scheduled trigger, and scheduled workflow update schemas to prevent cross-tenant reassignment via mass assignment
+
+## 0.58.18
+
+## 0.58.17
+
+## 0.58.16
+
+### Patch Changes
+
+- 5065552: Fix GET /conversations to return all message part types matching the streaming protocol
+
+## 0.58.15
+
+### Patch Changes
+
+- abaefda: Add defense-in-depth tenant scoping to runtime DAL functions and migrate all DAL files to type-safe scope helpers
+
+## 0.58.14
+
+## 0.58.13
+
+## 0.58.12
+
+### Patch Changes
+
+- ad8a7cd: Fix broken code generation and unresolved imports in `inkeep pull` command
+- ad8a7cd: Use Zod schemas from `agents-core` in `inkeep pull` generators instead of hand-written schemas
+
+## 0.58.11
+
+### Patch Changes
+
+- c87dc3e: Remove unsupported syntax from credential reference upsert.
+
+## 0.58.10
+
+### Patch Changes
+
+- fa64456: Security and bug fixes
+- 02bcd0e: Fix authorization bypass vulnerability in @hono/node-server (CVE-2026-29087)
+- f41500b: Security and bug fixes
+- 41af59e: utc bug for renable/disable schedule triggers
+
+## 0.58.9
+
+### Patch Changes
+
+- f150b28: Fix user-scoped credential references to upsert instead of failing on duplicate unique constraint
+- 49909bf: version packages changes
+- 4816f02: Fix CI workflows not triggering on Changesets Version Packages PR by using GitHub App token
+
+## 0.58.8
+
+### Patch Changes
+
+- e89948d: Add app credentials with anonymous JWT sessions, domain validation, and PoW challenge support
+
+## 0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- 16e5e8d: Fix mid-generation context compression: accurate context slicing across multiple compression cycles, improved distillation quality, and richer compression telemetry
+
+## 0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- 0451e1d: Add new models: anthropic/claude-opus-4, anthropic/claude-sonnet-4, anthropic/claude-3-7-sonnet, anthropic/claude-3-5-sonnet, anthropic/claude-3-5-sonnet-20240620, anthropic/claude-3-5-haiku, anthropic/claude-3-opus, anthropic/claude-3-haiku, google/gemini-3-flash, google/gemini-3.1-flash-lite-preview, google/gemini-2.5-flash-preview-09-2025, google/gemini-2.5-flash-lite-preview-09-2025, google/gemini-2.0-flash, google/gemini-2.0-flash-lite, openai/gpt-5.2-codex, openai/gpt-5.1-thinking, openai/gpt-5.1-codex, openai/gpt-5.1-codex-max, openai/gpt-5.1-codex-mini, openai/gpt-5-pro, openai/gpt-5-codex, openai/o3-pro, openai/o3, openai/o3-mini, openai/o4-mini, openai/o1, openai/gpt-4o, openai/gpt-4o-mini, openai/gpt-4-turbo, openai/gpt-3.5-turbo, openai/codex-mini. Remove from UI: Claude Haiku 3.5 (deprecated), Gemini 3 Flash Preview (replaced by stable Gemini 3 Flash), Claude Opus 4.1 (consolidated to Claude Opus 4).
+- d7c1001: Add GPT-5.2 Pro and GPT-5.3 Codex to model constants and UI picker
+- f475d74: Fix GitHub MCP tool access to be project-scoped instead of globally scoped by toolId
+
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+
+## 0.58.2
+
+### Patch Changes
+
+- 31c0f68: Add new models: openai/gpt-5.4, openai/gpt-5.4-pro
+- ee5b4c9: Add image persistence to conversation history
+- eb5b16f: timeout recorded in spans
+
+## 0.58.1
+
+## 0.58.0
+
+### Patch Changes
+
+- 3d88636: Fix lastUsed field on apikeys not being updated
+
+## 0.57.0
+
+### Minor Changes
+
+- 5bc298e: Add user profile support with timezone storage and profile settings page
+
+### Patch Changes
+
+- 95e2477: Fix provider-specific per-call options not being forwarded to AI SDK streamText calls
+
+## 0.56.2
+
+## 0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+## 0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- 4414e25: Add email integration for BetterAuth callbacks (invitation and password reset emails via SMTP)
+
+## 0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- 08d678d: Add serverInstructions to ToolServerCapabilities and expose getInstructions() on McpClient to surface MCP server default instructions
+
+## 0.54.0
+
+### Minor Changes
+
+- addc4a0: Move workspace default agent config from Nango metadata to PostgreSQL
+- addc4a0: Remove denormalized agent names from Slack channel configs — resolve names at read time from manage DB, clean up orphaned configs on agent/project deletion, validate agent existence on write
+
+## 0.53.13
+
+### Patch Changes
+
+- e915ef8: Fix MCP client TCP connection leak causing ephemeral port exhaustion
+
+## 0.53.12
+
+## 0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- 33780a8: Refactor agent form to use shared Zod schemas from `agents-core`
+
+## 0.53.9
+
+### Patch Changes
+
+- 9a2d783: Fix stale process.env after generateSecrets() and add password reconciliation in init.ts
+- 27cd96b: update composio mcp servers with api key header
+- 603d7a8: Add user-scoped scheduled trigger execution with runAsUserId field for user identity and credential resolution
+
+## 0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- aa37d3f: Bump Slack user token and A2A service token TTL from 5 minutes to 1 hour to prevent 401 failures during long-running agent delegations
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+
+## 0.53.6
+
+## 0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+
+## 0.53.3
+
+### Patch Changes
+
+- f7e47ab: Add public messaging for all Slack surfaces, DM support, and per-trigger conversation model
+
+## 0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+
+## 0.53.0
+
+### Patch Changes
+
+- 0a0cb6e: Unify .env generation between quickstart CLI and contributor flows
+
+## 0.52.0
+
+### Patch Changes
+
+- 886b2da: Restrict `stopWhen` schema for sub-agents to only allow `stepCountIs` field
+- eea5f0a: agents-core: Add isUniqueConstraintError and throwIfUniqueConstraintError helpers to normalize unique constraint error detection across PostgreSQL and Doltgres
+
+  agents-api: Fix duplicate resource creation returning 500 instead of 409 when Doltgres reports unique constraint violations as MySQL errno 1062
+
+  agents-work-apps: Fix concurrent user mapping creation returning 500 instead of succeeding silently when a duplicate mapping already exists
+
+- 65f71b5: Derive scope config types and WHERE helpers from single source of truth (scope-definitions.ts)
+
+## 0.51.0
+
+### Minor Changes
+
+- fe36caa: Add organization service account, preferred auth method, and Slack workspace join-from-workspace schema support
+
+### Patch Changes
+
+- 012a843: Add tool approvals to slack app
+
+## 0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- 56fd821: Fix multi-tenant unique constraint on sub_agent_skills table to scope by tenant, project, and agent
+
+## 0.50.4
+
+### Patch Changes
+
+- e623802: Add channel-based agent authorization for Slack with configurable `grantAccessToMembers` toggle
+
+  - Extend `SlackAccessTokenPayloadSchema` with `authorized`, `authSource`, `channelId`, `authorizedProjectId` claims
+  - Add `grantAccessToMembers` column to `work_app_slack_channel_agent_configs` table (default `true`)
+  - Extend `BaseExecutionContext` with `metadata.slack` for channel auth context
+  - Add `resolveEffectiveAgent` with `grantAccessToMembers` propagation from channel/workspace config
+
+## 0.50.3
+
+### Patch Changes
+
+- 2005b87: Fix internal API routing for Slack work app in multi-instance environments.
+- d50fa44: Released Gemini 3.1-pro
+
+## 0.50.2
+
+### Patch Changes
+
+- fa71905: Added Oversized Artifact Handling and Context Window Size Management at Provider Options
+- a4ee2d4: Add scope-aware query helpers and scoping isolation tests for junction tables
+- becf184: standardize permission checks in routes
+
+## 0.50.1
+
+### Patch Changes
+
+- e643f0e: Fix incomplete scope filtering in 9 data-access queries that could leak data across project/agent boundaries
+- 561659a: Add shared setup module for unified dev environment bootstrapping
+- 6d31fe6: Fix data and artifact components being shared across agents when subagents share the same ID
+
+## 0.50.0
+
+## 0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- 3532557: The browser silently drops the session cookie because secure: true is set but the site
+
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+
+## 0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- 11f4e14: Add mock AI provider for testing run routes without API keys
+
+## 0.48.3
+
+### Patch Changes
+
+- 24e75fb: Fix peer dependency conflict for @openrouter/ai-sdk-provider with AI SDK v6
+- 79dffed: Add shared getWaitUntil utility for Vercel serverless function lifetime extension
+
+## 0.48.2
+
+## 0.48.1
+
+## 0.48.0
+
+### Minor Changes
+
+- b2a6078: ## Agent Skills
+
+  Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
+
+  ### Features
+
+  - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
+
+  - **TypeScript SDK**:
+
+    - New `SkillDefinition` and `SkillReference` types
+    - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
+    - `skills` config option on `SubAgent` and `Project`
+
+  - **API**: New CRUD endpoints for skills (`/skills`) and sub-agent skill associations (`/sub-agent-skills`)
+
+  - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
+
+  ### Loading Modes
+
+  - **Always loaded**: Skill content is included in every prompt
+  - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
+
+  ### SKILL.md Format
+
+  ```md
+  ---
+  name: "my-skill"
+  description: "When to use this skill"
+  metadata:
+    author: org
+    version: "1.0"
+  ---
+
+  Skill content in markdown...
+  ```
+
+### Patch Changes
+
+- f981006: Unwrap generic Vercel AI SDK errors (e.g., "fetch failed") to surface root cause in logs and traces
+- e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
+- 228d4e2: Fix nested error message display in form validation
+
+  - Add `firstNestedMessage` helper to recursively extract error messages from nested Zod validation objects
+  - Display error path location (e.g., `→ at ["foo", "bar"]`) for deeply nested validation errors
+  - Refactor `createCustomHeadersSchema` to use Zod `.pipe()` for cleaner error path propagation
+  - Rename `HeadersSchema` to `StringRecordSchema` for broader applicability
+
+- 7ad7e21: Refactor artifact and data component validation to use centralized Zod schemas from agents-core. This eliminates duplicate validation logic and improves consistency across the codebase.
+- 95a3abc: Add scheduled/cron trigger support across the full stack — database schema, API routes, Manage UI
+
+## 0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- 83346fc: Retry/rerun functionality for webhook triggers in the traces UI
+- 5f3f5ea: Add keepAlive config to db connections
+
+## 0.47.3
+
+### Patch Changes
+
+- 756a560: Consolidate `ResourceId` as reusable OpenAPI component to reduce spec size
+- 045c405: add TOOL_APPROVAL_REASON to span keys
+
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+
+## 0.47.1
+
+### Patch Changes
+
+- 6fbe785: Fixes spicedb for docker
+
+## 0.47.0
+
+### Minor Changes
+
+- 77a45c9: Implements SPICEDB_TLS_ENABLED
+- cfee934: fixes the spicedb type exports
+
+## 0.46.1
+
+### Patch Changes
+
+- f6010a1: Add `HeadersSchema` export for HTTP header validation and remove unused client exports.
+- 07a027d: Add Claude Opus 4.6 to available model constants
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 12ad286: - Temp fix for chat to edit
+
+## 0.45.3
+
+### Patch Changes
+
+- 4a83260: Add custom headers validation in playground chat. Users are now notified when custom headers are invalid or required based on the agent's headers schema configuration.
+- bee6724: Fix cross-subdomain auth for domains that don't share a 3-part parent (e.g., app.inkeep.com + api.agents.inkeep.com)
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- 632d68d: Replace custom jsonSchemaToZod implementation with Zod's native z.fromJSONSchema() method
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+
 ## 0.45.0
 
 ### Patch Changes

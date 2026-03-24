@@ -41,6 +41,10 @@ export function createAgentsRunDatabaseClient(
   const pool = new Pool({
     connectionString,
     max: config?.poolSize || Number(env.POSTGRES_POOL_SIZE) || 100,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 60_000,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
   });
 
   // Handle pool errors

@@ -13,6 +13,7 @@ import type {
   SignatureVerificationConfig,
 } from '@inkeep/agents-core';
 import {
+  canUseProjectStrict,
   createKeyChainStore,
   createMessage,
   createNangoCredentialStore,
@@ -25,6 +26,8 @@ import {
   getCredentialStoreLookupKeyFromRetrievalParams,
   getFullProjectWithRelationIds,
   getTriggerById,
+  getUserProfile,
+  getWaitUntil,
   interpolateTemplate,
   JsonTransformer,
   setActiveAgentForConversation,
@@ -42,22 +45,18 @@ import { env } from '../../../env';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { createSSEStreamHelper } from '../utils/stream-helpers';
+import { createSSEStreamHelper } from '../stream/stream-helpers';
 import { tracer } from '../utils/tracer';
-
-// Import waitUntil synchronously (only available on Vercel)
-let waitUntil: ((promise: Promise<unknown>) => void) | undefined;
-if (process.env.VERCEL) {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    ({ waitUntil } = require('@vercel/functions'));
-  } catch {
-    // Not on Vercel or package not available
-  }
-}
 
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
+
+export function buildTimezoneHeaders(timezone?: string | null): Record<string, string> {
+  return {
+    'x-inkeep-client-timezone': timezone || 'UTC',
+    'x-inkeep-client-timestamp': new Date().toISOString(),
+  };
+}
 
 // Credential cache with 5-minute TTL
 const credentialCache = new Map<string, { secret: string; expiresAt: number }>();
@@ -152,6 +151,7 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId: trigger.runAsUserId ?? undefined,
   });
 
   return { success: true, invocationId, conversationId };
@@ -494,7 +494,7 @@ function buildMessage(
   return { messageParts, userMessageText };
 }
 
-async function dispatchExecution(params: {
+export async function dispatchExecution(params: {
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -504,6 +504,7 @@ async function dispatchExecution(params: {
   transformedPayload: unknown;
   messageParts: Part[];
   userMessageText: string;
+  runAsUserId?: string;
 }): Promise<{ invocationId: string; conversationId: string }> {
   const {
     tenantId,
@@ -515,6 +516,7 @@ async function dispatchExecution(params: {
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId,
   } = params;
 
   const conversationId = getConversationId();
@@ -529,6 +531,7 @@ async function dispatchExecution(params: {
     projectId,
     agentId,
     conversationId,
+    ref: resolvedRef,
     status: 'pending',
     requestPayload: payload,
     transformedPayload: transformedPayload as Record<string, unknown> | undefined,
@@ -541,6 +544,7 @@ async function dispatchExecution(params: {
 
   // Wrap agent execution in a single promise protected by waitUntil
   // The trigger.message_received span is created inside executeAgentAsync
+  const dispatchedAt = Date.now();
   const executionPromise = executeAgentAsync({
     tenantId,
     projectId,
@@ -551,22 +555,50 @@ async function dispatchExecution(params: {
     userMessage: userMessageText,
     messageParts,
     resolvedRef,
+    dispatchedAt,
+    runAsUserId,
+  });
+
+  // Attach error handling so failures are always logged and invocation status is updated to failed
+  const safeExecutionPromise = executionPromise.catch(async (error) => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error(
+      { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId, invocationId },
+      'Background trigger execution failed'
+    );
+
+    try {
+      await updateTriggerInvocationStatus(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        invocationId,
+        data: { status: 'failed', errorMessage },
+      });
+    } catch (updateError) {
+      const updateErrorMessage =
+        updateError instanceof Error ? updateError.message : String(updateError);
+      logger.error(
+        { err: updateErrorMessage, invocationId },
+        'Failed to update invocation status to failed'
+      );
+    }
   });
 
   // On Vercel, use waitUntil to ensure completion after response is sent
   // In other environments, the promise runs in the background
+  const waitUntil = await getWaitUntil();
   if (waitUntil) {
-    waitUntil(executionPromise);
+    logger.info(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Calling waitUntil with execution promise'
+    );
+    waitUntil(safeExecutionPromise);
   } else {
-    // For local/non-Vercel: fire-and-forget with error logging
-    executionPromise.catch((error) => {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      logger.error(
-        { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId, invocationId },
-        'Background trigger execution failed'
-      );
-    });
+    logger.warn(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'waitUntil is NOT available — background execution will be abandoned on serverless'
+    );
   }
 
   logger.info(
@@ -581,7 +613,7 @@ async function dispatchExecution(params: {
  * Execute the agent asynchronously.
  * This runs after the webhook response is sent.
  */
-async function executeAgentAsync(params: {
+export async function executeAgentAsync(params: {
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -591,6 +623,10 @@ async function executeAgentAsync(params: {
   userMessage: string;
   messageParts: Part[];
   resolvedRef: ResolvedRef;
+  dispatchedAt?: number;
+  runAsUserId?: string;
+  forwardedHeaders?: Record<string, string>;
+  invocationType?: 'trigger' | 'scheduled_trigger';
 }): Promise<void> {
   const {
     tenantId,
@@ -602,7 +638,35 @@ async function executeAgentAsync(params: {
     userMessage,
     messageParts,
     resolvedRef,
+    dispatchedAt,
+    runAsUserId,
+    forwardedHeaders,
+    invocationType = 'trigger',
   } = params;
+
+  const execStartedAt = Date.now();
+  const dispatchDelayMs = dispatchedAt ? execStartedAt - dispatchedAt : undefined;
+
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId, dispatchDelayMs },
+    'executeAgentAsync: started, loading project'
+  );
+
+  if (dispatchDelayMs !== undefined && dispatchDelayMs > 5000) {
+    logger.warn(
+      {
+        tenantId,
+        projectId,
+        agentId,
+        triggerId,
+        invocationId,
+        dispatchDelayMs,
+        dispatchedAt,
+        execStartedAt,
+      },
+      'Significant delay between dispatch and executeAgentAsync start — possible instance suspension'
+    );
+  }
 
   // Load project FIRST to get agent name
   const project = await withRef(manageDbPool, resolvedRef, async (db) => {
@@ -611,21 +675,124 @@ async function executeAgentAsync(params: {
     });
   });
 
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId, hasProject: !!project },
+    'executeAgentAsync: project loaded'
+  );
+
   if (!project) {
+    logger.error(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Project not found for trigger execution'
+    );
     throw new Error(`Project ${projectId} not found`);
   }
 
   // Find the agent's default sub-agent
   const agent = project.agents?.[agentId];
   if (!agent) {
+    logger.error(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Agent not found in project for trigger execution'
+    );
     throw new Error(`Agent ${agentId} not found in project`);
   }
   const defaultSubAgentId = agent.defaultSubAgentId;
   if (!defaultSubAgentId) {
+    logger.error(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Agent has no default sub-agent configured'
+    );
     throw new Error(`Agent ${agentId} has no default sub-agent configured`);
   }
 
   const agentName = agent.name;
+
+  // Permission check for user-scoped webhook triggers
+  if (runAsUserId) {
+    try {
+      const canUse = await canUseProjectStrict({ userId: runAsUserId, tenantId, projectId });
+      if (!canUse) {
+        logger.warn(
+          { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId },
+          'User no longer has access to project, failing invocation'
+        );
+        try {
+          await updateTriggerInvocationStatus(runDbClient)({
+            scopes: { tenantId, projectId, agentId },
+            triggerId,
+            invocationId,
+            data: {
+              status: 'failed',
+              errorMessage: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}`,
+            },
+          });
+        } catch (updateError) {
+          logger.error(
+            {
+              err: updateError instanceof Error ? updateError.message : String(updateError),
+              invocationId,
+            },
+            'Failed to update invocation status after permission denial'
+          );
+        }
+        return;
+      }
+    } catch (err) {
+      logger.error(
+        { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId, error: err },
+        'Failed to check user project access'
+      );
+      try {
+        await updateTriggerInvocationStatus(runDbClient)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId,
+          invocationId,
+          data: {
+            status: 'failed',
+            errorMessage: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
+          },
+        });
+      } catch (updateError) {
+        logger.error(
+          {
+            err: updateError instanceof Error ? updateError.message : String(updateError),
+            invocationId,
+          },
+          'Failed to update invocation status after permission check error'
+        );
+      }
+      return;
+    }
+  }
+
+  let resolvedForwardedHeaders = forwardedHeaders;
+  if (runAsUserId) {
+    await tracer.startActiveSpan('trigger.resolve_user_timezone', async (span) => {
+      try {
+        span.setAttribute('user.id', runAsUserId);
+        const profile = await getUserProfile(runDbClient)(runAsUserId);
+        if (profile?.timezone) {
+          resolvedForwardedHeaders = {
+            ...forwardedHeaders,
+            ...buildTimezoneHeaders(profile.timezone),
+          };
+          span.setAttribute('user.timezone', profile.timezone);
+        }
+      } catch (err) {
+        logger.warn(
+          { runAsUserId, error: err instanceof Error ? err.message : String(err) },
+          'Failed to fetch user profile for timezone, proceeding with fallback'
+        );
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      } finally {
+        span.end();
+      }
+    });
+  }
 
   // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
@@ -636,6 +803,11 @@ async function executeAgentAsync(params: {
     .setEntry('agent.id', { value: agentId })
     .setEntry('agent.name', { value: agentName });
   const ctxWithBaggage = propagation.setBaggage(otelContext.active(), baggage);
+
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId },
+    'executeAgentAsync: starting tracer span'
+  );
 
   // Execute the agent in a new trace root with baggage
   return tracer.startActiveSpan(
@@ -650,7 +822,8 @@ async function executeAgentAsync(params: {
         'trigger.id': triggerId,
         'trigger.invocation.id': invocationId,
         'conversation.id': conversationId,
-        'invocation.type': 'trigger',
+        'invocation.type': invocationType,
+        ...(runAsUserId && { 'user.id': runAsUserId, 'trigger.run_as_user_id': runAsUserId }),
       },
     },
     ctxWithBaggage,
@@ -668,7 +841,7 @@ async function executeAgentAsync(params: {
             'trigger.id': triggerId,
             'trigger.invocation.id': invocationId,
             'conversation.id': conversationId,
-            'invocation.type': 'trigger',
+            'invocation.type': invocationType,
             'message.content': userMessage,
             'message.timestamp': new Date().toISOString(),
             'message.parts': JSON.stringify(messageParts),
@@ -678,7 +851,6 @@ async function executeAgentAsync(params: {
       );
       messageSpan.end();
       await flushBatchProcessor();
-
       logger.info(
         { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
         'Starting async trigger execution'
@@ -704,19 +876,20 @@ async function executeAgentAsync(params: {
         });
 
         await createMessage(runDbClient)({
-          id: generateId(),
-          tenantId,
-          projectId,
-          conversationId,
-          role: 'user',
-          content: {
-            text: userMessage,
-            parts: messageParts,
-          },
-          metadata: {
-            a2a_metadata: {
-              triggerId,
-              invocationId,
+          scopes: { tenantId, projectId },
+          data: {
+            id: generateId(),
+            conversationId,
+            role: 'user',
+            content: {
+              text: userMessage,
+              parts: messageParts,
+            },
+            metadata: {
+              a2a_metadata: {
+                triggerId,
+                invocationId,
+              },
             },
           },
         });
@@ -732,10 +905,9 @@ async function executeAgentAsync(params: {
           resolvedRef,
           project,
           metadata: {
-            initiatedBy: {
-              type: 'api_key',
-              id: triggerId,
-            },
+            initiatedBy: runAsUserId
+              ? { type: 'user', id: runAsUserId }
+              : { type: 'api_key', id: triggerId },
           },
         };
 
@@ -754,7 +926,7 @@ async function executeAgentAsync(params: {
 
         // Execute the agent
         const executionHandler = new ExecutionHandler();
-        await executionHandler.execute({
+        const result = await executionHandler.execute({
           executionContext,
           conversationId,
           userMessage,
@@ -763,7 +935,12 @@ async function executeAgentAsync(params: {
           requestId,
           sseHelper: noOpStreamHelper,
           emitOperations: false,
+          forwardedHeaders: resolvedForwardedHeaders,
         });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Agent execution failed');
+        }
 
         // Update status to success
         await updateTriggerInvocationStatus(runDbClient)({

@@ -5,8 +5,9 @@ import { type FC, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { PrincipalAvatar } from './principal-avatar';
 import { ProjectRoleSelector } from './project-role-selector';
 import type { AccessPrincipal, AccessRole, PrincipalType } from './types';
@@ -44,8 +45,6 @@ interface ResourceMembersPageProps {
   principals: AccessPrincipal[];
   /** Configuration for the explicit members section */
   membersConfig: MembersConfig;
-  /** Whether the current user can manage members */
-  canManage: boolean;
   /** Callback when adding a principal */
   onAdd: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
   /** Callback to refresh the data */
@@ -75,7 +74,6 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
   inheritedAccess,
   principals,
   membersConfig,
-  canManage,
   onAdd,
   onRefresh,
   onRoleChange,
@@ -84,10 +82,13 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
   isAdding = false,
 }) => {
   const { user } = useAuthSession();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const [searchOpen, setSearchOpen] = useState(false);
 
   const canEditPrincipal = (principal: AccessPrincipal): boolean => {
-    if (!canManage) return false;
+    if (!canEdit) return false;
     if (principal.type === 'user' && principal.id === user?.id) return false;
     return true;
   };
@@ -135,8 +136,8 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center h-full min-h-screen">
+        <Loader2 className="size-4 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -144,7 +145,7 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
   return (
     <div className="space-y-6 max-w-xl mx-auto">
       {/* Add Members Section */}
-      {canManage && (
+      {canEdit && (
         <div className="space-y-3">
           <div className="flex gap-2 items-start">
             {/* Member search with badges */}
@@ -155,32 +156,30 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                 <UserPlus className="size-4 text-muted-foreground shrink-0" />
 
                 {/* Selected member badges (after search icon) */}
-                <TooltipProvider>
-                  {selectedMembers.map((member) => (
-                    <Tooltip key={member.id}>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-sm bg-primary/10 text-primary rounded-full">
-                          <span className="max-w-[100px] truncate">
-                            {member.displayName.split(' ')[0]}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeMember(member.id)}
-                            className="hover:text-destructive"
-                          >
-                            <X className="size-3" />
-                          </button>
+                {selectedMembers.map((member) => (
+                  <Tooltip key={member.id}>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-sm bg-primary/10 text-primary rounded-full">
+                        <span className="max-w-[100px] truncate">
+                          {member.displayName.split(' ')[0]}
                         </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="font-medium">{member.displayName}</p>
-                        {member.subtitle && (
-                          <p className="text-xs text-muted-foreground">{member.subtitle}</p>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
-                </TooltipProvider>
+                        <button
+                          type="button"
+                          onClick={() => removeMember(member.id)}
+                          className="hover:text-destructive"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-medium">{member.displayName}</p>
+                      {member.subtitle && (
+                        <p className="text-xs text-muted-foreground">{member.subtitle}</p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
 
                 {/* Search input with dropdown */}
                 <div className="flex-1 min-w-[80px] relative">

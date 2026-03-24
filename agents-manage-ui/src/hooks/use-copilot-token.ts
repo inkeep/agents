@@ -63,10 +63,9 @@ export function useCopilotToken(): UseCopilotTokenResult {
       setError(null);
       setRetryCount(0);
 
-      const data = await fetchWithRetry(MAX_RETRIES, (attempt, delay) => {
+      const data = await fetchWithRetry(MAX_RETRIES, (attempt) => {
         if (isMountedRef.current) {
           setRetryCount(attempt);
-          console.log(`Copilot token fetch retry ${attempt}/${MAX_RETRIES} after ${delay}ms`);
         }
       });
 
@@ -115,7 +114,6 @@ export function useCopilotToken(): UseCopilotTokenResult {
     const refreshTime = Math.max(0, timeUntilExpiry - 5 * 60 * 1000);
 
     const timer = setTimeout(() => {
-      console.log('Auto-refreshing copilot token before expiry...');
       fetchToken();
     }, refreshTime);
 

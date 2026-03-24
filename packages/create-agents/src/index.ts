@@ -21,6 +21,7 @@ program
   .option('--skip-inkeep-cli', 'Skip installing Inkeep CLI globally')
   .option('--skip-inkeep-mcp', 'Skip installing Inkeep MCP server')
   .option('--skip-install', 'Skip installing dependencies')
+  .option('--skip-provider', 'Skip AI provider setup (uses mock provider)')
   .parse();
 
 async function main() {
@@ -40,6 +41,7 @@ async function main() {
       skipInkeepCli: options.skipInkeepCli,
       skipInkeepMcp: options.skipInkeepMcp,
       skipInstall: options.skipInstall,
+      skipProvider: options.skipProvider,
     });
   } catch (error) {
     console.error('Failed to create directory:', error);

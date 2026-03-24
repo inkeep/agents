@@ -1,4 +1,4 @@
 {
   "icon": "LuServer",
-  "pages": ["inkeep-cloud", "vercel", "(docker)", "add-other-services", "..."]
+  "pages": ["inkeep-enterprise", "vercel", "(docker)", "add-other-services", "..."]
 }

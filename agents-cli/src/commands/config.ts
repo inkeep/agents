@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import chalk from 'chalk';
+import { LOCAL_REMOTE } from '../utils/profiles';
 
 export interface ConfigOptions {
   config?: string;
@@ -87,7 +88,7 @@ export async function configSetCommand(
 
 export default defineConfig({
     tenantId: '${key === 'tenantId' ? value : ''}',
-    apiUrl: '${key === 'apiUrl' ? value : 'http://localhost:3002'}',
+    apiUrl: '${key === 'apiUrl' ? value : LOCAL_REMOTE.api}',
 });
 `;
 

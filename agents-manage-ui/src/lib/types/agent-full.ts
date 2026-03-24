@@ -11,7 +11,6 @@ import type {
   FullAgentDefinition as CoreFullAgentDefinition,
   ExternalAgentApiInsert,
   FunctionApiInsert,
-  InternalAgentDefinition,
   ToolApiInsert,
 } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
@@ -27,7 +26,7 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
 };
 
 // Re-export types and schemas
-export type { InternalAgentDefinition };
+export type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports';
 
 export interface Agent {
   id: string;
@@ -43,33 +42,3 @@ export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
 export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateFullAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateAgentResponse = SingleResponse<AgentApiInsert>;
-
-export type SubAgentTeamAgentConfig = {
-  agentId: string;
-  headers?: Record<string, string>;
-};
-
-export type SubAgentExternalAgentConfig = {
-  externalAgentId: string;
-  headers?: Record<string, string>;
-};
-
-// SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
-export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
-
-// SubAgentExternalAgentConfigLookup: subAgentId -> relationshipId -> config
-export type SubAgentExternalAgentConfigLookup = Record<
-  string,
-  Record<string, SubAgentExternalAgentConfig>
->;
-
-// Type for agent tool configuration lookup including both selection and headers
-export type AgentToolConfig = {
-  toolId: string;
-  toolSelection?: string[] | null;
-  headers?: Record<string, string>;
-  toolPolicies?: Record<string, { needsApproval?: boolean }>;
-};
-
-// AgentToolConfigLookup: subAgentId -> relationshipId -> config
-export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;

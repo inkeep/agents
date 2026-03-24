@@ -1,0 +1,15 @@
+import { artifactComponent } from '@inkeep/agents-sdk';
+import { preview } from '@inkeep/agents-core';
+import { z } from 'zod';
+
+export const citation = artifactComponent({
+  id: 'citation',
+  name: 'Citation',
+  description: 'Structured factual information extracted from search results',
+  props: z.object({
+      title: preview(z.string().describe("Title of the source document")),
+      url: preview(z.string().describe("URL of the source document")),
+      record_type: preview(z.string().describe("Type of record (documentation, blog, guide, etc.)")),
+      content: z.array(z.object({ "type": z.string().describe("Type of content (text, image, video, etc.)"), "text": z.string().describe("The actual text content") })).describe("Array of structured content blocks extracted from the document"),
+    }),
+});

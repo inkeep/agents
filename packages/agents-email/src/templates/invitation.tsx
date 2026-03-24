@@ -1,0 +1,58 @@
+import { Section, Text } from '@react-email/components';
+import { EmailButton } from '../components/email-button.js';
+import { EmailLayout } from '../components/email-layout.js';
+import type { InvitationEmailData } from '../types.js';
+
+function isSSOMethod(authMethod?: string): boolean {
+  return !!authMethod && authMethod !== 'email-password' && authMethod !== 'google';
+}
+
+function getCtaText(authMethod?: string): string {
+  if (authMethod === 'google') return 'Sign in with Google';
+  if (isSSOMethod(authMethod)) return 'Sign in with SSO';
+  return 'Accept Invitation';
+}
+
+function getInstructions(authMethod?: string): string {
+  if (authMethod === 'google') return 'Sign in with your Google account to get started.';
+  if (isSSOMethod(authMethod)) return "Sign in with your organization's SSO to get started.";
+  return 'Click the button below to accept the invitation and set up your account.';
+}
+
+interface InvitationEmailProps {
+  data: InvitationEmailData;
+}
+
+export function InvitationEmail({ data }: InvitationEmailProps) {
+  const {
+    inviterName,
+    organizationName,
+    role,
+    invitationUrl,
+    authMethod,
+    expiresInDays = 7,
+  } = data;
+
+  return (
+    <EmailLayout
+      previewText={`Accept your invitation to the ${organizationName} organization on Inkeep as ${role}.`}
+      securityText="If you didn't expect this invitation, you can safely ignore this email."
+      title={`Join ${organizationName}`}
+      description={`${inviterName} invited you as ${role}.`}
+    >
+      <Section>
+        <Text className="text-email-text-secondary text-[14px] leading-[20px] mt-0">
+          {getInstructions(authMethod)}
+        </Text>
+      </Section>
+      <Section className="text-center my-[24px]">
+        <EmailButton href={invitationUrl}>{getCtaText(authMethod)}</EmailButton>
+      </Section>
+      <Section>
+        <Text className="text-email-text-muted text-[12px] leading-[16px]">
+          This invitation expires in {expiresInDays} days.
+        </Text>
+      </Section>
+    </EmailLayout>
+  );
+}

@@ -1,6 +1,11 @@
-import type { MCPToolConfig, ToolApiInsert } from '@inkeep/agents-core';
-import { getLogger, normalizeToolSelections } from '@inkeep/agents-core';
-import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
+import {
+  convertZodToJsonSchema,
+  getLogger,
+  isZodSchema,
+  type MCPToolConfig,
+  normalizeToolSelections,
+  type ToolApiInsert,
+} from '@inkeep/agents-core';
 import type { AgentMcpConfig, AgentMcpConfigInput } from './builders';
 
 const logger = getLogger('tool');

@@ -1,0 +1,15 @@
+Index: agents/support-agent.ts
+===================================================================
+--- agents/support-agent.ts	before
++++ agents/support-agent.ts	after
+@@ -3,8 +3,8 @@
+ export const planner = subAgent({
+   id: 'planner',
+   name: 'Planner',
+-  description: 'Legacy planner description',
+-  prompt: 'Legacy planner prompt.',
++  description: 'Routes requests',
++  prompt: 'Delegate to helper agents.',
+   canDelegateTo: () => [weather, coordinates, websearch]
+ });
+ 

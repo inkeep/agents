@@ -257,9 +257,7 @@ describe('ModelFactory', () => {
         model: 'unsupported/some-model',
       };
 
-      expect(() => ModelFactory.createModel(config)).toThrow(
-        'Unsupported provider: unsupported. Supported providers are: anthropic, azure, openai, google, openrouter, gateway, nim, custom. To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).'
-      );
+      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unsupported');
     });
 
     test('should handle AI Gateway configuration', () => {
@@ -288,7 +286,7 @@ describe('ModelFactory', () => {
       };
 
       expect(() => ModelFactory.createModel(config)).toThrow(
-        'Unsupported provider: unknown-provider. Supported providers are: anthropic, azure, openai, google, openrouter, gateway, nim, custom. To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).'
+        'Unsupported provider: unknown-provider'
       );
     });
 
@@ -403,6 +401,25 @@ describe('ModelFactory', () => {
         futureParam: 42,
         // apiKey excluded as it's provider config
       });
+    });
+
+    test('should exclude object-valued keys (provider-specific per-call options)', () => {
+      const providerOptions = {
+        temperature: 0.7,
+        anthropic: { thinking: { type: 'enabled', budgetTokens: 8000 } },
+        openai: { reasoningEffort: 'medium' },
+        gateway: { models: ['openai/gpt-4.1', 'anthropic/claude-sonnet-4-5'] },
+        google: { thinkingConfig: { thinkingBudget: 8192 } },
+        topP: 0.9,
+      };
+
+      const params = ModelFactory.getGenerationParams(providerOptions);
+
+      expect(params).toEqual({ temperature: 0.7, topP: 0.9 });
+      expect(params).not.toHaveProperty('anthropic');
+      expect(params).not.toHaveProperty('openai');
+      expect(params).not.toHaveProperty('gateway');
+      expect(params).not.toHaveProperty('google');
     });
   });
 
@@ -757,7 +774,7 @@ describe('ModelFactory', () => {
     describe('provider validation', () => {
       test('should throw error for unsupported provider', () => {
         expect(() => ModelFactory.parseModelString('unsupported-provider/some-model')).toThrow(
-          'Unsupported provider: unsupported-provider. Supported providers are: anthropic, azure, openai, google, openrouter, gateway, nim, custom. To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).'
+          'Unsupported provider: unsupported-provider'
         );
       });
 
@@ -899,11 +916,9 @@ describe('ModelFactory', () => {
       const config: ModelSettings = {
         model: 'custom/my-custom-model',
         providerOptions: {
-          custom: {
-            baseURL: 'https://api.example.com/v1',
-            headers: {
-              Authorization: 'Bearer custom-api-key',
-            },
+          baseURL: 'https://api.example.com/v1',
+          headers: {
+            Authorization: 'Bearer custom-api-key',
           },
         },
       };
@@ -919,7 +934,7 @@ describe('ModelFactory', () => {
       };
 
       expect(() => ModelFactory.createModel(config)).toThrow(
-        'Custom provider requires configuration. Please provide baseURL in providerOptions.custom.baseURL or providerOptions.baseURL'
+        'Custom provider requires configuration. Please provide baseURL in providerOptions.baseURL'
       );
     });
 

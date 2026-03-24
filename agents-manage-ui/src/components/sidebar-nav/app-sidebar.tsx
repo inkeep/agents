@@ -2,18 +2,21 @@
 
 import {
   Activity,
+  AppWindow,
+  ArrowLeft,
   BarChart3,
-  BookOpen,
+  Blocks,
   Component,
   Globe,
   Key,
   Layers,
   Library,
-  LifeBuoy,
   Lock,
+  LucideHexagon,
   Settings,
   Users,
   Workflow,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -28,26 +31,12 @@ import {
   SidebarHeader,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
+import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
 import type { NavItemProps } from './nav-item';
-
-const bottomNavItems: NavItemProps[] = [
-  {
-    title: 'Support',
-    url: 'mailto:support@inkeep.com',
-    icon: LifeBuoy,
-  },
-  {
-    title: 'Documentation',
-    url: DOCS_BASE_URL,
-    icon: BookOpen,
-    isExternal: true,
-  },
-];
 
 interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
   open: boolean;
@@ -57,6 +46,8 @@ interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
 export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
   const { user } = useAuthSession();
+
+  const isWorkAppsEnabled = process.env.NEXT_PUBLIC_ENABLE_WORK_APPS === 'true';
 
   const topNavItems: NavItemProps[] = projectId
     ? []
@@ -71,9 +62,23 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/stats`,
           icon: BarChart3,
         },
+        ...(isWorkAppsEnabled
+          ? [
+              {
+                title: STATIC_LABELS['work-apps'],
+                url: `/${tenantId}/work-apps`,
+                icon: Blocks,
+              },
+            ]
+          : []),
       ];
 
   const orgNavItems: NavItemProps[] = [
+    {
+      title: STATIC_LABELS.members,
+      url: `/${tenantId}/members`,
+      icon: Users,
+    },
     {
       title: STATIC_LABELS.settings,
       url: `/${tenantId}/settings`,
@@ -87,6 +92,21 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.agents,
           url: `/${tenantId}/projects/${projectId}/agents`,
           icon: Workflow,
+        },
+        {
+          title: STATIC_LABELS.skills,
+          url: `/${tenantId}/projects/${projectId}/skills`,
+          icon: LucideHexagon,
+        },
+        {
+          title: STATIC_LABELS.triggers,
+          url: `/${tenantId}/projects/${projectId}/triggers`,
+          icon: Zap,
+        },
+        {
+          title: STATIC_LABELS.apps,
+          url: `/${tenantId}/projects/${projectId}/apps`,
+          icon: AppWindow,
         },
         {
           title: STATIC_LABELS['api-keys'],
@@ -207,6 +227,23 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       <SidebarContent className="justify-between">
         {projectId ? (
           <div className="flex flex-col gap-1.5">
+            <div className="px-2 py-1">
+              <SidebarMenuButton asChild>
+                <Link
+                  className="font-mono uppercase text-xs hover:bg-transparent gap-1.5!"
+                  href={`/${tenantId}/projects`}
+                >
+                  <ArrowLeft
+                    className={cn(
+                      open ? 'size-3.5!' : 'size-4!',
+                      'transition-[size] duration-300 ease-in-out'
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span>Back to org</span>
+                </Link>
+              </SidebarMenuButton>
+            </div>
             <NavGroup items={configureNavItems} />
             <NavGroup label="Register" items={registerNavItems} />
             <NavGroup label="UI" items={uiNavItems} />
@@ -218,7 +255,6 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
             {user && <NavGroup label="Organization" items={orgNavItems} />}
           </div>
         )}
-        <NavGroup items={bottomNavItems} />
       </SidebarContent>
       {projectId && (
         <SidebarFooter>

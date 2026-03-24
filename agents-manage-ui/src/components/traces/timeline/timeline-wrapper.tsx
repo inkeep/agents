@@ -6,6 +6,7 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -70,6 +71,8 @@ function panelTitle(selected: SelectedPanel) {
       return 'Denied tool details';
     case 'max_steps_reached':
       return 'Max steps reached';
+    case 'stream_lifetime_exceeded':
+      return 'Stream lifetime exceeded';
     default:
       return 'Details';
   }
@@ -89,6 +92,9 @@ interface TimelineWrapperProps {
   onCopyFullTrace?: () => void;
   onCopySummarizedTrace?: () => void;
   isCopying?: boolean;
+  onRerunTrigger?: () => void;
+  isRerunning?: boolean;
+  showRerunTrigger?: boolean;
 }
 
 function EmptyTimeline({
@@ -183,6 +189,9 @@ export function TimelineWrapper({
   onCopyFullTrace,
   onCopySummarizedTrace,
   isCopying = false,
+  onRerunTrigger,
+  isRerunning = false,
+  showRerunTrigger = false,
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -192,6 +201,9 @@ export function TimelineWrapper({
   const [collapsedAiMessages, setCollapsedAiMessages] = useState<Set<string>>(new Set());
   const [aiMessagesGloballyCollapsed, setAiMessagesGloballyCollapsed] =
     useState<boolean>(enableAutoScroll);
+
+  // State for collapsible tree nodes (lifted from HierarchicalTimeline)
+  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (selected) {
@@ -290,6 +302,30 @@ export function TimelineWrapper({
       .map((activity) => activity.id);
   }, [sortedActivities]);
 
+  // Memoize IDs of nodes that have children (referenced as parentSpanId by other activities)
+  const parentNodeIds = useMemo(() => {
+    const ids = new Set<string>();
+    const activityIdSet = new Set(sortedActivities.map((a) => a.id));
+    for (const activity of sortedActivities) {
+      if (activity.parentSpanId && activityIdSet.has(activity.parentSpanId)) {
+        ids.add(activity.parentSpanId);
+      }
+    }
+    return ids;
+  }, [sortedActivities]);
+
+  const toggleNodeCollapse = useCallback((nodeId: string) => {
+    setCollapsedNodes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return newSet;
+    });
+  }, []);
+
   // Track which messages we've already processed
   const processedIdsRef = useRef<Set<string>>(new Set());
   const lastConversationRef = useRef<string | undefined>(undefined);
@@ -300,6 +336,7 @@ export function TimelineWrapper({
       lastConversationRef.current = conversationId;
       processedIdsRef.current = new Set();
       setCollapsedAiMessages(new Set());
+      setCollapsedNodes(new Set());
       setAiMessagesGloballyCollapsed(false);
     }
 
@@ -366,16 +403,17 @@ export function TimelineWrapper({
   }, [conversationId]);
 
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
-  const expandAllAiMessages = useCallback(() => {
+  const expandAll = useCallback(() => {
     setCollapsedAiMessages(new Set());
+    setCollapsedNodes(new Set());
     setAiMessagesGloballyCollapsed(false);
   }, []);
 
-  const collapseAllAiMessages = useCallback(() => {
-    // Use the memoized aiMessageIds instead of recalculating
+  const collapseAll = useCallback(() => {
     setCollapsedAiMessages(new Set(aiMessageIds));
+    setCollapsedNodes(new Set(parentNodeIds));
     setAiMessagesGloballyCollapsed(true);
-  }, [aiMessageIds]);
+  }, [aiMessageIds, parentNodeIds]);
 
   const toggleAiMessageCollapse = (activityId: string) => {
     const newCollapsed = new Set(collapsedAiMessages);
@@ -398,17 +436,81 @@ export function TimelineWrapper({
     setAiMessagesGloballyCollapsed(allCollapsed);
   };
 
+  // Derive global collapsed state from both AI messages and tree nodes
+  const isGloballyCollapsed = useMemo(() => {
+    const hasAiMessages = aiMessageIds.length > 0;
+    const hasParentNodes = parentNodeIds.size > 0;
+    if (!hasAiMessages && !hasParentNodes) return false;
+    if (hasAiMessages && !aiMessagesGloballyCollapsed) return false;
+    if (hasParentNodes) {
+      for (const id of parentNodeIds) {
+        if (!collapsedNodes.has(id)) return false;
+      }
+    }
+    return true;
+  }, [aiMessageIds, aiMessagesGloballyCollapsed, parentNodeIds, collapsedNodes]);
+
   const closePanel = () => {
     setPanelVisible(false);
     setTimeout(() => {
       setSelected(null);
+      setLazySpan(null);
     }, 300);
   };
 
-  const findSpanById = (id?: string) =>
-    conversation?.allSpanAttributes?.find(
-      (s: NonNullable<ConversationDetail['allSpanAttributes']>[number]) => s.spanId === id
-    );
+  // Lazy-loaded span attributes — fetched on-demand when an activity is clicked
+  const [lazySpan, setLazySpan] = useState<
+    NonNullable<ConversationDetail['allSpanAttributes']>[number] | null
+  >(null);
+  const [lazySpanLoading, setLazySpanLoading] = useState(false);
+
+  // Fetch span details when a panel is selected
+  useEffect(() => {
+    if (!selected || selected.type === 'mcp_tool_error') {
+      setLazySpan(null);
+      return;
+    }
+    const activityId = selected.item.id;
+    if (!activityId || !conversationId || !tenantId) {
+      setLazySpan(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLazySpan(null);
+    setLazySpanLoading(true);
+
+    fetch(
+      `/api/traces/spans/${activityId}?conversationId=${encodeURIComponent(conversationId)}&tenantId=${encodeURIComponent(tenantId)}`
+    )
+      .then((res) => {
+        if (!res.ok) {
+          console.warn(`Span fetch failed: ${res.status} ${res.statusText}`);
+          return null;
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!cancelled && data?.spanId) {
+          setLazySpan(data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch span details:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setLazySpanLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, conversationId, tenantId]);
+
+  const findSpanById = useCallback(
+    (id?: string) => (id && lazySpan?.spanId === id ? lazySpan : undefined),
+    [lazySpan]
+  );
 
   const determinePanelType = (a: ActivityItem): Exclude<PanelType, 'mcp_tool_error'> => {
     if (a.type === ACTIVITY_TYPES.TOOL_CALL && a.toolType === TOOL_TYPES.TRANSFER)
@@ -450,6 +552,23 @@ export function TimelineWrapper({
                 <div className="text-foreground text-md font-medium">Activity timeline</div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Rerun Trigger Button */}
+                {showRerunTrigger && onRerunTrigger && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onRerunTrigger}
+                    disabled={isRerunning}
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {isRerunning ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                    )}
+                    {isRerunning ? 'Rerunning...' : 'Rerun Trigger'}
+                  </Button>
+                )}
                 {/* Copy Trace Dropdown */}
                 {(onCopyFullTrace || onCopySummarizedTrace) && (
                   <DropdownMenu onOpenChange={(open) => open && calculateTokenEstimates()}>
@@ -495,28 +614,23 @@ export function TimelineWrapper({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-                {/* Expand/Collapse AI Messages Buttons */}
-                {sortedActivities.some(
-                  (activity) =>
-                    activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-                    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-                    (activity.hasError && activity.otelStatusDescription)
-                ) && (
+                {/* Expand/Collapse All Button */}
+                {(parentNodeIds.size > 0 ||
+                  sortedActivities.some(
+                    (activity) =>
+                      activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
+                      activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+                      (activity.hasError && activity.otelStatusDescription)
+                  )) && (
                   <div className="flex items-center gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={
-                        aiMessagesGloballyCollapsed ? expandAllAiMessages : collapseAllAiMessages
-                      }
+                      onClick={isGloballyCollapsed ? expandAll : collapseAll}
                       className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      title={
-                        aiMessagesGloballyCollapsed
-                          ? 'Expand all AI messages'
-                          : 'Collapse all AI messages'
-                      }
+                      title={isGloballyCollapsed ? 'Expand all' : 'Collapse all'}
                     >
-                      {aiMessagesGloballyCollapsed ? (
+                      {isGloballyCollapsed ? (
                         <>
                           <ChevronDown className="h-3 w-3 mr-1" />
                           Expand All
@@ -561,6 +675,8 @@ export function TimelineWrapper({
                     selectedActivityId={selected?.item?.id}
                     collapsedAiMessages={collapsedAiMessages}
                     onToggleAiMessageCollapse={toggleAiMessageCollapse}
+                    collapsedNodes={collapsedNodes}
+                    onToggleNodeCollapse={toggleNodeCollapse}
                   />
                   {!isPolling && sortedActivities.length > 0 && !error && refreshOnce && (
                     <div className="flex justify-center items-center z-10">
@@ -598,6 +714,8 @@ export function TimelineWrapper({
                   selectedActivityId={selected?.item?.id}
                   collapsedAiMessages={collapsedAiMessages}
                   onToggleAiMessageCollapse={toggleAiMessageCollapse}
+                  collapsedNodes={collapsedNodes}
+                  onToggleNodeCollapse={toggleNodeCollapse}
                 />
               </div>
             )}
@@ -617,6 +735,7 @@ export function TimelineWrapper({
             {renderPanelContent({
               selected,
               findSpanById,
+              spanLoading: lazySpanLoading,
             })}
           </ActivityDetailsSidePane>
         </ResizablePanel>

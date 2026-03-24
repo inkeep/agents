@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -13,6 +13,7 @@ import {
   TenantProjectParamsSchema,
   updateEvaluationResult,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
@@ -22,27 +23,14 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluationResults');
 
 // Require edit permission for write operations
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:resultId', async (c, next) => {
-  if (['PATCH', 'DELETE'].includes(c.req.method)) {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{resultId}',
     summary: 'Get Evaluation Result by ID',
     operationId: 'get-evaluation-result',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ resultId: z.string() }),
     },
@@ -88,12 +76,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Evaluation Result',
     operationId: 'create-evaluation-result',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -148,12 +137,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{resultId}',
     summary: 'Update Evaluation Result',
     operationId: 'update-evaluation-result',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ resultId: z.string() }),
       body: {
@@ -209,12 +199,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{resultId}',
     summary: 'Delete Evaluation Result',
     operationId: 'delete-evaluation-result',
     tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema.extend({ resultId: z.string() }),
     },

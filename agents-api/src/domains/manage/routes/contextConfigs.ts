@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   ContextConfigApiInsertSchema,
   ContextConfigApiUpdateSchema,
@@ -18,37 +18,26 @@ import {
   TenantProjectAgentParamsSchema,
   updateContextConfig,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Context Configurations',
     operationId: 'list-context-configs',
     tags: ['Context Configs'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -81,12 +70,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Context Configuration',
     operationId: 'get-context-config-by-id',
     tags: ['Context Configs'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -122,12 +112,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Context Configuration',
     operationId: 'create-context-config',
     tags: ['Context Configs'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -167,64 +158,74 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Context Configuration',
-    operationId: 'update-context-config',
-    tags: ['Context Configs'],
-    request: {
-      params: TenantProjectAgentIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: ContextConfigApiUpdateSchema,
-          },
+const updateContextConfigRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Context Configuration',
+  tags: ['Context Configs'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectAgentIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ContextConfigApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Context configuration updated successfully',
-        content: {
-          'application/json': {
-            schema: ContextConfigResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Context configuration updated successfully',
+      content: {
+        'application/json': {
+          schema: ContextConfigResponse,
         },
       },
-      ...commonUpdateErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+    ...commonUpdateErrorResponses,
+  },
+};
 
-    const updatedContextConfig = await updateContextConfig(db)({
-      scopes: { tenantId, projectId, agentId },
-      id,
-      data: body,
+const updateContextConfigHandler: ManageRouteHandler<
+  typeof updateContextConfigRouteConfig
+> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, agentId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const updatedContextConfig = await updateContextConfig(db)({
+    scopes: { tenantId, projectId, agentId },
+    id,
+    data: body,
+  });
+
+  if (!updatedContextConfig) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Context configuration not found',
     });
+  }
 
-    if (!updatedContextConfig) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Context configuration not found',
-      });
-    }
+  return c.json({ data: updatedContextConfig });
+};
 
-    return c.json({ data: updatedContextConfig });
+openapiRegisterPutPatchRoutesForLegacy(
+  app,
+  updateContextConfigRouteConfig,
+  updateContextConfigHandler,
+  {
+    operationId: 'update-context-config',
   }
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Context Configuration',
     operationId: 'delete-context-config',
     tags: ['Context Configs'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

@@ -42,7 +42,7 @@ function createSafeBatchProcessor(): SpanProcessor {
 export const defaultBatchProcessor = createSafeBatchProcessor();
 
 export const defaultResource = resourceFromAttributes({
-  [ATTR_SERVICE_NAME]: 'inkeep-agents-run-api',
+  [ATTR_SERVICE_NAME]: 'inkeep-agents-api',
 });
 
 export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrumentations']> = [
@@ -65,6 +65,9 @@ export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrume
           span.updateName(host ? `${method} ${host}${path}` : `${method} ${path}`);
       },
     },
+    '@opentelemetry/instrumentation-fs': { enabled: false },
+    '@opentelemetry/instrumentation-dns': { enabled: false },
+    '@opentelemetry/instrumentation-net': { enabled: false },
   }),
 ];
 
@@ -86,6 +89,25 @@ export const defaultSDK = new NodeSDK({
   spanProcessors: defaultSpanProcessors,
   instrumentations: defaultInstrumentations,
 });
+
+export function startOpenTelemetrySDK(): void {
+  try {
+    defaultSDK.start();
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const allowDuplicateStartErrors =
+      env.ENVIRONMENT === 'development' || env.NODE_ENV === 'development';
+    if (
+      allowDuplicateStartErrors &&
+      ((msg.includes('MetricReader') && msg.includes('can not be bound')) ||
+        msg.includes('Attempted duplicate registration of API'))
+    ) {
+      logger.debug({}, 'OpenTelemetry SDK already started');
+      return;
+    }
+    throw error;
+  }
+}
 
 export async function flushBatchProcessor(): Promise<void> {
   try {

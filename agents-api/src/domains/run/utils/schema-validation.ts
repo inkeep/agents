@@ -1,29 +1,3 @@
-import { z } from '@hono/zod-openapi';
-import { convertZodToJsonSchemaWithPreview } from '@inkeep/agents-core/utils/schema-conversion';
-import Ajv from 'ajv';
-import { getLogger } from '../../../logger';
-
-const logger = getLogger('SchemaValidation');
-const ajv = new Ajv({ allErrors: true, strict: false });
-
-// Cache for compiled AJV validators to improve performance
-const validatorCache = new Map<string, any>();
-
-/**
- * Clear the validator cache to free memory
- * Useful for testing or when memory usage becomes a concern
- */
-export function clearValidatorCache(): void {
-  validatorCache.clear();
-}
-
-/**
- * Get the current cache size for monitoring
- */
-export function getValidatorCacheSize(): number {
-  return validatorCache.size;
-}
-
 /**
  * Extended JSON Schema that includes preview field indicators
  */
@@ -39,69 +13,6 @@ export interface ExtendedJsonSchemaProperty {
   description?: string;
   inPreview?: boolean; // New field to indicate if this should be shown in preview
   [key: string]: any;
-}
-
-/**
- * Validate that a schema is valid (either JSON Schema or Zod)
- * Following the same pattern as context validation
- */
-export function validateComponentSchema(
-  schema: any,
-  componentName: string
-): {
-  isValid: boolean;
-  error?: string;
-  validatedSchema?: ExtendedJsonSchema;
-} {
-  try {
-    // Check if it's a Zod schema
-    if (schema instanceof z.ZodType) {
-      // Convert Zod to JSON Schema with preview metadata
-      const jsonSchema = convertZodToJsonSchemaWithPreview(schema);
-      return {
-        isValid: true,
-        validatedSchema: jsonSchema as ExtendedJsonSchema,
-      };
-    }
-
-    // Check if it's a JSON Schema
-    if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
-      return {
-        isValid: false,
-        error: 'Schema must be a valid JSON Schema object or Zod schema',
-      };
-    }
-
-    // Create a cache key based on the schema content
-    const schemaKey = JSON.stringify(schema);
-
-    // Check if we already have a compiled validator for this schema
-    let validator = validatorCache.get(schemaKey);
-    if (!validator) {
-      // Compile and cache the validator
-      validator = ajv.compile(schema);
-      validatorCache.set(schemaKey, validator);
-    }
-
-    // If it compiled successfully, it's a valid JSON Schema
-    return {
-      isValid: true,
-      validatedSchema: schema as ExtendedJsonSchema,
-    };
-  } catch (error) {
-    logger.error(
-      {
-        componentName,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      'Invalid component schema'
-    );
-
-    return {
-      isValid: false,
-      error: error instanceof Error ? error.message : 'Invalid JSON Schema',
-    };
-  }
 }
 
 /**
@@ -126,6 +37,31 @@ export function extractPreviewFields(schema: ExtendedJsonSchema): Record<string,
     properties: previewProperties,
     required: schema.required?.filter((field) => previewProperties[field]),
   };
+}
+
+/**
+ * Convert a JSON Schema properties map into a compact readable shape.
+ * Arrays become [{...}], objects recurse, primitives become their type string.
+ * Useful for displaying artifact schemas in prompts.
+ */
+export function buildSchemaShape(properties: Record<string, any>): Record<string, unknown> {
+  const shape: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(properties)) {
+    if (value.type === 'array') {
+      if (value.items?.properties) {
+        shape[key] = [buildSchemaShape(value.items.properties)];
+      } else if (value.items?.type) {
+        shape[key] = [value.items.type];
+      } else {
+        shape[key] = [];
+      }
+    } else if (value.type === 'object' && value.properties) {
+      shape[key] = buildSchemaShape(value.properties);
+    } else {
+      shape[key] = value.type || 'unknown';
+    }
+  }
+  return shape;
 }
 
 /**

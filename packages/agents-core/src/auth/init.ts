@@ -27,12 +27,24 @@ import { getUserByEmail } from '../data-access/runtime/users';
 import { createAgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { createAuth } from './auth';
 import { syncOrgMemberToSpiceDb } from './authz';
-import { OrgRoles } from './authz/config';
+import { OrgRoles } from './authz/types';
+import { writeSpiceDbSchema } from './spicedb-schema';
 
 const TENANT_ID = process.env.TENANT_ID || 'default';
 
 async function init() {
   console.log('🚀 Initializing database with default organization and user...\n');
+
+  // Step 0: Write SpiceDB schema (must happen before any SpiceDB operations)
+  console.log('📜 Writing SpiceDB schema...');
+  try {
+    await writeSpiceDbSchema();
+    console.log('   ✅ SpiceDB schema applied');
+  } catch (error) {
+    console.error('   ❌ Failed to write SpiceDB schema:', error);
+    console.error('   Make sure SpiceDB is running (docker-compose.dbs.yml)');
+    process.exit(1);
+  }
 
   const dbClient = createAgentsRunDatabaseClient();
 
@@ -85,6 +97,15 @@ async function init() {
 
   if (user) {
     console.log(`   ℹ️  User already exists: ${username}`);
+    try {
+      const ctx = await auth.$context;
+      const hashedPassword = await ctx.password.hash(password);
+      await ctx.internalAdapter.updatePassword(user.id, hashedPassword);
+      console.log('   ✅ Password synced from .env');
+    } catch (error) {
+      console.error('   ❌ Failed to sync password from .env:', error);
+      process.exit(1);
+    }
   } else {
     // Create user via Better Auth
     console.log('   Creating user with Better Auth...');
@@ -118,6 +139,7 @@ async function init() {
     userId: user.id,
     organizationId: TENANT_ID,
     role: OrgRoles.ADMIN,
+    isServiceAccount: true,
   });
   console.log(`   ✅ User ${user.email} added as ${OrgRoles.ADMIN}`);
 
@@ -130,15 +152,15 @@ async function init() {
       action: 'add',
     });
     console.log('   ✅ Synced to SpiceDB');
-  } catch {
-    console.log('   ℹ️  SpiceDB sync failed');
+  } catch (error) {
+    console.error('❌ SpiceDB sync failed:', error);
   }
 
   console.log('\n================================================');
   console.log('✅ Initialization complete!');
   console.log('================================================');
   console.log(`\nOrganization: ${TENANT_ID}`);
-  console.log(`Admin user:   ${username} (owner)`);
+  console.log(`Admin user:   ${username}`);
   console.log('\nYou can now log in with these credentials.\n');
 
   process.exit(0);

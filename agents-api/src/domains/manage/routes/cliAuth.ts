@@ -1,5 +1,6 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { getUserOrganizationsFromDb } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { sessionAuth } from '../../../middleware/sessionAuth';
 import type { ManageAppVariables } from '../../../types/app';
@@ -23,13 +24,13 @@ const CLIMeResponseSchema = z.object({
 
 // GET /api/cli/me - Get current user info and their organization
 cliAuthRoutes.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/me',
     tags: ['CLI'],
     summary: 'Get CLI user info',
     description: 'Get the current authenticated user and their organization for CLI usage',
-    middleware: [sessionAuth()],
+    permission: sessionAuth(),
     responses: {
       200: {
         description: 'User info with organization',

@@ -14,7 +14,7 @@ describe('GET /ready', () => {
     app = createAgentsHono({
       serverConfig: { port: 3002, serverOptions: {} },
       credentialStores: { getAll: () => [], get: () => null } as any,
-      auth: null,
+      auth: null as any,
     });
   });
 
@@ -106,28 +106,35 @@ describe('GET /ready', () => {
   });
 
   it('runs database checks in parallel', async () => {
-    let manageDbStartTime = 0;
-    let runDbStartTime = 0;
+    const events: string[] = [];
 
     vi.mocked(healthChecks.checkManageDb).mockImplementation(async () => {
-      manageDbStartTime = performance.now();
+      events.push('manageDb:start');
       await new Promise((resolve) => setTimeout(resolve, 10));
+      events.push('manageDb:end');
       return true;
     });
 
     vi.mocked(healthChecks.checkRunDb).mockImplementation(async () => {
-      runDbStartTime = performance.now();
+      events.push('runDb:start');
       await new Promise((resolve) => setTimeout(resolve, 10));
+      events.push('runDb:end');
       return true;
     });
 
-    const startTime = performance.now();
     await app.request('/ready');
-    const elapsed = performance.now() - startTime;
 
-    // If run in parallel, both checks should start nearly simultaneously
-    // and total time should be ~10ms, not ~20ms
-    expect(Math.abs(manageDbStartTime - runDbStartTime)).toBeLessThan(5);
-    expect(elapsed).toBeLessThan(50); // Allow some overhead but not 2x sequential time
+    // If run in parallel, both checks start before either finishes.
+    // Sequential execution would produce: start, end, start, end.
+    const manageStart = events.indexOf('manageDb:start');
+    const runStart = events.indexOf('runDb:start');
+    const manageEnd = events.indexOf('manageDb:end');
+    const runEnd = events.indexOf('runDb:end');
+
+    expect(manageStart).toBeLessThan(manageEnd);
+    expect(runStart).toBeLessThan(runEnd);
+    // Both started before either finished — proves parallelism
+    expect(manageStart).toBeLessThan(runEnd);
+    expect(runStart).toBeLessThan(manageEnd);
   });
 });

@@ -1,4 +1,6 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { DataComponent } from '../../data-component';
 import { createTestTenantId } from '../utils/testTenant';
 
@@ -8,22 +10,23 @@ describe('DataComponent Class', () => {
 
   describe('Basic functionality', () => {
     it('should create a DataComponent instance with correct properties', () => {
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          items: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+        required: ['items'],
+      };
       const config = {
         name: 'TestComponent',
         tenantId,
         projectId,
         description: 'A test data component',
         id: 'test-component',
-        props: {
-          type: 'object',
-          properties: {
-            items: {
-              type: 'array',
-              items: { type: 'string' },
-            },
-          },
-          required: ['items'],
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const dataComponent = new DataComponent(config);
@@ -41,7 +44,7 @@ describe('DataComponent Class', () => {
         projectId,
         description: 'Test description',
         id: 'test-component-with-spaces-special-characters',
-        props: {},
+        props: {} as JsonSchemaForLlmSchemaType,
       };
 
       const dataComponent = new DataComponent(config);
@@ -49,7 +52,7 @@ describe('DataComponent Class', () => {
     });
 
     it('should handle complex props structure', () => {
-      const complexProps = {
+      const complexProps: JSONSchema.BaseSchema = {
         type: 'object',
         properties: {
           items: {
@@ -84,7 +87,7 @@ describe('DataComponent Class', () => {
         projectId,
         description: 'Complex data component',
         id: 'complex-component',
-        props: complexProps,
+        props: complexProps as JsonSchemaForLlmSchemaType,
       };
 
       const dataComponent = new DataComponent(config);
@@ -98,7 +101,7 @@ describe('DataComponent Class', () => {
         projectId,
         description: 'Component with default tenant ID',
         id: 'default-tenant-component',
-        props: { type: 'object' },
+        props: { type: 'object' } as JsonSchemaForLlmSchemaType,
       };
 
       const dataComponent = new DataComponent(config);
@@ -113,7 +116,7 @@ describe('DataComponent Class', () => {
         projectId,
         description: 'Component with empty props',
         id: 'empty-props-component',
-        props: {},
+        props: {} as JsonSchemaForLlmSchemaType,
       };
 
       const dataComponent = new DataComponent(config);

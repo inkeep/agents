@@ -2,9 +2,6 @@ import { z } from 'zod';
 
 export const GitHubUserSchema = z.object({
   login: z.string(),
-  id: z.number(),
-  avatarUrl: z.string().url(),
-  url: z.url(),
 });
 
 export const RepositorySchema = z.object({
@@ -14,6 +11,26 @@ export const RepositorySchema = z.object({
   url: z.string().url(),
   defaultBranch: z.string(),
 });
+
+export const ReactionContentSchema = z.enum([
+  '+1',
+  '-1',
+  'laugh',
+  'hooray',
+  'confused',
+  'heart',
+  'rocket',
+  'eyes',
+]);
+
+export const ReactionSchema = z.object({
+  id: z.number(),
+  user: z.string(),
+  content: ReactionContentSchema,
+  createdAt: z.string(),
+});
+
+export const ReactionsSchema = z.array(ReactionSchema);
 
 export const PullRequestSchema = z.object({
   number: z.number(),
@@ -50,11 +67,16 @@ export const CommentSchema = z.object({
   body: z.string(),
   author: GitHubUserSchema,
   createdAt: z.string(),
-  updatedAt: z.string(),
-  type: z.enum(['issue', 'review']),
-  // For review comments
+  updatedAt: z.string().optional(),
+  type: z.enum(['issue', 'review', 'review_summary']),
+  // For review comments (inline code comments)
   path: z.string().optional(),
   line: z.number().optional(),
+  diffHunk: z.string().optional(),
+  isSuggestion: z.boolean().optional(),
+  // For review summaries
+  state: z.enum(['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED', 'PENDING']).optional(),
+  reactions: ReactionsSchema.optional(),
 });
 
 export const GitHubEventSchema = z.object({
@@ -67,4 +89,7 @@ export type Repository = z.infer<typeof RepositorySchema>;
 export type PullRequest = z.infer<typeof PullRequestSchema>;
 export type ChangedFile = z.infer<typeof ChangedFileSchema>;
 export type Comment = z.infer<typeof CommentSchema>;
+export type Reaction = z.infer<typeof ReactionSchema>;
+export type Reactions = z.infer<typeof ReactionsSchema>;
 export type GitHubEvent = z.infer<typeof GitHubEventSchema>;
+export type ReactionContent = z.infer<typeof ReactionContentSchema>;

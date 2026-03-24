@@ -1,0 +1,5 @@
+{
+  "title": "CLI",
+  "icon": "LuTerminal",
+  "pages": ["overview", "setup-profile", "push-to-remote", "pull-from-remote", "..."]
+}

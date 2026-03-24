@@ -1,17 +1,28 @@
 import {
   type BaseExecutionContext,
   canUseProjectStrict,
+  getAppById,
+  getPoWErrorMessage,
+  isSlackUserToken,
+  updateAppLastUsed,
   validateAndGetApiKey,
+  validateOrigin,
   validateTargetAgent,
+  verifyPoW,
   verifyServiceToken,
+  verifySlackUserToken,
   verifyTempToken,
 } from '@inkeep/agents-core';
+import { trace } from '@opentelemetry/api';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
+import { errors, jwtVerify } from 'jose';
 import runDbClient from '../data/db/runDbClient';
+import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
+import { isCopilotAgent } from '../utils/copilot';
 
 const logger = getLogger('env-key-auth');
 
@@ -28,6 +39,7 @@ const logger = getLogger('env-key-auth');
  * Common request data extracted once at the start of auth
  */
 interface RequestData {
+  request: Request;
   authHeader?: string;
   apiKey?: string;
   tenantId?: string;
@@ -36,6 +48,9 @@ interface RequestData {
   subAgentId?: string;
   ref?: string;
   baseUrl: string;
+  runAsUserId?: string;
+  appId?: string;
+  origin?: string;
 }
 
 /**
@@ -61,6 +76,9 @@ function extractRequestData(c: { req: any }): RequestData {
   const projectId = c.req.header('x-inkeep-project-id');
   const agentId = c.req.header('x-inkeep-agent-id');
   const subAgentId = c.req.header('x-inkeep-sub-agent-id');
+  const runAsUserId = c.req.header('x-inkeep-run-as-user-id');
+  const appId = c.req.header('x-inkeep-app-id');
+  const origin = c.req.header('Origin');
   const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
   const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
   const host = fwdHost ?? c.req.header('host');
@@ -75,6 +93,7 @@ function extractRequestData(c: { req: any }): RequestData {
         : `${reqUrl.origin}`;
 
   return {
+    request: c.req.raw,
     authHeader,
     apiKey: authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined,
     tenantId,
@@ -83,6 +102,9 @@ function extractRequestData(c: { req: any }): RequestData {
     subAgentId,
     ref,
     baseUrl,
+    runAsUserId,
+    appId,
+    origin,
   };
 }
 
@@ -90,11 +112,39 @@ function extractRequestData(c: { req: any }): RequestData {
  * Build the final execution context from auth result and request data
  */
 function buildExecutionContext(authResult: AuthResult, reqData: RequestData): BaseExecutionContext {
+  // For team delegation, use the parent agent ID from the request header (x-inkeep-agent-id)
+  // instead of the JWT's audience (which is the sub-agent being called).
+  // The parent agent ID is needed for project lookup (project.agents[agentId].subAgents[subAgentId]).
+  const agentId =
+    authResult.metadata?.teamDelegation && reqData.agentId ? reqData.agentId : authResult.agentId;
+
+  if (
+    !authResult.metadata?.teamDelegation &&
+    reqData.agentId &&
+    reqData.agentId !== authResult.agentId &&
+    authResult.apiKeyId &&
+    !authResult.apiKeyId.startsWith('temp-') &&
+    !authResult.apiKeyId.startsWith('app:') &&
+    authResult.apiKeyId !== 'bypass' &&
+    authResult.apiKeyId !== 'slack-user-token' &&
+    authResult.apiKeyId !== 'team-agent-token' &&
+    authResult.apiKeyId !== 'test-key'
+  ) {
+    logger.warn(
+      {
+        requestedAgentId: reqData.agentId,
+        apiKeyAgentId: authResult.agentId,
+        apiKeyId: authResult.apiKeyId,
+      },
+      'API key agent scope mismatch: ignoring x-inkeep-agent-id header, using key-bound agent'
+    );
+  }
+
   return createBaseExecutionContext({
     apiKey: authResult.apiKey,
     tenantId: authResult.tenantId,
     projectId: authResult.projectId,
-    agentId: authResult.agentId,
+    agentId,
     apiKeyId: authResult.apiKeyId,
     baseUrl: reqData.baseUrl,
     subAgentId: reqData.subAgentId,
@@ -113,9 +163,13 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
  * Throws HTTPException(403) if the JWT is valid but the user lacks permission.
  * Returns null if the token is not a temp JWT (allowing fallback to other auth methods).
  */
-async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
-  if (!apiKey.startsWith('eyJ') || !env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
-    return null;
+async function tryTempJwtAuth(apiKey: string): Promise<AuthAttempt> {
+  if (!apiKey.startsWith('eyJ')) {
+    return { authResult: null, failureMessage: 'not a JWT' };
+  }
+
+  if (!env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
+    return { authResult: null, failureMessage: 'no public key configured' };
   }
 
   try {
@@ -135,52 +189,64 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
       });
     }
 
-    let canUse: boolean;
-    try {
-      canUse = await canUseProjectStrict({ userId, projectId });
-    } catch (error) {
-      logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
-      throw new HTTPException(503, {
-        message: 'Authorization service temporarily unavailable',
-      });
+    const isCopilotToken = isCopilotAgent({
+      tenantId: payload.tenantId,
+      projectId,
+      agentId,
+    });
+
+    if (isCopilotToken) {
+      logger.info({ userId, projectId, agentId }, 'Copilot bypass: skipping SpiceDB check');
     }
 
-    if (!canUse) {
-      logger.warn({ userId, projectId }, 'User does not have use permission on project');
-      throw new HTTPException(403, {
-        message: 'Access denied: insufficient permissions',
-      });
+    if (!isCopilotToken) {
+      let canUse: boolean;
+      try {
+        canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
+      } catch (error) {
+        logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
+        throw new HTTPException(503, {
+          message: 'Authorization service temporarily unavailable',
+        });
+      }
+
+      if (!canUse) {
+        logger.warn({ userId, projectId }, 'User does not have use permission on project');
+        throw new HTTPException(403, {
+          message: 'Access denied: insufficient permissions',
+        });
+      }
     }
 
     logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');
 
     return {
-      apiKey,
-      tenantId: payload.tenantId,
-      projectId,
-      agentId,
-      apiKeyId: 'temp-jwt',
-      metadata: { initiatedBy: payload.initiatedBy },
+      authResult: {
+        apiKey,
+        tenantId: payload.tenantId,
+        projectId,
+        agentId,
+        apiKeyId: 'temp-jwt',
+        metadata: { initiatedBy: payload.initiatedBy },
+      },
     };
   } catch (error) {
-    // Re-throw HTTPExceptions (like our 403 above)
     if (error instanceof HTTPException) {
       throw error;
     }
-    // Other errors (JWT verification failed) - allow fallback to other auth methods
     logger.debug({ error }, 'JWT verification failed');
-    return null;
+    return { authResult: null, failureMessage: 'JWT verification failed' };
   }
 }
 
 /**
  * Authenticate using a regular API key
  */
-async function tryApiKeyAuth(apiKey: string): Promise<AuthResult | null> {
+async function tryApiKeyAuth(apiKey: string): Promise<AuthAttempt> {
   const apiKeyRecord = await validateAndGetApiKey(apiKey, runDbClient);
 
   if (!apiKeyRecord) {
-    return null;
+    return { authResult: null, failureMessage: 'not found' };
   }
 
   logger.debug(
@@ -193,11 +259,135 @@ async function tryApiKeyAuth(apiKey: string): Promise<AuthResult | null> {
   );
 
   return {
-    apiKey,
-    tenantId: apiKeyRecord.tenantId,
-    projectId: apiKeyRecord.projectId,
-    agentId: apiKeyRecord.agentId,
-    apiKeyId: apiKeyRecord.id,
+    authResult: {
+      apiKey,
+      tenantId: apiKeyRecord.tenantId,
+      projectId: apiKeyRecord.projectId,
+      agentId: apiKeyRecord.agentId,
+      apiKeyId: apiKeyRecord.id,
+    },
+  };
+}
+
+/**
+ * Authenticate using a Slack user JWT token (for Slack work app delegation)
+ */
+async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise<AuthAttempt> {
+  if (!isSlackUserToken(token)) {
+    return { authResult: null };
+  }
+
+  const result = await verifySlackUserToken(token);
+
+  if (!result.valid || !result.payload) {
+    logger.warn({ error: result.error }, 'Invalid Slack user JWT token');
+    return {
+      authResult: null,
+      failureMessage: `Invalid Slack user token: ${result.error || 'Invalid token'}`,
+    };
+  }
+
+  const payload = result.payload;
+
+  if (!reqData.projectId || !reqData.agentId) {
+    logger.warn(
+      { hasProjectId: !!reqData.projectId, hasAgentId: !!reqData.agentId },
+      'Slack user JWT requires x-inkeep-project-id and x-inkeep-agent-id headers'
+    );
+    return {
+      authResult: null,
+      failureMessage: 'Slack user token requires x-inkeep-project-id and x-inkeep-agent-id headers',
+    };
+  }
+
+  // Channel/workspace authorization bypass (D2, D8)
+  // If the Slack work app determined the user is authorized via channel or workspace config,
+  // AND the requested project matches the project the bypass was granted for,
+  // skip the SpiceDB project membership check.
+  const slackAuthorized =
+    payload.slack.authorized === true && payload.slack.authorizedProjectId === reqData.projectId;
+
+  if (!slackAuthorized) {
+    logger.debug(
+      {
+        slackAuthorizedClaim: payload.slack.authorized,
+        slackAuthorizedProjectId: payload.slack.authorizedProjectId,
+        requestedProjectId: reqData.projectId,
+        projectMatch: payload.slack.authorizedProjectId === reqData.projectId,
+      },
+      'Slack channel auth bypass not applied, falling through to SpiceDB'
+    );
+
+    // Verify the requested projectId belongs to the authenticated tenant
+    try {
+      const canUse = await canUseProjectStrict({
+        userId: payload.sub,
+        tenantId: payload.tenantId,
+        projectId: reqData.projectId,
+      });
+      if (!canUse) {
+        logger.warn(
+          {
+            userId: payload.sub,
+            tenantId: payload.tenantId,
+            projectId: reqData.projectId,
+          },
+          'Slack user JWT: user does not have access to requested project'
+        );
+        return {
+          authResult: null,
+          failureMessage: 'Access denied: insufficient permissions for the requested project',
+        };
+      }
+    } catch (error) {
+      logger.error(
+        { error, userId: payload.sub, projectId: reqData.projectId },
+        'SpiceDB permission check failed for Slack JWT'
+      );
+      throw new HTTPException(503, {
+        message: 'Authorization service temporarily unavailable',
+      });
+    }
+  }
+
+  logger.info(
+    {
+      inkeepUserId: payload.sub,
+      tenantId: payload.tenantId,
+      slackTeamId: payload.slack.teamId,
+      slackUserId: payload.slack.userId,
+      projectId: reqData.projectId,
+      agentId: reqData.agentId,
+      slackAuthorized,
+      slackAuthSource: payload.slack.authSource,
+      slackChannelId: payload.slack.channelId,
+      slackAuthorizedProjectId: payload.slack.authorizedProjectId,
+    },
+    'Slack user JWT token authenticated successfully'
+  );
+
+  return {
+    authResult: {
+      apiKey: token,
+      tenantId: payload.tenantId,
+      projectId: reqData.projectId,
+      agentId: reqData.agentId,
+      apiKeyId: 'slack-user-token',
+      metadata: {
+        initiatedBy: {
+          type: 'user',
+          id: payload.sub,
+        },
+        ...(slackAuthorized && {
+          slack: {
+            authorized: true,
+            authSource: payload.slack.authSource ?? 'channel',
+            channelId: payload.slack.channelId,
+            teamId: payload.slack.teamId,
+          },
+        }),
+      },
+    },
   };
 }
 
@@ -243,7 +433,7 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
 
   return {
     authResult: {
-      apiKey: 'team-agent-jwt',
+      apiKey: token,
       tenantId: payload.tenantId,
       projectId: payload.projectId,
       agentId: payload.aud,
@@ -251,6 +441,7 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
       metadata: {
         teamDelegation: true,
         originAgentId: payload.sub,
+        ...(payload.initiatedBy ? { initiatedBy: payload.initiatedBy } : {}),
       },
     },
   };
@@ -259,13 +450,13 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
 /**
  * Authenticate using bypass secret (production mode bypass)
  */
-function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null {
+function tryBypassAuth(apiKey: string, reqData: RequestData): AuthAttempt {
   if (!env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
-    return null;
+    return { authResult: null, failureMessage: 'no bypass secret configured' };
   }
 
   if (apiKey !== env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
-    return null;
+    return { authResult: null, failureMessage: 'no match' };
   }
 
   if (!reqData.tenantId || !reqData.projectId || !reqData.agentId) {
@@ -277,11 +468,115 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
   logger.info({}, 'Bypass secret authenticated successfully');
 
   return {
-    apiKey,
-    tenantId: reqData.tenantId,
-    projectId: reqData.projectId,
-    agentId: reqData.agentId,
-    apiKeyId: 'bypass',
+    authResult: {
+      apiKey,
+      tenantId: reqData.tenantId,
+      projectId: reqData.projectId,
+      agentId: reqData.agentId,
+      apiKeyId: 'bypass',
+      ...(reqData.runAsUserId
+        ? { metadata: { initiatedBy: { type: 'user' as const, id: reqData.runAsUserId } } }
+        : {}),
+    },
+  };
+}
+
+/**
+ * Authenticate using an app credential (X-Inkeep-App-Id header).
+ * Supports web_client (end-user JWT) and api (app secret) types.
+ */
+async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> {
+  const { appId: appIdHeader, apiKey: bearerToken, origin, agentId: requestedAgentId } = reqData;
+
+  if (!appIdHeader) {
+    return { authResult: null };
+  }
+
+  const app = await getAppById(runDbClient)(appIdHeader);
+  if (!app) {
+    return { authResult: null, failureMessage: 'App not found' };
+  }
+  if (!app.enabled) {
+    return { authResult: null, failureMessage: 'App is disabled' };
+  }
+
+  let endUserId: string | undefined;
+  let authMethod: 'app_credential_web_client' | 'app_credential_api';
+
+  if (app.type === 'web_client') {
+    authMethod = 'app_credential_web_client';
+    const config = app.config as {
+      type: 'web_client';
+      webClient: {
+        allowedDomains: string[];
+      };
+    };
+
+    if (!validateOrigin(origin, config.webClient.allowedDomains)) {
+      logger.warn(
+        { origin, allowedDomains: config.webClient.allowedDomains, appId: app.id },
+        'App credential auth: origin not allowed'
+      );
+      return { authResult: null, failureMessage: 'Origin not allowed for this app' };
+    }
+
+    const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
+    if (!pow.ok) {
+      throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+    }
+
+    if (!bearerToken) {
+      return { authResult: null, failureMessage: 'Bearer token required for web_client app' };
+    }
+
+    try {
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(bearerToken, secret, { issuer: 'inkeep' });
+
+      if (payload.app !== appIdHeader) {
+        return { authResult: null, failureMessage: 'JWT app claim does not match request app ID' };
+      }
+
+      endUserId = payload.sub;
+    } catch (err) {
+      const errorType =
+        err instanceof errors.JWTExpired
+          ? 'expired'
+          : err instanceof errors.JWSSignatureVerificationFailed
+            ? 'signature_invalid'
+            : 'unknown';
+      logger.debug({ errorType, appId: appIdHeader }, 'Anonymous JWT verification failed');
+      return { authResult: null, failureMessage: 'Invalid end-user JWT' };
+    }
+  } else {
+    return { authResult: null, failureMessage: 'Unsupported app type' };
+  }
+
+  const agentId = requestedAgentId || app.defaultAgentId || '';
+
+  if (Math.random() < 0.1) {
+    updateAppLastUsed(runDbClient)(app.id).catch((err) => {
+      logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
+    });
+  }
+
+  logger.info(
+    { appId: app.id, appType: app.type, agentId, endUserId, authMethod },
+    'App credential authenticated successfully'
+  );
+
+  return {
+    authResult: {
+      apiKey: bearerToken || appIdHeader,
+      tenantId: app.tenantId || reqData.tenantId || '',
+      projectId: app.projectId || reqData.projectId || '',
+      agentId,
+      apiKeyId: `app:${app.id}`,
+      metadata: {
+        endUserId,
+        authMethod,
+      },
+    },
   };
 }
 
@@ -289,12 +584,15 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
  * Create default development context
  */
 function createDevContext(reqData: RequestData): AuthResult {
-  const result = {
+  const result: AuthResult = {
     apiKey: 'development',
     tenantId: reqData.tenantId || 'test-tenant',
     projectId: reqData.projectId || 'test-project',
     agentId: reqData.agentId || 'test-agent',
     apiKeyId: 'test-key',
+    ...(reqData.runAsUserId
+      ? { metadata: { initiatedBy: { type: 'user' as const, id: reqData.runAsUserId } } }
+      : {}),
   };
 
   // Log when falling back to test values to help debug auth issues
@@ -325,27 +623,51 @@ function createDevContext(reqData: RequestData): AuthResult {
 async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
-  if (!apiKey) {
-    return { authResult: null };
+  if (reqData.appId) {
+    if (!apiKey) {
+      return { authResult: null, failureMessage: 'Bearer token required for app credential auth' };
+    }
+    return tryAppCredentialAuth(reqData);
   }
 
-  // 1. Try JWT temp token
-  const jwtResult = await tryTempJwtAuth(apiKey);
-  if (jwtResult) return { authResult: jwtResult };
+  if (!apiKey) {
+    return { authResult: null, failureMessage: 'No API key provided' };
+  }
 
-  // 2. Try bypass secret
-  const bypassResult = tryBypassAuth(apiKey, reqData);
-  if (bypassResult) return { authResult: bypassResult };
+  const failures: Array<{ strategy: string; reason: string }> = [];
 
-  // 3. Try regular API key
-  const apiKeyResult = await tryApiKeyAuth(apiKey);
-  if (apiKeyResult) return { authResult: apiKeyResult };
+  const jwtAttempt = await tryTempJwtAuth(apiKey);
+  if (jwtAttempt.authResult) return jwtAttempt;
+  if (jwtAttempt.failureMessage) {
+    failures.push({ strategy: 'JWT temp token', reason: jwtAttempt.failureMessage });
+  }
 
-  // 4. Try team agent token
+  const bypassAttempt = tryBypassAuth(apiKey, reqData);
+  if (bypassAttempt.authResult) return bypassAttempt;
+  if (bypassAttempt.failureMessage) {
+    failures.push({ strategy: 'bypass secret', reason: bypassAttempt.failureMessage });
+  }
+
+  const slackAttempt = await trySlackUserJwtAuth(apiKey, reqData);
+  if (slackAttempt.authResult) return slackAttempt;
+  if (slackAttempt.failureMessage) return slackAttempt;
+  failures.push({ strategy: 'Slack user JWT', reason: 'not a Slack token' });
+
+  const apiKeyAttempt = await tryApiKeyAuth(apiKey);
+  if (apiKeyAttempt.authResult) return apiKeyAttempt;
+  if (apiKeyAttempt.failureMessage) {
+    failures.push({ strategy: 'API key', reason: apiKeyAttempt.failureMessage });
+  }
+
   const teamAttempt = await tryTeamAgentAuth(apiKey, subAgentId);
-  if (teamAttempt.authResult) return { authResult: teamAttempt.authResult };
+  if (teamAttempt.authResult) return teamAttempt;
+  if (teamAttempt.failureMessage) {
+    failures.push({ strategy: 'team agent token', reason: teamAttempt.failureMessage });
+  }
 
-  return { authResult: null, failureMessage: teamAttempt.failureMessage };
+  logger.debug({ failures }, 'All auth strategies exhausted');
+
+  return { authResult: null };
 }
 
 /**
@@ -362,6 +684,12 @@ async function runApiKeyAuthHandler(
 
   const reqData = extractRequestData(c);
   const isDev = process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test';
+
+  if (reqData.runAsUserId === 'system' || reqData.runAsUserId?.startsWith('apikey:')) {
+    throw new HTTPException(400, {
+      message: 'x-inkeep-run-as-user-id cannot be a system identifier',
+    });
+  }
 
   // Development/test environment handling
   if (isDev) {
@@ -381,6 +709,9 @@ async function runApiKeyAuthHandler(
       c.set('executionContext', buildExecutionContext(createDevContext(reqData), reqData));
     }
 
+    if (reqData.appId && attempt.authResult) {
+      trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+    }
     await next();
     return;
   }
@@ -410,9 +741,12 @@ async function runApiKeyAuthHandler(
   }
 
   if (!attempt.authResult) {
-    logger.error({}, 'API key authentication error - no valid auth method found');
+    logger.error(
+      { failureMessage: attempt.failureMessage },
+      'API key authentication error - no valid auth method found'
+    );
     throw new HTTPException(401, {
-      message: attempt.failureMessage || 'Invalid Token',
+      message: 'Invalid Token',
     });
   }
 
@@ -427,6 +761,9 @@ async function runApiKeyAuthHandler(
   );
 
   c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
+  if (reqData.appId) {
+    trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+  }
   await next();
 }
 

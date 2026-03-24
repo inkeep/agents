@@ -1,5 +1,902 @@
 # @inkeep/agents-cli
 
+## 0.59.3
+
+### Patch Changes
+
+- Updated dependencies [51d6dfd]
+- Updated dependencies [ed09910]
+- Updated dependencies [e2c4c2d]
+- Updated dependencies [6ca8164]
+- Updated dependencies [b78771b]
+  - @inkeep/agents-core@0.59.3
+  - @inkeep/agents-manage-ui@0.59.3
+  - @inkeep/agents-sdk@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- Updated dependencies [028a801]
+- Updated dependencies [6cc27ba]
+- Updated dependencies [825690c]
+- Updated dependencies [0b4669f]
+  - @inkeep/agents-manage-ui@0.59.2
+  - @inkeep/agents-core@0.59.2
+  - @inkeep/agents-sdk@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- Updated dependencies [eb3a4bb]
+- Updated dependencies [bab9603]
+- Updated dependencies [7ee7de1]
+  - @inkeep/agents-manage-ui@0.59.1
+  - @inkeep/agents-core@0.59.1
+  - @inkeep/agents-sdk@0.59.1
+
+## 0.59.0
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+- Updated dependencies [3d54b6b]
+  - @inkeep/agents-core@0.59.0
+  - @inkeep/agents-manage-ui@0.59.0
+  - @inkeep/agents-sdk@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- Updated dependencies [64b0d88]
+  - @inkeep/agents-manage-ui@0.58.21
+  - @inkeep/agents-core@0.58.21
+  - @inkeep/agents-sdk@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+- Updated dependencies [9c06353]
+- Updated dependencies [9e0dd71]
+- Updated dependencies [ac53c07]
+  - @inkeep/agents-core@0.58.20
+  - @inkeep/agents-manage-ui@0.58.20
+  - @inkeep/agents-sdk@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- f8f16f4: Add GPT-5.4 Mini and GPT-5.4 Nano to model constants, UI picker, and CLI
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+- Updated dependencies [56a8a91]
+  - @inkeep/agents-core@0.58.19
+  - @inkeep/agents-manage-ui@0.58.19
+  - @inkeep/agents-sdk@0.58.19
+
+## 0.58.18
+
+### Patch Changes
+
+- Updated dependencies [ad867c5]
+  - @inkeep/agents-manage-ui@0.58.18
+  - @inkeep/agents-core@0.58.18
+  - @inkeep/agents-sdk@0.58.18
+
+## 0.58.17
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.58.17
+- @inkeep/agents-core@0.58.17
+- @inkeep/agents-sdk@0.58.17
+
+## 0.58.16
+
+### Patch Changes
+
+- Updated dependencies [5065552]
+  - @inkeep/agents-core@0.58.16
+  - @inkeep/agents-manage-ui@0.58.16
+  - @inkeep/agents-sdk@0.58.16
+
+## 0.58.15
+
+### Patch Changes
+
+- Updated dependencies [2a50786]
+- Updated dependencies [36430ee]
+- Updated dependencies [5394245]
+- Updated dependencies [0e1011b]
+- Updated dependencies [abaefda]
+  - @inkeep/agents-manage-ui@0.58.15
+  - @inkeep/agents-core@0.58.15
+  - @inkeep/agents-sdk@0.58.15
+
+## 0.58.14
+
+### Patch Changes
+
+- Updated dependencies [ed39b41]
+- Updated dependencies [14e415c]
+- Updated dependencies [09e270a]
+- Updated dependencies [e10649a]
+  - @inkeep/agents-manage-ui@0.58.14
+  - @inkeep/agents-core@0.58.14
+  - @inkeep/agents-sdk@0.58.14
+
+## 0.58.13
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.58.13
+- @inkeep/agents-core@0.58.13
+- @inkeep/agents-sdk@0.58.13
+
+## 0.58.12
+
+### Patch Changes
+
+- ad8a7cd: Fix broken code generation and unresolved imports in `inkeep pull` command
+- ad8a7cd: Use Zod schemas from `agents-core` in `inkeep pull` generators instead of hand-written schemas
+- Updated dependencies [ad8a7cd]
+- Updated dependencies [19b1168]
+- Updated dependencies [ad8a7cd]
+  - @inkeep/agents-core@0.58.12
+  - @inkeep/agents-sdk@0.58.12
+  - @inkeep/agents-manage-ui@0.58.12
+
+## 0.58.11
+
+### Patch Changes
+
+- Updated dependencies [c87dc3e]
+  - @inkeep/agents-core@0.58.11
+  - @inkeep/agents-manage-ui@0.58.11
+  - @inkeep/agents-sdk@0.58.11
+
+## 0.58.10
+
+### Patch Changes
+
+- Updated dependencies [fa64456]
+- Updated dependencies [02bcd0e]
+- Updated dependencies [f41500b]
+- Updated dependencies [41af59e]
+  - @inkeep/agents-core@0.58.10
+  - @inkeep/agents-manage-ui@0.58.10
+  - @inkeep/agents-sdk@0.58.10
+
+## 0.58.9
+
+### Patch Changes
+
+- Updated dependencies [f150b28]
+- Updated dependencies [49909bf]
+- Updated dependencies [4816f02]
+- Updated dependencies [0645423]
+  - @inkeep/agents-core@0.58.9
+  - @inkeep/agents-manage-ui@0.58.9
+  - @inkeep/agents-sdk@0.58.9
+
+## 0.58.8
+
+### Patch Changes
+
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+  - @inkeep/agents-manage-ui@0.58.8
+  - @inkeep/agents-sdk@0.58.8
+
+## 0.58.7
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.58.7
+- @inkeep/agents-core@0.58.7
+- @inkeep/agents-sdk@0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- Updated dependencies [a9c2857]
+- Updated dependencies [f0dd499]
+- Updated dependencies [16e5e8d]
+- Updated dependencies [7b811ec]
+- Updated dependencies [0e425da]
+  - @inkeep/agents-core@0.58.6
+  - @inkeep/agents-manage-ui@0.58.6
+  - @inkeep/agents-sdk@0.58.6
+
+## 0.58.5
+
+### Patch Changes
+
+- Updated dependencies [5d3dba9]
+  - @inkeep/agents-manage-ui@0.58.5
+  - @inkeep/agents-core@0.58.5
+  - @inkeep/agents-sdk@0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- 0451e1d: Add new models: anthropic/claude-opus-4, anthropic/claude-sonnet-4, anthropic/claude-3-7-sonnet, anthropic/claude-3-5-sonnet, anthropic/claude-3-5-sonnet-20240620, anthropic/claude-3-5-haiku, anthropic/claude-3-opus, anthropic/claude-3-haiku, google/gemini-3-flash, google/gemini-3.1-flash-lite-preview, google/gemini-2.5-flash-preview-09-2025, google/gemini-2.5-flash-lite-preview-09-2025, google/gemini-2.0-flash, google/gemini-2.0-flash-lite, openai/gpt-5.2-codex, openai/gpt-5.1-thinking, openai/gpt-5.1-codex, openai/gpt-5.1-codex-max, openai/gpt-5.1-codex-mini, openai/gpt-5-pro, openai/gpt-5-codex, openai/o3-pro, openai/o3, openai/o3-mini, openai/o4-mini, openai/o1, openai/gpt-4o, openai/gpt-4o-mini, openai/gpt-4-turbo, openai/gpt-3.5-turbo, openai/codex-mini. Remove from UI: Claude Haiku 3.5 (deprecated), Gemini 3 Flash Preview (replaced by stable Gemini 3 Flash), Claude Opus 4.1 (consolidated to Claude Opus 4).
+- d7c1001: Add GPT-5.2 Pro and GPT-5.3 Codex to model constants and UI picker
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [d7827b3]
+- Updated dependencies [e5cd90f]
+- Updated dependencies [f95fd53]
+- Updated dependencies [f475d74]
+- Updated dependencies [b4fc0c0]
+- Updated dependencies [fbe68b9]
+  - @inkeep/agents-core@0.58.4
+  - @inkeep/agents-manage-ui@0.58.4
+  - @inkeep/agents-sdk@0.58.4
+
+## 0.58.3
+
+### Patch Changes
+
+- Updated dependencies [0714ac6]
+  - @inkeep/agents-core@0.58.3
+  - @inkeep/agents-manage-ui@0.58.3
+  - @inkeep/agents-sdk@0.58.3
+
+## 0.58.2
+
+### Patch Changes
+
+- 31c0f68: Add new models: openai/gpt-5.4, openai/gpt-5.4-pro
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+  - @inkeep/agents-manage-ui@0.58.2
+  - @inkeep/agents-sdk@0.58.2
+
+## 0.58.1
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.58.1
+- @inkeep/agents-core@0.58.1
+- @inkeep/agents-sdk@0.58.1
+
+## 0.58.0
+
+### Patch Changes
+
+- Updated dependencies [e7e09df]
+- Updated dependencies [3d88636]
+- Updated dependencies [b6c8fba]
+  - @inkeep/agents-manage-ui@0.58.0
+  - @inkeep/agents-core@0.58.0
+  - @inkeep/agents-sdk@0.58.0
+
+## 0.57.0
+
+### Patch Changes
+
+- Updated dependencies [19e16cc]
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-manage-ui@0.57.0
+  - @inkeep/agents-core@0.57.0
+  - @inkeep/agents-sdk@0.57.0
+
+## 0.56.2
+
+### Patch Changes
+
+- Updated dependencies [32e0d6e]
+  - @inkeep/agents-manage-ui@0.56.2
+  - @inkeep/agents-core@0.56.2
+  - @inkeep/agents-sdk@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- Updated dependencies [76defa3]
+- Updated dependencies [a175379]
+- Updated dependencies [0d4a6ce]
+  - @inkeep/agents-manage-ui@0.56.1
+  - @inkeep/agents-core@0.56.1
+  - @inkeep/agents-sdk@0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+  - @inkeep/agents-manage-ui@0.56.0
+  - @inkeep/agents-sdk@0.56.0
+
+## 0.55.3
+
+### Patch Changes
+
+- Updated dependencies [e8f1549]
+  - @inkeep/agents-manage-ui@0.55.3
+  - @inkeep/agents-core@0.55.3
+  - @inkeep/agents-sdk@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- Updated dependencies [4414e25]
+- Updated dependencies [6dec75f]
+  - @inkeep/agents-core@0.55.2
+  - @inkeep/agents-manage-ui@0.55.2
+  - @inkeep/agents-sdk@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- Updated dependencies [55eb8cb]
+- Updated dependencies [cde371e]
+  - @inkeep/agents-manage-ui@0.55.1
+  - @inkeep/agents-core@0.55.1
+  - @inkeep/agents-sdk@0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- Updated dependencies [1093d69]
+- Updated dependencies [08d678d]
+- Updated dependencies [9ee889e]
+- Updated dependencies [08d678d]
+- Updated dependencies [1e0cfc5]
+  - @inkeep/agents-manage-ui@0.55.0
+  - @inkeep/agents-core@0.55.0
+  - @inkeep/agents-sdk@0.55.0
+
+## 0.54.0
+
+### Patch Changes
+
+- Updated dependencies [781f15f]
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-manage-ui@0.54.0
+  - @inkeep/agents-core@0.54.0
+  - @inkeep/agents-sdk@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- Updated dependencies [e915ef8]
+  - @inkeep/agents-core@0.53.13
+  - @inkeep/agents-manage-ui@0.53.13
+  - @inkeep/agents-sdk@0.53.13
+
+## 0.53.12
+
+### Patch Changes
+
+- 9f5204d: Use human readable file names when generating files with inkeep pull
+- Updated dependencies [0038a02]
+  - @inkeep/agents-manage-ui@0.53.12
+  - @inkeep/agents-core@0.53.12
+  - @inkeep/agents-sdk@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.53.11
+- @inkeep/agents-core@0.53.11
+- @inkeep/agents-sdk@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- b2f3879: Enable inkeep pull to handle nullable values in triggers.
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+- Updated dependencies [ff9e307]
+- Updated dependencies [901058e]
+  - @inkeep/agents-core@0.53.10
+  - @inkeep/agents-manage-ui@0.53.10
+  - @inkeep/agents-sdk@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [9a2d783]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+  - @inkeep/agents-manage-ui@0.53.9
+  - @inkeep/agents-sdk@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- Updated dependencies [7e60710]
+- Updated dependencies [a879934]
+  - @inkeep/agents-manage-ui@0.53.8
+  - @inkeep/agents-core@0.53.8
+  - @inkeep/agents-sdk@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+  - @inkeep/agents-manage-ui@0.53.7
+  - @inkeep/agents-sdk@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- Updated dependencies [946d729]
+  - @inkeep/agents-manage-ui@0.53.6
+  - @inkeep/agents-core@0.53.6
+  - @inkeep/agents-sdk@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.53.5
+- @inkeep/agents-core@0.53.5
+- @inkeep/agents-sdk@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 1bcedce: Fix `imageUrl: null` handling in MCP tool generator in `inkeep pull`
+- Updated dependencies [35ca5cb]
+- Updated dependencies [df4b020]
+  - @inkeep/agents-core@0.53.4
+  - @inkeep/agents-manage-ui@0.53.4
+  - @inkeep/agents-sdk@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+  - @inkeep/agents-manage-ui@0.53.3
+  - @inkeep/agents-sdk@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- Updated dependencies [090bedc]
+  - @inkeep/agents-manage-ui@0.53.2
+  - @inkeep/agents-core@0.53.2
+  - @inkeep/agents-sdk@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- Updated dependencies [e06a945]
+- Updated dependencies [2222e08]
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-manage-ui@0.53.1
+  - @inkeep/agents-core@0.53.1
+  - @inkeep/agents-sdk@0.53.1
+
+## 0.53.0
+
+### Patch Changes
+
+- ef0f287: Remove deprecated pull-v3 code and consolidate tests into pull-v4
+- ac63aa8: Fix `inkeep pull` for create mode: missing generation for MCP tools, sub-agent dependency imports, and project import alias collisions
+- Updated dependencies [f54846b]
+- Updated dependencies [0a0cb6e]
+- Updated dependencies [08ba7c2]
+- Updated dependencies [9c293ff]
+- Updated dependencies [a5f8f24]
+- Updated dependencies [f868a96]
+  - @inkeep/agents-manage-ui@0.53.0
+  - @inkeep/agents-core@0.53.0
+  - @inkeep/agents-sdk@0.53.0
+
+## 0.52.0
+
+### Minor Changes
+
+- 886b2da: Refactor pull command to use ts-morph for improved code generation and smart merging
+
+  - Migrates from string-based code generation to AST-based manipulation using ts-morph
+  - Adds intelligent merge mode that preserves user customizations when pulling updates
+  - Improves handling of imports, comments, and custom code during regeneration
+  - Adds comprehensive test coverage for the new pull command implementation
+
+### Patch Changes
+
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+- Updated dependencies [d717f54]
+  - @inkeep/agents-core@0.52.0
+  - @inkeep/agents-manage-ui@0.52.0
+  - @inkeep/agents-sdk@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- Updated dependencies [fe36caa]
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-manage-ui@0.51.0
+  - @inkeep/agents-core@0.51.0
+  - @inkeep/agents-sdk@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.50.6
+- @inkeep/agents-core@0.50.6
+- @inkeep/agents-sdk@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+  - @inkeep/agents-manage-ui@0.50.5
+  - @inkeep/agents-sdk@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+  - @inkeep/agents-manage-ui@0.50.4
+  - @inkeep/agents-sdk@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- d50fa44: Released Gemini 3.1-pro
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+- Updated dependencies [13197d8]
+- Updated dependencies [0aea45a]
+  - @inkeep/agents-core@0.50.3
+  - @inkeep/agents-manage-ui@0.50.3
+  - @inkeep/agents-sdk@0.50.3
+
+## 0.50.2
+
+### Patch Changes
+
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+  - @inkeep/agents-manage-ui@0.50.2
+  - @inkeep/agents-sdk@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+  - @inkeep/agents-manage-ui@0.50.1
+  - @inkeep/agents-sdk@0.50.1
+
+## 0.50.0
+
+### Patch Changes
+
+- Updated dependencies [d32f38f]
+  - @inkeep/agents-manage-ui@0.50.0
+  - @inkeep/agents-core@0.50.0
+  - @inkeep/agents-sdk@0.50.0
+
+## 0.49.0
+
+### Patch Changes
+
+- Updated dependencies [97d5fce]
+- Updated dependencies [a998bb3]
+  - @inkeep/agents-manage-ui@0.49.0
+  - @inkeep/agents-core@0.49.0
+  - @inkeep/agents-sdk@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+  - @inkeep/agents-manage-ui@0.48.7
+  - @inkeep/agents-sdk@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- 2e8d956: Added sonnet 4-6
+- Updated dependencies [2e8d956]
+- Updated dependencies [4afaf71]
+  - @inkeep/agents-core@0.48.6
+  - @inkeep/agents-manage-ui@0.48.6
+  - @inkeep/agents-sdk@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- Updated dependencies [1c85bf0]
+- Updated dependencies [ded8362]
+  - @inkeep/agents-manage-ui@0.48.5
+  - @inkeep/agents-core@0.48.5
+  - @inkeep/agents-sdk@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+  - @inkeep/agents-manage-ui@0.48.4
+  - @inkeep/agents-sdk@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- baa7e46: Fix CLI port mismatch by centralizing local dev URLs via --local flag
+- Updated dependencies [6b561f6]
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-manage-ui@0.48.3
+  - @inkeep/agents-core@0.48.3
+  - @inkeep/agents-sdk@0.48.3
+
+## 0.48.2
+
+### Patch Changes
+
+- Updated dependencies [5287615]
+  - @inkeep/agents-manage-ui@0.48.2
+  - @inkeep/agents-core@0.48.2
+  - @inkeep/agents-sdk@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.48.1
+- @inkeep/agents-core@0.48.1
+- @inkeep/agents-sdk@0.48.1
+
+## 0.48.0
+
+### Minor Changes
+
+- b2a6078: ## Agent Skills
+
+  Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
+
+  ### Features
+
+  - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
+
+  - **TypeScript SDK**:
+
+    - New `SkillDefinition` and `SkillReference` types
+    - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
+    - `skills` config option on `SubAgent` and `Project`
+
+  - **API**: New CRUD endpoints for skills (`/skills`) and sub-agent skill associations (`/sub-agent-skills`)
+
+  - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
+
+  ### Loading Modes
+
+  - **Always loaded**: Skill content is included in every prompt
+  - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
+
+  ### SKILL.md Format
+
+  ```md
+  ---
+  name: "my-skill"
+  description: "When to use this skill"
+  metadata:
+    author: org
+    version: "1.0"
+  ---
+
+  Skill content in markdown...
+  ```
+
+### Patch Changes
+
+- e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
+- 9ed110c: Add `--ui` flag to CLI `add` command for downloading UI components from the dashboard
+- Updated dependencies [f981006]
+- Updated dependencies [e11fae9]
+- Updated dependencies [26b3b88]
+- Updated dependencies [615713f]
+- Updated dependencies [e551124]
+- Updated dependencies [5d3f136]
+- Updated dependencies [5b0b1f1]
+- Updated dependencies [228d4e2]
+- Updated dependencies [c0c922b]
+- Updated dependencies [627df66]
+- Updated dependencies [9ed110c]
+- Updated dependencies [7ad7e21]
+- Updated dependencies [4476af0]
+- Updated dependencies [73d79bd]
+- Updated dependencies [0bf078c]
+- Updated dependencies [95a3abc]
+- Updated dependencies [b2a6078]
+- Updated dependencies [32bff8f]
+  - @inkeep/agents-core@0.48.0
+  - @inkeep/agents-manage-ui@0.48.0
+  - @inkeep/agents-sdk@0.48.0
+
+## 0.47.5
+
+### Patch Changes
+
+- Updated dependencies [1ae697c]
+  - @inkeep/agents-manage-ui@0.47.5
+  - @inkeep/agents-core@0.47.5
+  - @inkeep/agents-sdk@0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- Updated dependencies [6fb0715]
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-manage-ui@0.47.4
+  - @inkeep/agents-core@0.47.4
+  - @inkeep/agents-sdk@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-core@0.47.3
+  - @inkeep/agents-manage-ui@0.47.3
+  - @inkeep/agents-sdk@0.47.3
+
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+  - @inkeep/agents-manage-ui@0.47.2
+  - @inkeep/agents-sdk@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+  - @inkeep/agents-manage-ui@0.47.1
+  - @inkeep/agents-sdk@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+  - @inkeep/agents-manage-ui@0.47.0
+  - @inkeep/agents-sdk@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- Updated dependencies [2307d76]
+- Updated dependencies [f6010a1]
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-manage-ui@0.46.1
+  - @inkeep/agents-core@0.46.1
+  - @inkeep/agents-sdk@0.46.1
+
+## 0.46.0
+
+### Minor Changes
+
+- 96de898: Update api and manage ui urls
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [99388e9]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+  - @inkeep/agents-manage-ui@0.46.0
+  - @inkeep/agents-sdk@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- Updated dependencies [14a2e6f]
+- Updated dependencies [4d291f1]
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [fd323b4]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-manage-ui@0.45.3
+  - @inkeep/agents-core@0.45.3
+  - @inkeep/agents-sdk@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+- Updated dependencies [4524c28]
+- Updated dependencies [4524c28]
+  - @inkeep/agents-sdk@0.45.2
+  - @inkeep/agents-manage-ui@0.45.2
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+- Updated dependencies [cd28e97]
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-manage-ui@0.45.1
+  - @inkeep/agents-core@0.45.1
+  - @inkeep/agents-sdk@0.45.1
+
 ## 0.45.0
 
 ### Patch Changes

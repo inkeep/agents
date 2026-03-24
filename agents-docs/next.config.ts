@@ -8,6 +8,9 @@ const withMDX = createMDX();
 const isProd = process.env.NODE_ENV === 'production';
 
 const config: NextConfig = {
+  experimental: {
+    turbopackFileSystemCacheForBuild: true,
+  },
   reactStrictMode: true,
   reactCompiler: {
     // Fail the build on any compiler diagnostic
@@ -20,6 +23,14 @@ const config: NextConfig = {
       {
         protocol: 'https',
         hostname: 'docs.inkeep.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cursor.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.shields.io',
       },
     ],
   },

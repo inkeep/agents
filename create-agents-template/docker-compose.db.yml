@@ -1,6 +1,7 @@
 services:
   doltgres-db:
     image: dolthub/doltgresql:latest
+    pull_policy: always
     restart: unless-stopped
     environment:
       DOLTGRES_USER: appuser

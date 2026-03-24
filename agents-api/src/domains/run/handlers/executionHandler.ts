@@ -4,11 +4,16 @@ import {
   createTask,
   type FullExecutionContext,
   generateId,
+  generateServiceToken,
   getActiveAgentForConversation,
+  getInProcessFetch,
   getTask,
+  isUniqueConstraintError,
+  type ModelSettings,
   type Part,
   type SendMessageResponse,
   setSpanWithError,
+  unwrapError,
   updateTask,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient.js';
@@ -19,12 +24,12 @@ import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
-import { agentSessionManager } from '../services/AgentSession.js';
+import { agentSessionManager } from '../session/AgentSession.js';
+import type { StreamHelper } from '../stream/stream-helpers.js';
+import { BufferingStreamHelper } from '../stream/stream-helpers.js';
+import { registerStreamHelper, unregisterStreamHelper } from '../stream/stream-registry.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import { resolveModelConfig } from '../utils/model-resolver.js';
-import type { StreamHelper } from '../utils/stream-helpers.js';
-import { BufferingStreamHelper } from '../utils/stream-helpers.js';
-import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
 import { tracer } from '../utils/tracer.js';
 
 const logger = getLogger('ExecutionHandler');
@@ -42,6 +47,7 @@ interface ExecutionHandlerParams {
   datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
   /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for auth) */
   forwardedHeaders?: Record<string, string>;
+  responseMessageId?: string;
 }
 
 interface ExecutionResult {
@@ -81,8 +87,7 @@ export class ExecutionHandler {
       forwardedHeaders,
     } = params;
 
-    const { tenantId, projectId, project, agentId, apiKey, baseUrl, resolvedRef } =
-      executionContext;
+    const { tenantId, projectId, project, agentId, baseUrl, resolvedRef } = executionContext;
 
     registerStreamHelper(requestId, sseHelper);
 
@@ -99,53 +104,54 @@ export class ExecutionHandler {
 
     const agent = project.agents[agentId];
     try {
-      if (agent?.statusUpdates && agent.statusUpdates.enabled !== false) {
-        try {
-          // Get the default sub-agent to resolve models properly with inheritance
+      // Always resolve models for artifact naming, even if status updates are disabled
+      let summarizerModel: ModelSettings | undefined;
+      let baseModel: ModelSettings | undefined;
 
-          if (agent?.defaultSubAgentId) {
-            const resolvedModels = await resolveModelConfig(
-              executionContext,
-              agent.subAgents[agent.defaultSubAgentId]
-            );
-
-            agentSessionManager.initializeStatusUpdates(
-              requestId,
-              agent.statusUpdates,
-              resolvedModels.summarizer,
-              resolvedModels.base
-            );
-          } else {
-            // Fallback to agent-level config if no default sub-agent
-            agentSessionManager.initializeStatusUpdates(
-              requestId,
-              agent.statusUpdates,
-              agent.models?.summarizer
-            );
-          }
-        } catch (modelError) {
-          logger.warn(
-            {
-              error: modelError instanceof Error ? modelError.message : 'Unknown error',
-              agentId,
-            },
-            'Failed to resolve models for status updates, using agent-level config'
+      try {
+        if (agent?.defaultSubAgentId) {
+          const resolvedModels = await resolveModelConfig(
+            executionContext,
+            agent.subAgents[agent.defaultSubAgentId]
           );
-          // Fallback to agent-level config
-          agentSessionManager.initializeStatusUpdates(
-            requestId,
-            agent.statusUpdates,
-            agent.models?.summarizer
-          );
+          summarizerModel = resolvedModels.summarizer;
+          baseModel = resolvedModels.base;
+        } else {
+          // Fallback to agent-level config if no default sub-agent
+          summarizerModel = agent.models?.summarizer;
+          baseModel = agent.models?.base;
         }
+      } catch (modelError) {
+        logger.warn(
+          {
+            error: modelError instanceof Error ? modelError.message : 'Unknown error',
+            agentId,
+          },
+          'Failed to resolve models, using agent-level config'
+        );
+        summarizerModel = agent.models?.summarizer;
+        baseModel = agent.models?.base;
       }
+
+      // Initialize status updates (always call to set models, but only enable events if configured)
+      const statusConfig =
+        agent?.statusUpdates && agent.statusUpdates.enabled !== false
+          ? agent.statusUpdates
+          : { enabled: false }; // Disabled but still sets models
+
+      agentSessionManager.initializeStatusUpdates(
+        requestId,
+        statusConfig,
+        summarizerModel,
+        baseModel
+      );
     } catch (error) {
       logger.error(
         {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         },
-        '❌ Failed to initialize status updates, continuing without them'
+        'Failed to initialize session configuration, continuing with defaults'
       );
     }
 
@@ -194,14 +200,16 @@ export class ExecutionHandler {
           'Task created with metadata'
         );
       } catch (error: any) {
-        // Handle duplicate task (PostgreSQL unique constraint violation)
-        if (error?.cause?.code === '23505') {
+        if (isUniqueConstraintError(error)) {
           logger.info(
             { taskId, error: error.message },
             'Task already exists, fetching existing task'
           );
 
-          const existingTask = await getTask(runDbClient)({ id: taskId });
+          const existingTask = await getTask(runDbClient)({
+            id: taskId,
+            scopes: { tenantId, projectId },
+          });
           if (existingTask) {
             task = existingTask;
             logger.info(
@@ -258,16 +266,43 @@ export class ExecutionHandler {
         }
 
         const agentBaseUrl = `${baseUrl}/run/agents`;
+
+        // Always generate a service token for internal A2A self-calls.
+        // The original apiKey may be any auth type (app credential, API key, etc.)
+        // but internal calls need a service token that the runApiKeyAuth middleware
+        // can verify via verifyServiceToken(). Since we use getInProcessFetch(),
+        // signing and verification happen in the same process with the same secret.
+        const initiatedBy = executionContext.metadata?.initiatedBy as
+          | { type: 'user' | 'api_key'; id: string }
+          | undefined;
+
+        const authToken = await generateServiceToken({
+          tenantId,
+          projectId,
+          originAgentId: agentId,
+          targetAgentId: currentAgentId,
+          initiatedBy,
+        });
+
+        const runAsUserId =
+          initiatedBy?.type === 'user' &&
+          initiatedBy.id &&
+          initiatedBy.id !== 'system' &&
+          !initiatedBy.id.startsWith('apikey:')
+            ? initiatedBy.id
+            : undefined;
+
         const a2aClient = new A2AClient(agentBaseUrl, {
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Bearer ${authToken}`,
             'x-inkeep-tenant-id': tenantId,
             'x-inkeep-project-id': projectId,
             'x-inkeep-agent-id': agentId,
             'x-inkeep-sub-agent-id': currentAgentId,
-            // Forward user session headers for MCP tool authentication
+            ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
             ...(forwardedHeaders || {}),
           },
+          fetchFn: getInProcessFetch(),
         });
 
         let messageResponse: SendMessageResponse | null = null;
@@ -337,6 +372,7 @@ export class ExecutionHandler {
                 if (task) {
                   await updateTask(runDbClient)({
                     taskId: task.id,
+                    scopes: { tenantId, projectId },
                     data: {
                       status: 'failed',
                       metadata: {
@@ -385,24 +421,25 @@ export class ExecutionHandler {
 
           // Store the transfer response as an assistant message in conversation history
           await createMessage(runDbClient)({
-            id: generateId(),
-            tenantId,
-            projectId,
-            conversationId,
-            role: 'agent',
-            content: {
-              text: transferReason,
-              parts: [
-                {
-                  kind: 'text',
-                  text: transferReason,
-                },
-              ],
+            scopes: { tenantId, projectId },
+            data: {
+              id: generateId(),
+              conversationId,
+              role: 'agent',
+              content: {
+                text: transferReason,
+                parts: [
+                  {
+                    kind: 'text',
+                    text: transferReason,
+                  },
+                ],
+              },
+              visibility: 'user-facing',
+              messageType: 'chat',
+              fromSubAgentId: currentAgentId,
+              taskId: task.id,
             },
-            visibility: 'user-facing',
-            messageType: 'chat',
-            fromSubAgentId: currentAgentId,
-            taskId: task.id,
           });
           // Keep the original user message and add a continuation prompt
           currentMessage =
@@ -481,30 +518,33 @@ export class ExecutionHandler {
               });
 
               // Store the agent response in the database with both text and parts
+              const messageId = params.responseMessageId || generateId();
               await createMessage(runDbClient)({
-                id: generateId(),
-                tenantId,
-                projectId,
-                conversationId,
-                role: 'agent',
-                content: {
-                  text: textContent || undefined,
-                  parts: responseParts.map((part: any) => ({
-                    type: part.kind === 'text' ? 'text' : 'data',
-                    text: part.kind === 'text' ? part.text : undefined,
-                    data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
-                  })),
+                scopes: { tenantId, projectId },
+                data: {
+                  id: messageId,
+                  conversationId,
+                  role: 'agent',
+                  content: {
+                    text: textContent || undefined,
+                    parts: responseParts.map((part: any) => ({
+                      kind: part.kind === 'text' ? 'text' : 'data',
+                      text: part.kind === 'text' ? part.text : undefined,
+                      data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
+                    })),
+                  },
+                  visibility: 'user-facing',
+                  messageType: 'chat',
+                  fromSubAgentId: currentAgentId,
+                  taskId: task.id,
                 },
-                visibility: 'user-facing',
-                messageType: 'chat',
-                fromSubAgentId: currentAgentId,
-                taskId: task.id,
               });
 
               // Mark task as completed
               const updateTaskStart = Date.now();
               await updateTask(runDbClient)({
                 taskId: task.id,
+                scopes: { tenantId, projectId },
                 data: {
                   status: 'completed',
                   metadata: {
@@ -605,6 +645,7 @@ export class ExecutionHandler {
               if (task) {
                 await updateTask(runDbClient)({
                   taskId: task.id,
+                  scopes: { tenantId, projectId },
                   data: {
                     status: 'failed',
                     metadata: {
@@ -668,6 +709,7 @@ export class ExecutionHandler {
           if (task) {
             await updateTask(runDbClient)({
               taskId: task.id,
+              scopes: { tenantId, projectId },
               data: {
                 status: 'failed',
                 metadata: {
@@ -689,8 +731,9 @@ export class ExecutionHandler {
         }
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const rootCause = unwrapError(error);
+      const errorMessage = rootCause.message;
+      const errorStack = rootCause.stack;
       logger.error({ errorMessage, errorStack }, 'Error in execution handler');
 
       // Create a span to mark this error for tracing
@@ -703,7 +746,7 @@ export class ExecutionHandler {
             'subAgent.name': agent?.subAgents[currentAgentId]?.name,
             'subAgent.id': currentAgentId,
           });
-          setSpanWithError(span, error instanceof Error ? error : new Error(errorMessage));
+          setSpanWithError(span, rootCause);
 
           // Stream error operation
           // Send error operation for execution exception
@@ -715,6 +758,7 @@ export class ExecutionHandler {
           if (task) {
             await updateTask(runDbClient)({
               taskId: task.id,
+              scopes: { tenantId, projectId },
               data: {
                 status: 'failed',
                 metadata: {

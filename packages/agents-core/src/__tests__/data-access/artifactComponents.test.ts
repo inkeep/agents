@@ -1,4 +1,6 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import {
   agentHasArtifactComponents,
   associateArtifactComponentWithAgent,
@@ -254,19 +256,20 @@ describe('Artifact Components Data Access', () => {
 
   describe('createArtifactComponent', () => {
     it('should create a new artifact component', async () => {
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          title: { type: 'string', inPreview: true },
+          description: { type: 'string', inPreview: false },
+        },
+      };
       const componentData = {
         id: 'artifact-1',
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        props: {
-          type: 'object',
-          properties: {
-            title: { type: 'string', inPreview: true },
-            description: { type: 'string', inPreview: false },
-          },
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const expectedComponent = {
@@ -293,19 +296,20 @@ describe('Artifact Components Data Access', () => {
     });
 
     it('should create an artifact component with custom id', async () => {
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          title: { type: 'string', inPreview: true },
+          description: { type: 'string', inPreview: false },
+        },
+      };
       const componentData = {
         id: 'custom-id',
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        props: {
-          type: 'object',
-          properties: {
-            title: { type: 'string', inPreview: true },
-            description: { type: 'string', inPreview: false },
-          },
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const expectedComponent = {

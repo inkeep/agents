@@ -1,9 +1,11 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   createTrigger,
+  DateTimeFilterQueryParamsSchema,
   deleteTrigger,
+  errorSchemaFactory,
   generateId,
   getCredentialReference,
   getTriggerById,
@@ -11,7 +13,9 @@ import {
   hashAuthenticationHeaders,
   listTriggerInvocationsPaginated,
   listTriggersPaginated,
+  type OrgRole,
   PaginationQueryParamsSchema,
+  PartSchema,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   TriggerApiInsertSchema,
@@ -21,36 +25,22 @@ import {
   TriggerInvocationStatusEnum,
   TriggerWithWebhookUrlListResponse,
   TriggerWithWebhookUrlResponse,
+  TriggerWithWebhookUrlWithWarningResponse,
   updateTrigger,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
+import { dispatchExecution } from '../../run/services/TriggerService';
+import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
 
 const logger = getLogger('triggers');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
-
-// Apply permission middleware by HTTP method
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
 
 /**
  * Generate webhook URL for a trigger
@@ -70,12 +60,13 @@ function generateWebhookUrl(params: {
  * List Triggers for an Agent
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'List Triggers',
     operationId: 'list-triggers',
     tags: ['Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -131,12 +122,13 @@ app.openapi(
  * Get Trigger by ID
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Trigger',
     operationId: 'get-trigger-by-id',
     tags: ['Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -191,12 +183,13 @@ app.openapi(
  * Create Trigger
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create Trigger',
     operationId: 'create-trigger',
     tags: ['Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -212,7 +205,7 @@ app.openapi(
         description: 'Trigger created successfully',
         content: {
           'application/json': {
-            schema: TriggerWithWebhookUrlResponse,
+            schema: TriggerWithWebhookUrlWithWarningResponse,
           },
         },
       },
@@ -224,8 +217,29 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL;
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     const id = body.id || generateId();
+
+    // Normalize empty runAsUserId to null
+    const runAsUserId = body.runAsUserId || null;
+
+    if (runAsUserId) {
+      if (!callerId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'Authenticated user ID is required when setting runAsUserId',
+        });
+      }
+      await validateRunAsUserId({ runAsUserId, callerId, tenantId, projectId, tenantRole });
+    }
 
     logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Creating trigger');
 
@@ -265,23 +279,28 @@ app.openapi(
     }
 
     const trigger = await createTrigger(db)({
+      ...body,
       id,
       tenantId,
       projectId,
       agentId,
-      name: body.name,
-      description: body.description,
       enabled: body.enabled !== undefined ? body.enabled : true,
-      inputSchema: body.inputSchema,
-      outputTransform: body.outputTransform,
-      messageTemplate: body.messageTemplate,
       authentication: hashedAuthentication as any,
-      signingSecretCredentialReferenceId: body.signingSecretCredentialReferenceId,
       signatureVerification: body.signatureVerification as any,
+      runAsUserId,
+      createdBy: callerId || null,
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
+
+    const hasNoAuth =
+      !body.authentication || !(body.authentication as { headers?: unknown[] }).headers?.length;
+    const hasNoSignatureVerification = !body.signatureVerification;
+    const warning =
+      runAsUserId && hasNoAuth && hasNoSignatureVerification
+        ? 'This trigger will authenticate on behalf of the specified users. Please configure authentication or signature verification to ensure the trigger is secure.'
+        : undefined;
 
     return c.json(
       {
@@ -295,6 +314,7 @@ app.openapi(
             triggerId: trigger.id,
           }),
         },
+        ...(warning && { warning }),
       },
       201
     );
@@ -305,12 +325,13 @@ app.openapi(
  * Update Trigger
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'patch',
     path: '/{id}',
     summary: 'Update Trigger',
     operationId: 'update-trigger',
     tags: ['Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -326,7 +347,7 @@ app.openapi(
         description: 'Trigger updated successfully',
         content: {
           'application/json': {
-            schema: TriggerWithWebhookUrlResponse,
+            schema: TriggerWithWebhookUrlWithWarningResponse,
           },
         },
       },
@@ -338,6 +359,49 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL;
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
+
+    // Fetch existing trigger first for authorization check
+    const existingForAuth = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId: id,
+    });
+
+    if (!existingForAuth) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Trigger not found',
+      });
+    }
+
+    assertCanMutateTrigger({
+      trigger: {
+        createdBy: existingForAuth.createdBy ?? null,
+        runAsUserId: existingForAuth.runAsUserId ?? null,
+      },
+      callerId,
+      tenantRole,
+    });
+
+    // Normalize empty runAsUserId to null
+    const runAsUserId = body.runAsUserId !== undefined ? body.runAsUserId || null : undefined;
+
+    if (runAsUserId && runAsUserId !== existingForAuth.runAsUserId) {
+      if (!callerId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'Authenticated user ID is required when setting runAsUserId',
+        });
+      }
+      await validateRunAsUserId({ runAsUserId, callerId, tenantId, projectId, tenantRole });
+    }
 
     // Check if any update fields were actually provided
     // We check each field explicitly to avoid issues with Zod defaults
@@ -350,7 +414,8 @@ app.openapi(
       body.messageTemplate !== undefined ||
       body.authentication !== undefined ||
       body.signingSecretCredentialReferenceId !== undefined ||
-      body.signatureVerification !== undefined;
+      body.signatureVerification !== undefined ||
+      body.runAsUserId !== undefined;
 
     if (!hasUpdateFields) {
       throw createApiError({
@@ -394,13 +459,7 @@ app.openapi(
       | undefined;
 
     if (authInput?.headers && authInput.headers.length > 0) {
-      // Get existing trigger to preserve keepExisting headers
-      const existingTrigger = await getTriggerById(db)({
-        scopes: { tenantId, projectId, agentId },
-        triggerId: id,
-      });
-
-      const existingAuth = existingTrigger?.authentication as {
+      const existingAuth = existingForAuth.authentication as {
         headers?: Array<{ name: string; valueHash: string; valuePrefix: string }>;
       } | null;
 
@@ -438,15 +497,10 @@ app.openapi(
       scopes: { tenantId, projectId, agentId },
       triggerId: id,
       data: {
-        name: body.name,
-        description: body.description,
-        enabled: body.enabled,
-        inputSchema: body.inputSchema,
-        outputTransform: body.outputTransform,
-        messageTemplate: body.messageTemplate,
+        ...body,
         authentication: hashedAuthentication as any,
-        signingSecretCredentialReferenceId: body.signingSecretCredentialReferenceId,
         signatureVerification: body.signatureVerification as any,
+        ...(runAsUserId !== undefined && { runAsUserId }),
       },
     });
 
@@ -465,6 +519,16 @@ app.openapi(
       ...triggerWithoutScopes
     } = updatedTrigger;
 
+    const effectiveRunAsUserId = updatedTrigger.runAsUserId;
+    const effectiveAuth = updatedTrigger.authentication as { headers?: unknown[] } | null;
+    const effectiveSigVerification = updatedTrigger.signatureVerification;
+    const hasNoAuthAfterUpdate = !effectiveAuth || !effectiveAuth.headers?.length;
+    const hasNoSigVerAfterUpdate = !effectiveSigVerification;
+    const updateWarning =
+      effectiveRunAsUserId && hasNoAuthAfterUpdate && hasNoSigVerAfterUpdate
+        ? 'This trigger will authenticate on behalf of the specified users. Please configure authentication or signature verification to ensure the trigger is secure.'
+        : undefined;
+
     return c.json({
       data: {
         ...triggerWithoutScopes,
@@ -476,6 +540,7 @@ app.openapi(
           triggerId: updatedTrigger.id,
         }),
       },
+      ...(updateWarning && { warning: updateWarning }),
     });
   }
 );
@@ -484,12 +549,13 @@ app.openapi(
  * Delete Trigger
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Trigger',
     operationId: 'delete-trigger',
     tags: ['Triggers'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -503,6 +569,15 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const callerId = c.get('userId') ?? '';
+
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Deleting trigger');
 
@@ -518,6 +593,15 @@ app.openapi(
         message: 'Trigger not found',
       });
     }
+
+    assertCanMutateTrigger({
+      trigger: {
+        createdBy: existing.createdBy ?? null,
+        runAsUserId: existing.runAsUserId ?? null,
+      },
+      callerId,
+      tenantRole,
+    });
 
     await deleteTrigger(db)({
       scopes: { tenantId, projectId, agentId },
@@ -535,28 +619,25 @@ app.openapi(
  */
 
 // Query params for invocation filtering (extends base pagination with status/date filters)
-const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.extend({
-  status: TriggerInvocationStatusEnum.optional().openapi({
-    description: 'Filter by invocation status',
-  }),
-  from: z.string().datetime().optional().openapi({
-    description: 'Start date for filtering (ISO8601)',
-  }),
-  to: z.string().datetime().optional().openapi({
-    description: 'End date for filtering (ISO8601)',
-  }),
-}).openapi('TriggerInvocationQueryParams');
+const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.merge(
+  DateTimeFilterQueryParamsSchema
+)
+  .extend({
+    status: TriggerInvocationStatusEnum.optional().describe('Filter by invocation status'),
+  })
+  .openapi('TriggerInvocationQueryParams');
 
 /**
  * List Trigger Invocations
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}/invocations',
     summary: 'List Trigger Invocations',
     operationId: 'list-trigger-invocations',
     tags: ['Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema,
       query: TriggerInvocationQueryParamsSchema,
@@ -575,7 +656,6 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
     const { page, limit, status, from, to } = c.req.valid('query');
 
@@ -595,7 +675,6 @@ app.openapi(
       },
     });
 
-    // Remove sensitive scope fields from invocations
     const dataWithoutScopes = result.data.map((invocation) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = invocation;
@@ -613,12 +692,13 @@ app.openapi(
  * Get Trigger Invocation by ID
  */
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}/invocations/{invocationId}',
     summary: 'Get Trigger Invocation',
     operationId: 'get-trigger-invocation-by-id',
     tags: ['Triggers'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentIdParamsSchema.extend({
         invocationId: z.string().describe('Trigger Invocation ID'),
@@ -637,7 +717,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId, invocationId } = c.req.valid('param');
 
     logger.debug(
@@ -669,6 +748,129 @@ app.openapi(
     return c.json({
       data: invocationWithoutScopes,
     });
+  }
+);
+
+/**
+ * Rerun Trigger
+ * Re-executes a trigger with the provided user message (from a previous trace).
+ */
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{id}/rerun',
+    summary: 'Rerun Trigger',
+    operationId: 'rerun-trigger',
+    tags: ['Triggers'],
+    permission: requireProjectPermission('use'),
+    request: {
+      params: TenantProjectAgentIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              userMessage: z.string().describe('The user message to send to the agent'),
+              messageParts: z
+                .array(PartSchema)
+                .optional()
+                .describe('Optional structured message parts (from original trace)'),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      202: {
+        description: 'Trigger rerun accepted and dispatched',
+        content: {
+          'application/json': {
+            schema: z.object({
+              success: z.boolean(),
+              invocationId: z.string(),
+              conversationId: z.string(),
+            }),
+          },
+        },
+      },
+      409: errorSchemaFactory('conflict', 'Trigger is disabled'),
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
+    const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
+    const { userMessage, messageParts: rawMessageParts } = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
+
+    logger.info({ tenantId, projectId, agentId, triggerId }, 'Rerunning trigger');
+
+    const trigger = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId,
+    });
+
+    if (!trigger) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Trigger not found',
+      });
+    }
+
+    if (trigger.runAsUserId) {
+      assertCanMutateTrigger({ trigger, callerId, tenantRole });
+    }
+
+    if (!trigger.enabled) {
+      throw createApiError({
+        code: 'conflict',
+        message: 'Trigger is disabled',
+      });
+    }
+
+    const messageParts = rawMessageParts ?? [{ kind: 'text' as const, text: userMessage }];
+
+    let invocationId: string;
+    let conversationId: string;
+    try {
+      ({ invocationId, conversationId } = await dispatchExecution({
+        tenantId,
+        projectId,
+        agentId,
+        triggerId,
+        resolvedRef,
+        payload: { _rerun: true },
+        transformedPayload: undefined,
+        messageParts,
+        userMessageText: userMessage,
+        runAsUserId: trigger.runAsUserId ?? undefined,
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error(
+        { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId },
+        'Failed to dispatch trigger rerun execution'
+      );
+      throw createApiError({
+        code: 'internal_server_error',
+        message: `Something went wrong. Please contact support.`,
+      });
+    }
+
+    logger.info(
+      { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+      'Trigger rerun dispatched'
+    );
+
+    return c.json({ success: true, invocationId, conversationId }, 202);
   }
 );
 

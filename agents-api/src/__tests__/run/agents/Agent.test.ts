@@ -1,13 +1,19 @@
-import {
-  type DataComponentSelect,
-  MCPServerType,
-  MCPTransportType,
-  type McpTool,
-  type MessageType,
+import type {
+  DataComponentSelect,
+  JsonSchemaForLlmSchemaType,
+  McpTool,
+  MessageType,
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
-import { Phase1Config } from '../../../domains/run/agents/versions/v1/Phase1Config';
+import { buildSystemPrompt } from '../../../domains/run/agents/generation/system-prompt';
+import { buildToolResultForConversationHistory } from '../../../domains/run/agents/generation/tool-result-for-conversation-history';
+import { buildToolResultForModelInput } from '../../../domains/run/agents/generation/tool-result-for-model-input';
+import { getDefaultTools } from '../../../domains/run/agents/tools/default-tools';
+import { createDeniedToolResult } from '../../../domains/run/utils/tool-result';
+
+const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
 
 // Mock the AI SDK functions
 vi.mock('ai', () => ({
@@ -129,6 +135,8 @@ const {
   getFullAgentDefinitionMock,
   agentHasArtifactComponentsMock,
   getToolsForAgentMock,
+  getFunctionToolsForSubAgentMock,
+  buildPersistedMessageContentMock,
 } = vi.hoisted(() => {
   const getCredentialReferenceMock = vi.fn(() => vi.fn().mockResolvedValue(null));
   const getContextConfigByIdMock = vi.fn(() => vi.fn().mockResolvedValue(null));
@@ -149,6 +157,8 @@ const {
       pagination: { page: 1, limit: 10, total: 0, pages: 0 },
     })
   );
+  const getFunctionToolsForSubAgentMock = vi.fn().mockResolvedValue([]);
+  const buildPersistedMessageContentMock = vi.fn();
 
   return {
     getCredentialReferenceMock,
@@ -158,6 +168,8 @@ const {
     getFullAgentDefinitionMock,
     agentHasArtifactComponentsMock,
     getToolsForAgentMock,
+    getFunctionToolsForSubAgentMock,
+    buildPersistedMessageContentMock,
   };
 });
 
@@ -176,6 +188,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     getFullAgentDefinition: getFullAgentDefinitionMock,
     agentHasArtifactComponents: agentHasArtifactComponentsMock,
     getToolsForAgent: getToolsForAgentMock,
+    getFunctionToolsForSubAgent: getFunctionToolsForSubAgentMock,
     createDatabaseClient: vi.fn().mockReturnValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
@@ -190,6 +203,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       connect: vi.fn().mockResolvedValue(undefined),
       tools: vi.fn().mockImplementation(() => Promise.resolve(mockMcpTools)),
       disconnect: vi.fn().mockResolvedValue(undefined),
+      getInstructions: vi.fn().mockReturnValue(undefined),
     })),
     CredentialStuffer: vi.fn().mockImplementation(function CredentialStuffer() {
       return {
@@ -222,7 +236,7 @@ vi.mock('../../../domains/run/data/conversations', async (importOriginal) => {
 });
 
 // Mock ToolSessionManager
-vi.mock('../../../domains/run/agents/ToolSessionManager', () => ({
+vi.mock('../../../domains/run/agents/services/ToolSessionManager', () => ({
   toolSessionManager: {
     createSession: vi.fn().mockReturnValue('test-session-id'),
     endSession: vi.fn(),
@@ -242,14 +256,18 @@ vi.mock('../../../domains/run/agents/ToolSessionManager', () => ({
 }));
 
 // Mock AgentSessionManager
-vi.mock('../../../domains/run/services/AgentSession.js', () => ({
+vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     recordEvent: vi.fn(),
   },
 }));
 
+vi.mock('../../../domains/run/services/blob-storage/file-upload-helpers', () => ({
+  buildPersistedMessageContent: buildPersistedMessageContentMock,
+}));
+
 // Mock ResponseFormatter
-vi.mock('../../../domains/run/services/ResponseFormatter.js', () => ({
+vi.mock('../../../domains/run/stream/ResponseFormatter.js', () => ({
   ResponseFormatter: vi.fn().mockImplementation(() => ({
     formatObjectResponse: vi.fn().mockResolvedValue({
       parts: [
@@ -277,6 +295,7 @@ vi.mock('../../../domains/run/services/ResponseFormatter.js', () => ({
 // Mock OpenTelemetry
 vi.mock('@opentelemetry/api', () => ({
   trace: {
+    getActiveSpan: vi.fn().mockReturnValue(null),
     getTracerProvider: vi.fn().mockReturnValue({
       getTracer: vi.fn().mockReturnValue({
         startActiveSpan: vi.fn().mockImplementation((_name, fn) => {
@@ -485,8 +504,6 @@ describe('Agent Integration with SystemPromptBuilder', () => {
           },
         },
       ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
     mockAgentConfig = {
@@ -521,45 +538,69 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should create Agent and use SystemPromptBuilder to generate XML system prompt', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
 
     expect(systemPromptBuilder).toBeDefined();
     expect(systemPromptBuilder.buildSystemPrompt).toBeDefined();
 
     // Call buildSystemPrompt to ensure it works
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
-    const result = await buildSystemPrompt();
+    // buildSystemPrompt now imported from generation/system-prompt
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: {
+        tools: mockMcpTools,
+        toolSets: [
+          {
+            mcpServerName: 'Test Tool',
+            serverInstructions: undefined,
+            mcpServerId: 'test-tool-id',
+            toolPolicies: {},
+            tools: mockMcpTools,
+          },
+        ],
+      },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result.prompt).toContain('Mock system prompt with tools');
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
-      tools: [
+      tools: [],
+      mcpServerGroups: [
         {
-          name: 'search_database',
-          description: 'Search the database for information',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'The search query',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of results',
+          serverName: 'Test Tool',
+          serverInstructions: undefined,
+          tools: [
+            {
+              name: 'search_database',
+              description: 'Search the database for information',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'The search query',
+                  },
+                  limit: {
+                    type: 'number',
+                    description: 'Maximum number of results',
+                  },
+                },
+                required: ['query'],
               },
             },
-            required: ['query'],
-          },
-          usageGuidelines: 'Use this tool when appropriate for the task at hand.',
+          ],
         },
       ],
+      skills: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
+      allProjectArtifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -568,21 +609,29 @@ describe('Agent Integration with SystemPromptBuilder', () => {
   test('should handle Agent with no tools', async () => {
     const configWithNoTools = { ...mockAgentConfig, tools: [] };
     const agent = new Agent(configWithNoTools, mockExecutionContext);
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
+    // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt();
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result).toBeDefined();
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
+      skills: [],
       tools: [],
+      mcpServerGroups: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
+      allProjectArtifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -591,21 +640,29 @@ describe('Agent Integration with SystemPromptBuilder', () => {
   test('should handle Agent with undefined tools', async () => {
     const configWithUndefinedTools = { ...mockAgentConfig, tools: undefined };
     const agent = new Agent(configWithUndefinedTools, mockExecutionContext);
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
+    // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt();
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result).toBeDefined();
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
+      skills: [],
       tools: [],
+      mcpServerGroups: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
+      allProjectArtifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -625,21 +682,46 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       ],
     };
     const agent = new Agent(configWithEmptyAvailableTools, mockExecutionContext);
-    const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
+    // buildSystemPrompt now imported from generation/system-prompt
 
-    const result = await buildSystemPrompt();
+    const result = await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: {
+        tools: {},
+        toolSets: [
+          {
+            mcpServerName: 'Test Tool',
+            serverInstructions: undefined,
+            mcpServerId: 'test-tool-id',
+            toolPolicies: {},
+            tools: {},
+          },
+        ],
+      },
+      functionTools: {},
+      relationTools: {},
+    });
 
     expect(result).toBeDefined();
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
-      tools: [], // Empty tools array since availableTools is undefined
+      tools: [],
+      mcpServerGroups: [
+        {
+          serverName: 'Test Tool',
+          serverInstructions: undefined,
+          tools: [],
+        },
+      ],
+      skills: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
+      allProjectArtifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -647,125 +729,12 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should use v1 version of SystemPromptBuilder by default', () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const systemPromptBuilder = (agent as any).systemPromptBuilder;
+    const systemPromptBuilder = (agent as any).ctx.systemPromptBuilder;
 
-    // Verify the SystemPromptBuilder was instantiated with 'v1' and Phase1Config
+    // Verify the SystemPromptBuilder was instantiated with 'v1' and PromptConfig
     expect(systemPromptBuilder).toBeDefined();
-    // The constructor should have been called with 'v1' and a Phase1Config instance
+    // The constructor should have been called with 'v1' and a PromptConfig instance
     // This is tested implicitly by the fact that the agent creates successfully
-  });
-});
-
-describe('Phase1Config Tool Conversion', () => {
-  test('should convert McpTool availableTools to ToolData format correctly', () => {
-    const mockTools: McpTool[] = [
-      {
-        id: 'tool1',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        name: 'Test Server',
-        description: 'A test server',
-        status: 'healthy',
-        config: {
-          type: 'mcp',
-          mcp: { server: { url: 'http://example.com' } },
-        },
-        capabilities: {
-          tools: true,
-          resources: false,
-          prompts: false,
-          logging: false,
-        },
-        availableTools: [
-          {
-            name: 'search',
-            description: 'Search for information',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                query: { type: 'string', description: 'Search query' },
-              },
-              required: ['query'],
-            },
-          },
-          {
-            name: 'analyze',
-            description: 'Analyze data',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                data: { type: 'string', description: 'Data to analyze' },
-              },
-              required: ['data'],
-            },
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as McpTool,
-    ];
-
-    const result = Phase1Config.convertMcpToolsToToolData(mockTools);
-
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({
-      name: 'search',
-      description: 'Search for information',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'Search query' },
-        },
-        required: ['query'],
-      },
-      usageGuidelines: 'Use this tool from Test Server server when appropriate.',
-    });
-    expect(result[1]).toEqual({
-      name: 'analyze',
-      description: 'Analyze data',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          data: { type: 'string', description: 'Data to analyze' },
-        },
-        required: ['data'],
-      },
-      usageGuidelines: 'Use this tool from Test Server server when appropriate.',
-    });
-  });
-
-  test('should handle empty or undefined McpTool arrays', () => {
-    expect(Phase1Config.convertMcpToolsToToolData([])).toEqual([]);
-    expect(Phase1Config.convertMcpToolsToToolData(undefined)).toEqual([]);
-  });
-
-  test('should handle McpTools without availableTools', () => {
-    const mockTools: McpTool[] = [
-      {
-        id: 'tool1',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        name: 'Test Server',
-        description: 'A test server',
-        status: 'healthy',
-        config: {
-          type: 'mcp',
-          mcp: { server: { url: 'http://example.com' } },
-        },
-        capabilities: {
-          tools: true,
-          resources: false,
-          prompts: false,
-          logging: false,
-        },
-        availableTools: undefined,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as McpTool,
-    ];
-
-    const result = Phase1Config.convertMcpToolsToToolData(mockTools);
-    expect(result).toEqual([]);
   });
 });
 
@@ -815,7 +784,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
 
   test('should apply default conversationHistoryConfig when none provided', () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const config = (agent as any).config;
+    const config = (agent as any).ctx.config;
 
     expect(config.conversationHistoryConfig).toBeDefined();
     expect(config.conversationHistoryConfig.mode).toBe('full');
@@ -840,7 +809,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithHistory, mockExecutionContext);
-    const config = (agent as any).config;
+    const config = (agent as any).ctx.config;
 
     expect(config.conversationHistoryConfig).toEqual(customConfig);
   });
@@ -858,7 +827,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithNoneMode, mockExecutionContext);
-    await agent.generate('Test prompt', mockRuntimeContext);
+    await agent.generate(makeTextPart('Test prompt'), mockRuntimeContext);
 
     expect(getFormattedConversationHistory).not.toHaveBeenCalled();
   });
@@ -876,7 +845,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithFullMode, mockExecutionContext);
-    await agent.generate('Test prompt', mockRuntimeContext);
+    await agent.generate(makeTextPart('Test prompt'), mockRuntimeContext);
     expect(getConversationHistoryWithCompression).toHaveBeenCalled();
 
     expect(getConversationHistoryWithCompression).toHaveBeenCalledWith({
@@ -892,6 +861,10 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       fullContextSize: 0,
       streamRequestId: undefined,
       summarizerModel: {
+        model: 'anthropic/claude-sonnet-4-20250514',
+        providerOptions: undefined,
+      },
+      baseModel: {
         model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: undefined,
       },
@@ -911,7 +884,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithScopedMode, mockExecutionContext);
-    await agent.generate('Test prompt', mockRuntimeContext);
+    await agent.generate(makeTextPart('Test prompt'), mockRuntimeContext);
 
     expect(getConversationHistoryWithCompression).toHaveBeenCalledWith({
       tenantId: 'test-tenant',
@@ -931,384 +904,11 @@ describe('Agent conversationHistoryConfig Functionality', () => {
         model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: undefined,
       },
-    });
-  });
-});
-
-describe('Agent Credential Integration', () => {
-  let mockAgentConfig: AgentConfig;
-  let mockAgentFramework: any;
-  let mockCredentialStuffer: any;
-  let mockExecutionContext: any;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    // Mock getCredentialReference
-    getCredentialReferenceMock.mockReturnValue(
-      vi.fn().mockResolvedValue({
-        id: 'test-credential-id',
-        credentialStoreId: 'nango-default',
-        retrievalParams: {
-          connectionId: 'test-connection',
-          providerConfigKey: 'test-provider',
-        },
-      } as any)
-    );
-
-    // Mock credential stuffer
-    mockCredentialStuffer = {
-      buildMcpServerConfig: vi.fn().mockResolvedValue({
-        type: MCPTransportType.sse,
-        url: 'https://api.nango.dev/mcp',
-        headers: {
-          Authorization: 'Bearer secret-key',
-          'provider-config-key': 'test-provider',
-          'connection-id': 'test-connection',
-        },
-      }),
-    };
-
-    // Mock agent framework
-    mockAgentFramework = {
-      getCredentialStore: vi.fn().mockReturnValue({
-        id: 'nango-default',
-        get: vi.fn().mockResolvedValue({
-          headers: {
-            Authorization: 'Bearer secret-key',
-            'provider-config-key': 'test-provider',
-            'connection-id': 'test-connection',
-          },
-        }),
-      }),
-    };
-
-    // Set up mock tools that will be returned by MCP client
-    mockMcpTools = {
-      search_database: {
-        description: 'Search the database for information',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'The search query',
-            },
-            limit: {
-              type: 'number',
-              description: 'Maximum number of results',
-            },
-          },
-          required: ['query'],
-        },
-        execute: vi.fn(),
-      },
-    };
-
-    mockAgentConfig = {
-      id: 'test-agent',
-      tenantId: 'test-tenant',
-      agentId: 'test-agent',
-      projectId: 'test-project',
-      baseUrl: 'http://localhost:3000',
-      name: 'Test Agent',
-      description: 'A test agent with credentials',
-      prompt: `You are a test agent with MCP tools.`,
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      tools: [],
-      dataComponents: [],
-    };
-
-    mockExecutionContext = createMockExecutionContext({
-      credentialReferences: {
-        'test-credential-id': {
-          id: 'test-credential-id',
-          credentialStoreId: 'nango-default',
-          retrievalParams: {
-            connectionId: 'test-connection',
-            providerConfigKey: 'test-provider',
-          },
-        },
-        'context-credential': {
-          id: 'context-credential',
-          credentialStoreId: 'nango-default',
-          retrievalParams: {
-            connectionId: 'context-connection',
-            providerConfigKey: 'context-provider',
-          },
-        },
+      baseModel: {
+        model: 'anthropic/claude-sonnet-4-20250514',
+        providerOptions: undefined,
       },
     });
-  });
-
-  test('should convert McpTool to MCPToolConfig format', () => {
-    const mockMcpTool: McpTool = {
-      id: 'test-tool',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      name: 'Test MCP Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://api.nango.dev/mcp' },
-          transport: { type: MCPTransportType.sse },
-        },
-      },
-      capabilities: {
-        tools: true,
-        resources: false,
-        prompts: false,
-        logging: false,
-      },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const agent = new Agent(mockAgentConfig, mockExecutionContext, mockAgentFramework);
-    const converted = (agent as any).convertToMCPToolConfig(mockMcpTool);
-
-    expect(converted).toEqual({
-      id: 'test-tool',
-      name: 'Test MCP Tool',
-      description: 'Test MCP Tool',
-      serverUrl: 'https://api.nango.dev/mcp',
-      activeTools: undefined,
-      mcpType: MCPServerType.nango,
-      transport: { type: MCPTransportType.sse },
-      headers: {},
-    });
-  });
-
-  test('should detect non-Nango MCP tools correctly', () => {
-    const mockMcpTool: McpTool = {
-      id: 'test-tool',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      name: 'Generic MCP Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://mcp.example.com' },
-          transport: { type: MCPTransportType.streamableHttp },
-        },
-      },
-      capabilities: {
-        tools: true,
-        resources: false,
-        prompts: false,
-        logging: false,
-      },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const agent = new Agent(mockAgentConfig, mockExecutionContext, mockAgentFramework);
-    const converted = (agent as any).convertToMCPToolConfig(mockMcpTool);
-
-    expect(converted.mcpType).toBe(MCPServerType.generic);
-    expect(converted.serverUrl).toBe('https://mcp.example.com');
-  });
-
-  test('should build MCP server config with credentials when available', async () => {
-    const mockToolConfig: McpTool = {
-      id: 'test-tool',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      name: 'Nango Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://api.nango.dev/mcp' },
-          transport: { type: MCPTransportType.sse },
-        },
-      },
-      credentialReferenceId: 'test-credential-id',
-      capabilities: {
-        tools: true,
-        resources: false,
-        prompts: false,
-        logging: false,
-      },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const configWithCredentials = {
-      ...mockAgentConfig,
-      tools: [mockToolConfig],
-    };
-
-    const agent = new Agent(configWithCredentials, mockExecutionContext, mockAgentFramework);
-
-    // Mock the credential stuffer to simulate credential loading
-    (agent as any).credentialStuffer = mockCredentialStuffer;
-
-    const mcpTool = await (agent as any).getMcpTool(mockToolConfig);
-
-    expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-      }),
-      expect.objectContaining({
-        name: 'Nango Tool',
-        serverUrl: 'https://api.nango.dev/mcp',
-        mcpType: MCPServerType.nango,
-        id: 'test-tool',
-        description: 'Nango Tool',
-      }),
-      {
-        credentialStoreId: 'nango-default',
-        retrievalParams: {
-          connectionId: 'test-connection',
-          providerConfigKey: 'test-provider',
-        },
-      },
-      undefined
-    );
-
-    expect(mcpTool).toEqual({
-      tools: mockMcpTools,
-      toolPolicies: {},
-      mcpServerId: 'test-tool',
-      mcpServerName: 'Nango Tool',
-    });
-  });
-
-  test('should handle tools without credential reference', async () => {
-    const mockToolConfig: McpTool = {
-      id: 'test-tool',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      name: 'Generic Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://mcp.example.com' },
-          transport: { type: MCPTransportType.streamableHttp },
-        },
-      },
-      capabilities: {
-        tools: true,
-        resources: false,
-        prompts: false,
-        logging: false,
-      },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const configWithoutCredentials = {
-      ...mockAgentConfig,
-      tools: [mockToolConfig],
-    };
-
-    const agent = new Agent(configWithoutCredentials, mockExecutionContext, mockAgentFramework);
-
-    // Mock the credential stuffer
-    (agent as any).credentialStuffer = {
-      buildMcpServerConfig: vi.fn().mockResolvedValue({
-        type: MCPTransportType.streamableHttp,
-        url: 'https://mcp.example.com',
-        headers: {},
-      }),
-    };
-
-    const mcpTool = await (agent as any).getMcpTool(mockToolConfig);
-
-    expect(mcpTool).toEqual({
-      tools: mockMcpTools,
-      toolPolicies: {},
-      mcpServerId: 'test-tool',
-      mcpServerName: 'Generic Tool',
-    });
-  });
-
-  test('should pass correct context to credential stuffer', async () => {
-    // Mock the specific credential for this test
-    getCredentialReferenceMock.mockReturnValueOnce(
-      vi.fn().mockResolvedValue({
-        id: 'context-credential',
-        credentialStoreId: 'nango-default',
-        retrievalParams: {
-          connectionId: 'context-connection',
-          providerConfigKey: 'context-provider',
-        },
-      } as any)
-    );
-
-    const mockToolConfig: McpTool = {
-      id: 'context-tool',
-      tenantId: 'context-tenant',
-      projectId: 'test-project',
-      name: 'Context Test Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'https://api.nango.dev/mcp' },
-          transport: { type: MCPTransportType.sse },
-        },
-      },
-      credentialReferenceId: 'context-credential',
-      capabilities: { tools: true, resources: false, prompts: false, logging: false },
-      availableTools: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const contextConfig = {
-      id: 'context-agent',
-      tenantId: 'context-tenant',
-      agentId: 'context-agent',
-      projectId: 'test-project',
-      baseUrl: 'http://localhost:3000',
-      name: 'Context Agent',
-      description: 'Agent for testing context',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      tools: [mockToolConfig],
-      dataComponents: [],
-    };
-
-    const agent = new Agent(contextConfig, mockExecutionContext, mockAgentFramework);
-    (agent as any).credentialStuffer = mockCredentialStuffer;
-
-    await (agent as any).getMcpTool(mockToolConfig);
-
-    expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'context-tenant',
-        projectId: 'test-project',
-      }),
-      expect.objectContaining({
-        name: 'Context Test Tool',
-        serverUrl: 'https://api.nango.dev/mcp',
-        mcpType: MCPServerType.nango,
-        id: 'context-tool',
-        description: 'Context Test Tool',
-      }),
-      {
-        credentialStoreId: 'nango-default',
-        retrievalParams: {
-          connectionId: 'context-connection',
-          providerConfigKey: 'context-provider',
-        },
-      },
-      undefined
-    );
   });
 });
 
@@ -1326,7 +926,10 @@ describe('Two-Pass Generation System', () => {
       projectId: 'test-project',
       name: 'TestComponent',
       description: 'Test component',
-      props: { type: 'object', properties: { message: { type: 'string' } } },
+      props: {
+        type: 'object',
+        properties: { message: { type: 'string' } },
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       render: {
@@ -1361,7 +964,7 @@ describe('Two-Pass Generation System', () => {
 
   test('should return text response when no data components', async () => {
     const agent = new Agent({ ...mockAgentConfig, dataComponents: [] }, mockExecutionContext);
-    const result = await agent.generate('Test prompt');
+    const result = await agent.generate(makeTextPart('Test prompt'));
 
     expect(result.text).toBe('Mocked response');
     expect(result.object).toBeUndefined();
@@ -1369,7 +972,7 @@ describe('Two-Pass Generation System', () => {
 
   test('should return object response when data components configured', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const result = await agent.generate('Test prompt');
+    const result = await agent.generate(makeTextPart('Test prompt'));
 
     expect(result.object).toBeDefined();
     expect(result.object.dataComponents).toHaveLength(1);
@@ -1407,7 +1010,7 @@ describe('Agent Model Settings', () => {
 
   test('should use ModelFactory.prepareGenerationConfig with base model configuration', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(makeTextPart('Test prompt'));
 
     // Get the mocked ModelFactory
     const { ModelFactory } = await import('@inkeep/agents-core');
@@ -1434,7 +1037,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithModel, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
@@ -1465,7 +1068,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithModel, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith(
@@ -1483,7 +1086,7 @@ describe('Agent Model Settings', () => {
 
   test('should pass generation parameters to generateText', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(makeTextPart('Test prompt'));
 
     // Get the mocked generateText function
     const { generateText } = await import('ai');
@@ -1501,7 +1104,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-3-5-haiku-latest',
+          model: 'anthropic/claude-3-5-haiku',
           providerOptions: {
             anthropic: {
               temperature: 0.5,
@@ -1517,26 +1120,21 @@ describe('Agent Model Settings', () => {
           id: 'test-component',
           name: 'TestComponent',
           description: 'Test component',
-          props: { type: 'object', properties: { message: { type: 'string' } } },
+          props: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         },
       ],
     };
 
     const agent = new Agent(configWithDataComponents, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
-    // Called twice: once for text generation with custom model, once for structured output with OpenAI model
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-3-5-haiku-latest',
-      providerOptions: {
-        anthropic: {
-          temperature: 0.5,
-        },
-      },
-    });
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
+    // Single-phase generation: uses structuredOutput model when data components are present
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(1);
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'openai/gpt-4.1-mini',
     });
   });
@@ -1549,22 +1147,21 @@ describe('Agent Model Settings', () => {
           id: 'test-component',
           name: 'TestComponent',
           description: 'Test component',
-          props: { type: 'object', properties: { message: { type: 'string' } } },
+          props: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         },
       ],
     };
 
     const agent = new Agent(configWithDataComponents, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
-    // Called twice: once for text generation, once for structured output (both use base model)
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-sonnet-4-5',
-      providerOptions: undefined,
-    });
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
+    // Single-phase generation: falls back to base model when no structuredOutput model configured
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(1);
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
@@ -1581,7 +1178,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithOpenAI, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
@@ -1595,17 +1192,17 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-3-5-haiku-latest',
+          model: 'anthropic/claude-3-5-haiku',
         },
       },
     };
 
     const agent = new Agent(configWithPlainModel, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'anthropic/claude-3-5-haiku-latest',
+      model: 'anthropic/claude-3-5-haiku',
       providerOptions: undefined,
     });
   });
@@ -1613,6 +1210,18 @@ describe('Agent Model Settings', () => {
 
 describe('Agent Conditional Tool Availability', () => {
   let mockExecutionContext: any;
+  const baseConfig: Omit<AgentConfig, 'agentId'> = {
+    id: 'test-agent',
+    projectId: 'test-project',
+    name: 'Test Agent',
+    description: 'Test agent',
+    tenantId: 'test-tenant',
+    baseUrl: 'http://localhost:3000',
+    prompt: 'Test instructions',
+    subAgentRelations: [],
+    transferRelations: [],
+    delegateRelations: [],
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1660,26 +1269,14 @@ describe('Agent Conditional Tool Availability', () => {
     agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
 
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-no-components',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
     };
 
     const agent = new Agent(config, mockExecutionContext); // No artifact components
 
     // Access private method for testing
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     // Should have no artifact tools
     expect(tools.get_reference_artifact).toBeUndefined();
@@ -1690,27 +1287,14 @@ describe('Agent Conditional Tool Availability', () => {
     agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(true));
 
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-with-components',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
-      artifactComponents: [],
     };
 
     const agent = new Agent(config, mockExecutionContext); // No artifact components
 
     // Access private method for testing
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
@@ -1733,36 +1317,391 @@ describe('Agent Conditional Tool Availability', () => {
             name: { type: 'string', inPreview: true },
             details: { type: 'string', inPreview: false },
           },
-        },
+        } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
     ];
 
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-with-components',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
       artifactComponents: mockArtifactComponents,
     };
 
     const agent = new Agent(config, mockExecutionContext);
 
     // Access private method for testing
-    const tools = await (agent as any).getDefaultTools();
+    const tools = await getDefaultTools((agent as any).ctx);
 
     // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
+  });
+
+  test('agent with on-demand skills should have load_skill tool', async () => {
+    agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
+    const config: AgentConfig = {
+      ...baseConfig,
+      agentId: 'test-agent-on-demand',
+      skills: [
+        {
+          id: 'always-loaded-skill',
+          name: 'always-loaded-skill',
+          content: '',
+          alwaysLoaded: false,
+        },
+        {
+          id: 'on-demand-skill',
+          name: 'on-demand-skill',
+          content: '',
+          alwaysLoaded: false,
+        },
+      ] as AgentConfig['skills'],
+    };
+
+    const agent = new Agent(config, mockExecutionContext);
+    const tools = await getDefaultTools((agent as any).ctx);
+
+    expect(tools.load_skill).toBeDefined();
+    const result = await (tools.load_skill as any).execute({ name: 'on-demand-skill' });
+    expect(result).toMatchObject({
+      id: 'on-demand-skill',
+      name: 'on-demand-skill',
+    });
+  });
+});
+
+describe('Agent Image Support', () => {
+  let mockAgentConfig: AgentConfig;
+  let mockExecutionContext: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockExecutionContext = createMockExecutionContext();
+
+    mockAgentConfig = {
+      id: 'test-agent',
+      projectId: 'test-project',
+      name: 'Test Agent',
+      description: 'Test agent for image support',
+      tenantId: 'test-tenant',
+      agentId: 'test-agent',
+      baseUrl: 'http://localhost:3000',
+      prompt: 'You are a helpful assistant that can analyze images.',
+      subAgentRelations: [],
+      transferRelations: [],
+      delegateRelations: [],
+      dataComponents: [],
+      tools: [],
+      functionTools: [],
+      models: {
+        base: {
+          model: 'anthropic/claude-sonnet-4-5',
+        },
+      },
+    };
+  });
+
+  test('passes text-only input to generateText', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+    const { generateText } = await import('ai');
+
+    await agent.generate(makeTextPart('Simple text prompt'));
+    expect(generateText).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.stringContaining('Simple text prompt'),
+          }),
+        ]),
+      })
+    );
+
+    await agent.generate(makeTextPart('Just text, no images'));
+    expect(generateText).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.stringContaining('Just text, no images'),
+          }),
+        ]),
+      })
+    );
+  });
+
+  test('passes image URL(s) to generateText in AI SDK format with optional detail metadata', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+
+    await agent.generate([
+      { kind: 'text', text: 'Compare these two screenshots' },
+      {
+        kind: 'file',
+        file: {
+          uri: 'https://example.com/before.png',
+          mimeType: 'image/png',
+        },
+      },
+      {
+        kind: 'file',
+        file: {
+          uri: 'https://example.com/after.png',
+          mimeType: 'image/png',
+        },
+        metadata: { detail: 'high' },
+      },
+    ]);
+
+    const { generateText } = await import('ai');
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'text',
+                text: expect.stringContaining('Compare these two screenshots'),
+              }),
+              expect.objectContaining({ type: 'image', image: expect.any(URL) }),
+              expect.objectContaining({
+                type: 'image',
+                image: expect.any(URL),
+                experimental_providerMetadata: { openai: { imageDetail: 'high' } },
+              }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+
+  test('passes base64 image data to generateText', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+    const base64Data =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const expectedDataUrl = `data:image/png;base64,${base64Data}`;
+
+    await agent.generate([
+      { kind: 'text', text: 'Describe this screenshot' },
+      {
+        kind: 'file',
+        file: {
+          bytes: base64Data,
+          mimeType: 'image/png',
+        },
+      },
+    ]);
+
+    const { generateText } = await import('ai');
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({ type: 'text' }),
+              expect.objectContaining({ type: 'image', image: expectedDataUrl }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+
+  test('passes inline PDF data to generateText as file content', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+    const pdfBytes = Buffer.from(
+      '%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n',
+      'utf8'
+    ).toString('base64');
+
+    await agent.generate([
+      { kind: 'text', text: 'Summarize this PDF' },
+      {
+        kind: 'file',
+        file: {
+          bytes: pdfBytes,
+          mimeType: 'application/pdf',
+        },
+      },
+    ]);
+
+    const { generateText } = await import('ai');
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({ type: 'text' }),
+              expect.objectContaining({ type: 'file', mediaType: 'application/pdf' }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+});
+
+describe('Agent tool result persistence', () => {
+  const makeAgent = () => {
+    const config: AgentConfig = {
+      id: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentId: 'test-agent',
+      baseUrl: 'http://localhost:3000',
+      name: 'Test Agent',
+      description: 'Test agent',
+      prompt: 'Test instructions',
+      subAgentRelations: [],
+      transferRelations: [],
+      delegateRelations: [],
+      tools: [],
+      dataComponents: [],
+    };
+    const executionContext = createMockExecutionContext() as any;
+    return new Agent(config, executionContext);
+  };
+
+  const makeRunContext = () => {
+    const agent = makeAgent() as any;
+    return agent.ctx;
+  };
+
+  test('builds message content with uploaded image parts', async () => {
+    buildPersistedMessageContentMock.mockResolvedValue({
+      text: 'persisted text',
+      parts: [
+        { kind: 'text', text: '{\n  "success": true\n}' },
+        {
+          kind: 'file',
+          data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
+          metadata: { mimeType: 'image/webp', type: 'image' },
+        },
+      ],
+    });
+
+    const result = {
+      content: [
+        {
+          type: 'text',
+          text: { success: true },
+        },
+        {
+          type: 'image',
+          data: 'base64-image-data',
+          mimeType: 'image/webp',
+        },
+      ],
+      isError: false,
+    };
+
+    const content = await buildToolResultForConversationHistory(
+      makeRunContext(),
+      'get_ticket_attachments',
+      { ticket_id: 6662 },
+      result,
+      'toolu_123',
+      'conv-123',
+      'msg-123'
+    );
+
+    expect(buildPersistedMessageContentMock).toHaveBeenCalledWith(
+      expect.stringContaining('## Tool: get_ticket_attachments'),
+      [
+        { kind: 'text', text: '{\n  "success": true\n}' },
+        {
+          kind: 'file',
+          file: {
+            bytes: 'base64-image-data',
+            mimeType: 'image/webp',
+          },
+          metadata: { type: 'image' },
+        },
+      ],
+      {
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        conversationId: 'conv-123',
+        messageId: 'msg-123',
+      }
+    );
+    expect(content.parts).toEqual([
+      { kind: 'text', text: '{\n  "success": true\n}' },
+      {
+        kind: 'file',
+        data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
+        metadata: { mimeType: 'image/webp', type: 'image' },
+      },
+    ]);
+  });
+
+  test('maps image content to image tool result output parts', () => {
+    const output = buildToolResultForModelInput({
+      content: [
+        {
+          type: 'image',
+          data: 'base64-image-data',
+          mimeType: 'image/webp',
+        },
+        {
+          type: 'image',
+          url: 'https://example.com/image.webp',
+        },
+      ],
+    });
+
+    expect(output).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'image-data',
+          data: 'base64-image-data',
+          mediaType: 'image/webp',
+        },
+        {
+          type: 'image-url',
+          url: 'https://example.com/image.webp',
+        },
+      ],
+    });
+  });
+
+  test('prepends _toolCallId and _structureHints as a text part for MCP content results', () => {
+    const structureHints = { terminalPaths: ['result.foo[string]'] };
+
+    const output = buildToolResultForModelInput({
+      content: [{ type: 'text', text: 'some text' }],
+      _toolCallId: 'toolu_abc',
+      _structureHints: structureHints,
+    });
+
+    expect(output).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'text',
+          text: JSON.stringify({ _toolCallId: 'toolu_abc', _structureHints: structureHints }),
+        },
+        { type: 'text', text: 'some text' },
+      ],
+    });
+  });
+
+  test('preserves execution-denied tool result output type', () => {
+    const output = buildToolResultForModelInput(
+      createDeniedToolResult('toolu_123', 'User denied this tool call')
+    );
+
+    expect(output).toEqual({
+      type: 'execution-denied',
+      reason: 'User denied this tool call',
+    });
   });
 });

@@ -20,12 +20,17 @@ function normalizeDateString(dateString: string | Date): string | Date {
   return dateString;
 }
 
+interface FormatDateOptions {
+  local?: boolean;
+}
+
 /**
  * Formats an ISO date string or PostgreSQL timestamp string as "Mon DD, YYYY", e.g. "Jan 20, 2024".
  * @param {string} dateString - An ISO‐formatted date string or PostgreSQL timestamp string, e.g. "2024-01-20T14:45:00Z" or "2025-11-07 21:48:24.858"
+ * @param {FormatDateOptions} options - Pass { local: true } to format in the user's browser timezone instead of UTC
  * @returns {string} - Formatted date like "Jan 20, 2024"
  */
-export function formatDate(dateString: string) {
+export function formatDate(dateString: string, options?: FormatDateOptions) {
   const normalized = normalizeDateString(dateString);
   const date = new Date(normalized);
 
@@ -38,6 +43,7 @@ export function formatDate(dateString: string) {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      ...(options?.local ? {} : { timeZone: 'UTC' }),
     });
     return formatter.format(date);
   } catch (error) {
@@ -46,7 +52,7 @@ export function formatDate(dateString: string) {
   }
 }
 
-export function formatDateTime(dateString: string): string {
+export function formatDateTime(dateString: string, options?: FormatDateOptions): string {
   const normalized = normalizeDateString(dateString);
   const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return 'Invalid date';
@@ -58,10 +64,11 @@ export function formatDateTime(dateString: string): string {
     minute: '2-digit',
     second: '2-digit',
     hour12: true,
+    ...(options?.local ? {} : { timeZone: 'UTC' }),
   }).format(date); // e.g. "Aug 28, 2024, 5:42:30 PM"
 }
 
-export function formatDateTimeTable(dateString: string): string {
+export function formatDateTimeTable(dateString: string, options?: FormatDateOptions): string {
   const normalized = normalizeDateString(dateString);
   const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return 'Invalid date';
@@ -72,10 +79,11 @@ export function formatDateTimeTable(dateString: string): string {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
+    ...(options?.local ? {} : { timeZone: 'UTC' }),
   }).format(date); // e.g. "Aug 28, 2024, 5:42 PM"
 }
 
-export function formatDateAgo(dateString: string) {
+export function formatDateAgo(dateString: string, options?: FormatDateOptions) {
   try {
     const normalized = normalizeDateString(dateString);
     const date = new Date(normalized);
@@ -116,11 +124,79 @@ export function formatDateAgo(dateString: string) {
       month: 'short',
       day: 'numeric',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+      ...(options?.local ? {} : { timeZone: 'UTC' }),
     });
   } catch (error) {
     console.warn('Error formatting date:', dateString, error);
     return 'Invalid date';
   }
+}
+
+/**
+ * Formats a date string in a specific IANA timezone (e.g., "America/New_York").
+ * Returns a compact datetime string with timezone abbreviation.
+ */
+export function formatDateTimeInTimezone(dateString: string, timezone: string): string {
+  const normalized = normalizeDateString(dateString);
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+    timeZone: timezone,
+    timeZoneName: 'short',
+  }).format(date);
+}
+
+/**
+ * Formats a date string in the browser's local timezone.
+ * Returns a compact datetime string (no timezone abbreviation since the header indicates it).
+ */
+export function formatDateTimeLocal(dateString: string): string {
+  const normalized = normalizeDateString(dateString);
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(date);
+}
+
+/**
+ * Returns the short timezone abbreviation (e.g., "EST", "PDT") for a given IANA timezone.
+ */
+export function getTimezoneAbbreviation(timezone: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'short',
+    }).formatToParts(new Date());
+    return parts.find((p) => p.type === 'timeZoneName')?.value ?? timezone;
+  } catch {
+    return timezone;
+  }
+}
+
+/**
+ * Returns the short abbreviation for the browser's local timezone (e.g., "PST", "EST").
+ */
+export function getLocalTimezoneAbbreviation(): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZoneName: 'short',
+  }).formatToParts(new Date());
+  return parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
 }
 
 export function formatDuration(durationMs: number): string {

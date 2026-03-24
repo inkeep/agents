@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "typeRoots": ["./node_modules/@types"],
     "verbatimModuleSyntax": true,
     "target": "ES2022",
     "module": "ESNext",

@@ -17,18 +17,33 @@ export interface VersionConfig<TConfig> {
   getBreakdownSchema(): BreakdownComponentDef[];
 }
 
+export interface SkillData {
+  id: string;
+  subAgentSkillId: string;
+  name: string;
+  description: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  index: number;
+  alwaysLoaded: boolean;
+}
+
 export interface SystemPromptV1 {
-  corePrompt: string; // Just the agent's prompt string
-  prompt?: string; // Agent-level context and instructions
+  corePrompt: string; // Sub-agent's own instructions — rendered into <core_instructions>
+  prompt?: string; // Overarching agent system's prompt — rendered into <agent_context>. Different source from corePrompt.
+  skills?: SkillData[];
   artifacts: Artifact[];
-  tools: ToolData[]; // Support both formats
+  tools: ToolData[];
+  mcpServerGroups?: McpServerGroupData[];
   dataComponents: DataComponentApiInsert[];
   artifactComponents?: ArtifactComponentApiInsert[];
+  allProjectArtifactComponents?: ArtifactComponentApiInsert[];
   hasAgentArtifactComponents?: boolean; // Whether any agent in the agent has artifact components
-  isThinkingPreparation?: boolean; // Flag for thinking/preparation mode (first pass of 2-phase generation)
   hasTransferRelations?: boolean; // Agent has transfer capabilities
   hasDelegateRelations?: boolean; // Agent has delegation capabilities
+  includeDataComponents?: boolean; // Include data components in system prompt
   clientCurrentTime?: string; // Client's current time in their timezone
+  includeSinglePhaseDataComponents?: boolean; // Include data components in single-phase mode
 }
 
 export interface ToolData {
@@ -36,4 +51,10 @@ export interface ToolData {
   description?: string | null;
   inputSchema?: Record<string, unknown>; // JSON Schema format (MCP compatible)
   usageGuidelines?: string;
+}
+
+export interface McpServerGroupData {
+  serverName: string;
+  serverInstructions?: string;
+  tools: ToolData[];
 }

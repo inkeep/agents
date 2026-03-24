@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   addFunctionToolToSubAgent,
   ComponentAssociationListResponse,
@@ -19,33 +19,21 @@ import {
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/sub-agent/:subAgentId/function-tool/:functionToolId', async (c, next) => {
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/sub-agent/{subAgentId}',
     summary: 'Get Function Tools for SubAgent',
     operationId: 'get-function-tools-for-sub-agent',
     tags: ['SubAgents', 'Function Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -75,12 +63,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/function-tool/{functionToolId}/sub-agents',
     summary: 'Get SubAgents Using Function Tool',
     operationId: 'get-sub-agents-using-function-tool',
     tags: ['SubAgents', 'Function Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         functionToolId: z.string(),
@@ -112,12 +101,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Associate Function Tool with SubAgent',
     operationId: 'associate-function-tool-with-sub-agent',
     tags: ['SubAgents', 'Function Tools'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -196,12 +186,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/sub-agent/{subAgentId}/function-tool/{functionToolId}',
     summary: 'Remove Function Tool from SubAgent',
     operationId: 'remove-function-tool-from-sub-agent',
     tags: ['SubAgents', 'Function Tools'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         functionToolId: z.string(),
@@ -244,12 +235,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/sub-agent/{subAgentId}/function-tool/{functionToolId}/exists',
     summary: 'Check if Function Tool is Associated with SubAgent',
     operationId: 'check-function-tool-sub-agent-association',
     tags: ['SubAgents', 'Function Tools'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         functionToolId: z.string(),

@@ -1,0 +1,5 @@
+import { contextConfig } from '@inkeep/agents-core';
+
+export const headeronlycontext = contextConfig({
+  headers: myheaders,
+});

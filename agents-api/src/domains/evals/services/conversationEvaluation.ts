@@ -1,5 +1,7 @@
 import {
   createEvaluationRun,
+  type EvaluationSuiteFilterCriteria,
+  type Filter,
   generateId,
   getConversation,
   getEvaluationSuiteConfigById,
@@ -16,6 +18,23 @@ import { evaluateConversationWorkflow } from '../workflow';
 
 const logger = getLogger('ConversationEvaluation');
 
+function extractSuiteFilterCriteria(
+  filter: Filter<EvaluationSuiteFilterCriteria> | null | undefined
+): EvaluationSuiteFilterCriteria | null {
+  if (!filter) return null;
+  if ('and' in filter || 'or' in filter) return null;
+  return filter;
+}
+
+function conversationMatchesSuiteFilter(
+  conversationAgentId: string | null | undefined,
+  filters: Filter<EvaluationSuiteFilterCriteria> | null | undefined
+): boolean {
+  const criteria = extractSuiteFilterCriteria(filters);
+  if (!criteria?.agentIds || criteria.agentIds.length === 0) return true;
+  return !!conversationAgentId && criteria.agentIds.includes(conversationAgentId);
+}
+
 export const triggerConversationEvaluation = async (params: {
   tenantId: string;
   projectId: string;
@@ -24,23 +43,6 @@ export const triggerConversationEvaluation = async (params: {
 }): Promise<{ success: boolean; message: string; evaluationsTriggered: number }> => {
   const { tenantId, projectId, conversationId, resolvedRef } = params;
   try {
-    logger.info(
-      { tenantId, projectId, conversationId },
-      'Triggering conversation evaluation (eval-api handling all logic)'
-    );
-
-    // Get the conversation
-    const conversation = await getConversation(runDbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-    });
-
-    if (!conversation) {
-      throw new Error(`Conversation not found: ${conversationId}`);
-    }
-
-    // Get all active evaluation run configs
-    // const allRunConfigs = await client.listEvaluationRunConfigs();
     const configs = await withRef(manageDbPool, resolvedRef, (db) =>
       listEvaluationRunConfigsWithSuiteConfigs(db)({
         scopes: { tenantId, projectId },
@@ -50,15 +52,34 @@ export const triggerConversationEvaluation = async (params: {
     const runConfigs = configs.filter((config) => config.isActive);
 
     if (runConfigs.length === 0) {
-      throw new Error('No active evaluation run configs found');
+      logger.debug(
+        { tenantId, projectId, conversationId },
+        'No active evaluation run configs found, skipping evaluation'
+      );
+      return {
+        success: true,
+        message: 'No active evaluation run configs found',
+        evaluationsTriggered: 0,
+      };
+    }
+
+    logger.info(
+      { tenantId, projectId, conversationId, runConfigCount: runConfigs.length },
+      'Triggering conversation evaluation'
+    );
+
+    const conversation = await getConversation(runDbClient)({
+      scopes: { tenantId, projectId },
+      conversationId,
+    });
+
+    if (!conversation) {
+      throw new Error(`Conversation not found: ${conversationId}`);
     }
 
     let evaluationsTriggered = 0;
 
     for (const runConfig of runConfigs) {
-      // Check if run config matches conversation (using filters)
-      // For now, we match all - can add filter logic later if needed
-
       for (const suiteConfigId of runConfig.suiteConfigIds) {
         const suiteConfig = await withRef(manageDbPool, resolvedRef, (db) =>
           getEvaluationSuiteConfigById(db)({
@@ -68,6 +89,19 @@ export const triggerConversationEvaluation = async (params: {
 
         if (!suiteConfig) {
           logger.warn({ suiteConfigId }, 'Suite config not found, skipping');
+          continue;
+        }
+
+        if (!conversationMatchesSuiteFilter(conversation.agentId, suiteConfig.filters)) {
+          logger.info(
+            {
+              suiteConfigId: suiteConfig.id,
+              conversationAgentId: conversation.agentId,
+              filterAgentIds: extractSuiteFilterCriteria(suiteConfig.filters)?.agentIds,
+              conversationId,
+            },
+            'Conversation filtered out by agent filter'
+          );
           continue;
         }
 
@@ -106,6 +140,7 @@ export const triggerConversationEvaluation = async (params: {
           tenantId,
           projectId,
           evaluationRunConfigId: runConfig.id,
+          ref: resolvedRef,
         });
 
         logger.info(
@@ -143,11 +178,15 @@ export const triggerConversationEvaluation = async (params: {
     };
   } catch (error) {
     logger.error(
-      { error, tenantId, projectId, conversationId },
+      {
+        error: (error as Error)?.message,
+        errorStack: (error as Error)?.stack,
+        tenantId,
+        projectId,
+        conversationId,
+      },
       'Failed to trigger conversation evaluation'
     );
-    logger.error({ error: (error as Error)?.stack }, 'Failed to trigger conversation evaluation');
-    logger.error({ error: (error as Error)?.message }, 'Failed to trigger conversation evaluation');
     throw error;
   }
 };

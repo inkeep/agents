@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
@@ -12,38 +12,29 @@ import {
   ErrorResponseSchema,
   generateApiKey,
   getApiKeyById,
+  isForeignKeyViolation,
   listApiKeysPaginated,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateApiKey,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// API key creation requires 'use' permission (can invoke agents)
-// API key update/delete requires 'edit' permission
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('use')(c, next);
-  }
-  return next();
-});
-
-app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
+    permission: requireProjectPermission('view'),
     path: '/',
     summary: 'List API Keys',
     description: 'List all API keys for a tenant with optional pagination',
@@ -90,13 +81,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get API Key',
     description: 'Get a specific API key by ID (does not return the actual key)',
     operationId: 'get-api-key-by-id',
     tags: ['API Keys'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -140,13 +132,14 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Create API Key',
     description: 'Create a new API key for an agent. Returns the full key (shown only once).',
     operationId: 'create-api-key',
     tags: ['API Keys'],
+    permission: requireProjectPermission('use'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -176,10 +169,9 @@ app.openapi(
 
     const { key, ...keyDataWithoutKey } = keyData;
     const insertData = {
+      ...body,
       tenantId,
       projectId,
-      name: body.name,
-      agentId: body.agentId,
       ...keyDataWithoutKey,
       expiresAt: body.expiresAt || undefined,
     };
@@ -202,9 +194,8 @@ app.openapi(
         },
         201
       );
-    } catch (error: any) {
-      // Handle foreign key constraint violations (PostgreSQL foreign key violation)
-      if (error?.cause?.code === '23503') {
+    } catch (error) {
+      if (isForeignKeyViolation(error)) {
         throw createApiError({
           code: 'bad_request',
           message: 'Invalid agentId - agent does not exist',
@@ -217,77 +208,77 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update API Key',
-    description: 'Update an API key (currently only expiration date can be changed)',
-    operationId: 'update-api-key',
-    tags: ['API Keys'],
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: ApiKeyApiUpdateSchema,
-          },
+const updateApiKeyRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update API Key',
+  description: 'Update an API key (currently only expiration date can be changed)',
+  tags: ['API Keys'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ApiKeyApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'API key updated successfully',
-        content: {
-          'application/json': {
-            schema: ApiKeyResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'API key updated successfully',
+      content: {
+        'application/json': {
+          schema: ApiKeyResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    const updatedApiKey = await updateApiKey(runDbClient)({
-      scopes: { tenantId, projectId },
-      id,
-      data: {
-        expiresAt: body.expiresAt,
-        name: body.name,
-      },
-    });
+const updateApiKeyHandler: ManageRouteHandler<typeof updateApiKeyRouteConfig> = async (c) => {
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
 
-    if (!updatedApiKey) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'API key not found',
-      });
-    }
+  const updatedApiKey = await updateApiKey(runDbClient)({
+    scopes: { tenantId, projectId },
+    id,
+    data: body,
+  });
 
-    // Remove sensitive fields from response
-    const { keyHash: _, tenantId: __, projectId: ___, ...sanitizedApiKey } = updatedApiKey;
-
-    return c.json({
-      data: {
-        ...sanitizedApiKey,
-        lastUsedAt: sanitizedApiKey.lastUsedAt ?? null,
-        expiresAt: sanitizedApiKey.expiresAt ?? null,
-      },
+  if (!updatedApiKey) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'API key not found',
     });
   }
-);
+
+  // Remove sensitive fields from response
+  const { keyHash: _, tenantId: __, projectId: ___, ...sanitizedApiKey } = updatedApiKey;
+
+  return c.json({
+    data: {
+      ...sanitizedApiKey,
+      lastUsedAt: sanitizedApiKey.lastUsedAt ?? null,
+      expiresAt: sanitizedApiKey.expiresAt ?? null,
+    },
+  });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateApiKeyRouteConfig, updateApiKeyHandler, {
+  operationId: 'update-api-key',
+});
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/{id}',
     summary: 'Delete API Key',
     description: 'Delete an API key permanently',
     operationId: 'delete-api-key',
     tags: ['API Keys'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectIdParamsSchema,
     },

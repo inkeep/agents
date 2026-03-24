@@ -1,7 +1,7 @@
 import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
-  type DataPart,
+  type FilePart,
   type FullExecutionContext,
   generateId,
   getMcpToolById,
@@ -15,7 +15,7 @@ import {
 import manageDbPool from 'src/data/db/manageDbPool';
 import { getLogger } from '../../../logger';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
-import { agentSessionManager } from '../services/AgentSession';
+import { agentSessionManager } from '../session/AgentSession';
 import { getUserIdFromContext, type SandboxConfig } from '../types/executionContext';
 import { resolveModelConfig } from '../utils/model-resolver';
 import {
@@ -23,12 +23,13 @@ import {
   enhanceTeamRelation,
   getArtifactComponentsForSubAgent,
   getDataComponentsForSubAgent,
+  getSkillsForSubAgent,
   getSubAgentRelations,
   getToolsForSubAgent,
 } from '../utils/project';
 import { Agent } from './Agent';
 import { buildTransferRelationConfig } from './relationTools';
-import { toolSessionManager } from './ToolSessionManager';
+import { toolSessionManager } from './services/ToolSessionManager';
 
 const logger = getLogger('generateTaskHandler');
 
@@ -64,31 +65,17 @@ export const createTaskHandler = (
         .map((part) => part.text)
         .join(' ');
 
-      // Extract data parts (e.g., from trigger payloads)
-      const dataParts = task.input.parts.filter(
-        (part): part is DataPart => part.kind === 'data' && part.data != null
+      const hasImages = task.input.parts.some(
+        (part): part is FilePart =>
+          part.kind === 'file' && part.file.mimeType?.startsWith('image/') === true
       );
+      const hasData = task.input.parts.some((p) => p.kind === 'data');
 
-      // Build user message: combine text with any structured data
-      let userMessage = textParts;
-
-      // If there are data parts, append them as structured context for the LLM
-      if (dataParts.length > 0) {
-        const dataContext = dataParts
-          .map((part) => {
-            const metadata = part.metadata as Record<string, unknown> | undefined;
-            const source = metadata?.source ? ` (source: ${metadata.source})` : '';
-            return `\n\n<structured_data${source}>\n${JSON.stringify(part.data, null, 2)}\n</structured_data>`;
-          })
-          .join('');
-        userMessage = `${textParts}${dataContext}`;
-      }
-
-      if (!userMessage.trim()) {
+      if (!textParts.trim() && !hasImages && !hasData) {
         return {
           status: {
             state: TaskState.Failed,
-            message: 'No text content found in task input',
+            message: 'No content found in task input',
           },
           artifacts: [],
         };
@@ -202,12 +189,15 @@ export const createTaskHandler = (
           );
         })) ?? [];
 
+      const skills = getSkillsForSubAgent({ subAgent: currentSubAgent });
+
       agent = new Agent(
         {
           id: config.subAgentId,
           tenantId,
           projectId,
           agentId,
+          agentName: currentAgent.name,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           userId: config.userId,
@@ -216,6 +206,7 @@ export const createTaskHandler = (
           prompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
+          skills,
           subAgentRelations: enhancedInternalRelations.map((relation) => ({
             id: relation.id,
             tenantId,
@@ -362,16 +353,21 @@ export const createTaskHandler = (
       logger.info({ contextId }, 'Context ID');
       logger.info(
         {
-          userMessage: userMessage.substring(0, 500), // Truncate for logging
+          userMessage: textParts.substring(0, 500), // Truncate for logging
           inputPartsCount: task.input.parts.length,
           textPartsCount: task.input.parts.filter((p) => p.kind === 'text').length,
           dataPartsCount: task.input.parts.filter((p) => p.kind === 'data').length,
-          hasDataParts: task.input.parts.some((p) => p.kind === 'data'),
+          imagePartsCount: task.input.parts.filter(
+            (part): part is FilePart =>
+              part.kind === 'file' && part.file.mimeType?.startsWith('image/') === true
+          ).length,
+          hasDataParts: hasData,
+          hasImages,
         },
-        'User Message with parts breakdown'
+        'User message with parts breakdown'
       );
 
-      const response = await agent.generate(userMessage, {
+      const response = await agent.generate(task.input.parts, {
         contextId,
         metadata: {
           conversationId: contextId,
@@ -381,9 +377,6 @@ export const createTaskHandler = (
           ...(config.apiKey ? { apiKey: config.apiKey } : {}),
         },
       });
-
-      // Perform full cleanup of compression state when agent task completes
-      agent.cleanupCompression();
 
       const stepContents =
         response.steps && Array.isArray(response.steps)
@@ -429,14 +422,13 @@ export const createTaskHandler = (
                 output !== null &&
                 'type' in output &&
                 'targetSubAgentId' in output &&
-                (output as any).type === 'transfer' &&
-                typeof (output as any).targetSubAgentId === 'string'
+                (output as { type: unknown }).type === 'transfer' &&
+                typeof (output as { targetSubAgentId: unknown }).targetSubAgentId === 'string'
               );
             };
 
             const responseText =
-              (response as any).text ||
-              ((response as any).object ? JSON.stringify((response as any).object) : '');
+              response.text || (response.object ? JSON.stringify(response.object) : '');
             const transferReason =
               responseText ||
               allThoughts[allThoughts.length - 1]?.text ||
@@ -461,7 +453,7 @@ export const createTaskHandler = (
                 fromSubAgentId: transferResult.fromSubAgentId,
                 task_id: task.id,
                 reason: transferReason,
-                original_message: userMessage,
+                original_message: textParts,
               };
 
               logger.info(
@@ -504,11 +496,24 @@ export const createTaskHandler = (
         }
       }
 
-      const parts: Part[] = (response.formattedContent?.parts || []).map((part: any) => ({
-        kind: part.kind as 'text' | 'data',
-        ...(part.kind === 'text' && { text: part.text }),
-        ...(part.kind === 'data' && { data: part.data }),
-      }));
+      const parts: Part[] = (response.formattedContent?.parts || []).map((part: any): Part => {
+        if (part.kind === 'data') {
+          return { kind: 'data' as const, data: part.data };
+        }
+        return { kind: 'text' as const, text: part.text };
+      });
+
+      const denialRedirects = agent?.getTaskDenialRedirects() ?? [];
+      if (denialRedirects.length > 0) {
+        const sanitize = (s: string) => s.replace(/\n/g, ' ').slice(0, 200);
+        const redirectNote = denialRedirects
+          .map((d) => `- ${d.toolName} (${d.toolCallId}): ${sanitize(d.reason)}`)
+          .join('\n');
+        parts.unshift({
+          kind: 'text' as const,
+          text: `[NOTE: Some tool calls were denied during task execution, which may have changed the original request:\n${redirectNote}\nThe result below reflects the actual execution.]\n\n`,
+        });
+      }
 
       return {
         status: { state: TaskState.Completed },
@@ -523,15 +528,6 @@ export const createTaskHandler = (
     } catch (error) {
       console.error('Task handler error:', error);
 
-      // Cleanup compression state on error (if agent was created)
-      try {
-        if (agent) {
-          agent.cleanupCompression();
-        }
-      } catch (cleanupError) {
-        logger.warn({ cleanupError }, 'Failed to cleanup agent compression on error');
-      }
-
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       const isConnectionRefused = errorMessage.includes(
         'Connection refused. Please check if the MCP server is running.'
@@ -545,6 +541,14 @@ export const createTaskHandler = (
         },
         artifacts: [],
       };
+    } finally {
+      try {
+        if (agent) {
+          await agent.cleanup();
+        }
+      } catch (cleanupError) {
+        logger.warn({ cleanupError }, 'Failed to cleanup agent on task completion');
+      }
     }
   };
 };

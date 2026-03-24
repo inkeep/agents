@@ -122,11 +122,13 @@ function AssistantMessageContent({ content }: { content: string }) {
 export function renderPanelContent({
   selected,
   findSpanById,
+  spanLoading = false,
 }: {
   selected: SelectedPanel;
   findSpanById: (
     id?: string
   ) => NonNullable<ConversationDetail['allSpanAttributes']>[number] | undefined;
+  spanLoading?: boolean;
 }) {
   if (selected.type === 'mcp_tool_error') {
     const e = selected.item;
@@ -144,7 +146,7 @@ export function renderPanelContent({
           </Bubble>
         </LabeledBlock>
         <Info label="Span ID" value={<Badge variant="code">{e.spanId}</Badge>} />
-        <Info label="Timestamp" value={formatDateTime(e.timestamp)} />
+        <Info label="Timestamp" value={formatDateTime(e.timestamp, { local: true })} />
       </Section>
     );
   }
@@ -160,7 +162,11 @@ export function renderPanelContent({
     </div>
   ) : null;
 
-  const AdvancedBlock = span ? (
+  const AdvancedBlock = spanLoading ? (
+    <div className="text-center py-4 text-xs text-muted-foreground animate-pulse">
+      Loading span attributes…
+    </div>
+  ) : span ? (
     <SpanAttributes span={span.data} />
   ) : (
     <div className="text-center py-4 text-xs text-muted-foreground">Span not found.</div>
@@ -208,7 +214,7 @@ export function renderPanelContent({
               <Info label="Status code" value={a.otelStatusCode} />
             )}
             <StatusBadge status={a.status} />
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -236,7 +242,7 @@ export function renderPanelContent({
             )}
             {a.contextBreakdown && <ContextBreakdownPanel breakdown={a.contextBreakdown} />}
             <StatusBadge status={a.status} />
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -253,10 +259,11 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info
-              label="Message content"
-              value={a.messageContent || 'Message content not available'}
-            />
+            <LabeledBlock label="Message content">
+              <Bubble className="break-words">
+                <Streamdown>{a.messageContent || 'Message content not available'}</Streamdown>
+              </Bubble>
+            </LabeledBlock>
             {targetTenantId && (
               <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
             )}
@@ -270,7 +277,7 @@ export function renderPanelContent({
               <Info label="Target agent" value={<Badge variant="code">{targetAgentId}</Badge>} />
             )}
             <StatusBadge status={a.status} />
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -296,7 +303,7 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
-            <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Activity timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -318,7 +325,7 @@ export function renderPanelContent({
               </Bubble>
             </LabeledBlock>
           )}
-          <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
         </Section>
       );
 
@@ -340,7 +347,7 @@ export function renderPanelContent({
                 <CodeBubble className="break-all">{a.contextUrl}</CodeBubble>
               </LabeledBlock>
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -396,7 +403,7 @@ export function renderPanelContent({
                 uri="tool-result.json"
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -441,7 +448,7 @@ export function renderPanelContent({
                 uri="tool-result.json"
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -498,7 +505,7 @@ export function renderPanelContent({
                 uri="tool-result.json"
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -553,7 +560,7 @@ export function renderPanelContent({
                 uri="tool-result.json"
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -596,7 +603,7 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -627,6 +634,28 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
+            {a.artifactIsOversized && (
+              <LabeledBlock label="Oversized artifact">
+                <Bubble className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300">
+                  <div className="space-y-1">
+                    <div className="font-semibold">⚠️ Artifact too large for agent context</div>
+                    {a.artifactOriginalTokenSize && (
+                      <div className="text-sm">
+                        Size: ~{Math.floor(a.artifactOriginalTokenSize / 1000)}K tokens
+                        {a.artifactContextWindowSize &&
+                          ` (${Math.round((a.artifactOriginalTokenSize / a.artifactContextWindowSize) * 100)}% of context window)`}
+                      </div>
+                    )}
+                    {a.artifactRetrievalBlocked && (
+                      <div className="text-sm">
+                        Tool call succeeded and data saved to database, but result is too large to
+                        retrieve into conversation. Agent should not retry this operation.
+                      </div>
+                    )}
+                  </div>
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.artifactSubAgentId && (
               <Info label="Sub agent" value={a.artifactSubAgentId || 'Unknown Sub Agent'} />
             )}
@@ -639,7 +668,7 @@ export function renderPanelContent({
                 value={<Badge variant="code">{a.artifactToolCallId}</Badge>}
               />
             )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -660,7 +689,7 @@ export function renderPanelContent({
                 Waiting for approval
               </Badge>
             </LabeledBlock>
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -681,7 +710,7 @@ export function renderPanelContent({
                 Approved by user
               </Badge>
             </LabeledBlock>
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -702,7 +731,7 @@ export function renderPanelContent({
                 Denied by user
               </Badge>
             </LabeledBlock>
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -714,9 +743,17 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
             <Info
-              label="Output tokens"
+              label="Generated tokens"
+              value={a.compressionGeneratedTokens?.toLocaleString() || '0'}
+            />
+            <Info
+              label="Total tokens"
+              value={a.compressionTotalContextTokens?.toLocaleString() || '0'}
+            />
+            <Info label="Context limit" value={a.compressionTriggerAt?.toLocaleString() || '0'} />
+            <Info
+              label="Summary tokens"
               value={a.compressionOutputTokens?.toLocaleString() || '0'}
             />
             {a.compressionRatio !== undefined && (
@@ -742,7 +779,7 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}
@@ -767,7 +804,43 @@ export function renderPanelContent({
                 The sub-agent reached the maximum number of generation steps and stopped.
               </Bubble>
             </LabeledBlock>
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'stream_lifetime_exceeded':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Lifetime limit"
+              value={
+                <Badge variant="code" className="font-mono">
+                  {a.streamMaxLifetimeMs ? `${Math.round(a.streamMaxLifetimeMs / 1000)}s` : 'N/A'}
+                </Badge>
+              }
+            />
+            {a.streamBufferSizeBytes !== undefined && (
+              <Info
+                label="Buffer size at cleanup"
+                value={
+                  <Badge variant="code" className="font-mono">
+                    {(a.streamBufferSizeBytes / 1024).toFixed(1)} KB
+                  </Badge>
+                }
+              />
+            )}
+            {a.streamCleanupReason && <Info label="Reason" value={a.streamCleanupReason} />}
+            <LabeledBlock label="Description">
+              <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                The stream exceeded the maximum allowed lifetime and was forcibly closed.
+              </Bubble>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
           {SignozButton}

@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   checkBulkPermissions,
   commonGetErrorResponses,
@@ -7,7 +7,10 @@ import {
   OrgRoles,
   SpiceDbProjectPermissions,
   SpiceDbResourceTypes,
+  toSpiceDbProjectId,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -27,7 +30,7 @@ const ProjectPermissionsResponseSchema = z.object({
 
 // Get project permissions for the current user
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/',
     summary: 'Get Project Permissions',
@@ -35,6 +38,7 @@ app.openapi(
       "Get the current user's permissions for a project. Returns which actions the user can perform.",
     operationId: 'get-project-permissions',
     tags: ['Project Permissions'],
+    permission: requireProjectPermission('view'),
     request: {
       params: ProjectPermissionsParamsSchema,
     },
@@ -51,7 +55,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { projectId } = c.req.valid('param');
+    const { projectId, tenantId } = c.req.valid('param');
     const userId = c.get('userId');
     const tenantRole = c.get('tenantRole') as OrgRole;
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
@@ -84,10 +88,12 @@ app.openapi(
       });
     }
 
+    const spiceProjectId = toSpiceDbProjectId(tenantId, projectId);
+
     // Use bulk permission check - single gRPC call for all permissions
     const permissions = await checkBulkPermissions({
       resourceType: SpiceDbResourceTypes.PROJECT,
-      resourceId: projectId,
+      resourceId: spiceProjectId,
       permissions: [
         SpiceDbProjectPermissions.VIEW,
         SpiceDbProjectPermissions.USE,

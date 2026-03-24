@@ -1,0 +1,12 @@
+import { subAgent } from '@inkeep/agents-sdk';
+import { stringtool } from '../../tools/stringtool';
+import { stringcomponent } from '../../data-components/stringComponent';
+
+export const mixedTypesAgent = subAgent({
+  id: 'mixed-types-sub-agent',
+  prompt: 'I work with mixed types.',
+  description: 'Agent with mixed reference types',
+  name: 'Mixed Types Agent',
+  canUse: () => [stringtool],
+  dataComponents: () => [stringcomponent],
+});

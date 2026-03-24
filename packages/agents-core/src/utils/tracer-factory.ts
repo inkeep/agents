@@ -46,8 +46,30 @@ const noopTracer = {
 } as Tracer;
 
 /**
+ * Unwraps nested error `.cause` chains to find the root cause error.
+ * Node.js `fetch()` wraps undici errors (e.g. HeadersTimeoutError) into
+ * a generic `TypeError: fetch failed` with the real error in `.cause`.
+ * This utility traverses the cause chain to surface the original error.
+ */
+export function unwrapError(error: unknown): Error {
+  if (!(error instanceof Error)) {
+    return new Error(String(error));
+  }
+
+  let current: Error = error;
+  const seen = new Set<Error>();
+  while (current.cause instanceof Error && !seen.has(current.cause)) {
+    seen.add(current);
+    current = current.cause;
+  }
+  return current;
+}
+
+/**
  * Helper function to handle span errors consistently
- * Records the exception, sets error status, and optionally logs
+ * Records the exception, sets error status, and optionally logs.
+ * Automatically unwraps `.cause` chains so spans show root cause errors
+ * instead of generic wrappers like "fetch failed".
  */
 export function setSpanWithError(
   span: Span,
@@ -55,18 +77,20 @@ export function setSpanWithError(
   logger?: { error: (obj: any, msg?: string) => void },
   logMessage?: string
 ): void {
-  // Record the exception in the span
-  span.recordException(error);
+  const rootCause = unwrapError(error);
 
-  // Set error status
+  // Record the root cause exception in the span
+  span.recordException(rootCause);
+
+  // Set error status with root cause message
   span.setStatus({
     code: SpanStatusCode.ERROR,
-    message: error.message,
+    message: rootCause.message,
   });
 
   // Optionally log the error
   if (logger && logMessage) {
-    logger.error({ error: error.message }, logMessage);
+    logger.error({ error: rootCause.message }, logMessage);
   }
 }
 
@@ -80,5 +104,31 @@ export function getTracer(serviceName: string, serviceVersion?: string): Tracer 
   } catch (_error) {
     logger.debug({}, 'OpenTelemetry tracer not available, using no-op tracer');
     return noopTracer;
+  }
+}
+
+/**
+ * Force-flush all pending trace spans to the configured exporter.
+ *
+ * Uses the global TracerProvider registered by the OpenTelemetry SDK.
+ * This is safe to call from any package — it accesses the same provider
+ * that was set up in the host application's instrumentation.
+ *
+ * Use this in fire-and-forget handlers (e.g. Slack webhooks) where the
+ * HTTP response is sent before background work completes, so the
+ * per-request flush middleware runs too early to capture those spans.
+ */
+export async function flushTraces(): Promise<void> {
+  try {
+    const provider = trace.getTracerProvider() as {
+      forceFlush?: () => Promise<void>;
+      getDelegate?: () => { forceFlush?: () => Promise<void> };
+    };
+    const delegate = typeof provider.getDelegate === 'function' ? provider.getDelegate() : provider;
+    if (typeof delegate.forceFlush === 'function') {
+      await delegate.forceFlush();
+    }
+  } catch (error) {
+    logger.warn({ error }, 'Failed to flush traces');
   }
 }

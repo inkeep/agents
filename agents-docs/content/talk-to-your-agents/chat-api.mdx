@@ -3,7 +3,7 @@ title: How to call your AI Agent using the Chat API
 sidebarTitle: Chat API
 description: Learn about details of the Vercel AI SDK data stream protocol that powers the `/run/api/chat` API endpoint.
 icon: LuMessagesSquare
-keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat
+keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat, images, multi-part content
 ---
 
 ## Overview
@@ -13,7 +13,7 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 <Tip>
   If you are building a React UI, consider our prebuilt components under [React
   UI Components](/talk-to-your-agents/react/chat-button) or [Vercel AI
-  Elements](/talk-to-your-agents/vercel-ai-sdk/ai-elements) headless primatives.
+  Elements](/talk-to-your-agents/vercel-ai-sdk/ai-elements) headless primitives.
   This page is for the low-level streaming API.
 </Tip>
 
@@ -44,8 +44,66 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 **Field Notes:**
 
 - **`messages`** — Must include at least one `user` message
-- **`content`** — Can be a string or an object with `parts` for multi-part content
+- **`content`** — Optional string message text (legacy-compatible)
+- **`parts`** — Optional multi-part content array (text + images)
+- **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
 - **`conversationId`** — Optional; server generates one if omitted
+
+## File inputs (images and PDFs)
+
+The chat endpoint supports files in message content parts with different rules by type:
+
+- **Images (`image_url`)**: support either remote URLs (`https://...`) or base64 `data:` URIs
+- **Files (`file`)**: currently support **PDF only**, and only as base64 `data:` URIs
+- **External PDF URLs are rejected**: pass PDFs inline as `data:application/pdf;base64,...`
+
+### Request shape for file parts
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Summarize these attachments",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Summarize these attachments"
+        },
+        {
+          "type": "image",
+          "text": "https://example.com/image.png"
+        },
+        {
+          "type": "image",
+          "text": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+        },
+        {
+          "type": "file",
+          "text": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...",
+          "mediaType": "application/pdf",
+          "filename": "report.pdf"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Base64 and size requirements
+
+- **Encoding**: data URIs must include a valid base64 payload
+- **Maximum size**: each inline file payload is limited to **10 MB**
+- **Vercel `parts` file typing**: include at least one of `mediaType` or `mimeType`
+  - If both are present, `mediaType` is preferred
+- **Content validation**:
+  - Images are validated against supported image bytes
+  - PDFs must start with the `%PDF-` signature bytes
+
+<Note>
+  This is intentionally asymmetric: image parts accept both remote URLs and data URIs, while file
+  parts accept PDF data URIs only.
+</Note>
 
 ### Optional Headers
 
@@ -215,7 +273,7 @@ AI-generated status updates designed for end-user consumption. Structure:
 
 #### `data-artifact` Events
 
-Saved documents, files, or structured results from tool executions:
+Emitted when an agent saves an artifact from a tool result. The event carries the artifact's **preview fields** in `summary` — these are the fields marked `inPreview: true` in the artifact schema and are available immediately in the agent's context.
 
 ```json
 {
@@ -227,6 +285,8 @@ Saved documents, files, or structured results from tool executions:
   }
 }
 ```
+
+The complete artifact data (including non-preview fields) is persisted and can be fetched on demand. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) for details on preview vs. non-preview fields.
 
 #### `data-component` Events
 

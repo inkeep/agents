@@ -1,4 +1,8 @@
-import type { ExternalAgentInsert, SubAgentDataComponentInsert } from '@inkeep/agents-core';
+import type {
+  ExternalAgentInsert,
+  JsonSchemaForLlmSchemaType,
+  SubAgentDataComponentInsert,
+} from '@inkeep/agents-core';
 import { eq } from 'drizzle-orm';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
@@ -104,7 +108,7 @@ describe('Cascading Delete Tests (Manage DB)', () => {
       id: generateId(),
       name: 'Test Data Component',
       description: 'Test data component',
-      props: {},
+      props: {} as JsonSchemaForLlmSchemaType,
     };
     await dbClient.insert(dataComponents).values(dataComponent);
 
@@ -115,7 +119,7 @@ describe('Cascading Delete Tests (Manage DB)', () => {
       id: generateId(),
       name: 'Test Artifact Component',
       description: 'Test artifact component',
-      props: {},
+      props: {} as JsonSchemaForLlmSchemaType,
     };
     await dbClient.insert(artifactComponents).values(artifactComponent);
 

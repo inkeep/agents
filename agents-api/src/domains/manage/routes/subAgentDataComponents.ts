@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   associateDataComponentWithAgent,
   ComponentAssociationListResponse,
@@ -19,33 +19,21 @@ import {
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
+import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
-app.use('/agent/:subAgentId/component/:dataComponentId', async (c, next) => {
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  return next();
-});
-
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/agent/{subAgentId}',
     summary: 'Get Data Components for Agent',
     operationId: 'get-data-components-for-agent',
     tags: ['Agents', 'Data Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -74,12 +62,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/component/{dataComponentId}/agents',
     summary: 'Get Agents Using Data Component',
     operationId: 'get-agents-using-data-component',
     tags: ['Agents', 'Data Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         dataComponentId: z.string(),
@@ -111,12 +100,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'post',
     path: '/',
     summary: 'Associate Data Component with Agent',
     operationId: 'associate-data-component-with-agent',
     tags: ['Agents', 'Data Components'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -194,12 +184,13 @@ app.openapi(
 
 // Remove agent data component association
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'delete',
     path: '/agent/{subAgentId}/component/{dataComponentId}',
     summary: 'Remove Data Component from Agent',
     operationId: 'remove-data-component-from-agent',
     tags: ['Agents', 'Data Components'],
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
@@ -241,12 +232,13 @@ app.openapi(
 );
 
 app.openapi(
-  createRoute({
+  createProtectedRoute({
     method: 'get',
     path: '/agent/{subAgentId}/component/{dataComponentId}/exists',
     summary: 'Check if Data Component is Associated with Agent',
     operationId: 'check-data-component-agent-association',
     tags: ['Agents', 'Data Components'],
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),

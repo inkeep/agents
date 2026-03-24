@@ -1,0 +1,11 @@
+import { subAgent } from '@inkeep/agents-sdk';
+
+export const stepCountOnlyAgent = subAgent({
+  id: 'step-count-agent',
+  prompt: 'I have a step count limit.',
+  description: 'Agent with step count limit',
+  stopWhen: {
+    stepCountIs: 15,
+  },
+  name: 'Step Count Only Agent',
+});

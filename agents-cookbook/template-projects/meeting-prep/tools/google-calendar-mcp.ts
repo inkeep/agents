@@ -14,5 +14,5 @@ import { mcpTool } from '@inkeep/agents-sdk';
 export const googleCalendarMcpTool = mcpTool({
   id: 'ospbm5j157x58qgypluqb',
   name: 'Google Calendar',
-  serverUrl: '<google-calendar-mcp-server-url>',
+  serverUrl: 'https://your-google-calendar-mcp-server-url',
 });

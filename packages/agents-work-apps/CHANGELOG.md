@@ -1,5 +1,641 @@
 # @inkeep/agents-work-apps
 
+## 0.59.3
+
+### Patch Changes
+
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+
+## 0.59.0
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- b4baf66: Fix GitHub OIDC token exchange to scope installation tokens to the repository from the OIDC claims.
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+  - @inkeep/agents-core@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+
+## 0.58.18
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.18
+
+## 0.58.17
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.17
+
+## 0.58.16
+
+### Patch Changes
+
+- Updated dependencies [5065552]
+  - @inkeep/agents-core@0.58.16
+
+## 0.58.15
+
+### Patch Changes
+
+- b10c96f: Fix tenant path injection in Slack OAuth callback by validating tenantId against allowed characters
+- 1ca09cd: Remove unwanted im:\* OAuth scopes and derive bot scopes from manifest as single source of truth
+- Updated dependencies [abaefda]
+  - @inkeep/agents-core@0.58.15
+
+## 0.58.14
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.14
+
+## 0.58.13
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.13
+
+## 0.58.12
+
+### Patch Changes
+
+- Updated dependencies [ad8a7cd]
+- Updated dependencies [ad8a7cd]
+  - @inkeep/agents-core@0.58.12
+
+## 0.58.11
+
+### Patch Changes
+
+- Updated dependencies [c87dc3e]
+  - @inkeep/agents-core@0.58.11
+
+## 0.58.10
+
+### Patch Changes
+
+- fa64456: Security and bug fixes
+- 02bcd0e: Fix authorization bypass vulnerability in @hono/node-server (CVE-2026-29087)
+- f41500b: Security and bug fixes
+- Updated dependencies [fa64456]
+- Updated dependencies [02bcd0e]
+- Updated dependencies [f41500b]
+- Updated dependencies [41af59e]
+  - @inkeep/agents-core@0.58.10
+
+## 0.58.9
+
+### Patch Changes
+
+- Updated dependencies [f150b28]
+- Updated dependencies [49909bf]
+- Updated dependencies [4816f02]
+  - @inkeep/agents-core@0.58.9
+
+## 0.58.8
+
+### Patch Changes
+
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+
+## 0.58.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- Updated dependencies [a9c2857]
+- Updated dependencies [16e5e8d]
+  - @inkeep/agents-core@0.58.6
+
+## 0.58.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- 87ac81f: Include search users, public messages and files scopes in slack app manifest.
+- f475d74: Fix GitHub MCP tool access to be project-scoped instead of globally scoped by toolId
+- 2d6ec44: Add `get-slack-user` MCP tool for looking up Slack users by ID, email, or name
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [f475d74]
+  - @inkeep/agents-core@0.58.4
+
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+- Updated dependencies [0714ac6]
+  - @inkeep/agents-core@0.58.3
+
+## 0.58.2
+
+### Patch Changes
+
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+
+## 0.58.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.1
+
+## 0.58.0
+
+### Patch Changes
+
+- Updated dependencies [3d88636]
+  - @inkeep/agents-core@0.58.0
+
+## 0.57.0
+
+### Patch Changes
+
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-core@0.57.0
+
+## 0.56.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.56.1
+
+## 0.56.0
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+
+## 0.55.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+
+## 0.54.0
+
+### Minor Changes
+
+- addc4a0: Move workspace default agent config from Nango metadata to PostgreSQL
+- addc4a0: Remove denormalized agent names from Slack channel configs — resolve names at read time from manage DB, clean up orphaned configs on agent/project deletion, validate agent existence on write
+
+### Patch Changes
+
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-core@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- 23b6b48: fix spans for work app
+- Updated dependencies [e915ef8]
+  - @inkeep/agents-core@0.53.13
+
+## 0.53.12
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- 7299f4a: UI tweaks for slack app
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+  - @inkeep/agents-core@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- 8a0c90c: Increasing slack streaming timeout to 30 minutes
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- 50b63a3: Add Slack source indicator with entry point tracking to conversation traces and stats. Distinguishes between app mention, DM, slash command, message shortcut, modal submission, and smart link resume entry points. Fix resume-intent to use getInProcessFetch for multi-instance safety.
+- 4761e1f: Add indexed citation formatting and inline citation injection in Slack
+  - @inkeep/agents-core@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- 7abd1bd: Dont stream tool errors that were successfully retried
+  - @inkeep/agents-core@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 16d775c: Use users.conversations API for channel listing to return only bot-member channels, reducing API calls for large workspaces
+- be72c29: Add move-file tool to GitHub MCP
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
+## 0.53.3
+
+### Patch Changes
+
+- f7e47ab: Add public messaging for all Slack surfaces, DM support, and per-trigger conversation model
+- Updated dependencies [f7e47ab]
+  - @inkeep/agents-core@0.53.3
+
+## 0.53.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.2
+
+## 0.53.1
+
+### Patch Changes
+
+- 8063da9: Add attachment content to slack messages
+- bd3aab5: Add randomness to generated branch names to prevent collisions
+- 75fbceb: Add smart Slack link — preserve user questions in JWT intent claims and auto-resume after account linking
+- c4d8a7b: Add project name and link to /inkeep status command response.
+- Updated dependencies [75fbceb]
+  - @inkeep/agents-core@0.53.1
+
+## 0.53.0
+
+### Minor Changes
+
+- 901ff0a: Add PR body reactions to GitHub MCP. BREAKING: Renamed `add-comment-reaction` → `add-reaction`, `remove-comment-reaction` → `remove-reaction` and `list-comment-reactions` → `list-reactions`. Parameters `comment_id`/`comment_type` renamed to `target_id`/`target_type`.
+
+### Patch Changes
+
+- 6d435a6: Refactor lookupAgentName to reuse fetchAgentsForProject instead of duplicating API call logic
+- 41ed409: Fix Slack responses showing agent ID instead of agent name in thinking messages and signatures across all interaction types
+- 38506a8: Show agent name and ID in Slack modal dropdowns for disambiguation
+- f868a96: Enforce single Slack workspace per tenant and improve error handling
+- 4d4fa33: Update slack user metadata in thread context
+- Updated dependencies [0a0cb6e]
+  - @inkeep/agents-core@0.53.0
+
+## 0.52.0
+
+### Patch Changes
+
+- eea5f0a: agents-core: Add isUniqueConstraintError and throwIfUniqueConstraintError helpers to normalize unique constraint error detection across PostgreSQL and Doltgres
+
+  agents-api: Fix duplicate resource creation returning 500 instead of 409 when Doltgres reports unique constraint violations as MySQL errno 1062
+
+  agents-work-apps: Fix concurrent user mapping creation returning 500 instead of succeeding silently when a duplicate mapping already exists
+
+- f2d822b: Fix Slack modal showing 'We had some trouble connecting' error on form submission by returning empty ack body
+- 520e4f0: Add branch file inspection tool to github mcp
+- Updated dependencies [886b2da]
+- Updated dependencies [eea5f0a]
+- Updated dependencies [65f71b5]
+  - @inkeep/agents-core@0.52.0
+
+## 0.51.0
+
+### Patch Changes
+
+- fe36caa: Fix error response format consistency in join-from-workspace endpoints
+- 012a843: Add tool approvals to slack app
+- Updated dependencies [012a843]
+- Updated dependencies [fe36caa]
+  - @inkeep/agents-core@0.51.0
+
+## 0.50.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.6
+
+## 0.50.5
+
+### Patch Changes
+
+- Updated dependencies [56fd821]
+  - @inkeep/agents-core@0.50.5
+
+## 0.50.4
+
+### Patch Changes
+
+- Updated dependencies [e623802]
+  - @inkeep/agents-core@0.50.4
+
+## 0.50.3
+
+### Patch Changes
+
+- 2005b87: Fix internal API routing for Slack work app in multi-instance environments.
+- 1be6def: Update slack streaming timeout to 10 minutes
+- 0011c4b: Mimic nango config in dev mode.
+- Updated dependencies [2005b87]
+- Updated dependencies [d50fa44]
+  - @inkeep/agents-core@0.50.3
+
+## 0.50.2
+
+### Patch Changes
+
+- becf184: standardize permission checks in routes
+- Updated dependencies [fa71905]
+- Updated dependencies [a4ee2d4]
+- Updated dependencies [becf184]
+  - @inkeep/agents-core@0.50.2
+
+## 0.50.1
+
+### Patch Changes
+
+- Updated dependencies [e643f0e]
+- Updated dependencies [561659a]
+- Updated dependencies [6d31fe6]
+  - @inkeep/agents-core@0.50.1
+
+## 0.50.0
+
+### Minor Changes
+
+- 5bd9461: Add reaction tooling to github mcp.
+
+### Patch Changes
+
+- @inkeep/agents-core@0.50.0
+
+## 0.49.0
+
+### Minor Changes
+
+- 3f556b7: Remove run and list commands from slack app
+
+### Patch Changes
+
+- @inkeep/agents-core@0.49.0
+
+## 0.48.7
+
+### Patch Changes
+
+- Updated dependencies [3532557]
+  - @inkeep/agents-core@0.48.7
+
+## 0.48.6
+
+### Patch Changes
+
+- Updated dependencies [2e8d956]
+  - @inkeep/agents-core@0.48.6
+
+## 0.48.5
+
+### Patch Changes
+
+- f39f8b0: Update slack message formatting to include channel and user names.
+  - @inkeep/agents-core@0.48.5
+
+## 0.48.4
+
+### Patch Changes
+
+- 2a91f04: Remove hostname allowlist validation for INKEEP_AGENTS_MANAGE_UI_URL to support custom domains
+- Updated dependencies [11f4e14]
+  - @inkeep/agents-core@0.48.4
+
+## 0.48.3
+
+### Patch Changes
+
+- Updated dependencies [24e75fb]
+- Updated dependencies [79dffed]
+  - @inkeep/agents-core@0.48.3
+
+## 0.48.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.48.2
+
+## 0.48.1
+
+### Patch Changes
+
+- a0464cb: Fix Slack API retry import
+  - @inkeep/agents-core@0.48.1
+
+## 0.48.0
+
+### Patch Changes
+
+- 7417653: Fix Slack API pagination for channels and membership checks
+- 94fcd60: Add line number option to get-file-content tool
+- 2521fcf: remove server cache
+- Updated dependencies [f981006]
+- Updated dependencies [e11fae9]
+- Updated dependencies [228d4e2]
+- Updated dependencies [7ad7e21]
+- Updated dependencies [95a3abc]
+- Updated dependencies [b2a6078]
+  - @inkeep/agents-core@0.48.0
+
+## 0.47.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-core@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- 3abfc41: Simplify author payload and add isSuggestion
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-core@0.47.3
+
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- 6139d11: Github mcp efficiency improvements
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-core@0.46.1
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- 37248c6: visualize update from feature branch
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- 54b2d4c: Get file content from feature branch
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-core@0.45.1
+
 ## 0.45.0
 
 ### Patch Changes

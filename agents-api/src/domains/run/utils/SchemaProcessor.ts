@@ -1,4 +1,9 @@
+import {
+  makeAllPropertiesRequired as makeAllPropertiesRequiredCore,
+  stripUnsupportedConstraints,
+} from '@inkeep/agents-core';
 import jmespath from 'jmespath';
+import type { JSONSchema } from 'zod/v4/core';
 import { getLogger } from '../../../logger';
 
 export interface SchemaValidationResult {
@@ -224,6 +229,26 @@ export class SchemaProcessor {
   }
 
   /**
+   * Makes all properties required recursively throughout the schema.
+   * Delegates to the shared `makeAllPropertiesRequired` utility from agents-core.
+   */
+  static makeAllPropertiesRequired<
+    T extends JSONSchema.BaseSchema | Record<string, unknown> | null | undefined,
+  >(schema: T): T {
+    return makeAllPropertiesRequiredCore(schema as Record<string, unknown>) as T;
+  }
+
+  /**
+   * Strips JSON Schema constraints that are not supported by all LLM providers.
+   * Delegates to the shared `stripUnsupportedConstraints` utility from agents-core.
+   */
+  static stripUnsupportedConstraints<
+    T extends JSONSchema.BaseSchema | Record<string, unknown> | null | undefined,
+  >(schema: T): T {
+    return stripUnsupportedConstraints(schema as Record<string, unknown>) as T;
+  }
+
+  /**
    * Enhance schema with JMESPath guidance for artifact component schemas
    * Transforms all schema types to string selectors with helpful descriptions
    */
@@ -238,13 +263,12 @@ export class SchemaProcessor {
       if (!obj || typeof obj !== 'object') return obj;
 
       if (obj.type === 'array') {
-        const _itemDescription = obj.items?.description || 'array items';
+        const itemDescription = obj.items?.description || 'array items';
         const arrayDescription = obj.description || 'array data';
-        const _isContentField = path.includes('content');
 
         return {
           type: 'string',
-          description: `🎯 ARRAY SELECTOR: Provide JMESPath selector for ${arrayDescription}. RELATIVE to base selector - this will be applied to the item selected by base_selector. Example: "content.blocks" or "items" (NOT absolute paths like "result.content.blocks")`,
+          description: `🎯 ARRAY SELECTOR: Provide JMESPath selector for ${arrayDescription} (each item: ${itemDescription}). RELATIVE to base selector - this will be applied to the item selected by base_selector. Example: "items" or "nested.array" (NOT absolute paths like "result.content.blocks")`,
         };
       }
 

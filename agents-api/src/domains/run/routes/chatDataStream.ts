@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   commonGetErrorResponses,
@@ -10,19 +10,27 @@ import {
   getConversation,
   getConversationId,
   loggerFactory,
+  type Part,
+  PartSchema,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
+import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
+import { HTTPException } from 'hono/http-exception';
 import { stream } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
+import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
+import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
+import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
+import { VercelMessageSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
-import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
+import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -33,57 +41,21 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('chatDataStream');
 
-const chatDataStreamRoute = createRoute({
+const chatDataStreamRoute = createProtectedRoute({
   method: 'post',
   path: '/chat',
   tags: ['Chat'],
   summary: 'Chat (Vercel Streaming Protocol)',
   description: 'Chat completion endpoint streaming with Vercel data stream protocol.',
   security: [{ bearerAuth: [] }],
+  permission: inheritedRunApiKeyAuth(),
   request: {
     body: {
       content: {
         'application/json': {
           schema: z.object({
             model: z.string().optional(),
-            messages: z.array(
-              z.object({
-                role: z.enum(['system', 'user', 'assistant', 'function', 'tool']),
-                content: z.any(),
-                parts: z
-                  .array(
-                    z.union([
-                      z.object({
-                        type: z.union([
-                          z.enum(['text', 'image', 'audio', 'video', 'file']),
-                          z.string().regex(/^data-/, 'Type must start with "data-"'),
-                        ]),
-                        text: z.string().optional(),
-                      }),
-                      // Special-case: tool approval response part (sent by client)
-                      z.object({
-                        type: z.string().regex(/^tool-/, 'Type must start with "tool-"'),
-                        toolCallId: z.string(),
-                        state: z.any(),
-                        approval: z
-                          .object({
-                            id: z.string(),
-                            approved: z.boolean().optional(),
-                            reason: z.string().optional(),
-                          })
-                          .optional(),
-                        input: z.any().optional(),
-                        callProviderMetadata: z.any().optional(),
-                      }),
-                      // Allow step markers used by client payloads
-                      z.object({
-                        type: z.literal('step-start'),
-                      }),
-                    ])
-                  )
-                  .optional(),
-              })
-            ),
+            messages: z.array(VercelMessageSchema),
             id: z.string().optional(),
             conversationId: z.string().optional(),
             stream: z.boolean().optional().describe('Whether to stream the response').default(true),
@@ -122,23 +94,19 @@ app.openapi(chatDataStreamRoute, async (c) => {
       .getLogger('chatDataStream')
       .debug({ tenantId, projectId, agentId }, 'Extracted chatDataStream parameters');
 
-    // Get parsed body from middleware (shared across all handlers)
-    const body = c.get('requestBody') || {};
+    const body = c.req.valid('json');
 
-    const approvalPart = (body.messages || [])
+    const approvalParts = (body.messages || [])
       .flatMap((m: any) => m?.parts || [])
-      .find((p: any) => p?.state === 'approval-responded' && typeof p?.toolCallId === 'string');
+      .filter((p: any) => p?.state === 'approval-responded' && typeof p?.toolCallId === 'string');
 
-    const isApprovalResponse = !!approvalPart;
-
-    // For approval responses, require an explicit conversationId (do not auto-generate).
-    const conversationId = isApprovalResponse
-      ? body.conversationId
-      : body.conversationId || getConversationId();
+    const isApprovalResponse = approvalParts.length > 0;
 
     // Fast-path: allow client to respond to tool approvals via the same /chat endpoint.
     // This should NOT start a new agent execution. The original stream continues separately.
+    // Supports both single and batch approval responses in one request.
     if (isApprovalResponse) {
+      const conversationId = body.conversationId;
       if (!conversationId) {
         return c.json(
           {
@@ -148,10 +116,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
           400
         );
       }
-
-      const toolCallId = approvalPart.toolCallId as string;
-      const approved = !!approvalPart.approval?.approved;
-      const reason = approvalPart.approval?.reason as string | undefined;
 
       // Validate that the conversation exists and belongs to this tenant/project
       const conversation = await getConversation(runDbClient)({
@@ -163,25 +127,20 @@ app.openapi(chatDataStreamRoute, async (c) => {
         return c.json({ success: false, error: 'Conversation not found' }, 404);
       }
 
-      // Resolve the pending approval (in-memory). Idempotent: if already processed, return 200.
-      const ok = approved
-        ? pendingToolApprovalManager.approveToolCall(toolCallId)
-        : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+      const results = approvalParts.map((approvalPart: any) => {
+        const toolCallId = approvalPart.toolCallId as string;
+        const approved = !!approvalPart.approval?.approved;
+        const reason = approvalPart.approval?.reason as string | undefined;
 
-      if (!ok) {
-        return c.json({
-          success: true,
-          toolCallId,
-          approved,
-          alreadyProcessed: true,
-        });
-      }
+        // Resolve the pending approval (in-memory). Idempotent: if already processed, returns false.
+        const ok = approved
+          ? pendingToolApprovalManager.approveToolCall(toolCallId)
+          : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
 
-      return c.json({
-        success: true,
-        toolCallId,
-        approved,
+        return { toolCallId, approved, alreadyProcessed: !ok };
       });
+
+      return c.json({ success: true, results });
     }
 
     // Extract target context headers (for copilot/chat-to-edit scenarios)
@@ -238,6 +197,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     }
 
     // Add conversation ID to parent span
+    const conversationId = body.conversationId ?? getConversationId();
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
       activeSpan.setAttributes({
@@ -291,6 +251,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           subAgentId: defaultSubAgentId,
           ref: executionContext.resolvedRef,
           agentId: agentId,
+          userId: executionContext.metadata?.endUserId,
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
@@ -319,11 +280,16 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
 
       // Store last user message
-      const lastUserMessage = body.messages.filter((m: any) => m.role === 'user').slice(-1)[0];
-      const userText =
-        typeof lastUserMessage?.content === 'string'
-          ? lastUserMessage.content
-          : lastUserMessage?.parts?.map((p: any) => p.text).join('') || '';
+      const lastUserMessage = body.messages.filter((m) => m.role === 'user').slice(-1)[0];
+
+      // Build Part[] for execution (text + image parts), validated against core PartSchema
+      const messageParts: Part[] = z
+        .array(PartSchema)
+        .parse(getMessagePartsFromVercelContent(lastUserMessage?.content, lastUserMessage?.parts));
+
+      // Extract text content from parts
+      const userText = extractTextFromParts(messageParts) || '';
+
       logger.info({ userText, lastUserMessage }, 'userText');
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
@@ -332,6 +298,14 @@ app.openapi(chatDataStreamRoute, async (c) => {
           'message.content': userText,
           'agent.name': agentName,
         });
+        const invocationType = c.req.header('x-inkeep-invocation-type');
+        if (invocationType) {
+          messageSpan.setAttribute('invocation.type', invocationType);
+        }
+        const invocationEntryPoint = c.req.header('x-inkeep-invocation-entry-point');
+        if (invocationEntryPoint) {
+          messageSpan.setAttribute('invocation.entryPoint', invocationEntryPoint);
+        }
 
         // Add user information from execution context metadata if available
         if (executionContext.metadata?.initiatedBy) {
@@ -339,15 +313,25 @@ app.openapi(chatDataStreamRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-      await createMessage(runDbClient)({
-        id: generateId(),
+      const userMessageId = generateId();
+
+      const messageContent = await buildPersistedMessageContent(userText, messageParts, {
         tenantId,
         projectId,
         conversationId,
-        role: 'user',
-        content: { text: userText },
-        visibility: 'user-facing',
-        messageType: 'chat',
+        messageId: userMessageId,
+      });
+
+      await createMessage(runDbClient)({
+        scopes: { tenantId, projectId },
+        data: {
+          id: userMessageId,
+          conversationId,
+          role: 'user',
+          content: messageContent,
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
       });
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
@@ -357,24 +341,26 @@ app.openapi(chatDataStreamRoute, async (c) => {
       }
 
       const shouldStream = body.stream !== false;
-
       if (!shouldStream) {
         // Non-streaming response - collect full response and return as JSON
         const emitOperationsHeader = c.req.header('x-emit-operations');
         const emitOperations = emitOperationsHeader === 'true';
 
         const bufferingHelper = createBufferingStreamHelper();
+        const responseMessageId = generateId();
 
         const executionHandler = new ExecutionHandler();
         const result = await executionHandler.execute({
           executionContext,
           conversationId,
           userMessage: userText,
+          messageParts: messageParts.length > 0 ? messageParts : undefined,
           initialAgentId: subAgentId,
           requestId: `chat-${Date.now()}`,
           sseHelper: bufferingHelper,
           emitOperations,
           forwardedHeaders,
+          responseMessageId,
         });
 
         const captured = bufferingHelper.getCapturedResponse();
@@ -402,9 +388,13 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
+      const responseMessageId = generateId();
+
       // Create UI Message Stream using AI SDK V5
       const dataStream = createUIMessageStream({
         execute: async ({ writer }) => {
+          writer.write({ type: 'start', messageId: responseMessageId });
+
           const streamHelper = createVercelStreamHelper(writer);
           let unsubscribe: (() => void) | undefined;
           try {
@@ -456,6 +446,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
                 await streamHelper.writeToolApprovalRequest({
                   approvalId: event.approvalId,
                   toolCallId: event.toolCallId,
+                  toolName: event.toolName,
+                  input: event.input as Record<string, unknown>,
                 });
               } else if (event.type === 'approval-resolved') {
                 if (seenOutputs.has(event.toolCallId)) return;
@@ -476,12 +468,14 @@ app.openapi(chatDataStreamRoute, async (c) => {
               executionContext,
               conversationId,
               userMessage: userText,
+              messageParts: messageParts.length > 0 ? messageParts : undefined,
               initialAgentId: subAgentId,
               requestId,
               sseHelper: streamHelper,
               emitOperations,
               datasetRunId: datasetRunId || undefined,
               forwardedHeaders,
+              responseMessageId,
             });
 
             if (!result.success) {
@@ -498,6 +492,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
               streamHelper.cleanup();
             }
+            await flushBatchProcessor();
           }
         },
       });
@@ -517,6 +512,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
       );
     });
   } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
     logger.error(
       {
         error,
@@ -531,155 +529,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
       message: 'Failed to process chat completion',
     });
   }
-});
-
-// Tool approval endpoint
-const toolApprovalRoute = createRoute({
-  method: 'post',
-  path: '/tool-approvals',
-  tags: ['Chat'],
-  summary: 'Approve or deny tool execution',
-  description: 'Handle user approval/denial of tool execution requests during conversations',
-  security: [{ bearerAuth: [] }],
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: z.object({
-            conversationId: z.string().describe('The conversation ID'),
-            toolCallId: z.string().describe('The tool call ID to respond to'),
-            approved: z.boolean().describe('Whether the tool execution is approved'),
-            reason: z.string().optional().describe('Optional reason for the decision'),
-          }),
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'Tool approval response processed successfully',
-      content: {
-        'application/json': {
-          schema: z.object({
-            success: z.boolean(),
-            message: z.string().optional(),
-          }),
-        },
-      },
-    },
-    400: {
-      description: 'Bad request - invalid tool call ID or conversation ID',
-      content: {
-        'application/json': {
-          schema: z.object({
-            error: z.string(),
-          }),
-        },
-      },
-    },
-    404: {
-      description: 'Tool call not found or already processed',
-      content: {
-        'application/json': {
-          schema: z.object({
-            error: z.string(),
-          }),
-        },
-      },
-    },
-    500: {
-      description: 'Internal server error',
-      content: {
-        'application/json': {
-          schema: z.object({
-            error: z.string(),
-            message: z.string(),
-          }),
-        },
-      },
-    },
-  },
-});
-
-app.openapi(toolApprovalRoute, async (c) => {
-  const tracer = trace.getTracer('tool-approval-handler');
-
-  return tracer.startActiveSpan('tool_approval_request', async (span) => {
-    try {
-      const executionContext = c.get('executionContext');
-      const { tenantId, projectId } = executionContext;
-
-      const requestBody = await c.req.json();
-      const { conversationId, toolCallId, approved, reason } = requestBody;
-
-      logger.info(
-        {
-          conversationId,
-          toolCallId,
-          approved,
-          reason,
-          tenantId,
-          projectId,
-        },
-        'Processing tool approval request'
-      );
-
-      // Validate that the conversation exists and belongs to this tenant/project
-      const conversation = await getConversation(runDbClient)({
-        scopes: { tenantId, projectId },
-        conversationId,
-      });
-
-      if (!conversation) {
-        span.setStatus({ code: 1, message: 'Conversation not found' });
-        return c.json({ error: 'Conversation not found' }, 404);
-      }
-
-      // Process the approval request using PendingToolApprovalManager
-      let success = false;
-      if (approved) {
-        success = pendingToolApprovalManager.approveToolCall(toolCallId);
-      } else {
-        success = pendingToolApprovalManager.denyToolCall(toolCallId, reason);
-      }
-
-      if (!success) {
-        span.setStatus({ code: 1, message: 'Tool call not found' });
-        return c.json({ error: 'Tool call not found or already processed' }, 404);
-      }
-
-      logger.info({ conversationId, toolCallId, approved }, 'Tool approval processed successfully');
-
-      span.setStatus({ code: 1, message: 'Success' });
-
-      return c.json({
-        success: true,
-        message: approved ? 'Tool execution approved' : 'Tool execution denied',
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      logger.error(
-        {
-          error: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
-        },
-        'Failed to process tool approval'
-      );
-
-      span.setStatus({ code: 2, message: errorMessage });
-
-      return c.json(
-        {
-          error: 'Internal server error',
-          message: errorMessage,
-        },
-        500
-      );
-    } finally {
-      span.end();
-    }
-  }) as any;
 });
 
 export default app;
