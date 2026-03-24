@@ -292,6 +292,8 @@ export class ExecutionHandler {
             ? initiatedBy.id
             : undefined;
 
+        const appPrompt = executionContext.metadata?.appPrompt;
+
         const a2aClient = new A2AClient(agentBaseUrl, {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -300,6 +302,7 @@ export class ExecutionHandler {
             'x-inkeep-agent-id': agentId,
             'x-inkeep-sub-agent-id': currentAgentId,
             ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
+            ...(appPrompt ? { 'x-inkeep-app-prompt': appPrompt } : {}),
             ...(forwardedHeaders || {}),
           },
           fetchFn: getInProcessFetch(),
