@@ -805,12 +805,7 @@ function formatCollectionLiteralText(
   closeToken: '}' | ']'
 ): string {
   if (originalText.includes('\n')) {
-    return `${openToken}\n${itemTexts
-      .map((line) => {
-        const trimmedLine = line.replaceAll(/^\s+\*/gm, ' *');
-        return trimmedLine;
-      })
-      .join(',\n')}${closeToken}`;
+    return `${openToken}\n${itemTexts.join(',\n')}${closeToken}`;
   }
 
   const openingWithSpacing = originalText.startsWith(`${openToken} `) ? `${openToken} ` : openToken;
@@ -845,13 +840,37 @@ function applyTextReplacements(sourceText: string, replacements: TextReplacement
 function withPreservedLeadingComments(existingStatement: Node, replacementText: string): string {
   const leadingComments = existingStatement
     .getLeadingCommentRanges()
-    .map((comment) => comment.getText())
+    .map((comment) => normalizePreservedCommentText(comment.getText()))
     .join('\n');
   if (!leadingComments) {
     return replacementText;
   }
 
   return `${leadingComments}\n${replacementText}`;
+}
+
+function normalizePreservedCommentText(commentText: string): string {
+  if (!commentText.includes('\n') || !commentText.startsWith('/*')) {
+    return commentText;
+  }
+
+  const [firstLine, ...remainingLines] = commentText.split('\n');
+  if (!firstLine || !remainingLines.length) {
+    return commentText;
+  }
+
+  const isStarBlockComment = remainingLines.every((line) => line.trimStart().startsWith('*'));
+  if (!isStarBlockComment) {
+    return commentText;
+  }
+
+  return [
+    firstLine.trimStart(),
+    ...remainingLines.map((line) => {
+      const trimmedLine = line.trimStart();
+      return trimmedLine && ` ${trimmedLine}`;
+    }),
+  ].join('\n');
 }
 
 function dedupeConsecutiveIdenticalSingleLineComments(content: string): string {
