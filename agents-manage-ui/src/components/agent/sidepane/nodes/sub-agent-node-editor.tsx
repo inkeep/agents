@@ -71,7 +71,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();
   const models = useWatch({ control: form.control, name: 'models' });
-  const defaultSubAgentId = useWatch({ control: form.control, name: 'defaultSubAgentId' });
+  const defaultSubAgentNodeId = useWatch({
+    control: form.control,
+    name: 'defaultSubAgentNodeId',
+  });
   const path = <K extends string>(key: K) => `subAgents.${nodeId}.${key}` as const;
   const { deleteNode } = useDeleteNode(nodeId);
   const isPersistedSubAgent =
@@ -91,7 +94,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
 
   const artifactComponentsById = createLookup(artifactComponents);
   const dataComponentsById = createLookup(dataComponents);
-  const isDefault = nodeId === defaultSubAgentId;
+  const isDefault = nodeId === defaultSubAgentNodeId;
 
   return (
     <div className="space-y-8 flex flex-col">
@@ -143,7 +146,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
       />
       <FormField
         control={form.control}
-        name="defaultSubAgentId"
+        name="defaultSubAgentNodeId"
         render={({ field }) => (
           <FormItem>
             <div className="flex gap-2">
@@ -152,7 +155,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
                   checked={field.value === nodeId}
                   onCheckedChange={() => {
                     const newDefaultId = field.value === nodeId ? null : nodeId;
-                    form.setValue('defaultSubAgentId', newDefaultId, {
+                    form.setValue('defaultSubAgentNodeId', newDefaultId, {
                       shouldDirty: true,
                       shouldValidate: true,
                     });

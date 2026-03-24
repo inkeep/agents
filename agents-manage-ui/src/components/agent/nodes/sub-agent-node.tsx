@@ -50,7 +50,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const formKey = `subAgents.${id}` as const;
   const subAgent = useWatch({ control, name: formKey });
   const processedErrors = useProcessedErrors('subAgents', id);
-  const defaultSubAgentId = useWatch({ control, name: 'defaultSubAgentId' });
+  const defaultSubAgentNodeId = useWatch({ control, name: 'defaultSubAgentNodeId' });
   const agentModel = useWatch({ control, name: 'models' });
   const { data: project } = useProjectQuery();
   const { data: artifactComponents } = useArtifactComponentsQuery();
@@ -69,7 +69,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     dataComponents: dataComponentIds = [],
     artifactComponents: artifactComponentIds = [],
   } = subAgent;
-  const isDefault = id === defaultSubAgentId;
+  const isDefault = id === defaultSubAgentNodeId;
   const projectModel = project?.models;
   const modelName =
     subAgent.models?.base.model ?? agentModel.base.model ?? projectModel?.base.model ?? '';

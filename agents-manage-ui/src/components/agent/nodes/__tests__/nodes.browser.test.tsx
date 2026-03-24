@@ -80,7 +80,7 @@ function Nodes() {
   return (
     <FullAgentFormProvider
       defaultValues={{
-        defaultSubAgentId: 'SubAgent',
+        defaultSubAgentNodeId: 'SubAgent',
         subAgents: {
           // @ts-expect-error
           SubAgent: data,
