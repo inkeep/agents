@@ -1,5 +1,6 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
+import { asRecord } from './collector-common';
 import type { ComponentRegistry, ComponentType } from './component-registry';
 import type { GenerationResolver } from './generation-resolver';
 
@@ -121,11 +122,8 @@ function isAgentComplete(
   if (!data.defaultSubAgentId || typeof data.defaultSubAgentId !== 'string') {
     return { complete: false, reason: 'missing defaultSubAgentId' };
   }
-  if (
-    !asRecord(data.subAgents) ||
-    // @ts-expect-error -- existing runtime behavior
-    !Object.keys(data.subAgents).length
-  ) {
+  const subAgents = asRecord(data.subAgents);
+  if (!subAgents || !Object.keys(subAgents).length) {
     return { complete: false, reason: 'no sub-agents defined' };
   }
   return { complete: true };

@@ -6,7 +6,6 @@ import {
   type NamedImportSpec,
 } from '../../import-plan';
 import {
-  collectTemplateVariableNames,
   createUniqueReferenceName,
   isPlainObject,
   toCamelCase,
@@ -16,19 +15,6 @@ import {
 
 export type ReferenceNameMap = Map<string, string>;
 export type TriggerImportMap = Map<string, { importName: string; modulePath: string }>;
-
-export function collectTemplateVariableNamesFromFields(
-  values: Array<string | undefined>
-): string[] {
-  const variables: string[] = [];
-  for (const value of values) {
-    if (typeof value !== 'string') {
-      continue;
-    }
-    variables.push(...collectTemplateVariableNames(value));
-  }
-  return variables;
-}
 
 export function extractIds(value: unknown[] | Record<string, unknown>): string[] {
   if (Array.isArray(value)) {
