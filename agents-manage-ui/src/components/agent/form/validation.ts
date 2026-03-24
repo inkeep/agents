@@ -231,15 +231,6 @@ export type FullAgentFormValues = z.output<typeof FullAgentFormSchema>;
 
 export type FullAgentPayload = z.infer<typeof AgentWithinContextOfProjectSchema>;
 
-function getOptionalHeaders(value: unknown): Record<string, string> | undefined {
-  if (!value || typeof value !== 'object' || !('headers' in value)) {
-    return undefined;
-  }
-
-  const { headers } = value as { headers?: Record<string, string> };
-  return headers;
-}
-
 export function serializeAgentForm(data: FullAgentResponse) {
   const {
     id,
@@ -258,15 +249,6 @@ export function serializeAgentForm(data: FullAgentResponse) {
     tools = {},
     defaultSubAgentId,
   } = data;
-
-  const normalizedStatusUpdates = statusUpdates ?? {};
-  const normalizedStopWhen = stopWhen ?? {};
-  const normalizedModels = models ?? {};
-  const normalizedFunctions = functions ?? {};
-  const normalizedFunctionTools = functionTools ?? {};
-  const normalizedExternalAgents = externalAgents ?? {};
-  const normalizedTeamAgents = teamAgents ?? {};
-  const normalizedTools = tools ?? {};
 
   const relationHeadersByExternalAgentId = new Map<string, Record<string, string>>();
   const relationHeadersByTeamAgentId = new Map<string, Record<string, string>>();
@@ -318,17 +300,17 @@ export function serializeAgentForm(data: FullAgentResponse) {
       contextVariables: serializeJson(contextConfig?.contextVariables),
     },
     statusUpdates: {
-      ...normalizedStatusUpdates,
-      enabled: normalizedStatusUpdates.enabled ?? false,
-      numEvents: normalizedStatusUpdates.numEvents ?? 10,
-      timeInSeconds: normalizedStatusUpdates.timeInSeconds ?? 30,
-      prompt: normalizedStatusUpdates.prompt ?? '',
-      statusComponents: serializeJson(normalizedStatusUpdates.statusComponents),
+      ...statusUpdates,
+      enabled: statusUpdates.enabled ?? false,
+      numEvents: statusUpdates.numEvents ?? 10,
+      timeInSeconds: statusUpdates.timeInSeconds ?? 30,
+      prompt: statusUpdates.prompt ?? '',
+      statusComponents: serializeJson(statusUpdates.statusComponents),
     },
     stopWhen: {
-      transferCountIs: normalizedStopWhen.transferCountIs ?? 10,
+      transferCountIs: stopWhen?.transferCountIs ?? 10,
     },
-    models: serializeModels(normalizedModels),
+    models: serializeModels(models),
     defaultSubAgentNodeId: defaultSubAgentId,
     subAgents: Object.fromEntries(
       Object.entries(subAgents).map(([key, value]) => [
@@ -348,11 +330,9 @@ export function serializeAgentForm(data: FullAgentResponse) {
         },
       ])
     ),
-    functionTools: Object.fromEntries(
-      Object.values(normalizedFunctionTools).map((tool) => [tool.id, tool])
-    ),
+    functionTools: Object.fromEntries(Object.values(functionTools).map((tool) => [tool.id, tool])),
     functions: Object.fromEntries(
-      Object.values(normalizedFunctions).map((tool) => [
+      Object.values(functions).map((tool) => [
         tool.id,
         {
           ...tool,
@@ -362,27 +342,25 @@ export function serializeAgentForm(data: FullAgentResponse) {
       ])
     ),
     externalAgents: Object.fromEntries(
-      Object.values(normalizedExternalAgents).map((o) => [
+      Object.values(externalAgents).map((o) => [
         o.id,
         {
           ...o,
-          headers: serializeJson(
-            getOptionalHeaders(o) ?? relationHeadersByExternalAgentId.get(o.id)
-          ),
+          headers: serializeJson(relationHeadersByExternalAgentId.get(o.id)),
         },
       ])
     ),
     teamAgents: Object.fromEntries(
-      Object.values(normalizedTeamAgents).map((o) => [
+      Object.values(teamAgents).map((o) => [
         o.id,
         {
           ...o,
-          headers: serializeJson(getOptionalHeaders(o) ?? relationHeadersByTeamAgentId.get(o.id)),
+          headers: serializeJson(relationHeadersByTeamAgentId.get(o.id)),
         },
       ])
     ),
     tools: Object.fromEntries(
-      Object.values(normalizedTools).map((o) => [
+      Object.values(tools).map((o) => [
         o.id,
         {
           ...o,
@@ -394,7 +372,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
     mcpRelations: Object.fromEntries(
       Object.entries(subAgents).flatMap(([subAgentId, subAgent]) =>
         (subAgent.canUse ?? []).flatMap((canUseItem) => {
-          if (!canUseItem.agentToolRelationId || !normalizedTools[canUseItem.toolId]) {
+          if (!canUseItem.agentToolRelationId || !tools[canUseItem.toolId]) {
             return [];
           }
 
