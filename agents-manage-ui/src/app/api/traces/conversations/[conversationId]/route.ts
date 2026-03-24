@@ -445,12 +445,14 @@ function buildConversationPayloads(
   ];
 }
 
-// ---------- Main handler
-
 export async function GET(
   req: NextRequest,
   context: RouteContext<'/api/traces/conversations/[conversationId]'>
 ) {
+  const authResult = await requireApiRouteSession(req);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
   const { conversationId } = await context.params;
   if (!conversationId) {
     return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
@@ -464,11 +466,6 @@ export async function GET(
   // Optional time range params to narrow the ClickHouse scan window
   const startParam = url.searchParams.get('start');
   const endParam = url.searchParams.get('end');
-
-  const authResult = await requireApiRouteSession(req);
-  if (!authResult.ok) {
-    return authResult.response;
-  }
 
   try {
     const logger = getLogger('conversation-detail');

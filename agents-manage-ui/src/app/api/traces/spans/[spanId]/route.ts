@@ -17,16 +17,14 @@ type RouteContext<_T> = {
 };
 
 export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
-  const { spanId } = await context.params;
-  if (!spanId) {
-    return NextResponse.json({ error: 'Span ID is required' }, { status: 400 });
-  }
-
   const authResult = await requireApiRouteSession(req);
   if (!authResult.ok) {
     return authResult.response;
   }
-
+  const { spanId } = await context.params;
+  if (!spanId) {
+    return NextResponse.json({ error: 'Span ID is required' }, { status: 400 });
+  }
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
   const conversationId = url.searchParams.get('conversationId');
