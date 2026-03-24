@@ -1,5 +1,6 @@
 'use client';
 
+import { parseAsString, useQueryState } from 'nuqs';
 import { use, useEffect, useMemo, useState } from 'react';
 import { CostDashboard } from '@/components/cost/cost-dashboard';
 import { PageHeader } from '@/components/layout/page-header';
@@ -28,7 +29,8 @@ export default function TenantUsagePage({ params }: { params: Promise<{ tenantId
   } = useTracesQueryState();
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
+  const [projectId, setProjectId] = useQueryState('projectId', parseAsString);
+  const selectedProjectId = projectId ?? undefined;
 
   useEffect(() => {
     fetchProjects(tenantId).then((result) => {
@@ -60,13 +62,13 @@ export default function TenantUsagePage({ params }: { params: Promise<{ tenantId
         <Combobox
           defaultValue={selectedProjectId}
           notFoundMessage="No projects found."
-          onSelect={(value: string) => setSelectedProjectId(value || undefined)}
+          onSelect={(value: string) => setProjectId(value || null)}
           options={projects.map((p) => ({ value: p.projectId, label: p.name }))}
           TriggerComponent={
             <FilterTriggerComponent
               filterLabel={selectedProjectId ? 'Project' : 'All projects'}
               isRemovable={true}
-              onDeleteFilter={() => setSelectedProjectId(undefined)}
+              onDeleteFilter={() => setProjectId(null)}
               multipleCheckboxValues={selectedProjectId ? [selectedProjectId] : []}
               options={projects.map((p) => ({ value: p.projectId, label: p.name }))}
             />
