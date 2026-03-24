@@ -68,7 +68,7 @@ async function buildAgentForStep(params: {
   const { getFullProjectWithRelationIds, getMcpToolById, withRef } = await import(
     '@inkeep/agents-core'
   );
-  const { default: manageDbPool } = await import('src/data/db/manageDbPool');
+  const { default: manageDbPool } = await import('../../../../data/db/manageDbPool');
   const { Agent } = await import('../../agents/Agent');
   const { createTaskHandlerConfig } = await import('../../agents/generateTaskHandler');
   const { buildTransferRelationConfig } = await import('../../agents/relationTools');
@@ -295,7 +295,7 @@ export async function markWorkflowRunningStep(params: {
   const { payload, workflowRunId } = params;
 
   const { createWorkflowExecution } = await import('@inkeep/agents-core');
-  const { default: runDbClient } = await import('src/data/db/runDbClient');
+  const { default: runDbClient } = await import('../../../../data/db/runDbClient');
 
   await createWorkflowExecution(runDbClient)({
     id: workflowRunId,
@@ -327,8 +327,8 @@ export async function initializeTaskStep(params: {
     isUniqueConstraintError,
     withRef,
   } = await import('@inkeep/agents-core');
-  const { default: manageDbPool } = await import('src/data/db/manageDbPool');
-  const { default: runDbClient } = await import('src/data/db/runDbClient');
+  const { default: manageDbPool } = await import('../../../../data/db/manageDbPool');
+  const { default: runDbClient } = await import('../../../../data/db/runDbClient');
 
   const project = await withRef(manageDbPool, payload.resolvedRef, (db) =>
     getFullProjectWithRelationIds(db)({ scopes: { tenantId, projectId } })
@@ -402,7 +402,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
   );
 
   const { createMessage, generateId, updateTask } = await import('@inkeep/agents-core');
-  const { default: runDbClient } = await import('src/data/db/runDbClient');
+  const { default: runDbClient } = await import('../../../../data/db/runDbClient');
   const { WritableBackedHonoSSEStream, WritableBackedVercelWriter } = await import(
     '../../stream/durable-stream-helper'
   );
@@ -550,19 +550,20 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
 
       if (targetSubAgentId) {
         await createMessage(runDbClient)({
-          id: generateId(),
-          tenantId,
-          projectId,
-          conversationId,
-          role: 'agent',
-          content: {
-            text: transferReason,
-            parts: [{ kind: 'text', text: transferReason }],
+          scopes: { tenantId, projectId },
+          data: {
+            id: generateId(),
+            conversationId,
+            role: 'agent',
+            content: {
+              text: transferReason,
+              parts: [{ kind: 'text', text: transferReason }],
+            },
+            visibility: 'user-facing',
+            messageType: 'chat',
+            fromSubAgentId: currentSubAgentId,
+            taskId,
           },
-          visibility: 'user-facing',
-          messageType: 'chat',
-          fromSubAgentId: currentSubAgentId,
-          taskId,
         });
 
         await executeTransfer({
@@ -581,29 +582,31 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
     const textContent = response.steps?.[response.steps.length - 1]?.text || response.text || '';
 
     await createMessage(runDbClient)({
-      id: generateId(),
-      tenantId,
-      projectId,
-      conversationId,
-      role: 'agent',
-      content: {
-        text: textContent,
-        parts: response.formattedContent?.parts?.map(
-          (part: { kind: string; text?: string; data?: unknown }) => ({
-            kind: part.kind,
-            text: part.kind === 'text' ? part.text : undefined,
-            data: part.kind === 'data' ? (part.data as Record<string, unknown>) : undefined,
-          })
-        ) || [{ kind: 'text', text: textContent }],
+      scopes: { tenantId, projectId },
+      data: {
+        id: generateId(),
+        conversationId,
+        role: 'agent',
+        content: {
+          text: textContent,
+          parts: response.formattedContent?.parts?.map(
+            (part: { kind: string; text?: string; data?: unknown }) => ({
+              kind: part.kind,
+              text: part.kind === 'text' ? part.text : undefined,
+              data: part.kind === 'data' ? (part.data as Record<string, unknown>) : undefined,
+            })
+          ) || [{ kind: 'text', text: textContent }],
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+        fromSubAgentId: currentSubAgentId,
+        taskId,
       },
-      visibility: 'user-facing',
-      messageType: 'chat',
-      fromSubAgentId: currentSubAgentId,
-      taskId,
     });
 
     await updateTask(runDbClient)({
       taskId,
+      scopes: { tenantId, projectId },
       data: {
         status: 'completed',
         metadata: {
@@ -801,7 +804,7 @@ export async function markWorkflowSuspendedStep(params: {
   const { tenantId, projectId, workflowRunId, continuationStreamNamespace } = params;
 
   const { updateWorkflowExecutionStatus } = await import('@inkeep/agents-core');
-  const { default: runDbClient } = await import('src/data/db/runDbClient');
+  const { default: runDbClient } = await import('../../../../data/db/runDbClient');
 
   await updateWorkflowExecutionStatus(runDbClient)({
     tenantId,
@@ -823,7 +826,7 @@ export async function markWorkflowResumingStep(params: {
   const { tenantId, projectId, workflowRunId } = params;
 
   const { updateWorkflowExecutionStatus } = await import('@inkeep/agents-core');
-  const { default: runDbClient } = await import('src/data/db/runDbClient');
+  const { default: runDbClient } = await import('../../../../data/db/runDbClient');
 
   await updateWorkflowExecutionStatus(runDbClient)({
     tenantId,
@@ -844,7 +847,7 @@ export async function markWorkflowCompleteStep(params: {
   const { tenantId, projectId, workflowRunId } = params;
 
   const { updateWorkflowExecutionStatus } = await import('@inkeep/agents-core');
-  const { default: runDbClient } = await import('src/data/db/runDbClient');
+  const { default: runDbClient } = await import('../../../../data/db/runDbClient');
 
   await updateWorkflowExecutionStatus(runDbClient)({
     tenantId,
@@ -866,7 +869,7 @@ export async function markWorkflowFailedStep(params: {
   const { tenantId, projectId, workflowRunId, error } = params;
 
   const { updateWorkflowExecutionStatus } = await import('@inkeep/agents-core');
-  const { default: runDbClient } = await import('src/data/db/runDbClient');
+  const { default: runDbClient } = await import('../../../../data/db/runDbClient');
 
   await updateWorkflowExecutionStatus(runDbClient)({
     tenantId,

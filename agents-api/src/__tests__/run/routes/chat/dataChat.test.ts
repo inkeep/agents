@@ -128,6 +128,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     getConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue({ id: 'conv-123' })),
+    getWorkflowExecutionByConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(null)),
   };
 });
 
