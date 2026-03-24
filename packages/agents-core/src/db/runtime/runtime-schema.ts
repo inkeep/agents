@@ -400,6 +400,12 @@ export const scheduledTriggerInvocations = pgTable(
   ]
 );
 
+export const schedulerState = pgTable('scheduler_state', {
+  id: varchar('id', { length: 256 }).primaryKey(),
+  currentRunId: varchar('current_run_id', { length: 256 }),
+  ...timestamps,
+});
+
 // --- Tables with FK dependencies ---
 
 export const messages = pgTable(
