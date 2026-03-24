@@ -876,6 +876,7 @@ export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): str
 
   const fromParts = parts
     .map((part: any) => {
+      // Canonical `MessageContent.parts` use `kind`; older persisted rows and some external payloads might still use `type`.
       const partKind = part.kind ?? part.type;
 
       if (partKind === 'text') {
@@ -899,6 +900,10 @@ export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): str
 }
 
 export function formatMessagesAsConversationHistory(messages: MessageSelect[]): string {
+  if (messages.length === 0) {
+    return '';
+  }
+
   const formattedHistory = messages
     .map((msg: MessageSelect) => {
       let roleLabel: string;
@@ -933,6 +938,10 @@ export function formatMessagesAsConversationHistory(messages: MessageSelect[]): 
     })
     .filter((line): line is string => line !== null)
     .join('\n');
+
+  if (!formattedHistory) {
+    return '';
+  }
 
   return `<conversation_history>\n${formattedHistory}\n</conversation_history>\n`;
 }

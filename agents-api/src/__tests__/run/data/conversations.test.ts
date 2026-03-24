@@ -1,6 +1,9 @@
 import type { MessageSelect } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
-import { reconstructMessageText } from '../../../domains/run/data/conversations';
+import {
+  formatMessagesAsConversationHistory,
+  reconstructMessageText,
+} from '../../../domains/run/data/conversations';
 
 describe('reconstructMessageText', () => {
   it('falls back to content.text when content has no parts array', () => {
@@ -134,5 +137,35 @@ describe('reconstructMessageText', () => {
       },
     };
     expect(reconstructMessageText(msg)).toBe('');
+  });
+});
+
+describe('formatMessagesAsConversationHistory', () => {
+  it('returns empty string when there are no messages', () => {
+    expect(formatMessagesAsConversationHistory([])).toBe('');
+  });
+
+  it('returns empty string when every message has empty reconstructed text', () => {
+    const messages = [
+      {
+        role: 'user',
+        messageType: 'chat',
+        content: { parts: [{ kind: 'image' }] },
+      },
+    ] as MessageSelect[];
+    expect(formatMessagesAsConversationHistory(messages)).toBe('');
+  });
+
+  it('wraps non-empty history in conversation_history tags', () => {
+    const messages = [
+      {
+        role: 'user',
+        messageType: 'chat',
+        content: { text: 'hi' },
+      },
+    ] as MessageSelect[];
+    expect(formatMessagesAsConversationHistory(messages)).toBe(
+      '<conversation_history>\nuser: """hi"""\n</conversation_history>\n'
+    );
   });
 });
