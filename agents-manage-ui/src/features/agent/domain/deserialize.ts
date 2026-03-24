@@ -51,6 +51,8 @@ interface NodeLayoutMetrics {
   artifactComponentCount?: number;
 }
 
+type NodeHeights = Map<string, number>;
+
 function calculateNodeHeightFromLayoutMetrics(
   nodeType: Node['type'],
   metrics?: NodeLayoutMetrics
@@ -91,27 +93,20 @@ function calculateNodeHeightFromLayoutMetrics(
   return Math.max(height, BASE_NODE_HEIGHT);
 }
 
-function calculateNodeHeight(node: Node, nodeHeights?: Map<string, number>): number {
-  const explicitHeight = nodeHeights?.get(node.id);
-  if (explicitHeight) {
-    return explicitHeight;
-  }
-
-  return calculateNodeHeightFromLayoutMetrics(node.type, {
-    description: typeof node.data.description === 'string' ? node.data.description : undefined,
-    hasBaseModel: Boolean(
-      (node.data.models as { base?: { model?: string } } | undefined)?.base?.model
-    ),
-    dataComponentCount: Array.isArray(node.data.dataComponents)
-      ? node.data.dataComponents.length
-      : 0,
-    artifactComponentCount: Array.isArray(node.data.artifactComponents)
-      ? node.data.artifactComponents.length
-      : 0,
-  });
+function setNodeHeight(
+  nodeHeights: NodeHeights,
+  nodeId: string,
+  nodeType: Node['type'],
+  metrics?: NodeLayoutMetrics
+): void {
+  nodeHeights.set(nodeId, calculateNodeHeightFromLayoutMetrics(nodeType, metrics));
 }
 
-function applyDagreLayout(nodes: Node[], edges: Edge[], nodeHeights?: Map<string, number>): Node[] {
+function getNodeHeight(node: Node, nodeHeights: NodeHeights): number {
+  return nodeHeights.get(node.id) ?? calculateNodeHeightFromLayoutMetrics(node.type);
+}
+
+function applyDagreLayout(nodes: Node[], edges: Edge[], nodeHeights: NodeHeights): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setGraph({
     rankdir: 'TB',
@@ -125,7 +120,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], nodeHeights?: Map<string
 
   // Set nodes with calculated heights
   for (const node of nodes) {
-    const nodeHeight = calculateNodeHeight(node, nodeHeights);
+    const nodeHeight = getNodeHeight(node, nodeHeights);
     g.setNode(node.id, { width: NODE_WIDTH, height: nodeHeight });
   }
   for (const edge of edges) {
@@ -136,7 +131,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], nodeHeights?: Map<string
 
   return nodes.map((node) => {
     const nodeWithPosition = g.node(node.id);
-    const nodeHeight = calculateNodeHeight(node, nodeHeights);
+    const nodeHeight = getNodeHeight(node, nodeHeights);
     return {
       ...node,
       position: {
@@ -150,7 +145,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], nodeHeights?: Map<string
 export function deserializeAgentData(data: AgentGraphData): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
-  const nodeHeights = new Map<string, number>();
+  const nodeHeights: NodeHeights = new Map();
   const createdExternalAgentNodes = new Set<string>();
   const createdTeamAgentNodes = new Set<string>();
 
@@ -158,15 +153,12 @@ export function deserializeAgentData(data: AgentGraphData): TransformResult {
   for (const subAgentId of subAgentIds) {
     const subAgent = data.subAgents[subAgentId];
     if (!subAgent) continue;
-    nodeHeights.set(
-      subAgentId,
-      calculateNodeHeightFromLayoutMetrics(NodeType.SubAgent, {
-        description: subAgent.description,
-        hasBaseModel: Boolean(subAgent.models?.base?.model),
-        dataComponentCount: subAgent.dataComponents?.length,
-        artifactComponentCount: subAgent.artifactComponents?.length,
-      })
-    );
+    setNodeHeight(nodeHeights, subAgentId, NodeType.SubAgent, {
+      description: subAgent.description,
+      hasBaseModel: Boolean(subAgent.models?.base?.model),
+      dataComponentCount: subAgent.dataComponents?.length,
+      artifactComponentCount: subAgent.artifactComponents?.length,
+    });
     const agentNode: Node = {
       id: subAgentId,
       type: NodeType.SubAgent,
@@ -206,6 +198,7 @@ export function deserializeAgentData(data: AgentGraphData): TransformResult {
           position: { x: 0, y: 0 },
           data: nodeData,
         };
+        setNodeHeight(nodeHeights, toolNodeId, nodeType);
         nodes.push(toolNode);
 
         // Use the appropriate handle ID based on tool type
@@ -315,12 +308,9 @@ export function deserializeAgentData(data: AgentGraphData): TransformResult {
                   relationshipId,
                 },
               };
-              nodeHeights.set(
-                targetSubAgentId,
-                calculateNodeHeightFromLayoutMetrics(NodeType.ExternalAgent, {
-                  description: externalAgent.description,
-                })
-              );
+              setNodeHeight(nodeHeights, targetSubAgentId, NodeType.ExternalAgent, {
+                description: externalAgent.description,
+              });
               nodes.push(externalAgentNode);
               createdExternalAgentNodes.add(targetSubAgentId);
             }
@@ -365,12 +355,9 @@ export function deserializeAgentData(data: AgentGraphData): TransformResult {
                   relationshipId,
                 },
               };
-              nodeHeights.set(
-                targetSubAgentId,
-                calculateNodeHeightFromLayoutMetrics(NodeType.TeamAgent, {
-                  description: teamAgent.description,
-                })
-              );
+              setNodeHeight(nodeHeights, targetSubAgentId, NodeType.TeamAgent, {
+                description: teamAgent.description,
+              });
               nodes.push(teamAgentNode);
               createdTeamAgentNodes.add(targetSubAgentId);
             }

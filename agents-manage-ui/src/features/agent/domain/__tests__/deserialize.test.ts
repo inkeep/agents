@@ -180,6 +180,41 @@ describe('deserializeAgentData', () => {
     });
   });
 
+  it('lays out rich sub-agent nodes without hydrating business payload into node.data', () => {
+    const fullAgent = {
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: '',
+      defaultSubAgentId: 'sub-agent-1',
+      subAgents: {
+        'sub-agent-1': {
+          id: 'sub-agent-1',
+          name: 'Planner',
+          description: 'Plans tasks with context and artifacts',
+          prompt: 'Plan tasks',
+          type: 'internal',
+          dataComponents: ['dc-1', 'dc-2', 'dc-3'],
+          artifactComponents: ['ac-1', 'ac-2'],
+          models: {
+            base: {
+              model: 'openai/gpt-4o-mini',
+            },
+          },
+          canUse: [],
+          canTransferTo: [],
+          canDelegateTo: [],
+        },
+      },
+    } as any;
+
+    const deserialized = deserializeAgentData(fullAgent);
+    const subAgentNode = deserialized.nodes.find((node) => node.type === NodeType.SubAgent);
+
+    expect(subAgentNode?.data).toEqual({});
+    expect(Number.isFinite(subAgentNode?.position.x)).toBe(true);
+    expect(Number.isFinite(subAgentNode?.position.y)).toBe(true);
+  });
+
   it('keeps external agent nodes graph-focused and round-trips headers through RHF data', () => {
     const fullAgent = {
       id: 'agent-1',
