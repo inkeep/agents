@@ -1,7 +1,6 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect } from 'react';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -25,20 +24,10 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
   const { deleteNode } = useDeleteNode(selectedNode.id);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useFullAgentFormContext();
-  const id = selectedNode.data.id;
+  const id = selectedNode.id;
 
   const path = <K extends string>(key: K) => `externalAgents.${id}.${key}` as const;
   const headersPath = path('headers');
-  // Sync input value when node changes (but not on every data change)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
-  useEffect(() => {
-    const existingHeaders = form.getValues(headersPath);
-    if (existingHeaders !== undefined) {
-      return;
-    }
-    const newHeaders = selectedNode.data.tempHeaders ?? {};
-    form.setValue(headersPath, JSON.stringify(newHeaders, null, 2));
-  }, [headersPath]);
 
   return (
     <div className="space-y-8 flex flex-col">
@@ -89,7 +78,7 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
         customTemplate={externalAgentHeadersTemplate}
       />
       <ExternalLink
-        href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.data.id}/edit`}
+        href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.id}/edit`}
       >
         View External Agent
       </ExternalLink>
