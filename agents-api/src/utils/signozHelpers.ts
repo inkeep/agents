@@ -1,7 +1,7 @@
 import { QUERY_TYPES, SPAN_KEYS } from '@inkeep/agents-core';
 
 const SERVICE_NAME_FILTER =
-  "serviceName IN ('inkeep-agents-api', 'inkeep-agents-run-api', 'inkeep-agents', 'inkeep-agents-manage-ui')";
+  "serviceName IN ('inkeep-agents-api', 'inkeep-agents-run-api', 'inkeep-agents')";
 const SPAN_LOOKUP_TABLE = 'distributed_signoz_index_v3';
 
 function buildSecurityExpression(tenantId: string, projectId?: string): string {
