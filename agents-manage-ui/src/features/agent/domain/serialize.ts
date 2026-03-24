@@ -14,6 +14,7 @@ import type { AgentSkill, MCPRelationSchema } from '@/components/agent/form/vali
 import type { FullAgentFormValues, FullAgentPayload } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
+import { getMcpRelationFormKey } from './form-state-defaults';
 import { getSubAgentIdForNode } from './sub-agent-identity';
 
 type ExtendedAgent = FullAgentPayload['subAgents'][string];
@@ -41,36 +42,59 @@ function safeJsonParse(value: string | object | undefined | null): any {
 
   return;
 }
-function processModels(modelsData?: AgentModels): AgentModels | undefined {
-  if (modelsData && typeof modelsData === 'object') {
-    const hasNonEmptyValue = Object.values(modelsData).some(
-      (value) => value !== null && value !== undefined && String(value).trim() !== ''
-    );
 
-    if (hasNonEmptyValue) {
-      return {
-        base: modelsData.base
-          ? {
-              model: modelsData.base.model,
-              providerOptions: safeJsonParse(modelsData.base.providerOptions),
-            }
-          : undefined,
-        structuredOutput: modelsData.structuredOutput
-          ? {
-              model: modelsData.structuredOutput.model,
-              providerOptions: safeJsonParse(modelsData.structuredOutput.providerOptions),
-            }
-          : undefined,
-        summarizer: modelsData.summarizer
-          ? {
-              model: modelsData.summarizer.model,
-              providerOptions: safeJsonParse(modelsData.summarizer.providerOptions),
-            }
-          : undefined,
-      };
-    }
+function hasNonEmptyProviderOptions(value: string | object | undefined | null): boolean {
+  const parsedValue = safeJsonParse(value);
+
+  if (parsedValue == null) {
+    return false;
   }
-  return undefined;
+
+  if (typeof parsedValue === 'object') {
+    return Object.keys(parsedValue).length > 0;
+  }
+
+  return String(parsedValue).trim() !== '';
+}
+
+function processModels(modelsData?: AgentModels): ExtendedAgent['models'] | undefined {
+  if (!modelsData || typeof modelsData !== 'object') {
+    return;
+  }
+
+  const hasNonEmptyValue = [
+    modelsData.base,
+    modelsData.structuredOutput,
+    modelsData.summarizer,
+  ].some(
+    (section) =>
+      Boolean(section?.model?.trim()) || hasNonEmptyProviderOptions(section?.providerOptions)
+  );
+
+  if (!hasNonEmptyValue) {
+    return;
+  }
+
+  return {
+    base: modelsData.base
+      ? {
+          model: modelsData.base.model,
+          providerOptions: safeJsonParse(modelsData.base.providerOptions),
+        }
+      : undefined,
+    structuredOutput: modelsData.structuredOutput
+      ? {
+          model: modelsData.structuredOutput.model,
+          providerOptions: safeJsonParse(modelsData.structuredOutput.providerOptions),
+        }
+      : undefined,
+    summarizer: modelsData.summarizer
+      ? {
+          model: modelsData.summarizer.model,
+          providerOptions: safeJsonParse(modelsData.summarizer.providerOptions),
+        }
+      : undefined,
+  };
 }
 
 type SerializeAgentDataType = Pick<
@@ -83,10 +107,28 @@ type PartialMCPRelation = Pick<
   'selectedTools' | 'headers' | 'toolPolicies'
 >;
 type MCPRelationFormData = Record<string, PartialMCPRelation>;
-type SubAgentFormData = FullAgentFormValues['subAgents'];
+type SerializeSubAgentFormData = NonNullable<FullAgentFormValues['subAgents']>;
+type SerializeFunctionToolFormData = NonNullable<FullAgentFormValues['functionTools']>;
+type SerializeExternalAgentFormData = NonNullable<FullAgentFormValues['externalAgents']>;
+type SerializeTeamAgentFormData = NonNullable<FullAgentFormValues['teamAgents']>;
+type SerializeFunctionsFormData = NonNullable<FullAgentFormValues['functions']>;
 
-function getSubAgentForm(nodeId: string, subAgentFormData?: SubAgentFormData) {
-  return subAgentFormData?.[nodeId];
+export interface SerializeAgentFormState {
+  mcpRelations: MCPRelationFormData;
+  functionTools: SerializeFunctionToolFormData;
+  externalAgents: SerializeExternalAgentFormData;
+  teamAgents: SerializeTeamAgentFormData;
+  subAgents: SerializeSubAgentFormData;
+  functions: SerializeFunctionsFormData;
+  defaultSubAgentNodeId?: FullAgentFormValues['defaultSubAgentNodeId'];
+}
+
+function requireFormValue<T>(value: T | null | undefined, message: string): T {
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
 }
 
 /**
@@ -95,14 +137,17 @@ function getSubAgentForm(nodeId: string, subAgentFormData?: SubAgentFormData) {
 export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
-  mcpRelations?: MCPRelationFormData,
-  functionToolFormData?: FullAgentFormValues['functionTools'],
-  externalAgentFormData?: FullAgentFormValues['externalAgents'],
-  teamAgentFormData?: FullAgentFormValues['teamAgents'],
-  subAgentFormData?: FullAgentFormValues['subAgents'],
-  functionsFormData?: FullAgentFormValues['functions'],
-  defaultSubAgentNodeId?: FullAgentFormValues['defaultSubAgentNodeId']
+  formState: SerializeAgentFormState
 ): SerializeAgentDataType {
+  const {
+    mcpRelations,
+    functionTools: functionToolFormData,
+    externalAgents: externalAgentFormData,
+    teamAgents: teamAgentFormData,
+    subAgents: subAgentFormData,
+    functions: functionsFormData,
+    defaultSubAgentNodeId,
+  } = formState;
   const subAgents: SerializeAgentDataType['subAgents'] = {};
   const externalAgents: Record<
     string,
@@ -117,19 +162,18 @@ export function serializeAgentData(
 
   for (const node of nodes) {
     if (node.type === NodeType.SubAgent) {
-      const subAgentForm = getSubAgentForm(node.id, subAgentFormData);
+      const subAgentForm = requireFormValue(
+        subAgentFormData[node.id],
+        `Missing RHF sub agent data for node "${node.id}".`
+      );
       const subAgentId = getSubAgentIdForNode(node, subAgentFormData) as string;
-      const subAgentDataComponents =
-        subAgentForm?.dataComponents ?? ((node.data.dataComponents as string[]) || []);
-      const subAgentArtifactComponents =
-        subAgentForm?.artifactComponents ?? ((node.data.artifactComponents as string[]) || []);
+      const subAgentDataComponents = subAgentForm.dataComponents ?? [];
+      const subAgentArtifactComponents = subAgentForm.artifactComponents ?? [];
+      const modelsData = subAgentForm.models as AgentModels | undefined;
       // Process models - only include if it has non-empty, non-whitespace values
-      const modelsData = (subAgentForm?.models ?? node.data.models) as AgentModels | undefined;
       const processedModels = processModels(modelsData);
-
-      const stopWhen = subAgentForm?.stopWhen ?? (node.data as any).stopWhen;
-
-      const nodeSkills: AgentSkill[] = subAgentForm?.skills ?? ((node.data as any).skills as any);
+      const stopWhen = subAgentForm.stopWhen;
+      const nodeSkills: AgentSkill[] = subAgentForm.skills ?? [];
 
       const canUse: Array<{
         toolId: string;
@@ -155,11 +199,17 @@ export function serializeAgentData(
 
           if (toolId) {
             const relationshipId = mcpNodeData.relationshipId;
-            const relationKey = relationshipId ?? mcpNode.id;
-            const relationFormData = mcpRelations?.[relationKey];
-            const toolSelection = relationFormData?.selectedTools ?? null;
-            const toolHeaders = relationFormData?.headers ?? null;
-            const toolPolicies = relationFormData?.toolPolicies ?? null;
+            const relationKey = getMcpRelationFormKey({
+              nodeId: mcpNode.id,
+              relationshipId,
+            });
+            const relationFormData = requireFormValue(
+              mcpRelations[relationKey],
+              `Missing RHF MCP relation data for node "${mcpNode.id}".`
+            );
+            const toolSelection = relationFormData.selectedTools ?? null;
+            const toolHeaders = relationFormData.headers ?? null;
+            const toolPolicies = relationFormData.toolPolicies ?? null;
 
             canUse.push({
               toolId,
@@ -187,32 +237,39 @@ export function serializeAgentData(
 
           const functionToolId = nodeData.toolId || functionToolNode.id;
           const relationshipId = nodeData.relationshipId;
-          const functionTool = functionToolFormData?.[functionToolId];
+          const functionTool = requireFormValue(
+            functionToolFormData[functionToolId],
+            `Missing RHF function tool data for node "${functionToolNode.id}".`
+          );
           const functionId = functionTool?.functionId ?? functionToolId;
-          const formFunction = functionId ? functionsFormData?.[functionId] : undefined;
+          const formFunction = requireFormValue(
+            functionsFormData[functionId],
+            `Missing RHF function data for function "${functionId}".`
+          );
 
           functionTools[functionToolId] = {
             id: functionToolId,
-            name: functionTool?.name ?? '',
-            description: functionTool?.description ?? '',
+            name: functionTool.name ?? '',
+            description: functionTool.description ?? '',
             functionId, // Reference to existing function
           };
 
           // Always create function entry to ensure it exists
           functions[functionId] = {
             id: functionId,
-            executeCode: formFunction?.executeCode ?? '',
-            inputSchema: formFunction?.inputSchema ?? {},
-            dependencies: formFunction?.dependencies ?? {},
+            executeCode: formFunction.executeCode ?? '',
+            inputSchema: formFunction.inputSchema ?? {},
+            dependencies: formFunction.dependencies ?? {},
           };
 
-          const toolPolicies = functionTool?.tempToolPolicies;
+          const toolPolicies = functionTool.tempToolPolicies;
+          const hasToolPolicies = toolPolicies && Object.keys(toolPolicies).length > 0;
 
           canUse.push({
             toolId: functionToolId,
             toolSelection: null,
             headers: null,
-            ...(toolPolicies && { toolPolicies }),
+            ...(hasToolPolicies && { toolPolicies }),
             ...(relationshipId && { agentToolRelationId: relationshipId }),
           });
         }
@@ -220,16 +277,16 @@ export function serializeAgentData(
 
       const agent: ExtendedAgent = {
         id: subAgentId,
-        name: subAgentForm?.name ?? (node.data.name as string),
-        description: subAgentForm?.description ?? ((node.data.description as string) || ''),
-        prompt: subAgentForm?.prompt ?? (node.data.prompt as string),
+        name: subAgentForm.name,
+        description: subAgentForm.description ?? '',
+        prompt: subAgentForm.prompt ?? '',
         canUse,
         canTransferTo: [],
         canDelegateTo: [],
         dataComponents: subAgentDataComponents,
         artifactComponents: subAgentArtifactComponents,
         ...(processedModels && { models: processedModels }),
-        type: subAgentForm?.type ?? 'internal',
+        type: subAgentForm.type ?? 'internal',
         ...(nodeSkills?.length && {
           skills: nodeSkills.map((skill) => ({
             id: skill.id,
@@ -244,20 +301,23 @@ export function serializeAgentData(
     } else if (node.type === NodeType.ExternalAgent) {
       const nodeData = node.data as ExternalAgentNodeData;
       const externalAgentId = nodeData.externalAgentId;
-      const externalAgentForm = externalAgentFormData?.[externalAgentId];
-      const headers = externalAgentForm?.headers ?? undefined;
+      const externalAgentForm = requireFormValue(
+        externalAgentFormData[externalAgentId],
+        `Missing RHF external agent data for node "${node.id}".`
+      );
+      const headers = externalAgentForm.headers ?? undefined;
 
       const externalAgent: ExternalAgent & {
         headers?: Record<string, string>;
         relationshipId: string | null;
       } = {
         id: externalAgentId,
-        name: externalAgentForm?.name ?? (nodeData.name as string),
-        description: externalAgentForm?.description ?? ((nodeData.description as string) || ''),
-        baseUrl: externalAgentForm?.baseUrl ?? (nodeData.baseUrl as string),
-        createdAt: (nodeData.createdAt as string) ?? '',
-        updatedAt: (nodeData.updatedAt as string) ?? '',
-        credentialReferenceId: (nodeData.credentialReferenceId as string) || null,
+        name: externalAgentForm.name,
+        description: externalAgentForm.description ?? '',
+        baseUrl: externalAgentForm.baseUrl,
+        createdAt: '',
+        updatedAt: '',
+        credentialReferenceId: null,
         headers,
         relationshipId: nodeData.relationshipId || null,
       };
@@ -266,15 +326,18 @@ export function serializeAgentData(
     } else if (node.type === NodeType.TeamAgent) {
       const nodeData = node.data as TeamAgentNodeData;
       const teamAgentId = nodeData.teamAgentId;
-      const teamAgentForm = teamAgentFormData?.[teamAgentId];
-      const headers = teamAgentForm?.headers ?? undefined;
+      const teamAgentForm = requireFormValue(
+        teamAgentFormData[teamAgentId],
+        `Missing RHF team agent data for node "${node.id}".`
+      );
+      const headers = teamAgentForm.headers ?? undefined;
       const teamAgent: TeamAgent & {
         relationshipId: string | null;
         headers?: Record<string, string>;
       } = {
         id: teamAgentId,
-        name: teamAgentForm?.name ?? (nodeData.name as string),
-        description: teamAgentForm?.description ?? ((nodeData.description as string) || ''),
+        name: teamAgentForm.name,
+        description: teamAgentForm.description ?? '',
         headers,
         relationshipId: nodeData.relationshipId || null,
       };
@@ -287,30 +350,6 @@ export function serializeAgentData(
   const newSubAgentExternalDelegateMap: Record<string, any> = {}; // subAgentId -> relationship data
   const subAgentTeamDelegateMap: Record<string, Record<string, any>> = {}; // subAgentId -> relationshipId ->  relationship data
   const newSubAgentTeamDelegateMap: Record<string, any> = {}; // subAgentId -> relationship data
-
-  // Populate delegate maps from existing agent data to avoid linear searches
-  Object.entries(subAgents).forEach(([subAgentId, agent]) => {
-    if (agent.canDelegateTo) {
-      agent.canDelegateTo.forEach((delegate) => {
-        if (typeof delegate === 'object') {
-          if ('externalAgentId' in delegate) {
-            // External agent delegation
-            subAgentExternalDelegateMap[subAgentId] ??= {};
-            if (delegate.subAgentExternalAgentRelationId) {
-              subAgentExternalDelegateMap[subAgentId][delegate.subAgentExternalAgentRelationId] =
-                delegate;
-            }
-          } else if ('agentId' in delegate) {
-            // Team agent delegation
-            subAgentTeamDelegateMap[subAgentId] ??= {};
-            if (delegate.subAgentTeamAgentRelationId) {
-              subAgentTeamDelegateMap[subAgentId][delegate.subAgentTeamAgentRelationId] = delegate;
-            }
-          }
-        }
-      });
-    }
-  });
 
   for (const edge of edges) {
     if (
