@@ -1,6 +1,6 @@
 import { getSchedulerState } from '@inkeep/agents-core';
-import runDbClient from '../../../data/db/runDbClient';
 import { start } from 'workflow/api';
+import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { schedulerWorkflow } from '../workflow/functions/schedulerWorkflow';
 
