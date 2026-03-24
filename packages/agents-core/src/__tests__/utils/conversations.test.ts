@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getConversationId } from '../../utils/conversations';
+import { deriveRelationId, getConversationId } from '../../utils/conversations';
 
 describe('getConversationId', () => {
   describe('ID generation', () => {
@@ -118,5 +118,58 @@ describe('getConversationId', () => {
         expect(/^[a-z0-9_-]+$/.test(id)).toBe(true);
       }
     });
+  });
+});
+
+describe('deriveRelationId', () => {
+  it('should return a 32-character lowercase hex string', () => {
+    const id = deriveRelationId('tenant1', 'project1', 'agent1', 'sub1', 'tool1');
+    expect(id).toHaveLength(32);
+    expect(/^[0-9a-f]{32}$/.test(id)).toBe(true);
+  });
+
+  it('should be deterministic — same inputs always produce the same ID', () => {
+    const parts = ['tenant1', 'project1', 'agent1', 'sub1', 'tool1'];
+    const id1 = deriveRelationId(...parts);
+    const id2 = deriveRelationId(...parts);
+    const id3 = deriveRelationId(...parts);
+    expect(id1).toBe(id2);
+    expect(id2).toBe(id3);
+  });
+
+  it('should produce different IDs for different inputs', () => {
+    const id1 = deriveRelationId('tenant1', 'project1', 'agent1', 'sub1', 'toolA');
+    const id2 = deriveRelationId('tenant1', 'project1', 'agent1', 'sub1', 'toolB');
+    expect(id1).not.toBe(id2);
+  });
+
+  it('should distinguish part boundaries (null-byte separator)', () => {
+    const id1 = deriveRelationId('ab', 'cd');
+    const id2 = deriveRelationId('a', 'bcd');
+    const id3 = deriveRelationId('abc', 'd');
+    expect(id1).not.toBe(id2);
+    expect(id1).not.toBe(id3);
+    expect(id2).not.toBe(id3);
+  });
+
+  it('should handle empty string parts without collision', () => {
+    const id1 = deriveRelationId('a', '', 'b');
+    const id2 = deriveRelationId('a', 'b');
+    const id3 = deriveRelationId('', 'a', 'b');
+    expect(id1).not.toBe(id2);
+    expect(id1).not.toBe(id3);
+    expect(id2).not.toBe(id3);
+  });
+
+  it('should work with a single part', () => {
+    const id = deriveRelationId('only-one-part');
+    expect(id).toHaveLength(32);
+    expect(/^[0-9a-f]{32}$/.test(id)).toBe(true);
+  });
+
+  it('should work with many parts', () => {
+    const id = deriveRelationId('a', 'b', 'c', 'd', 'e', 'f', 'g');
+    expect(id).toHaveLength(32);
+    expect(/^[0-9a-f]{32}$/.test(id)).toBe(true);
   });
 });
