@@ -1,4 +1,4 @@
-import { FullAgentFormSchema } from './validation';
+import { FullAgentFormSchema, serializeAgentForm } from './validation';
 
 describe('FullAgentFormSchema', () => {
   function createSchema(value: string) {
@@ -173,5 +173,111 @@ describe('FullAgentFormSchema', () => {
     if (result.success) {
       expect(result.data.defaultSubAgentNodeId).toBe('temp-node-id');
     }
+  });
+});
+
+describe('serializeAgentForm', () => {
+  it('rehydrates external agent headers from delegation relations when top-level external agent headers are missing', () => {
+    const result = serializeAgentForm({
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: '',
+      prompt: '',
+      defaultSubAgentId: 'sub-agent-1',
+      contextConfig: null,
+      statusUpdates: null,
+      stopWhen: null,
+      models: {},
+      subAgents: {
+        'sub-agent-1': {
+          id: 'sub-agent-1',
+          name: 'Sub agent 1',
+          description: '',
+          prompt: 'Handle requests',
+          type: 'internal',
+          dataComponents: [],
+          artifactComponents: [],
+          canUse: [],
+          canTransferTo: [],
+          canDelegateTo: [
+            {
+              externalAgentId: 'external-agent-1',
+              headers: {
+                Authorization: 'Bearer external-token',
+              },
+              subAgentExternalAgentRelationId: 'ext-rel-1',
+            },
+          ],
+        },
+      },
+      functions: {},
+      functionTools: {},
+      externalAgents: {
+        'external-agent-1': {
+          id: 'external-agent-1',
+          name: 'External Agent',
+          description: '',
+          baseUrl: 'https://example.com/agent',
+          credentialReferenceId: null,
+        },
+      },
+      teamAgents: {},
+      tools: {},
+    } as any);
+
+    expect(JSON.parse(result.externalAgents['external-agent-1']?.headers ?? '{}')).toEqual({
+      Authorization: 'Bearer external-token',
+    });
+  });
+
+  it('rehydrates team agent headers from delegation relations when top-level team agent headers are missing', () => {
+    const result = serializeAgentForm({
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: '',
+      prompt: '',
+      defaultSubAgentId: 'sub-agent-1',
+      contextConfig: null,
+      statusUpdates: null,
+      stopWhen: null,
+      models: {},
+      subAgents: {
+        'sub-agent-1': {
+          id: 'sub-agent-1',
+          name: 'Sub agent 1',
+          description: '',
+          prompt: 'Handle requests',
+          type: 'internal',
+          dataComponents: [],
+          artifactComponents: [],
+          canUse: [],
+          canTransferTo: [],
+          canDelegateTo: [
+            {
+              agentId: 'team-agent-1',
+              headers: {
+                Authorization: 'Bearer team-token',
+              },
+              subAgentTeamAgentRelationId: 'team-rel-1',
+            },
+          ],
+        },
+      },
+      functions: {},
+      functionTools: {},
+      externalAgents: {},
+      teamAgents: {
+        'team-agent-1': {
+          id: 'team-agent-1',
+          name: 'Team Agent',
+          description: '',
+        },
+      },
+      tools: {},
+    } as any);
+
+    expect(JSON.parse(result.teamAgents['team-agent-1']?.headers ?? '{}')).toEqual({
+      Authorization: 'Bearer team-token',
+    });
   });
 });

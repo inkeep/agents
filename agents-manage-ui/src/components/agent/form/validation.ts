@@ -231,6 +231,15 @@ export type FullAgentFormValues = z.output<typeof FullAgentFormSchema>;
 
 export type FullAgentPayload = z.infer<typeof AgentWithinContextOfProjectSchema>;
 
+function getOptionalHeaders(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== 'object' || !('headers' in value)) {
+    return undefined;
+  }
+
+  const { headers } = value as { headers?: Record<string, string> };
+  return headers;
+}
+
 export function serializeAgentForm(data: FullAgentResponse) {
   const {
     id,
@@ -249,6 +258,37 @@ export function serializeAgentForm(data: FullAgentResponse) {
     tools = {},
     defaultSubAgentId,
   } = data;
+
+  const normalizedStatusUpdates = statusUpdates ?? {};
+  const normalizedStopWhen = stopWhen ?? {};
+  const normalizedModels = models ?? {};
+  const normalizedFunctions = functions ?? {};
+  const normalizedFunctionTools = functionTools ?? {};
+  const normalizedExternalAgents = externalAgents ?? {};
+  const normalizedTeamAgents = teamAgents ?? {};
+  const normalizedTools = tools ?? {};
+
+  const relationHeadersByExternalAgentId = new Map<string, Record<string, string>>();
+  const relationHeadersByTeamAgentId = new Map<string, Record<string, string>>();
+
+  for (const subAgent of Object.values(subAgents)) {
+    for (const delegate of subAgent.canDelegateTo ?? []) {
+      if (typeof delegate !== 'object' || !delegate.headers) {
+        continue;
+      }
+
+      if (
+        'externalAgentId' in delegate &&
+        !relationHeadersByExternalAgentId.has(delegate.externalAgentId)
+      ) {
+        relationHeadersByExternalAgentId.set(delegate.externalAgentId, delegate.headers);
+      }
+
+      if ('agentId' in delegate && !relationHeadersByTeamAgentId.has(delegate.agentId)) {
+        relationHeadersByTeamAgentId.set(delegate.agentId, delegate.headers);
+      }
+    }
+  }
 
   function serializeModels(models: NonNullable<typeof data.models>) {
     return {
@@ -278,17 +318,17 @@ export function serializeAgentForm(data: FullAgentResponse) {
       contextVariables: serializeJson(contextConfig?.contextVariables),
     },
     statusUpdates: {
-      ...statusUpdates,
-      enabled: statusUpdates.enabled ?? false,
-      numEvents: statusUpdates.numEvents ?? 10,
-      timeInSeconds: statusUpdates.timeInSeconds ?? 30,
-      prompt: statusUpdates.prompt ?? '',
-      statusComponents: serializeJson(statusUpdates.statusComponents),
+      ...normalizedStatusUpdates,
+      enabled: normalizedStatusUpdates.enabled ?? false,
+      numEvents: normalizedStatusUpdates.numEvents ?? 10,
+      timeInSeconds: normalizedStatusUpdates.timeInSeconds ?? 30,
+      prompt: normalizedStatusUpdates.prompt ?? '',
+      statusComponents: serializeJson(normalizedStatusUpdates.statusComponents),
     },
     stopWhen: {
-      transferCountIs: stopWhen?.transferCountIs ?? 10,
+      transferCountIs: normalizedStopWhen.transferCountIs ?? 10,
     },
-    models: serializeModels(models),
+    models: serializeModels(normalizedModels),
     defaultSubAgentNodeId: defaultSubAgentId,
     subAgents: Object.fromEntries(
       Object.entries(subAgents).map(([key, value]) => [
@@ -308,9 +348,11 @@ export function serializeAgentForm(data: FullAgentResponse) {
         },
       ])
     ),
-    functionTools: Object.fromEntries(Object.values(functionTools).map((tool) => [tool.id, tool])),
+    functionTools: Object.fromEntries(
+      Object.values(normalizedFunctionTools).map((tool) => [tool.id, tool])
+    ),
     functions: Object.fromEntries(
-      Object.values(functions).map((tool) => [
+      Object.values(normalizedFunctions).map((tool) => [
         tool.id,
         {
           ...tool,
@@ -320,27 +362,27 @@ export function serializeAgentForm(data: FullAgentResponse) {
       ])
     ),
     externalAgents: Object.fromEntries(
-      Object.values(externalAgents).map((o) => [
+      Object.values(normalizedExternalAgents).map((o) => [
         o.id,
         {
           ...o,
-          // @ts-expect-error
-          headers: serializeJson(o.headers),
+          headers: serializeJson(
+            getOptionalHeaders(o) ?? relationHeadersByExternalAgentId.get(o.id)
+          ),
         },
       ])
     ),
     teamAgents: Object.fromEntries(
-      Object.values(teamAgents).map((o) => [
+      Object.values(normalizedTeamAgents).map((o) => [
         o.id,
         {
           ...o,
-          // @ts-expect-error
-          headers: serializeJson(o.headers),
+          headers: serializeJson(getOptionalHeaders(o) ?? relationHeadersByTeamAgentId.get(o.id)),
         },
       ])
     ),
     tools: Object.fromEntries(
-      Object.values(tools).map((o) => [
+      Object.values(normalizedTools).map((o) => [
         o.id,
         {
           ...o,
@@ -352,7 +394,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
     mcpRelations: Object.fromEntries(
       Object.entries(subAgents).flatMap(([subAgentId, subAgent]) =>
         (subAgent.canUse ?? []).flatMap((canUseItem) => {
-          if (!canUseItem.agentToolRelationId || !tools[canUseItem.toolId]) {
+          if (!canUseItem.agentToolRelationId || !normalizedTools[canUseItem.toolId]) {
             return [];
           }
 
