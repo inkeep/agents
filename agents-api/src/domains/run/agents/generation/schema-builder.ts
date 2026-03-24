@@ -1,10 +1,10 @@
 import { z } from '@hono/zod-openapi';
+import { normalizeDataComponentSchema } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
 import {
   ArtifactCreateSchema,
   ArtifactReferenceSchema,
 } from '../../artifacts/artifact-component-schema';
-import { SchemaProcessor } from '../../utils/SchemaProcessor';
 import type { AgentRunContext } from '../agent-types';
 
 const logger = getLogger('Agent');
@@ -13,7 +13,7 @@ export function buildDataComponentsSchema(ctx: AgentRunContext): z.ZodType<any> 
   const componentSchemas: z.ZodType<any>[] = [];
 
   ctx.config.dataComponents?.forEach((dc) => {
-    const normalizedProps = SchemaProcessor.makeAllPropertiesRequired(dc.props);
+    const normalizedProps = normalizeDataComponentSchema(dc.props as Record<string, unknown>);
     const propsSchema = z.fromJSONSchema(normalizedProps);
     componentSchemas.push(
       z.object({
