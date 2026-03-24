@@ -21,6 +21,7 @@ import {
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
   type Part,
+  resetCancelledInvocationToPending,
   resolveRef,
   type ScheduledTriggerInvocation,
   updateScheduledTriggerInvocationStatus,
@@ -279,6 +280,16 @@ export async function createInvocationIdempotentStep(params: {
     return { invocation: existing, alreadyExists: true };
   }
 
+  const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
+  const resolvedRef = await resolveRef(manageDbClient)(ref);
+
+  if (!resolvedRef) {
+    logger.warn(
+      { tenantId: params.tenantId, projectId: params.projectId },
+      'Failed to resolve ref for project, run will not be associated with a branch'
+    );
+  }
+
   const invocationId = generateId();
 
   const invocation = await createScheduledTriggerInvocation(runDbClient)({
@@ -287,6 +298,7 @@ export async function createInvocationIdempotentStep(params: {
     projectId: params.projectId,
     agentId: params.agentId,
     scheduledTriggerId: params.scheduledTriggerId,
+    ref: resolvedRef ?? undefined,
     status: 'pending',
     scheduledFor: params.scheduledFor,
     resolvedPayload: params.payload,
@@ -476,6 +488,45 @@ export async function incrementAttemptStep(params: {
       status: 'pending',
     },
   });
+}
+
+/**
+ * Step: Reset a cancelled invocation back to pending.
+ * Used when a restarted workflow finds a cancelled invocation via idempotency
+ * that is still scheduled for a future time.
+ */
+export async function resetInvocationToPendingStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  invocationId: string;
+}) {
+  'use step';
+
+  const updated = await resetCancelledInvocationToPending(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    invocationId: params.invocationId,
+  });
+
+  if (updated) {
+    logger.info(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Reset cancelled invocation to pending'
+    );
+  } else {
+    logger.warn(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Skipped reset — invocation status changed concurrently (no longer cancelled)'
+    );
+  }
+
+  return updated;
 }
 
 /**

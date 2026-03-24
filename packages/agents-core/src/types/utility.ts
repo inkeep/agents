@@ -116,6 +116,7 @@ export type MessageMetadata = {
     completion_tokens?: number;
     total_tokens?: number;
   };
+  compressionType?: string;
   a2a_metadata?: Record<string, unknown>;
   processing_time_ms?: number;
   error_details?: Record<string, unknown>;
@@ -265,6 +266,7 @@ export const CredentialStoreType = {
   memory: 'memory',
   keychain: 'keychain',
   nango: 'nango',
+  composio: 'composio',
 } as const;
 
 export interface CreateApiKeyParams {

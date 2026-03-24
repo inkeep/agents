@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Background,
   ConnectionMode,
@@ -15,7 +16,7 @@ import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { type ComponentProps, type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
+import { EdgeType, edgeTypes } from '@/components/agent/configuration/edge-types';
 import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
@@ -40,7 +41,6 @@ import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
 import { useAnimateGraph } from '@/components/agent/use-animate-graph';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
-import { useProjectPermissions } from '@/contexts/project';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
@@ -52,15 +52,15 @@ import {
   validateSerializedData,
 } from '@/features/agent/domain';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { saveAgent } from '@/lib/services/save-agent';
-import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
@@ -109,18 +109,13 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     isCopilotConfigured,
     isStreaming: isCopilotStreaming,
   } = useCopilotContext();
-
-  const { canEdit } = useProjectPermissions();
-
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const queryClient = useQueryClient();
   const router = useRouter();
-
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-  const { data: mcpTools, refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
-  const toolLookup = createLookup(mcpTools);
-
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
+  const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
   const initialNode: Node = {
@@ -131,47 +126,9 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     deletable: false,
   };
 
-  const initialNodes = [initialNode];
-
-  // Helper to enrich MCP nodes with tool data
-  const enrichNodes = (nodes: Node[]): Node[] => {
-    return nodes.map((node) => {
-      if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
-        const tool = toolLookup[node.data.toolId as string];
-        if (tool) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              name: tool.name,
-              imageUrl: tool.imageUrl,
-            },
-          };
-        }
-      }
-      return node;
-    });
-  };
-
-  const result = agent ? deserializeAgentData(agent) : { nodes: initialNodes, edges: initialEdges };
-
-  const agentNodes = nodeId
-    ? enrichNodes(result.nodes).map((node) => ({
-        ...node,
-        selected: node.id === nodeId,
-      }))
-    : enrichNodes(result.nodes);
-
-  const agentEdges = edgeId
-    ? result.edges.map((edge) => ({
-        ...edge,
-        selected: edge.id === edgeId,
-      }))
-    : result.edges;
-
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
-  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
-    storeNodes: state.nodes,
+  const { nodes, edges, metadata } = useAgentStore((state) => ({
+    nodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
   }));
@@ -187,10 +144,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     markUnsaved,
     reset,
   } = useAgentActions();
-  const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
-
-  // Always use enriched nodes for ReactFlow
-  const nodes = enrichNodes(storeNodes);
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
   const onAddInitialNode = () => {
@@ -213,6 +166,22 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
+    const result = deserializeAgentData(agent);
+
+    const agentNodes = nodeId
+      ? result.nodes.map((node) => ({
+          ...node,
+          selected: node.id === nodeId,
+        }))
+      : result.nodes;
+
+    const agentEdges = edgeId
+      ? result.edges.map((edge) => ({
+          ...edge,
+          selected: edge.id === edgeId,
+        }))
+      : result.edges;
+
     setInitial(agentNodes, agentEdges, extractAgentMetadata(agent));
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
@@ -221,16 +190,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       onAddInitialNode();
     }
 
-    return () => {
-      // we need to reset the agent store when the component unmounts otherwise the agent store will persist the changes from the previous agent
-      reset();
-      // Also reset the project store to prevent stale data
-      resetProjectStore();
-    };
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
-  useEffect(() => {
     // If the nodeId or edgeId in URL doesn't exist in the agent, clear it
     if (nodeId && !agentNodes.some((node) => node.id === nodeId)) {
       setQueryState((prev) => ({
@@ -246,6 +205,11 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         pane: 'agent',
       }));
     }
+
+    return () => {
+      // we need to reset the agent store when the component unmounts otherwise the agent store will persist the changes from the previous agent
+      reset();
+    };
   }, []);
 
   // Auto-center agent when sidepane opens/closes
@@ -317,12 +281,11 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       const metadata = extractAgentMetadata(updatedAgent);
 
       // Update the store with all refreshed data
-      setInitial(enrichNodes(nodesWithSelection), edgesWithSelection, metadata);
+      setInitial(nodesWithSelection, edgesWithSelection, metadata);
 
-      // Update project data in store so components using useProjectData get fresh data
+      // Update project data in React Query cache so components using useProjectQuery get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);
-
-      setProjectStore(convertedProject);
+      queryClient.setQueryData(projectQueryKeys.detail(tenantId, projectId), convertedProject);
     }
 
     try {
@@ -717,8 +680,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const [showTraces, setShowTraces] = useState(false);
   const isMounted = useIsMounted();
 
-  const showEmptyState =
-    nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
+  const showEmptyState = !nodes.length && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
 
   return (
     <ResizablePanelGroup
@@ -726,7 +688,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       id="agent-panel-group"
       direction="horizontal"
       autoSaveId="agent-resizable-layout-state"
-      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
+      className="relative bg-muted/20 dark:bg-background flex overflow-hidden no-parent-container"
     >
       <CopilotChat
         agentId={agent.id}

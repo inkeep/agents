@@ -1,7 +1,16 @@
+import { join } from 'node:path';
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
+import { asRecord } from '../collector-common';
+import {
+  buildSequentialNameFileNames,
+  resolveExternalAgentNamingSeed,
+} from '../generation-resolver';
+import type { GenerationTask } from '../generation-types';
+import { addNamedImports, applyImportPlan, createImportPlan } from '../import-plan';
+import { generateSimpleFactoryDefinition } from '../simple-factory-generator';
+import { addValueToObject, codeReference, toCamelCase } from '../utils';
 
 const MySchema = FullProjectDefinitionSchema.shape.externalAgents.unwrap().valueType.omit({
   id: true,
@@ -23,33 +32,71 @@ export function generateExternalAgentDefinition({
   updatedAt,
   ...data
 }: ExternalAgentInput & Record<string, unknown>): SourceFile {
-  const result = ExternalAgentSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for external agent:\n${z.prettifyError(result.error)}`);
-  }
+  return generateSimpleFactoryDefinition(data, {
+    schema: ExternalAgentSchema,
+    factory: {
+      importName: 'externalAgent',
+      variableName: (parsed) =>
+        parsed.externalAgentReferenceName ?? toCamelCase(parsed.externalAgentId),
+    },
+    buildConfig(parsed) {
+      const {
+        externalAgentReferenceName: _externalAgentReferenceName,
+        externalAgentId,
+        credentialReferenceId: _credentialReferenceId,
+        ...rest
+      } = parsed;
+      return {
+        id: externalAgentId,
+        ...rest,
+      };
+    },
+    finalize({ parsed, sourceFile, configObject }) {
+      if (!parsed.credentialReferenceId) {
+        return;
+      }
 
-  const { externalAgentReferenceName, externalAgentId, credentialReferenceId, ...parsed } =
-    result.data;
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'externalAgent',
-    variableName: externalAgentReferenceName ?? toCamelCase(externalAgentId),
+      const credentialReferenceName = toCamelCase(parsed.credentialReferenceId);
+      const importPlan = createImportPlan();
+      addNamedImports(
+        importPlan,
+        `../credentials/${parsed.credentialReferenceId}`,
+        credentialReferenceName
+      );
+      applyImportPlan(sourceFile, importPlan);
+      addValueToObject(configObject, 'credentialReference', codeReference(credentialReferenceName));
+    },
   });
-
-  for (const [key, value] of Object.entries({
-    id: externalAgentId,
-    ...parsed,
-  })) {
-    addValueToObject(configObject, key, value);
-  }
-  if (credentialReferenceId) {
-    sourceFile.addImportDeclaration({
-      namedImports: [toCamelCase(credentialReferenceId)],
-      moduleSpecifier: `../credentials/${credentialReferenceId}`,
-    });
-    configObject.addPropertyAssignment({
-      name: 'credentialReference',
-      initializer: toCamelCase(credentialReferenceId),
-    });
-  }
-  return sourceFile;
 }
+
+export const task = {
+  type: 'external-agent',
+  collect(context) {
+    const externalAgentEntries = Object.entries(context.project.externalAgents ?? {});
+    const fileNamesByExternalAgentId = buildSequentialNameFileNames(
+      externalAgentEntries.map(([externalAgentId, externalAgentData]) => [
+        externalAgentId,
+        { name: resolveExternalAgentNamingSeed(externalAgentId, externalAgentData) },
+      ])
+    );
+
+    return externalAgentEntries.map(([externalAgentId, externalAgentData]) => {
+      const externalAgentRecord = asRecord(externalAgentData) ?? {};
+      return {
+        id: externalAgentId,
+        filePath: context.resolver.resolveOutputFilePath(
+          'externalAgents',
+          externalAgentId,
+          join(context.paths.externalAgentsDir, fileNamesByExternalAgentId[externalAgentId])
+        ),
+        payload: {
+          externalAgentId,
+          externalAgentReferenceName:
+            context.resolver.getExternalAgentReferenceName(externalAgentId),
+          ...externalAgentRecord,
+        } as Parameters<typeof generateExternalAgentDefinition>[0],
+      };
+    });
+  },
+  generate: generateExternalAgentDefinition,
+} satisfies GenerationTask<Parameters<typeof generateExternalAgentDefinition>[0]>;

@@ -30,6 +30,8 @@ import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
+  isTrustedWorkAppMcpUrl,
+  TRUSTED_WORK_APP_MCP_PATHS,
   toISODateString,
 } from '../../utils';
 import { generateId } from '../../utils/conversations';
@@ -218,16 +220,38 @@ const discoverToolsFromServer = async (
       }
     }
 
-    // Inject user_id and x-api-key for Composio servers at discovery time
-    configureComposioMCPServer(
-      serverConfig,
-      tool.tenantId,
-      tool.projectId,
-      tool.credentialScope === 'user' ? 'user' : 'project',
-      userId
-    );
+    const composioConnectedAccountId = credentialReference?.retrievalParams?.connectedAccountId as
+      | string
+      | undefined;
 
-    if (isGithubWorkAppTool(tool)) {
+    // Only inject Composio auth params when connectedAccountId is available (both or none)
+    // to prevent cross-project credential leakage via user_id-only scoping
+    if (composioConnectedAccountId) {
+      configureComposioMCPServer(
+        serverConfig,
+        tool.tenantId,
+        tool.projectId,
+        tool.credentialScope === 'user' ? 'user' : 'project',
+        userId,
+        composioConnectedAccountId
+      );
+    } else if (serverConfig.url?.toString().includes('composio.dev')) {
+      logger.warn(
+        { toolName: tool.name, toolId: tool.id },
+        'Composio tool missing connectedAccountId — skipping auth injection to prevent credential leakage'
+      );
+    }
+
+    const urlString = String(serverConfig.url);
+
+    if (
+      isGithubWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(
+        urlString,
+        TRUSTED_WORK_APP_MCP_PATHS.github,
+        env.INKEEP_AGENTS_API_URL
+      )
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
@@ -237,7 +261,10 @@ const discoverToolsFromServer = async (
       };
     }
 
-    if (isSlackWorkAppTool(tool)) {
+    if (
+      isSlackWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(urlString, TRUSTED_WORK_APP_MCP_PATHS.slack, env.INKEEP_AGENTS_API_URL)
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
@@ -399,18 +426,30 @@ export const dbResultToMcpTool = async (
   // Check third-party service status
   const isThirdPartyMCPServer = dbResult.config.mcp.server.url.includes('composio.dev');
   if (isThirdPartyMCPServer) {
-    const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
-    const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
-      dbResult.tenantId,
-      dbResult.projectId,
-      mcpServerUrl,
-      credentialScope,
-      userId
-    );
+    const hasConnectedAccountId = !!credentialReference?.retrievalParams?.connectedAccountId;
 
-    if (!isAuthenticated) {
+    if (!hasConnectedAccountId) {
       status = 'needs_auth';
-      lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+      lastErrorComputed =
+        'Third-party authentication required. Connect your account to pin a specific credential.';
+    } else {
+      const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
+      const authResult = await isThirdPartyMCPServerAuthenticated(
+        dbResult.tenantId,
+        dbResult.projectId,
+        mcpServerUrl,
+        credentialScope,
+        userId
+      );
+
+      if (!authResult.authenticated && !authResult.error) {
+        status = 'needs_auth';
+        lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+      } else if (authResult.error) {
+        status = 'unavailable';
+        lastErrorComputed =
+          'Could not verify third-party authentication status. The service may be temporarily unavailable.';
+      }
     }
   }
 

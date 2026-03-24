@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircleIcon, CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { AlertCircleIcon, CheckCircle2, Globe, Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
@@ -28,7 +28,7 @@ export default function AcceptInvitationPage({
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const { invitationId } = use(params);
   const authClient = useAuthClient();
-  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
+  const { PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
 
   const [invitationVerification, setInvitationVerification] =
     useState<InvitationVerification | null>(null);
@@ -324,31 +324,15 @@ export default function AcceptInvitationPage({
     }
   };
 
-  // Unauthenticated: Show auth-method-aware UI
+  // Unauthenticated: Show all org-allowed sign-in methods
   if (!user && invitationVerification) {
     const orgName = invitationVerification.organizationName;
-    const authMethod = invitationVerification.authMethod;
-    const isGoogleAuth = authMethod === 'google';
-    const isSSOAuth = authMethod === 'sso' || authMethod === 'auth0';
-    const isEmailPassword = !isGoogleAuth && !isSSOAuth;
-
-    const getDescription = () => {
-      const invitePrefix = orgName ? (
-        <>
-          You've been invited to join <span className="font-medium">{orgName}</span>.{' '}
-        </>
-      ) : (
-        <>You've been invited to join an organization. </>
-      );
-
-      if (isGoogleAuth) {
-        return <>{invitePrefix}Sign in with your Google account to get started.</>;
-      }
-      if (isSSOAuth) {
-        return <>{invitePrefix}Sign in with your organization's SSO to get started.</>;
-      }
-      return <>{invitePrefix}Create your account to get started.</>;
-    };
+    const allowedMethods = invitationVerification.allowedAuthMethods ?? [];
+    const hasGoogle = allowedMethods.some((m) => m.method === 'google');
+    const ssoMethods = allowedMethods.filter((m) => m.method === 'sso');
+    const hasEmailPassword = allowedMethods.some((m) => m.method === 'email-password');
+    const hasExternalMethods = hasGoogle || ssoMethods.length > 0;
+    const hasNoMethods = !hasGoogle && ssoMethods.length === 0 && !hasEmailPassword;
 
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -360,7 +344,21 @@ export default function AcceptInvitationPage({
             <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
               {orgName ? `Join ${orgName}` : 'Accept invitation'}
             </CardTitle>
-            <CardDescription>{getDescription()}</CardDescription>
+            <CardDescription>
+              {hasNoMethods ? (
+                <>
+                  No sign-in methods are available for your email domain. Contact the administrator
+                  of <span className="font-medium">{orgName ?? 'the organization'}</span> for help.
+                </>
+              ) : orgName ? (
+                <>
+                  You've been invited to join <span className="font-medium">{orgName}</span>. Choose
+                  how you'd like to sign in.
+                </>
+              ) : (
+                <>You've been invited to join an organization. Choose how you'd like to sign in.</>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {error && (
@@ -370,7 +368,7 @@ export default function AcceptInvitationPage({
               </Alert>
             )}
 
-            {isGoogleAuth && PUBLIC_GOOGLE_CLIENT_ID && (
+            {hasGoogle && PUBLIC_GOOGLE_CLIENT_ID && (
               <Button
                 variant="gray-outline"
                 onClick={() => handleExternalSignIn('social', 'google', 'Google sign in failed')}
@@ -391,11 +389,16 @@ export default function AcceptInvitationPage({
               </Button>
             )}
 
-            {isSSOAuth && PUBLIC_AUTH0_DOMAIN && (
+            {ssoMethods.map((sso) => (
               <Button
+                key={sso.providerId}
                 variant="gray-outline"
-                onClick={() => handleExternalSignIn('sso', 'auth0', 'SSO sign in failed')}
-                disabled={isSubmitting}
+                onClick={() =>
+                  sso.providerId
+                    ? handleExternalSignIn('sso', sso.providerId, 'SSO sign in failed')
+                    : undefined
+                }
+                disabled={isSubmitting || !sso.providerId}
                 className="w-full"
               >
                 {isSubmitting ? (
@@ -405,25 +408,25 @@ export default function AcceptInvitationPage({
                   </>
                 ) : (
                   <>
-                    <InkeepIcon aria-hidden />
-                    Continue with SSO
+                    <Globe aria-hidden />
+                    {sso.displayName ? `Continue with ${sso.displayName}` : 'Continue with SSO'}
                   </>
                 )}
               </Button>
+            ))}
+
+            {hasExternalMethods && hasEmailPassword && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
             )}
 
-            {((isGoogleAuth && !PUBLIC_GOOGLE_CLIENT_ID) ||
-              (isSSOAuth && !PUBLIC_AUTH0_DOMAIN)) && (
-              <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
-                <AlertCircleIcon aria-hidden className="h-4 w-4 text-amber-600" />
-                <AlertDescription>
-                  The sign-in method for this invitation is not available. Please contact your
-                  organization administrator.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {isEmailPassword && (
+            {hasEmailPassword && (
               <form onSubmit={handleSignupAndAccept} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -530,7 +533,7 @@ export default function AcceptInvitationPage({
         <CardContent className="space-y-4">
           {error && (
             <Alert variant="destructive" className="border-destructive/10 dark:border-border">
-              <AlertCircleIcon className="h-4 w-4" />
+              <AlertCircleIcon aria-hidden className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}

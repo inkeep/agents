@@ -23,7 +23,7 @@ export function useOrgMembers(tenantId: string, projectId?: string) {
   const fetchMembers = useCallback(async () => {
     try {
       const { data } = await authClient.organization.getFullOrganization({
-        query: { organizationId: tenantId, membersLimit: 100 },
+        query: { organizationId: tenantId, membersLimit: 300 },
       });
       if (!data?.members) return;
 

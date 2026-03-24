@@ -1,15 +1,25 @@
+import { join } from 'node:path';
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
+import { getObjectKeys } from '../collector-common';
 import {
-  addReferenceGetterProperty,
+  collectProjectReferenceOverrides,
+  collectProjectReferencePathOverrides,
+} from '../collector-reference-helpers';
+import type { GenerationTask } from '../generation-types';
+import {
+  addResolvedReferenceImports,
+  resolveReferenceBindingsFromIds,
+  toReferenceNames,
+} from '../reference-resolution';
+import { generateFactorySourceFile } from '../simple-factory-generator';
+import {
   addValueToObject,
-  buildComponentFileName,
-  createFactoryDefinition,
-  createUniqueReferenceName,
+  codeExpression,
+  createReferenceGetterValue,
   formatStringLiteral,
   hasReferences,
-  resolveReferenceName,
   toCamelCase,
 } from '../utils';
 
@@ -32,15 +42,6 @@ const ReferencePathOverridesSchema = z.object({
   artifactComponents: ReferenceNameByIdSchema.optional(),
   credentialReferences: ReferenceNameByIdSchema.optional(),
 });
-
-interface ResolvedReference {
-  id: string;
-  importName: string;
-  localName: string;
-  modulePath: string;
-}
-
-type CollisionStrategy = 'descriptive' | 'numeric' | 'numeric-for-duplicates';
 
 const MySchema = FullProjectDefinitionSchema.pick({
   name: true,
@@ -72,252 +73,181 @@ const ProjectSchema = z.strictObject({
 type ProjectInput = z.input<typeof ProjectSchema>;
 
 export function generateProjectDefinition(data: ProjectInput): SourceFile {
-  const result = ProjectSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for project:
-${z.prettifyError(result.error)}`);
-  }
+  return generateFactorySourceFile(data, {
+    schema: ProjectSchema,
+    factory: {
+      importName: 'project',
+      variableName: (parsed) => toCamelCase(parsed.projectId),
+    },
+    render({ parsed, sourceFile, configObject }) {
+      const projectVariableName = toCamelCase(parsed.projectId);
+      const reservedReferenceNames = new Set([projectVariableName]);
+      if (hasReferences(parsed.skills)) {
+        sourceFile.getImportDeclarationOrThrow('@inkeep/agents-sdk').addNamedImport('loadSkills');
+        sourceFile.addImportDeclaration({
+          defaultImport: 'path',
+          moduleSpecifier: 'node:path',
+        });
+      }
 
-  const parsed = result.data;
-  const projectVariableName = toCamelCase(parsed.projectId);
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'project',
-    variableName: projectVariableName,
-  });
-  const reservedReferenceNames = new Set([projectVariableName]);
-  if (hasReferences(parsed.skills)) {
-    sourceFile.getImportDeclarationOrThrow('@inkeep/agents-sdk').addNamedImport('loadSkills');
-    sourceFile.addImportDeclaration({
-      defaultImport: 'path',
-      moduleSpecifier: 'node:path',
-    });
-  }
-
-  const {
-    projectId,
-    skills,
-    agents,
-    tools,
-    externalAgents,
-    dataComponents,
-    artifactComponents,
-    credentialReferences,
-    referenceOverrides,
-    referencePathOverrides,
-    ...rest
-  } = parsed;
-
-  const credentialReferenceResolved = hasReferences(credentialReferences)
-    ? createResolvedReferences(
+      const {
+        projectId,
+        skills,
+        agents,
+        tools,
+        externalAgents,
+        dataComponents,
+        artifactComponents,
         credentialReferences,
-        referenceOverrides?.credentialReferences,
-        referencePathOverrides?.credentialReferences,
-        reservedReferenceNames,
-        'CredentialReference',
-        'numeric'
-      )
-    : undefined;
+        referenceOverrides,
+        referencePathOverrides,
+        ...rest
+      } = parsed;
 
-  for (const [key, value] of Object.entries({
-    id: projectId,
-    ...rest,
-  })) {
-    addValueToObject(configObject, key, value);
-  }
+      const projectConfig: Record<string, unknown> = {
+        id: projectId,
+        ...rest,
+      };
 
-  if (hasReferences(skills)) {
-    configObject.addPropertyAssignment({
-      name: 'skills',
-      initializer: `() => loadSkills(path.join(${formatStringLiteral(projectId)}, 'skills'))`,
-    });
-  }
+      if (hasReferences(skills)) {
+        projectConfig.skills = codeExpression(
+          `() => loadSkills(path.join(${formatStringLiteral(projectId)}, 'skills'))`
+        );
+      }
 
-  if (hasReferences(agents)) {
-    const resolvedReferences = createResolvedReferences(
-      agents,
-      referenceOverrides?.agents,
-      referencePathOverrides?.agents,
-      reservedReferenceNames,
-      'Agent'
-    );
-    addReferenceImports(sourceFile, resolvedReferences, './agents');
-    addReferenceGetterProperty(configObject, 'agents', toReferenceNames(resolvedReferences));
-  }
+      if (hasReferences(agents)) {
+        const resolvedReferences = resolveReferenceBindingsFromIds({
+          ids: agents,
+          reservedNames: reservedReferenceNames,
+          conflictSuffix: 'Agent',
+          referenceOverrides: referenceOverrides?.agents,
+          referencePathOverrides: referencePathOverrides?.agents,
+        });
+        addResolvedReferenceImports(sourceFile, resolvedReferences, (reference) => {
+          return `./agents/${reference.modulePath}`;
+        });
+        projectConfig.agents = createReferenceGetterValue(toReferenceNames(resolvedReferences));
+      }
 
-  if (hasReferences(tools)) {
-    const resolvedReferences = createResolvedReferences(
-      tools,
-      referenceOverrides?.tools,
-      referencePathOverrides?.tools,
-      reservedReferenceNames,
-      'Tool',
-      'numeric-for-duplicates'
-    );
-    addReferenceImports(sourceFile, resolvedReferences, './tools');
-    addReferenceGetterProperty(configObject, 'tools', toReferenceNames(resolvedReferences));
-  }
+      if (hasReferences(tools)) {
+        const resolvedReferences = resolveReferenceBindingsFromIds({
+          ids: tools,
+          reservedNames: reservedReferenceNames,
+          conflictSuffix: 'Tool',
+          collisionStrategy: 'numeric-for-duplicates',
+          referenceOverrides: referenceOverrides?.tools,
+          referencePathOverrides: referencePathOverrides?.tools,
+        });
+        addResolvedReferenceImports(sourceFile, resolvedReferences, (reference) => {
+          return `./tools/${reference.modulePath}`;
+        });
+        projectConfig.tools = createReferenceGetterValue(toReferenceNames(resolvedReferences));
+      }
 
-  if (hasReferences(externalAgents)) {
-    const resolvedReferences = createResolvedReferences(
-      externalAgents,
-      referenceOverrides?.externalAgents,
-      referencePathOverrides?.externalAgents,
-      reservedReferenceNames,
-      'ExternalAgent'
-    );
-    addReferenceImports(sourceFile, resolvedReferences, './external-agents');
-    addReferenceGetterProperty(
-      configObject,
-      'externalAgents',
-      toReferenceNames(resolvedReferences)
-    );
-  }
+      if (hasReferences(externalAgents)) {
+        const resolvedReferences = resolveReferenceBindingsFromIds({
+          ids: externalAgents,
+          reservedNames: reservedReferenceNames,
+          conflictSuffix: 'ExternalAgent',
+          referenceOverrides: referenceOverrides?.externalAgents,
+          referencePathOverrides: referencePathOverrides?.externalAgents,
+        });
+        addResolvedReferenceImports(sourceFile, resolvedReferences, (reference) => {
+          return `./external-agents/${reference.modulePath}`;
+        });
+        projectConfig.externalAgents = createReferenceGetterValue(
+          toReferenceNames(resolvedReferences)
+        );
+      }
 
-  if (hasReferences(dataComponents)) {
-    const resolvedReferences = createResolvedReferences(
-      dataComponents,
-      referenceOverrides?.dataComponents,
-      referencePathOverrides?.dataComponents,
-      reservedReferenceNames,
-      'DataComponent'
-    );
-    addReferenceImports(sourceFile, resolvedReferences, './data-components');
-    addReferenceGetterProperty(
-      configObject,
-      'dataComponents',
-      toReferenceNames(resolvedReferences)
-    );
-  }
+      if (hasReferences(dataComponents)) {
+        const resolvedReferences = resolveReferenceBindingsFromIds({
+          ids: dataComponents,
+          reservedNames: reservedReferenceNames,
+          conflictSuffix: 'DataComponent',
+          referenceOverrides: referenceOverrides?.dataComponents,
+          referencePathOverrides: referencePathOverrides?.dataComponents,
+        });
+        addResolvedReferenceImports(sourceFile, resolvedReferences, (reference) => {
+          return `./data-components/${reference.modulePath}`;
+        });
+        projectConfig.dataComponents = createReferenceGetterValue(
+          toReferenceNames(resolvedReferences)
+        );
+      }
 
-  if (hasReferences(artifactComponents)) {
-    const resolvedReferences = createResolvedReferences(
-      artifactComponents,
-      referenceOverrides?.artifactComponents,
-      referencePathOverrides?.artifactComponents,
-      reservedReferenceNames,
-      'ArtifactComponent'
-    );
-    addReferenceImports(sourceFile, resolvedReferences, './artifact-components');
-    addReferenceGetterProperty(
-      configObject,
-      'artifactComponents',
-      toReferenceNames(resolvedReferences)
-    );
-  }
+      if (hasReferences(artifactComponents)) {
+        const resolvedReferences = resolveReferenceBindingsFromIds({
+          ids: artifactComponents,
+          reservedNames: reservedReferenceNames,
+          conflictSuffix: 'ArtifactComponent',
+          referenceOverrides: referenceOverrides?.artifactComponents,
+          referencePathOverrides: referencePathOverrides?.artifactComponents,
+        });
+        addResolvedReferenceImports(sourceFile, resolvedReferences, (reference) => {
+          return `./artifact-components/${reference.modulePath}`;
+        });
+        projectConfig.artifactComponents = createReferenceGetterValue(
+          toReferenceNames(resolvedReferences)
+        );
+      }
 
-  if (hasReferences(credentialReferences)) {
-    const resolvedReferences = credentialReferenceResolved ?? [];
-    addReferenceImports(sourceFile, resolvedReferences, './credentials');
-    addReferenceGetterProperty(
-      configObject,
-      'credentialReferences',
-      toReferenceNames(resolvedReferences)
-    );
-  }
+      if (hasReferences(credentialReferences)) {
+        const resolvedReferences = resolveReferenceBindingsFromIds({
+          ids: credentialReferences,
+          reservedNames: reservedReferenceNames,
+          conflictSuffix: 'CredentialReference',
+          collisionStrategy: 'numeric',
+          referenceOverrides: referenceOverrides?.credentialReferences,
+          referencePathOverrides: referencePathOverrides?.credentialReferences,
+        });
+        addResolvedReferenceImports(sourceFile, resolvedReferences, (reference) => {
+          return `./credentials/${reference.modulePath}`;
+        });
+        projectConfig.credentialReferences = createReferenceGetterValue(
+          toReferenceNames(resolvedReferences)
+        );
+      }
 
-  return sourceFile;
-}
-
-function addReferenceImports(
-  sourceFile: SourceFile,
-  references: ResolvedReference[],
-  basePath: string
-): void {
-  for (const reference of references) {
-    sourceFile.addImportDeclaration({
-      namedImports: [
-        reference.importName === reference.localName
-          ? reference.importName
-          : { name: reference.importName, alias: reference.localName },
-      ],
-      moduleSpecifier: `${basePath}/${reference.modulePath}`,
-    });
-  }
-}
-
-function toReferenceNames(references: ResolvedReference[]): string[] {
-  return references.map((reference) => reference.localName);
-}
-
-function createResolvedReferences(
-  references: string[],
-  referenceOverrides: Record<string, string> | undefined,
-  referencePathOverrides: Record<string, string> | undefined,
-  reservedReferenceNames: Set<string>,
-  suffix: string,
-  collisionStrategy: CollisionStrategy = 'descriptive'
-): ResolvedReference[] {
-  const seenIds = new Set<string>();
-  const normalizedReferences: Array<{
-    id: string;
-    importName: string;
-    modulePath: string;
-  }> = [];
-
-  for (const referenceId of references) {
-    if (seenIds.has(referenceId)) {
-      continue;
-    }
-    seenIds.add(referenceId);
-
-    normalizedReferences.push({
-      id: referenceId,
-      importName: resolveReferenceName(referenceId, [referenceOverrides]),
-      modulePath: resolveReferenceModulePath(referenceId, referencePathOverrides?.[referenceId]),
-    });
-  }
-
-  const importNameCounts = new Map<string, number>();
-  for (const reference of normalizedReferences) {
-    importNameCounts.set(
-      reference.importName,
-      (importNameCounts.get(reference.importName) ?? 0) + 1
-    );
-  }
-
-  return normalizedReferences.map((reference) => {
-    const shouldUseNumeric =
-      collisionStrategy === 'numeric' ||
-      (collisionStrategy === 'numeric-for-duplicates' &&
-        (importNameCounts.get(reference.importName) ?? 0) > 1);
-
-    const localName = shouldUseNumeric
-      ? createNumericReferenceName(reference.importName, reservedReferenceNames)
-      : createUniqueReferenceName(reference.importName, reservedReferenceNames, suffix);
-
-    return {
-      id: reference.id,
-      importName: reference.importName,
-      localName,
-      modulePath: reference.modulePath,
-    };
+      for (const [key, value] of Object.entries(projectConfig)) {
+        addValueToObject(configObject, key, value);
+      }
+    },
   });
 }
 
-function createNumericReferenceName(baseName: string, reservedNames: Set<string>): string {
-  if (!reservedNames.has(baseName)) {
-    reservedNames.add(baseName);
-    return baseName;
-  }
+export const task = {
+  type: 'project',
+  collect(context) {
+    const referenceOverrides = collectProjectReferenceOverrides(context);
+    const referencePathOverrides = collectProjectReferencePathOverrides(context);
 
-  let index = 1;
-  while (reservedNames.has(`${baseName}${index}`)) {
-    index += 1;
-  }
-
-  const uniqueName = `${baseName}${index}`;
-  reservedNames.add(uniqueName);
-  return uniqueName;
-}
-
-function resolveReferenceModulePath(
-  referenceId: string,
-  referencePathOverride: string | undefined
-): string {
-  if (referencePathOverride && referencePathOverride.length > 0) {
-    return referencePathOverride.replace(/\.tsx?$/, '');
-  }
-
-  const fileName = buildComponentFileName(referenceId);
-  return fileName.replace(/\.tsx?$/, '');
-}
+    return [
+      {
+        id: context.project.id,
+        filePath: context.resolver.resolveOutputFilePath(
+          'project',
+          context.project.id,
+          join(context.paths.projectRoot, 'index.ts')
+        ),
+        payload: {
+          projectId: context.project.id,
+          name: context.project.name,
+          description: context.project.description,
+          models: context.project.models,
+          stopWhen: context.project.stopWhen,
+          skills: getObjectKeys(context.project.skills),
+          agents: [...context.completeAgentIds],
+          tools: getObjectKeys(context.project.tools),
+          externalAgents: getObjectKeys(context.project.externalAgents),
+          dataComponents: getObjectKeys(context.project.dataComponents),
+          artifactComponents: getObjectKeys(context.project.artifactComponents),
+          credentialReferences: getObjectKeys(context.project.credentialReferences),
+          ...(referenceOverrides && { referenceOverrides }),
+          ...(referencePathOverrides && { referencePathOverrides }),
+        } as Parameters<typeof generateProjectDefinition>[0],
+      },
+    ];
+  },
+  generate: generateProjectDefinition,
+} satisfies GenerationTask<Parameters<typeof generateProjectDefinition>[0]>;
