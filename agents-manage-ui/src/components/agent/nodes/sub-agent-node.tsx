@@ -72,7 +72,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const isDefault = id === defaultSubAgentId;
   const projectModel = project?.models;
   const modelName =
-    subAgent.models?.base.model ?? agentModel.base.model ?? (projectModel?.base.model as string);
+    subAgent.models?.base.model ?? agentModel.base.model ?? projectModel?.base.model ?? '';
 
   const dataComponentsById = createLookup(dataComponents);
   const artifactComponentsById = createLookup(artifactComponents);
