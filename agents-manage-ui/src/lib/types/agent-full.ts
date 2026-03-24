@@ -13,6 +13,8 @@ import type { SingleResponse } from './response';
 // Re-export types and schemas
 // TODO remove this export
 export type {
+  FullAgentFormInput,
+  FullAgentFormValues,
   FullAgentOutput,
   FullAgentPayload,
   FullAgentResponse,
