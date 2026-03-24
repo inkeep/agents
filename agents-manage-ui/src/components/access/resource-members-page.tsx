@@ -5,7 +5,7 @@ import { type FC, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { PrincipalAvatar } from './principal-avatar';
@@ -156,32 +156,30 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                 <UserPlus className="size-4 text-muted-foreground shrink-0" />
 
                 {/* Selected member badges (after search icon) */}
-                <TooltipProvider>
-                  {selectedMembers.map((member) => (
-                    <Tooltip key={member.id}>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-sm bg-primary/10 text-primary rounded-full">
-                          <span className="max-w-[100px] truncate">
-                            {member.displayName.split(' ')[0]}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeMember(member.id)}
-                            className="hover:text-destructive"
-                          >
-                            <X className="size-3" />
-                          </button>
+                {selectedMembers.map((member) => (
+                  <Tooltip key={member.id}>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-sm bg-primary/10 text-primary rounded-full">
+                        <span className="max-w-[100px] truncate">
+                          {member.displayName.split(' ')[0]}
                         </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="font-medium">{member.displayName}</p>
-                        {member.subtitle && (
-                          <p className="text-xs text-muted-foreground">{member.subtitle}</p>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
-                </TooltipProvider>
+                        <button
+                          type="button"
+                          onClick={() => removeMember(member.id)}
+                          className="hover:text-destructive"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-medium">{member.displayName}</p>
+                      {member.subtitle && (
+                        <p className="text-xs text-muted-foreground">{member.subtitle}</p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
 
                 {/* Search input with dropdown */}
                 <div className="flex-1 min-w-[80px] relative">
