@@ -37,6 +37,7 @@ const PNG_BYTES = Buffer.from(
   'base64'
 );
 const PDF_BYTES = Buffer.from('%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n', 'utf8');
+const TEXT_BYTES = Buffer.from('hello from attachment\nsecond line', 'utf8');
 
 const uploadContext = {
   tenantId: 'tenant',
@@ -142,6 +143,45 @@ describe('uploadPartsFiles', () => {
       file: {
         uri: expect.stringContaining('blob://v1/t_tenant/media/p_project/conv/c_conversation'),
         mimeType: 'application/pdf',
+      },
+    });
+  });
+
+  it('uploads inline text file parts and rewrites to blob URI', async () => {
+    vi.mocked(normalizeInlineFileBytes).mockResolvedValueOnce({
+      data: Uint8Array.from(TEXT_BYTES),
+      mimeType: 'text/plain',
+    });
+    const parts: Part[] = [
+      {
+        kind: 'file',
+        file: { bytes: TEXT_BYTES.toString('base64'), mimeType: 'text/plain' },
+        metadata: { filename: 'notes.txt' },
+      },
+    ];
+
+    const uploaded = await uploadPartsFiles(parts, uploadContext);
+
+    expect(normalizeInlineFileBytes).toHaveBeenCalledWith({
+      bytes: TEXT_BYTES.toString('base64'),
+      mimeType: 'text/plain',
+    });
+    expect(mockUpload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: expect.stringContaining(
+          'v1/t_tenant/media/p_project/conv/c_conversation/m_message/sha256-'
+        ),
+        contentType: 'text/plain',
+      })
+    );
+    expect(uploaded[0]).toMatchObject({
+      kind: 'file',
+      file: {
+        uri: expect.stringContaining('blob://v1/t_tenant/media/p_project/conv/c_conversation'),
+        mimeType: 'text/plain',
+      },
+      metadata: {
+        filename: 'notes.txt',
       },
     });
   });

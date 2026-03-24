@@ -19,6 +19,12 @@ import {
   CONVERSATION_ARTIFACTS_LIMIT,
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
 } from '../constants/execution-limits';
+import { fromBlobUri, getBlobStorageProvider, isBlobUri } from '../services/blob-storage';
+import {
+  buildTextAttachmentBlock,
+  decodeTextDocumentBytes,
+  isTextDocumentMimeType,
+} from '../utils/text-document-attachments';
 
 const logger = getLogger('conversations');
 
@@ -370,7 +376,7 @@ export async function getFormattedConversationHistory({
     });
   }
 
-  return formatMessagesAsConversationHistory(finalMessagesToFormat);
+  return await formatMessagesAsConversationHistory(finalMessagesToFormat);
 }
 
 /**
@@ -899,13 +905,72 @@ export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): str
   return fromParts || textFallback;
 }
 
-export function formatMessagesAsConversationHistory(messages: MessageSelect[]): string {
+async function buildConversationMessageText(msg: MessageSelect): Promise<string> {
+  const baseText = reconstructMessageText(msg);
+  const parts = msg.content?.parts;
+
+  if (!Array.isArray(parts) || parts.length === 0) {
+    return baseText;
+  }
+
+  const attachmentBlocks = (
+    await Promise.all(
+      parts.map(async (part: any) => {
+        if (part.kind !== 'file' || typeof part.data !== 'string') {
+          return '';
+        }
+
+        const mimeType =
+          typeof part.metadata?.mimeType === 'string' ? part.metadata.mimeType : undefined;
+        if (!isTextDocumentMimeType(mimeType) || !isBlobUri(part.data)) {
+          return '';
+        }
+        if (!mimeType) {
+          return '';
+        }
+
+        try {
+          const downloaded = await getBlobStorageProvider().download(fromBlobUri(part.data));
+          const content = decodeTextDocumentBytes(downloaded.data);
+          const filename =
+            typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined;
+
+          return buildTextAttachmentBlock({
+            mimeType,
+            content,
+            filename,
+          });
+        } catch (error) {
+          logger.warn(
+            {
+              messageId: msg.id,
+              mimeType,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            'Failed to resolve persisted text attachment for conversation history'
+          );
+          return '';
+        }
+      })
+    )
+  ).filter((value) => value !== '');
+
+  if (attachmentBlocks.length === 0) {
+    return baseText;
+  }
+
+  return [baseText, ...attachmentBlocks].filter((value) => value !== '').join('\n');
+}
+
+export async function formatMessagesAsConversationHistory(
+  messages: MessageSelect[]
+): Promise<string> {
   if (messages.length === 0) {
     return '';
   }
 
-  const formattedHistory = messages
-    .map((msg: MessageSelect) => {
+  const formattedHistoryParts = await Promise.all(
+    messages.map(async (msg: MessageSelect) => {
       let roleLabel: string;
 
       if (msg.role === 'user') {
@@ -934,8 +999,11 @@ export function formatMessagesAsConversationHistory(messages: MessageSelect[]): 
       if (!reconstructedMessage) {
         return null;
       }
-      return `${roleLabel}: """${reconstructedMessage}"""`; // TODO: add timestamp?
+      return `${roleLabel}: """${await buildConversationMessageText(msg)}"""`; // TODO: add timestamp?
     })
+  );
+
+  const formattedHistory = formattedHistoryParts
     .filter((line): line is string => line !== null)
     .join('\n');
 

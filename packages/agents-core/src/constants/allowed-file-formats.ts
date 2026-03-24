@@ -1,4 +1,11 @@
 export const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+export const ALLOWED_TEXT_DOCUMENT_MIME_TYPES = new Set([
+  'text/plain',
+  'text/markdown',
+  'text/html',
+  'text/csv',
+  'text/x-log',
+]);
 
 const FILE_MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   'image/png': 'png',
@@ -6,6 +13,11 @@ const FILE_MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   'image/jpg': 'jpg',
   'image/webp': 'webp',
   'application/pdf': 'pdf',
+  'text/plain': 'txt',
+  'text/markdown': 'md',
+  'text/html': 'html',
+  'text/csv': 'csv',
+  'text/x-log': 'log',
 };
 
 const FILE_EXTENSION_TO_MIME_TYPE: Record<string, string> = {
@@ -14,6 +26,14 @@ const FILE_EXTENSION_TO_MIME_TYPE: Record<string, string> = {
   jpeg: 'image/jpeg',
   webp: 'image/webp',
   pdf: 'application/pdf',
+  txt: 'text/plain',
+  text: 'text/plain',
+  md: 'text/markdown',
+  markdown: 'text/markdown',
+  html: 'text/html',
+  htm: 'text/html',
+  csv: 'text/csv',
+  log: 'text/x-log',
 };
 
 const dataUriSubtypes = Array.from(ALLOWED_IMAGE_MIME_TYPES).flatMap((mime) => {
@@ -25,6 +45,7 @@ export const DATA_URI_IMAGE_BASE64_REGEX = new RegExp(
   `^data:image/(${dataUriSubtypes.join('|')});base64,`
 );
 export const DATA_URI_PDF_BASE64_REGEX = /^data:application\/pdf;base64,/;
+export const DATA_URI_TEXT_BASE64_REGEX = /^data:text\/(plain|markdown|html|csv|x-log);base64,/;
 
 export function normalizeMimeType(mimeType: string): string {
   return mimeType.split(';')[0]?.trim().toLowerCase() || '';

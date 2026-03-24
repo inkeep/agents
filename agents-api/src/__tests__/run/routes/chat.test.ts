@@ -301,6 +301,62 @@ describe('Chat Routes', () => {
       expect(response.headers.get('content-type')).toBe('text/event-stream');
     });
 
+    it('should accept inline text document content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this document' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'data:text/plain;base64,aGVsbG8gd29ybGQ=',
+                    filename: 'notes.txt',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should accept inline HTML content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this HTML file' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'data:text/html;base64,PGgxPkhlbGxvPC9oMT4=',
+                    filename: 'page.html',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
     it('should return 400 when PDF URL ingestion fails', async () => {
       const { inlineExternalPdfUrlParts } = await import(
         '../../../domains/run/services/blob-storage/file-upload-helpers'

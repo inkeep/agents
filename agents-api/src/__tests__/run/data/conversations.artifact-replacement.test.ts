@@ -20,6 +20,16 @@ vi.mock('../../../domains/run/compression/ConversationCompressor', () => ({
   ConversationCompressor: vi.fn(),
 }));
 
+const mockBlobDownload = vi.fn();
+
+vi.mock('../../../domains/run/services/blob-storage', () => ({
+  isBlobUri: (value: string) => value.startsWith('blob://'),
+  fromBlobUri: (value: string) => value.slice('blob://'.length),
+  getBlobStorageProvider: () => ({
+    download: mockBlobDownload,
+  }),
+}));
+
 import { getConversationHistory, getLedgerArtifacts } from '@inkeep/agents-core';
 import { getConversationHistoryWithCompression } from '../../../domains/run/data/conversations';
 
@@ -66,6 +76,7 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetConversationHistory.mockReturnValue(vi.fn().mockResolvedValue([]));
+    mockBlobDownload.mockReset();
   });
 
   it('replaces tool-result content with compact artifact reference', async () => {
@@ -189,5 +200,44 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
     expect(toolResultText).toContain('description: First artifact');
     expect(toolResultText).toContain('description: Second artifact');
     expect(toolResultText).toMatch(/\]\s*\n\n\[/);
+  });
+
+  it('injects persisted text attachment content into conversation history', async () => {
+    const messages = [
+      {
+        id: 'msg-user',
+        role: 'user',
+        messageType: 'chat',
+        content: {
+          text: 'Please use my attached notes',
+          parts: [
+            {
+              kind: 'file',
+              data: 'blob://v1/t_tenant/media/p_project/conv/c_conv-1/m_msg-user/sha256-abc.txt',
+              metadata: {
+                mimeType: 'text/plain',
+                filename: 'notes.txt',
+              },
+            },
+          ],
+        },
+        visibility: 'external',
+        createdAt: new Date().toISOString(),
+        metadata: {},
+      },
+    ];
+
+    mockGetConversationHistory.mockReturnValue(vi.fn().mockResolvedValue(messages));
+    mockBlobDownload.mockResolvedValue({
+      data: Uint8Array.from(Buffer.from('line one\r\nline two', 'utf8')),
+      contentType: 'text/plain',
+    });
+
+    const result = await getConversationHistoryWithCompression(baseParams);
+
+    expect(result).toContain('Please use my attached notes');
+    expect(result).toContain('<attached_file filename="notes.txt" media_type="text/plain">');
+    expect(result).toContain('line one\nline two');
+    expect(result).toContain('</attached_file>');
   });
 });

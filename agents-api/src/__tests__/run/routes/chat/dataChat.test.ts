@@ -283,6 +283,90 @@ describe('Chat Data Stream Route', () => {
     expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
   });
 
+  it('should accept inline text document file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this markdown file',
+          parts: [
+            { type: 'text', text: 'Summarize this markdown file' },
+            {
+              type: 'file',
+              url: 'data:text/markdown;base64,IyBUaXRsZQoKLSBpdGVt',
+              mediaType: 'text/markdown',
+              filename: 'doc.md',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline CSV file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this CSV file',
+          parts: [
+            { type: 'text', text: 'Summarize this CSV file' },
+            {
+              type: 'file',
+              url: 'data:text/csv;base64,bmFtZSxjb3VudAphbHBoYSwxCg==',
+              mediaType: 'text/csv',
+              filename: 'data.csv',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline log file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this log file',
+          parts: [
+            { type: 'text', text: 'Summarize this log file' },
+            {
+              type: 'file',
+              url: 'data:text/x-log;base64,W2luZm9dIGJvb3QKW2Vycm9yXSBmYWlsdXJlCg==',
+              mediaType: 'text/x-log',
+              filename: 'server.log',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
   it('should accept inline image file part using Vercel FileUIPart shape', async () => {
     const body = {
       messages: [

@@ -207,7 +207,7 @@ export async function runGenerate(
         let response: ResolvedGenerationResponse;
         let textResponse: string;
 
-        const messages = buildInitialMessages(
+        const messages = await buildInitialMessages(
           systemPrompt,
           conversationHistory,
           userMessage,
