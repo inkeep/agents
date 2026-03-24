@@ -43,6 +43,7 @@
     "hono": "^4.12.7",
     "jose": "^6.1.0",
     "minimatch": "^10.2.1",
+    "oxfmt": "^0.42.0",
     "slack-block-builder": "^2.8.0"
   },
   "peerDependencies": {
