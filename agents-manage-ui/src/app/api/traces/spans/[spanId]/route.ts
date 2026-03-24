@@ -2,6 +2,7 @@ import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
+import { requireApiRouteSession } from '@/lib/auth/api-route-auth';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
 
 axiosRetry(axios, {
@@ -21,6 +22,11 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
     return NextResponse.json({ error: 'Span ID is required' }, { status: 400 });
   }
 
+  const authResult = await requireApiRouteSession(req);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
+
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
   const conversationId = url.searchParams.get('conversationId');
@@ -28,8 +34,6 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
   if (!conversationId) {
     return NextResponse.json({ error: 'conversationId query param is required' }, { status: 400 });
   }
-
-  const cookieHeader = req.headers.get('cookie');
 
   try {
     const agentsApiUrl = getAgentsApiUrl();
@@ -40,7 +44,7 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
       {
         headers: {
           'Content-Type': 'application/json',
-          Cookie: cookieHeader,
+          Cookie: authResult.cookieHeader,
         },
         timeout: 15000,
         withCredentials: true,

@@ -2,6 +2,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { requireApiRouteSession } from '@/lib/auth/api-route-auth';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { getLogger } from '@/lib/logger';
 
@@ -60,16 +61,13 @@ function validateTimeRange(start: number, end: number): { valid: boolean; error?
   return { valid: true };
 }
 
-function extractRequestContext(request: NextRequest) {
+function extractRequestContext(request: NextRequest, cookieHeader: string) {
   const url = new URL(request.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
   const mode = url.searchParams.get('mode');
 
-  const cookieHeader = request.headers.get('cookie');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (cookieHeader) {
-    headers.Cookie = cookieHeader;
-  }
+  headers.Cookie = cookieHeader;
 
   return { tenantId, mode, headers };
 }
@@ -97,7 +95,12 @@ function handleProxyError(error: unknown, logger: ReturnType<typeof getLogger>) 
 
 export async function POST(request: NextRequest) {
   const logger = getLogger('traces-proxy');
-  const { tenantId, mode, headers } = extractRequestContext(request);
+  const authResult = await requireApiRouteSession(request);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
+
+  const { tenantId, mode, headers } = extractRequestContext(request, authResult.cookieHeader);
   const agentsApiUrl = getAgentsApiUrl();
 
   try {
@@ -191,20 +194,20 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const logger = getLogger('traces-config-check');
+  const authResult = await requireApiRouteSession(request);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
 
   try {
     // Extract tenantId from query params
     const url = new URL(request.url);
     const tenantId = url.searchParams.get('tenantId') || 'default';
 
-    // Forward cookies for authentication
-    const cookieHeader = request.headers.get('cookie');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      Cookie: authResult.cookieHeader,
     };
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-    }
 
     // Forward to agents-api health endpoint
     const agentsApiUrl = getAgentsApiUrl();

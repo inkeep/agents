@@ -13,6 +13,7 @@ import { ModelFactory, normalizeDataComponentSchema } from '@inkeep/agents-core'
 import { Output, streamText } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { requireApiRouteProjectPermission } from '@/lib/auth/api-route-auth';
 import { fetchDataComponent } from '@/lib/api/data-components';
 import { fetchProject } from '@/lib/api/projects';
 
@@ -27,6 +28,15 @@ export async function POST(
 
     if (!tenantId || !projectId) {
       return new Response('Missing tenantId or projectId', { status: 400 });
+    }
+
+    const authResult = await requireApiRouteProjectPermission(request, {
+      tenantId,
+      projectId,
+      level: 'edit',
+    });
+    if (!authResult.ok) {
+      return authResult.response;
     }
 
     // Fetch data component from agents-api

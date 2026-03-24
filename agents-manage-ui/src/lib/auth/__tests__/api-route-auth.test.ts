@@ -1,0 +1,121 @@
+import {
+  filterAuthCookieHeader,
+  requireApiRouteProjectPermission,
+  requireApiRouteSession,
+} from '../api-route-auth';
+
+vi.mock('@/lib/api/api-config', () => ({
+  getAgentsApiUrl: () => 'http://agents-api.test',
+}));
+
+describe('api-route-auth', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    fetchMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('filters auth cookies from the raw cookie header', () => {
+    expect(
+      filterAuthCookieHeader(
+        'theme=dark; better-auth.session_token=abc; __Secure-better-auth.session_data=def; foo=bar'
+      )
+    ).toBe('better-auth.session_token=abc; __Secure-better-auth.session_data=def');
+  });
+
+  it('rejects requests without auth cookies before contacting agents-api', async () => {
+    const result = await requireApiRouteSession(new Request('http://localhost/api/test'));
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.response.status).toBe(401);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('accepts requests with a valid Better Auth session', async () => {
+    fetchMock.mockResolvedValueOnce(
+      Response.json({
+        session: { id: 'session-1' },
+        user: { id: 'user-1', email: 'user@example.com' },
+      })
+    );
+
+    const result = await requireApiRouteSession(
+      new Request('http://localhost/api/test', {
+        headers: {
+          cookie:
+            'theme=dark; better-auth.session_token=abc; __Secure-better-auth.session_data=def',
+        },
+      })
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.cookieHeader).toBe(
+        'better-auth.session_token=abc; __Secure-better-auth.session_data=def'
+      );
+      expect(result.session.user.id).toBe('user-1');
+    }
+
+    expect(fetchMock).toHaveBeenCalledWith('http://agents-api.test/api/auth/get-session', {
+      headers: {
+        cookie: 'better-auth.session_token=abc; __Secure-better-auth.session_data=def',
+      },
+      cache: 'no-store',
+    });
+  });
+
+  it('rejects project-scoped requests when the user lacks the required permission', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        Response.json({
+          session: { id: 'session-1' },
+          user: { id: 'user-1', email: 'user@example.com' },
+        })
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          data: {
+            canView: true,
+            canUse: true,
+            canEdit: false,
+          },
+        })
+      );
+
+    const result = await requireApiRouteProjectPermission(
+      new Request('http://localhost/api/test', {
+        headers: {
+          cookie: 'better-auth.session_token=abc',
+        },
+      }),
+      {
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        level: 'edit',
+      }
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.response.status).toBe(403);
+    }
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://agents-api.test/manage/tenants/tenant-1/projects/project-1/permissions',
+      {
+        headers: {
+          cookie: 'better-auth.session_token=abc',
+        },
+        cache: 'no-store',
+      }
+    );
+  });
+});
