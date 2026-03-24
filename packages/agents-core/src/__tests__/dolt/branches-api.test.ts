@@ -197,21 +197,25 @@ describe('Branches API Module', () => {
   });
 
   describe('createBranch', () => {
-    it('should create branch from tenant main without schema sync when source is schema source', async () => {
+    it('should create branch from project main without schema sync when source is schema source', async () => {
       const mockExecute = vi
         .fn()
         // dolt_branches - check if branch exists
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_schema_diff - check source branch (tenant_main vs main)
+        // dolt_schema_diff - check source branch (project_main vs main)
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches (doltHashOf inside doltBranch resolving startPoint tenant1_main)
+        // dolt_branches (doltHashOf inside doltBranch resolving startPoint tenant1_project1_main)
         .mockResolvedValueOnce({
           rows: [
-            { name: 'tenant1_main', hash: 'tenant-main-hash', latest_commit_date: new Date() },
+            {
+              name: 'tenant1_project1_main',
+              hash: 'project-main-hash',
+              latest_commit_date: new Date(),
+            },
           ],
         })
-        // dolt_log (doltHashOf gets commit hash for tenant1_main)
-        .mockResolvedValueOnce({ rows: [{ commit_hash: 'tenant-main-hash' }] })
+        // dolt_log (doltHashOf gets commit hash for tenant1_project1_main)
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'project-main-hash' }] })
         // DOLT_BRANCH - create new branch
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches (doltHashOf checks if new branch is a branch)
@@ -259,7 +263,7 @@ describe('Branches API Module', () => {
         // DOLT_CHECKOUT - checkout source branch for sync
         .mockResolvedValueOnce({ rows: [] })
         // active_branch() for syncSchemaFromMain
-        .mockResolvedValueOnce({ rows: [{ branch: 'tenant1_main' }] })
+        .mockResolvedValueOnce({ rows: [{ branch: 'tenant1_project1_main' }] })
         // pg_try_advisory_lock
         .mockResolvedValueOnce({ rows: [{ acquired: true }] })
         // dolt_schema_diff for syncSchemaFromMain (re-check after lock)
@@ -289,9 +293,11 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'post-merge' }] })
         // pg_advisory_unlock
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches for doltHashOf (checking if tenant1_main is a branch)
+        // dolt_branches for doltHashOf (checking if tenant1_project1_main is a branch)
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_main', hash: 'post-merge', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_project1_main', hash: 'post-merge', latest_commit_date: new Date() },
+          ],
         })
         // dolt_log for doltHashOf (getting commit hash for branch)
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'post-merge' }] })
@@ -327,14 +333,18 @@ describe('Branches API Module', () => {
         .fn()
         // dolt_branches - check if branch exists
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches (doltHashOf inside doltBranch resolving startPoint)
+        // dolt_branches (doltHashOf inside doltBranch resolving startPoint tenant1_project1_main)
         .mockResolvedValueOnce({
           rows: [
-            { name: 'tenant1_main', hash: 'tenant-main-hash', latest_commit_date: new Date() },
+            {
+              name: 'tenant1_project1_main',
+              hash: 'project-main-hash',
+              latest_commit_date: new Date(),
+            },
           ],
         })
-        // dolt_log (doltHashOf gets commit hash for tenant1_main)
-        .mockResolvedValueOnce({ rows: [{ commit_hash: 'tenant-main-hash' }] })
+        // dolt_log (doltHashOf gets commit hash for tenant1_project1_main)
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'project-main-hash' }] })
         // DOLT_BRANCH
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches (doltHashOf checks if new branch is a branch)
