@@ -1,5 +1,11 @@
 import { z } from '@hono/zod-openapi';
-import { type DataPart, type FilePart, type Part, SPAN_KEYS } from '@inkeep/agents-core';
+import {
+  type DataPart,
+  type FilePart,
+  GENERATION_TYPES,
+  type Part,
+  SPAN_KEYS,
+} from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
@@ -109,7 +115,7 @@ export function buildTelemetryConfig(ctx: AgentRunContext, phase?: string): obje
       agentId: ctx.config.agentId,
       subAgentId: ctx.config.id,
       subAgentName: ctx.config.name,
-      generationType: 'sub_agent_generation',
+      generationType: GENERATION_TYPES.SUB_AGENT_GENERATION,
       ...(ctx.conversationId && { conversationId: ctx.conversationId }),
     },
   };

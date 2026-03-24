@@ -1,4 +1,4 @@
-import type { ModelSettings } from '@inkeep/agents-core';
+import { GENERATION_TYPES, type ModelSettings } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import type { CompressedArtifactInfo } from '../artifacts/artifact-utils';
 import {
@@ -156,7 +156,7 @@ export class ConversationCompressor extends BaseCompressor {
         tenantId: this.tenantId,
         projectId: this.projectId,
         agentId: this.agentId,
-        generationType: 'conversation_compression',
+        generationType: GENERATION_TYPES.CONVERSATION_COMPRESSION,
       },
     });
   }

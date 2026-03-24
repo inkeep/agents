@@ -321,11 +321,13 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
         sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, int64, attr),
         sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
+        sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
         sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
         sf(SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, str, attr),
         sf(SPAN_KEYS.AI_PROMPT_MESSAGES, str, attr),
         sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
         sf(SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, str, attr),
+        sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attr),
       ]
     ),
     buildQueryEnvelope(
@@ -1003,6 +1005,8 @@ export async function GET(
         aiResponseText: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '') || undefined,
         aiResponseToolCalls: aiResponseToolCalls || undefined,
         aiPromptMessages: aiPromptMessages || undefined,
+        aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        aiTelemetryPhase: getString(span, SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, '') || undefined,
       });
     }
 

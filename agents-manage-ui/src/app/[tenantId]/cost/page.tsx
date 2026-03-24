@@ -1,10 +1,14 @@
 'use client';
 
-import { use, useMemo } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
+import { CostDashboard } from '@/components/cost/cost-dashboard';
 import { PageHeader } from '@/components/layout/page-header';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
-import { UsageDashboard } from '@/components/usage/usage-dashboard';
+import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
+import { Combobox } from '@/components/ui/combobox';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
+import { fetchProjects } from '@/lib/api/projects';
+import type { Project } from '@/lib/types/project';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
@@ -13,12 +17,8 @@ const TIME_RANGES = {
   '30d': { label: 'Last 30 days', hours: 24 * 30 },
 } as const;
 
-export default function ProjectUsagePage({
-  params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
-  const { tenantId, projectId } = use(params);
+export default function TenantUsagePage({ params }: { params: Promise<{ tenantId: string }> }) {
+  const { tenantId } = use(params);
   const {
     timeRange: selectedTimeRange,
     customStartDate,
@@ -26,6 +26,15 @@ export default function ProjectUsagePage({
     setTimeRange: setSelectedTimeRange,
     setCustomDateRange,
   } = useTracesQueryState();
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    fetchProjects(tenantId).then((result) => {
+      if (result.data) setProjects(result.data);
+    });
+  }, [tenantId]);
 
   const { startTime, endTime } = useMemo(() => {
     if (selectedTimeRange === CUSTOM && customStartDate && customEndDate) {
@@ -42,9 +51,27 @@ export default function ProjectUsagePage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <PageHeader title="Usage" description="Token usage and estimated costs for this project" />
+      <PageHeader
+        title="Cost & Token Usage"
+        description="Estimated costs and token usage across your agents"
+      />
 
       <div className="flex items-center gap-4 flex-wrap">
+        <Combobox
+          defaultValue={selectedProjectId}
+          notFoundMessage="No projects found."
+          onSelect={(value: string) => setSelectedProjectId(value || undefined)}
+          options={projects.map((p) => ({ value: p.projectId, label: p.name }))}
+          TriggerComponent={
+            <FilterTriggerComponent
+              filterLabel={selectedProjectId ? 'Project' : 'All projects'}
+              isRemovable={true}
+              onDeleteFilter={() => setSelectedProjectId(undefined)}
+              multipleCheckboxValues={selectedProjectId ? [selectedProjectId] : []}
+              options={projects.map((p) => ({ value: p.projectId, label: p.name }))}
+            />
+          }
+        />
         <DatePickerWithPresets
           label="Time range"
           onRemove={() => setSelectedTimeRange('30d')}
@@ -62,9 +89,9 @@ export default function ProjectUsagePage({
         />
       </div>
 
-      <UsageDashboard
+      <CostDashboard
         tenantId={tenantId}
-        projectId={projectId}
+        projectId={selectedProjectId}
         startTime={startTime}
         endTime={endTime}
       />

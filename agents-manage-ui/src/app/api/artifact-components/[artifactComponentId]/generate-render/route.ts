@@ -9,7 +9,8 @@
  * 4. Streams NDJSON response back to client
  */
 
-import { ModelFactory } from '@inkeep/agents-core';
+import { GENERATION_TYPES, ModelFactory } from '@inkeep/agents-core';
+import { context as otelContext, propagation } from '@opentelemetry/api';
 import { Output, streamText } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -68,14 +69,28 @@ export async function POST(
       mockData: mockDataSchema.describe('Sample data matching the props schema'),
     });
 
-    const result = streamText({
-      ...modelConfig,
-      prompt,
-      output: Output.object({
-        schema: renderSchema,
-      }),
-      temperature: 0.7,
-    });
+    const bag = Object.entries({ 'tenant.id': tenantId, 'project.id': projectId }).reduce(
+      (b, [key, value]) => b.setEntry(key, { value }),
+      propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage()
+    );
+    const result = otelContext.with(propagation.setBaggage(otelContext.active(), bag), () =>
+      streamText({
+        ...modelConfig,
+        prompt,
+        output: Output.object({
+          schema: renderSchema,
+        }),
+        temperature: 0.7,
+        experimental_telemetry: {
+          isEnabled: true,
+          metadata: {
+            tenantId,
+            projectId,
+            generationType: GENERATION_TYPES.COMPONENT_RENDER,
+          },
+        },
+      })
+    );
 
     // Get existing data if we're modifying (to preserve sample data)
     const existingData =

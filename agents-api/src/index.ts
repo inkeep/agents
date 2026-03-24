@@ -91,8 +91,8 @@ const app = createAgentsHono({
   sandboxConfig,
 });
 
-// Initialize pricing service for usage tracking
-getPricingService()
+// Initialize pricing service for usage tracking (awaited to ensure cache is populated before requests)
+await getPricingService()
   .initialize()
   .catch((err) => {
     logger.warn({ error: err }, 'Failed to initialize pricing service');

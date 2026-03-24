@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
 import {
   estimateTokens as estimateTokensUtil,
+  GENERATION_TYPES,
   getLedgerArtifacts,
   SPAN_KEYS,
 } from '@inkeep/agents-core';
@@ -519,7 +520,7 @@ export abstract class BaseCompressor {
         tenantId: this.tenantId,
         projectId: this.projectId,
         agentId: this.agentId,
-        generationType: 'mid_generation_compression',
+        generationType: GENERATION_TYPES.MID_GENERATION_COMPRESSION,
       },
     });
 

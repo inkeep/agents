@@ -250,11 +250,12 @@ export class PricingService {
   }
 }
 
-let defaultInstance: PricingService | null = null;
+const GLOBAL_KEY = Symbol.for('inkeep.pricingService');
 
 export function getPricingService(): PricingService {
-  if (!defaultInstance) {
-    defaultInstance = new PricingService();
+  const g = globalThis as any;
+  if (!g[GLOBAL_KEY]) {
+    g[GLOBAL_KEY] = new PricingService();
   }
-  return defaultInstance;
+  return g[GLOBAL_KEY] as PricingService;
 }

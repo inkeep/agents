@@ -232,17 +232,20 @@ export const ACTIVITY_STATUS = {
   WARNING: 'warning',
 } as const;
 
+/** Generation type constants for usage tracking telemetry */
+export const GENERATION_TYPES = {
+  SUB_AGENT_GENERATION: 'sub_agent_generation',
+  CONVERSATION_COMPRESSION: 'conversation_compression',
+  MID_GENERATION_COMPRESSION: 'mid_generation_compression',
+  ARTIFACT_METADATA: 'artifact_metadata',
+  STATUS_UPDATE: 'status_update',
+  EVAL_SIMULATION: 'eval_simulation',
+  EVAL_SCORING: 'eval_scoring',
+  COMPONENT_RENDER: 'component_render',
+} as const;
+
 /** Valid generation types for usage tracking */
-export const USAGE_GENERATION_TYPES = [
-  'sub_agent_generation',
-  'conversation_compression',
-  'mid_generation_compression',
-  'artifact_metadata',
-  'status_update',
-  'eval_simulation',
-  'eval_scoring',
-  'component_render',
-] as const;
+export const USAGE_GENERATION_TYPES = Object.values(GENERATION_TYPES);
 
 /** Agent IDs */
 export const AGENT_IDS = {

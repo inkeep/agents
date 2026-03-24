@@ -65,7 +65,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
         },
         {
           title: 'Cost',
-          url: `/${tenantId}/usage`,
+          url: `/${tenantId}/cost`,
           icon: Coins,
         },
         ...(isWorkAppsEnabled
@@ -187,7 +187,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
         },
         {
           title: 'Cost',
-          url: `/${tenantId}/projects/${projectId}/usage`,
+          url: `/${tenantId}/projects/${projectId}/cost`,
           icon: Coins,
         },
       ]

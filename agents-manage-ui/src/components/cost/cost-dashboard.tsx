@@ -31,7 +31,7 @@ export function formatTokens(tokens: number): string {
   return tokens.toLocaleString();
 }
 
-interface UsageDashboardProps {
+interface CostDashboardProps {
   tenantId: string;
   projectId?: string;
   startTime: string;
@@ -47,7 +47,7 @@ interface UsageSummaryRow {
   eventCount: number;
 }
 
-export function UsageDashboard({ tenantId, projectId, startTime, endTime }: UsageDashboardProps) {
+export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostDashboardProps) {
   const [summaryByModel, setSummaryByModel] = useState<UsageSummaryRow[]>([]);
   const [summaryByType, setSummaryByType] = useState<UsageSummaryRow[]>([]);
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
@@ -111,9 +111,9 @@ export function UsageDashboard({ tenantId, projectId, startTime, endTime }: Usag
       <UsageStatCards totals={totals} modelCount={summaryByModel.length} isLoading={isLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UsageBreakdownTable title="Usage by Model" data={summaryByModel} isLoading={isLoading} />
+        <UsageBreakdownTable title="Cost by Model" data={summaryByModel} isLoading={isLoading} />
         <UsageBreakdownTable
-          title="Usage by Type"
+          title="Cost by Type"
           data={summaryByType}
           isLoading={isLoading}
           formatGroupKey={(key) => key.replace(/_/g, ' ')}
@@ -191,16 +191,16 @@ function UsageStatCards({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
+        title="Estimated Cost"
+        Icon={Coins}
+        stat={formatCost(totals.totalCost)}
+        isLoading={isLoading}
+      />
+      <StatCard
         title="Total Tokens"
         Icon={Hash}
         stat={formatTokens(totals.totalTokens)}
         statDescription={`${formatTokens(totals.totalInputTokens)} in / ${formatTokens(totals.totalOutputTokens)} out`}
-        isLoading={isLoading}
-      />
-      <StatCard
-        title="Estimated Cost"
-        Icon={Coins}
-        stat={formatCost(totals.totalCost)}
         isLoading={isLoading}
       />
       <StatCard title="Generations" Icon={Zap} stat={totals.totalEvents} isLoading={isLoading} />
@@ -231,14 +231,14 @@ function UsageBreakdownTable({
         {isLoading ? (
           <Skeleton className="h-48 w-full" />
         ) : data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No usage data for this period</p>
+          <p className="text-sm text-muted-foreground">No cost data for this period</p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>{groupLabel}</TableHead>
-                <TableHead className="text-right">Tokens</TableHead>
                 <TableHead className="text-right">Cost</TableHead>
+                <TableHead className="text-right">Tokens</TableHead>
                 <TableHead className="text-right">Calls</TableHead>
               </TableRow>
             </TableHeader>
@@ -248,9 +248,11 @@ function UsageBreakdownTable({
                   <TableCell className="font-mono text-sm">
                     {formatGroupKey ? formatGroupKey(row.groupKey) : row.groupKey}
                   </TableCell>
-                  <TableCell className="text-right">{formatTokens(row.totalTokens)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right font-medium">
                     {formatCost(row.totalEstimatedCostUsd)}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {formatTokens(row.totalTokens)}
                   </TableCell>
                   <TableCell className="text-right">{row.eventCount}</TableCell>
                 </TableRow>
@@ -301,13 +303,13 @@ function UsageEventsTable({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Usage Events</CardTitle>
+        <CardTitle>Cost Events</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-64 w-full" />
         ) : events.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No usage events for this period</p>
+          <p className="text-sm text-muted-foreground">No cost events for this period</p>
         ) : (
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <Table>
@@ -316,11 +318,11 @@ function UsageEventsTable({
                   <TableHead>Time</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Model</TableHead>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Sub Agent</TableHead>
+                  <TableHead className="text-right">Cost</TableHead>
                   <TableHead className="text-right">In</TableHead>
                   <TableHead className="text-right">Out</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
+                  <TableHead>Agent</TableHead>
+                  <TableHead>Sub Agent</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Conversation</TableHead>
                 </TableRow>
@@ -337,13 +339,17 @@ function UsageEventsTable({
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{event.model}</TableCell>
-                    <TableCell className="font-mono text-xs">{event.agentId || '—'}</TableCell>
-                    <TableCell className="font-mono text-xs">{event.subAgentId || '—'}</TableCell>
-                    <TableCell className="text-right">{formatTokens(event.inputTokens)}</TableCell>
-                    <TableCell className="text-right">{formatTokens(event.outputTokens)}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right font-medium">
                       {event.estimatedCostUsd ? formatCost(event.estimatedCostUsd) : '—'}
                     </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatTokens(event.inputTokens)}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatTokens(event.outputTokens)}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{event.agentId || '—'}</TableCell>
+                    <TableCell className="font-mono text-xs">{event.subAgentId || '—'}</TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[event.status] ?? ''}`}

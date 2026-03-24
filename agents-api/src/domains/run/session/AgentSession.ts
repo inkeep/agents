@@ -13,6 +13,7 @@ import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   estimateTokens,
+  GENERATION_TYPES,
   getLedgerArtifacts,
   ModelFactory,
 } from '@inkeep/agents-core';
@@ -1135,7 +1136,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               recordInputs: true,
               recordOutputs: true,
               metadata: {
-                generationType: 'status_update',
+                generationType: GENERATION_TYPES.STATUS_UPDATE,
                 tenantId: this.executionContext.tenantId,
                 projectId: this.executionContext.projectId,
                 agentId: this.executionContext.agentId,
@@ -1698,7 +1699,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                         recordInputs: true,
                         recordOutputs: true,
                         metadata: {
-                          generationType: 'artifact_metadata',
+                          generationType: GENERATION_TYPES.ARTIFACT_METADATA,
                           tenantId: this.executionContext.tenantId,
                           projectId: this.executionContext.projectId,
                           agentId: this.executionContext.agentId,
