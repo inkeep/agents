@@ -234,22 +234,16 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
 
     let didSave = false;
 
-    await form.handleSubmit(async (data) => {
+    await form.handleSubmit(async ({ filePath, extension, content }) => {
+      const filePathWithExt = `${filePath}${extension}`;
       const nextFilePath = isCreateMode
-        ? buildCreateFilePath(createDirectoryPath, data.filePath)
-        : data.filePath;
+        ? buildCreateFilePath(createDirectoryPath, filePathWithExt)
+        : filePathWithExt;
 
       try {
         const result = isCreateMode
-          ? await createSkillFileAction(tenantId, projectId, skillId, nextFilePath, data.content)
-          : await updateSkillFileAction(
-              tenantId,
-              projectId,
-              skillId,
-              fileId,
-              filePath,
-              data.content
-            );
+          ? await createSkillFileAction(tenantId, projectId, skillId, nextFilePath, content)
+          : await updateSkillFileAction(tenantId, projectId, skillId, fileId, filePath, content);
 
         if (!result.success) {
           toast.error(result.error ?? `Failed to ${isCreateMode ? 'create' : 'update'} skill file`);
@@ -266,7 +260,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
           return;
         }
 
-        form.reset({ filePath, content: data.content });
+        form.reset({ filePath, content });
         router.refresh();
         didSave = true;
       } catch {}
@@ -277,7 +271,13 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
 
   return (
     <Form {...form}>
-      <form className="contents" onSubmit={handleSave}>
+      <form
+        className="contents"
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSave();
+        }}
+      >
         <div className="flex items-center border-b px-4 gap-2 h-(--header-height) shrink-0">
           <BreadcrumbNav>
             {breadcrumbSegments.map((segment, idx, arr) => {
@@ -307,25 +307,37 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                         <FormControl>
                           <Input
                             {...field}
-                            placeholder="file-name.ext"
+                            placeholder="filename"
                             disabled={!canEdit}
                             className="w-auto"
                           />
                         </FormControl>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="ext" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              {['.md', '.txt', '.html'].map((ext) => (
-                                <SelectItem key={ext} value={ext}>
-                                  {ext}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
+                        <FormField
+                          control={form.control}
+                          name="extension"
+                          render={({ field }) => (
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              defaultValue=".md"
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="ext" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectGroup>
+                                  {Object.keys(SkillFileSchema.shape.extension.unwrap().enum).map(
+                                    (ext) => (
+                                      <SelectItem key={ext} value={ext}>
+                                        {ext}
+                                      </SelectItem>
+                                    )
+                                  )}
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
                       </ButtonGroup>
                       <FormMessage />
                     </FormItem>

@@ -29,7 +29,10 @@ export const SkillSchema = BaseSkillSchema.transform((data) => ({
   ],
 }));
 
-export const SkillFileSchema = SkillFileContentInputSchema;
+export const SkillFileSchema = z.strictObject({
+  ...SkillFileContentInputSchema.shape,
+  extension: z.enum(['.md', '.txt', '.html']).default('.md'),
+});
 
 export type SkillInput = z.input<typeof SkillSchema>;
 export type SkillOutput = z.infer<typeof SkillSchema>;
