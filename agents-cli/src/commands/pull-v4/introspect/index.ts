@@ -13,7 +13,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
 import * as p from '@clack/prompts';
-import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { type FullProjectDefinition, getTempBranchSuffix } from '@inkeep/agents-core';
 
 // Increase max listeners to prevent warnings during complex CLI flows
 // This is needed because @clack/prompts + multiple interactive prompts + spinners all add listeners
@@ -23,6 +23,7 @@ import { ManagementApiClient } from '../../../api';
 import { performBackgroundVersionCheck } from '../../../utils/background-version-check';
 import { initializeCommand } from '../../../utils/cli-pipeline';
 import { loadProject } from '../../../utils/project-loader';
+import { readProjectState, writeProjectState } from '../../../utils/state';
 import { introspectGenerate } from '../introspect-generator';
 
 export interface PullV3Options {
@@ -274,6 +275,13 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       }
     }
 
+    const existingState = readProjectState(projectDir, projectId);
+    const lastPulledHash = existingState?.lastPulledHash;
+
+    if (options.debug && lastPulledHash) {
+      console.log(styleText('gray', `   Last pulled hash: ${lastPulledHash}`));
+    }
+
     // Step 4: Fetch project data from API
     s.start(`Fetching project: ${projectId}`);
 
@@ -286,7 +294,84 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       config.agentsApiKey
     );
 
-    const remoteProject = await apiClient.getFullProject(projectId);
+    let currentMainHash: string | undefined;
+    try {
+      const mainBranch = await apiClient.getBranch(projectId, 'main');
+      currentMainHash = mainBranch.hash;
+    } catch {
+      // Non-fatal: if we can't get the hash, fall through to direct pull
+    }
+
+    if (options.debug && currentMainHash) {
+      console.log(styleText('gray', `   Current main hash: ${currentMainHash}`));
+    }
+
+    let remoteProject: any;
+
+    if (localProjectForId && lastPulledHash) {
+      s.message('Checking for conflicts...');
+
+      const tempBranchName = getTempBranchSuffix('cli-pull');
+
+      try {
+        await apiClient.createBranch(projectId, {
+          name: tempBranchName,
+          fromCommit: lastPulledHash,
+        });
+
+        const localProjectDefinition = await localProjectForId.getFullDefinition();
+        await apiClient.pushFullProject(projectId, tempBranchName, localProjectDefinition);
+
+        // Merge main INTO temp branch so the temp branch gets a reconciled result
+        // (main's changes + user's local changes). We then pull from the temp branch.
+        // We must NOT merge temp into main — that would push local edits to main.
+        s.message('Detecting conflicts...');
+        const preview = await apiClient.mergePreview(projectId, {
+          sourceBranch: 'main',
+          targetBranch: tempBranchName,
+        });
+
+        if (preview.hasConflicts) {
+          s.stop('Conflicts detected');
+          const { resolveConflictsInteractive } = await import('../merge-conflicts');
+          if (options.debug) console.log(preview.conflicts);
+          const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
+
+          s.start('Executing merge with resolutions...');
+          const mergeResult = await apiClient.mergeExecute(projectId, {
+            sourceBranch: 'main',
+            targetBranch: tempBranchName,
+            sourceHash: preview.sourceHash,
+            targetHash: preview.targetHash,
+            resolutions,
+            message: 'CLI pull: merge main into local state',
+          });
+          if (mergeResult) s.stop('Merge completed');
+        } else {
+          s.message('Clean merge — no conflicts');
+
+          await apiClient.mergeExecute(projectId, {
+            sourceBranch: 'main',
+            targetBranch: tempBranchName,
+            sourceHash: preview.sourceHash,
+            targetHash: preview.targetHash,
+            message: 'CLI pull: merge main into local state',
+          });
+        }
+        // Fetch the reconciled project from the temp branch before cleanup
+        s.start('Fetching merged project state...');
+        remoteProject = await apiClient.getFullProject(projectId, tempBranchName);
+      } finally {
+        try {
+          await apiClient.deleteBranch(projectId, tempBranchName, true);
+        } catch {
+          // best-effort cleanup
+        }
+      }
+    } else {
+      // Todo: we can probably just exit here because there is nothing new to pull
+      remoteProject = await apiClient.getFullProject(projectId);
+    }
 
     if (options.debug && remoteProject.functions) {
       console.log(
@@ -386,6 +471,13 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       debug: options.debug,
     });
     s.stop('All files generated');
+
+    try {
+      const mainBranch = await apiClient.getBranch(projectId, 'main');
+      writeProjectState(paths.projectRoot, projectId, mainBranch.hash);
+    } catch {
+      // Non-fatal: hash tracking is best-effort
+    }
 
     console.log(styleText('green', '\nProject synced successfully!'));
     console.log(styleText('gray', `   Location: ${paths.projectRoot}`));
