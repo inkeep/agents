@@ -106,11 +106,10 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
-    const { data, pagination } = await listScheduledTriggersPaginated(db)({
+    const { data, pagination } = await listScheduledTriggersPaginated(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -272,10 +271,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
-    const trigger = await getScheduledTriggerById(db)({
+    const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -329,7 +327,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
@@ -376,7 +373,7 @@ app.openapi(
         })
       : null;
 
-    const trigger = await createScheduledTrigger(db)({
+    const trigger = await createScheduledTrigger(runDbClient)({
       ...body,
       id,
       tenantId,
@@ -439,7 +436,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
@@ -496,8 +492,7 @@ app.openapi(
       'Updating scheduled trigger'
     );
 
-    // Get existing trigger to check if it exists
-    const existing = await getScheduledTriggerById(db)({
+    const existing = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -578,7 +573,7 @@ app.openapi(
       });
     }
 
-    const updatedTrigger = await updateScheduledTrigger(db)({
+    const updatedTrigger = await updateScheduledTrigger(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
       data: {
@@ -645,7 +640,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
     const tenantRole = c.get('tenantRole') as OrgRole;
@@ -661,8 +655,7 @@ app.openapi(
       'Deleting scheduled trigger'
     );
 
-    // First check if the trigger exists
-    const existing = await getScheduledTriggerById(db)({
+    const existing = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -689,7 +682,7 @@ app.openapi(
       );
     }
 
-    await deleteScheduledTrigger(db)({
+    await deleteScheduledTrigger(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -967,7 +960,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const {
       tenantId,
       projectId,
@@ -1011,8 +1003,7 @@ app.openapi(
       });
     }
 
-    // Get the trigger configuration for execution parameters
-    const trigger = await getScheduledTriggerById(db)({
+    const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId,
     });
@@ -1307,7 +1298,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id: scheduledTriggerId } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
     const tenantRole = c.get('tenantRole') as OrgRole;
@@ -1323,8 +1313,7 @@ app.openapi(
       'Running scheduled trigger now'
     );
 
-    // Get the trigger configuration
-    const trigger = await getScheduledTriggerById(db)({
+    const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId,
     });

@@ -1,5 +1,5 @@
-import { and, type Column, count, desc, eq, inArray, sql } from 'drizzle-orm';
-import type { PgColumn } from 'drizzle-orm/pg-core';
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import type { PgTable } from 'drizzle-orm/pg-core';
 import { getProjectMainBranchName } from '../../data-access/manage/projectLifecycle';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
@@ -15,7 +15,6 @@ import {
   subAgentToolRelations,
   tools,
 } from '../../db/manage/manage-schema';
-import type { ScopedTable } from '../../db/manage/scope-definitions';
 import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import type {
@@ -34,13 +33,8 @@ import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
-import { listScheduledTriggers } from './scheduledTriggers';
-import {
-  agentScopedWhere,
-  projectScopedWhere,
-  subAgentScopedWhere,
-  tenantScopedWhere,
-} from './scope-helpers';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { listScheduledTriggers } from '../runtime/scheduledTriggers';
 import { getSkillsForSubAgents } from './skills';
 import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
@@ -52,7 +46,11 @@ import { listTriggers } from './triggers';
 export const getAgentById =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db.query.agents.findFirst({
-      where: and(projectScopedWhere(agents, params.scopes), eq(agents.id, params.scopes.agentId)),
+      where: and(
+        eq(agents.tenantId, params.scopes.tenantId),
+        eq(agents.projectId, params.scopes.projectId),
+        eq(agents.id, params.scopes.agentId)
+      ),
     });
     return result ?? null;
   };
@@ -60,7 +58,11 @@ export const getAgentById =
 export const getAgentWithDefaultSubAgent =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db.query.agents.findFirst({
-      where: and(projectScopedWhere(agents, params.scopes), eq(agents.id, params.scopes.agentId)),
+      where: and(
+        eq(agents.tenantId, params.scopes.tenantId),
+        eq(agents.projectId, params.scopes.projectId),
+        eq(agents.id, params.scopes.agentId)
+      ),
       with: {
         defaultSubAgent: true,
       },
@@ -71,7 +73,10 @@ export const getAgentWithDefaultSubAgent =
 export const listAgents =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return await db.query.agents.findMany({
-      where: projectScopedWhere(agents, params.scopes),
+      where: and(
+        eq(agents.tenantId, params.scopes.tenantId),
+        eq(agents.projectId, params.scopes.projectId)
+      ),
     });
   };
 
@@ -82,7 +87,10 @@ export const listAgentsPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = projectScopedWhere(agents, params.scopes);
+    const whereClause = and(
+      eq(agents.tenantId, params.scopes.tenantId),
+      eq(agents.projectId, params.scopes.projectId)
+    );
 
     const query = db
       .select()
@@ -216,7 +224,13 @@ export const updateAgent =
     const agent = await db
       .update(agents)
       .set(updateData)
-      .where(and(projectScopedWhere(agents, params.scopes), eq(agents.id, params.scopes.agentId)))
+      .where(
+        and(
+          eq(agents.tenantId, params.scopes.tenantId),
+          eq(agents.projectId, params.scopes.projectId),
+          eq(agents.id, params.scopes.agentId)
+        )
+      )
       .returning();
 
     return agent[0] ?? null;
@@ -224,7 +238,7 @@ export const updateAgent =
 
 export const deleteAgent =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
-    const { agentId } = params.scopes;
+    const { tenantId, projectId, agentId } = params.scopes;
 
     // Clean up runtime entities (cross-database cascade).
     // Since there are no FK constraints across the manage and runtime databases,
@@ -232,7 +246,11 @@ export const deleteAgent =
     try {
       const currentBranch = await getActiveBranch(db)();
       const subAgentsList = await db.query.subAgents.findMany({
-        where: agentScopedWhere(subAgents, params.scopes),
+        where: and(
+          eq(subAgents.tenantId, tenantId),
+          eq(subAgents.projectId, projectId),
+          eq(subAgents.agentId, agentId)
+        ),
       });
       const subAgentIds = subAgentsList.map((sa) => sa.id);
 
@@ -253,7 +271,9 @@ export const deleteAgent =
 
     const result = await db
       .delete(agents)
-      .where(and(projectScopedWhere(agents, params.scopes), eq(agents.id, params.scopes.agentId)))
+      .where(
+        and(eq(agents.tenantId, tenantId), eq(agents.projectId, projectId), eq(agents.id, agentId))
+      )
       .returning();
 
     return result.length > 0;
@@ -268,28 +288,30 @@ export const fetchComponentRelationships =
     scopes: AgentScopeConfig,
     subAgentIds: string[],
     config: {
-      relationTable: ScopedTable<'agent'>;
-      componentTable: ScopedTable<'project'>;
-      relationIdField: Column;
-      componentIdField: Column;
-      subAgentIdField: Column;
-      selectFields: Record<string, PgColumn>;
+      relationTable: PgTable<any>;
+      componentTable: PgTable<any>;
+      relationIdField: unknown;
+      componentIdField: unknown;
+      subAgentIdField: unknown;
+      selectFields: Record<string, unknown>;
     }
   ): Promise<Record<string, T>> => {
     const componentsObject: Record<string, T> = {};
 
     if (subAgentIds.length > 0) {
       const results = await db
-        .select(config.selectFields)
-        .from(config.relationTable as any)
+        .select(config.selectFields as any)
+        .from(config.relationTable)
         .innerJoin(
-          config.componentTable as any,
-          eq(config.relationIdField, config.componentIdField)
+          config.componentTable,
+          eq(config.relationIdField as any, config.componentIdField as any)
         )
         .where(
           and(
-            agentScopedWhere(config.relationTable, scopes),
-            inArray(config.subAgentIdField, subAgentIds)
+            eq((config.relationTable as any).tenantId, scopes.tenantId),
+            eq((config.relationTable as any).projectId, scopes.projectId),
+            eq((config.relationTable as any).agentId, scopes.agentId),
+            inArray(config.subAgentIdField as any, subAgentIds)
           )
         );
 
@@ -358,7 +380,7 @@ type SkillWithIndex = {
 };
 
 const getFullAgentDefinitionInternal =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient, runDb?: AgentsRunDatabaseClient) =>
   async ({
     scopes: { tenantId, projectId, agentId },
     includeRelationIds = false,
@@ -366,20 +388,23 @@ const getFullAgentDefinitionInternal =
     scopes: AgentScopeConfig;
     includeRelationIds?: boolean;
   }): Promise<FullAgentSelect | FullAgentSelectWithRelationIds | null> => {
-    const agentScope = { tenantId, projectId, agentId };
     const agent = await getAgentById(db)({
-      scopes: agentScope,
+      scopes: { tenantId, projectId, agentId },
     });
     if (!agent) {
       return null;
     }
 
     const agentRelations = await getAgentRelationsByAgent(db)({
-      scopes: agentScope,
+      scopes: { tenantId, projectId, agentId },
     });
 
     const agentSubAgents = await db.query.subAgents.findMany({
-      where: agentScopedWhere(subAgents, agentScope),
+      where: and(
+        eq(subAgents.tenantId, tenantId),
+        eq(subAgents.projectId, projectId),
+        eq(subAgents.agentId, agentId)
+      ),
     });
 
     const subAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
@@ -429,7 +454,6 @@ const getFullAgentDefinitionInternal =
       agentSubAgents.map(async (agent) => {
         if (!agent) return null;
 
-        const subAgentScope = { tenantId, projectId, agentId, subAgentId: agent.id };
         const subAgentRelationsList = agentRelations.filter(
           (relation) => relation.sourceSubAgentId === agent.id
         );
@@ -519,7 +543,14 @@ const getFullAgentDefinitionInternal =
               eq(subAgentToolRelations.projectId, tools.projectId)
             )
           )
-          .where(subAgentScopedWhere(subAgentToolRelations, subAgentScope));
+          .where(
+            and(
+              eq(subAgentToolRelations.tenantId, tenantId),
+              eq(subAgentToolRelations.projectId, projectId),
+              eq(subAgentToolRelations.agentId, agentId),
+              eq(subAgentToolRelations.subAgentId, agent.id)
+            )
+          );
 
         const agentFunctionTools = await db
           .select({
@@ -545,15 +576,32 @@ const getFullAgentDefinitionInternal =
               eq(subAgentFunctionToolRelations.agentId, functionTools.agentId)
             )
           )
-          .where(subAgentScopedWhere(subAgentFunctionToolRelations, subAgentScope));
+          .where(
+            and(
+              eq(subAgentFunctionToolRelations.tenantId, tenantId),
+              eq(subAgentFunctionToolRelations.projectId, projectId),
+              eq(subAgentFunctionToolRelations.agentId, agentId),
+              eq(subAgentFunctionToolRelations.subAgentId, agent.id)
+            )
+          );
 
         const agentDataComponentRelations = await db.query.subAgentDataComponents.findMany({
-          where: subAgentScopedWhere(subAgentDataComponents, subAgentScope),
+          where: and(
+            eq(subAgentDataComponents.tenantId, tenantId),
+            eq(subAgentDataComponents.projectId, projectId),
+            eq(subAgentDataComponents.agentId, agentId),
+            eq(subAgentDataComponents.subAgentId, agent.id)
+          ),
         });
         const agentDataComponentIds = agentDataComponentRelations.map((rel) => rel.dataComponentId);
 
         const agentArtifactComponentRelations = await db.query.subAgentArtifactComponents.findMany({
-          where: subAgentScopedWhere(subAgentArtifactComponents, subAgentScope),
+          where: and(
+            eq(subAgentArtifactComponents.tenantId, tenantId),
+            eq(subAgentArtifactComponents.projectId, projectId),
+            eq(subAgentArtifactComponents.agentId, agentId),
+            eq(subAgentArtifactComponents.subAgentId, agent.id)
+          ),
         });
         const agentArtifactComponentIds = agentArtifactComponentRelations.map(
           (rel) => rel.artifactComponentId
@@ -676,7 +724,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      await fetchComponentRelationships(db)(agentScope, subAgentIds, {
+      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
         relationTable: subAgentDataComponents,
         componentTable: dataComponents,
         relationIdField: subAgentDataComponents.dataComponentId,
@@ -694,7 +742,7 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      await fetchComponentRelationships(db)(agentScope, subAgentIds, {
+      await fetchComponentRelationships(db)({ tenantId, projectId, agentId }, subAgentIds, {
         relationTable: subAgentArtifactComponents,
         componentTable: artifactComponents,
         relationIdField: subAgentArtifactComponents.artifactComponentId,
@@ -763,7 +811,7 @@ const getFullAgentDefinitionInternal =
       }
 
       const project = await db.query.projects.findFirst({
-        where: and(tenantScopedWhere(projects, { tenantId }), eq(projects.id, projectId)),
+        where: and(eq(projects.tenantId, tenantId), eq(projects.id, projectId)),
       });
 
       if (project?.stopWhen) {
@@ -797,7 +845,9 @@ const getFullAgentDefinitionInternal =
                       })
                       .where(
                         and(
-                          agentScopedWhere(subAgents, { tenantId, projectId, agentId }),
+                          eq(subAgents.tenantId, tenantId),
+                          eq(subAgents.projectId, projectId),
+                          eq(subAgents.agentId, agentId),
                           eq(subAgents.id, subAgentId)
                         )
                       );
@@ -941,58 +991,60 @@ const getFullAgentDefinitionInternal =
       agentsLogger.warn({ error }, 'Failed to load triggers');
     }
 
-    // Fetch scheduled triggers (agent-scoped)
-    try {
-      const scheduledTriggersList = await listScheduledTriggers(db)({
-        scopes: { tenantId, projectId, agentId },
-      });
+    // Fetch scheduled triggers from runtime DB (agent-scoped)
+    if (runDb) {
+      try {
+        const scheduledTriggersList = await listScheduledTriggers(runDb)({
+          scopes: { tenantId, projectId, agentId },
+        });
 
-      if (scheduledTriggersList.length > 0) {
-        const scheduledTriggersObject: Record<string, any> = {};
-        for (const scheduledTrigger of scheduledTriggersList) {
-          scheduledTriggersObject[scheduledTrigger.id] = {
-            id: scheduledTrigger.id,
-            name: scheduledTrigger.name,
-            description: scheduledTrigger.description,
-            enabled: scheduledTrigger.enabled,
-            cronExpression: scheduledTrigger.cronExpression,
-            cronTimezone: scheduledTrigger.cronTimezone,
-            runAt: scheduledTrigger.runAt,
-            payload: scheduledTrigger.payload,
-            messageTemplate: scheduledTrigger.messageTemplate,
-            maxRetries: scheduledTrigger.maxRetries,
-            retryDelaySeconds: scheduledTrigger.retryDelaySeconds,
-            timeoutSeconds: scheduledTrigger.timeoutSeconds,
-            runAsUserId: scheduledTrigger.runAsUserId,
-            createdBy: scheduledTrigger.createdBy,
-          };
+        if (scheduledTriggersList.length > 0) {
+          const scheduledTriggersObject: Record<string, any> = {};
+          for (const scheduledTrigger of scheduledTriggersList) {
+            scheduledTriggersObject[scheduledTrigger.id] = {
+              id: scheduledTrigger.id,
+              name: scheduledTrigger.name,
+              description: scheduledTrigger.description,
+              enabled: scheduledTrigger.enabled,
+              cronExpression: scheduledTrigger.cronExpression,
+              cronTimezone: scheduledTrigger.cronTimezone,
+              runAt: scheduledTrigger.runAt,
+              payload: scheduledTrigger.payload,
+              messageTemplate: scheduledTrigger.messageTemplate,
+              maxRetries: scheduledTrigger.maxRetries,
+              retryDelaySeconds: scheduledTrigger.retryDelaySeconds,
+              timeoutSeconds: scheduledTrigger.timeoutSeconds,
+              runAsUserId: scheduledTrigger.runAsUserId,
+              createdBy: scheduledTrigger.createdBy,
+            };
+          }
+          result.scheduledTriggers = scheduledTriggersObject;
         }
-        result.scheduledTriggers = scheduledTriggersObject;
+      } catch (error) {
+        agentsLogger.warn({ error }, 'Failed to load scheduled triggers');
       }
-    } catch (error) {
-      agentsLogger.warn({ error }, 'Failed to load scheduled triggers');
     }
 
     return result;
   };
 
 export const getFullAgentDefinition =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient, runDb?: AgentsRunDatabaseClient) =>
   async ({ scopes }: { scopes: AgentScopeConfig }): Promise<FullAgentDefinition | null> => {
-    return getFullAgentDefinitionInternal(db)({
+    return getFullAgentDefinitionInternal(db, runDb)({
       scopes,
       includeRelationIds: false,
     }) as Promise<FullAgentDefinition | null>;
   };
 
 export const getFullAgentDefinitionWithRelationIds =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient, runDb?: AgentsRunDatabaseClient) =>
   async ({
     scopes,
   }: {
     scopes: AgentScopeConfig;
   }): Promise<FullAgentSelectWithRelationIds | null> => {
-    return getFullAgentDefinitionInternal(db)({
+    return getFullAgentDefinitionInternal(db, runDb)({
       scopes,
       includeRelationIds: true,
     }) as Promise<FullAgentSelectWithRelationIds | null>;

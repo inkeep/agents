@@ -1,4 +1,4 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type AgentsManageDatabaseClient,
   cascadeDeleteByProject,
@@ -173,7 +173,6 @@ app.openapi(
 
           logger.debug({ projectMainBranch }, 'Checked out project branch for config writes');
 
-          // 2. Create full project config in the project branch
           const project = await createFullProjectServerSide(configTx, undefined, runDbClient)({
             scopes: { tenantId, projectId: validatedProjectData.id },
             projectData: validatedProjectData,
@@ -561,6 +560,7 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
 
           for (const trigger of newTriggersForAgent) {
             const existing = existingTriggerMap.get(trigger.id);
+
             if (existing) {
               const scheduleChanged =
                 existing.cronExpression !== trigger.cronExpression ||
@@ -590,22 +590,20 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
           await Promise.allSettled(workflowOperations);
         })
       );
-
-      logger.info(
-        { tenantId, projectId, agentCount: agents.length },
-        'Completed scheduled trigger workflow reconciliation'
-      );
     } catch (err) {
-      logger.error(
-        { err, tenantId, projectId },
-        'Failed to reconcile scheduled trigger workflows after project update'
-      );
+      logger.error({ err }, 'Failed to reconcile scheduled trigger workflows');
     }
 
     return c.json({ data: updatedProject }, isCreate ? 201 : 200);
   } catch (error: any) {
     if (error instanceof HTTPException) {
       throw error;
+    }
+    if (error instanceof z.ZodError) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Invalid project definition',
+      });
     }
 
     if (error instanceof Error && error.message.includes('ID mismatch')) {

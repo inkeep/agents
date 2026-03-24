@@ -9,6 +9,7 @@ import {
   createApiError,
   createBranch,
   deleteBranch,
+  deleteScheduledTriggersByRef,
   ErrorResponseSchema,
   getBranch,
   listBranches,
@@ -238,14 +239,20 @@ app.openapi(
     const { tenantId, projectId, branchName } = c.req.valid('param');
 
     try {
-      // First delete runtime entities associated with this branch
       const fullBranchName = `${tenantId}_${projectId}_${branchName}`;
-      await cascadeDeleteByBranch(runDbClient)({
-        scopes: { tenantId, projectId },
-        fullBranchName,
-      });
 
-      // Then delete the branch from the config DB
+      await Promise.all([
+        cascadeDeleteByBranch(runDbClient)({
+          scopes: { tenantId, projectId },
+          fullBranchName,
+        }),
+        deleteScheduledTriggersByRef(runDbClient)({
+          tenantId,
+          projectId,
+          ref: branchName,
+        }),
+      ]);
+
       await deleteBranch(db)({ tenantId, projectId, name: branchName });
       return c.body(null, 204);
     } catch (error: any) {
