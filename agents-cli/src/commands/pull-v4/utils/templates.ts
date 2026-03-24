@@ -27,7 +27,7 @@ export function formatStringLiteral(value: string): string {
   if (quote === QUOTE.template) {
     value = value.replaceAll('${', '\\${');
   }
-  return escapeStringLiteral(value , quote);
+  return escapeStringLiteral(value, quote);
 }
 
 export function collectTemplateVariableNames(value: string): string[] {
