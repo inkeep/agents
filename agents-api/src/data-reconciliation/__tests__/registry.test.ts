@@ -1,10 +1,6 @@
 import type { EntityEffectHandlers, ReconcileContext } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../domains/run/services/ScheduledTriggerService', () => ({
-  onTriggerUpdated: vi.fn().mockResolvedValue(undefined),
-}));
-
 vi.mock('@inkeep/agents-work-apps/slack', () => ({
   clearWorkspaceConnectionCache: vi.fn(),
 }));
@@ -28,7 +24,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     listAgentIdsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listApiKeysByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
     listSlackChannelAgentConfigsByProject: vi.fn(() => vi.fn().mockResolvedValue([])),
-    listEnabledScheduledTriggers: vi.fn(() => vi.fn().mockResolvedValue([])),
   };
 });
 
@@ -41,7 +36,6 @@ import {
   listApiKeysByProject,
   listContextCacheByProject,
   listContextConfigIdsByProject,
-  listEnabledScheduledTriggers,
   listGitHubToolAccessByProject,
   listGitHubToolAccessModeByProject,
   listSlackChannelAgentConfigsByProject,
@@ -49,7 +43,6 @@ import {
   listToolIdsByProject,
 } from '@inkeep/agents-core';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
-import { onTriggerUpdated } from '../../domains/run/services/ScheduledTriggerService';
 import { createEntityEffectRegistry } from '../registry';
 
 const mockCtx = {
@@ -75,80 +68,6 @@ describe('createEntityEffectRegistry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     registry = createEntityEffectRegistry();
-  });
-
-  describe('scheduled_triggers', () => {
-    it('onUpdated detects schedule change and calls onTriggerUpdated', async () => {
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const before = {
-        id: 'trigger-1',
-        enabled: true,
-        cronExpression: '0 * * * *',
-        runAt: null,
-      } as any;
-      const after = {
-        id: 'trigger-1',
-        enabled: true,
-        cronExpression: '30 * * * *',
-        runAt: null,
-      } as any;
-
-      await h.onUpdated?.(before, after, mockCtx);
-
-      expect(onTriggerUpdated).toHaveBeenCalledWith({
-        trigger: after,
-        previousEnabled: true,
-        scheduleChanged: true,
-      });
-    });
-
-    it('onUpdated detects runAt timestamp change as schedule change', async () => {
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const before = {
-        id: 'trigger-1',
-        enabled: true,
-        cronExpression: null,
-        runAt: '2026-03-12T10:00:00Z',
-      } as any;
-      const after = {
-        id: 'trigger-1',
-        enabled: true,
-        cronExpression: null,
-        runAt: '2026-03-13T10:00:00Z',
-      } as any;
-
-      await h.onUpdated?.(before, after, mockCtx);
-
-      expect(onTriggerUpdated).toHaveBeenCalledWith({
-        trigger: after,
-        previousEnabled: true,
-        scheduleChanged: true,
-      });
-    });
-
-    it('onUpdated detects no schedule change', async () => {
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const before = {
-        id: 'trigger-1',
-        enabled: true,
-        cronExpression: '0 * * * *',
-        runAt: null,
-      } as any;
-      const after = {
-        id: 'trigger-1',
-        enabled: false,
-        cronExpression: '0 * * * *',
-        runAt: null,
-      } as any;
-
-      await h.onUpdated?.(before, after, mockCtx);
-
-      expect(onTriggerUpdated).toHaveBeenCalledWith({
-        trigger: after,
-        previousEnabled: true,
-        scheduleChanged: false,
-      });
-    });
   });
 
   describe('tools', () => {
@@ -268,39 +187,6 @@ describe('createEntityEffectRegistry', () => {
   });
 
   describe('check functions', () => {
-    it('scheduled_triggers check detects enabled triggers without nextRunAt', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi.fn().mockResolvedValue([
-          { id: 'trigger-1', name: 'Has nextRunAt', nextRunAt: '2026-03-13T00:00:00Z' },
-          { id: 'trigger-2', name: 'Missing nextRunAt' },
-        ]) as any
-      );
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toMatchObject({
-        missingWorkflows: [{ triggerId: 'trigger-2', triggerName: 'Missing nextRunAt' }],
-      });
-    });
-
-    it('scheduled_triggers check returns clean when all triggers have nextRunAt', async () => {
-      vi.mocked(listEnabledScheduledTriggers).mockReturnValue(
-        vi
-          .fn()
-          .mockResolvedValue([
-            { id: 'trigger-1', name: 'Trigger', nextRunAt: '2026-03-13T00:00:00Z' },
-          ]) as any
-      );
-
-      const h = getHandlers(registry, 'scheduled_triggers');
-      const result = await h.check?.(mockCtx);
-
-      expect(result).toEqual({
-        missingWorkflows: [],
-      });
-    });
-
     it('tools check detects orphaned GitHub access rows', async () => {
       vi.mocked(listToolIdsByProject).mockReturnValue(vi.fn().mockResolvedValue(['tool-1']) as any);
       vi.mocked(listGitHubToolAccessByProject).mockReturnValue(

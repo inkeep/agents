@@ -23,8 +23,6 @@ import {
   functions,
   functionTools,
   projects,
-  scheduledTriggers,
-  scheduledWorkflows,
   skills,
   subAgentArtifactComponents,
   subAgentDataComponents,
@@ -52,6 +50,7 @@ import {
   messages,
   projectMetadata,
   scheduledTriggerInvocations,
+  scheduledTriggers,
   taskRelations,
   tasks,
   triggerInvocations,
@@ -910,8 +909,7 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
     updatedAt: true,
   })
   .openapi('TriggerCreate');
-export const TriggerApiUpdateSchema =
-  createAgentScopedApiUpdateSchema(TriggerUpdateSchema).openapi('TriggerUpdate');
+export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
 
 // Extended Trigger schema with webhookUrl (for manage API responses)
 // Note: This extends the base TriggerApiSelectSchema to add the computed webhookUrl field
@@ -920,9 +918,7 @@ export const TriggerWithWebhookUrlSchema = TriggerApiSelectSchema.extend({
 }).openapi('TriggerWithWebhookUrl');
 
 // Trigger Invocation schemas
-export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations).extend({
-  ref: ResolvedRefSchema.nullable().optional(),
-});
+export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
 
 export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocations, {
   id: () => ResourceIdSchema,
@@ -1043,9 +1039,8 @@ export const ScheduledTriggerApiInsertSchema = ScheduledTriggerApiInsertBaseSche
   })
   .openapi('ScheduledTriggerCreate');
 
-export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
-  ScheduledTriggerUpdateSchema
-).openapi('ScheduledTriggerUpdate');
+export const ScheduledTriggerApiUpdateSchema =
+  ScheduledTriggerUpdateSchema.openapi('ScheduledTriggerUpdate');
 
 export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
 export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
@@ -1053,42 +1048,6 @@ export type ScheduledTriggerUpdate = z.infer<typeof ScheduledTriggerUpdateSchema
 export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
 export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
 export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
-
-//scheduled workflows
-export const ScheduledWorkflowSelectSchema = createSelectSchema(scheduledWorkflows);
-
-const ScheduledWorkflowInsertSchemaBase = createInsertSchema(scheduledWorkflows, {
-  id: () => ResourceIdSchema,
-  name: () => z.string().trim().min(1).describe('Scheduled workflow name'),
-  description: () => z.string().optional().describe('Scheduled workflow description'),
-  workflowRunId: () =>
-    z.string().nullable().optional().describe('Active workflow run ID for lifecycle management'),
-  scheduledTriggerId: () => z.string().describe('The scheduled trigger this workflow belongs to'),
-});
-
-export const ScheduledWorkflowInsertSchema = ScheduledWorkflowInsertSchemaBase;
-
-export const ScheduledWorkflowUpdateSchema = ScheduledWorkflowInsertSchemaBase.extend({
-  scheduledTriggerId: z.string().optional(),
-}).partial();
-
-export const ScheduledWorkflowApiSelectSchema = createAgentScopedApiSchema(
-  ScheduledWorkflowSelectSchema
-).openapi('ScheduledWorkflow');
-
-export const ScheduledWorkflowApiInsertSchema = createAgentScopedApiInsertSchema(
-  ScheduledWorkflowInsertSchemaBase
-)
-  .extend({ id: ResourceIdSchema.optional() })
-  .openapi('ScheduledWorkflowCreate');
-
-export const ScheduledWorkflowApiUpdateSchema = createAgentScopedApiUpdateSchema(
-  ScheduledWorkflowUpdateSchema
-).openapi('ScheduledWorkflowUpdate');
-
-export type ScheduledWorkflow = z.infer<typeof ScheduledWorkflowSelectSchema>;
-export type ScheduledWorkflowInsert = z.infer<typeof ScheduledWorkflowInsertSchema>;
-export type ScheduledWorkflowUpdate = z.infer<typeof ScheduledWorkflowUpdateSchema>;
 
 export const ScheduledTriggerInvocationStatusEnum = z.enum([
   'pending',
@@ -1101,7 +1060,6 @@ export const ScheduledTriggerInvocationStatusEnum = z.enum([
 export const ScheduledTriggerInvocationSelectSchema = createSelectSchema(
   scheduledTriggerInvocations
 ).extend({
-  ref: ResolvedRefSchema.nullable().optional(),
   resolvedPayload: z.record(z.string(), z.unknown()).nullable().optional(),
   status: ScheduledTriggerInvocationStatusEnum,
 });
@@ -1154,9 +1112,7 @@ export type ScheduledTriggerInvocationUpdate = z.infer<
 >;
 export type ScheduledTriggerInvocationStatus = z.infer<typeof ScheduledTriggerInvocationStatusEnum>;
 
-export const TaskSelectSchema = createSelectSchema(tasks).extend({
-  ref: ResolvedRefSchema.nullable().optional(),
-});
+export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({
   id: ResourceIdSchema,
   conversationId: ResourceIdSchema.optional(),
@@ -1277,9 +1233,7 @@ export const ToolInsertSchema = createInsertSchema(tools)
     updatedAt: true,
   });
 
-export const ConversationSelectSchema = createSelectSchema(conversations).extend({
-  ref: ResolvedRefSchema.nullable().optional(),
-});
+export const ConversationSelectSchema = createSelectSchema(conversations);
 export const ConversationInsertSchema = createInsertSchema(conversations).extend({
   id: ResourceIdSchema,
   contextConfigId: ResourceIdSchema.optional(),
@@ -1308,9 +1262,7 @@ export const MessageApiInsertSchema =
 export const MessageApiUpdateSchema =
   createApiUpdateSchema(MessageUpdateSchema).openapi('MessageUpdate');
 
-export const ContextCacheSelectSchema = createSelectSchema(contextCache).extend({
-  ref: ResolvedRefSchema.nullable().optional(),
-});
+export const ContextCacheSelectSchema = createSelectSchema(contextCache);
 export const ContextCacheInsertSchema = createInsertSchema(contextCache).extend({
   ref: ResolvedRefSchema,
 });
@@ -1320,9 +1272,7 @@ export const ContextCacheApiSelectSchema = createApiSchema(ContextCacheSelectSch
 export const ContextCacheApiInsertSchema = createApiInsertSchema(ContextCacheInsertSchema);
 export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpdateSchema);
 
-export const DatasetRunSelectSchema = createSelectSchema(datasetRun).extend({
-  ref: ResolvedRefSchema.nullable().optional(),
-});
+export const DatasetRunSelectSchema = createSelectSchema(datasetRun);
 export const DatasetRunInsertSchema = createInsertSchema(datasetRun).extend({
   id: ResourceIdSchema,
 });
@@ -1378,9 +1328,7 @@ export const EvaluationResultApiUpdateSchema = createApiUpdateSchema(EvaluationR
   .omit({ id: true })
   .openapi('EvaluationResultUpdate');
 
-export const EvaluationRunSelectSchema = createSelectSchema(evaluationRun).extend({
-  ref: ResolvedRefSchema.nullable().optional(),
-});
+export const EvaluationRunSelectSchema = createSelectSchema(evaluationRun);
 export const EvaluationRunInsertSchema = createInsertSchema(evaluationRun).extend({
   id: ResourceIdSchema,
 });
@@ -3032,15 +2980,6 @@ export const ScheduledTriggerInvocationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('ScheduledTriggerInvocationListResponse');
-export const ScheduledWorkflowResponse = z
-  .object({ data: ScheduledWorkflowApiSelectSchema })
-  .openapi('ScheduledWorkflowResponse');
-export const ScheduledWorkflowListResponse = z
-  .object({
-    data: z.array(ScheduledWorkflowApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('ScheduledWorkflowListResponse');
 
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })
@@ -3263,14 +3202,6 @@ export const PrebuiltMCPServerSchema = z.object({
     .url()
     .optional()
     .describe('URL to connect to the third party account'),
-  connectedAccountId: z
-    .string()
-    .optional()
-    .describe('The Composio connected account ID for the active connection'),
-  authScheme: z
-    .string()
-    .optional()
-    .describe('The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)'),
 });
 
 export const MCPCatalogListResponse = z

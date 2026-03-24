@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { Check, ChevronsUpDown, GitBranch, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useBranches } from '@/hooks/use-branches';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useOrgMembers } from '@/hooks/use-org-members';
 import {
@@ -76,6 +77,7 @@ const scheduledTriggerFormSchema = z
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
     timeoutSeconds: z.coerce.number().int().min(30).max(780).default(780),
     runAsUserId: z.string().optional(),
+    ref: z.string().nullable().default(null),
   })
   .refine(
     (data) => {
@@ -117,6 +119,8 @@ export function ScheduledTriggerForm({
   const { user } = useAuthSession();
   const { isAdmin, isLoading: isAdminLoading } = useIsOrgAdmin();
   const { members: orgMembers, isLoading: isMembersLoading } = useOrgMembers(tenantId, projectId);
+  const { branches, isLoading: isBranchesLoading } = useBranches(tenantId, projectId);
+  const [branchOpen, setBranchOpen] = useState(false);
 
   // Non-admins can only assign triggers to themselves
   const selectableMembers = isAdmin ? orgMembers : orgMembers.filter((m) => m.id === user?.id);
@@ -144,6 +148,7 @@ export function ScheduledTriggerForm({
         retryDelaySeconds: p?.retryDelaySeconds ? Number(p.retryDelaySeconds) : 60,
         timeoutSeconds: p?.timeoutSeconds ? Number(p.timeoutSeconds) : 780,
         runAsUserId: undefined,
+        ref: p?.ref || null,
       };
     }
 
@@ -162,6 +167,7 @@ export function ScheduledTriggerForm({
       retryDelaySeconds: trigger.retryDelaySeconds ?? 60,
       timeoutSeconds: trigger.timeoutSeconds ?? 780,
       runAsUserId: trigger.runAsUserId ?? undefined,
+      ref: trigger.ref ?? null,
     };
   };
 
@@ -209,6 +215,7 @@ export function ScheduledTriggerForm({
         maxRetries: data.maxRetries,
         retryDelaySeconds: data.retryDelaySeconds,
         timeoutSeconds: data.timeoutSeconds,
+        ref: data.ref || null,
       };
 
       if (mode === 'edit') {
@@ -328,6 +335,90 @@ export function ScheduledTriggerForm({
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Agent Version */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GitBranch className="h-5 w-5" />
+              Agent Version
+            </CardTitle>
+            <CardDescription>
+              Choose which branch of agent configuration this trigger runs against. Use this to test
+              agent changes on a feature branch before merging.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="ref"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Branch</FormLabel>
+                  {isBranchesLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading branches...
+                    </div>
+                  ) : (
+                    <Popover open={branchOpen} onOpenChange={setBranchOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={branchOpen}
+                            className="w-full justify-between"
+                          >
+                            <span className="flex items-center gap-2">
+                              <GitBranch className="h-4 w-4 text-muted-foreground" />
+                              {field.value || 'main'}
+                            </span>
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search branches..." />
+                          <CommandList>
+                            <CommandEmpty>No branches found.</CommandEmpty>
+                            <CommandGroup>
+                              {branches.map((branch) => (
+                                <CommandItem
+                                  key={branch.name}
+                                  value={branch.name}
+                                  onSelect={() => {
+                                    field.onChange(branch.isDefault ? null : branch.name);
+                                    setBranchOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      (field.value || 'main') === branch.name
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                    }`}
+                                  />
+                                  {branch.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                  <FormDescription>
+                    Defaults to <code className="text-xs">main</code> if not specified. Select a
+                    feature branch to run the trigger against that branch's agent configuration.
+                  </FormDescription>
+                  <FormMessage />
                 </FormItem>
               )}
             />

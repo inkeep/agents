@@ -5,6 +5,7 @@
  */
 
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import type {
   ArtifactComponentApiSelect,
   CredentialReferenceApiSelect,
@@ -60,7 +61,11 @@ function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
  * This function creates a complete project with all agent and their nested resources.
  */
 export const createFullProjectServerSide =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (
+    db: AgentsManageDatabaseClient,
+    logger: ProjectLogger = defaultLogger,
+    runDb?: AgentsRunDatabaseClient
+  ) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -416,7 +421,7 @@ export const createFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await createFullAgentServerSide(db, logger)(
+            await createFullAgentServerSide(db, logger, runDb)(
               { tenantId, projectId: typed.id },
               agentDataWithoutSubAgents
             );
@@ -476,7 +481,7 @@ export const createFullProjectServerSide =
                 subAgents: agentData.subAgents, // Include all sub-agents with their relationships
               };
 
-              await updateFullAgentServerSide(db, logger)(
+              await updateFullAgentServerSide(db, logger, runDb)(
                 { tenantId, projectId: typed.id },
                 updateData as any
               );
@@ -548,7 +553,11 @@ export const createFullProjectServerSide =
  * This function updates a complete project with all agent and their nested resources.
  */
 export const updateFullProjectServerSide =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (
+    db: AgentsManageDatabaseClient,
+    logger: ProjectLogger = defaultLogger,
+    runDb?: AgentsRunDatabaseClient
+  ) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -579,7 +588,8 @@ export const updateFullProjectServerSide =
         logger.info({ projectId: typed.id }, 'Project not found, creating new project');
         return await createFullProjectServerSide(
           db,
-          logger
+          logger,
+          runDb
         )({
           scopes: { tenantId, projectId: typed.id },
           projectData,
@@ -1172,7 +1182,7 @@ export const updateFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await updateFullAgentServerSide(db, logger)(
+            await updateFullAgentServerSide(db, logger, runDb)(
               { tenantId, projectId: typed.id },
               agentDataWithProjectResources
             );

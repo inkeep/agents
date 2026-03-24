@@ -30,6 +30,7 @@ export type TriggerPayload = {
   agentId: string;
   scheduledTriggerId: string;
   scheduledFor: string;
+  ref: string | null;
 };
 
 function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string): string {
@@ -39,7 +40,7 @@ function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string
 async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
   'use workflow';
 
-  const { tenantId, projectId, agentId, scheduledTriggerId, scheduledFor } = payload;
+  const { tenantId, projectId, agentId, scheduledTriggerId, scheduledFor, ref } = payload;
   const metadata = getWorkflowMetadata();
   const runnerId = metadata.workflowRunId;
 
@@ -49,6 +50,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
     agentId,
     scheduledTriggerId,
     scheduledFor,
+    ref,
     runnerId,
   });
 
@@ -117,6 +119,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
       timeoutSeconds: trigger.timeoutSeconds,
       runAsUserId: trigger.runAsUserId,
       cronTimezone: trigger.cronTimezone,
+      ref,
     });
 
     if (result.conversationId) {

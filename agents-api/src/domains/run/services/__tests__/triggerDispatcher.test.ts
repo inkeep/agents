@@ -5,17 +5,12 @@ vi.mock('@inkeep/agents-core', async () => {
   const actual = await vi.importActual<typeof import('@inkeep/agents-core')>('@inkeep/agents-core');
   return {
     ...actual,
-    listAllProjectsMetadata: vi.fn(),
     findDueScheduledTriggersAcrossProjects: vi.fn(),
     advanceScheduledTriggerNextRunAt: vi.fn(),
-    getProjectMainResolvedRef: vi.fn(),
-    withRef: vi.fn(),
   };
 });
 
 vi.mock('src/data/db', () => ({
-  manageDbClient: 'mock-manage-client',
-  manageDbPool: 'mock-manage-pool',
   runDbClient: 'mock-run-client',
 }));
 
@@ -39,18 +34,12 @@ vi.mock('../workflow/functions/scheduledTriggerRunner', () => ({
 import {
   advanceScheduledTriggerNextRunAt,
   findDueScheduledTriggersAcrossProjects,
-  getProjectMainResolvedRef,
-  listAllProjectsMetadata,
-  withRef,
 } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
 import { dispatchDueTriggers } from '../triggerDispatcher';
 
-const mockListAllProjects = listAllProjectsMetadata as ReturnType<typeof vi.fn>;
 const mockFindDueTriggers = findDueScheduledTriggersAcrossProjects as ReturnType<typeof vi.fn>;
 const mockAdvanceNextRunAt = advanceScheduledTriggerNextRunAt as ReturnType<typeof vi.fn>;
-const mockGetResolvedRef = getProjectMainResolvedRef as ReturnType<typeof vi.fn>;
-const mockWithRef = withRef as ReturnType<typeof vi.fn>;
 const mockStart = start as ReturnType<typeof vi.fn>;
 
 function makeTrigger(overrides: Partial<DueScheduledTrigger> = {}): DueScheduledTrigger {
@@ -64,6 +53,7 @@ function makeTrigger(overrides: Partial<DueScheduledTrigger> = {}): DueScheduled
     runAt: null,
     nextRunAt: '2026-03-13T10:00:00.000Z',
     enabled: true,
+    ref: null,
     ...overrides,
   };
 }
@@ -72,29 +62,12 @@ describe('dispatchDueTriggers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockListAllProjects.mockReturnValue(() => Promise.resolve([]));
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve([]));
     mockAdvanceNextRunAt.mockReturnValue(() => Promise.resolve());
-    mockGetResolvedRef.mockReturnValue(() => Promise.resolve({ branchName: 'main', ref: 'main' }));
-    mockWithRef.mockImplementation(async (_pool, _ref, fn, _opts) => {
-      return fn('mock-branch-db');
-    });
     mockStart.mockResolvedValue(undefined);
   });
 
-  it('returns zero when no projects exist', async () => {
-    mockListAllProjects.mockReturnValue(() => Promise.resolve([]));
-
-    const result = await dispatchDueTriggers();
-
-    expect(result).toEqual({ dispatched: 0 });
-    expect(mockFindDueTriggers).not.toHaveBeenCalled();
-  });
-
   it('returns zero when no triggers are due', async () => {
-    mockListAllProjects.mockReturnValue(() =>
-      Promise.resolve([{ id: 'project-1', tenantId: 'tenant-1' }])
-    );
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve([]));
 
     const result = await dispatchDueTriggers();
@@ -108,18 +81,36 @@ describe('dispatchDueTriggers', () => {
       makeTrigger({ id: 'trigger-2', projectId: 'project-2' }),
     ];
 
-    mockListAllProjects.mockReturnValue(() =>
-      Promise.resolve([
-        { id: 'project-1', tenantId: 'tenant-1' },
-        { id: 'project-2', tenantId: 'tenant-1' },
-      ])
-    );
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve(triggers));
 
     const result = await dispatchDueTriggers();
 
     expect(result).toEqual({ dispatched: 2 });
     expect(mockStart).toHaveBeenCalledTimes(2);
+  });
+
+  it('passes ref from trigger into TriggerPayload', async () => {
+    const triggers = [makeTrigger({ ref: 'feat/new-prompt' })];
+
+    mockFindDueTriggers.mockReturnValue(() => Promise.resolve(triggers));
+
+    await dispatchDueTriggers();
+
+    expect(mockStart).toHaveBeenCalledWith('mock-workflow', [
+      expect.objectContaining({ ref: 'feat/new-prompt' }),
+    ]);
+  });
+
+  it('passes null ref for triggers without a ref', async () => {
+    const triggers = [makeTrigger({ ref: null })];
+
+    mockFindDueTriggers.mockReturnValue(() => Promise.resolve(triggers));
+
+    await dispatchDueTriggers();
+
+    expect(mockStart).toHaveBeenCalledWith('mock-workflow', [
+      expect.objectContaining({ ref: null }),
+    ]);
   });
 
   it('continues dispatching after individual trigger failures', async () => {
@@ -129,9 +120,6 @@ describe('dispatchDueTriggers', () => {
       makeTrigger({ id: 'trigger-ok-2' }),
     ];
 
-    mockListAllProjects.mockReturnValue(() =>
-      Promise.resolve([{ id: 'project-1', tenantId: 'tenant-1' }])
-    );
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve(triggers));
 
     mockStart
@@ -149,17 +137,13 @@ describe('dispatchDueTriggers', () => {
     const trigger = makeTrigger();
     const callOrder: string[] = [];
 
-    mockListAllProjects.mockReturnValue(() =>
-      Promise.resolve([{ id: 'project-1', tenantId: 'tenant-1' }])
-    );
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
 
     mockStart.mockImplementation(async () => {
       callOrder.push('start');
     });
-    mockWithRef.mockImplementation(async (_pool, _ref, fn, _opts) => {
+    mockAdvanceNextRunAt.mockReturnValue(async () => {
       callOrder.push('advance');
-      return fn('mock-branch-db');
     });
 
     await dispatchDueTriggers();
@@ -174,18 +158,12 @@ describe('dispatchDueTriggers', () => {
       nextRunAt: '2026-03-13T10:00:00.000Z',
     });
 
-    mockListAllProjects.mockReturnValue(() =>
-      Promise.resolve([{ id: 'project-1', tenantId: 'tenant-1' }])
-    );
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
 
     let capturedAdvanceArgs: Record<string, unknown> | undefined;
     mockAdvanceNextRunAt.mockReturnValue((args: Record<string, unknown>) => {
       capturedAdvanceArgs = args;
       return Promise.resolve();
-    });
-    mockWithRef.mockImplementation(async (_pool, _ref, fn, _opts) => {
-      return fn('mock-branch-db');
     });
 
     await dispatchDueTriggers();
@@ -202,18 +180,12 @@ describe('dispatchDueTriggers', () => {
       nextRunAt: '2026-03-13T10:00:00.000Z',
     });
 
-    mockListAllProjects.mockReturnValue(() =>
-      Promise.resolve([{ id: 'project-1', tenantId: 'tenant-1' }])
-    );
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
 
     let capturedAdvanceArgs: Record<string, unknown> | undefined;
     mockAdvanceNextRunAt.mockReturnValue((args: Record<string, unknown>) => {
       capturedAdvanceArgs = args;
       return Promise.resolve();
-    });
-    mockWithRef.mockImplementation(async (_pool, _ref, fn, _opts) => {
-      return fn('mock-branch-db');
     });
 
     await dispatchDueTriggers();
@@ -226,15 +198,12 @@ describe('dispatchDueTriggers', () => {
   it('does not advance nextRunAt when workflow start fails', async () => {
     const trigger = makeTrigger();
 
-    mockListAllProjects.mockReturnValue(() =>
-      Promise.resolve([{ id: 'project-1', tenantId: 'tenant-1' }])
-    );
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
     mockStart.mockRejectedValue(new Error('workflow start failed'));
 
     const result = await dispatchDueTriggers();
 
     expect(result).toEqual({ dispatched: 0 });
-    expect(mockWithRef).not.toHaveBeenCalled();
+    expect(mockAdvanceNextRunAt).not.toHaveBeenCalled();
   });
 });

@@ -43,6 +43,7 @@ export type CascadeDeleteResult = {
   slackWorkspaceDefaultsCleared: number;
   appsDeleted: number;
   appDefaultsCleared: number;
+  scheduledTriggersDeleted: number;
 };
 
 /**
@@ -150,6 +151,7 @@ export const cascadeDeleteByBranch =
       slackWorkspaceDefaultsCleared: 0,
       appsDeleted: 0,
       appDefaultsCleared: 0,
+      scheduledTriggersDeleted: 0,
     };
   };
 
@@ -288,6 +290,7 @@ export const cascadeDeleteByProject =
       slackWorkspaceDefaultsCleared,
       appsDeleted,
       appDefaultsCleared,
+      scheduledTriggersDeleted: 0,
     };
   };
 
@@ -430,6 +433,7 @@ export const cascadeDeleteByAgent =
       slackWorkspaceDefaultsCleared,
       appsDeleted: 0,
       appDefaultsCleared,
+      scheduledTriggersDeleted: 0,
     };
   };
 
@@ -513,6 +517,7 @@ export const cascadeDeleteBySubAgent =
       slackWorkspaceDefaultsCleared: 0,
       appsDeleted: 0,
       appDefaultsCleared: 0,
+      scheduledTriggersDeleted: 0,
     };
   };
 

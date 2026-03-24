@@ -21,10 +21,8 @@ import {
   resetCancelledInvocationToPending,
   resolveRef,
   updateScheduledTriggerInvocationStatus,
-  withRef,
 } from '@inkeep/agents-core';
 import { manageDbClient } from '../../../../data/db';
-import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { buildTimezoneHeaders, executeAgentAsync } from '../../services/TriggerService';
@@ -41,6 +39,7 @@ export async function logStep(message: string, data: Record<string, unknown>) {
 
 /**
  * Step: Check if trigger is still enabled.
+ * Reads trigger config from the runtime DB.
  */
 export async function checkTriggerEnabledStep(params: {
   tenantId: string;
@@ -57,22 +56,9 @@ export async function checkTriggerEnabledStep(params: {
     agentId: params.agentId,
   };
 
-  const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
-  const resolvedRef = await resolveRef(manageDbClient)(ref);
-
-  if (!resolvedRef) {
-    logger.warn(
-      { tenantId: params.tenantId, projectId: params.projectId },
-      'Failed to resolve ref for project, treating trigger as deleted'
-    );
-    return { shouldContinue: false, reason: 'deleted' as const, trigger: null };
-  }
-
-  const trigger = await withRef(manageDbPool, resolvedRef, async (db) => {
-    return getScheduledTriggerById(db)({
-      scopes,
-      scheduledTriggerId: params.scheduledTriggerId,
-    });
+  const trigger = await getScheduledTriggerById(runDbClient)({
+    scopes,
+    scheduledTriggerId: params.scheduledTriggerId,
   });
 
   if (!trigger || !trigger.enabled) {
@@ -387,6 +373,7 @@ export async function executeScheduledTriggerStep(params: {
   timeoutSeconds: number;
   runAsUserId?: string | null;
   cronTimezone?: string | null;
+  ref?: string | null;
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
@@ -401,6 +388,7 @@ export async function executeScheduledTriggerStep(params: {
     timeoutSeconds,
     runAsUserId,
     cronTimezone,
+    ref: triggerRef,
   } = params;
 
   if (runAsUserId) {
@@ -434,27 +422,25 @@ export async function executeScheduledTriggerStep(params: {
   }
 
   logger.info(
-    { scheduledTriggerId, invocationId, runAsUserId },
+    { scheduledTriggerId, invocationId, runAsUserId, ref: triggerRef },
     'Executing scheduled trigger via executeAgentAsync'
   );
 
-  // Generate conversation ID upfront so we can return it even on failure
   const conversationId = generateId();
 
   try {
-    // Resolve the project ref
-    const ref = getProjectScopedRef(tenantId, projectId, 'main');
-    const resolvedRef = await resolveRef(manageDbClient)(ref);
+    const branchName = triggerRef ?? 'main';
+    const refString = getProjectScopedRef(tenantId, projectId, branchName);
+    const resolvedRef = await resolveRef(manageDbClient)(refString);
 
     if (!resolvedRef) {
       return {
         success: false,
         conversationId,
-        error: `Failed to resolve ref for project ${projectId}`,
+        error: `Failed to resolve ref '${branchName}' for project ${projectId}`,
       };
     }
 
-    // Build user message from template
     const effectivePayload = payload ?? {};
     let userMessage: string;
     if (messageTemplate) {
@@ -463,7 +449,6 @@ export async function executeScheduledTriggerStep(params: {
       userMessage = JSON.stringify(effectivePayload);
     }
 
-    // Create message parts
     const messageParts: Part[] = [];
     if (messageTemplate) {
       messageParts.push({ kind: 'text', text: userMessage });
@@ -474,7 +459,6 @@ export async function executeScheduledTriggerStep(params: {
       metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
     });
 
-    // Execute with timeout
     const timeoutMs = timeoutSeconds * 1000;
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(

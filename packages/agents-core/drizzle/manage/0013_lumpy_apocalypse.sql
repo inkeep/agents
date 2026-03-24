@@ -1,1 +1,0 @@
-ALTER TABLE "scheduled_triggers" ADD COLUMN "next_run_at" timestamp with time zone;

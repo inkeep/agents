@@ -1,5 +1,6 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   projects,
   subAgentFunctionToolRelations,
@@ -41,8 +42,7 @@ import {
   deleteScheduledTrigger,
   listScheduledTriggers,
   upsertScheduledTrigger,
-} from './scheduledTriggers';
-import { agentScopedWhere, subAgentScopedWhere, tenantScopedWhere } from './scope-helpers';
+} from '../runtime/scheduledTriggers';
 import { upsertSubAgentSkill } from './skills';
 import {
   deleteSubAgentExternalAgentRelation,
@@ -76,11 +76,19 @@ const defaultLogger: AgentLogger = {
 
 async function syncSubAgentSkills(
   db: AgentsManageDatabaseClient,
-  scopes: AgentScopeConfig,
+  scopes: ProjectScopeConfig & { agentId: string },
   subAgentsMap: FullAgentDefinition['subAgents'],
   logger: AgentLogger
 ) {
-  await db.delete(subAgentSkills).where(agentScopedWhere(subAgentSkills, scopes));
+  await db
+    .delete(subAgentSkills)
+    .where(
+      and(
+        eq(subAgentSkills.tenantId, scopes.tenantId),
+        eq(subAgentSkills.projectId, scopes.projectId),
+        eq(subAgentSkills.agentId, scopes.agentId)
+      )
+    );
 
   const skillPromises: Array<Promise<any>> = [];
   for (const [subAgentId, subAgentData] of Object.entries(subAgentsMap)) {
@@ -117,20 +125,22 @@ async function applyExecutionLimitsInheritance(
   scopes: ProjectScopeConfig,
   agentData: FullAgentDefinition
 ): Promise<void> {
+  const { tenantId, projectId } = scopes;
+
   try {
     const project = await db.query.projects.findFirst({
-      where: and(tenantScopedWhere(projects, scopes), eq(projects.id, scopes.projectId)),
+      where: and(eq(projects.tenantId, tenantId), eq(projects.id, projectId)),
     });
 
     if (!project?.stopWhen) {
-      logger.info({ projectId: scopes.projectId }, 'No project stopWhen configuration found');
+      logger.info({ projectId }, 'No project stopWhen configuration found');
       return;
     }
 
     const projectStopWhen = project.stopWhen as any;
     logger.info(
       {
-        projectId: scopes.projectId,
+        projectId,
         projectStopWhen: projectStopWhen,
       },
       'Found project stopWhen configuration'
@@ -168,7 +178,7 @@ async function applyExecutionLimitsInheritance(
     if (projectStopWhen?.stepCountIs !== undefined) {
       logger.info(
         {
-          projectId: scopes.projectId,
+          projectId,
           stepCountIs: projectStopWhen.stepCountIs,
         },
         'Propagating stepCountIs to agents'
@@ -198,7 +208,7 @@ async function applyExecutionLimitsInheritance(
   } catch (error) {
     logger.error(
       {
-        projectId: scopes.projectId,
+        projectId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to apply execution limits inheritance'
@@ -211,7 +221,11 @@ async function applyExecutionLimitsInheritance(
  * This function creates a complete agent with all agents, tools, and relationships.
  */
 export const createFullAgentServerSide =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (
+    db: AgentsManageDatabaseClient,
+    logger: AgentLogger = defaultLogger,
+    runDb?: AgentsRunDatabaseClient
+  ) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -480,7 +494,8 @@ export const createFullAgentServerSide =
                 { agentId: finalAgentId, scheduledTriggerId },
                 'Creating scheduled trigger in agent'
               );
-              await upsertScheduledTrigger(db)({
+              if (!runDb) throw new Error('runDb is required for scheduled trigger operations');
+              await upsertScheduledTrigger(runDb)({
                 scopes: { tenantId, projectId, agentId: finalAgentId },
                 data: {
                   ...scheduledTriggerData,
@@ -896,7 +911,7 @@ export const createFullAgentServerSide =
  * This function updates a complete agent with all agents, tools, and relationships.
  */
 export const updateFullAgentServerSide =
-  (db: AgentsManageDatabaseClient, logger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger = defaultLogger, runDb?: AgentsRunDatabaseClient) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -937,7 +952,7 @@ export const updateFullAgentServerSide =
           { agentId: typedAgentDefinition.id },
           'Agent does not exist, creating new agent'
         );
-        return createFullAgentServerSide(db, logger)(scopes, agentData);
+        return createFullAgentServerSide(db, logger, runDb)(scopes, agentData);
       }
 
       const existingAgentModels = existingAgent.models;
@@ -1273,7 +1288,8 @@ export const updateFullAgentServerSide =
                 { agentId: finalAgentId, scheduledTriggerId },
                 'Updating scheduled trigger in agent'
               );
-              await upsertScheduledTrigger(db)({
+              if (!runDb) throw new Error('runDb is required for scheduled trigger operations');
+              await upsertScheduledTrigger(runDb)({
                 scopes: { tenantId, projectId, agentId: finalAgentId },
                 data: {
                   ...scheduledTriggerData,
@@ -1313,7 +1329,8 @@ export const updateFullAgentServerSide =
           Object.keys(typedAgentDefinition.scheduledTriggers)
         );
 
-        const existingScheduledTriggers = await listScheduledTriggers(db)({
+        if (!runDb) throw new Error('runDb is required for scheduled trigger operations');
+        const existingScheduledTriggers = await listScheduledTriggers(runDb)({
           scopes: { tenantId, projectId, agentId: finalAgentId },
         });
 
@@ -1321,7 +1338,7 @@ export const updateFullAgentServerSide =
         for (const scheduledTrigger of existingScheduledTriggers) {
           if (!incomingScheduledTriggerIds.has(scheduledTrigger.id)) {
             try {
-              await deleteScheduledTrigger(db)({
+              await deleteScheduledTrigger(runDb)({
                 scopes: { tenantId, projectId, agentId: finalAgentId },
                 scheduledTriggerId: scheduledTrigger.id,
               });
@@ -1355,8 +1372,9 @@ export const updateFullAgentServerSide =
           try {
             existingSubAgent = await db.query.subAgents.findFirst({
               where: and(
-                agentScopedWhere(subAgents, { tenantId, projectId, agentId: finalAgentId }),
-                eq(subAgents.id, subAgentId)
+                eq(subAgents.id, subAgentId),
+                eq(subAgents.tenantId, tenantId),
+                eq(subAgents.projectId, projectId)
               ),
               columns: {
                 models: true,
@@ -1648,12 +1666,18 @@ export const updateFullAgentServerSide =
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         try {
           let deletedCount = 0;
-          const toolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
 
           if (incomingRelationshipIds.size === 0) {
             const result = await db
               .delete(subAgentToolRelations)
-              .where(subAgentScopedWhere(subAgentToolRelations, toolRelScopes))
+              .where(
+                and(
+                  eq(subAgentToolRelations.tenantId, tenantId),
+                  eq(subAgentToolRelations.projectId, projectId),
+                  eq(subAgentToolRelations.agentId, finalAgentId),
+                  eq(subAgentToolRelations.subAgentId, subAgentId)
+                )
+              )
               .returning();
             deletedCount = result.length;
           } else {
@@ -1661,7 +1685,10 @@ export const updateFullAgentServerSide =
               .delete(subAgentToolRelations)
               .where(
                 and(
-                  subAgentScopedWhere(subAgentToolRelations, toolRelScopes),
+                  eq(subAgentToolRelations.tenantId, tenantId),
+                  eq(subAgentToolRelations.projectId, projectId),
+                  eq(subAgentToolRelations.agentId, finalAgentId),
+                  eq(subAgentToolRelations.subAgentId, subAgentId),
                   not(inArray(subAgentToolRelations.id, Array.from(incomingRelationshipIds)))
                 )
               )
@@ -1697,20 +1724,31 @@ export const updateFullAgentServerSide =
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         try {
           let deletedFunctionToolRelationCount = 0;
-          const fnToolRelScopes = { tenantId, projectId, agentId: finalAgentId, subAgentId };
 
           if (incomingFunctionToolRelationIds.size === 0) {
-            const result = await db
-              .delete(subAgentFunctionToolRelations)
-              .where(subAgentScopedWhere(subAgentFunctionToolRelations, fnToolRelScopes))
-              .returning();
-            deletedFunctionToolRelationCount = result.length;
-          } else {
+            // No incoming function tool relations - delete all existing ones
             const result = await db
               .delete(subAgentFunctionToolRelations)
               .where(
                 and(
-                  subAgentScopedWhere(subAgentFunctionToolRelations, fnToolRelScopes),
+                  eq(subAgentFunctionToolRelations.tenantId, tenantId),
+                  eq(subAgentFunctionToolRelations.projectId, projectId),
+                  eq(subAgentFunctionToolRelations.agentId, finalAgentId),
+                  eq(subAgentFunctionToolRelations.subAgentId, subAgentId)
+                )
+              )
+              .returning();
+            deletedFunctionToolRelationCount = result.length;
+          } else {
+            // Delete relations not in the incoming set
+            const result = await db
+              .delete(subAgentFunctionToolRelations)
+              .where(
+                and(
+                  eq(subAgentFunctionToolRelations.tenantId, tenantId),
+                  eq(subAgentFunctionToolRelations.projectId, projectId),
+                  eq(subAgentFunctionToolRelations.agentId, finalAgentId),
+                  eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
                   not(
                     inArray(
                       subAgentFunctionToolRelations.id,
@@ -2091,7 +2129,11 @@ export const updateFullAgentServerSide =
  * Get a complete agent definition by ID
  */
 export const getFullAgent =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (
+    db: AgentsManageDatabaseClient,
+    logger: AgentLogger = defaultLogger,
+    runDb?: AgentsRunDatabaseClient
+  ) =>
   async (params: { scopes: AgentScopeConfig }): Promise<FullAgentDefinition | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -2099,7 +2141,7 @@ export const getFullAgent =
     logger.info({ tenantId, agentId: scopes.agentId }, 'Retrieving full agent definition');
 
     try {
-      const agent = await getFullAgentDefinition(db)({
+      const agent = await getFullAgentDefinition(db, runDb)({
         scopes: { tenantId, projectId, agentId: scopes.agentId },
       });
 

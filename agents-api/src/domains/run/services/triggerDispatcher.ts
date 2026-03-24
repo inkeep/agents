@@ -2,11 +2,8 @@ import {
   advanceScheduledTriggerNextRunAt,
   type DueScheduledTrigger,
   findDueScheduledTriggersAcrossProjects,
-  getProjectMainResolvedRef,
-  listAllProjectsMetadata,
-  withRef,
 } from '@inkeep/agents-core';
-import { manageDbClient, manageDbPool, runDbClient } from 'src/data/db';
+import { runDbClient } from 'src/data/db';
 import { start } from 'workflow/api';
 import { getLogger } from '../../../logger';
 import {
@@ -24,14 +21,7 @@ export interface DispatchResult {
 export async function dispatchDueTriggers(): Promise<DispatchResult> {
   const now = new Date();
 
-  const projects = await listAllProjectsMetadata(runDbClient)();
-
-  if (projects.length === 0) {
-    return { dispatched: 0 };
-  }
-
-  const dueTriggers = await findDueScheduledTriggersAcrossProjects(manageDbClient)({
-    projects: projects.map((p) => ({ tenantId: p.tenantId, projectId: p.id })),
+  const dueTriggers = await findDueScheduledTriggersAcrossProjects(runDbClient)({
     asOf: now.toISOString(),
   });
 
@@ -79,25 +69,18 @@ async function dispatchSingleTrigger(
     agentId,
     scheduledTriggerId,
     scheduledFor: trigger.nextRunAt ?? new Date().toISOString(),
+    ref: trigger.ref,
   };
 
   await start(scheduledTriggerRunnerWorkflow, [payload]);
 
-  const resolvedRef = await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId);
-
   try {
-    await withRef(
-      manageDbPool,
-      resolvedRef,
-      (db) =>
-        advanceScheduledTriggerNextRunAt(db)({
-          scopes: { tenantId, projectId, agentId },
-          scheduledTriggerId,
-          nextRunAt,
-          enabled: isOneTime ? false : undefined,
-        }),
-      { commit: true, commitMessage: `Advance next_run_at for trigger ${scheduledTriggerId}` }
-    );
+    await advanceScheduledTriggerNextRunAt(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId,
+      nextRunAt,
+      enabled: isOneTime ? false : undefined,
+    });
   } catch (err) {
     logger.error(
       { scheduledTriggerId, err },
