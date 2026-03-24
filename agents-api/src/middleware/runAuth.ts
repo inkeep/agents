@@ -575,6 +575,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       metadata: {
         endUserId,
         authMethod,
+        appPrompt: app.prompt || undefined,
       },
     },
   };

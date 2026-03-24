@@ -891,6 +891,10 @@
             "nullable": true,
             "type": "string"
           },
+          "prompt": {
+            "nullable": true,
+            "type": "string"
+          },
           "tenantId": {
             "maxLength": 256,
             "nullable": true,
@@ -985,6 +989,10 @@
             "nullable": true,
             "type": "string"
           },
+          "prompt": {
+            "nullable": true,
+            "type": "string"
+          },
           "tenantId": {
             "maxLength": 256,
             "nullable": true,
@@ -1007,6 +1015,7 @@
           "type",
           "defaultProjectId",
           "defaultAgentId",
+          "prompt",
           "enabled",
           "lastUsedAt",
           "createdAt",
@@ -1048,6 +1057,10 @@
           },
           "projectId": {
             "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "prompt": {
             "nullable": true,
             "type": "string"
           },

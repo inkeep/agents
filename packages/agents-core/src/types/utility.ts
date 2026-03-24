@@ -318,6 +318,7 @@ export interface BaseExecutionContext {
     };
     endUserId?: string;
     authMethod?: 'app_credential_web_client' | 'app_credential_api';
+    appPrompt?: string;
   };
 }
 
