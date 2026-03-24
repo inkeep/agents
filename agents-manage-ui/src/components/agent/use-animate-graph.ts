@@ -2,12 +2,12 @@ import type { Edge, Node } from '@xyflow/react';
 import { useEffect } from 'react';
 import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 import type { AnimatedNode } from '@/components/agent/configuration/node-types';
-import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
+import { useDefaultSubAgentNodeIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { sentry } from '@/lib/sentry';
 
 export function useAnimateGraph(): void {
-  const defaultSubAgentIdRef = useDefaultSubAgentIdRef();
+  const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
 
   useEffect(() => {
     const animateGraph: EventListenerOrEventListenerObject = (event) => {
@@ -56,7 +56,7 @@ export function useAnimateGraph(): void {
                 if (data?.details?.agentId !== /* agentId */ location.pathname.split('/')[5]) {
                   return;
                 }
-                if (node.id === defaultSubAgentIdRef.current) {
+                if (node.id === defaultSubAgentNodeIdRef.current) {
                   return 'delegating';
                 }
                 return node.data.status;

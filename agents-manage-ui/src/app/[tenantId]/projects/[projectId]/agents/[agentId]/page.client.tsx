@@ -7,6 +7,7 @@ import {
   Controls,
   type Edge,
   type Node,
+  type OnSelectionChangeFunc,
   Panel,
   ReactFlow,
   type ReactFlowProps,
@@ -43,7 +44,7 @@ import { Toolbar } from '@/components/agent/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
 import { useAnimateGraph } from '@/components/agent/use-animate-graph';
-import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
+import { useDefaultSubAgentNodeIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -51,7 +52,6 @@ import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   deserializeAgentData,
-  hydrateNodesWithFormData,
   serializeAgentData,
   syncSavedAgentGraph,
 } from '@/features/agent/domain';
@@ -181,7 +181,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       },
       { shouldDirty: true }
     );
-    form.setValue('defaultSubAgentId', newNode.id, { shouldDirty: true });
+    form.setValue('defaultSubAgentNodeId', newNode.id, { shouldDirty: true });
     // Wait for sidebar to open (350ms for CSS transition) then center the node
     setTimeout(() => {
       fitView({
@@ -461,7 +461,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     commandManager.execute(new AddNodeCommand(newNode));
   };
 
-  const onSelectionChange = ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
+  const onSelectionChange: OnSelectionChangeFunc = ({ nodes, edges }) => {
     const node = nodes.length === 1 ? nodes[0] : null;
     const edge =
       edges.length === 1 &&
@@ -530,68 +530,73 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     }
   };
 
-  const onSubmit = form.handleSubmit(async ({ mcpRelations, ...data }): Promise<void> => {
-    // TODO: next step will be to refactoring deserializeAgentData/serializeAgentData
-    const hydratedNodes = hydrateNodesWithFormData(nodes, data);
-    const serializedData = serializeAgentData(
-      hydratedNodes,
-      edges,
-      mcpRelations,
-      data.functionTools,
-      data.externalAgents,
-      data.teamAgents
-    );
-    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
-      ...data,
-      subAgents: serializedData.subAgents,
-      functionTools: serializedData.functionTools,
-      functions: serializedData.functions,
-    });
-
-    if (res.success) {
-      toast.success('Agent saved', { closeButton: true });
-      markSaved();
-      const syncedGraph = syncSavedAgentGraph({
-        nodes: hydratedNodes,
+  const onSubmit = form.handleSubmit(
+    async ({ mcpRelations, defaultSubAgentNodeId, ...data }): Promise<void> => {
+      const serializedData = serializeAgentData(
+        nodes,
         edges,
-        savedAgent: res.data,
-        nodeId,
-        edgeId,
+        mcpRelations,
+        data.functionTools,
+        data.externalAgents,
+        data.teamAgents,
+        data.subAgents,
+        data.functions,
+        defaultSubAgentNodeId
+      );
+      const res = await updateFullAgentAction(tenantId, projectId, agentId, {
+        ...data,
+        defaultSubAgentId: serializedData.defaultSubAgentId,
+        subAgents: serializedData.subAgents,
+        functionTools: serializedData.functionTools,
+        functions: serializedData.functions,
       });
 
-      setQueryState((prev) => ({
-        ...prev,
-        pane:
-          (prev.pane === 'node' && !syncedGraph.nodeId) ||
-          (prev.pane === 'edge' && !syncedGraph.edgeId)
-            ? 'agent'
-            : prev.pane,
-        nodeId: syncedGraph.nodeId,
-        edgeId: syncedGraph.edgeId,
-      }));
-      form.reset(serializeAgentForm(res.data));
-      setInitial(syncedGraph.nodes, syncedGraph.edges);
-      return;
-    }
+      if (res.success) {
+        toast.success('Agent saved', { closeButton: true });
+        markSaved();
+        const syncedGraph = syncSavedAgentGraph({
+          nodes,
+          edges,
+          savedAgent: res.data,
+          nodeId,
+          edgeId,
+          subAgentFormData: data.subAgents,
+        });
 
-    if (res.code && nonValidationErrors.has(res.code)) {
-      const error = res.error || 'An error occurred while saving the agent';
-      toast.error(error, { closeButton: true });
-      return;
-    }
+        setQueryState((prev) => ({
+          ...prev,
+          pane:
+            (prev.pane === 'node' && !syncedGraph.nodeId) ||
+            (prev.pane === 'edge' && !syncedGraph.edgeId)
+              ? 'agent'
+              : prev.pane,
+          nodeId: syncedGraph.nodeId,
+          edgeId: syncedGraph.edgeId,
+        }));
+        form.reset(serializeAgentForm(res.data));
+        setInitial(syncedGraph.nodes, syncedGraph.edges);
+        return;
+      }
 
-    // Handle validation errors (422 status - unprocessable_entity)
-    try {
-      const issues: z.ZodIssue[] = JSON.parse(res.error);
-      issues.forEach(({ path, code, message }) => {
-        form.setError(path.join('.') as any, { type: code, message });
-      });
-    } catch (parseError) {
-      // Fallback for unparseable errors
-      console.error('Failed to parse validation errors:', parseError);
-      toast.error('Failed to save agent', { closeButton: true });
+      if (res.code && nonValidationErrors.has(res.code)) {
+        const error = res.error || 'An error occurred while saving the agent';
+        toast.error(error, { closeButton: true });
+        return;
+      }
+
+      // Handle validation errors (422 status - unprocessable_entity)
+      try {
+        const issues: z.ZodIssue[] = JSON.parse(res.error);
+        issues.forEach(({ path, code, message }) => {
+          form.setError(path.join('.') as any, { type: code, message });
+        });
+      } catch (parseError) {
+        // Fallback for unparseable errors
+        console.error('Failed to parse validation errors:', parseError);
+        toast.error('Failed to save agent', { closeButton: true });
+      }
     }
-  });
+  );
 
   useAnimateGraph();
 
@@ -612,7 +617,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const isMounted = useIsMounted();
 
   const showEmptyState = !nodes.length && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
-  const defaultSubAgentIdRef = useDefaultSubAgentIdRef();
+  const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
@@ -678,10 +683,10 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             setNodes(resolveCollisions);
           }}
           onBeforeDelete={async (state) => {
-            const defaultSubAgentId = defaultSubAgentIdRef.current;
-            const hasDefaultNode = state.nodes.some((node) => node.id === defaultSubAgentId);
+            const defaultSubAgentNodeId = defaultSubAgentNodeIdRef.current;
+            const hasDefaultNode = state.nodes.some((node) => node.id === defaultSubAgentNodeId);
             if (hasDefaultNode) {
-              toast.error(`Cannot delete default subagent "${defaultSubAgentId}"`);
+              toast.error(`Cannot delete default subagent "${defaultSubAgentNodeId}"`);
               return false;
             }
             // Trigger dirty state

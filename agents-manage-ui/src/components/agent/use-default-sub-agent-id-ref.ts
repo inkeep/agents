@@ -1,25 +1,25 @@
 import { useEffect, useRef } from 'react';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 
-export function useDefaultSubAgentIdRef() {
+export function useDefaultSubAgentNodeIdRef() {
   'use memo';
 
   const form = useFullAgentFormContext();
-  const defaultSubAgentIdRef = useRef<string | undefined>(null);
+  const defaultSubAgentNodeIdRef = useRef<string | undefined>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
-    defaultSubAgentIdRef.current = form.getValues('defaultSubAgentId');
+    defaultSubAgentNodeIdRef.current = form.getValues('defaultSubAgentNodeId');
 
     // make sure to unsubscribe;
     return form.subscribe({
-      name: ['defaultSubAgentId'],
+      name: ['defaultSubAgentNodeId'],
       formState: { values: true },
       callback(data) {
-        defaultSubAgentIdRef.current = data.values.defaultSubAgentId;
+        defaultSubAgentNodeIdRef.current = data.values.defaultSubAgentNodeId;
       },
     });
   }, []);
 
-  return defaultSubAgentIdRef;
+  return defaultSubAgentNodeIdRef;
 }
