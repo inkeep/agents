@@ -13,11 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useProjectsInvalidation, useProjectsQuery } from '@/lib/query/projects';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 
 const ProjectItem: FC<{
   name: string;
