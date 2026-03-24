@@ -1,22 +1,20 @@
 import type { SourceFile } from 'ts-morph';
 import {
+  addNamedImports,
+  applyImportPlan,
+  createImportPlan,
+  type NamedImportSpec,
+} from '../../import-plan';
+import {
   createUniqueReferenceName,
   isPlainObject,
   toCamelCase,
   toKebabCase,
   toTriggerReferenceName,
-} from '../utils';
+} from '../../utils';
 
 export type ReferenceNameMap = Map<string, string>;
 export type TriggerImportMap = Map<string, { importName: string; modulePath: string }>;
-
-interface SubAgentReferenceOverride {
-  name: string;
-  local?: boolean;
-}
-
-type StatusComponentLike = string | { id?: string; type?: string; name?: string };
-type StatusUpdatesLike = { statusComponents?: StatusComponentLike[] } | undefined;
 
 export function extractIds(value: unknown[] | Record<string, unknown>): string[] {
   if (Array.isArray(value)) {
@@ -35,44 +33,12 @@ export function extractIds(value: unknown[] | Record<string, unknown>): string[]
   return Object.keys(value);
 }
 
-export function extractContextConfigId(
-  contextConfig?: string | { id?: string }
-): string | undefined {
-  if (!contextConfig) {
-    return;
-  }
-  if (typeof contextConfig === 'string') {
-    return contextConfig;
-  }
-  return contextConfig.id;
-}
-
-export function addSubAgentImports(
-  sourceFile: SourceFile,
-  referenceNames: ReferenceNameMap,
-  importNames: ReferenceNameMap,
-  modulePathOverrides?: Record<string, string>
-): void {
-  for (const [subAgentId, referenceName] of referenceNames) {
-    const importName = importNames.get(subAgentId);
-    if (!importName) {
-      continue;
-    }
-
-    sourceFile.addImportDeclaration({
-      namedImports: [
-        importName === referenceName ? importName : { name: importName, alias: referenceName },
-      ],
-      moduleSpecifier: `./sub-agents/${modulePathOverrides?.[subAgentId] ?? subAgentId}`,
-    });
-  }
-}
-
 export function addTriggerImports(
   sourceFile: SourceFile,
   referenceNames: ReferenceNameMap,
   importRefs: TriggerImportMap
 ): void {
+  const importPlan = createImportPlan();
   for (const [triggerId, referenceName] of referenceNames) {
     const importRef = importRefs.get(triggerId);
     if (!importRef) {
@@ -80,13 +46,13 @@ export function addTriggerImports(
     }
 
     const { importName, modulePath } = importRef;
-    sourceFile.addImportDeclaration({
-      namedImports: [
-        importName === referenceName ? importName : { name: importName, alias: referenceName },
-      ],
-      moduleSpecifier: `./triggers/${modulePath}`,
-    });
+    addNamedImports(
+      importPlan,
+      `./triggers/${modulePath}`,
+      toNamedImport(importName, referenceName)
+    );
   }
+  applyImportPlan(sourceFile, importPlan);
 }
 
 export function addScheduledTriggerImports(
@@ -94,6 +60,7 @@ export function addScheduledTriggerImports(
   referenceNames: ReferenceNameMap,
   importRefs: TriggerImportMap
 ): void {
+  const importPlan = createImportPlan();
   for (const [scheduledTriggerId, referenceName] of referenceNames) {
     const importRef = importRefs.get(scheduledTriggerId);
     if (!importRef) {
@@ -101,86 +68,29 @@ export function addScheduledTriggerImports(
     }
 
     const { importName, modulePath } = importRef;
-    sourceFile.addImportDeclaration({
-      namedImports: [
-        importName === referenceName ? importName : { name: importName, alias: referenceName },
-      ],
-      moduleSpecifier: `./scheduled-triggers/${modulePath}`,
-    });
-  }
-}
-
-export function extractStatusComponentIds(statusUpdates: StatusUpdatesLike): string[] {
-  if (!statusUpdates?.statusComponents?.length) {
-    return [];
-  }
-
-  const statusComponentIds = statusUpdates.statusComponents.map(resolveStatusComponentId);
-  return [...new Set(statusComponentIds)];
-}
-
-export function resolveStatusComponentId(statusComponent: StatusComponentLike): string {
-  const id =
-    typeof statusComponent === 'string'
-      ? statusComponent
-      : statusComponent.id || statusComponent.type;
-  if (!id) {
-    throw new Error(
-      `Unable to resolve status component with id ${JSON.stringify(statusComponent)}`
+    addNamedImports(
+      importPlan,
+      `./scheduled-triggers/${modulePath}`,
+      toNamedImport(importName, referenceName)
     );
   }
-  return id;
+  applyImportPlan(sourceFile, importPlan);
 }
 
 export function addStatusComponentImports(
   sourceFile: SourceFile,
   referenceNames: ReferenceNameMap
 ): void {
+  const importPlan = createImportPlan();
   for (const [statusComponentId, referenceName] of referenceNames) {
     const importName = toCamelCase(statusComponentId);
-    sourceFile.addImportDeclaration({
-      namedImports: [
-        importName === referenceName ? importName : { name: importName, alias: referenceName },
-      ],
-      moduleSpecifier: `../status-components/${statusComponentId}`,
-    });
+    addNamedImports(
+      importPlan,
+      `../status-components/${statusComponentId}`,
+      toNamedImport(importName, referenceName)
+    );
   }
-}
-
-export function createSubAgentReferenceMaps(
-  ids: Iterable<string>,
-  reservedNames: Set<string>,
-  conflictSuffix: string,
-  overrides?: Record<string, SubAgentReferenceOverride>
-): {
-  referenceNames: ReferenceNameMap;
-  importNames: ReferenceNameMap;
-} {
-  const referenceNames: ReferenceNameMap = new Map();
-  const importNames: ReferenceNameMap = new Map();
-
-  for (const id of ids) {
-    if (referenceNames.has(id)) {
-      continue;
-    }
-
-    const override = overrides?.[id];
-    const importName = override?.name ?? toCamelCase(id);
-    const isLocal = override?.local === true;
-    const referenceName = isLocal
-      ? importName
-      : createUniqueReferenceName(importName, reservedNames, conflictSuffix);
-
-    if (isLocal) {
-      reservedNames.add(referenceName);
-    } else {
-      importNames.set(id, importName);
-    }
-
-    referenceNames.set(id, referenceName);
-  }
-
-  return { referenceNames, importNames };
+  applyImportPlan(sourceFile, importPlan);
 }
 
 export function createReferenceNameMap(
@@ -299,4 +209,8 @@ function createNumericReferenceName(baseName: string, reservedNames: Set<string>
   const uniqueName = `${baseName}${index}`;
   reservedNames.add(uniqueName);
   return uniqueName;
+}
+
+function toNamedImport(importName: string, referenceName: string): NamedImportSpec {
+  return importName === referenceName ? importName : { name: importName, alias: referenceName };
 }

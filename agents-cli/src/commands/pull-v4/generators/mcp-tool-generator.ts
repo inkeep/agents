@@ -1,10 +1,16 @@
+import { join } from 'node:path';
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
+import { buildSequentialNameFileNames } from '../generation-resolver';
+import type { GenerationTask } from '../generation-types';
+import { addNamedImports, applyImportPlan, createImportPlan } from '../import-plan';
+import { generateFactorySourceFile } from '../simple-factory-generator';
 import {
   addValueToObject,
-  createFactoryDefinition,
-  formatStringLiteral,
+  codeCall,
+  codePropertyAccess,
+  codeReference,
   toToolReferenceName,
 } from '../utils';
 
@@ -38,37 +44,61 @@ export function generateMcpToolDefinition({
   lastError,
   ...data
 }: McpToolInput & Record<string, unknown>): SourceFile {
-  const result = McpToolSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for MCP tool:\n${z.prettifyError(result.error)}`);
-  }
+  return generateFactorySourceFile(data, {
+    schema: McpToolSchema,
+    factory: {
+      importName: 'mcpTool',
+      variableName: (parsed) => toToolReferenceName(parsed.name),
+    },
+    render({ parsed, sourceFile, configObject }) {
+      const { credentialReferenceId, config, mcpToolId, ...rest } = parsed;
 
-  const { credentialReferenceId, config, mcpToolId, ...parsed } = result.data;
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'mcpTool',
-    variableName: toToolReferenceName(parsed.name),
+      const activeTools = config?.mcp?.activeTools;
+      for (const [k, v] of Object.entries({
+        id: mcpToolId,
+        ...rest,
+        serverUrl: config?.mcp?.server?.url,
+        transport: config?.mcp?.transport,
+        ...(activeTools?.length && { activeTools }),
+      })) {
+        addValueToObject(configObject, k, v);
+      }
+
+      const importPlan = createImportPlan();
+      if (credentialReferenceId) {
+        addNamedImports(importPlan, '../environments', 'envSettings');
+        addValueToObject(
+          configObject,
+          'credential',
+          codeCall(
+            codePropertyAccess(codeReference('envSettings'), 'getEnvironmentCredential'),
+            credentialReferenceId
+          )
+        );
+      }
+      applyImportPlan(sourceFile, importPlan);
+    },
   });
-
-  const activeTools = config?.mcp?.activeTools;
-  for (const [k, v] of Object.entries({
-    id: mcpToolId,
-    ...parsed,
-    serverUrl: config?.mcp?.server?.url,
-    transport: config?.mcp?.transport,
-    ...(activeTools?.length && { activeTools }),
-  })) {
-    addValueToObject(configObject, k, v);
-  }
-
-  if (credentialReferenceId) {
-    sourceFile.addImportDeclaration({
-      namedImports: ['envSettings'],
-      moduleSpecifier: '../environments',
-    });
-    configObject.addPropertyAssignment({
-      name: 'credential',
-      initializer: `envSettings.getEnvironmentCredential(${formatStringLiteral(credentialReferenceId)})`,
-    });
-  }
-  return sourceFile;
 }
+
+export const task = {
+  type: 'tool',
+  collect(context) {
+    const toolEntries = Object.entries(context.project.tools ?? {});
+    const fileNamesByToolId = buildSequentialNameFileNames(toolEntries);
+
+    return toolEntries.map(([toolId, toolData]) => ({
+      id: toolId,
+      filePath: context.resolver.resolveOutputFilePath(
+        'tools',
+        toolId,
+        join(context.paths.toolsDir, fileNamesByToolId[toolId])
+      ),
+      payload: {
+        mcpToolId: toolId,
+        ...toolData,
+      } as Parameters<typeof generateMcpToolDefinition>[0],
+    }));
+  },
+  generate: generateMcpToolDefinition,
+} satisfies GenerationTask<Parameters<typeof generateMcpToolDefinition>[0]>;
