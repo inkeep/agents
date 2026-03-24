@@ -9,7 +9,7 @@
  * 4. Streams NDJSON response back to client
  */
 
-import { GENERATION_TYPES, ModelFactory } from '@inkeep/agents-core';
+import { GENERATION_TYPES, ModelFactory, normalizeDataComponentSchema } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
 import { Output, streamText } from 'ai';
 import type { NextRequest } from 'next/server';
@@ -62,7 +62,9 @@ export async function POST(
 
     // Define schema for generated output
     const mockDataSchema = artifactComponent.props
-      ? z.fromJSONSchema(artifactComponent.props)
+      ? z.fromJSONSchema(
+          normalizeDataComponentSchema(artifactComponent.props as Record<string, unknown>)
+        )
       : z.string();
     const renderSchema = z.object({
       component: z.string().describe('The React component code'),

@@ -9,7 +9,7 @@
  * 4. Streams NDJSON response back to client
  */
 
-import { GENERATION_TYPES, ModelFactory } from '@inkeep/agents-core';
+import { GENERATION_TYPES, ModelFactory, normalizeDataComponentSchema } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
 import { Output, streamText } from 'ai';
 import type { NextRequest } from 'next/server';
@@ -56,10 +56,10 @@ export async function POST(
     // Prepare model configuration
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models?.base as any);
 
-    // Define schema for generated output
-    // Dynamically create mockData schema from component's props JSON Schema.
-    // This ensures Anthropic gets proper types instead of z.any() which it rejects.
-    const mockDataSchema = z.fromJSONSchema(dataComponent.props);
+    const normalizedProps = normalizeDataComponentSchema(
+      dataComponent.props as Record<string, unknown>
+    );
+    const mockDataSchema = z.fromJSONSchema(normalizedProps);
     const renderSchema = z.object({
       component: z.string().describe('The React component code'),
       mockData: mockDataSchema.describe('Sample data matching the props schema'),
