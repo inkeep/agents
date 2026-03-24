@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "verbatimModuleSyntax": true,
-    "baseUrl": ".",
     "target": "ESNext",
     "lib": ["dom", "dom.iterable", "ESNext"],
     "allowJs": true,
@@ -16,7 +15,7 @@
     "jsx": "react-jsx",
     "incremental": true,
     "paths": {
-      "@/.source": [".source"],
+      "@/.source": ["./.source"],
       "@/*": ["./src/*"]
     },
     "plugins": [
