@@ -1,6 +1,5 @@
 import type { SourceFile } from 'ts-morph';
 import {
-  collectTemplateVariableNames,
   createUniqueReferenceName,
   isPlainObject,
   toCamelCase,
@@ -18,19 +17,6 @@ interface SubAgentReferenceOverride {
 
 type StatusComponentLike = string | { id?: string; type?: string; name?: string };
 type StatusUpdatesLike = { statusComponents?: StatusComponentLike[] } | undefined;
-
-export function collectTemplateVariableNamesFromFields(
-  values: Array<string | undefined>
-): string[] {
-  const variables: string[] = [];
-  for (const value of values) {
-    if (typeof value !== 'string') {
-      continue;
-    }
-    variables.push(...collectTemplateVariableNames(value));
-  }
-  return variables;
-}
 
 export function extractIds(value: unknown[] | Record<string, unknown>): string[] {
   if (Array.isArray(value)) {

@@ -1,16 +1,20 @@
 import {
+  addValueToObject,
   buildComponentFileName,
+  codeExpression,
+  codeMethodCall,
+  codePropertyAccess,
+  codeReference,
   collectTemplateVariableNames,
+  createArrayGetterValue,
   createFactoryDefinition,
   formatStringLiteral,
   formatTemplate,
   isHumanReadableId,
-  resolveContextTemplateImports,
-  resolveImportedReference,
   resolveNonCollidingName,
   toCamelCase,
   toKebabCase,
-} from './utils';
+} from '../utils';
 
 describe('camelCase', () => {
   test('should handle special characters', () => {
@@ -55,6 +59,64 @@ describe('formatStringLiteral', () => {
     expect(formatStringLiteral(`find 3 URLs relevant to the user's "question".`)).toBe(
       '`find 3 URLs relevant to the user\'s "question".`'
     );
+  });
+});
+
+describe('code values', () => {
+  test('should render nested code values inside recursive objects and arrays', () => {
+    const { sourceFile, configObject } = createFactoryDefinition({
+      importName: 'agent',
+      variableName: 'supportAgent',
+    });
+
+    addValueToObject(configObject, 'contextConfig', {
+      current: codeReference('supportContext'),
+      schema: codeExpression('z.object({})'),
+      nested: [{ selected: codeReference('selectedTool') }],
+    });
+
+    const file = sourceFile.getFullText();
+    expect(file).toContain('current: supportContext,');
+    expect(file).toContain('schema: z.object({}),');
+    expect(file).toContain('nested: [{');
+    expect(file).toContain('selected: selectedTool,');
+  });
+
+  test('should render .with calls through code values', () => {
+    const { sourceFile, configObject } = createFactoryDefinition({
+      importName: 'agent',
+      variableName: 'supportAgent',
+    });
+
+    addValueToObject(
+      configObject,
+      'canUse',
+      createArrayGetterValue([
+        codeMethodCall(codeReference('searchTool'), 'with', {
+          headers: { Authorization: codeReference('authHeader') },
+          toolPolicies: { allow: ['search'] },
+        }),
+      ])
+    );
+
+    const file = sourceFile.getFullText();
+    expect(file).toContain(
+      "canUse: () => [searchTool.with({ headers: { Authorization: authHeader }, toolPolicies: { allow: ['search'] } })],"
+    );
+  });
+
+  test('should render .config property access through code values', () => {
+    const { sourceFile, configObject } = createFactoryDefinition({
+      importName: 'agent',
+      variableName: 'supportAgent',
+    });
+
+    addValueToObject(configObject, 'statusUpdates', {
+      statusComponents: [codePropertyAccess('loadingStatus', 'config')],
+    });
+
+    const file = sourceFile.getFullText();
+    expect(file).toContain('statusComponents: [loadingStatus.config],');
   });
 });
 
@@ -155,57 +217,6 @@ describe('createFactoryDefinition', () => {
     expect(file).toContain("import { functionTool } from '@inkeep/agents-sdk';");
     expect(file).toContain('const functionTool1 = functionTool({');
     expect(file).toContain('export { functionTool1 as functionTool };');
-  });
-});
-
-describe('resolveImportedReference', () => {
-  test('should alias colliding import names', () => {
-    const reservedNames = new Set(['builder']);
-    const resolved = resolveImportedReference('builder', reservedNames, 'ContextConfig');
-
-    expect(resolved.referenceName).toBe('builderContextConfig');
-    expect(resolved.namedImport).toEqual({ name: 'builder', alias: 'builderContextConfig' });
-  });
-
-  test('should not create named import when marked local', () => {
-    const reservedNames = new Set<string>();
-    const resolved = resolveImportedReference('builder', reservedNames, 'ContextConfig', true);
-
-    expect(resolved.referenceName).toBe('builder');
-    expect(resolved.namedImport).toBeUndefined();
-  });
-});
-
-describe('resolveContextTemplateImports', () => {
-  test('should resolve and alias both context and headers references', () => {
-    const reservedNames = new Set(['builder']);
-    const resolved = resolveContextTemplateImports({
-      reservedNames,
-      shouldResolveContextReference: true,
-      shouldResolveHeadersReference: true,
-      contextConfigReference: { name: 'builder' },
-      contextConfigHeadersReference: { name: 'builderHeaders' },
-    });
-
-    expect(resolved.contextReferenceName).toBe('builderContextConfig');
-    expect(resolved.headersReferenceName).toBe('builderHeaders');
-    expect(resolved.namedImports).toEqual([
-      { name: 'builder', alias: 'builderContextConfig' },
-      'builderHeaders',
-    ]);
-  });
-
-  test('should resolve context reference from defaults', () => {
-    const resolved = resolveContextTemplateImports({
-      reservedNames: new Set<string>(),
-      shouldResolveContextReference: true,
-      shouldResolveHeadersReference: false,
-      defaultContextImportName: 'builder',
-    });
-
-    expect(resolved.contextReferenceName).toBe('builder');
-    expect(resolved.headersReferenceName).toBeUndefined();
-    expect(resolved.namedImports).toEqual(['builder']);
   });
 });
 

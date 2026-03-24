@@ -17,9 +17,9 @@ import {
   updateScheduledWorkflowRunId,
   withRef,
 } from '@inkeep/agents-core';
-import { manageDbClient } from 'src/data/db';
 import { getWorkflowMetadata, sleep } from 'workflow';
 import { start } from 'workflow/api';
+import { manageDbClient } from '../../../../data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import { getLogger } from '../../../../logger';
 import {
