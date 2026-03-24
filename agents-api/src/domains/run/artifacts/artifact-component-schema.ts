@@ -5,6 +5,7 @@ import type {
   DataComponentInsert,
   JsonSchemaForLlmSchemaType,
 } from '@inkeep/agents-core';
+import { normalizeDataComponentSchema } from '@inkeep/agents-core';
 import type { JSONSchema } from 'zod/v4/core';
 import { SchemaProcessor } from '../utils/SchemaProcessor';
 
@@ -102,7 +103,7 @@ export class ArtifactCreateSchema {
       } satisfies JSONSchema.BaseSchema;
 
       // Normalize schema for cross-provider compatibility
-      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
+      const normalizedPropsSchema = normalizeDataComponentSchema(propsSchema);
 
       return z.object({
         id: z.string(),
@@ -156,7 +157,7 @@ export class ArtifactCreateSchema {
       };
 
       // Normalize schema for cross-provider compatibility
-      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
+      const normalizedPropsSchema = normalizeDataComponentSchema(propsSchema);
 
       return {
         id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,

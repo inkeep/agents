@@ -13,8 +13,34 @@ import type {
   PostConnectSessions,
 } from '@nangohq/types';
 import { cache } from 'react';
+import { makeManagementApiRequest } from '@/lib/api/api-config';
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
 import { NangoError, wrapNangoError } from './nango-types';
+
+/**
+ * Verify the authenticated user has access to the given tenant.
+ * Makes a lightweight authenticated call through the backend API,
+ * which validates session cookies and tenant membership.
+ * Throws if the user is not authenticated or not a member of the tenant.
+ */
+// Intentionally used as an auth gate: the backend validates session cookies
+// and tenant membership on this request. If this endpoint ever becomes
+// public or cached, the tenant isolation check will silently break.
+async function verifyTenantAccess(tenantId: string): Promise<void> {
+  await makeManagementApiRequest(`tenants/${tenantId}/projects?limit=1`);
+}
+
+/**
+ * Verify that a Nango integration uniqueKey belongs to the given tenant.
+ * Integration keys follow the convention: {provider}-{tenantId}-{suffix}
+ */
+function assertKeyBelongsToTenant(uniqueKey: string, tenantId: string): void {
+  const tenantSegment = `-${tenantId}-`;
+  const tenantSuffix = `-${tenantId}`;
+  if (!uniqueKey.endsWith(tenantSuffix) && !uniqueKey.includes(tenantSegment)) {
+    throw new NangoError(`Integration key '${uniqueKey}' does not belong to tenant '${tenantId}'`);
+  }
+}
 
 // Initialize Nango client with environment variables
 const getNangoClient = () => {
@@ -186,7 +212,10 @@ export async function fetchNangoIntegration(
   }
 }
 
-export async function deleteNangoIntegration(uniqueKey: string): Promise<void> {
+export async function deleteNangoIntegration(uniqueKey: string, tenantId: string): Promise<void> {
+  await verifyTenantAccess(tenantId);
+  assertKeyBelongsToTenant(uniqueKey, tenantId);
+
   try {
     const nango = getNangoClient();
     await nango.deleteIntegration(uniqueKey);
@@ -205,6 +234,8 @@ export async function listNangoProviderIntegrations(
   provider: string,
   tenantId: string
 ): Promise<NangoIntegrationWithMaskedCredentials[]> {
+  await verifyTenantAccess(tenantId);
+
   try {
     const nango = getNangoClient();
     const response = await nango.listIntegrations();
@@ -261,10 +292,15 @@ async function createNangoIntegration(params: {
 export async function updateNangoIntegrationCredentials({
   uniqueKey,
   credentials,
+  tenantId,
 }: {
   uniqueKey: string;
   credentials: ApiPublicIntegrationCredentials;
+  tenantId: string;
 }): Promise<ApiPublicIntegration> {
+  await verifyTenantAccess(tenantId);
+  assertKeyBelongsToTenant(uniqueKey, tenantId);
+
   const secretKey = process.env.NANGO_SECRET_KEY;
   if (!secretKey) {
     throw new NangoError('NANGO_SECRET_KEY environment variable is required for Nango integration');
