@@ -13,8 +13,9 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-export function ExternalAgentNode({ selected, id }: NodeProps & { data: ExternalAgentNodeData }) {
+export function ExternalAgentNode({ selected, data }: NodeProps & { data: ExternalAgentNodeData }) {
   const { control } = useFullAgentFormContext();
+  const id = data.externalAgentId;
   const externalAgent = useWatch({ control, name: `externalAgents.${id}` });
   const processedErrors = useProcessedErrors('externalAgents', id);
   if (!externalAgent) {

@@ -114,7 +114,11 @@ function Nodes() {
       }}
     >
       <ReactFlowProvider>
-        <ExternalAgentNode {...baseProps} id="ExternalAgent" />
+        <ExternalAgentNode
+          {...baseProps}
+          id="ExternalAgent"
+          data={{ externalAgentId: 'ExternalAgent' }}
+        />
         {divider}
         <FunctionToolNode {...baseProps} data={{ toolId: TOOL_ID }} />
         {divider}
@@ -124,7 +128,7 @@ function Nodes() {
         {divider}
         <SubAgentNode {...baseProps} id="SubAgent" />
         {divider}
-        <TeamAgentNode {...baseProps} id="TeamAgent" />
+        <TeamAgentNode {...baseProps} id="TeamAgent" data={{ teamAgentId: 'TeamAgent' }} />
       </ReactFlowProvider>
     </FullAgentFormProvider>
   );

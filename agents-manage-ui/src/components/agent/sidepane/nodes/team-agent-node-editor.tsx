@@ -26,7 +26,7 @@ export function TeamAgentNodeEditor({ selectedNode }: TeamAgentNodeEditorProps) 
   const { deleteNode } = useDeleteNode(selectedNode.id);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useFullAgentFormContext();
-  const id = selectedNode.id;
+  const id = selectedNode.data.teamAgentId;
 
   const path = <K extends string>(key: K) => `teamAgents.${id}.${key}` as const;
   const headersPath = path('headers');

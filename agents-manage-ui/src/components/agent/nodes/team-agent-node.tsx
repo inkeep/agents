@@ -13,8 +13,9 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-export function TeamAgentNode({ selected, id }: NodeProps & { data: TeamAgentNodeData }) {
+export function TeamAgentNode({ selected, data }: NodeProps & { data: TeamAgentNodeData }) {
   const { control } = useFullAgentFormContext();
+  const id = data.teamAgentId;
   const teamAgent = useWatch({ control, name: `teamAgents.${id}` });
   const processedErrors = useProcessedErrors('teamAgents', id);
   if (!teamAgent) {

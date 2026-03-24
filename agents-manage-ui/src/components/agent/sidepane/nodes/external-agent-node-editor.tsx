@@ -24,7 +24,7 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
   const { deleteNode } = useDeleteNode(selectedNode.id);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useFullAgentFormContext();
-  const id = selectedNode.id;
+  const id = selectedNode.data.externalAgentId;
 
   const path = <K extends string>(key: K) => `externalAgents.${id}.${key}` as const;
   const headersPath = path('headers');
@@ -78,7 +78,7 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
         customTemplate={externalAgentHeadersTemplate}
       />
       <ExternalLink
-        href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.id}/edit`}
+        href={`/${tenantId}/projects/${projectId}/external-agents/${id}/edit`}
       >
         View External Agent
       </ExternalLink>
