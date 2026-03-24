@@ -2,8 +2,200 @@ import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import { serializeAgentData } from '../serialize';
+import type { SerializeAgentFormState } from '../serialize';
+import { serializeAgentData as serializeAgentDataInternal } from '../serialize';
 import { syncSavedAgentGraph } from '../sync-saved-agent-graph';
+
+type TestMcpRelations = Record<
+  string,
+  {
+    selectedTools?: string[] | null;
+    headers?: Record<string, string> | null;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
+  }
+>;
+
+function createSerializeAgentFormState(
+  nodes: Node[],
+  overrides: Partial<SerializeAgentFormState> = {}
+): SerializeAgentFormState {
+  const subAgents = Object.fromEntries(
+    nodes
+      .filter((node) => node.type === NodeType.SubAgent)
+      .map((node) => [
+        node.id,
+        {
+          id: typeof node.data.id === 'string' ? node.data.id : node.id,
+          name: typeof node.data.name === 'string' ? node.data.name : '',
+          description: typeof node.data.description === 'string' ? node.data.description : '',
+          prompt: typeof node.data.prompt === 'string' ? node.data.prompt : '',
+          type: 'internal' as const,
+          models: (node.data.models as SerializeAgentFormState['subAgents'][string]['models']) ?? {
+            base: {},
+            structuredOutput: {},
+            summarizer: {},
+          },
+          canUse: [],
+          dataComponents: Array.isArray(node.data.dataComponents) ? node.data.dataComponents : [],
+          artifactComponents: Array.isArray(node.data.artifactComponents)
+            ? node.data.artifactComponents
+            : [],
+          stopWhen: (node.data.stopWhen as Record<string, unknown>) ?? {},
+          skills: Array.isArray(node.data.skills) ? node.data.skills : [],
+        },
+      ])
+  ) as SerializeAgentFormState['subAgents'];
+
+  const functionTools = Object.fromEntries(
+    nodes
+      .filter((node) => node.type === NodeType.FunctionTool)
+      .map((node) => {
+        const toolId =
+          typeof node.data.toolId === 'string' && node.data.toolId ? node.data.toolId : node.id;
+
+        return [
+          toolId,
+          {
+            functionId: toolId,
+            name: typeof node.data.name === 'string' ? node.data.name : '',
+            description: typeof node.data.description === 'string' ? node.data.description : '',
+            tempToolPolicies:
+              (node.data
+                .tempToolPolicies as SerializeAgentFormState['functionTools'][string]['tempToolPolicies']) ??
+              {},
+          },
+        ];
+      })
+  ) as SerializeAgentFormState['functionTools'];
+
+  const functions = Object.fromEntries(
+    Object.values(functionTools).map((tool) => [
+      tool.functionId,
+      {
+        executeCode: '',
+        inputSchema: {},
+        dependencies: {},
+      },
+    ])
+  );
+
+  const externalAgents = Object.fromEntries(
+    nodes
+      .filter((node) => node.type === NodeType.ExternalAgent)
+      .map((node) => {
+        const externalAgentId =
+          typeof node.data.externalAgentId === 'string' ? node.data.externalAgentId : node.id;
+
+        return [
+          externalAgentId,
+          {
+            id: externalAgentId,
+            name: typeof node.data.name === 'string' ? node.data.name : '',
+            description: typeof node.data.description === 'string' ? node.data.description : '',
+            baseUrl: typeof node.data.baseUrl === 'string' ? node.data.baseUrl : '',
+            headers: undefined,
+          },
+        ];
+      })
+  );
+
+  const teamAgents = Object.fromEntries(
+    nodes
+      .filter((node) => node.type === NodeType.TeamAgent)
+      .map((node) => {
+        const teamAgentId =
+          typeof node.data.teamAgentId === 'string' ? node.data.teamAgentId : node.id;
+
+        return [
+          teamAgentId,
+          {
+            id: teamAgentId,
+            name: typeof node.data.name === 'string' ? node.data.name : '',
+            description: typeof node.data.description === 'string' ? node.data.description : '',
+            headers: undefined,
+          },
+        ];
+      })
+  );
+
+  return {
+    mcpRelations: {
+      ...Object.fromEntries(
+        nodes
+          .filter((node) => node.type === NodeType.MCP)
+          .map((node) => {
+            const relationKey =
+              typeof node.data.relationshipId === 'string' && node.data.relationshipId
+                ? node.data.relationshipId
+                : node.id;
+
+            return [
+              relationKey,
+              {
+                selectedTools: null,
+                headers: undefined,
+                toolPolicies: undefined,
+              },
+            ];
+          })
+      ),
+      ...overrides.mcpRelations,
+    },
+    functionTools: {
+      ...functionTools,
+      ...overrides.functionTools,
+    },
+    externalAgents: {
+      ...externalAgents,
+      ...overrides.externalAgents,
+    },
+    teamAgents: {
+      ...teamAgents,
+      ...overrides.teamAgents,
+    },
+    subAgents: overrides.subAgents ?? subAgents,
+    functions: {
+      ...functions,
+      ...overrides.functions,
+    },
+    defaultSubAgentNodeId: overrides.defaultSubAgentNodeId,
+  };
+}
+
+function serializeAgentData(
+  nodes: Node[],
+  edges: Edge[],
+  mcpRelations: TestMcpRelations = {},
+  functionTools: SerializeAgentFormState['functionTools'] = {},
+  externalAgents: SerializeAgentFormState['externalAgents'] = {},
+  teamAgents: SerializeAgentFormState['teamAgents'] = {},
+  subAgents?: SerializeAgentFormState['subAgents'],
+  functions: SerializeAgentFormState['functions'] = {},
+  defaultSubAgentNodeId?: SerializeAgentFormState['defaultSubAgentNodeId']
+) {
+  return serializeAgentDataInternal(
+    nodes,
+    edges,
+    createSerializeAgentFormState(nodes, {
+      mcpRelations: Object.fromEntries(
+        Object.entries(mcpRelations).map(([key, value]) => [
+          key,
+          {
+            selectedTools: value.selectedTools,
+            headers: value.headers ?? undefined,
+            toolPolicies: value.toolPolicies ?? undefined,
+          },
+        ])
+      ),
+      functionTools,
+      externalAgents,
+      teamAgents,
+      subAgents,
+      functions,
+      defaultSubAgentNodeId,
+    })
+  );
+}
 
 describe('serializeAgentData', () => {
   describe('models object processing', () => {
@@ -391,7 +583,7 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should default MCP relation data to `null` when `mcpRelations` is missing', () => {
+    it('should serialize explicit null MCP relation data from RHF', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -423,7 +615,13 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = serializeAgentData(nodes, edges, {
+        'rel-1': {
+          selectedTools: null,
+          headers: null,
+          toolPolicies: null,
+        },
+      });
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -434,6 +632,67 @@ describe('serializeAgentData', () => {
         toolPolicies: null,
         agentToolRelationId: 'rel-1',
       });
+    });
+
+    it('should require explicit RHF relation state for connected MCP nodes', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: 'agent1',
+            name: 'Test Agent',
+            prompt: 'Test instructions',
+          },
+        },
+        {
+          id: 'mcp1',
+          type: NodeType.MCP,
+          position: { x: 200, y: 0 },
+          data: {
+            toolId: 'mcp1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge1',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'mcp1',
+        },
+      ];
+
+      expect(() =>
+        serializeAgentDataInternal(nodes, edges, {
+          mcpRelations: {},
+          functionTools: {},
+          externalAgents: {},
+          teamAgents: {},
+          subAgents: {
+            agent1: {
+              id: 'agent1',
+              name: 'Test Agent',
+              description: '',
+              prompt: 'Test instructions',
+              type: 'internal',
+              models: {
+                base: {},
+                structuredOutput: {},
+                summarizer: {},
+              },
+              canUse: [],
+              dataComponents: [],
+              artifactComponents: [],
+              stopWhen: {},
+              skills: [],
+            },
+          },
+          functions: {},
+        })
+      ).toThrow('Missing RHF MCP relation data for node "mcp1".');
     });
 
     it('should transfer toolPolicies from mcpRelations', () => {

@@ -227,6 +227,7 @@ export const FullAgentFormSchema = z.strictObject({
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 
+export type FullAgentFormInputValues = z.input<typeof FullAgentFormSchema>;
 export type FullAgentFormValues = z.output<typeof FullAgentFormSchema>;
 
 export type FullAgentPayload = z.infer<typeof AgentWithinContextOfProjectSchema>;
