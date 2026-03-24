@@ -77,10 +77,7 @@ export const listScheduledTriggersPaginated =
 export const createScheduledTrigger =
   (db: AgentsRunDatabaseClient) =>
   async (params: RuntimeScheduledTriggerInsert): Promise<RuntimeScheduledTrigger> => {
-    const result = await db
-      .insert(scheduledTriggers)
-      .values(params)
-      .returning();
+    const result = await db.insert(scheduledTriggers).values(params).returning();
     return result[0]!;
   };
 
@@ -261,11 +258,7 @@ export const advanceScheduledTriggerNextRunAt =
  */
 export const deleteScheduledTriggersByRef =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    tenantId: string;
-    projectId: string;
-    ref: string;
-  }): Promise<number> => {
+  async (params: { tenantId: string; projectId: string; ref: string }): Promise<number> => {
     const result = await db
       .delete(scheduledTriggers)
       .where(
@@ -279,7 +272,12 @@ export const deleteScheduledTriggersByRef =
 
     if (result.length > 0) {
       logger.info(
-        { tenantId: params.tenantId, projectId: params.projectId, ref: params.ref, count: result.length },
+        {
+          tenantId: params.tenantId,
+          projectId: params.projectId,
+          ref: params.ref,
+          count: result.length,
+        },
         'Deleted scheduled triggers for deleted branch'
       );
     }

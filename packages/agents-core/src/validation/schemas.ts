@@ -988,17 +988,19 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
   createdBy: () =>
     UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
-}).omit({
-  nextRunAt: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  payload: z
-    .record(z.string(), z.unknown())
-    .nullable()
-    .optional()
-    .describe('Static payload for agent execution'),
-});
+})
+  .omit({
+    nextRunAt: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    payload: z
+      .record(z.string(), z.unknown())
+      .nullable()
+      .optional()
+      .describe('Static payload for agent execution'),
+  });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
   (data) => data.cronExpression || data.runAt,

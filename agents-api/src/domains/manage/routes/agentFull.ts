@@ -79,10 +79,11 @@ app.openapi(
 
     const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
-    const createdAgent = await createFullAgentServerSide(db, logger, runDbClient)(
-      { tenantId, projectId },
-      validatedAgentData
-    );
+    const createdAgent = await createFullAgentServerSide(
+      db,
+      logger,
+      runDbClient
+    )({ tenantId, projectId }, validatedAgentData);
 
     return c.json({ data: createdAgent }, 201);
   }
@@ -226,14 +227,16 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
     }
 
     const updatedAgent: FullAgentDefinition = isCreate
-      ? await createFullAgentServerSide(db, logger, runDbClient)(
-          { tenantId, projectId },
-          validatedAgentData
-        )
-      : await updateFullAgentServerSide(db, logger, runDbClient)(
-          { tenantId, projectId },
-          validatedAgentData
-        );
+      ? await createFullAgentServerSide(
+          db,
+          logger,
+          runDbClient
+        )({ tenantId, projectId }, validatedAgentData)
+      : await updateFullAgentServerSide(
+          db,
+          logger,
+          runDbClient
+        )({ tenantId, projectId }, validatedAgentData);
 
     try {
       const newScheduledTriggers = await listScheduledTriggers(runDbClient)({

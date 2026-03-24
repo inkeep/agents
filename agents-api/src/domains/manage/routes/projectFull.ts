@@ -173,7 +173,11 @@ app.openapi(
 
           logger.debug({ projectMainBranch }, 'Checked out project branch for config writes');
 
-          const project = await createFullProjectServerSide(configTx, undefined, runDbClient)({
+          const project = await createFullProjectServerSide(
+            configTx,
+            undefined,
+            runDbClient
+          )({
             scopes: { tenantId, projectId: validatedProjectData.id },
             projectData: validatedProjectData,
           });
@@ -512,7 +516,11 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             });
 
             // Create the full project config
-            const project = await createFullProjectServerSide(configTx, undefined, runDbClient)({
+            const project = await createFullProjectServerSide(
+              configTx,
+              undefined,
+              runDbClient
+            )({
               scopes: { tenantId, projectId },
               projectData: validatedProjectData,
             });
@@ -533,7 +541,11 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             return project;
           });
         })
-      : await updateFullProjectServerSide(configDb, undefined, runDbClient)({
+      : await updateFullProjectServerSide(
+          configDb,
+          undefined,
+          runDbClient
+        )({
           scopes: { tenantId, projectId },
           projectData: validatedProjectData,
         });

@@ -24,9 +24,7 @@ vi.mock('../triggers', () => ({
 const { listProjectsMetadata } = await import('../../runtime/projects');
 const { resolveProjectMainRefs } = await import('../../../dolt/ref-helpers');
 const { withRef } = await import('../../../dolt/ref-scope');
-const { deleteScheduledTriggersByRunAsUserId } = await import(
-  '../../runtime/scheduledTriggers'
-);
+const { deleteScheduledTriggersByRunAsUserId } = await import('../../runtime/scheduledTriggers');
 const { deleteTriggersByRunAsUserId } = await import('../triggers');
 
 const listProjectsMetadataMock = vi.mocked(listProjectsMetadata);

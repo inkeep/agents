@@ -421,10 +421,11 @@ export const createFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await createFullAgentServerSide(db, logger, runDb)(
-              { tenantId, projectId: typed.id },
-              agentDataWithoutSubAgents
-            );
+            await createFullAgentServerSide(
+              db,
+              logger,
+              runDb
+            )({ tenantId, projectId: typed.id }, agentDataWithoutSubAgents);
 
             logger.info(
               { projectId: typed.id, agentId },
@@ -469,10 +470,11 @@ export const createFullProjectServerSide =
                 subAgents: agentData.subAgents, // Include all sub-agents with their relationships
               };
 
-              await updateFullAgentServerSide(db, logger, runDb)(
-                { tenantId, projectId: typed.id },
-                updateData as any
-              );
+              await updateFullAgentServerSide(
+                db,
+                logger,
+                runDb
+              )({ tenantId, projectId: typed.id }, updateData as any);
 
               logger.info(
                 { projectId: typed.id, agentId },
@@ -1158,10 +1160,11 @@ export const updateFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await updateFullAgentServerSide(db, logger, runDb)(
-              { tenantId, projectId: typed.id },
-              agentDataWithProjectResources
-            );
+            await updateFullAgentServerSide(
+              db,
+              logger,
+              runDb
+            )({ tenantId, projectId: typed.id }, agentDataWithProjectResources);
 
             logger.info({ projectId: typed.id, agentId }, 'Agent updated successfully in project');
           } catch (error) {
