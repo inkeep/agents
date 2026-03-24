@@ -74,7 +74,10 @@ async function main() {
 
       if (attempt === maxAttempts) {
         throw new Error(
-          `SpiceDB schema API was not reachable after ${maxAttempts} attempts: ${message}`
+          `SpiceDB schema API was not reachable after ${maxAttempts} attempts: ${message}`,
+          {
+            cause: error,
+          }
         );
       }
 
