@@ -88,7 +88,7 @@ export function hydrateNodesWithFormData(nodes: Node[], formData: NodeFormData):
   return nodes.map((node) => {
     if (node.type === NodeType.SubAgent) {
       const subAgentId = node.id;
-      const subAgent = formData.subAgents[subAgentId];
+      const subAgent = formData.subAgents?.[subAgentId];
 
       if (!subAgent) {
         return node;

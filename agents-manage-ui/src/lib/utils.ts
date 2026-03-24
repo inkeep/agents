@@ -51,16 +51,19 @@ export function createLookup<T extends { id: string }>(components: T[]): Record<
  *
  * Supports nested fields via dot-notation paths and provides autocomplete for schema keys.
  */
-export function isRequired<T extends z.ZodObject>(schema: T, key: FieldPath<z.infer<T>>) {
+export function isRequired<T extends { _zod: { input: any } }>(
+  schema: T,
+  key: FieldPath<z.input<T>>
+) {
   const [firstKey, ...rest] = key.split('.');
+  const mySchema = schema instanceof z.ZodPipe ? schema.in : schema;
 
-  const nestedSchema = schema instanceof z.ZodObject ? schema.shape[firstKey] : schema;
+  const nestedSchema = mySchema instanceof z.ZodObject ? mySchema.shape[firstKey] : mySchema;
 
   if (rest.length) {
     return isRequired(nestedSchema, rest.join('.'));
   }
-  const result = nestedSchema.safeParse();
-  return !result.success;
+  return !nestedSchema.isOptional();
 }
 
 /**

@@ -98,6 +98,7 @@ function Nodes() {
             ...DATA,
             config: {
               type: 'mcp',
+              // @ts-expect-error
               mcp: {},
             },
           },
@@ -106,6 +107,7 @@ function Nodes() {
           // @ts-expect-error
           Tool: data,
         },
+        // @ts-expect-error
         models: {
           base: {},
         },
