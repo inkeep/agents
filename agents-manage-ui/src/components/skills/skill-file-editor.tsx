@@ -15,8 +15,17 @@ import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-fi
 import { SkillFileSchema } from '@/components/skills/form/validation';
 import type { DemoTreeNode } from '@/components/skills/tree-utils';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { createSkillFileAction, updateSkillFileAction } from '@/lib/actions/skill-files';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import {
@@ -293,15 +302,31 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                   control={form.control}
                   name="filePath"
                   render={({ field }) => (
-                    <FormItem className="flex items-center">
-                      <FormControl className="m-1">
-                        <Input
-                          {...field}
-                          placeholder="file-name.ext"
-                          disabled={!canEdit}
-                          className="w-auto"
-                        />
-                      </FormControl>
+                    <FormItem className="flex items-center py-1">
+                      <ButtonGroup>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="file-name.ext"
+                            disabled={!canEdit}
+                            className="w-auto"
+                          />
+                        </FormControl>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="ext" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {['.md', '.txt', '.html'].map((ext) => (
+                                <SelectItem key={ext} value={ext}>
+                                  {ext}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </ButtonGroup>
                       <FormMessage />
                     </FormItem>
                   )}
