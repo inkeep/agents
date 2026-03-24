@@ -10,6 +10,7 @@ describe('Skill Generator', () => {
         priority: 'high',
       },
       content: 'Use this skill for planning.',
+      files: [],
     });
 
     expect(content).toContain('---');
@@ -27,6 +28,7 @@ describe('Skill Generator', () => {
       description: '#',
       metadata: {},
       content: 'Simple content.',
+      files: [],
     });
 
     expect(content).toContain('name: simple-skill');
@@ -75,8 +77,8 @@ Use this skill for planning.`,
   → at description
 ✖ Invalid input: expected string, received undefined
   → at content
-✖ Must be valid JSON object
-  → at metadata`)
+✖ Invalid input: expected array, received undefined
+  → at files`)
     );
   });
 });

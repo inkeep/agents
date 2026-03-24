@@ -17,7 +17,9 @@ const MySchema = SkillWithFilesApiSelectSchema.omit({
 
 const SkillSchema = z.strictObject({
   ...MySchema.shape,
-  metadata: MySchema.shape.metadata.transform((v) => (Object.keys(v ?? {}).length ? v : undefined)),
+  metadata: MySchema.shape.metadata
+    .transform((v) => (Object.keys(v ?? {}).length ? v : undefined))
+    .optional(),
   files: z.array(
     MySchema.shape.files.element.omit({
       createdAt: true,

@@ -527,6 +527,7 @@ export const firecrawlMcpTool = mcpTool({
         name: 'weather-safety-guardrails',
         description: 'Safety guidance for weather planning',
         content: '# Weather safety guidance',
+        files: [],
       },
     };
 
