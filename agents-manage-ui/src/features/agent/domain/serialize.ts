@@ -14,6 +14,7 @@ import type { AgentSkill, MCPRelationSchema } from '@/components/agent/form/vali
 import type { FullAgentFormValues, FullAgentPayload } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
+import { getSubAgentIdForNode } from './sub-agent-identity';
 
 type ExtendedAgent = FullAgentPayload['subAgents'][string];
 
@@ -88,13 +89,6 @@ function getSubAgentForm(nodeId: string, subAgentFormData?: SubAgentFormData) {
   return subAgentFormData?.[nodeId];
 }
 
-function getSubAgentIdForNode(node: Node | undefined, subAgentFormData?: SubAgentFormData) {
-  if (!node) return;
-
-  const subAgent = getSubAgentForm(node.id, subAgentFormData);
-  return subAgent?.id ?? (typeof node.data.id === 'string' ? node.data.id : undefined) ?? node.id;
-}
-
 /**
  * Transforms React Flow nodes and edges back into the API data structure
  */
@@ -124,7 +118,7 @@ export function serializeAgentData(
   for (const node of nodes) {
     if (node.type === NodeType.SubAgent) {
       const subAgentForm = getSubAgentForm(node.id, subAgentFormData);
-      const subAgentId = subAgentForm?.id ?? (node.data.id as string) ?? node.id;
+      const subAgentId = getSubAgentIdForNode(node, subAgentFormData) as string;
       const subAgentDataComponents =
         subAgentForm?.dataComponents ?? ((node.data.dataComponents as string[]) || []);
       const subAgentArtifactComponents =
@@ -163,20 +157,9 @@ export function serializeAgentData(
             const relationshipId = mcpNodeData.relationshipId;
             const relationKey = relationshipId ?? mcpNode.id;
             const relationFormData = mcpRelations?.[relationKey];
-            let toolSelection = mcpNodeData.tempSelectedTools ?? null;
-            if (relationFormData?.selectedTools !== undefined) {
-              toolSelection = relationFormData.selectedTools;
-            }
-
-            let toolHeaders = mcpNodeData.tempHeaders ?? null;
-            if (relationFormData?.headers !== undefined) {
-              toolHeaders = relationFormData.headers;
-            }
-
-            let toolPolicies = mcpNodeData.tempToolPolicies ?? null;
-            if (relationFormData?.toolPolicies !== undefined) {
-              toolPolicies = relationFormData.toolPolicies;
-            }
+            const toolSelection = relationFormData?.selectedTools ?? null;
+            const toolHeaders = relationFormData?.headers ?? null;
+            const toolPolicies = relationFormData?.toolPolicies ?? null;
 
             canUse.push({
               toolId,
@@ -200,43 +183,30 @@ export function serializeAgentData(
         const functionToolNode = nodes.find((n) => n.id === edge.target);
 
         if (functionToolNode && functionToolNode.type === NodeType.FunctionTool) {
-          const nodeData = functionToolNode.data as FunctionToolNodeData & {
-            code?: string;
-            dependencies?: Record<string, string>;
-            description?: string;
-            functionId?: string;
-            inputSchema?: Record<string, unknown>;
-            name?: string;
-            tempToolPolicies?: Record<string, { needsApproval?: boolean }> | null;
-          };
+          const nodeData = functionToolNode.data as FunctionToolNodeData;
 
           const functionToolId = nodeData.toolId || functionToolNode.id;
           const relationshipId = nodeData.relationshipId;
           const functionTool = functionToolFormData?.[functionToolId];
-          const functionId = functionTool?.functionId ?? nodeData.functionId ?? functionToolId;
+          const functionId = functionTool?.functionId ?? functionToolId;
           const formFunction = functionId ? functionsFormData?.[functionId] : undefined;
 
           functionTools[functionToolId] = {
             id: functionToolId,
-            name: functionTool?.name ?? nodeData.name ?? '',
-            description: functionTool?.description ?? nodeData.description ?? '',
-            functionId: functionId, // Reference to existing function
+            name: functionTool?.name ?? '',
+            description: functionTool?.description ?? '',
+            functionId, // Reference to existing function
           };
 
           // Always create function entry to ensure it exists
           functions[functionId] = {
             id: functionId,
-            executeCode: formFunction?.executeCode ?? nodeData.code ?? '',
-            inputSchema: formFunction?.inputSchema ?? nodeData.inputSchema ?? {},
-            dependencies: formFunction?.dependencies ?? nodeData.dependencies ?? {},
+            executeCode: formFunction?.executeCode ?? '',
+            inputSchema: formFunction?.inputSchema ?? {},
+            dependencies: formFunction?.dependencies ?? {},
           };
 
-          const formToolPolicies = functionTool?.tempToolPolicies;
-          const nodeToolPolicies =
-            nodeData.tempToolPolicies && Object.keys(nodeData.tempToolPolicies).length > 0
-              ? nodeData.tempToolPolicies
-              : undefined;
-          const toolPolicies = formToolPolicies ?? nodeToolPolicies;
+          const toolPolicies = functionTool?.tempToolPolicies;
 
           canUse.push({
             toolId: functionToolId,
@@ -273,9 +243,9 @@ export function serializeAgentData(
       subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
       const nodeData = node.data as ExternalAgentNodeData;
-      const externalAgentId = nodeData.id || node.id;
+      const externalAgentId = node.id;
       const externalAgentForm = externalAgentFormData?.[externalAgentId];
-      const headers = externalAgentForm?.headers ?? nodeData.tempHeaders ?? undefined;
+      const headers = externalAgentForm?.headers ?? undefined;
 
       const externalAgent: ExternalAgent & {
         headers?: Record<string, string>;
@@ -295,9 +265,9 @@ export function serializeAgentData(
       externalAgents[externalAgentId] = externalAgent;
     } else if (node.type === NodeType.TeamAgent) {
       const nodeData = node.data as TeamAgentNodeData;
-      const teamAgentId = nodeData.id || node.id;
+      const teamAgentId = node.id;
       const teamAgentForm = teamAgentFormData?.[teamAgentId];
-      const headers = teamAgentForm?.headers ?? nodeData.tempHeaders ?? undefined;
+      const headers = teamAgentForm?.headers ?? undefined;
       const teamAgent: TeamAgent & {
         relationshipId: string | null;
         headers?: Record<string, string>;
