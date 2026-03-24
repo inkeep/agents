@@ -2253,7 +2253,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           },
@@ -2313,7 +2314,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           },
@@ -2393,7 +2395,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           },
@@ -2424,7 +2427,8 @@
             "enum": [
               "memory",
               "keychain",
-              "nango"
+              "nango",
+              "composio"
             ],
             "type": "string"
           }
@@ -5631,8 +5635,16 @@
           "data": {
             "items": {
               "properties": {
+                "authScheme": {
+                  "description": "The authentication scheme used by the MCP server (e.g., OAUTH2, API_KEY)",
+                  "type": "string"
+                },
                 "category": {
                   "description": "Category of the MCP server (e.g., communication, project_management)",
+                  "type": "string"
+                },
+                "connectedAccountId": {
+                  "description": "The Composio connected account ID for the active connection",
                   "type": "string"
                 },
                 "description": {
@@ -6444,6 +6456,7 @@
               "forbidden",
               "not_found",
               "conflict",
+              "too_many_requests",
               "internal_server_error",
               "unprocessable_entity"
             ],
@@ -6830,9 +6843,9 @@
             "type": "string"
           },
           "maxRetries": {
-            "maximum": 9007199254740991,
-            "minimum": -9007199254740991,
-            "type": "number"
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "type": "integer"
           },
           "messageTemplate": {
             "nullable": true,
@@ -6853,10 +6866,15 @@
             "nullable": true,
             "type": "object"
           },
+          "ref": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "retryDelaySeconds": {
-            "maximum": 9007199254740991,
-            "minimum": -9007199254740991,
-            "type": "number"
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "type": "integer"
           },
           "runAsUserId": {
             "allOf": [
@@ -6874,9 +6892,9 @@
             "type": "string"
           },
           "timeoutSeconds": {
-            "maximum": 9007199254740991,
-            "minimum": -9007199254740991,
-            "type": "number"
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "type": "integer"
           },
           "updatedAt": {
             "type": "string"
@@ -6897,6 +6915,7 @@
           "runAsUserId",
           "createdBy",
           "nextRunAt",
+          "ref",
           "createdAt",
           "updatedAt"
         ],
@@ -6957,6 +6976,11 @@
             "description": "Static payload for agent execution",
             "nullable": true,
             "type": "object"
+          },
+          "ref": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           },
           "retryDelaySeconds": {
             "default": 60,
@@ -7043,6 +7067,11 @@
             "nullable": true,
             "type": "object"
           },
+          "ref": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "retryDelaySeconds": {
             "default": 60,
             "maximum": 3600,
@@ -7125,6 +7154,37 @@
             "maxLength": 256,
             "type": "string"
           },
+          "ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "resolvedPayload": {
             "additionalProperties": {
               "nullable": true
@@ -7157,6 +7217,7 @@
         "required": [
           "id",
           "scheduledTriggerId",
+          "ref",
           "status",
           "scheduledFor",
           "startedAt",
@@ -7267,6 +7328,11 @@
           },
           "projectId": {
             "maxLength": 256,
+            "type": "string"
+          },
+          "ref": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           },
           "retryDelaySeconds": {
@@ -9113,8 +9179,16 @@
           "data": {
             "nullable": true,
             "properties": {
+              "authScheme": {
+                "description": "The authentication scheme used by the MCP server (e.g., OAUTH2, API_KEY)",
+                "type": "string"
+              },
               "category": {
                 "description": "Category of the MCP server (e.g., communication, project_management)",
+                "type": "string"
+              },
+              "connectedAccountId": {
+                "description": "The Composio connected account ID for the active connection",
                 "type": "string"
               },
               "description": {
@@ -10099,6 +10173,37 @@
             "maxLength": 256,
             "type": "string"
           },
+          "ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "requestPayload": {
             "anyOf": [
               {
@@ -10174,6 +10279,7 @@
           "id",
           "triggerId",
           "conversationId",
+          "ref",
           "status",
           "requestPayload",
           "transformedPayload",
@@ -11421,7 +11527,7 @@
           "resource": "organization"
         }
       },
-      "put": {
+      "patch": {
         "description": "Create or update the profile for a specific user. Users can only update their own profile.",
         "operationId": "upsert-user-profile",
         "parameters": [
@@ -15373,7 +15479,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-context-config",
         "parameters": [
           {
@@ -16129,7 +16235,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-function-tool",
         "parameters": [
           {
@@ -20316,7 +20422,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-relation",
         "parameters": [
           {
@@ -21439,7 +21545,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-subagent-tool-relation",
         "parameters": [
           {
@@ -22041,7 +22147,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-subagent",
         "parameters": [
           {
@@ -22672,7 +22778,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-external-agent-relation",
         "parameters": [
           {
@@ -23433,7 +23539,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-sub-agent-team-agent-relation",
         "parameters": [
           {
@@ -24889,7 +24995,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-agent",
         "parameters": [
           {
@@ -25470,7 +25576,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Update an API key (currently only expiration date can be changed)",
         "operationId": "update-api-key",
         "parameters": [
@@ -26051,7 +26157,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "description": "Update an app credential configuration",
         "operationId": "update-app",
         "parameters": [
@@ -26598,7 +26704,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-artifact-component",
         "parameters": [
           {
@@ -28725,7 +28831,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-credential",
         "parameters": [
           {
@@ -29271,7 +29377,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-data-component",
         "parameters": [
           {
@@ -35038,7 +35144,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-external-agent",
         "parameters": [
           {
@@ -35634,7 +35740,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-function",
         "parameters": [
           {
@@ -37474,7 +37580,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-skill",
         "parameters": [
           {
@@ -38385,7 +38491,7 @@
           "resource": "project"
         }
       },
-      "put": {
+      "patch": {
         "operationId": "update-tool",
         "parameters": [
           {
@@ -39722,6 +39828,33 @@
                               },
                               {
                                 "properties": {
+                                  "filename": {
+                                    "type": "string"
+                                  },
+                                  "mediaType": {
+                                    "type": "string"
+                                  },
+                                  "mimeType": {
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "file"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
                                   "text": {
                                     "type": "string"
                                   },
@@ -39730,8 +39863,7 @@
                                       {
                                         "enum": [
                                           "audio",
-                                          "video",
-                                          "file"
+                                          "video"
                                         ],
                                         "type": "string"
                                       },
@@ -40383,6 +40515,36 @@
                                     "required": [
                                       "type",
                                       "image_url"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  {
+                                    "properties": {
+                                      "file": {
+                                        "properties": {
+                                          "file_data": {
+                                            "pattern": "^data:application\\/pdf;base64,",
+                                            "type": "string"
+                                          },
+                                          "filename": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "file_data"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "file"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "file"
                                     ],
                                     "type": "object"
                                   }
