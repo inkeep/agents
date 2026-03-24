@@ -39,28 +39,22 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   toolId: string;
   subAgentId?: string | null; // null when unconnected, string when connected to specific agent
   relationshipId?: string | null; // null when unconnected, maps to specific DB agent_tool_relation row
-  tempSelectedTools?: string[] | null;
-  tempHeaders?: Record<string, string> | null;
-  tempToolPolicies?: Record<string, { needsApproval?: boolean }> | null;
 }
 
 export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {}
 
 export interface ExternalAgentNodeData extends Record<string, unknown> {
-  id: string;
   relationshipId?: string | null;
-  tempHeaders?: Record<string, string> | null;
 }
 
 export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedNode {
   toolId?: string;
+  subAgentId?: string | null;
   relationshipId?: string;
 }
 
 export interface TeamAgentNodeData extends Record<string, unknown> {
-  id: string;
   relationshipId?: string | null;
-  tempHeaders?: Record<string, string> | null;
 }
 
 export const nodeTypes = {

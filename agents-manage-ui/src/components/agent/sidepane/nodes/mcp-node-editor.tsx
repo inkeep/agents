@@ -69,8 +69,8 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   // Use live data if available, fall back to skeleton from store
   const skeletonToolData = skeletonToolLookup[toolId];
   const toolData = liveToolData ?? skeletonToolData;
-  const selectedTools = mcpRelation?.selectedTools ?? selectedNode.data.tempSelectedTools ?? null;
-  const currentToolPolicies = mcpRelation?.toolPolicies ?? selectedNode.data.tempToolPolicies ?? {};
+  const selectedTools = mcpRelation?.selectedTools ?? null;
+  const currentToolPolicies = mcpRelation?.toolPolicies ?? {};
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally hydrate once per selected node
   useEffect(() => {
@@ -81,7 +81,6 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
       return;
     }
 
-    const newHeaders = selectedNode.data.tempHeaders ?? {};
     form.setValue(
       `mcpRelations.${relationKey}`,
       {
@@ -89,7 +88,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
         relationshipId: selectedNode.data.relationshipId ?? undefined,
         subAgentId: selectedNode.data.subAgentId ?? undefined,
         selectedTools,
-        headers: JSON.stringify(newHeaders, null, 2),
+        headers: existingRelation?.headers ?? '{}',
         toolPolicies: currentToolPolicies,
       },
       { shouldDirty: false }
