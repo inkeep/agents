@@ -1,6 +1,5 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   projects,
   subAgentFunctionToolRelations,
@@ -8,10 +7,16 @@ import {
   subAgents,
   subAgentToolRelations,
 } from '../../db/manage/manage-schema';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import type { FullAgentDefinition, FullAgentSelectWithRelationIds } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { deriveRelationId, generateId } from '../../utils/conversations';
 import { validateAgentStructure, validateAndTypeAgentData } from '../../validation/agentFull';
+import {
+  deleteScheduledTrigger,
+  listScheduledTriggers,
+  upsertScheduledTrigger,
+} from '../runtime/scheduledTriggers';
 import {
   deleteAgent,
   getAgentById,
@@ -38,11 +43,6 @@ import {
   upsertFunctionTool,
   upsertSubAgentFunctionToolRelation,
 } from './functionTools';
-import {
-  deleteScheduledTrigger,
-  listScheduledTriggers,
-  upsertScheduledTrigger,
-} from '../runtime/scheduledTriggers';
 import { upsertSubAgentSkill } from './skills';
 import {
   deleteSubAgentExternalAgentRelation,
@@ -2141,7 +2141,10 @@ export const getFullAgent =
     logger.info({ tenantId, agentId: scopes.agentId }, 'Retrieving full agent definition');
 
     try {
-      const agent = await getFullAgentDefinition(db, runDb)({
+      const agent = await getFullAgentDefinition(
+        db,
+        runDb
+      )({
         scopes: { tenantId, projectId, agentId: scopes.agentId },
       });
 
