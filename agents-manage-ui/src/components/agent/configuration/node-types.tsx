@@ -44,6 +44,7 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
 export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {}
 
 export interface ExternalAgentNodeData extends Record<string, unknown> {
+  externalAgentId: string;
   relationshipId?: string | null;
 }
 
@@ -54,6 +55,7 @@ export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedN
 }
 
 export interface TeamAgentNodeData extends Record<string, unknown> {
+  teamAgentId: string;
   relationshipId?: string | null;
 }
 
