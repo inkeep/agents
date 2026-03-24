@@ -1,9 +1,9 @@
 import { dirname, join } from 'node:path';
 import {
+  SKILL_ENTRY_FILE_PATH,
+  type SkillFileApiInsert,
   SkillWithFilesApiSelectSchema,
   serializeSkillToMarkdown,
-  type SkillFileApiInsert,
-  SKILL_ENTRY_FILE_PATH,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import type { GenerationTask } from '../generation-types';
