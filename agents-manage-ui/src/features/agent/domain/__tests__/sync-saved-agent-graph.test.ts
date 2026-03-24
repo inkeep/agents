@@ -186,4 +186,93 @@ describe('syncSavedAgentGraph', () => {
       }),
     ]);
   });
+
+  it('preserves selected edges when connected sub-agent ids are renamed on save', () => {
+    const nodes: Node[] = [
+      {
+        id: '473gigole08cp6vacy38s',
+        type: NodeType.SubAgent,
+        position: { x: 10, y: 20 },
+        data: {
+          id: 'sub-agent',
+          name: 'Sub Agent',
+        },
+      },
+      {
+        id: 'weather-node',
+        type: NodeType.MCP,
+        position: { x: 300, y: 20 },
+        data: {
+          toolId: 'weather',
+          subAgentId: '473gigole08cp6vacy38s',
+          relationshipId: null,
+        },
+      },
+    ];
+    const edges: Edge[] = [
+      {
+        id: 'edge-weather',
+        source: '473gigole08cp6vacy38s',
+        target: 'weather-node',
+      },
+    ];
+
+    const result = syncSavedAgentGraph({
+      nodes,
+      edges,
+      nodeId: null,
+      edgeId: 'edge-weather',
+      savedAgent: {
+        id: 'agent-1',
+        name: 'Agent',
+        description: '',
+        prompt: '',
+        contextConfig: null,
+        statusUpdates: null,
+        stopWhen: null,
+        models: {},
+        defaultSubAgentId: 'sub-agent',
+        subAgents: {
+          'sub-agent': {
+            id: 'sub-agent',
+            name: 'Sub Agent',
+            description: '',
+            prompt: '',
+            type: 'internal',
+            dataComponents: [],
+            artifactComponents: [],
+            canUse: [
+              {
+                toolId: 'weather',
+                agentToolRelationId: 'relation-1',
+              },
+            ],
+            canTransferTo: [],
+            canDelegateTo: [],
+          },
+        },
+        functions: {},
+        functionTools: {},
+        externalAgents: {},
+        teamAgents: {},
+        tools: {
+          weather: {
+            id: 'weather',
+            name: 'Weather',
+            description: 'Weather tool',
+          },
+        },
+      } as any,
+    });
+
+    expect(result.edgeId).toBe('edge-weather');
+    expect(result.edges).toEqual([
+      expect.objectContaining({
+        id: 'edge-weather',
+        source: 'sub-agent',
+        target: 'weather-node',
+        selected: true,
+      }),
+    ]);
+  });
 });

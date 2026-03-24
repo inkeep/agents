@@ -25,7 +25,6 @@ import {
   externalAgentNodeTargetHandleId,
   type FunctionToolNodeData,
   functionToolNodeHandleId,
-  type MCPNodeData,
   mcpNodeHandleId,
   NodeType,
   newNodeDefaults,
@@ -54,6 +53,7 @@ import {
   deserializeAgentData,
   hydrateNodesWithFormData,
   serializeAgentData,
+  syncSavedAgentGraph,
 } from '@/features/agent/domain';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useIsMounted } from '@/hooks/use-is-mounted';
@@ -551,78 +551,32 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     if (res.success) {
       toast.success('Agent saved', { closeButton: true });
       markSaved();
-      // This makes current values the new default values
-      requestAnimationFrame(() => {
-        form.reset(serializeAgentForm(res.data));
+      const syncedGraph = syncSavedAgentGraph({
+        nodes: hydratedNodes,
+        edges,
+        savedAgent: res.data,
+        nodeId,
+        edgeId,
       });
 
-      // Update tool nodes with new relationshipIds from backend response
-      if (res.data) {
-        const processedRelationships = new Set<string>();
-
-        setNodes((currentNodes) =>
-          currentNodes
-            .map((node) => {
-              if (
-                (node.type === NodeType.ExternalAgent || node.type === NodeType.TeamAgent) &&
-                !node.data.relationshipId
-              ) {
-                return null;
-              }
-
-              if (node.type !== NodeType.MCP && node.type !== NodeType.FunctionTool) {
-                return node;
-              }
-
-              const toolNode = node as Node & { data: MCPNodeData };
-              // For new nodes (relationshipId is null), find the first unprocessed relationship
-              // that matches this agent and tool
-              const { subAgentId, toolId, relationshipId } = toolNode.data;
-              if (!subAgentId) {
-                if (node.type === NodeType.MCP) {
-                  form.unregister(`mcpRelations.${node.id}`);
-                } else {
-                  form.unregister([`functions.${toolId}`, `functionTools.${toolId}`]);
-                }
-                return null;
-              }
-
-              if (!toolId || relationshipId) {
-                return node;
-              }
-
-              const savedSubAgent = res.data.subAgents[subAgentId];
-              if (savedSubAgent?.canUse) {
-                const matchingRelationship = savedSubAgent.canUse.find(
-                  (tool: any) =>
-                    tool.toolId === toolId &&
-                    tool.agentToolRelationId &&
-                    !processedRelationships.has(tool.agentToolRelationId)
-                );
-
-                if (matchingRelationship?.agentToolRelationId) {
-                  processedRelationships.add(matchingRelationship.agentToolRelationId);
-                  return {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      relationshipId: matchingRelationship.agentToolRelationId,
-                    },
-                  };
-                }
-              }
-              return node;
-            })
-            .filter((v) => !!v)
-        );
-      }
+      setQueryState((prev) => ({
+        ...prev,
+        pane:
+          (prev.pane === 'node' && !syncedGraph.nodeId) ||
+          (prev.pane === 'edge' && !syncedGraph.edgeId)
+            ? 'agent'
+            : prev.pane,
+        nodeId: syncedGraph.nodeId,
+        edgeId: syncedGraph.edgeId,
+      }));
+      form.reset(serializeAgentForm(res.data));
+      setInitial(syncedGraph.nodes, syncedGraph.edges);
       return;
     }
 
     if (res.code && nonValidationErrors.has(res.code)) {
-      toast.error(res.error || 'An error occurred while saving the agent', {
-        closeButton: true,
-      });
+      const error = res.error || 'An error occurred while saving the agent';
+      toast.error(error, { closeButton: true });
       return;
     }
 
@@ -637,7 +591,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       console.error('Failed to parse validation errors:', parseError);
       toast.error('Failed to save agent', { closeButton: true });
     }
-    return;
   });
 
   useAnimateGraph();

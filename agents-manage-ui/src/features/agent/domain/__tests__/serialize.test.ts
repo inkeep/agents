@@ -3,6 +3,7 @@ import { EdgeType } from '@/components/agent/configuration/edge-types';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import { hydrateNodesWithFormData, serializeAgentData } from '../serialize';
+import { syncSavedAgentGraph } from '../sync-saved-agent-graph';
 
 describe('serializeAgentData', () => {
   describe('models object processing', () => {
@@ -845,6 +846,129 @@ describe('serializeAgentData', () => {
           },
         },
       });
+    });
+
+    it('should hydrate sub-agent ids before reconciling the saved graph', () => {
+      const tempNodeId = '1uod8ks26jpu729czv0z4';
+      const nodes: Node[] = [
+        {
+          id: tempNodeId,
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: tempNodeId,
+            name: 'Stale sub agent',
+            prompt: 'Stale prompt',
+            skills: [],
+          },
+        },
+        {
+          id: 'weather-node',
+          type: NodeType.MCP,
+          position: { x: 300, y: 0 },
+          data: {
+            toolId: 'weather',
+            subAgentId: tempNodeId,
+            relationshipId: null,
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-weather',
+          type: EdgeType.Default,
+          source: tempNodeId,
+          target: 'weather-node',
+        },
+      ];
+
+      const formData = {
+        subAgents: {
+          [tempNodeId]: {
+            id: 'sub-agent1',
+            name: 'Sub Agent 1',
+            description: '',
+            prompt: 'Current prompt',
+            dataComponents: [],
+            artifactComponents: [],
+            skills: [],
+            type: 'internal',
+          },
+        },
+        functionTools: {},
+        functions: {},
+        externalAgents: {},
+        teamAgents: {},
+      } as any;
+
+      const hydratedNodes = hydrateNodesWithFormData(nodes, formData);
+      const result = syncSavedAgentGraph({
+        nodes: hydratedNodes,
+        edges,
+        nodeId: null,
+        edgeId: 'edge-weather',
+        savedAgent: {
+          id: 'agent-1',
+          name: 'Agent',
+          description: '',
+          prompt: '',
+          contextConfig: null,
+          statusUpdates: null,
+          stopWhen: null,
+          models: {},
+          defaultSubAgentId: 'sub-agent1',
+          subAgents: {
+            'sub-agent1': {
+              id: 'sub-agent1',
+              name: 'Sub Agent 1',
+              description: '',
+              prompt: 'Current prompt',
+              type: 'internal',
+              dataComponents: [],
+              artifactComponents: [],
+              canUse: [
+                {
+                  toolId: 'weather',
+                  agentToolRelationId: 'relation-1',
+                },
+              ],
+              canTransferTo: [],
+              canDelegateTo: [],
+            },
+          },
+          functions: {},
+          functionTools: {},
+          externalAgents: {},
+          teamAgents: {},
+          tools: {
+            weather: {
+              id: 'weather',
+              name: 'Weather',
+              description: 'Weather tool',
+            },
+          },
+        } as any,
+      });
+
+      expect(result.nodes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'sub-agent1',
+            data: expect.objectContaining({
+              id: 'sub-agent1',
+            }),
+          }),
+        ])
+      );
+      expect(result.edges).toEqual([
+        expect.objectContaining({
+          id: 'edge-weather',
+          source: 'sub-agent1',
+          target: 'weather-node',
+          selected: true,
+        }),
+      ]);
     });
 
     it('should serialize connected function tool nodes into functionTools and functions', () => {
