@@ -1,4 +1,4 @@
-import { generateSkillDefinition } from '../generators/skill-generator';
+import { generateSkillDefinition, generateSkillFiles } from '../generators/skill-generator';
 
 describe('Skill Generator', () => {
   it('generates skill markdown with metadata', () => {
@@ -34,6 +34,35 @@ describe('Skill Generator', () => {
     expect(content).toContain('Simple content.');
   });
 
+  it('returns explicit skill files when provided', () => {
+    const files = [
+      {
+        filePath: 'SKILL.md',
+        content: `---
+name: general-gameplan
+description: "Create a general plan."
+---
+Use this skill for planning.`,
+      },
+      {
+        filePath: 'templates/checklist.md',
+        content: '# Checklist',
+      },
+    ];
+
+    const result = generateSkillFiles({
+      name: 'general-gameplan',
+      description: 'Create a general plan.',
+      metadata: {
+        tools: 'true',
+      },
+      content: 'Use this skill for planning.',
+      files,
+    });
+
+    expect(result).toStrictEqual(files);
+  });
+
   it('throws for invalid skill input', () => {
     expect(() => {
       // @ts-expect-error testing validation
@@ -45,7 +74,9 @@ describe('Skill Generator', () => {
 ✖ Invalid input: expected string, received undefined
   → at description
 ✖ Invalid input: expected string, received undefined
-  → at content`)
+  → at content
+✖ Must be valid JSON object
+  → at metadata`)
     );
   });
 });
