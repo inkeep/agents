@@ -1,9 +1,57 @@
 import { NodeType } from '@/components/agent/configuration/node-types';
+import { serializeAgentForm } from '@/components/agent/form/validation';
 import { deserializeAgentData } from '@/features/agent/domain/deserialize';
 import { serializeAgentData } from '@/features/agent/domain/serialize';
 
 describe('deserializeAgentData', () => {
-  it('hydrates MCP relation config onto node data so it round-trips without a lookup', () => {
+  function serializeWithFormData(fullAgent: any) {
+    const deserialized = deserializeAgentData(fullAgent);
+    const formData = serializeAgentForm(fullAgent);
+    const mcpRelations = Object.fromEntries(
+      Object.entries(formData.mcpRelations ?? {}).map(([key, value]) => [
+        key,
+        {
+          ...value,
+          headers: value.headers ? JSON.parse(value.headers) : undefined,
+        },
+      ])
+    );
+    const externalAgents = Object.fromEntries(
+      Object.entries(formData.externalAgents ?? {}).map(([key, value]) => [
+        key,
+        {
+          ...value,
+          headers: value.headers ? JSON.parse(value.headers) : undefined,
+        },
+      ])
+    );
+    const teamAgents = Object.fromEntries(
+      Object.entries(formData.teamAgents ?? {}).map(([key, value]) => [
+        key,
+        {
+          ...value,
+          headers: value.headers ? JSON.parse(value.headers) : undefined,
+        },
+      ])
+    );
+
+    return {
+      deserialized,
+      serialized: serializeAgentData(
+        deserialized.nodes,
+        deserialized.edges,
+        mcpRelations as any,
+        formData.functionTools,
+        externalAgents as any,
+        teamAgents as any,
+        formData.subAgents as any,
+        formData.functions as any,
+        formData.defaultSubAgentNodeId
+      ),
+    };
+  }
+
+  it('keeps MCP nodes graph-focused and round-trips relation config through RHF data', () => {
     const fullAgent = {
       id: 'agent-1',
       name: 'Agent 1',
@@ -47,23 +95,14 @@ describe('deserializeAgentData', () => {
       },
     } as any;
 
-    const deserialized = deserializeAgentData(fullAgent);
+    const { deserialized, serialized } = serializeWithFormData(fullAgent);
     const mcpNode = deserialized.nodes.find((node) => node.type === NodeType.MCP);
 
     expect(mcpNode?.data).toMatchObject({
+      toolId: 'tool-1',
+      subAgentId: 'sub-agent-1',
       relationshipId: 'relation-1',
-      tempSelectedTools: ['search', 'summarize'],
-      tempHeaders: {
-        Authorization: 'Bearer token',
-      },
-      tempToolPolicies: {
-        search: {
-          needsApproval: true,
-        },
-      },
     });
-
-    const serialized = serializeAgentData(deserialized.nodes, deserialized.edges);
 
     expect(serialized.subAgents['sub-agent-1'].canUse).toEqual([
       {
@@ -82,7 +121,7 @@ describe('deserializeAgentData', () => {
     ]);
   });
 
-  it('hydrates external agent headers onto node data so it round-trips without a lookup', () => {
+  it('keeps external agent nodes graph-focused and round-trips headers through RHF data', () => {
     const fullAgent = {
       id: 'agent-1',
       name: 'Agent 1',
@@ -117,23 +156,22 @@ describe('deserializeAgentData', () => {
           description: 'External description',
           baseUrl: 'https://example.com/agent',
           credentialReferenceId: null,
+          headers: {
+            Authorization: 'Bearer token',
+          },
         },
       },
     } as any;
 
-    const deserialized = deserializeAgentData(fullAgent);
+    const { deserialized, serialized } = serializeWithFormData(fullAgent);
     const externalAgentNode = deserialized.nodes.find(
       (node) => node.type === NodeType.ExternalAgent
     );
 
     expect(externalAgentNode?.data).toMatchObject({
+      externalAgentId: 'external-agent-1',
       relationshipId: 'external-relation-1',
-      tempHeaders: {
-        Authorization: 'Bearer token',
-      },
     });
-
-    const serialized = serializeAgentData(deserialized.nodes, deserialized.edges);
 
     expect(serialized.subAgents['sub-agent-1'].canDelegateTo).toEqual([
       {
@@ -146,7 +184,7 @@ describe('deserializeAgentData', () => {
     ]);
   });
 
-  it('hydrates team agent headers onto node data so it round-trips without a lookup', () => {
+  it('keeps team agent nodes graph-focused and round-trips headers through RHF data', () => {
     const fullAgent = {
       id: 'agent-1',
       name: 'Agent 1',
@@ -179,21 +217,20 @@ describe('deserializeAgentData', () => {
           id: 'team-agent-1',
           name: 'Team Agent',
           description: 'Team description',
+          headers: {
+            Authorization: 'Bearer token',
+          },
         },
       },
     } as any;
 
-    const deserialized = deserializeAgentData(fullAgent);
+    const { deserialized, serialized } = serializeWithFormData(fullAgent);
     const teamAgentNode = deserialized.nodes.find((node) => node.type === NodeType.TeamAgent);
 
     expect(teamAgentNode?.data).toMatchObject({
+      teamAgentId: 'team-agent-1',
       relationshipId: 'team-relation-1',
-      tempHeaders: {
-        Authorization: 'Bearer token',
-      },
     });
-
-    const serialized = serializeAgentData(deserialized.nodes, deserialized.edges);
 
     expect(serialized.subAgents['sub-agent-1'].canDelegateTo).toEqual([
       {
