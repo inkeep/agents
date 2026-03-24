@@ -285,8 +285,6 @@ describe('Messages Data Access', () => {
     it('should create a new message', async () => {
       const messageData = {
         id: 'msg-1',
-        tenantId: testTenantId,
-        projectId: testProjectId,
         conversationId: testConversationId,
         role: 'user',
         content: { text: 'Hello world' },
@@ -303,6 +301,8 @@ describe('Messages Data Access', () => {
       };
 
       const expectedMessage = {
+        tenantId: testTenantId,
+        projectId: testProjectId,
         ...messageData,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
@@ -319,7 +319,10 @@ describe('Messages Data Access', () => {
         insert: mockInsert,
       } as any;
 
-      const result = await createMessage(mockDb)(messageData);
+      const result = await createMessage(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        data: messageData,
+      });
 
       expect(mockInsert).toHaveBeenCalled();
       expect(result).toEqual(expectedMessage);
@@ -355,9 +358,8 @@ describe('Messages Data Access', () => {
       } as any;
 
       const result = await createMessage(mockDb)({
-        tenantId: testTenantId,
-        projectId: testProjectId,
-        ...messageData,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        data: messageData,
       });
 
       expect(result.visibility).toBe('user-facing');

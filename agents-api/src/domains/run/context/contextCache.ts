@@ -65,6 +65,10 @@ export class ContextCache {
         contextConfigId,
         contextVariableKey,
         requestHash,
+        scopes: {
+          tenantId: this.executionContext.tenantId,
+          projectId: this.executionContext.projectId,
+        },
       });
       if (!cacheEntry) {
         return null;

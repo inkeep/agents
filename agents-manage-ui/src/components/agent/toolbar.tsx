@@ -10,8 +10,8 @@ import { flatNestedFieldMessage } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from './ship/ship-modal';
 
@@ -34,7 +34,9 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
     projectId: string;
     agentId: string;
   }>();
-  const { canView, canUse, canEdit } = useProjectPermissions();
+  const {
+    data: { canView, canUse, canEdit },
+  } = useProjectPermissionsQuery();
 
   const previewButton = (
     <FlowButton disabled={isDirty || hasOpenModelConfig} onClick={() => setShowPlayground(true)}>

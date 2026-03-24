@@ -19,7 +19,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import { URLDisplay } from '@/components/url-display';
-import { useProjectPermissions } from '@/contexts/project';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';
@@ -85,7 +85,9 @@ export function ExternalAgentItem({
   projectId: string;
   externalAgent: ExternalAgent;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}`;
 
   return (

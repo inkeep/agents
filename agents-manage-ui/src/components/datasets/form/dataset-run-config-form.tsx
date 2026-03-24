@@ -22,10 +22,9 @@ import {
   updateDatasetRunConfigAction,
 } from '@/lib/actions/dataset-run-configs';
 import type { DatasetRunConfigInsert } from '@/lib/api/dataset-run-configs';
-import type { Evaluator } from '@/lib/api/evaluators';
 import { useAgentsQuery } from '@/lib/query/agents';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
-import type { Agent } from '@/lib/types/agent-full';
+import { createLookup } from '@/lib/utils';
 import {
   type DatasetRunConfigFormData,
   datasetRunConfigSchema,
@@ -88,25 +87,8 @@ export function DatasetRunConfigForm({
     }
   }, [initialData, form]);
 
-  const agentLookup = useMemo(() => {
-    return agents.reduce(
-      (acc, agent) => {
-        acc[agent.id] = agent;
-        return acc;
-      },
-      {} as Record<string, Agent>
-    );
-  }, [agents]);
-
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const agentLookup = useMemo(() => createLookup(agents), [agents]);
+  const evaluatorLookup = useMemo(() => createLookup(evaluators), [evaluators]);
 
   const onSubmit = async (data: DatasetRunConfigFormData) => {
     try {

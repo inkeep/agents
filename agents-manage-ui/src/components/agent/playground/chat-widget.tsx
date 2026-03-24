@@ -147,6 +147,7 @@ export function ChatWidget({
       <div className="flex-1 min-w-0 h-full">
         <InkeepEmbeddedChat
           baseSettings={{
+            shouldBypassCaptcha: true,
             async onEvent(event) {
               posthog?.capture(event.eventName, {
                 ...event.properties,
@@ -225,9 +226,10 @@ export function ChatWidget({
               light: '/assets/inkeep-icons/icon-blue.svg',
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
+            isChatHistoryButtonVisible: false,
             isViewOnly: hasHeadersError,
             conversationId,
-            agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat` : undefined,
+            baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,

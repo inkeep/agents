@@ -21,9 +21,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { useProjectData } from '@/hooks/use-project-data';
+import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
 import {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
@@ -59,9 +58,12 @@ export const MetadataEditor: FC = () => {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-  const { canUse } = useProjectPermissions();
+  const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
+  const {
+    data: { canUse },
+  } = useProjectPermissionsQuery();
   // Fetch project data for inheritance indicators
-  const { project } = useProjectData();
+  const { data: project } = useProjectQuery();
   const form = useFullAgentFormContext();
 
   const isStatusUpdateEnabled = useWatch({ control: form.control, name: 'statusUpdates.enabled' });
@@ -74,14 +76,12 @@ export const MetadataEditor: FC = () => {
     <div className="space-y-8">
       <div className="space-y-2">
         <FieldLabel
-          label="Chat URL"
-          tooltip="Use this endpoint to chat with your agent or connect it to the Inkeep widget via the agentUrl prop. Supports streaming responses with the Vercel AI SDK data stream protocol."
+          label="Chat API Base URL"
+          tooltip="Use this endpoint to chat with your agent by appending /run/api/chat or connect it to the Inkeep widget via the baseUrl prop and specifying the appId. Supports streaming responses with the Vercel AI SDK data stream protocol."
         />
-        <CopyableSingleLineCode code={`${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`} />
+        <CopyableSingleLineCode code={baseUrl} />
         {canUse && (
-          <ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
-            Create API key
-          </ExternalLink>
+          <ExternalLink href={`/${tenantId}/projects/${projectId}/apps`}>Create App</ExternalLink>
         )}
       </div>
       <GenericInput

@@ -3,17 +3,13 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { agents, subAgents } from '../../db/manage/manage-schema';
 import type { SubAgentInsert, SubAgentSelect, SubAgentUpdate } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
+import { agentScopedWhere, projectScopedWhere } from './scope-helpers';
 
 export const getSubAgentById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     const result = await db.query.subAgents.findFirst({
-      where: and(
-        eq(subAgents.tenantId, params.scopes.tenantId),
-        eq(subAgents.projectId, params.scopes.projectId),
-        eq(subAgents.agentId, params.scopes.agentId),
-        eq(subAgents.id, params.subAgentId)
-      ),
+      where: and(agentScopedWhere(subAgents, params.scopes), eq(subAgents.id, params.subAgentId)),
     });
     return result;
   };
@@ -21,11 +17,7 @@ export const getSubAgentById =
 export const listSubAgents =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.subAgents.findMany({
-      where: and(
-        eq(subAgents.tenantId, params.scopes.tenantId),
-        eq(subAgents.projectId, params.scopes.projectId),
-        eq(subAgents.agentId, params.scopes.agentId)
-      ),
+      where: agentScopedWhere(subAgents, params.scopes),
     });
   };
 
@@ -36,11 +28,7 @@ export const listSubAgentsPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(subAgents.tenantId, params.scopes.tenantId),
-      eq(subAgents.projectId, params.scopes.projectId),
-      eq(subAgents.agentId, params.scopes.agentId)
-    );
+    const whereClause = agentScopedWhere(subAgents, params.scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -98,12 +86,7 @@ export const updateSubAgent =
       .update(subAgents)
       .set(updateData)
       .where(
-        and(
-          eq(subAgents.tenantId, params.scopes.tenantId),
-          eq(subAgents.projectId, params.scopes.projectId),
-          eq(subAgents.agentId, params.scopes.agentId),
-          inArray(subAgents.id, [params.subAgentId])
-        )
+        and(agentScopedWhere(subAgents, params.scopes), inArray(subAgents.id, [params.subAgentId]))
       )
       .returning();
 
@@ -168,8 +151,7 @@ export const deleteSubAgent =
       .from(agents)
       .where(
         and(
-          eq(agents.tenantId, params.scopes.tenantId),
-          eq(agents.projectId, params.scopes.projectId),
+          projectScopedWhere(agents, params.scopes),
           eq(agents.id, params.scopes.agentId),
           eq(agents.defaultSubAgentId, params.subAgentId)
         )
@@ -183,12 +165,7 @@ export const deleteSubAgent =
     await db
       .delete(subAgents)
       .where(
-        and(
-          eq(subAgents.tenantId, params.scopes.tenantId),
-          eq(subAgents.projectId, params.scopes.projectId),
-          eq(subAgents.agentId, params.scopes.agentId),
-          inArray(subAgents.id, [params.subAgentId])
-        )
+        and(agentScopedWhere(subAgents, params.scopes), inArray(subAgents.id, [params.subAgentId]))
       );
 
     const deletedSubAgent = await getSubAgentById(db)({
@@ -209,11 +186,6 @@ export const getSubAgentsByIds =
       .select()
       .from(subAgents)
       .where(
-        and(
-          eq(subAgents.tenantId, params.scopes.tenantId),
-          eq(subAgents.projectId, params.scopes.projectId),
-          eq(subAgents.agentId, params.scopes.agentId),
-          inArray(subAgents.id, params.subAgentIds)
-        )
+        and(agentScopedWhere(subAgents, params.scopes), inArray(subAgents.id, params.subAgentIds))
       );
   };

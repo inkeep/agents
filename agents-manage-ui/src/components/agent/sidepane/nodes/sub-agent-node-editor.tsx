@@ -25,12 +25,11 @@ import {
 } from '@/components/ui/inheritance-indicator';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useProjectPermissions } from '@/contexts/project';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { useDeleteNode } from '@/hooks/use-delete-node';
-import { useProjectData } from '@/hooks/use-project-data';
 import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
 import { createLookup, isRequired } from '@/lib/utils';
 import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
@@ -65,8 +64,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
   const nodeId = selectedNode.id;
   const subAgent = useWatch({ control: form.control, name: `subAgents.${nodeId}` });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
-  const { canEdit } = useProjectPermissions();
-  const { project } = useProjectData();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const { data: project } = useProjectQuery();
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();
   const models = useWatch({ control: form.control, name: 'models' });

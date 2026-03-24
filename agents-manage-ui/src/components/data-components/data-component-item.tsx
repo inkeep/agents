@@ -9,8 +9,8 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import { useProjectPermissions } from '@/contexts/project';
 import type { DataComponent } from '@/lib/api/data-components';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDate } from '@/lib/utils/format-date';
 import { DataComponentItemMenu } from './data-component-item-menu';
 
@@ -22,7 +22,9 @@ export function DataComponentItem({
   tenantId,
   projectId,
 }: DataComponent & { tenantId: string; projectId: string }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/components/${id}`;
 
   return (

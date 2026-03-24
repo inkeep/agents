@@ -54,6 +54,19 @@ export const Playground = ({
     return () => resetPlaygroundConversationId();
   }, []);
 
+  const headersTemplate = useMemo(() => {
+    if (!headersSchemaString) return undefined;
+    try {
+      const schema = JSON.parse(headersSchemaString);
+      const properties = schema?.properties as Record<string, unknown> | undefined;
+      if (!properties) return undefined;
+      const template = Object.fromEntries(Object.keys(properties).map((key) => [key, '']));
+      return JSON.stringify(template, null, 2);
+    } catch {
+      return undefined;
+    }
+  }, [headersSchemaString]);
+
   const resolver = useMemo(
     () =>
       zodResolver(
@@ -157,6 +170,7 @@ export const Playground = ({
           form={form}
           isOpen={isCustomHeadersModalOpen}
           setIsOpen={setIsCustomHeadersModalOpen}
+          headersTemplate={headersTemplate}
         />
         <div className="flex items-center gap-2">
           <Button

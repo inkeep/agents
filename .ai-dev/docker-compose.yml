@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.proxy
-    container_name: claude-proxy
     volumes:
       - ./squid.conf:/etc/squid/squid.conf:ro
       - squid-certs:/certs
@@ -17,7 +16,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: claude-sandbox
     environment:
       - HTTP_PROXY=http://proxy:3128
       - HTTPS_PROXY=http://proxy:3128

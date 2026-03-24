@@ -24,8 +24,8 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useProjectPermissions } from '@/contexts/project';
 import { useDeleteNode } from '@/hooks/use-delete-node';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { isRequired } from '@/lib/utils';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 
@@ -37,7 +37,9 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   'use memo';
   const { deleteNode } = useDeleteNode(selectedNode.id);
 
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
   const form = useFullAgentFormContext();
   const id = selectedNode.data.toolId;

@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useProjectPermissions } from '@/contexts/project';
 import { useDeleteNode } from '@/hooks/use-delete-node';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
 
@@ -19,7 +19,9 @@ interface ExternalAgentNodeEditorProps {
 }
 
 export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEditorProps) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { deleteNode } = useDeleteNode(selectedNode.id);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useFullAgentFormContext();

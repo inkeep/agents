@@ -9,11 +9,11 @@ import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
 import { STATIC_LABELS } from '@/constants/theme';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useProject } from '@/contexts/project';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
+import { useProjectQuery } from '@/lib/query/projects';
 import { cn, createLookup } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
@@ -52,7 +52,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const processedErrors = useProcessedErrors('subAgents', id);
   const defaultSubAgentId = useWatch({ control, name: 'defaultSubAgentId' });
   const agentModel = useWatch({ control, name: 'models' });
-  const { project } = useProject();
+  const { data: project } = useProjectQuery();
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();
   if (!subAgent) {
@@ -70,9 +70,9 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     artifactComponents: artifactComponentIds = [],
   } = subAgent;
   const isDefault = id === defaultSubAgentId;
-  const projectModel = project.models;
+  const projectModel = project?.models;
   const modelName =
-    subAgent.models?.base.model ?? agentModel.base.model ?? (projectModel.base.model as string);
+    subAgent.models?.base.model ?? agentModel.base.model ?? (projectModel?.base.model as string);
 
   const dataComponentsById = createLookup(dataComponents);
   const artifactComponentsById = createLookup(artifactComponents);

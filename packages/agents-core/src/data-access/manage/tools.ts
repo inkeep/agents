@@ -9,6 +9,7 @@ import { subAgentToolRelations, tools } from '../../db/manage/manage-schema';
 import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import { env } from '../../env';
+import { isSerializationError } from '../../retry/retryable-errors';
 import type { CredentialReferenceSelect } from '../../types/index';
 import {
   type AgentScopeConfig,
@@ -29,6 +30,8 @@ import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
+  isTrustedWorkAppMcpUrl,
+  TRUSTED_WORK_APP_MCP_PATHS,
   toISODateString,
 } from '../../utils';
 import { generateId } from '../../utils/conversations';
@@ -38,6 +41,7 @@ import { cascadeDeleteByTool } from '../runtime/cascade-delete';
 import { isGithubWorkAppTool } from '../runtime/github-work-app-installations';
 import { isSlackWorkAppTool } from '../runtime/slack-work-app-mcp';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
+import { agentScopedWhere, projectScopedWhere } from './scope-helpers';
 import { updateAgentToolRelation } from './subAgentRelations';
 
 /**
@@ -216,16 +220,38 @@ const discoverToolsFromServer = async (
       }
     }
 
-    // Inject user_id and x-api-key for Composio servers at discovery time
-    configureComposioMCPServer(
-      serverConfig,
-      tool.tenantId,
-      tool.projectId,
-      tool.credentialScope === 'user' ? 'user' : 'project',
-      userId
-    );
+    const composioConnectedAccountId = credentialReference?.retrievalParams?.connectedAccountId as
+      | string
+      | undefined;
 
-    if (isGithubWorkAppTool(tool)) {
+    // Only inject Composio auth params when connectedAccountId is available (both or none)
+    // to prevent cross-project credential leakage via user_id-only scoping
+    if (composioConnectedAccountId) {
+      configureComposioMCPServer(
+        serverConfig,
+        tool.tenantId,
+        tool.projectId,
+        tool.credentialScope === 'user' ? 'user' : 'project',
+        userId,
+        composioConnectedAccountId
+      );
+    } else if (serverConfig.url?.toString().includes('composio.dev')) {
+      logger.warn(
+        { toolName: tool.name, toolId: tool.id },
+        'Composio tool missing connectedAccountId — skipping auth injection to prevent credential leakage'
+      );
+    }
+
+    const urlString = String(serverConfig.url);
+
+    if (
+      isGithubWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(
+        urlString,
+        TRUSTED_WORK_APP_MCP_PATHS.github,
+        env.INKEEP_AGENTS_API_URL
+      )
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
@@ -235,7 +261,10 @@ const discoverToolsFromServer = async (
       };
     }
 
-    if (isSlackWorkAppTool(tool)) {
+    if (
+      isSlackWorkAppTool(tool) &&
+      isTrustedWorkAppMcpUrl(urlString, TRUSTED_WORK_APP_MCP_PATHS.slack, env.INKEEP_AGENTS_API_URL)
+    ) {
       serverConfig.headers = {
         ...serverConfig.headers,
         'x-inkeep-tool-id': tool.id,
@@ -397,18 +426,30 @@ export const dbResultToMcpTool = async (
   // Check third-party service status
   const isThirdPartyMCPServer = dbResult.config.mcp.server.url.includes('composio.dev');
   if (isThirdPartyMCPServer) {
-    const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
-    const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
-      dbResult.tenantId,
-      dbResult.projectId,
-      mcpServerUrl,
-      credentialScope,
-      userId
-    );
+    const hasConnectedAccountId = !!credentialReference?.retrievalParams?.connectedAccountId;
 
-    if (!isAuthenticated) {
+    if (!hasConnectedAccountId) {
       status = 'needs_auth';
-      lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+      lastErrorComputed =
+        'Third-party authentication required. Connect your account to pin a specific credential.';
+    } else {
+      const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
+      const authResult = await isThirdPartyMCPServerAuthenticated(
+        dbResult.tenantId,
+        dbResult.projectId,
+        mcpServerUrl,
+        credentialScope,
+        userId
+      );
+
+      if (!authResult.authenticated && !authResult.error) {
+        status = 'needs_auth';
+        lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+      } else if (authResult.error) {
+        status = 'unavailable';
+        lastErrorComputed =
+          'Could not verify third-party authentication status. The service may be temporarily unavailable.';
+      }
     }
   }
 
@@ -432,14 +473,7 @@ export const dbResultToMcpTool = async (
       },
     });
   } catch (updateError) {
-    // Check for serialization conflict (sqlstate 40001, errno 1213)
-    const isSerializationConflict =
-      updateError instanceof Error &&
-      (updateError.message.includes('serialization failure') ||
-        updateError.message.includes('40001') ||
-        (updateError as any).cause?.code === 'XX000');
-
-    if (isSerializationConflict) {
+    if (isSerializationError(updateError)) {
       logger.debug(
         { toolId: dbResult.id },
         'Skipping tool metadata update due to serialization conflict (concurrent request)'
@@ -474,11 +508,7 @@ export const getToolById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const result = await db.query.tools.findFirst({
-      where: and(
-        eq(tools.tenantId, params.scopes.tenantId),
-        eq(tools.projectId, params.scopes.projectId),
-        eq(tools.id, params.toolId)
-      ),
+      where: and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)),
     });
     return result ?? null;
   };
@@ -512,10 +542,7 @@ export const listTools =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(tools.tenantId, params.scopes.tenantId),
-      eq(tools.projectId, params.scopes.projectId)
-    );
+    const whereClause = projectScopedWhere(tools, params.scopes);
 
     const [toolsDbResults, totalResult] = await Promise.all([
       db
@@ -567,13 +594,7 @@ export const updateTool =
         ...params.data,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(tools.tenantId, params.scopes.tenantId),
-          eq(tools.projectId, params.scopes.projectId),
-          eq(tools.id, params.toolId)
-        )
-      )
+      .where(and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)))
       .returning();
 
     return updated ?? null;
@@ -584,13 +605,7 @@ export const deleteTool =
   async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const [deleted] = await db
       .delete(tools)
-      .where(
-        and(
-          eq(tools.tenantId, params.scopes.tenantId),
-          eq(tools.projectId, params.scopes.projectId),
-          eq(tools.id, params.toolId)
-        )
-      )
+      .where(and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)))
       .returning();
 
     if (!deleted) {
@@ -667,9 +682,7 @@ export const removeToolFromAgent =
       .delete(subAgentToolRelations)
       .where(
         and(
-          eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentToolRelations.projectId, params.scopes.projectId),
-          eq(subAgentToolRelations.agentId, params.scopes.agentId),
+          agentScopedWhere(subAgentToolRelations, params.scopes),
           eq(subAgentToolRelations.subAgentId, params.subAgentId),
           eq(subAgentToolRelations.toolId, params.toolId)
         )

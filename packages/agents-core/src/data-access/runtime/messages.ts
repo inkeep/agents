@@ -8,16 +8,13 @@ import type {
   PaginationConfig,
   ProjectScopeConfig,
 } from '../../types/index';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 export const getMessageById =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
     return db.query.messages.findFirst({
-      where: and(
-        eq(messages.tenantId, params.scopes.tenantId),
-        eq(messages.projectId, params.scopes.projectId),
-        eq(messages.id, params.messageId)
-      ),
+      where: and(projectScopedWhere(messages, params.scopes), eq(messages.id, params.messageId)),
     });
   };
 
@@ -31,12 +28,7 @@ export const listMessages =
     const query = db
       .select()
       .from(messages)
-      .where(
-        and(
-          eq(messages.tenantId, params.scopes.tenantId),
-          eq(messages.projectId, params.scopes.projectId)
-        )
-      )
+      .where(projectScopedWhere(messages, params.scopes))
       .limit(limit)
       .offset(offset)
       .orderBy(desc(messages.createdAt));
@@ -60,8 +52,7 @@ export const getMessagesByConversation =
       .from(messages)
       .where(
         and(
-          eq(messages.tenantId, params.scopes.tenantId),
-          eq(messages.projectId, params.scopes.projectId),
+          projectScopedWhere(messages, params.scopes),
           eq(messages.conversationId, params.conversationId)
         )
       )
@@ -82,13 +73,7 @@ export const getMessagesByTask =
     const query = db
       .select()
       .from(messages)
-      .where(
-        and(
-          eq(messages.tenantId, params.scopes.tenantId),
-          eq(messages.projectId, params.scopes.projectId),
-          eq(messages.taskId, params.taskId)
-        )
-      )
+      .where(and(projectScopedWhere(messages, params.scopes), eq(messages.taskId, params.taskId)))
       .limit(limit)
       .offset(offset)
       .orderBy(asc(messages.createdAt));
@@ -115,8 +100,7 @@ export const getVisibleMessages =
       .from(messages)
       .where(
         and(
-          eq(messages.tenantId, params.scopes.tenantId),
-          eq(messages.projectId, params.scopes.projectId),
+          projectScopedWhere(messages, params.scopes),
           eq(messages.conversationId, params.conversationId),
           inArray(messages.visibility, visibilityFilter)
         )
@@ -128,20 +112,28 @@ export const getVisibleMessages =
     return await query;
   };
 
-export const createMessage = (db: AgentsRunDatabaseClient) => async (params: MessageInsert) => {
-  const now = new Date().toISOString();
+export const createMessage =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    data: Omit<MessageInsert, 'tenantId' | 'projectId'>;
+  }) => {
+    const { scopes, data } = params;
+    const now = new Date().toISOString();
 
-  const [created] = await db
-    .insert(messages)
-    .values({
-      ...params,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
+    const [created] = await db
+      .insert(messages)
+      .values({
+        ...data,
+        tenantId: scopes.tenantId,
+        projectId: scopes.projectId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
 
-  return created;
-};
+    return created;
+  };
 
 export const updateMessage =
   (db: AgentsRunDatabaseClient) =>
@@ -154,13 +146,7 @@ export const updateMessage =
         ...params.data,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(messages.tenantId, params.scopes.tenantId),
-          eq(messages.projectId, params.scopes.projectId),
-          eq(messages.id, params.messageId)
-        )
-      )
+      .where(and(projectScopedWhere(messages, params.scopes), eq(messages.id, params.messageId)))
       .returning();
 
     return updated;
@@ -171,13 +157,7 @@ export const deleteMessage =
   async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
     const [deleted] = await db
       .delete(messages)
-      .where(
-        and(
-          eq(messages.tenantId, params.scopes.tenantId),
-          eq(messages.projectId, params.scopes.projectId),
-          eq(messages.id, params.messageId)
-        )
-      )
+      .where(and(projectScopedWhere(messages, params.scopes), eq(messages.id, params.messageId)))
       .returning();
 
     return deleted;
@@ -191,9 +171,32 @@ export const countMessagesByConversation =
       .from(messages)
       .where(
         and(
-          eq(messages.tenantId, params.scopes.tenantId),
-          eq(messages.projectId, params.scopes.projectId),
+          projectScopedWhere(messages, params.scopes),
           eq(messages.conversationId, params.conversationId)
+        )
+      );
+
+    const total = result[0]?.count || 0;
+    return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
+  };
+
+export const countVisibleMessages =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId: string;
+    visibility?: MessageVisibility[];
+  }) => {
+    const visibilityFilter = params.visibility || ['user-facing'];
+
+    const result = await db
+      .select({ count: count() })
+      .from(messages)
+      .where(
+        and(
+          projectScopedWhere(messages, params.scopes),
+          eq(messages.conversationId, params.conversationId),
+          inArray(messages.visibility, visibilityFilter)
         )
       );
 

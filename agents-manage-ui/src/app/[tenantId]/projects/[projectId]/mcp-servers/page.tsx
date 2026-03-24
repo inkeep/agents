@@ -22,11 +22,10 @@ async function MCPServersPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const [tools, permissions] = await Promise.all([
+    const [tools, { canEdit }] = await Promise.all([
       fetchMCPTools(tenantId, projectId, { skipDiscovery: true }),
       fetchProjectPermissions(tenantId, projectId),
     ]);
-    const canEdit = permissions.canEdit;
     return tools.length ? (
       <>
         <PageHeader

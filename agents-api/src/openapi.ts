@@ -1,5 +1,6 @@
 import { swaggerUI } from '@hono/swagger-ui';
 import type { OpenAPIHono } from '@hono/zod-openapi';
+import { SESSION_COOKIE_NAME } from '@inkeep/agents-core';
 import type { Context, Env } from 'hono';
 
 export const TagToDescription = {
@@ -90,7 +91,7 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
           cookieAuth: {
             type: 'apiKey',
             in: 'cookie',
-            name: 'better-auth.session_token',
+            name: SESSION_COOKIE_NAME,
             description:
               'Session-based authentication using HTTP-only cookies. Cookies are automatically sent by browsers. For server-side requests, include cookies with names starting with "better-auth." in the Cookie header.',
           },

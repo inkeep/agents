@@ -180,6 +180,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               }
             },
             primaryBrandColor: INKEEP_BRAND_COLOR,
+            shouldBypassCaptcha: true,
             colorMode: {
               sync: {
                 target: document.documentElement,
@@ -218,6 +219,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
           }}
           aiChatSettings={{
             aiAssistantName: 'Agent Editor',
+            isChatHistoryButtonVisible: false,
             components: {
               IkpTool(props) {
                 return (
@@ -237,7 +239,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               light: '/assets/inkeep-icons/icon-blue.svg',
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
-            agentUrl: `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`,
+            baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
             headers: {
               'x-emit-operations': 'true',
               Authorization: `Bearer ${copilotToken}`,

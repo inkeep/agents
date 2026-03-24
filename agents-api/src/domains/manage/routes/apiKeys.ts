@@ -12,6 +12,7 @@ import {
   ErrorResponseSchema,
   generateApiKey,
   getApiKeyById,
+  isForeignKeyViolation,
   listApiKeysPaginated,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
@@ -193,9 +194,8 @@ app.openapi(
         },
         201
       );
-    } catch (error: any) {
-      // Handle foreign key constraint violations (PostgreSQL foreign key violation)
-      if (error?.cause?.code === '23503') {
+    } catch (error) {
+      if (isForeignKeyViolation(error)) {
         throw createApiError({
           code: 'bad_request',
           message: 'Invalid agentId - agent does not exist',

@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useProjectPermissions } from '@/contexts/project';
 import { useDeleteNode } from '@/hooks/use-delete-node';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { teamAgentHeadersTemplate } from '@/lib/templates';
 import { isRequired } from '@/lib/utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
@@ -21,7 +21,9 @@ interface TeamAgentNodeEditorProps {
 }
 
 export function TeamAgentNodeEditor({ selectedNode }: TeamAgentNodeEditorProps) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { deleteNode } = useDeleteNode(selectedNode.id);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useFullAgentFormContext();

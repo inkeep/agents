@@ -84,7 +84,7 @@ export function ScheduledTabPanel({
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link href={`/${tenantId}/projects/${projectId}/triggers/invocations`}>
-                <History className="mr-1 h-4 w-4" />
+                <History className="h-4 w-4" />
                 All Invocations
               </Link>
             </Button>

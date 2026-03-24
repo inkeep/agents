@@ -1,5 +1,144 @@
 # @inkeep/agents-api
 
+## 0.59.3
+
+### Patch Changes
+
+- 6ca8164: v4 to v5 signoz migration
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+  - @inkeep/agents-work-apps@0.59.3
+  - @inkeep/agents-email@0.59.3
+  - @inkeep/agents-mcp@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- 5aad291: Fix conversation endpoint to return Vercel AI SDK FileUIPart-compliant file parts with resolved blob URIs
+- c6bcd18: Fix fetchTraceFromSigNoz method in the EvaluationService
+  - @inkeep/agents-core@0.59.2
+  - @inkeep/agents-email@0.59.2
+  - @inkeep/agents-mcp@0.59.2
+  - @inkeep/agents-work-apps@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- fddbd38: Fix OpenTelemetry SDK startup crash during Vite HMR by making initialization idempotent
+- b396a88: Fix scheduled trigger invocations being skipped when trigger is edited without changing the next execution time
+- 65c151d: adding app.id to span attributes
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+  - @inkeep/agents-work-apps@0.59.1
+  - @inkeep/agents-email@0.59.1
+  - @inkeep/agents-mcp@0.59.1
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+  - @inkeep/agents-work-apps@0.59.0
+  - @inkeep/agents-email@0.59.0
+  - @inkeep/agents-mcp@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.21
+- @inkeep/agents-email@0.58.21
+- @inkeep/agents-mcp@0.58.21
+- @inkeep/agents-work-apps@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- 7daab01: Remove unreachable ZodError catch blocks from agentFull and projectFull handlers
+- 15c6752: Add ref fields to runtime tables for branch tracking support
+- 62aad0e: Fix API key leakage vulnerability in Slack/GitHub MCP integrations by adding URL trust validation
+- 62a7aa2: Allow legacy API key authentication for GET conversation-by-ID manage endpoint
+- 9e0dd71: fix unauthenticated access to span details
+- ac53c07: rename the api to remove references to signoz
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+- Updated dependencies [b4baf66]
+  - @inkeep/agents-core@0.58.20
+  - @inkeep/agents-work-apps@0.58.20
+  - @inkeep/agents-email@0.58.20
+  - @inkeep/agents-mcp@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- 1571ef1: Fix project-level auth bypass in app CRUD endpoints — GET, UPDATE, and DELETE now filter by projectId in addition to tenantId, preventing cross-project access within a tenant
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+  - @inkeep/agents-work-apps@0.58.19
+  - @inkeep/agents-email@0.58.19
+  - @inkeep/agents-mcp@0.58.19
+
+## 0.58.18
+
+### Patch Changes
+
+- 128845e: Fix message ID mismatch between server and client for feedback records
+  - @inkeep/agents-core@0.58.18
+  - @inkeep/agents-email@0.58.18
+  - @inkeep/agents-mcp@0.58.18
+  - @inkeep/agents-work-apps@0.58.18
+
+## 0.58.17
+
+### Patch Changes
+
+- f94a089: service name filtering added to signoz queries
+  - @inkeep/agents-core@0.58.17
+  - @inkeep/agents-email@0.58.17
+  - @inkeep/agents-mcp@0.58.17
+  - @inkeep/agents-work-apps@0.58.17
+
+## 0.58.16
+
+### Patch Changes
+
+- 5065552: Fix GET /conversations to return all message part types matching the streaming protocol
+- Updated dependencies [5065552]
+  - @inkeep/agents-core@0.58.16
+  - @inkeep/agents-work-apps@0.58.16
+  - @inkeep/agents-email@0.58.16
+  - @inkeep/agents-mcp@0.58.16
+
+## 0.58.15
+
+### Patch Changes
+
+- 644afb3: Fix agent ID filtering for continuous evaluation tests
+- 6e8e655: Standardize CRUD HTTP method conventions: PATCH for partial updates, PUT for upsert/set-replace; hide legacy dual-method routes from OpenAPI spec and SDK generation
+- 4b46b9e: Updating Signoz service name from inkeep-agents-run-api to inkeep-agents-api
+- 3b02868: removes unused workflowProcessHandler
+- Updated dependencies [b10c96f]
+- Updated dependencies [1ca09cd]
+- Updated dependencies [abaefda]
+  - @inkeep/agents-work-apps@0.58.15
+  - @inkeep/agents-core@0.58.15
+  - @inkeep/agents-email@0.58.15
+  - @inkeep/agents-mcp@0.58.15
+
 ## 0.58.14
 
 ### Patch Changes

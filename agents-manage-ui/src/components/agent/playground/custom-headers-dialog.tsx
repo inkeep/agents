@@ -28,6 +28,7 @@ interface CustomHeadersDialogProps {
   form: UseFormReturn<{ headers: string }, unknown, { headers: DefaultHeaders }>;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  headersTemplate?: string;
 }
 
 export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
@@ -36,6 +37,7 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
   form,
   isOpen,
   setIsOpen,
+  headersTemplate,
 }) => {
   'use memo';
   const onSubmit = form.handleSubmit(({ headers }) => {
@@ -88,8 +90,8 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
               control={form.control}
               name="headers"
               label="Custom headers"
-              placeholder={customHeadersTemplate}
-              customTemplate={customHeadersTemplate}
+              placeholder={headersTemplate ?? customHeadersTemplate}
+              customTemplate={headersTemplate ?? customHeadersTemplate}
             />
             <div className="flex justify-end gap-2">
               {hasHeaders && (

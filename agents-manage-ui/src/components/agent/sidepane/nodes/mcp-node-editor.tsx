@@ -18,9 +18,9 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useProjectPermissions } from '@/contexts/project';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { headersTemplate } from '@/lib/templates';
 import { createLookup, isRequired } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
@@ -46,7 +46,9 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const path = <K extends string>(key: K) => `tools.${toolId}.${key}` as const;
   const relationPath = <K extends string>(key: K) => `mcpRelations.${relationKey}.${key}` as const;
 
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { deleteNode } = useDeleteNode(selectedNode.id);
 
   const { tenantId, projectId } = useParams<{

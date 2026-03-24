@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { type NodeProps, ReactFlowProvider } from '@xyflow/react';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import { ExternalAgentNode } from '@/components/agent/nodes/external-agent-node';
@@ -8,13 +8,23 @@ import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
 import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
 import { FullAgentFormProvider } from '@/contexts/full-agent-form';
-import { ProjectProvider } from '@/contexts/project';
+import { createTestQueryClient, renderWithClient } from '@/lib/query/__tests__/test-utils';
+import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
 import '@/lib/utils/test-utils/styles.css';
+
+const TENANT_ID = 'tenant-1';
+const PROJECT_ID = 'project-1';
+const TOOL_ID = 'tool-1';
+const DATA = {
+  name: 'name '.repeat(10),
+  description: 'description '.repeat(10),
+};
 
 vi.mock('next/navigation', () => {
   return {
     useParams() {
-      return {};
+      return { tenantId: TENANT_ID, projectId: PROJECT_ID };
     },
   };
 });
@@ -25,13 +35,12 @@ vi.mock('@/contexts/runtime-config', () => {
     },
   };
 });
-vi.mock('@/lib/query/mcp-tools', () => {
+vi.mock('@/lib/query/mcp-tools', async () => {
+  const actual = await vi.importActual('@/lib/query/mcp-tools');
   return {
+    ...actual,
     useMcpToolsQuery() {
       return { data: [] };
-    },
-    useMcpToolStatusQuery() {
-      return {};
     },
   };
 });
@@ -52,10 +61,6 @@ vi.mock('@/lib/query/artifact-components', () => {
 
 function Nodes() {
   const divider = <hr style={{ borderColor: 'green' }} />;
-  const data = {
-    name: 'name '.repeat(10),
-    description: 'description '.repeat(10),
-  };
 
   const baseProps: NodeProps = {
     type: 'foo',
@@ -90,10 +95,9 @@ function Nodes() {
         },
         tools: {
           Tool: {
-            ...data,
+            ...DATA,
             config: {
               type: 'mcp',
-              // @ts-expect-error
               mcp: {},
             },
           },
@@ -102,38 +106,23 @@ function Nodes() {
           // @ts-expect-error
           Tool: data,
         },
-        // @ts-expect-error
         models: {
           base: {},
         },
       }}
     >
       <ReactFlowProvider>
-        <ExternalAgentNode {...baseProps} data={{ ...data, id: 'ExternalAgent', baseUrl: 'foo' }} />
+        <ExternalAgentNode {...baseProps} data={{ ...DATA, id: 'ExternalAgent', baseUrl: 'foo' }} />
         {divider}
-        <FunctionToolNode {...baseProps} data={{ ...data, toolId: 'Tool' }} />
+        <FunctionToolNode {...baseProps} data={{ ...DATA, toolId: 'Tool' }} />
         {divider}
-        <MCPNode
-          {...baseProps}
-          data={{ ...data, imageUrl: 'https://pilot.inkeep.com/icon.svg', toolId: 'Tool' }}
-        />
+        <MCPNode {...baseProps} data={{ ...DATA, toolId: TOOL_ID }} />
         {divider}
-        <PlaceholderNode {...baseProps} data={{ ...data, type: NodeType.MCPPlaceholder }} />
+        <PlaceholderNode {...baseProps} data={{ ...DATA, type: NodeType.MCPPlaceholder }} />
         {divider}
-        <ProjectProvider
-          value={{
-            // @ts-expect-error
-            project: {
-              models: {
-                base: { model: `openai/${data.name}` },
-              },
-            },
-          }}
-        >
-          <SubAgentNode {...baseProps} id="SubAgent" data={{ ...data, skills: [] }} />
-        </ProjectProvider>
+        <SubAgentNode {...baseProps} id="SubAgent" data={{ ...DATA, skills: [] }} />
         {divider}
-        <TeamAgentNode {...baseProps} data={{ ...data, id: 'TeamAgent' }} />
+        <TeamAgentNode {...baseProps} data={{ ...DATA, id: 'TeamAgent' }} />
       </ReactFlowProvider>
     </FullAgentFormProvider>
   );
@@ -141,7 +130,17 @@ function Nodes() {
 
 describe('Nodes', () => {
   test('should handle long names with character limit', async () => {
-    const { container } = render(<Nodes />);
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(projectQueryKeys.detail(TENANT_ID, PROJECT_ID), {
+      models: {
+        base: { model: `openai/${DATA.name}` },
+      },
+    });
+    queryClient.setQueryData(mcpToolQueryKeys.status(TENANT_ID, PROJECT_ID, TOOL_ID), {
+      name: DATA.name,
+    });
+
+    const { container } = renderWithClient(<Nodes />, queryClient);
     await act(async () => {
       await expect(container).toMatchScreenshot();
     });

@@ -47,6 +47,7 @@ interface ExecutionHandlerParams {
   datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
   /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for auth) */
   forwardedHeaders?: Record<string, string>;
+  responseMessageId?: string;
 }
 
 interface ExecutionResult {
@@ -205,7 +206,10 @@ export class ExecutionHandler {
             'Task already exists, fetching existing task'
           );
 
-          const existingTask = await getTask(runDbClient)({ id: taskId });
+          const existingTask = await getTask(runDbClient)({
+            id: taskId,
+            scopes: { tenantId, projectId },
+          });
           if (existingTask) {
             task = existingTask;
             logger.info(
@@ -368,6 +372,7 @@ export class ExecutionHandler {
                 if (task) {
                   await updateTask(runDbClient)({
                     taskId: task.id,
+                    scopes: { tenantId, projectId },
                     data: {
                       status: 'failed',
                       metadata: {
@@ -416,24 +421,25 @@ export class ExecutionHandler {
 
           // Store the transfer response as an assistant message in conversation history
           await createMessage(runDbClient)({
-            id: generateId(),
-            tenantId,
-            projectId,
-            conversationId,
-            role: 'agent',
-            content: {
-              text: transferReason,
-              parts: [
-                {
-                  kind: 'text',
-                  text: transferReason,
-                },
-              ],
+            scopes: { tenantId, projectId },
+            data: {
+              id: generateId(),
+              conversationId,
+              role: 'agent',
+              content: {
+                text: transferReason,
+                parts: [
+                  {
+                    kind: 'text',
+                    text: transferReason,
+                  },
+                ],
+              },
+              visibility: 'user-facing',
+              messageType: 'chat',
+              fromSubAgentId: currentAgentId,
+              taskId: task.id,
             },
-            visibility: 'user-facing',
-            messageType: 'chat',
-            fromSubAgentId: currentAgentId,
-            taskId: task.id,
           });
           // Keep the original user message and add a continuation prompt
           currentMessage =
@@ -512,30 +518,33 @@ export class ExecutionHandler {
               });
 
               // Store the agent response in the database with both text and parts
+              const messageId = params.responseMessageId || generateId();
               await createMessage(runDbClient)({
-                id: generateId(),
-                tenantId,
-                projectId,
-                conversationId,
-                role: 'agent',
-                content: {
-                  text: textContent || undefined,
-                  parts: responseParts.map((part: any) => ({
-                    type: part.kind === 'text' ? 'text' : 'data',
-                    text: part.kind === 'text' ? part.text : undefined,
-                    data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
-                  })),
+                scopes: { tenantId, projectId },
+                data: {
+                  id: messageId,
+                  conversationId,
+                  role: 'agent',
+                  content: {
+                    text: textContent || undefined,
+                    parts: responseParts.map((part: any) => ({
+                      kind: part.kind === 'text' ? 'text' : 'data',
+                      text: part.kind === 'text' ? part.text : undefined,
+                      data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
+                    })),
+                  },
+                  visibility: 'user-facing',
+                  messageType: 'chat',
+                  fromSubAgentId: currentAgentId,
+                  taskId: task.id,
                 },
-                visibility: 'user-facing',
-                messageType: 'chat',
-                fromSubAgentId: currentAgentId,
-                taskId: task.id,
               });
 
               // Mark task as completed
               const updateTaskStart = Date.now();
               await updateTask(runDbClient)({
                 taskId: task.id,
+                scopes: { tenantId, projectId },
                 data: {
                   status: 'completed',
                   metadata: {
@@ -636,6 +645,7 @@ export class ExecutionHandler {
               if (task) {
                 await updateTask(runDbClient)({
                   taskId: task.id,
+                  scopes: { tenantId, projectId },
                   data: {
                     status: 'failed',
                     metadata: {
@@ -699,6 +709,7 @@ export class ExecutionHandler {
           if (task) {
             await updateTask(runDbClient)({
               taskId: task.id,
+              scopes: { tenantId, projectId },
               data: {
                 status: 'failed',
                 metadata: {
@@ -747,6 +758,7 @@ export class ExecutionHandler {
           if (task) {
             await updateTask(runDbClient)({
               taskId: task.id,
+              scopes: { tenantId, projectId },
               data: {
                 status: 'failed',
                 metadata: {

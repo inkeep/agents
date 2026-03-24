@@ -1,5 +1,60 @@
 # @inkeep/agents-core
 
+## 0.59.3
+
+### Patch Changes
+
+- 51d6dfd: Verify Work App domain.
+- 6ca8164: v4 to v5 signoz migration
+
+## 0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+## 0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- 3a868c0: Add isDevelopment, isTest, and isProduction environment detection helpers
+- 15c6752: Add ref fields to runtime tables for branch tracking support
+- 62aad0e: Fix API key leakage vulnerability in Slack/GitHub MCP integrations by adding URL trust validation
+
+## 0.58.19
+
+### Patch Changes
+
+- f8f16f4: Add GPT-5.4 Mini and GPT-5.4 Nano to model constants, UI picker, and CLI
+- 1571ef1: Fix project-level auth bypass in app CRUD endpoints — GET, UPDATE, and DELETE now filter by projectId in addition to tenantId, preventing cross-project access within a tenant
+- 9660fc2: Strip tenantId/projectId/agentId from trigger, scheduled trigger, and scheduled workflow update schemas to prevent cross-tenant reassignment via mass assignment
+
+## 0.58.18
+
+## 0.58.17
+
+## 0.58.16
+
+### Patch Changes
+
+- 5065552: Fix GET /conversations to return all message part types matching the streaming protocol
+
+## 0.58.15
+
+### Patch Changes
+
+- abaefda: Add defense-in-depth tenant scoping to runtime DAL functions and migrate all DAL files to type-safe scope helpers
+
 ## 0.58.14
 
 ## 0.58.13

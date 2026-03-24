@@ -192,6 +192,7 @@ export const triggerInvocations = pgTable(
     ...agentScoped,
     triggerId: varchar('trigger_id', { length: 256 }).notNull(),
     conversationId: varchar('conversation_id', { length: 256 }),
+    ref: jsonb('ref').$type<ResolvedRef>(),
     status: varchar('status', { length: 20 }).notNull().default('pending'),
     requestPayload: jsonb('request_payload').notNull(),
     transformedPayload: jsonb('transformed_payload'),
@@ -353,6 +354,7 @@ export const scheduledTriggerInvocations = pgTable(
   {
     ...agentScoped,
     scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
+    ref: jsonb('ref').$type<ResolvedRef>(),
     status: varchar('status', { length: 50 })
       .notNull()
       .$type<'pending' | 'running' | 'completed' | 'failed' | 'cancelled'>(),
@@ -526,6 +528,7 @@ export const datasetRun = pgTable(
     datasetId: text('dataset_id').notNull(),
     datasetRunConfigId: text('dataset_run_config_id'),
     evaluationJobConfigId: text('evaluation_job_config_id'),
+    ref: jsonb('ref').$type<ResolvedRef>(),
     ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
@@ -587,6 +590,7 @@ export const evaluationRun = pgTable(
     ...projectScoped,
     evaluationJobConfigId: text('evaluation_job_config_id'), // Optional: if created from a job
     evaluationRunConfigId: text('evaluation_run_config_id'), // Optional: if created from a run config
+    ref: jsonb('ref').$type<ResolvedRef>(),
     ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
