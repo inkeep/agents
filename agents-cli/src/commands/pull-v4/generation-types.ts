@@ -129,13 +129,6 @@ function isAgentComplete(
   return { complete: true };
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return;
-  }
-  return value as Record<string, unknown>;
-}
-
 export function validateProject(project: FullProjectDefinition): void {
   if (!project || typeof project !== 'object') {
     throw new Error('Project data is required');
