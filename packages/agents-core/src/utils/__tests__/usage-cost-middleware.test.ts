@@ -1,5 +1,6 @@
 import { type Span, trace } from '@opentelemetry/api';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { SPAN_KEYS } from '../../constants/otel-attributes';
 
 vi.mock('../logger', () => ({
   getLogger: () => ({
@@ -120,7 +121,10 @@ describe('usageCostMiddleware', () => {
 
       await callWrapGenerate(makeV3Usage());
 
-      expect(mockSetAttribute).toHaveBeenCalledWith('gen_ai.cost.pricing_unavailable', true);
+      expect(mockSetAttribute).toHaveBeenCalledWith(
+        SPAN_KEYS.GEN_AI_COST_PRICING_UNAVAILABLE,
+        true
+      );
       expect(mockCalculateCost).not.toHaveBeenCalled();
     });
 

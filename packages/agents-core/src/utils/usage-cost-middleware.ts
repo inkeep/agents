@@ -81,7 +81,7 @@ function calculateAndSetCost(
     const cost = pricingService.calculateCost(tokenUsage, pricing);
     activeSpan.setAttribute(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, cost);
   } else {
-    activeSpan.setAttribute('gen_ai.cost.pricing_unavailable', true);
+    activeSpan.setAttribute(SPAN_KEYS.GEN_AI_COST_PRICING_UNAVAILABLE, true);
   }
 }
 
