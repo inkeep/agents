@@ -102,8 +102,8 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
     activeTools: tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
   });
 
-  const selectedTools = mcpRelation?.selectedTools ?? data.tempSelectedTools ?? null;
-  const toolPolicies = mcpRelation?.toolPolicies ?? data.tempToolPolicies ?? {};
+  const selectedTools = mcpRelation?.selectedTools ?? null;
+  const toolPolicies = mcpRelation?.toolPolicies ?? {};
 
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
   const hasOrphanedTools = orphanedTools.length > 0;

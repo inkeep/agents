@@ -13,14 +13,14 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-export function TeamAgentNode({ data, selected }: NodeProps & { data: TeamAgentNodeData }) {
+export function TeamAgentNode({ selected, id }: NodeProps & { data: TeamAgentNodeData }) {
   const { control } = useFullAgentFormContext();
-  const teamAgent = useWatch({ control, name: `teamAgents.${data.id}` });
-  const processedErrors = useProcessedErrors('teamAgents', data.id);
+  const teamAgent = useWatch({ control, name: `teamAgents.${id}` });
+  const processedErrors = useProcessedErrors('teamAgents', id);
   if (!teamAgent) {
     return (
       <BaseNode>
-        <BaseNodeContent className="text-sm text-destructive">{`Team Agent "${data.id}" not found.`}</BaseNodeContent>
+        <BaseNodeContent className="text-sm text-destructive">{`Team Agent "${id}" not found.`}</BaseNodeContent>
       </BaseNode>
     );
   }

@@ -13,14 +13,14 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-export function ExternalAgentNode({ data, selected }: NodeProps & { data: ExternalAgentNodeData }) {
+export function ExternalAgentNode({ selected, id }: NodeProps & { data: ExternalAgentNodeData }) {
   const { control } = useFullAgentFormContext();
-  const externalAgent = useWatch({ control, name: `externalAgents.${data.id}` });
-  const processedErrors = useProcessedErrors('externalAgents', data.id);
+  const externalAgent = useWatch({ control, name: `externalAgents.${id}` });
+  const processedErrors = useProcessedErrors('externalAgents', id);
   if (!externalAgent) {
     return (
       <BaseNode>
-        <BaseNodeContent className="text-sm text-destructive">{`External Agent "${data.id}" not found.`}</BaseNodeContent>
+        <BaseNodeContent className="text-sm text-destructive">{`External Agent "${id}" not found.`}</BaseNodeContent>
       </BaseNode>
     );
   }
