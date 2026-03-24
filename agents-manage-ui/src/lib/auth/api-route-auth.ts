@@ -70,7 +70,7 @@ async function fetchSession(cookieHeader: string): Promise<SessionPayload | null
     throw new Error(`Session validation failed with status ${response.status}`);
   }
 
-  const session = (await response.json()) as SessionPayload | null;
+  const session: SessionPayload | null = await response.json();
 
   if (!session?.session || !session.user?.id) {
     return null;
