@@ -9,23 +9,17 @@ import type { IconComponentProps } from '@/components/ui/svg-icon';
 export interface NavItemProps {
   title: string;
   url: string;
-  icon?: FC<IconComponentProps>;
-  isExternal?: boolean;
+  icon: FC<IconComponentProps>;
 }
 
-export function NavItem({ title, url, icon: Icon, isExternal }: NavItemProps) {
+export function NavItem({ title, url, icon: Icon }: NavItemProps) {
   const pathname = usePathname();
-  const isActive = pathname.startsWith(url);
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild tooltip={title} isActive={isActive}>
-        <Link
-          href={url}
-          rel={isExternal ? 'noopener noreferrer' : undefined}
-          target={isExternal ? '_blank' : undefined}
-        >
+      <SidebarMenuButton asChild isActive={pathname.startsWith(url)}>
+        <Link href={url}>
           {Icon && <Icon />}
-          <span>{title}</span>
+          {title}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
