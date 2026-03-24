@@ -663,7 +663,7 @@ export async function pullSingleProject(
 }
 
 async function generateProjectSkillsIfPresent(
-  remoteProject: FullProjectDefinition,
+  remoteProject: any,
   skillsDir: string
 ): Promise<void> {
   const skills = remoteProject.skills ?? {};

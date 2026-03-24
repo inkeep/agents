@@ -1,5 +1,6 @@
 import { basename, dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { asRecord, stripExtension } from './collector-common';
 import type { ComponentInfo, ComponentRegistry, ComponentType } from './component-registry';
 import { resolveSubAgentVariableName } from './generators/helpers/sub-agent';
 import {
@@ -582,15 +583,4 @@ function resolveNameFileStem(componentId: string, name: string | undefined): str
   }
 
   return componentId;
-}
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return;
-  }
-  return value as Record<string, unknown>;
-}
-
-function stripExtension(fileName: string): string {
-  return fileName.replace(/\.[^.]+$/, '');
 }

@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { asRecord } from '../collector-common';
+import { asRecord, collectTemplateVariablesFromValues } from '../collector-common';
 import {
   collectContextTemplateReferences,
   collectSubAgentReferenceOverrides,
@@ -31,7 +31,6 @@ import {
   addScheduledTriggerImports,
   addStatusComponentImports,
   addTriggerImports,
-  collectTemplateVariableNamesFromFields,
   createReferenceNameMap,
   createScheduledTriggerReferenceMaps,
   createTriggerReferenceMaps,
@@ -198,7 +197,7 @@ export function generateAgentDefinition({
       const contextConfigId = parsed.normalizedContextConfigId;
       let contextConfigReferenceName: string | undefined;
       let contextHeadersReferenceName: string | undefined;
-      const promptTemplateVariables = collectTemplateVariableNamesFromFields([
+      const promptTemplateVariables = collectTemplateVariablesFromValues([
         parsed.prompt,
         parsed.statusUpdates?.prompt,
       ]);
