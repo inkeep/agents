@@ -25,7 +25,8 @@ export function formatStringLiteral(value: string): string {
         ? QUOTE.double
         : QUOTE.single;
   if (quote === QUOTE.template) {
-    value = value.replaceAll('${', '\\${');
+    // TODO: should escape variables except when we inject context variables and headers
+    // value = value.replaceAll('${', '\\${');
   }
   return escapeStringLiteral(value, quote);
 }
