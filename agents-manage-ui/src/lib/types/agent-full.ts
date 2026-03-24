@@ -15,7 +15,6 @@ import type { SingleResponse } from './response';
 export type {
   FullAgentFormInput,
   FullAgentFormValues,
-  FullAgentOutput,
   FullAgentPayload,
   FullAgentResponse,
 } from '@/components/agent/form/validation';

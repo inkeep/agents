@@ -1,6 +1,6 @@
-import { FullAgentUpdateSchema } from './validation';
+import { FullAgentFormSchema } from './validation';
 
-describe('FullAgentUpdateSchema', () => {
+describe('FullAgentFormSchema', () => {
   function createSchema(value: string) {
     return {
       id: 'test',
@@ -32,7 +32,7 @@ describe('FullAgentUpdateSchema', () => {
   }
 
   it('should disallow null as input for json editors', () => {
-    const result = FullAgentUpdateSchema.safeParse(createSchema('null'));
+    const result = FullAgentFormSchema.safeParse(createSchema('null'));
     expect(result.success).toBe(false);
     expect(JSON.parse((result.error as any).message)).toStrictEqual([
       {
@@ -69,12 +69,12 @@ describe('FullAgentUpdateSchema', () => {
   });
 
   it('should allow empty string', () => {
-    const result = FullAgentUpdateSchema.safeParse(createSchema(''));
+    const result = FullAgentFormSchema.safeParse(createSchema(''));
     expect(result.error).toBeUndefined();
   });
 
   it('should be able remove fields', () => {
-    const result = FullAgentUpdateSchema.safeParse({
+    const result = FullAgentFormSchema.safeParse({
       id: '_',
       name: '_',
       statusUpdates: {},
@@ -117,7 +117,7 @@ describe('FullAgentUpdateSchema', () => {
   });
 
   it('should keep defaultSubAgentNodeId in form values without transforming it to agent id', () => {
-    const result = FullAgentUpdateSchema.safeParse({
+    const result = FullAgentFormSchema.safeParse({
       id: '_',
       name: '_',
       defaultSubAgentNodeId: 'temp-node-id',
