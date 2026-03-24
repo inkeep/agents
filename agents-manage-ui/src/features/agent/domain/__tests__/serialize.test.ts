@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import { hydrateNodesWithFormData, serializeAgentData } from '../serialize';
+import { serializeAgentData } from '../serialize';
 import { syncSavedAgentGraph } from '../sync-saved-agent-graph';
 
 describe('serializeAgentData', () => {
@@ -740,7 +740,7 @@ describe('serializeAgentData', () => {
       expect(result.functions).toEqual({});
     });
 
-    it('should preserve live function tool nodes by hydrating them from form data before serialization', () => {
+    it('should preserve live function tool nodes from form data during serialization', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -811,14 +811,15 @@ describe('serializeAgentData', () => {
         teamAgents: {},
       } as any;
 
-      const hydratedNodes = hydrateNodesWithFormData(nodes, formData);
       const result = serializeAgentData(
-        hydratedNodes,
+        nodes,
         edges,
         undefined,
         formData.functionTools,
         formData.externalAgents,
-        formData.teamAgents
+        formData.teamAgents,
+        formData.subAgents,
+        formData.functions
       );
 
       expect(result.subAgents.agent1.name).toBe('Current agent name');
@@ -902,12 +903,12 @@ describe('serializeAgentData', () => {
         teamAgents: {},
       } as any;
 
-      const hydratedNodes = hydrateNodesWithFormData(nodes, formData);
       const result = syncSavedAgentGraph({
-        nodes: hydratedNodes,
+        nodes,
         edges,
         nodeId: null,
         edgeId: 'edge-weather',
+        subAgentFormData: formData.subAgents,
         savedAgent: {
           id: 'agent-1',
           name: 'Agent',
@@ -1050,6 +1051,46 @@ describe('serializeAgentData', () => {
           },
         },
       });
+    });
+
+    it('should serialize defaultSubAgentNodeId to the persisted defaultSubAgentId', () => {
+      const tempNodeId = 'temp-node-id';
+      const result = serializeAgentData(
+        [
+          {
+            id: tempNodeId,
+            type: NodeType.SubAgent,
+            position: { x: 0, y: 0 },
+            data: {
+              id: tempNodeId,
+              name: 'Sub Agent',
+              prompt: 'Hi',
+              skills: [],
+            },
+          },
+        ],
+        [],
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          [tempNodeId]: {
+            id: 'persisted-agent-id',
+            name: 'Sub Agent',
+            description: '',
+            prompt: 'Hi',
+            dataComponents: [],
+            artifactComponents: [],
+            skills: [],
+            type: 'internal',
+          },
+        } as any,
+        undefined,
+        tempNodeId
+      );
+
+      expect(result.defaultSubAgentId).toBe('persisted-agent-id');
     });
   });
 });
