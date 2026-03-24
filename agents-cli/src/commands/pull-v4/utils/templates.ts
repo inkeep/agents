@@ -24,7 +24,10 @@ export function formatStringLiteral(value: string): string {
       : hasSingleQuote
         ? QUOTE.double
         : QUOTE.single;
-  return escapeStringLiteral(value, quote);
+  if (quote === QUOTE.template) {
+    value = value.replaceAll('${', '\\${');
+  }
+  return escapeStringLiteral(value , quote);
 }
 
 export function collectTemplateVariableNames(value: string): string[] {
