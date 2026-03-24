@@ -135,8 +135,7 @@ describe('syncSavedAgentGraph', () => {
         type: NodeType.ExternalAgent,
         position: { x: 400, y: 0 },
         data: {
-          id: 'external-agent',
-          name: 'External Agent',
+          externalAgentId: 'external-agent',
           relationshipId: null,
         },
       },
@@ -274,5 +273,151 @@ describe('syncSavedAgentGraph', () => {
         selected: true,
       }),
     ]);
+  });
+
+  it('keeps connected external and team agent nodes and assigns saved relation ids', () => {
+    const nodes: Node[] = [
+      {
+        id: 'tmp-sub-agent',
+        type: NodeType.SubAgent,
+        position: { x: 10, y: 20 },
+        data: {
+          id: 'sub-agent',
+          name: 'Sub Agent',
+        },
+      },
+      {
+        id: '7ubfdp65rn5qvh7l788ae',
+        type: NodeType.ExternalAgent,
+        position: { x: 300, y: 20 },
+        data: {
+          externalAgentId: 'external-1',
+          relationshipId: null,
+        },
+      },
+      {
+        id: 'sxi5bgmobt6kl3i8cnxn7',
+        type: NodeType.TeamAgent,
+        position: { x: 300, y: 140 },
+        data: {
+          teamAgentId: 'team-1',
+          relationshipId: null,
+        },
+      },
+    ];
+    const edges: Edge[] = [
+      {
+        id: 'edge-external',
+        source: 'tmp-sub-agent',
+        target: '7ubfdp65rn5qvh7l788ae',
+      },
+      {
+        id: 'edge-team',
+        source: 'tmp-sub-agent',
+        target: 'sxi5bgmobt6kl3i8cnxn7',
+      },
+    ];
+
+    const result = syncSavedAgentGraph({
+      nodes,
+      edges,
+      nodeId: '7ubfdp65rn5qvh7l788ae',
+      edgeId: null,
+      savedAgent: {
+        id: 'agent-1',
+        name: 'Agent',
+        description: '',
+        prompt: '',
+        contextConfig: null,
+        statusUpdates: null,
+        stopWhen: null,
+        models: {},
+        defaultSubAgentId: 'sub-agent',
+        subAgents: {
+          'sub-agent': {
+            id: 'sub-agent',
+            name: 'Sub Agent',
+            description: '',
+            prompt: '',
+            type: 'internal',
+            dataComponents: [],
+            artifactComponents: [],
+            canUse: [],
+            canTransferTo: [],
+            canDelegateTo: [
+              {
+                externalAgentId: 'external-1',
+                subAgentExternalAgentRelationId: 'ext-rel-1',
+                headers: null,
+              },
+              {
+                agentId: 'team-1',
+                subAgentTeamAgentRelationId: 'team-rel-1',
+                headers: null,
+              },
+            ],
+          },
+        },
+        functions: {},
+        functionTools: {},
+        externalAgents: {
+          'external-1': {
+            id: 'external-1',
+            name: 'External Agent',
+            description: '',
+            baseUrl: 'https://example.com',
+            credentialReferenceId: null,
+          },
+        },
+        teamAgents: {
+          'team-1': {
+            id: 'team-1',
+            name: 'Team Agent',
+            description: '',
+          },
+        },
+        tools: {},
+      } as any,
+      subAgentFormData: {
+        'tmp-sub-agent': {
+          id: 'sub-agent',
+        },
+      } as any,
+    });
+
+    expect(result.nodeId).toBe('7ubfdp65rn5qvh7l788ae');
+    expect(result.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: '7ubfdp65rn5qvh7l788ae',
+          data: expect.objectContaining({
+            externalAgentId: 'external-1',
+            relationshipId: 'ext-rel-1',
+          }),
+          selected: true,
+        }),
+        expect.objectContaining({
+          id: 'sxi5bgmobt6kl3i8cnxn7',
+          data: expect.objectContaining({
+            teamAgentId: 'team-1',
+            relationshipId: 'team-rel-1',
+          }),
+        }),
+      ])
+    );
+    expect(result.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'edge-external',
+          source: 'sub-agent',
+          target: '7ubfdp65rn5qvh7l788ae',
+        }),
+        expect.objectContaining({
+          id: 'edge-team',
+          source: 'sub-agent',
+          target: 'sxi5bgmobt6kl3i8cnxn7',
+        }),
+      ])
+    );
   });
 });
