@@ -813,7 +813,7 @@ const getServer = async (scope: ToolScope) => {
         .optional()
         .default(false)
         .describe(
-          'When true, format the file content with oxfmt before committing. Falls back to unformatted content if formatting fails.'
+          'When true, format the file content with oxfmt before committing. Falls back to unformatted content if formatting fails. Leave as false unless prompted otherwise.'
         ),
     },
     async ({ owner, repo, branch_name, file_path, content, commit_message, format }) => {
