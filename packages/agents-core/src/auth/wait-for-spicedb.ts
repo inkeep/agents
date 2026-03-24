@@ -67,7 +67,9 @@ async function main() {
       }
 
       if (isPermanentConfigurationError(message)) {
-        throw new Error(`SpiceDB readiness failed due to configuration error: ${message}`);
+        throw new Error(`SpiceDB readiness failed due to configuration error: ${message}`, {
+          cause: error,
+        });
       }
 
       if (attempt === maxAttempts) {
@@ -83,6 +85,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
+  console.error(error);
   process.exit(1);
 });
