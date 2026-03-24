@@ -18,7 +18,7 @@ export function NavItem({ title, url, icon: Icon }: NavItemProps) {
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={pathname.startsWith(url)}>
         <Link href={url}>
-          {Icon && <Icon />}
+          <Icon />
           {title}
         </Link>
       </SidebarMenuButton>
