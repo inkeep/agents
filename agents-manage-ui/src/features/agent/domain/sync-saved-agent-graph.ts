@@ -1,6 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import type { FullAgentResponse } from '@/lib/types/agent-full';
+import type { FullAgentFormValues, FullAgentResponse } from '@/lib/types/agent-full';
 
 interface SyncSavedAgentGraphParams {
   nodes: Node[];
@@ -8,6 +8,7 @@ interface SyncSavedAgentGraphParams {
   savedAgent: FullAgentResponse;
   nodeId: string | null;
   edgeId: string | null;
+  subAgentFormData?: FullAgentFormValues['subAgents'];
 }
 
 interface SyncSavedAgentGraphResult {
@@ -17,8 +18,20 @@ interface SyncSavedAgentGraphResult {
   edgeId: string | null;
 }
 
-function getSubmittedSubAgentId(node: Node): string {
-  return typeof node.data.id === 'string' && node.data.id ? node.data.id : node.id;
+function getSubmittedSubAgentId(
+  node: Node,
+  subAgentFormData?: FullAgentFormValues['subAgents']
+): string {
+  const subAgentIdFromForm = subAgentFormData?.[node.id]?.id;
+  if (subAgentIdFromForm) {
+    return subAgentIdFromForm;
+  }
+
+  if (typeof node.data.id === 'string' && node.data.id) {
+    return node.data.id;
+  }
+
+  return node.id;
 }
 
 function getCanUseKey(subAgentId: string, toolId: string): string {
@@ -31,13 +44,14 @@ export function syncSavedAgentGraph({
   savedAgent,
   nodeId,
   edgeId,
+  subAgentFormData,
 }: SyncSavedAgentGraphParams): SyncSavedAgentGraphResult {
   const renamedSubAgentIds = new Map<string, string>();
 
   for (const node of nodes) {
     if (node.type !== NodeType.SubAgent) continue;
 
-    const submittedSubAgentId = getSubmittedSubAgentId(node);
+    const submittedSubAgentId = getSubmittedSubAgentId(node, subAgentFormData);
     if (savedAgent.subAgents[submittedSubAgentId]) {
       renamedSubAgentIds.set(node.id, submittedSubAgentId);
     }
