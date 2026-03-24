@@ -208,7 +208,7 @@ describe('AgentFull Data Access - rename sub-agent id', () => {
       ),
     });
 
-    expect(oldSubAgent).toBeNull();
+    expect(oldSubAgent).toBeUndefined();
     expect(newSubAgent).not.toBeNull();
   });
 });

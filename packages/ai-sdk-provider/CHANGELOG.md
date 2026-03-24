@@ -1,5 +1,13 @@
 # @inkeep/ai-sdk-provider
 
+## 0.59.3
+
+### Patch Changes
+
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+
 ## 0.59.2
 
 ### Patch Changes

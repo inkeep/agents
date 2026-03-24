@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.59.3
+
+### Patch Changes
+
+- 6ca8164: v4 to v5 signoz migration
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+  - @inkeep/agents-work-apps@0.59.3
+  - @inkeep/agents-email@0.59.3
+  - @inkeep/agents-mcp@0.59.3
+
 ## 0.59.2
 
 ### Patch Changes

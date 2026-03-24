@@ -10,9 +10,12 @@ export const isTrustedWorkAppMcpUrl = (
 ): boolean => {
   if (!baseUrl) return false;
   try {
-    const trusted = new URL(path, baseUrl);
-    const toolUrl = new URL(String(url), baseUrl);
-    return toolUrl.origin === trusted.origin && toolUrl.pathname === trusted.pathname;
+    const toolUrl = new URL(String(url));
+    const base = new URL(baseUrl);
+    const baseDomain = base.hostname.split('.').slice(-2).join('.');
+    const isTrustedDomain =
+      toolUrl.hostname === base.hostname || toolUrl.hostname.endsWith(`.${baseDomain}`);
+    return isTrustedDomain && toolUrl.pathname === path;
   } catch {
     return false;
   }
