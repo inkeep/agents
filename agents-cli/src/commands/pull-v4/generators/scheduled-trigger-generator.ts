@@ -65,7 +65,7 @@ export const task = {
       const scheduledTriggerEntries = Object.entries(agentData.scheduledTriggers);
       const fileNamesByScheduledTriggerId = buildSequentialNameFileNames(scheduledTriggerEntries);
 
-      for (const [scheduledTriggerId, scheduledTriggerData] of Object.entries(
+      for (const [scheduledTriggerId, scheduledTriggerData] of scheduledTriggerEntries) {
         agentData.scheduledTriggers
       )) {
         records.push({
