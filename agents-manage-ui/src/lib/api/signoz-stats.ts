@@ -103,7 +103,7 @@ export interface TokenUsageResult {
   totals: { inputTokens: number; outputTokens: number; totalTokens: number };
 }
 
-export type ProjectStatsResult = Array<{
+type ProjectStatsResult = Array<{
   projectId: string;
   totalConversations: number;
   totalAICalls: number;
