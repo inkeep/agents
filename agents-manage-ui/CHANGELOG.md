@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.59.3
+
+### Patch Changes
+
+- ed09910: Fix silent error swallowing in pending invitations and add tenant auth to Nango integration actions
+- e2c4c2d: Remove redundant TooltipProvider wrappers to reduce unnecessary React context overhead
+- 6ca8164: v4 to v5 signoz migration
+- b78771b: update Next.js to 16.2.1
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+
 ## 0.59.2
 
 ### Patch Changes
