@@ -102,7 +102,7 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
 
     expect(toolResultText).toContain('Artifact: "Google Doc"');
     expect(toolResultText).toContain('id: art-1');
-    expect(toolResultText).toContain('args:');
+    expect(toolResultText).toContain('Tool call args:');
     expect(toolResultText).toContain('description: Fetched document content');
     expect(toolResultText).toContain('summary:');
     expect(toolResultText).not.toContain(rawContent);
@@ -145,7 +145,8 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
   });
 
   it('preserves all artifact references when multiple artifacts share a toolCallId', async () => {
-    const messages = [makeToolResultMessage('tc-shared', 'raw tool output')];
+    const rawContent = 'raw tool output';
+    const messages = [makeToolResultMessage('tc-shared', rawContent)];
 
     mockGetConversationHistory.mockReturnValue(vi.fn().mockResolvedValue(messages));
     mockGetLedgerArtifacts.mockReturnValue(
@@ -175,7 +176,18 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
     const toolResult = result.find((msg) => msg.messageType === 'tool-result');
     const toolResultText = toolResult?.content?.text ?? '';
 
+    expect(toolResultText).not.toContain(rawContent);
+    expect(toolResultText).toContain('Tool call args:');
+    expect(toolResultText.match(/Tool call args:/g)?.length).toBe(1);
+    const argsJson = JSON.stringify({ query: 'test' });
+    expect(toolResultText.split(argsJson).length - 1).toBe(1);
+
+    expect(toolResultText).toContain('Artifact: "First"');
+    expect(toolResultText).toContain('Artifact: "Second"');
     expect(toolResultText).toContain('id: art-1');
     expect(toolResultText).toContain('id: art-2');
+    expect(toolResultText).toContain('description: First artifact');
+    expect(toolResultText).toContain('description: Second artifact');
+    expect(toolResultText).toMatch(/\]\s*\n\n\[/);
   });
 });

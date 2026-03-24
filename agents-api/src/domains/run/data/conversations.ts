@@ -370,36 +370,7 @@ export async function getFormattedConversationHistory({
     });
   }
 
-  const formattedHistory = finalMessagesToFormat
-    .map((msg: any) => {
-      let roleLabel: string;
-
-      if (msg.role === 'user') {
-        roleLabel = 'user';
-      } else if (
-        msg.role === 'agent' &&
-        (msg.messageType === 'a2a-request' || msg.messageType === 'a2a-response')
-      ) {
-        const fromSubAgent = msg.fromSubAgentId || msg.fromExternalAgentId || 'unknown';
-        const toSubAgent = msg.toSubAgentId || msg.toExternalAgentId || 'unknown';
-
-        roleLabel = `${fromSubAgent} to ${toSubAgent}`;
-      } else if (msg.role === 'agent' && msg.messageType === 'chat') {
-        const fromSubAgent = msg.fromSubAgentId || 'unknown';
-        roleLabel = `${fromSubAgent} to User`;
-      } else if (msg.role === 'assistant' && msg.messageType === 'tool-result') {
-        const fromSubAgent = msg.fromSubAgentId || 'unknown';
-        const toolName = msg.metadata?.a2a_metadata?.toolName || 'unknown';
-        roleLabel = `${fromSubAgent} tool: ${toolName}`;
-      } else {
-        roleLabel = msg.role || 'system';
-      }
-
-      return `${roleLabel}: """${msg.content.text}"""`; // TODO: add timestamp?
-    })
-    .join('\n');
-
-  return `<conversation_history>\n${formattedHistory}\n</conversation_history>\n`;
+  return formatMessagesAsConversationHistory(finalMessagesToFormat);
 }
 
 /**
@@ -487,14 +458,16 @@ export async function getConversationHistoryWithCompression({
       if (artifactsByToolCallId.size > 0) {
         messagesToFormat = messagesToFormat.map((msg) => {
           if (msg.messageType !== 'tool-result') return msg;
-          const tcId = msg.metadata?.a2a_metadata?.toolCallId;
+          const rawToolCallId = msg.metadata?.a2a_metadata?.toolCallId;
+          const tcId = typeof rawToolCallId === 'string' ? rawToolCallId : undefined;
           const relatedArtifacts = tcId ? artifactsByToolCallId.get(tcId) : undefined;
           if (!relatedArtifacts || relatedArtifacts.length === 0) return msg;
           const toolArgs = msg.metadata?.a2a_metadata?.toolArgs;
           const rawArgs = toolArgs ? JSON.stringify(toolArgs) : undefined;
           const argsStr =
             rawArgs && rawArgs.length > 300 ? `${rawArgs.slice(0, 300)}...[truncated]` : rawArgs;
-          const refParts = relatedArtifacts.map((artifact) => {
+          const argsLine = argsStr ? `Tool call args: ${argsStr}\n` : '';
+          const artifactRefs = relatedArtifacts.map((artifact) => {
             const dataPart = artifact.parts?.find(
               (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
                 p.kind === 'data'
@@ -508,14 +481,13 @@ export async function getConversationHistoryWithCompression({
             const artifactParts = [
               `Artifact: "${artifact.name ?? artifact.artifactId}" (id: ${artifact.artifactId})`,
             ];
-            if (argsStr) artifactParts.push(`args: ${argsStr}`);
             if (artifact.description) artifactParts.push(`description: ${artifact.description}`);
             if (summaryDataStr) artifactParts.push(`summary: ${summaryDataStr}`);
             return `[${artifactParts.join(' | ')}]`;
           });
           return {
             ...msg,
-            content: { text: refParts.join('\n') },
+            content: { text: argsLine + artifactRefs.join('\n\n') },
           };
         });
       }
@@ -892,15 +864,17 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
 
 /**
  * Reconstruct message text from multi-part content, converting artifact data parts to `<artifact:ref>` tags.
- * Falls back to `content.text` for simple messages.
+ * Falls back to `content.text` when there are no parts or when parts yield no reconstructable text.
  */
-export function reconstructMessageText(msg: any): string {
-  const parts = msg.content?.parts;
+export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): string {
+  const parts = msg.content?.parts ?? [];
+  const textFallback = msg.content?.text ?? '';
+
   if (!Array.isArray(parts) || parts.length === 0) {
-    return msg.content?.text ?? '';
+    return textFallback;
   }
 
-  return parts
+  const fromParts = parts
     .map((part: any) => {
       const partKind = part.kind ?? part.type;
 
@@ -920,6 +894,8 @@ export function reconstructMessageText(msg: any): string {
       return '';
     })
     .join('');
+
+  return fromParts || textFallback;
 }
 
 export function formatMessagesAsConversationHistory(messages: MessageSelect[]): string {
@@ -953,7 +929,7 @@ export function formatMessagesAsConversationHistory(messages: MessageSelect[]): 
       if (!reconstructedMessage) {
         return null;
       }
-      return `${roleLabel}: """${reconstructedMessage}"""`;
+      return `${roleLabel}: """${reconstructedMessage}"""`; // TODO: add timestamp?
     })
     .filter((line): line is string => line !== null)
     .join('\n');
