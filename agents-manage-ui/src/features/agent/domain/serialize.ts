@@ -243,7 +243,7 @@ export function serializeAgentData(
       subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
       const nodeData = node.data as ExternalAgentNodeData;
-      const externalAgentId = node.id;
+      const externalAgentId = nodeData.externalAgentId;
       const externalAgentForm = externalAgentFormData?.[externalAgentId];
       const headers = externalAgentForm?.headers ?? undefined;
 
@@ -265,7 +265,7 @@ export function serializeAgentData(
       externalAgents[externalAgentId] = externalAgent;
     } else if (node.type === NodeType.TeamAgent) {
       const nodeData = node.data as TeamAgentNodeData;
-      const teamAgentId = node.id;
+      const teamAgentId = nodeData.teamAgentId;
       const teamAgentForm = teamAgentFormData?.[teamAgentId];
       const headers = teamAgentForm?.headers ?? undefined;
       const teamAgent: TeamAgent & {
@@ -323,7 +323,12 @@ export function serializeAgentData(
       const targetAgentNode = nodes.find((node) => node.id === edge.target);
 
       const sourceSubAgentId = getSubAgentIdForNode(sourceAgentNode, subAgentFormData) as string;
-      const targetSubAgentId = getSubAgentIdForNode(targetAgentNode, subAgentFormData) as string;
+      const targetSubAgentId =
+        targetAgentNode?.type === NodeType.ExternalAgent
+          ? (targetAgentNode.data as ExternalAgentNodeData).externalAgentId
+          : targetAgentNode?.type === NodeType.TeamAgent
+            ? (targetAgentNode.data as TeamAgentNodeData).teamAgentId
+            : (getSubAgentIdForNode(targetAgentNode, subAgentFormData) as string);
       const sourceAgent: ExtendedAgent = subAgents[sourceSubAgentId];
 
       const targetAgent: ExtendedAgent | undefined = subAgents[targetSubAgentId];
