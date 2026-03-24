@@ -29,9 +29,11 @@ export const SkillSchema = BaseSkillSchema.transform((data) => ({
   ],
 }));
 
+export const SUPPORTED_FILE_EXT = ['.md', '.txt', '.html'] as const;
+
 export const SkillFileSchema = z.strictObject({
   ...SkillFileContentInputSchema.shape,
-  extension: z.enum(['.md', '.txt', '.html']).default('.md'),
+  extension: z.enum(SUPPORTED_FILE_EXT),
 });
 
 export type SkillInput = z.input<typeof SkillSchema>;

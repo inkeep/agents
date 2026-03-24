@@ -12,7 +12,7 @@ import { PromptEditor } from '@/components/editors/prompt-editor';
 import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 import { DeleteSkillConfirmation } from '@/components/skills/delete-skill-confirmation';
 import { DeleteSkillFileConfirmation } from '@/components/skills/delete-skill-file-confirmation';
-import { SkillFileSchema } from '@/components/skills/form/validation';
+import { SkillFileSchema, SUPPORTED_FILE_EXT } from '@/components/skills/form/validation';
 import type { DemoTreeNode } from '@/components/skills/tree-utils';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -213,6 +213,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
     defaultValues: {
       filePath: isCreateMode ? '' : filePath,
       content: initialContent,
+      extension: '.md' as const,
     },
     mode: 'onChange',
   });
@@ -316,23 +317,17 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                           control={form.control}
                           name="extension"
                           render={({ field }) => (
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value}
-                              defaultValue=".md"
-                            >
+                            <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger>
                                 <SelectValue placeholder="ext" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectGroup>
-                                  {Object.keys(SkillFileSchema.shape.extension.unwrap().enum).map(
-                                    (ext) => (
-                                      <SelectItem key={ext} value={ext}>
-                                        {ext}
-                                      </SelectItem>
-                                    )
-                                  )}
+                                  {SUPPORTED_FILE_EXT.map((ext) => (
+                                    <SelectItem key={ext} value={ext}>
+                                      {ext}
+                                    </SelectItem>
+                                  ))}
                                 </SelectGroup>
                               </SelectContent>
                             </Select>
