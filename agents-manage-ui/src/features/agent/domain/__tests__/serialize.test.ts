@@ -391,7 +391,7 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should preserve existing selectedTools from node data when mcpRelations is missing', () => {
+    it('should default MCP relation data to `null` when `mcpRelations` is missing', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -409,9 +409,7 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
             relationshipId: 'rel-1',
-            tempSelectedTools: ['existing-tool1'],
           },
         },
       ];
@@ -431,7 +429,7 @@ describe('serializeAgentData', () => {
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
       expect(result.subAgents.agent1.canUse[0]).toEqual({
         toolId: 'mcp1',
-        toolSelection: ['existing-tool1'],
+        toolSelection: null,
         headers: null,
         toolPolicies: null,
         agentToolRelationId: 'rel-1',
@@ -514,12 +512,6 @@ describe('serializeAgentData', () => {
           position: { x: 300, y: 0 },
           data: {
             toolId: 'function-tool-1',
-            functionId: 'function-1',
-            name: 'Lookup customer',
-            description: 'Looks up customer information',
-            code: 'async function execute() { return { ok: true }; }',
-            inputSchema: { type: 'object', properties: {}, required: [] },
-            dependencies: {},
           },
         },
       ];
@@ -537,8 +529,6 @@ describe('serializeAgentData', () => {
         'function-tool-1': {
           id: 'function-tool-1',
           name: 'Lookup customer',
-          executeCode: 'async function execute() { return { ok: true }; }',
-          inputSchema: {},
           tempToolPolicies: {
             '*': { needsApproval: true },
           },
