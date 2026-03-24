@@ -170,7 +170,7 @@ export async function requireApiRouteProjectPermission(
       };
     }
 
-    const payload = (await response.json()) as { data?: ProjectPermissions };
+    const payload: { data?: ProjectPermissions } = await response.json();
     const permissions = payload.data;
 
     if (!permissions) {
