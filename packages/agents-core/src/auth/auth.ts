@@ -1,5 +1,5 @@
 import { dash } from '@better-auth/infra';
-import { sso, type SSOOptions } from '@better-auth/sso';
+import { type SSOOptions, sso } from '@better-auth/sso';
 import { betterAuth, type Session, type User } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import {

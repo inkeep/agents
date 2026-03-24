@@ -18,10 +18,10 @@ import {
   updateScheduledWorkflowRunId,
   withRef,
 } from '@inkeep/agents-core';
+import { start } from 'workflow/api';
 import { manageDbClient } from '../../../data/db';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
-import { start } from 'workflow/api';
 import { getLogger } from '../../../logger';
 import {
   type ScheduledTriggerRunnerPayload,

@@ -1,5 +1,4 @@
 import { type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
-import { extractTextFromParts } from '../../../domains/run/utils/message-parts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
 import { Agent } from '../../../domains/run/agents/Agent';
@@ -10,6 +9,7 @@ import {
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
 } from '../../../domains/run/agents/generateTaskHandler';
+import { extractTextFromParts } from '../../../domains/run/utils/message-parts';
 
 vi.hoisted(() => {
   const getMcpToolMock = vi.fn().mockResolvedValue({
