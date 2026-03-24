@@ -17,7 +17,7 @@ import {
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
-import manageDbPool from 'src/data/db/manageDbPool';
+import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { A2AClient } from '../a2a/client';
