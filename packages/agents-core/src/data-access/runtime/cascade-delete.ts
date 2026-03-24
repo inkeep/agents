@@ -7,6 +7,7 @@ import {
   datasetRun,
   evaluationRun,
   scheduledTriggerInvocations,
+  scheduledTriggers,
   tasks,
   triggerInvocations,
   workAppGitHubMcpToolAccessMode,
@@ -138,6 +139,18 @@ export const cascadeDeleteByBranch =
       )
       .returning();
 
+    // Delete scheduled triggers for this branch
+    const scheduledTriggersResult = await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, scopes.tenantId),
+          eq(scheduledTriggers.projectId, scopes.projectId),
+          eq(scheduledTriggers.ref, fullBranchName)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
@@ -151,7 +164,7 @@ export const cascadeDeleteByBranch =
       slackWorkspaceDefaultsCleared: 0,
       appsDeleted: 0,
       appDefaultsCleared: 0,
-      scheduledTriggersDeleted: 0,
+      scheduledTriggersDeleted: scheduledTriggersResult.length,
     };
   };
 
@@ -277,6 +290,17 @@ export const cascadeDeleteByProject =
 
     clearDevConfigWorkspaceDefaultsByProject(scopes.projectId);
 
+    // Delete scheduled triggers for this project
+    const scheduledTriggersResult = await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, scopes.tenantId),
+          eq(scheduledTriggers.projectId, scopes.projectId)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
@@ -290,7 +314,7 @@ export const cascadeDeleteByProject =
       slackWorkspaceDefaultsCleared,
       appsDeleted,
       appDefaultsCleared,
-      scheduledTriggersDeleted: 0,
+      scheduledTriggersDeleted: scheduledTriggersResult.length,
     };
   };
 
@@ -420,6 +444,18 @@ export const cascadeDeleteByAgent =
 
     clearDevConfigWorkspaceDefaultsByAgent(scopes.projectId, scopes.agentId);
 
+    // Delete scheduled triggers for this agent
+    const scheduledTriggersResult = await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, scopes.tenantId),
+          eq(scheduledTriggers.projectId, scopes.projectId),
+          eq(scheduledTriggers.agentId, scopes.agentId)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted,
       tasksDeleted,
@@ -433,7 +469,7 @@ export const cascadeDeleteByAgent =
       slackWorkspaceDefaultsCleared,
       appsDeleted: 0,
       appDefaultsCleared,
-      scheduledTriggersDeleted: 0,
+      scheduledTriggersDeleted: scheduledTriggersResult.length,
     };
   };
 

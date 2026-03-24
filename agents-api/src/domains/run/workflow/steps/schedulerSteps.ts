@@ -1,5 +1,5 @@
 import { getSchedulerState, upsertSchedulerState } from '@inkeep/agents-core';
-import runDbClient from 'src/data/db/runDbClient';
+import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { dispatchDueTriggers } from '../../services/triggerDispatcher';
 

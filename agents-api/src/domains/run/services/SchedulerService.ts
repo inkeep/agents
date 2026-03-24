@@ -1,5 +1,5 @@
-import { getSchedulerState, upsertSchedulerState } from '@inkeep/agents-core';
-import runDbClient from 'src/data/db/runDbClient';
+import { getSchedulerState } from '@inkeep/agents-core';
+import runDbClient from '../../../data/db/runDbClient';
 import { start } from 'workflow/api';
 import { getLogger } from '../../../logger';
 import { schedulerWorkflow } from '../workflow/functions/schedulerWorkflow';
@@ -12,10 +12,6 @@ export async function startSchedulerWorkflow(): Promise<{
 }> {
   const previous = await getSchedulerState(runDbClient)();
   const run = await start(schedulerWorkflow, []);
-
-  await upsertSchedulerState(runDbClient)({
-    currentRunId: run.runId,
-  });
 
   logger.info(
     { runId: run.runId, previousRunId: previous?.currentRunId ?? null },

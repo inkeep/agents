@@ -3,8 +3,8 @@ import {
   type DueScheduledTrigger,
   findDueScheduledTriggersAcrossProjects,
 } from '@inkeep/agents-core';
-import { runDbClient } from 'src/data/db';
 import { start } from 'workflow/api';
+import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import {
   scheduledTriggerRunnerWorkflow,
