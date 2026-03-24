@@ -2,8 +2,8 @@ import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
-import { requireApiRouteSession } from '@/lib/auth/api-route-auth';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import { requireApiRouteSession } from '@/lib/auth/api-route-auth';
 
 axiosRetry(axios, {
   retries: 3,

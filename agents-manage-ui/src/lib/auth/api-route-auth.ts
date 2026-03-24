@@ -9,18 +9,18 @@ interface SessionPayload {
     id: string;
     email?: string;
   };
-};
+}
 
 interface ApiRouteAuthSuccess {
   ok: true;
   cookieHeader: string;
   session: SessionPayload;
-};
+}
 
 interface ApiRouteAuthFailure {
   ok: false;
   response: NextResponse;
-};
+}
 
 type ApiRouteAuthResult = ApiRouteAuthSuccess | ApiRouteAuthFailure;
 

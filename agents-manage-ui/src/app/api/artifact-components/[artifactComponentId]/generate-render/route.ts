@@ -13,9 +13,9 @@ import { ModelFactory, normalizeDataComponentSchema } from '@inkeep/agents-core'
 import { Output, streamText } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { requireApiRouteProjectPermission } from '@/lib/auth/api-route-auth';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchProject } from '@/lib/api/projects';
+import { requireApiRouteProjectPermission } from '@/lib/auth/api-route-auth';
 
 export async function POST(
   request: NextRequest,
