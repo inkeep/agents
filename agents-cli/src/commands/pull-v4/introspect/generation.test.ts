@@ -82,6 +82,22 @@ describe('pull-v4 introspect generator', () => {
           tools: 'planner',
         },
         content: 'Use this skill for planning.',
+        files: [
+          {
+            filePath: 'SKILL.md',
+            content: `---
+name: general-gameplan
+description: Create a general plan.
+metadata:
+  tools: planner
+---
+Use this skill for planning.`,
+          },
+          {
+            filePath: 'templates/checklist.md',
+            content: '# Checklist',
+          },
+        ],
       },
     };
 
@@ -89,6 +105,14 @@ describe('pull-v4 introspect generator', () => {
 
     const skillFilePath = join(testDir, 'skills', 'general-gameplan', 'SKILL.md');
     expect(fs.existsSync(skillFilePath)).toBe(true);
+    const templateFilePath = join(
+      testDir,
+      'skills',
+      'general-gameplan',
+      'templates',
+      'checklist.md'
+    );
+    expect(fs.existsSync(templateFilePath)).toBe(true);
 
     const { default: skillContent } = await import(`${skillFilePath}?raw`);
     expect(skillContent).toContain('name: general-gameplan');
@@ -96,5 +120,7 @@ describe('pull-v4 introspect generator', () => {
     expect(skillContent).toContain('metadata:');
     expect(skillContent).toContain('  tools: planner');
     expect(skillContent).toContain('Use this skill for planning.');
+    const { default: templateContent } = await import(`${templateFilePath}?raw`);
+    expect(templateContent).toBe('# Checklist\n');
   });
 });
