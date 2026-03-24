@@ -115,4 +115,63 @@ describe('FullAgentUpdateSchema', () => {
       expect(result.data.models.summarizer.providerOptions).toBe(undefined);
     }
   });
+
+  it('should keep defaultSubAgentNodeId in form values without transforming it to agent id', () => {
+    const result = FullAgentUpdateSchema.safeParse({
+      id: '_',
+      name: '_',
+      defaultSubAgentNodeId: 'temp-node-id',
+      statusUpdates: {},
+      contextConfig: {
+        id: '_',
+        contextVariables: '',
+        headersSchema: '',
+      },
+      models: {
+        base: {
+          model: 'anthropic/claude-opus-4-6',
+          providerOptions: '',
+        },
+        structuredOutput: {
+          model: 'anthropic/claude-3-5-haiku-latest',
+          providerOptions: '',
+        },
+        summarizer: {
+          model: 'anthropic/claude-sonnet-4-0',
+          providerOptions: '',
+        },
+      },
+      subAgents: {
+        'temp-node-id': {
+          id: 'persisted-agent-id',
+          name: 'Sub Agent',
+          prompt: 'Hi',
+          type: 'internal',
+          models: {
+            base: {
+              model: '',
+            },
+            structuredOutput: {
+              model: '',
+            },
+            summarizer: {
+              model: '',
+            },
+          },
+          canUse: [],
+          dataComponents: [],
+          artifactComponents: [],
+          stopWhen: {},
+        },
+      },
+      externalAgents: {},
+      teamAgents: {},
+      tools: {},
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.defaultSubAgentNodeId).toBe('temp-node-id');
+    }
+  });
 });
