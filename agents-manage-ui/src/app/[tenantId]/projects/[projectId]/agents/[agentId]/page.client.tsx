@@ -23,6 +23,7 @@ import { EdgeType, edgeTypes } from '@/components/agent/configuration/edge-types
 import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
+  type ExternalAgentNodeData,
   externalAgentNodeTargetHandleId,
   type FunctionToolNodeData,
   functionToolNodeHandleId,
@@ -30,6 +31,7 @@ import {
   NodeType,
   newNodeDefaults,
   nodeTypes,
+  type TeamAgentNodeData,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
@@ -52,6 +54,7 @@ import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   deserializeAgentData,
+  findSubAgentNodeId,
   serializeAgentData,
   syncSavedAgentGraph,
 } from '@/features/agent/domain';
@@ -504,12 +507,16 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   };
 
   const handleNavigateToNode = (nodeId: string) => {
-    // The nodeId parameter is actually the agent ID from error parsing
-    // We need to find the React Flow node that has this agent ID
+    const subAgentFormData = form.getValues('subAgents');
+    const subAgentNodeId = findSubAgentNodeId(nodes, nodeId, subAgentFormData);
     const targetNode = nodes.find(
       (node) =>
-        node.id === nodeId || // Direct match (no custom ID set)
-        node.data?.id === nodeId // Custom agent ID match
+        node.id === nodeId ||
+        (subAgentNodeId !== null && node.id === subAgentNodeId) ||
+        (node.type === NodeType.ExternalAgent &&
+          (node.data as ExternalAgentNodeData).externalAgentId === nodeId) ||
+        (node.type === NodeType.TeamAgent &&
+          (node.data as TeamAgentNodeData).teamAgentId === nodeId)
     );
 
     if (targetNode) {
@@ -702,9 +709,11 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
                 } else if (node.type === NodeType.MCP) {
                   form.unregister(`mcpRelations.${node.id}`);
                 } else if (node.type === NodeType.TeamAgent) {
-                  form.unregister(`teamAgents.${node.id}`);
+                  form.unregister(`teamAgents.${(node.data as TeamAgentNodeData).teamAgentId}`);
                 } else if (node.type === NodeType.ExternalAgent) {
-                  form.unregister(`externalAgents.${node.id}`);
+                  form.unregister(
+                    `externalAgents.${(node.data as ExternalAgentNodeData).externalAgentId}`
+                  );
                 } else if (node.type === NodeType.SubAgent) {
                   form.unregister(`subAgents.${node.id}`);
                 }
