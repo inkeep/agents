@@ -1,8 +1,8 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
+import { asRecord } from './collector-common';
 import type { ComponentRegistry, ComponentType } from './component-registry';
 import type { GenerationResolver } from './generation-resolver';
-import { asRecord } from './collector-common';
 
 export interface ProjectPaths {
   projectRoot: string;
