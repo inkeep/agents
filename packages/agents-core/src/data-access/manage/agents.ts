@@ -15,6 +15,7 @@ import {
   subAgentToolRelations,
   tools,
 } from '../../db/manage/manage-schema';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { getActiveBranch } from '../../dolt/schema-sync';
 import type {
@@ -29,12 +30,11 @@ import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 import { cascadeDeleteByAgent } from '../runtime/cascade-delete';
+import { listScheduledTriggers } from '../runtime/scheduledTriggers';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
-import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { listScheduledTriggers } from '../runtime/scheduledTriggers';
 import { getSkillsForSubAgents } from './skills';
 import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
@@ -1036,7 +1036,10 @@ const getFullAgentDefinitionInternal =
 export const getFullAgentDefinition =
   (db: AgentsManageDatabaseClient, runDb?: AgentsRunDatabaseClient) =>
   async ({ scopes }: { scopes: AgentScopeConfig }): Promise<FullAgentDefinition | null> => {
-    return getFullAgentDefinitionInternal(db, runDb)({
+    return getFullAgentDefinitionInternal(
+      db,
+      runDb
+    )({
       scopes,
       includeRelationIds: false,
     }) as Promise<FullAgentDefinition | null>;
@@ -1049,7 +1052,10 @@ export const getFullAgentDefinitionWithRelationIds =
   }: {
     scopes: AgentScopeConfig;
   }): Promise<FullAgentSelectWithRelationIds | null> => {
-    return getFullAgentDefinitionInternal(db, runDb)({
+    return getFullAgentDefinitionInternal(
+      db,
+      runDb
+    )({
       scopes,
       includeRelationIds: true,
     }) as Promise<FullAgentSelectWithRelationIds | null>;
