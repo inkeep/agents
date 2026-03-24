@@ -996,6 +996,12 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   nextRunAt: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  payload: z
+    .record(z.string(), z.unknown())
+    .nullable()
+    .optional()
+    .describe('Static payload for agent execution'),
 });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
