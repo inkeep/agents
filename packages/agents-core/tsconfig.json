@@ -13,7 +13,6 @@
     "declaration": true,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
     "paths": {
       "@inkeep/agents-core": ["./src/index.ts"],
       "@inkeep/agents-core/*": ["./src/*"]

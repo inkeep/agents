@@ -38,7 +38,7 @@ function getResponsePartKind(part: { kind?: string; type?: string }): string | u
   return part.kind ?? part.type;
 }
 
-interface ExecutionHandlerParams {
+export interface ExecutionHandlerParams {
   executionContext: FullExecutionContext;
   conversationId: string;
   userMessage: string;
