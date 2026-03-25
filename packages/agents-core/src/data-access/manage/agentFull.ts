@@ -888,7 +888,7 @@ export const createFullAgentServerSide =
         { subAgentTeamAgentRelationCount: subAgentTeamAgentRelationPromises.length },
         'All sub-agent team agent relations created'
       );
-      const createdAgent = await getFullAgentDefinition(db)({
+      const createdAgent = await getFullAgentDefinition(db, runDb)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
 
@@ -2108,7 +2108,7 @@ export const updateFullAgentServerSide =
       );
 
       // Retrieve and return the updated agent
-      const updatedAgent = await getFullAgentDefinition(db)({
+      const updatedAgent = await getFullAgentDefinition(db, runDb)({
         scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
       });
 
@@ -2177,7 +2177,7 @@ export const getFullAgent =
   };
 
 export const getFullAgentWithRelationIds =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger, runDb?: AgentsRunDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<FullAgentSelectWithRelationIds | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -2188,7 +2188,7 @@ export const getFullAgentWithRelationIds =
     );
 
     try {
-      const agent = await getFullAgentDefinitionWithRelationIds(db)({
+      const agent = await getFullAgentDefinitionWithRelationIds(db, runDb)({
         scopes: { tenantId, projectId, agentId: scopes.agentId },
       });
 
