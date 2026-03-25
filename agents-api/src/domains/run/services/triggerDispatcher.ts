@@ -10,7 +10,7 @@ import {
   scheduledTriggerRunnerWorkflow,
   type TriggerPayload,
 } from '../workflow/functions/scheduledTriggerRunner';
-import { computeNextRunAt } from './computeNextRunAt';
+import { computeNextRunAt } from '@inkeep/agents-core';
 
 const logger = getLogger('triggerDispatcher');
 
@@ -35,12 +35,11 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
     dueTriggers.map((trigger) => dispatchSingleTrigger(trigger))
   );
 
-  const dispatched = results.filter(
-    (r) => r.status === 'fulfilled' && r.value === 'dispatched'
-  ).length;
-
+  let dispatched = 0;
   for (const result of results) {
-    if (result.status === 'rejected') {
+    if (result.status === 'fulfilled') {
+      dispatched++;
+    } else {
       logger.error({ error: result.reason }, 'Dispatch failed unexpectedly');
     }
   }
@@ -48,9 +47,7 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
   return { dispatched };
 }
 
-async function dispatchSingleTrigger(
-  trigger: DueScheduledTrigger
-): Promise<'dispatched' | 'skipped'> {
+async function dispatchSingleTrigger(trigger: DueScheduledTrigger): Promise<void> {
   const { tenantId, projectId, agentId, id: scheduledTriggerId } = trigger;
 
   const isOneTime = !trigger.cronExpression;
@@ -79,7 +76,6 @@ async function dispatchSingleTrigger(
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId,
       nextRunAt,
-      enabled: isOneTime ? false : undefined,
     });
   } catch (err) {
     logger.error(
@@ -89,6 +85,4 @@ async function dispatchSingleTrigger(
   }
 
   logger.info({ scheduledTriggerId, scheduledFor: trigger.nextRunAt }, 'Trigger dispatched');
-
-  return 'dispatched';
 }

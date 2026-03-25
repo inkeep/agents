@@ -44,7 +44,7 @@ import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
-import { computeNextRunAt } from '../../run/services/computeNextRunAt';
+import { computeNextRunAt } from '@inkeep/agents-core';
 import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { buildTimezoneHeaders, executeAgentAsync } from '../../run/services/TriggerService';
 

@@ -6,6 +6,7 @@
  */
 import {
   addConversationIdToInvocation,
+  advanceScheduledTriggerNextRunAt,
   canUseProjectStrict,
   createScheduledTriggerInvocation,
   generateId,
@@ -289,6 +290,26 @@ export async function markFailedStep(params: {
   });
 }
 
+export async function disableOneTimeTriggerStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+}) {
+  'use step';
+
+  await advanceScheduledTriggerNextRunAt(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    nextRunAt: null,
+    enabled: false,
+  });
+}
+
 /**
  * Step: Increment attempt number for retry
  */
@@ -373,7 +394,7 @@ export async function executeScheduledTriggerStep(params: {
   timeoutSeconds: number;
   runAsUserId?: string | null;
   cronTimezone?: string | null;
-  ref?: string | null;
+  ref: string;
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
@@ -425,22 +446,22 @@ export async function executeScheduledTriggerStep(params: {
     { scheduledTriggerId, invocationId, runAsUserId, ref: triggerRef },
     'Executing scheduled trigger via executeAgentAsync'
   );
-
+  // Generate conversation ID upfront so we can return it even on failure
   const conversationId = generateId();
 
   try {
-    const branchName = triggerRef ?? 'main';
-    const refString = getProjectScopedRef(tenantId, projectId, branchName);
+    const refString = getProjectScopedRef(tenantId, projectId, triggerRef);
     const resolvedRef = await resolveRef(manageDbClient)(refString);
 
     if (!resolvedRef) {
       return {
         success: false,
         conversationId,
-        error: `Failed to resolve ref '${branchName}' for project ${projectId}`,
+        error: `Failed to resolve ref '${triggerRef}' for project ${projectId}`,
       };
     }
 
+    // Build user message from template
     const effectivePayload = payload ?? {};
     let userMessage: string;
     if (messageTemplate) {
@@ -449,6 +470,7 @@ export async function executeScheduledTriggerStep(params: {
       userMessage = JSON.stringify(effectivePayload);
     }
 
+    // Create message parts
     const messageParts: Part[] = [];
     if (messageTemplate) {
       messageParts.push({ kind: 'text', text: userMessage });
@@ -459,6 +481,7 @@ export async function executeScheduledTriggerStep(params: {
       metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
     });
 
+    // Execute with timeout
     const timeoutMs = timeoutSeconds * 1000;
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(

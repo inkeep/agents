@@ -979,6 +979,7 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
       .default('UTC')
       .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
   runAt: () => z.iso.datetime().nullable().optional().describe('One-time execution timestamp'),
+  ref: () => z.string().max(256).default('main').describe('Branch ref to run the agent from'),
   payload: () =>
     z
       .record(z.string(), z.unknown())

@@ -77,7 +77,7 @@ const scheduledTriggerFormSchema = z
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
     timeoutSeconds: z.coerce.number().int().min(30).max(780).default(780),
     runAsUserId: z.string().optional(),
-    ref: z.string().default(''),
+    ref: z.string().default('main'),
   })
   .refine(
     (data) => {
@@ -214,7 +214,7 @@ export function ScheduledTriggerForm({
         maxRetries: data.maxRetries,
         retryDelaySeconds: data.retryDelaySeconds,
         timeoutSeconds: data.timeoutSeconds,
-        ref: data.ref || null,
+        ref: data.ref || 'main',
       };
 
       if (mode === 'edit') {

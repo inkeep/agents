@@ -15,6 +15,7 @@ import {
   checkInvocationCancelledStep,
   checkTriggerEnabledStep,
   createInvocationIdempotentStep,
+  disableOneTimeTriggerStep,
   executeScheduledTriggerStep,
   incrementAttemptStep,
   logStep,
@@ -30,7 +31,7 @@ export type TriggerPayload = {
   agentId: string;
   scheduledTriggerId: string;
   scheduledFor: string;
-  ref: string | null;
+  ref: string;
 };
 
 function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string): string {
@@ -141,6 +142,9 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
         scheduledTriggerId,
         invocationId: invocation.id,
       });
+      if (!trigger.cronExpression) {
+        await disableOneTimeTriggerStep({ tenantId, projectId, agentId, scheduledTriggerId });
+      }
       return { status: 'completed', invocationId: invocation.id };
     }
 
@@ -163,8 +167,9 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
         currentAttempt: attemptNumber,
       });
       attemptNumber++;
+      const backoffMultiplier = Math.pow(2, attemptNumber - 1);
       const jitter = Math.random() * 0.3;
-      await sleep(trigger.retryDelaySeconds * 1000 * (1 + jitter));
+      await sleep(trigger.retryDelaySeconds * 1000 * backoffMultiplier * (1 + jitter));
     } else {
       break;
     }
@@ -177,6 +182,9 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
     scheduledTriggerId,
     invocationId: invocation.id,
   });
+  if (!trigger.cronExpression) {
+    await disableOneTimeTriggerStep({ tenantId, projectId, agentId, scheduledTriggerId });
+  }
 
   return { status: 'failed', invocationId: invocation.id };
 }

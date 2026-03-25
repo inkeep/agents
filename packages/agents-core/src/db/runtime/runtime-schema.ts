@@ -385,7 +385,7 @@ export const scheduledTriggers = pgTable(
     runAsUserId: varchar('run_as_user_id', { length: 256 }),
     createdBy: varchar('created_by', { length: 256 }),
     nextRunAt: timestamp('next_run_at', { withTimezone: true, mode: 'string' }),
-    ref: varchar('ref', { length: 256 }),
+    ref: varchar('ref', { length: 256 }).notNull().default('main'),
     ...timestamps,
   },
   (table) => [

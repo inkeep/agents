@@ -17,7 +17,7 @@ CREATE TABLE "scheduled_triggers" (
 	"run_as_user_id" varchar(256),
 	"created_by" varchar(256),
 	"next_run_at" timestamp with time zone,
-	"ref" varchar(256),
+	"ref" varchar(256) DEFAULT 'main' NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "scheduled_triggers_tenant_id_id_pk" PRIMARY KEY("tenant_id","id")
