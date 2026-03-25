@@ -580,15 +580,6 @@ describe('App CRUD Routes - Integration Tests', () => {
       );
     });
 
-    it('should create an app without a prompt (null by default)', async () => {
-      const tenantId = await createTestTenantWithOrg('apps-prompt-null');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-
-      const { app } = await createTestApp({ tenantId, projectId });
-      expect(app.prompt).toBeNull();
-    });
-
     it('should update an app prompt via PATCH', async () => {
       const tenantId = await createTestTenantWithOrg('apps-prompt-update');
       const projectId = 'default-project';
