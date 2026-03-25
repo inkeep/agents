@@ -160,7 +160,7 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   const { subAgents, functionTools, externalAgents, teamAgents, tools, agentSettings, other } =
     useGroupedAgentErrors();
 
-  const [showErrors, setShowErrors] = useState(true);
+  // const [showErrors, setShowErrors] = useState(true);
   const data: ComponentProps<typeof ErrorGroup>[] = [
     {
       title: 'Sub Agent',
@@ -211,7 +211,7 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   const { isSubmitted } = useFormState({ control });
   const isFocused = useWindowFocus();
 
-  if (!errorCount || !showErrors || (!isSubmitted && isFocused)) {
+  if (!errorCount /*|| !showErrors*/ || (!isSubmitted && isFocused)) {
     return null;
   }
 
