@@ -10,6 +10,7 @@ interface UseTempApiKeyParams {
 
 interface UseTempApiKeyResult {
   apiKey: string | null;
+  appId: string | null;
   isLoading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
@@ -23,6 +24,7 @@ export function useTempApiKey({
 }: UseTempApiKeyParams): UseTempApiKeyResult {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [appId, setAppId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -50,6 +52,7 @@ export function useTempApiKey({
 
       const data = await response.json();
       setApiKey(data.apiKey);
+      setAppId(data.appId ?? null);
       setExpiresAt(data.expiresAt);
       setError(null);
     } catch (err) {
@@ -87,5 +90,5 @@ export function useTempApiKey({
     return () => clearTimeout(timer);
   }, [expiresAt, fetchToken]);
 
-  return { apiKey, isLoading, error, refresh: fetchToken };
+  return { apiKey, appId, isLoading, error, refresh: fetchToken };
 }
