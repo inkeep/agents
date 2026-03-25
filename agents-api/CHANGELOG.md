@@ -1,5 +1,19 @@
 # @inkeep/agents-api
 
+## 0.59.4
+
+### Patch Changes
+
+- be7f056: Add two-phase Doltgres branch merge API with stateless conflict preview and per-row resolution
+- 99b5edf: Update TypeScript to 6.0.2
+- Updated dependencies [be7f056]
+- Updated dependencies [6a8a439]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+  - @inkeep/agents-work-apps@0.59.4
+  - @inkeep/agents-email@0.59.4
+  - @inkeep/agents-mcp@0.59.4
+
 ## 0.59.3
 
 ### Patch Changes
