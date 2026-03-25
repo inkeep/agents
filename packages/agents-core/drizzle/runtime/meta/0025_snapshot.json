@@ -1,5 +1,5 @@
 {
-  "id": "478ffa68-1cfe-4fc6-ac64-c856b67ffb4a",
+  "id": "29456a52-f71b-49cb-9573-556884c5a46e",
   "prevId": "aed8320f-0737-4399-92c1-db038ccabe6b",
   "version": "7",
   "dialect": "postgresql",
@@ -2230,7 +2230,21 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "scheduled_triggers_run_as_user_id_user_id_fk": {
+          "name": "scheduled_triggers_run_as_user_id_user_id_fk",
+          "tableFrom": "scheduled_triggers",
+          "tableTo": "user",
+          "columnsFrom": [
+            "run_as_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "scheduled_triggers_tenant_id_id_pk": {
           "name": "scheduled_triggers_tenant_id_id_pk",

@@ -1,8 +1,8 @@
 import {
   advanceScheduledTriggerNextRunAt,
   computeNextRunAt,
-  type DueScheduledTrigger,
   findDueScheduledTriggersAcrossProjects,
+  type ScheduledTrigger,
 } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
@@ -47,7 +47,7 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
   return { dispatched };
 }
 
-async function dispatchSingleTrigger(trigger: DueScheduledTrigger): Promise<void> {
+async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<void> {
   const { tenantId, projectId, agentId, id: scheduledTriggerId } = trigger;
 
   const isOneTime = !trigger.cronExpression;

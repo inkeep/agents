@@ -9,8 +9,6 @@ import {
   ErrorResponseSchema,
   type FullAgentDefinition,
   getFullAgent,
-  listScheduledTriggers,
-  type ScheduledTrigger,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
@@ -18,7 +16,6 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import { HTTPException } from 'hono/http-exception';
-import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -26,7 +23,6 @@ import {
   type ManageRouteHandler,
   openapiRegisterPutPatchRoutesForLegacy,
 } from '../../../utils/openapiDualRoute';
-import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 
 const logger = getLogger('agentFull');
 
@@ -79,11 +75,10 @@ app.openapi(
 
     const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
-    const createdAgent = await createFullAgentServerSide(
-      db,
-      logger,
-      runDbClient
-    )({ tenantId, projectId }, validatedAgentData);
+    const createdAgent = await createFullAgentServerSide(db)(
+      { tenantId, projectId },
+      validatedAgentData
+    );
 
     return c.json({ data: createdAgent }, 201);
   }
@@ -120,8 +115,7 @@ app.openapi(
     try {
       const agent: FullAgentDefinition | null = await getFullAgent(
         db,
-        logger,
-        runDbClient
+        logger
       )({
         scopes: { tenantId, projectId, agentId },
       });
@@ -208,65 +202,16 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
 
     const existingAgent: FullAgentDefinition | null = await getFullAgent(
       db,
-      logger,
-      runDbClient
+      logger
     )({
       scopes: { tenantId, projectId, agentId },
     });
     const isCreate = !existingAgent;
 
-    let existingScheduledTriggers: ScheduledTrigger[] = [];
-    if (!isCreate) {
-      try {
-        existingScheduledTriggers = await listScheduledTriggers(runDbClient)({
-          scopes: { tenantId, projectId, agentId },
-        });
-      } catch (err) {
-        logger.error({ err }, 'Failed to list existing scheduled triggers before update');
-      }
-    }
-
+    // Update/create the full agent using server-side data layer operations
     const updatedAgent: FullAgentDefinition = isCreate
-      ? await createFullAgentServerSide(
-          db,
-          logger,
-          runDbClient
-        )({ tenantId, projectId }, validatedAgentData)
-      : await updateFullAgentServerSide(
-          db,
-          logger,
-          runDbClient
-        )({ tenantId, projectId }, validatedAgentData);
-
-    try {
-      const newScheduledTriggers = await listScheduledTriggers(runDbClient)({
-        scopes: { tenantId, projectId, agentId },
-      });
-      const existingTriggerMap = new Map(existingScheduledTriggers.map((t) => [t.id, t]));
-
-      // Handle created and updated triggers
-      for (const trigger of newScheduledTriggers) {
-        const existing = existingTriggerMap.get(trigger.id);
-        if (existing) {
-          try {
-            const scheduleChanged =
-              existing.cronExpression !== trigger.cronExpression ||
-              String(existing.runAt) !== String(trigger.runAt);
-            const previousEnabled = existing.enabled;
-            if (scheduleChanged || previousEnabled !== trigger.enabled) {
-              await onTriggerUpdated({ trigger, previousEnabled, scheduleChanged });
-            }
-          } catch (err) {
-            logger.error(
-              { err, scheduledTriggerId: trigger.id },
-              'Failed to reconcile scheduled trigger workflow'
-            );
-          }
-        }
-      }
-    } catch (err) {
-      logger.error({ err }, 'Failed to reconcile scheduled trigger workflows after update');
-    }
+      ? await createFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData)
+      : await updateFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData);
 
     return c.json({ data: updatedAgent }, isCreate ? 201 : 200);
   } catch (error) {

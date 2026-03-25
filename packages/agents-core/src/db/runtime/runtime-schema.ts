@@ -382,7 +382,9 @@ export const scheduledTriggers = pgTable(
     maxRetries: integer('max_retries').notNull().default(1),
     retryDelaySeconds: integer('retry_delay_seconds').notNull().default(60),
     timeoutSeconds: integer('timeout_seconds').notNull().default(780),
-    runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }).references(() => user.id, {
+      onDelete: 'cascade',
+    }),
     createdBy: varchar('created_by', { length: 256 }),
     nextRunAt: timestamp('next_run_at', { withTimezone: true, mode: 'string' }),
     ref: varchar('ref', { length: 256 }).notNull().default('main'),

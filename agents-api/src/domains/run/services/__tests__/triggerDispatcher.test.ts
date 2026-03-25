@@ -1,4 +1,4 @@
-import type { DueScheduledTrigger } from '@inkeep/agents-core';
+import type { ScheduledTrigger } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@inkeep/agents-core', async () => {
@@ -42,18 +42,29 @@ const mockFindDueTriggers = findDueScheduledTriggersAcrossProjects as ReturnType
 const mockAdvanceNextRunAt = advanceScheduledTriggerNextRunAt as ReturnType<typeof vi.fn>;
 const mockStart = start as ReturnType<typeof vi.fn>;
 
-function makeTrigger(overrides: Partial<DueScheduledTrigger> = {}): DueScheduledTrigger {
+function makeTrigger(overrides: Partial<ScheduledTrigger> = {}): ScheduledTrigger {
   return {
     id: 'trigger-1',
     tenantId: 'tenant-1',
     projectId: 'project-1',
     agentId: 'agent-1',
+    name: 'test-trigger',
+    description: null,
     cronExpression: '* * * * *',
     cronTimezone: 'UTC',
     runAt: null,
+    payload: null,
+    messageTemplate: null,
+    maxRetries: 1,
+    retryDelaySeconds: 60,
+    timeoutSeconds: 780,
+    runAsUserId: null,
+    createdBy: null,
     nextRunAt: '2026-03-13T10:00:00.000Z',
     enabled: true,
     ref: 'main',
+    createdAt: '2026-03-13T00:00:00.000Z',
+    updatedAt: '2026-03-13T00:00:00.000Z',
     ...overrides,
   };
 }

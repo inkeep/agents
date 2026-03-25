@@ -51,6 +51,7 @@ import {
   projectMetadata,
   scheduledTriggerInvocations,
   scheduledTriggers,
+  schedulerState,
   taskRelations,
   tasks,
   triggerInvocations,
@@ -1125,6 +1126,9 @@ export type ScheduledTriggerInvocationUpdate = z.infer<
   typeof ScheduledTriggerInvocationUpdateSchema
 >;
 export type ScheduledTriggerInvocationStatus = z.infer<typeof ScheduledTriggerInvocationStatusEnum>;
+
+export const SchedulerStateSelectSchema = createSelectSchema(schedulerState);
+export type SchedulerStateRow = z.infer<typeof SchedulerStateSelectSchema>;
 
 export const TaskSelectSchema = createSelectSchema(tasks).extend({
   ref: ResolvedRefSchema.nullable().optional(),

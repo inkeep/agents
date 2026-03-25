@@ -4,31 +4,16 @@ import { scheduledTriggers } from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import { computeNextRunAt } from '../../utils/compute-next-run-at';
 import { getLogger } from '../../utils/logger';
+import type { ScheduledTrigger, ScheduledTriggerInsert } from '../../validation/schemas';
 
 const logger = getLogger('runtime-scheduledTriggers');
-
-export type RuntimeScheduledTrigger = typeof scheduledTriggers.$inferSelect;
-export type RuntimeScheduledTriggerInsert = typeof scheduledTriggers.$inferInsert;
-
-export type DueScheduledTrigger = {
-  id: string;
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  cronExpression: string | null;
-  cronTimezone: string | null;
-  runAt: string | null;
-  nextRunAt: string | null;
-  enabled: boolean;
-  ref: string;
-};
 
 export const getScheduledTriggerById =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     scheduledTriggerId: string;
-  }): Promise<RuntimeScheduledTrigger | undefined> => {
+  }): Promise<ScheduledTrigger | undefined> => {
     const result = await db.query.scheduledTriggers.findFirst({
       where: and(
         eq(scheduledTriggers.tenantId, params.scopes.tenantId),
@@ -76,7 +61,7 @@ export const listScheduledTriggersPaginated =
 
 export const createScheduledTrigger =
   (db: AgentsRunDatabaseClient) =>
-  async (params: RuntimeScheduledTriggerInsert): Promise<RuntimeScheduledTrigger> => {
+  async (params: ScheduledTriggerInsert): Promise<ScheduledTrigger> => {
     const result = await db.insert(scheduledTriggers).values(params).returning();
     const created = result[0];
     if (!created) {
@@ -90,8 +75,8 @@ export const updateScheduledTrigger =
   async (params: {
     scopes: AgentScopeConfig;
     scheduledTriggerId: string;
-    data: Partial<RuntimeScheduledTriggerInsert> & { nextRunAt?: string | null };
-  }): Promise<RuntimeScheduledTrigger> => {
+    data: Partial<ScheduledTriggerInsert> & { nextRunAt?: string | null };
+  }): Promise<ScheduledTrigger> => {
     const updateData = {
       ...params.data,
       updatedAt: new Date().toISOString(),
@@ -136,8 +121,8 @@ export const upsertScheduledTrigger =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
-    data: RuntimeScheduledTriggerInsert;
-  }): Promise<RuntimeScheduledTrigger> => {
+    data: ScheduledTriggerInsert;
+  }): Promise<ScheduledTrigger> => {
     const enabled = params.data.enabled ?? true;
     const nextRunAt = enabled
       ? computeNextRunAt({
@@ -182,7 +167,7 @@ export const deleteScheduledTriggersByRunAsUserId =
 
 export const listScheduledTriggers =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig }): Promise<RuntimeScheduledTrigger[]> => {
+  async (params: { scopes: AgentScopeConfig }): Promise<ScheduledTrigger[]> => {
     const result = await db
       .select()
       .from(scheduledTriggers)
@@ -203,20 +188,9 @@ export const listScheduledTriggers =
  */
 export const findDueScheduledTriggersAcrossProjects =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { asOf: string }): Promise<DueScheduledTrigger[]> => {
+  async (params: { asOf: string }): Promise<ScheduledTrigger[]> => {
     const rows = await db
-      .select({
-        id: scheduledTriggers.id,
-        tenantId: scheduledTriggers.tenantId,
-        projectId: scheduledTriggers.projectId,
-        agentId: scheduledTriggers.agentId,
-        cronExpression: scheduledTriggers.cronExpression,
-        cronTimezone: scheduledTriggers.cronTimezone,
-        runAt: scheduledTriggers.runAt,
-        nextRunAt: scheduledTriggers.nextRunAt,
-        enabled: scheduledTriggers.enabled,
-        ref: scheduledTriggers.ref,
-      })
+      .select()
       .from(scheduledTriggers)
       .where(
         and(
