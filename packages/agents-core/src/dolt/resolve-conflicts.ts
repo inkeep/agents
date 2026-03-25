@@ -77,11 +77,11 @@ const PHASE_ORDER: Record<OperationType, number> = {
   skip: 3,
 };
 
+const tableOrder = computeTableInsertOrder(manageFkDeps);
+
 export function sortByFkDependencyOrder(
   classified: ClassifiedResolution[]
 ): ClassifiedResolution[] {
-  const tableOrder = computeTableInsertOrder(manageFkDeps);
-
   return [...classified].sort((a, b) => {
     const phaseA = PHASE_ORDER[a.operation];
     const phaseB = PHASE_ORDER[b.operation];
@@ -133,6 +133,19 @@ export const applyResolutions =
         );
       }
 
+      if (hasColumnOverrides) {
+        const ourDiffType = conflictRow.our_diff_type as string;
+        const theirDiffType = conflictRow.their_diff_type as string;
+        if (ourDiffType === 'removed' || theirDiffType === 'removed') {
+          const removedSide = ourDiffType === 'removed' ? 'ours' : 'theirs';
+          throw new ResolutionValidationError(
+            `Cannot apply column overrides for table ${resolution.table} ` +
+              `(PK ${JSON.stringify(resolution.primaryKey)}): ` +
+              `${removedSide} side deleted the row`
+          );
+        }
+      }
+
       const operation = classifyOperation(
         conflictRow,
         resolution.rowDefaultPick,
@@ -146,30 +159,43 @@ export const applyResolutions =
     for (const { resolution, conflictRow, pkColumns, operation } of sorted) {
       if (operation === 'skip') continue;
 
-      const ourDiffType = conflictRow.our_diff_type as string;
-      const theirDiffType = conflictRow.their_diff_type as string;
-      const hasColumnOverrides = resolution.columns && Object.keys(resolution.columns).length > 0;
+      const pkWhere = buildPkWhere(pkColumns, resolution.primaryKey);
 
-      if (resolution.rowDefaultPick === 'theirs' && !hasColumnOverrides) {
-        await applyTheirsResolution(
-          db,
-          resolution.table,
-          resolution.primaryKey,
-          pkColumns,
-          conflictRow,
-          ourDiffType,
-          theirDiffType
-        );
-      } else {
-        await applyMixedResolution(
-          db,
-          resolution.table,
-          resolution.primaryKey,
-          pkColumns,
-          conflictRow,
-          resolution.rowDefaultPick,
-          resolution.columns ?? {}
-        );
+      switch (operation) {
+        case 'delete': {
+          await db.execute(sql.raw(`DELETE FROM "${resolution.table}" WHERE ${pkWhere}`));
+          break;
+        }
+
+        case 'insert': {
+          const columns = getColumnNames(conflictRow, pkColumns);
+          const allCols = [...pkColumns, ...columns];
+          const values = allCols.map((col) => {
+            const val = pkColumns.includes(col)
+              ? resolution.primaryKey[col]
+              : conflictRow[`their_${col}`];
+            return toSqlLiteral(val);
+          });
+          await db.execute(
+            sql.raw(
+              `INSERT INTO "${resolution.table}" (${allCols.map((c) => `"${c}"`).join(', ')}) VALUES (${values.join(', ')})`
+            )
+          );
+          break;
+        }
+
+        case 'update': {
+          const columns = getColumnNames(conflictRow, pkColumns);
+          const setClauses = columns.map((col) => {
+            const pick = resolution.columns?.[col] ?? resolution.rowDefaultPick;
+            const prefix = pick === 'theirs' ? 'their_' : 'our_';
+            return `"${col}" = ${toSqlLiteral(conflictRow[`${prefix}${col}`])}`;
+          });
+          await db.execute(
+            sql.raw(`UPDATE "${resolution.table}" SET ${setClauses.join(', ')} WHERE ${pkWhere}`)
+          );
+          break;
+        }
       }
     }
 
@@ -202,6 +228,15 @@ async function readConflictRow(
   return (result.rows[0] as Record<string, unknown>) ?? null;
 }
 
+function buildPkWhere(pkColumns: string[], primaryKey: Record<string, string>): string {
+  return pkColumns
+    .map((col) => {
+      const val = primaryKey[col]?.replace(/'/g, "''");
+      return `"${col}" = '${val}'`;
+    })
+    .join(' AND ');
+}
+
 function getColumnNames(conflictRow: Record<string, unknown>, pkColumns: string[]): string[] {
   const theirPrefix = 'their_';
   const skipColumns = new Set([
@@ -220,94 +255,4 @@ function getColumnNames(conflictRow: Record<string, unknown>, pkColumns: string[
     }
   }
   return columns;
-}
-
-async function applyTheirsResolution(
-  db: AgentsManageDatabaseClient,
-  table: string,
-  primaryKey: Record<string, string>,
-  pkColumns: string[],
-  conflictRow: Record<string, unknown>,
-  ourDiffType: string,
-  theirDiffType: string
-): Promise<void> {
-  const pkWhere = pkColumns
-    .map((col) => {
-      const val = primaryKey[col]?.replace(/'/g, "''");
-      return `"${col}" = '${val}'`;
-    })
-    .join(' AND ');
-
-  if (theirDiffType === 'removed') {
-    await db.execute(sql.raw(`DELETE FROM "${table}" WHERE ${pkWhere}`));
-    return;
-  }
-
-  const columns = getColumnNames(conflictRow, pkColumns);
-
-  if (ourDiffType === 'removed') {
-    const allCols = [...pkColumns, ...columns];
-    const values = allCols.map((col) => {
-      const val = pkColumns.includes(col) ? primaryKey[col] : conflictRow[`their_${col}`];
-      return toSqlLiteral(val);
-    });
-    await db.execute(
-      sql.raw(
-        `INSERT INTO "${table}" (${allCols.map((c) => `"${c}"`).join(', ')}) VALUES (${values.join(', ')})`
-      )
-    );
-    return;
-  }
-
-  const setClauses = columns.map((col) => {
-    const val = conflictRow[`their_${col}`];
-    return `"${col}" = ${toSqlLiteral(val)}`;
-  });
-
-  await db.execute(sql.raw(`UPDATE "${table}" SET ${setClauses.join(', ')} WHERE ${pkWhere}`));
-}
-
-async function applyMixedResolution(
-  db: AgentsManageDatabaseClient,
-  table: string,
-  primaryKey: Record<string, string>,
-  pkColumns: string[],
-  conflictRow: Record<string, unknown>,
-  rowDefaultPick: 'ours' | 'theirs',
-  columnOverrides: Record<string, 'ours' | 'theirs'>
-): Promise<void> {
-  const ourDiffType = conflictRow.our_diff_type as string;
-  const theirDiffType = conflictRow.their_diff_type as string;
-
-  if (theirDiffType === 'removed' || ourDiffType === 'removed') {
-    if (rowDefaultPick === 'ours') return;
-    await applyTheirsResolution(
-      db,
-      table,
-      primaryKey,
-      pkColumns,
-      conflictRow,
-      ourDiffType,
-      theirDiffType
-    );
-    return;
-  }
-
-  const columns = getColumnNames(conflictRow, pkColumns);
-
-  const pkWhere = pkColumns
-    .map((col) => {
-      const val = primaryKey[col]?.replace(/'/g, "''");
-      return `"${col}" = '${val}'`;
-    })
-    .join(' AND ');
-
-  const setClauses = columns.map((col) => {
-    const pick = columnOverrides[col] ?? rowDefaultPick;
-    const prefix = pick === 'theirs' ? 'their_' : 'our_';
-    const val = conflictRow[`${prefix}${col}`];
-    return `"${col}" = ${toSqlLiteral(val)}`;
-  });
-
-  await db.execute(sql.raw(`UPDATE "${table}" SET ${setClauses.join(', ')} WHERE ${pkWhere}`));
 }

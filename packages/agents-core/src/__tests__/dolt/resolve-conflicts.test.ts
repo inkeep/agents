@@ -496,6 +496,76 @@ describe('applyResolutions', () => {
     expect(deleteQueries[1]).toContain('"functions"');
   });
 
+  it('rejects column overrides when ours side deleted the row', async () => {
+    mockDb.queryResults['dolt_conflicts_agent'] = {
+      rows: [
+        {
+          our_diff_type: 'removed',
+          their_diff_type: 'modified',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: null,
+          their_name: 'Their Agent',
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'theirs',
+        columns: { name: 'ours' },
+      },
+    ];
+
+    await expect(applyResolutions(mockDb.db)(resolutions)).rejects.toThrow(
+      'Cannot apply column overrides'
+    );
+  });
+
+  it('rejects column overrides when theirs side deleted the row', async () => {
+    mockDb.queryResults['dolt_conflicts_agent'] = {
+      rows: [
+        {
+          our_diff_type: 'modified',
+          their_diff_type: 'removed',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: 'Our Agent',
+          their_name: null,
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'ours',
+        columns: { name: 'theirs' },
+      },
+    ];
+
+    await expect(applyResolutions(mockDb.db)(resolutions)).rejects.toThrow(
+      'Cannot apply column overrides'
+    );
+  });
+
   it('processes DELETEs before INSERTs across different tables', async () => {
     mockDb.queryResults['dolt_conflicts_functions'] = {
       rows: [
