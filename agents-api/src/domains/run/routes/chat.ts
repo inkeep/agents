@@ -101,6 +101,10 @@ const chatCompletionsRoute = createProtectedRoute({
               .describe(
                 'Headers data for template processing (validated against context config schema)'
               ),
+            userProperties: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe('User properties to associate with the conversation'),
           }),
         },
       },
@@ -259,6 +263,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
         activeSubAgentId: defaultSubAgentId,
         ref: executionContext.resolvedRef,
         userId: executionContext.metadata?.endUserId,
+        ...(body.userProperties && {
+          metadata: { userContext: body.userProperties },
+        }),
       });
 
       const activeAgent = await getActiveAgentForConversation(runDbClient)({

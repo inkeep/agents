@@ -72,6 +72,10 @@ const chatDataStreamRoute = createProtectedRoute({
               .optional()
               .describe('Headers data for template processing'),
             runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
+            userProperties: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe('User properties to associate with the conversation'),
           }),
         },
       },
@@ -316,6 +320,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
           ref: executionContext.resolvedRef,
           agentId: agentId,
           userId: executionContext.metadata?.endUserId,
+          ...(body.userProperties && {
+            metadata: { userContext: body.userProperties },
+          }),
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
