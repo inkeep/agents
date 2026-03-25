@@ -47,10 +47,6 @@ export function EvaluationResultsFilters({
     });
   };
 
-  const clearFilters = () => {
-    onFiltersChange({});
-  };
-
   const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
     if (key === 'outputFilters') {
       return Array.isArray(value) && value.length > 0;
@@ -73,7 +69,14 @@ export function EvaluationResultsFilters({
           </InputGroupAddon>
           {hasActiveFilters && (
             <InputGroupAddon align="inline-end">
-              <Button variant="ghost" size="icon-sm" onClick={clearFilters}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => {
+                  updateFilter('searchInput', '');
+                }}
+                aria-label="Clear search"
+              >
                 <X />
               </Button>
             </InputGroupAddon>

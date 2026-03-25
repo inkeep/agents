@@ -130,7 +130,12 @@ export function ConversationStatsCard({
                 </InputGroupAddon>
                 {localQuery && (
                   <InputGroupAddon align="inline-end">
-                    <Button variant="ghost" size="icon-sm" onClick={clearSearch}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={clearSearch}
+                      aria-label="Clear search"
+                    >
                       <X />
                     </Button>
                   </InputGroupAddon>

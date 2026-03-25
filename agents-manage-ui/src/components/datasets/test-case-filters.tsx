@@ -35,10 +35,6 @@ export function TestCaseFilters({ filters, onFiltersChange, agents }: TestCaseFi
     });
   };
 
-  const clearFilters = () => {
-    onFiltersChange({});
-  };
-
   const hasActiveFilters = Object.values(filters).some(
     (value) => value !== undefined && value !== 'all'
   );
@@ -58,7 +54,14 @@ export function TestCaseFilters({ filters, onFiltersChange, agents }: TestCaseFi
           </InputGroupAddon>
           {hasActiveFilters && (
             <InputGroupAddon align="inline-end">
-              <Button variant="ghost" size="icon-sm" onClick={clearFilters}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => {
+                  updateFilter('searchInput', '');
+                }}
+                aria-label="Clear search"
+              >
                 <X />
               </Button>
             </InputGroupAddon>
