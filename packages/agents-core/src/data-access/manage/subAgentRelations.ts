@@ -320,7 +320,7 @@ export const createAgentToolRelation =
         params.scopes.projectId,
         params.scopes.agentId,
         params.data.subAgentId,
-        params.data.toolId,
+        params.data.toolId
       );
 
     const relation = await db

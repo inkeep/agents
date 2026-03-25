@@ -707,7 +707,14 @@ export const createFullAgentServerSide =
                     'Processing agent transfer relation'
                   );
                   await upsertSubAgentRelation(db)({
-                    id: deriveRelationId(tenantId, projectId, finalAgentId, subAgentId, targetSubAgentId, 'transfer'),
+                    id: deriveRelationId(
+                      tenantId,
+                      projectId,
+                      finalAgentId,
+                      subAgentId,
+                      targetSubAgentId,
+                      'transfer'
+                    ),
                     tenantId,
                     projectId,
                     agentId: finalAgentId,
@@ -741,7 +748,14 @@ export const createFullAgentServerSide =
                         'Processing sub-agent delegation relation'
                       );
                       await upsertSubAgentRelation(db)({
-                        id: deriveRelationId(tenantId, projectId, finalAgentId, subAgentId, targetItem, 'delegate'),
+                        id: deriveRelationId(
+                          tenantId,
+                          projectId,
+                          finalAgentId,
+                          subAgentId,
+                          targetItem,
+                          'delegate'
+                        ),
                         tenantId,
                         projectId,
                         agentId: finalAgentId,
@@ -1895,7 +1909,14 @@ export const updateFullAgentServerSide =
                   await createSubAgentRelation(db)({
                     tenantId,
                     projectId,
-                    id: deriveRelationId(tenantId, projectId, typedAgentDefinition.id || '', subAgentId, targetSubAgentId, 'transfer'),
+                    id: deriveRelationId(
+                      tenantId,
+                      projectId,
+                      typedAgentDefinition.id || '',
+                      subAgentId,
+                      targetSubAgentId,
+                      'transfer'
+                    ),
                     agentId: typedAgentDefinition.id || '',
                     sourceSubAgentId: subAgentId,
                     targetSubAgentId: targetSubAgentId,
@@ -1924,7 +1945,14 @@ export const updateFullAgentServerSide =
                     await createSubAgentRelation(db)({
                       tenantId,
                       projectId,
-                      id: deriveRelationId(tenantId, projectId, typedAgentDefinition.id || '', subAgentId, targetItem, 'delegate'),
+                      id: deriveRelationId(
+                        tenantId,
+                        projectId,
+                        typedAgentDefinition.id || '',
+                        subAgentId,
+                        targetItem,
+                        'delegate'
+                      ),
                       agentId: typedAgentDefinition.id || '',
                       sourceSubAgentId: subAgentId,
                       targetSubAgentId: targetItem,

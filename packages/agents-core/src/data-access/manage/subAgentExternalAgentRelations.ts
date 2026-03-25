@@ -247,7 +247,7 @@ export const createSubAgentExternalAgentRelation =
         params.scopes.projectId,
         params.scopes.agentId,
         params.scopes.subAgentId,
-        params.data.externalAgentId,
+        params.data.externalAgentId
       );
 
     const relation = await db

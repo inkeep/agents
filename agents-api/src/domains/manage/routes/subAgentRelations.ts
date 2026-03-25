@@ -220,7 +220,7 @@ app.openapi(
         agentId,
         body.sourceSubAgentId,
         body.targetSubAgentId ?? body.externalSubAgentId ?? body.teamSubAgentId ?? '',
-        body.relationType ?? '',
+        body.relationType ?? ''
       ),
       projectId,
     };

@@ -219,7 +219,7 @@ export const upsertSubAgentSkill =
         params.scopes.projectId,
         params.scopes.agentId,
         params.scopes.subAgentId,
-        params.skillId,
+        params.skillId
       ),
       skillId: params.skillId,
       index: params.index,

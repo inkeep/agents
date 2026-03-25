@@ -310,7 +310,7 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
         scopes.projectId,
         scopes.agentId,
         subAgentId,
-        functionToolId,
+        functionToolId
       );
 
       const [result] = await db

@@ -657,7 +657,7 @@ export const addToolToAgent =
       params.scopes.projectId,
       params.scopes.agentId,
       params.subAgentId,
-      params.toolId,
+      params.toolId
     );
     const now = new Date().toISOString();
 
