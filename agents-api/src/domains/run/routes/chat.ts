@@ -20,7 +20,11 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
+import { PdfUrlIngestionError } from '../services/blob-storage/file-security-errors';
+import {
+  buildPersistedMessageContent,
+  inlineExternalPdfUrlParts,
+} from '../services/blob-storage/file-upload-helpers';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
@@ -314,9 +318,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
         .slice(-1)[0];
 
       // Build Part[] for execution (text + image parts), validated against core PartSchema
-      const messageParts = z
+      const parsedMessageParts = z
         .array(PartSchema)
         .parse(lastUserMessage ? getMessagePartsFromOpenAIContent(lastUserMessage.content) : []);
+      const messageParts = await inlineExternalPdfUrlParts(parsedMessageParts);
 
       // Extract text content from parts
       const userMessage = extractTextFromParts(messageParts);
@@ -547,6 +552,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
       });
     });
   } catch (error) {
+    if (error instanceof PdfUrlIngestionError) {
+      throw createApiError({
+        code: 'bad_request',
+        message: error.message,
+      });
+    }
     if (error instanceof HTTPException) {
       throw error;
     }

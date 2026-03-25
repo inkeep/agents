@@ -1,5 +1,19 @@
 # @inkeep/agents-manage-ui
 
+## 0.59.4
+
+### Patch Changes
+
+- 82bd424: Add InputGroup compound component and use it in ProjectSwitcher search input
+- 296c79a: Remove unused tooltip rendering from sidebar nav items to improve performance
+- ef7987f: Replace ad-hoc search input patterns with unified InputGroup compound component
+- 1b37b29: Migrate from individual @radix-ui/react-\* packages to unified radix-ui package
+- 99b5edf: Update TypeScript to 6.0.2
+- 6f1c5da: fix(dashboard): Ensures rounded bottom corners render correctly in dark mode
+- Updated dependencies [be7f056]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+
 ## 0.59.3
 
 ### Patch Changes

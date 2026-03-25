@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   normalizeInlineFileBytes,
   normalizeInlineImageBytes,
+  resolveDownloadedFileMimeType,
 } from '../blob-storage/file-content-security';
 import { MAX_FILE_BYTES } from '../blob-storage/file-security-constants';
 import {
@@ -115,6 +116,20 @@ describe('file-content-security', () => {
           mimeType: 'application/pdf',
         })
       ).rejects.toBeInstanceOf(BlockedInlineUnsupportedFileBytesError);
+    });
+  });
+
+  describe('resolveDownloadedFileMimeType', () => {
+    it('accepts PDF signature bytes when expected mime type is application/pdf', async () => {
+      await expect(
+        resolveDownloadedFileMimeType(VALID_PDF_BYTES, 'application/pdf', 'application/pdf')
+      ).resolves.toBe('application/pdf');
+    });
+
+    it('rejects non-PDF bytes when expected mime type is application/pdf', async () => {
+      await expect(
+        resolveDownloadedFileMimeType(VALID_PNG_BYTES, 'application/pdf', 'application/pdf')
+      ).rejects.toThrow(/Blocked external file with unsupported bytes signature/);
     });
   });
 });
