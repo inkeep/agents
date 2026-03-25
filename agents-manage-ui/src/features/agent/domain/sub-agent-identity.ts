@@ -3,16 +3,15 @@ import { NodeType } from '@/components/agent/configuration/node-types';
 
 export type SubAgentFormData = Record<string, { id?: string | null }>;
 
-export function getSubAgentIdForNode(node?: Node, subAgentFormData?: SubAgentFormData): string | undefined {
+export function getSubAgentIdForNode(
+  node?: Node,
+  subAgentFormData?: SubAgentFormData
+): string | undefined {
   if (!node) return;
 
   const subAgentId = subAgentFormData?.[node.id]?.id;
   if (subAgentId) {
     return subAgentId;
-  }
-
-  if (typeof node.data.id === 'string' && node.data.id) {
-    return node.data.id;
   }
 
   return node.id;

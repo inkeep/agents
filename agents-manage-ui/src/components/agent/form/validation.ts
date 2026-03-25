@@ -239,7 +239,6 @@ export function serializeAgentForm(data: FullAgentResponse) {
     description,
     prompt,
     contextConfig,
-    statusUpdates = {},
     stopWhen,
     models = {},
     subAgents,
@@ -250,6 +249,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
     tools = {},
     defaultSubAgentId,
   } = data;
+  const statusUpdates = data.statusUpdates ?? {};
 
   const relationHeadersByExternalAgentId = new Map<string, Record<string, string>>();
   const relationHeadersByTeamAgentId = new Map<string, Record<string, string>>();

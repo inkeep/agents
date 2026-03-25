@@ -13,7 +13,7 @@ export enum EdgeType {
   SelfLoop = 'self-loop',
 }
 
-export interface AnimatedEdge {
+export interface AnimatedEdge extends Record<string, unknown> {
   /**
    * Indicates whether this node delegates its task to another node.
    */
