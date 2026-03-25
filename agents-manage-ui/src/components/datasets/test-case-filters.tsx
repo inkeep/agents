@@ -52,7 +52,7 @@ export function TestCaseFilters({ filters, onFiltersChange, agents }: TestCaseFi
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
-          {hasActiveFilters && (
+          {filters.searchInput && (
             <InputGroupAddon align="inline-end">
               <Button
                 variant="ghost"
