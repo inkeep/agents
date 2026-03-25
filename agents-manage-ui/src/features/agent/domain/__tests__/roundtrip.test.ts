@@ -1,9 +1,9 @@
 import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import { deserializeAgentData } from '@/features/agent/domain/deserialize';
+import { apiToGraph } from '@/features/agent/domain/deserialize';
 import type { SerializeAgentFormState } from '@/features/agent/domain/serialize';
-import { serializeAgentData as serializeAgentDataInternal } from '@/features/agent/domain/serialize';
+import { editorToPayload as editorToPayloadInternal } from '@/features/agent/domain/serialize';
 
 function createSubAgentFormValue(
   id: string,
@@ -56,12 +56,12 @@ function createSerializeAgentFormState(nodes: Node[]): SerializeAgentFormState {
   };
 }
 
-function serializeAgentData(
+function editorToPayload(
   nodes: Node[],
   edges: Edge[],
   subAgents?: SerializeAgentFormState['subAgents']
 ) {
-  return serializeAgentDataInternal(nodes, edges, {
+  return editorToPayloadInternal(nodes, edges, {
     ...createSerializeAgentFormState(nodes),
     ...(subAgents && { subAgents }),
   });
@@ -101,7 +101,7 @@ describe('agent serialize/deserialize', () => {
       },
     ];
 
-    const serialized = serializeAgentData(nodes, edges);
+    const serialized = editorToPayload(nodes, edges);
 
     expect(serialized.subAgents['goodbye-agent']).toBeDefined();
     const goodbyeAgent = serialized.subAgents['goodbye-agent'];
@@ -112,7 +112,7 @@ describe('agent serialize/deserialize', () => {
       expect(goodbyeAgent.canDelegateTo).toContain('goodbye-agent');
     }
 
-    const deserialized = deserializeAgentData(serialized);
+    const deserialized = apiToGraph(serialized);
 
     // Should have the self-loop edge
     const selfLoopEdge = deserialized.edges.find(
@@ -180,7 +180,7 @@ describe('agent serialize/deserialize', () => {
       },
     ];
 
-    const serialized = serializeAgentData(nodes, edges);
+    const serialized = editorToPayload(nodes, edges);
     expect(serialized.subAgents.a1).toBeDefined();
     // Note: Tools are now project-scoped and not included in agent serialization
     // expect(serialized.tools.t1).toBeDefined();
@@ -193,7 +193,7 @@ describe('agent serialize/deserialize', () => {
       expect(a1.canDelegateTo).toContain('a2');
     }
 
-    const deserialized = deserializeAgentData(serialized);
+    const deserialized = apiToGraph(serialized);
     expect(deserialized.nodes.length).toBeGreaterThan(0);
     expect(deserialized.edges.length).toBeGreaterThan(0);
   });

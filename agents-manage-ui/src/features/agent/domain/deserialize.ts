@@ -142,7 +142,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[], nodeHeights: NodeHeights
   });
 }
 
-export function deserializeAgentData(data: AgentGraphData): TransformResult {
+export function apiToGraph(data: AgentGraphData): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   const nodeHeights: NodeHeights = new Map();

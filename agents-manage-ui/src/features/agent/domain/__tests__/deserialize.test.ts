@@ -1,12 +1,12 @@
 import { NodeType } from '@/components/agent/configuration/node-types';
-import { serializeAgentForm } from '@/components/agent/form/validation';
-import { deserializeAgentData } from '@/features/agent/domain/deserialize';
-import { serializeAgentData } from '@/features/agent/domain/serialize';
+import { apiToFormValues } from '@/components/agent/form/validation';
+import { apiToGraph } from '@/features/agent/domain/deserialize';
+import { editorToPayload } from '@/features/agent/domain/serialize';
 
-describe('deserializeAgentData', () => {
+describe('apiToGraph', () => {
   function serializeWithFormData(fullAgent: any) {
-    const deserialized = deserializeAgentData(fullAgent);
-    const formData = serializeAgentForm(fullAgent);
+    const deserialized = apiToGraph(fullAgent);
+    const formData = apiToFormValues(fullAgent);
     const mcpRelations = Object.fromEntries(
       Object.entries(formData.mcpRelations ?? {}).map(([key, value]) => [
         key,
@@ -37,7 +37,7 @@ describe('deserializeAgentData', () => {
 
     return {
       deserialized,
-      serialized: serializeAgentData(deserialized.nodes, deserialized.edges, {
+      serialized: editorToPayload(deserialized.nodes, deserialized.edges, {
         mcpRelations,
         functionTools: formData.functionTools ?? {},
         externalAgents,
@@ -169,7 +169,7 @@ describe('deserializeAgentData', () => {
       },
     } as any;
 
-    const deserialized = deserializeAgentData(fullAgent);
+    const deserialized = apiToGraph(fullAgent);
     const functionToolNode = deserialized.nodes.find((node) => node.type === NodeType.FunctionTool);
 
     expect(functionToolNode?.id).toBe('function-tool:function-tool-1');
@@ -207,7 +207,7 @@ describe('deserializeAgentData', () => {
       },
     } as any;
 
-    const deserialized = deserializeAgentData(fullAgent);
+    const deserialized = apiToGraph(fullAgent);
     const subAgentNode = deserialized.nodes.find((node) => node.type === NodeType.SubAgent);
 
     expect(subAgentNode?.data).toEqual({});

@@ -1,4 +1,4 @@
-import { FullAgentFormSchema, serializeAgentForm } from './validation';
+import { apiToFormValues, FullAgentFormSchema } from './validation';
 
 describe('FullAgentFormSchema', () => {
   function createSchema(value: string) {
@@ -176,9 +176,9 @@ describe('FullAgentFormSchema', () => {
   });
 });
 
-describe('serializeAgentForm', () => {
+describe('apiToFormValues', () => {
   it('rehydrates external agent headers from delegation relations when top-level external agent headers are missing', () => {
-    const result = serializeAgentForm({
+    const result = apiToFormValues({
       id: 'agent-1',
       name: 'Agent 1',
       description: '',
@@ -231,7 +231,7 @@ describe('serializeAgentForm', () => {
   });
 
   it('rehydrates team agent headers from delegation relations when top-level team agent headers are missing', () => {
-    const result = serializeAgentForm({
+    const result = apiToFormValues({
       id: 'agent-1',
       name: 'Agent 1',
       description: '',

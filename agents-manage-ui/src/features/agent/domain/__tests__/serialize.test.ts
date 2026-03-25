@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import type { SerializeAgentFormState } from '../serialize';
-import { serializeAgentData as serializeAgentDataInternal } from '../serialize';
+import { editorToPayload as editorToPayloadInternal } from '../serialize';
 import { syncSavedAgentGraph } from '../sync-saved-agent-graph';
 
 type TestMcpRelations = Record<
@@ -189,7 +189,7 @@ function createSerializeAgentFormState(
   };
 }
 
-function serializeAgentData(
+function editorToPayload(
   nodes: Node[],
   edges: Edge[],
   mcpRelations: TestMcpRelations = {},
@@ -200,7 +200,7 @@ function serializeAgentData(
   functions: SerializeAgentFormState['functions'] = {},
   defaultSubAgentNodeId?: SerializeAgentFormState['defaultSubAgentNodeId']
 ) {
-  return serializeAgentDataInternal(
+  return editorToPayloadInternal(
     nodes,
     edges,
     createSerializeAgentFormState(nodes, {
@@ -224,7 +224,7 @@ function serializeAgentData(
   );
 }
 
-describe('serializeAgentData', () => {
+describe('editorToPayload', () => {
   describe('models object processing', () => {
     it('should set models to undefined when models object has only empty values', () => {
       const nodes: Node[] = [
@@ -237,7 +237,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges);
 
       expect(result.subAgents.agent1.models).toBeUndefined();
     });
@@ -253,7 +253,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges);
 
       expect(result.subAgents.agent1.models).toBeUndefined();
     });
@@ -271,7 +271,7 @@ describe('serializeAgentData', () => {
       const models = {
         base: { model: 'gpt-4' },
       };
-      const result = serializeAgentData(nodes, edges, undefined, undefined, undefined, undefined, {
+      const result = editorToPayload(nodes, edges, undefined, undefined, undefined, undefined, {
         agent1: createSubAgentFormValue('agent1', {
           models,
         }),
@@ -293,7 +293,7 @@ describe('serializeAgentData', () => {
       const models = {
         structuredOutput: { model: 'gpt-4o-2024-08-06' },
       };
-      const result = serializeAgentData(nodes, edges, undefined, undefined, undefined, undefined, {
+      const result = editorToPayload(nodes, edges, undefined, undefined, undefined, undefined, {
         agent1: createSubAgentFormValue('agent1', {
           name: 'Test Agent',
           prompt: 'Test instructions',
@@ -317,7 +317,7 @@ describe('serializeAgentData', () => {
       const models = {
         summarizer: { model: 'gpt-3.5-turbo' },
       };
-      const result = serializeAgentData(nodes, edges, undefined, undefined, undefined, undefined, {
+      const result = editorToPayload(nodes, edges, undefined, undefined, undefined, undefined, {
         agent1: createSubAgentFormValue('agent1', {
           models,
         }),
@@ -343,7 +343,7 @@ describe('serializeAgentData', () => {
         summarizer: { model: 'gpt-3.5-turbo' },
       };
 
-      const result = serializeAgentData(nodes, edges, undefined, undefined, undefined, undefined, {
+      const result = editorToPayload(nodes, edges, undefined, undefined, undefined, undefined, {
         agent1: createSubAgentFormValue('agent1', {
           models,
         }),
@@ -363,7 +363,7 @@ describe('serializeAgentData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges);
 
       expect(result.subAgents.agent1.models).toBeUndefined();
     });
@@ -399,7 +399,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, {
+      const result = editorToPayload(nodes, edges, {
         mcp1: {
           selectedTools: ['tool1', 'tool2'],
         },
@@ -444,7 +444,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, {
+      const result = editorToPayload(nodes, edges, {
         mcp1: {
           selectedTools: null,
         },
@@ -490,7 +490,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, {
+      const result = editorToPayload(nodes, edges, {
         mcp1: {
           selectedTools: [],
         },
@@ -535,7 +535,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges);
 
       expect(result.subAgents.agent1.canUse[0]).toEqual({
         toolId: 'mcp1',
@@ -574,7 +574,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, {
+      const result = editorToPayload(nodes, edges, {
         'rel-1': {
           selectedTools: null,
           headers: null,
@@ -623,7 +623,7 @@ describe('serializeAgentData', () => {
       ];
 
       expect(() =>
-        serializeAgentDataInternal(nodes, edges, {
+        editorToPayloadInternal(nodes, edges, {
           mcpRelations: {},
           functionTools: {},
           externalAgents: {},
@@ -681,7 +681,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, {
+      const result = editorToPayload(nodes, edges, {
         mcp1: {
           selectedTools: ['tool1', 'tool2'],
           toolPolicies: {
@@ -735,7 +735,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges, undefined, {
+      const result = editorToPayload(nodes, edges, undefined, {
         'function-tool-1': {
           id: 'function-tool-1',
           name: 'Lookup customer',
@@ -786,7 +786,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges);
 
       expect(result.subAgents.agent1.canUse).toEqual([
         {
@@ -856,7 +856,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(
+      const result = editorToPayload(
         nodes,
         edges,
         undefined,
@@ -950,7 +950,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(
+      const result = editorToPayload(
         nodes,
         edges,
         undefined,
@@ -997,7 +997,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, []);
+      const result = editorToPayload(nodes, []);
 
       expect(result.functionTools).toEqual({});
       expect(result.functions).toEqual({});
@@ -1071,7 +1071,7 @@ describe('serializeAgentData', () => {
         teamAgents: {},
       } as any;
 
-      const result = serializeAgentData(
+      const result = editorToPayload(
         nodes,
         edges,
         undefined,
@@ -1253,7 +1253,7 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(
+      const result = editorToPayload(
         nodes,
         edges,
         undefined,
@@ -1319,7 +1319,7 @@ describe('serializeAgentData', () => {
 
     it('should serialize defaultSubAgentNodeId to the persisted defaultSubAgentId', () => {
       const tempNodeId = 'temp-node-id';
-      const result = serializeAgentData(
+      const result = editorToPayload(
         [
           {
             id: tempNodeId,

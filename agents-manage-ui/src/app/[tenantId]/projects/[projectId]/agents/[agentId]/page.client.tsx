@@ -36,7 +36,7 @@ import { resolveCollisions } from '@/components/agent/configuration/resolve-coll
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
-import { serializeAgentForm } from '@/components/agent/form/validation';
+import { apiToFormValues } from '@/components/agent/form/validation';
 import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
@@ -51,16 +51,16 @@ import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
+  apiToGraph,
   createFunctionToolFormInput,
   createMcpRelationFormInput,
   createSubAgentFormInput,
-  deserializeAgentData,
+  editorToPayload,
   findEdgeByGraphKey,
   findNodeByGraphKey,
   getEdgeGraphKey,
   getMcpRelationFormKey,
   getNodeGraphKey,
-  serializeAgentData,
   syncSavedAgentGraph,
 } from '@/features/agent/domain';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -217,7 +217,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
-    const result = deserializeAgentData(agent);
+    const result = apiToGraph(agent);
     const {
       nodes: agentNodes,
       edges: agentEdges,
@@ -296,10 +296,10 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       const fullProject = fullProjectResult.data;
       const updatedAgent = fullProject?.agents?.[agentId];
       // This makes current values the new default values
-      form.reset(serializeAgentForm(updatedAgent));
+      form.reset(apiToFormValues(updatedAgent));
 
       // Deserialize agent data to nodes and edges
-      const { nodes, edges } = deserializeAgentData(updatedAgent);
+      const { nodes, edges } = apiToGraph(updatedAgent);
       const {
         nodes: nodesWithSelection,
         edges: edgesWithSelection,
@@ -569,7 +569,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   const onSubmit = form.handleSubmit(
     async ({ mcpRelations, defaultSubAgentNodeId, ...data }): Promise<void> => {
-      const serializedData = serializeAgentData(nodes, edges, {
+      const serializedData = editorToPayload(nodes, edges, {
         mcpRelations: mcpRelations ?? {},
         functionTools: data.functionTools ?? {},
         externalAgents: data.externalAgents ?? {},
@@ -608,7 +608,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           nodeId: syncedGraph.nodeId,
           edgeId: syncedGraph.edgeId,
         }));
-        form.reset(serializeAgentForm(res.data));
+        form.reset(apiToFormValues(res.data));
         setInitial(syncedGraph.nodes, syncedGraph.edges);
         return;
       }

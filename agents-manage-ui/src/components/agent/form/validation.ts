@@ -232,7 +232,7 @@ export type FullAgentFormValues = z.output<typeof FullAgentFormSchema>;
 
 export type FullAgentPayload = z.infer<typeof AgentWithinContextOfProjectSchema>;
 
-export function serializeAgentForm(data: FullAgentResponse) {
+export function apiToFormValues(data: FullAgentResponse) {
   const {
     id,
     name,

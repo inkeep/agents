@@ -128,7 +128,7 @@ function requireFormValue<T>(value: T | null | undefined, message: string): T {
 /**
  * Transforms React Flow nodes and edges back into the API data structure
  */
-export function serializeAgentData(
+export function editorToPayload(
   nodes: Node[],
   edges: Edge[],
   formState: SerializeAgentFormState
