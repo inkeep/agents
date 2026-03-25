@@ -37,8 +37,7 @@ export const markStreamComplete =
   };
 
 export const getStreamChunks =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: StreamScope & { afterIdx?: number }) => {
+  (db: AgentsRunDatabaseClient) => async (params: StreamScope & { afterIdx?: number }) => {
     const conditions = [
       eq(streamChunks.tenantId, params.tenantId),
       eq(streamChunks.projectId, params.projectId),
@@ -54,21 +53,21 @@ export const getStreamChunks =
       .orderBy(streamChunks.idx);
   };
 
-export const deleteStreamChunks =
-  (db: AgentsRunDatabaseClient) => async (params: StreamScope) => {
-    await db
-      .delete(streamChunks)
-      .where(
-        and(
-          eq(streamChunks.tenantId, params.tenantId),
-          eq(streamChunks.projectId, params.projectId),
-          eq(streamChunks.conversationId, params.conversationId)
-        )
-      );
-  };
+export const deleteStreamChunks = (db: AgentsRunDatabaseClient) => async (params: StreamScope) => {
+  await db
+    .delete(streamChunks)
+    .where(
+      and(
+        eq(streamChunks.tenantId, params.tenantId),
+        eq(streamChunks.projectId, params.projectId),
+        eq(streamChunks.conversationId, params.conversationId)
+      )
+    );
+};
 
 export const cleanupExpiredStreamChunks =
-  (db: AgentsRunDatabaseClient) => async (olderThanMinutes = 5) => {
+  (db: AgentsRunDatabaseClient) =>
+  async (olderThanMinutes = 5) => {
     const cutoff = sql`now() - interval '${sql.raw(String(olderThanMinutes))} minutes'`;
     await db.delete(streamChunks).where(sql`${streamChunks.createdAt} < ${cutoff}`);
   };
