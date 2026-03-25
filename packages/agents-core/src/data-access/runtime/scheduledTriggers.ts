@@ -108,9 +108,7 @@ export const updateScheduledTrigger =
 
     const updated = result[0];
     if (!updated) {
-      throw new Error(
-        `Scheduled trigger ${params.scheduledTriggerId} not found for update`
-      );
+      throw new Error(`Scheduled trigger ${params.scheduledTriggerId} not found for update`);
     }
     return updated;
   };
