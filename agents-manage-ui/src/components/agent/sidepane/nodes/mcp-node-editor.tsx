@@ -95,7 +95,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
       );
     }
   }, [liveToolData, orphanedTools, selectedNode.id]);
-  if (!toolData) {
+  if (!toolData || !tool) {
     return;
   }
   const currentToolPolicies = mcpRelation?.toolPolicies ?? {};
