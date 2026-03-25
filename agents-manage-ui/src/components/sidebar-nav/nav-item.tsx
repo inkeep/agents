@@ -19,7 +19,8 @@ export function NavItem({ title, url, icon: Icon }: NavItemProps) {
       <SidebarMenuButton asChild isActive={pathname.startsWith(url)}>
         <Link href={url}>
           <Icon />
-          {title}
+          {/* Keep this span to prevent layout issues with long titles when sidebar collapsing */}
+          <span>{title}</span>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
