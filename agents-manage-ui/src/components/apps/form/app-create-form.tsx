@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { GenericComboBox } from '@/components/form/generic-combo-box';
 import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { createAppAction } from '@/lib/actions/apps';
@@ -28,6 +29,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
       name: '',
       description: '',
       defaultAgentId: '',
+      prompt: '',
       allowedDomains: appType === 'web_client' ? '' : undefined,
     },
     mode: 'onChange',
@@ -43,6 +45,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
         type: appType,
         defaultAgentId: data.defaultAgentId || undefined,
         defaultProjectId: data.defaultAgentId ? projectId : undefined,
+        prompt: data.prompt || undefined,
         config:
           appType === 'web_client'
             ? {
@@ -107,6 +110,14 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
             isRequired
           />
         )}
+        <GenericTextarea
+          control={form.control}
+          name="prompt"
+          label="Prompt"
+          placeholder="Add supplemental instructions for this app deployment..."
+          description="Optional instructions that customize the agent's behavior when accessed through this app. These are added to the agent's existing instructions."
+          rows={4}
+        />
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>

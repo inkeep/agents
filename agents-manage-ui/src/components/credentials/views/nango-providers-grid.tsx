@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTitle } from '@/components/ui/card';
 import { CardGrid } from '@/components/ui/card-grid';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface NangoProvidersGridProps {
@@ -84,17 +84,16 @@ export function NangoProvidersGrid({ providers }: NangoProvidersGridProps) {
 
   return (
     <div className="space-y-6">
-      {/* Search bar */}
-      <div className="relative max-w-md mx-auto">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input
+      <InputGroup className="sm:max-w-md mx-auto">
+        <InputGroupInput
           placeholder="Search providers (e.g., slack, github, zendesk)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
         />
-      </div>
-
+        <InputGroupAddon>
+          <Search />
+        </InputGroupAddon>
+      </InputGroup>
       {/* No results */}
       {filteredProviders.length === 0 && searchQuery && (
         <EmptyState
@@ -108,7 +107,6 @@ export function NangoProvidersGrid({ providers }: NangoProvidersGridProps) {
           }
         />
       )}
-
       {/* Provider grid */}
       {filteredProviders.length > 0 && (
         <CardGrid

@@ -26,7 +26,11 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
+import { PdfUrlIngestionError } from '../services/blob-storage/file-security-errors';
+import {
+  buildPersistedMessageContent,
+  inlineExternalPdfUrlParts,
+} from '../services/blob-storage/file-upload-helpers';
 import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
@@ -343,9 +347,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const lastUserMessage = body.messages.filter((m) => m.role === 'user').slice(-1)[0];
 
       // Build Part[] for execution (text + image parts), validated against core PartSchema
-      const messageParts: Part[] = z
+      const parsedMessageParts: Part[] = z
         .array(PartSchema)
         .parse(getMessagePartsFromVercelContent(lastUserMessage?.content, lastUserMessage?.parts));
+      const messageParts = await inlineExternalPdfUrlParts(parsedMessageParts);
 
       // Extract text content from parts
       const userText = extractTextFromParts(messageParts) || '';
@@ -617,6 +622,12 @@ app.openapi(chatDataStreamRoute, async (c) => {
       );
     });
   } catch (error) {
+    if (error instanceof PdfUrlIngestionError) {
+      throw createApiError({
+        code: 'bad_request',
+        message: error.message,
+      });
+    }
     if (error instanceof HTTPException) {
       throw error;
     }

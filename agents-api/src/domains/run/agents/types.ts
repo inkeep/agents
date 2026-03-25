@@ -1,10 +1,10 @@
 import type {
   Artifact,
   ArtifactComponentApiInsert,
+  AssembleResult,
   BreakdownComponentDef,
   DataComponentApiInsert,
 } from '@inkeep/agents-core';
-import type { AssembleResult } from '../utils/token-estimator';
 
 // Re-export for convenience
 export type { BreakdownComponentDef };
@@ -31,6 +31,7 @@ export interface SkillData {
 export interface SystemPromptV1 {
   corePrompt: string; // Sub-agent's own instructions — rendered into <core_instructions>
   prompt?: string; // Overarching agent system's prompt — rendered into <agent_context>. Different source from corePrompt.
+  appPrompt?: string; // App deployment prompt — rendered into <app_context>. Supplemental to agent instructions.
   skills?: SkillData[];
   artifacts: Artifact[];
   tools: ToolData[];

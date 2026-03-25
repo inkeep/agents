@@ -75,7 +75,7 @@ const buildFilePart = (
   try {
     new URL(uri);
   } catch {
-    throw new Error(`Invalid image URI: expected valid data URI or HTTP URL`);
+    throw new Error(`Invalid file URI: expected valid data URI or HTTP URL`);
   }
 
   const metadata: Record<string, unknown> = {};
@@ -115,7 +115,12 @@ export const getMessagePartsFromOpenAIContent = (content: string | ContentItem[]
     } else if (isImageContentItem(item)) {
       fileParts.push(buildFilePart(item.image_url.url, { detail: item.image_url.detail }));
     } else if (isFileContentItem(item)) {
-      fileParts.push(buildFilePart(item.file.file_data, { filename: item.file.filename }));
+      fileParts.push(
+        buildFilePart(item.file.file_data, {
+          filename: item.file.filename,
+          mimeType: 'application/pdf',
+        })
+      );
     } else {
       skipped += 1;
     }
@@ -159,8 +164,8 @@ export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unkn
     }
 
     if (part.type === 'file') {
-      return buildFilePart(part.text, {
-        mimeType: part.mediaType ?? part.mimeType,
+      return buildFilePart(part.url, {
+        mimeType: part.mediaType,
         filename: part.filename,
       });
     }

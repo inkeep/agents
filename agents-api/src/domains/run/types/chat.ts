@@ -28,6 +28,7 @@ const PdfDataUriSchema = z
   .refine(hasValidBase64Payload, 'Invalid base64 data in PDF data URI');
 
 export const ImageUrlSchema = z.union([z.httpUrl(), ImageDataUriSchema]);
+export const PdfDataOrUrlSchema = z.union([PdfDataUriSchema, z.httpUrl()]);
 
 /** OpenAI-specific image detail level. Has no effect on other providers. */
 export const ImageDetailEnum = ['auto', 'low', 'high'] as const;
@@ -47,7 +48,7 @@ export type ImageContentItem = z.infer<typeof ImageContentItemSchema>;
 export const FileContentItemSchema = z.object({
   type: z.literal('file'),
   file: z.object({
-    file_data: PdfDataUriSchema,
+    file_data: PdfDataOrUrlSchema,
     filename: z.string().optional(),
   }),
 });
@@ -74,18 +75,12 @@ export const VercelImagePartSchema = z.object({
   text: ImageUrlSchema,
 });
 
-const VercelFilePartBaseSchema = z.object({
+export const VercelFilePartSchema = z.object({
   type: z.literal('file'),
-  text: z.string(),
-  mediaType: z.string().optional(),
-  mimeType: z.string().optional(),
+  url: z.string(),
+  mediaType: z.string(),
   filename: z.string().optional(),
 });
-
-export const VercelFilePartSchema = VercelFilePartBaseSchema.refine(
-  (value) => Boolean(value.mediaType || value.mimeType),
-  { message: 'Either mediaType or mimeType is required for file parts' }
-);
 
 export const VercelAudioVideoPartSchema = z.object({
   type: z.union([
@@ -132,7 +127,7 @@ export const VercelMessageSchema = z.object({
 export const VercelContentPartSchema = z.union([
   VercelTextPartSchema,
   VercelImagePartSchema,
-  VercelFilePartBaseSchema,
+  VercelFilePartSchema,
 ]);
 
 export type ChatCompletionRequest = {

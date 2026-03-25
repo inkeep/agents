@@ -1,39 +1,59 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { ExecutionHandlerParams } from '../../../../domains/run/handlers/executionHandler';
+import { PdfUrlIngestionError } from '../../../../domains/run/services/blob-storage/file-security-errors';
 import { pendingToolApprovalManager } from '../../../../domains/run/session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../../../../domains/run/session/ToolApprovalUiBus';
 
 // Logger mock is now in setup.ts globally
 
+const executionHandlerExecuteMock = vi
+  .fn()
+  .mockImplementation(async (args: ExecutionHandlerParams) => {
+    if (args.sseHelper && typeof args.sseHelper.writeRole === 'function') {
+      await args.sseHelper.writeRole();
+      await args.sseHelper.writeContent('[{"type":"text", "text":"Test response from agent"}]');
+    }
+
+    // Allow tests to simulate delegated approval UI propagation by publishing to the bus.
+    if (args.userMessage === '__trigger_approval_ui_bus__') {
+      await toolApprovalUiBus.publish(args.requestId, {
+        type: 'approval-needed',
+        toolCallId: 'call_bus_1',
+        toolName: 'delete_file',
+        input: { filePath: 'user/readme.md' },
+        providerMetadata: { openai: { itemId: 'fc_test' } },
+        approvalId: 'aitxt-call_bus_1',
+      });
+      await toolApprovalUiBus.publish(args.requestId, {
+        type: 'approval-resolved',
+        toolCallId: 'call_bus_1',
+        approved: true,
+      });
+    }
+    return { success: true, iterations: 1 };
+  });
+
 vi.mock('../../../../domains/run/handlers/executionHandler', () => {
   return {
     ExecutionHandler: vi.fn().mockImplementation(() => ({
-      execute: vi.fn().mockImplementation(async (args: any) => {
-        if (args.sseHelper && typeof args.sseHelper.writeRole === 'function') {
-          await args.sseHelper.writeRole();
-          await args.sseHelper.writeContent('[{"type":"text", "text":"Test response from agent"}]');
-        }
-
-        // Allow tests to simulate delegated approval UI propagation by publishing to the bus.
-        if (args.userMessage === '__trigger_approval_ui_bus__') {
-          await toolApprovalUiBus.publish(args.requestId, {
-            type: 'approval-needed',
-            toolCallId: 'call_bus_1',
-            toolName: 'delete_file',
-            input: { filePath: 'user/readme.md' },
-            providerMetadata: { openai: { itemId: 'fc_test' } },
-            approvalId: 'aitxt-call_bus_1',
-          });
-          await toolApprovalUiBus.publish(args.requestId, {
-            type: 'approval-resolved',
-            toolCallId: 'call_bus_1',
-            approved: true,
-          });
-        }
-        return { success: true, iterations: 1 };
-      }),
+      execute: executionHandlerExecuteMock,
     })),
   };
 });
+
+vi.mock(
+  '../../../../domains/run/services/blob-storage/file-upload-helpers',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('../../../../domains/run/services/blob-storage/file-upload-helpers')
+      >();
+    return {
+      ...actual,
+      inlineExternalPdfUrlParts: vi.fn(async (parts) => parts),
+    };
+  }
+);
 
 import { makeRequest } from '../../../utils/testRequest';
 
@@ -135,6 +155,48 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 // No longer need beforeAll/afterAll since ExecutionHandler is mocked at module level
 
 describe('Chat Data Stream Route', () => {
+  it('should pass inline image file parts through to ExecutionHandler', async () => {
+    executionHandlerExecuteMock.mockClear();
+
+    const body = {
+      stream: false,
+      messages: [
+        {
+          role: 'user',
+          content: 'Describe this image',
+          parts: [
+            { type: 'text', text: 'Describe this image' },
+            {
+              type: 'file',
+              url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5w8R8AAAAASUVORK5CYII=',
+              mediaType: 'image/png',
+              filename: 'pixel.png',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(executionHandlerExecuteMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userMessage: 'Describe this image',
+        messageParts: expect.arrayContaining([
+          expect.objectContaining({ kind: 'text', text: 'Describe this image' }),
+          expect.objectContaining({
+            kind: 'file',
+            file: expect.objectContaining({ mimeType: 'image/png' }),
+          }),
+        ]),
+      })
+    );
+  });
+
   it('should stream response using Vercel data stream protocol', async () => {
     // Ensure project exists first
     // await createTestProject(dbClient, tenantId, projectId);
@@ -204,7 +266,7 @@ describe('Chat Data Stream Route', () => {
             { type: 'text', text: 'Summarize this PDF' },
             {
               type: 'file',
-              text: 'data:application/pdf;base64,JVBERi0xLjQK',
+              url: 'data:application/pdf;base64,JVBERi0xLjQK',
               mediaType: 'application/pdf',
               filename: 'doc.pdf',
             },
@@ -220,6 +282,68 @@ describe('Chat Data Stream Route', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline image file part using Vercel FileUIPart shape', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Describe this image',
+          parts: [
+            { type: 'text', text: 'Describe this image' },
+            {
+              type: 'file',
+              url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5w8R8AAAAASUVORK5CYII=',
+              mediaType: 'image/png',
+              filename: 'pixel.png',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should return 400 when PDF URL ingestion fails', async () => {
+    const { inlineExternalPdfUrlParts } = await import(
+      '../../../../domains/run/services/blob-storage/file-upload-helpers'
+    );
+    vi.mocked(inlineExternalPdfUrlParts).mockRejectedValueOnce(
+      new PdfUrlIngestionError('https://example.com/report.pdf')
+    );
+
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this PDF',
+          parts: [
+            { type: 'text', text: 'Summarize this PDF' },
+            {
+              type: 'file',
+              url: 'https://example.com/report.pdf',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(400);
   });
 
   it('should stream approval UI events published to ToolApprovalUiBus (simulating delegated agent approval)', async () => {

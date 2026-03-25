@@ -1,5 +1,11 @@
 import { z } from '@hono/zod-openapi';
-import { type DataPart, type FilePart, type Part, SPAN_KEYS } from '@inkeep/agents-core';
+import {
+  type DataPart,
+  type FilePart,
+  GENERATION_TYPES,
+  type Part,
+  SPAN_KEYS,
+} from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
@@ -74,8 +80,19 @@ export function buildBaseGenerationConfig(
     toolChoice,
     messages,
     tools: sanitizedTools,
-    prepareStep: async ({ messages: stepMessages }: { messages: unknown[] }) => {
-      return await handlePrepareStepCompression(stepMessages, compressor, originalMessageCount);
+    prepareStep: async ({
+      messages: stepMessages,
+      steps,
+    }: {
+      messages: unknown[];
+      steps: Array<{ usage: { inputTokens?: number; outputTokens?: number } }>;
+    }) => {
+      return await handlePrepareStepCompression(
+        stepMessages,
+        steps,
+        compressor,
+        originalMessageCount
+      );
     },
     stopWhen: async ({ steps }: { steps: unknown[] }) => {
       return await handleStopWhenConditions(ctx, steps);
@@ -93,8 +110,13 @@ export function buildTelemetryConfig(ctx: AgentRunContext, phase?: string): obje
     recordOutputs: true,
     metadata: {
       ...(phase && { phase }),
+      tenantId: ctx.config.tenantId,
+      projectId: ctx.config.projectId,
+      agentId: ctx.config.agentId,
       subAgentId: ctx.config.id,
       subAgentName: ctx.config.name,
+      generationType: GENERATION_TYPES.SUB_AGENT_GENERATION,
+      ...(ctx.conversationId && { conversationId: ctx.conversationId }),
     },
   };
 }
@@ -328,6 +350,11 @@ export async function runGenerate(
           textResponse = response.steps[response.steps.length - 1].text || '';
         } else {
           textResponse = response.text || '';
+        }
+
+        const actualInputTokens = response.totalUsage?.inputTokens ?? response.usage?.inputTokens;
+        if (actualInputTokens != null) {
+          span.setAttribute(SPAN_KEYS.CONTEXT_BREAKDOWN_ACTUAL_INPUT_TOKENS, actualInputTokens);
         }
 
         const isTimeoutAbort = response.finishReason === 'other';

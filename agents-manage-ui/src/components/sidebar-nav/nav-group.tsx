@@ -26,9 +26,9 @@ export function NavGroup({ items, label }: NavGroupProps) {
       ) : null}
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
-          {items.map((item) => {
-            return <NavItem key={item.title} {...item} />;
-          })}
+          {items.map((item) => (
+            <NavItem key={item.title} {...item} />
+          ))}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

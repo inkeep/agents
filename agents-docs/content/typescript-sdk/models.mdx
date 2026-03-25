@@ -295,6 +295,10 @@ models: {
 All models in the `models` array must be valid [Vercel AI Gateway model IDs](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway). The gateway falls through to the next model on failure — if all models fail, the request errors. Set `AI_GATEWAY_API_KEY` in your environment for authentication.
 </Note>
 
+<Note>
+When `AI_GATEWAY_API_KEY` is set, Anthropic, OpenAI, and Google models are automatically routed through the gateway for per-request cost tracking. No configuration changes are needed — your existing model strings work as-is.
+</Note>
+
 **Azure OpenAI:**
 
 <Tabs>

@@ -64,7 +64,9 @@ describe('uploadPartsFiles', () => {
     const uploaded = await uploadPartsFiles(parts, uploadContext);
 
     expect(downloadExternalFile).toHaveBeenCalledTimes(1);
-    expect(downloadExternalFile).toHaveBeenCalledWith('https://example.com/image.jpg');
+    expect(downloadExternalFile).toHaveBeenCalledWith('https://example.com/image.jpg', {
+      expectedMimeType: undefined,
+    });
     expect(normalizeInlineFileBytes).not.toHaveBeenCalled();
     expect(mockUpload).toHaveBeenCalledTimes(1);
     const expectedKeyPrefix = 'v1/t_tenant/media/p_project/conv/c_conversation/m_message/sha256-';
@@ -80,6 +82,9 @@ describe('uploadPartsFiles', () => {
       file: {
         uri: expect.stringContaining(`blob://${expectedKeyPrefix}`),
         mimeType: 'image/png',
+      },
+      metadata: {
+        sourceUrl: 'https://example.com/image.jpg',
       },
     });
   });
@@ -162,7 +167,7 @@ describe('uploadPartsFiles', () => {
         ),
         mimeType: 'image/png',
       },
-      metadata: { source: 'user-upload' },
+      metadata: { source: 'user-upload', sourceUrl: 'https://example.com/image.jpg' },
     });
   });
 
@@ -176,7 +181,11 @@ describe('uploadPartsFiles', () => {
     expect(uploaded).toEqual([]);
   });
 
-  it('drops external PDF URLs and logs correlation context', async () => {
+  it('uploads external PDF URLs and preserves sanitized source URL metadata', async () => {
+    vi.mocked(downloadExternalFile).mockResolvedValueOnce({
+      data: Uint8Array.from(PDF_BYTES),
+      mimeType: 'application/pdf',
+    });
     const parts: Part[] = [
       {
         kind: 'file',
@@ -189,23 +198,20 @@ describe('uploadPartsFiles', () => {
 
     const uploaded = await uploadPartsFiles(parts, uploadContext);
 
-    expect(uploaded).toEqual([]);
-    expect(downloadExternalFile).not.toHaveBeenCalled();
-    expect(mockUpload).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({
-        index: 0,
-        tenantId: uploadContext.tenantId,
-        projectId: uploadContext.projectId,
-        conversationId: uploadContext.conversationId,
-        messageId: uploadContext.messageId,
-        file: expect.objectContaining({
-          uri: 'https://example.com/report.pdf',
-          mimeType: 'application/pdf',
-        }),
-      }),
-      'Failed to upload file part, dropping from persisted message to avoid storing base64 in DB'
-    );
+    expect(downloadExternalFile).toHaveBeenCalledWith('https://example.com/report.pdf', {
+      expectedMimeType: 'application/pdf',
+    });
+    expect(uploaded).toHaveLength(1);
+    expect(uploaded[0]).toMatchObject({
+      kind: 'file',
+      file: {
+        uri: expect.stringContaining('blob://v1/t_tenant/media/p_project/conv/c_conversation'),
+        mimeType: 'application/pdf',
+      },
+      metadata: {
+        sourceUrl: 'https://example.com/report.pdf',
+      },
+    });
   });
 
   it('drops inline byte file part when normalizeInlineFileBytes throws', async () => {

@@ -126,14 +126,17 @@ export class BlockedExternalUnsupportedBytesError extends FileSecurityError {
   }
 }
 
-export class BlockedExternalPdfUrlNotSupportedError extends FileSecurityError {
-  constructor() {
-    super('External PDF URLs are not supported; provide PDFs as data URIs');
-  }
-}
-
 export class InvalidInlineFileMalformedBase64Error extends FileSecurityError {
   constructor() {
     super('Invalid inline file: malformed base64 payload');
+  }
+}
+
+export class PdfUrlIngestionError extends FileSecurityError {
+  readonly sourceUrl: string;
+
+  constructor(sourceUrl: string, options?: ErrorOptions) {
+    super(`Failed to ingest PDF URL: ${sourceUrl}`, options);
+    this.sourceUrl = sourceUrl;
   }
 }
