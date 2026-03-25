@@ -146,10 +146,12 @@ export const newNodeDefaults: {
   }),
   [NodeType.ExternalAgentPlaceholder]: () => ({}),
   [NodeType.MCP]: (nodeId) => ({
+    nodeKey: getMcpGraphKey({ toolId: nodeId }),
     toolId: nodeId,
   }),
   [NodeType.MCPPlaceholder]: () => ({}),
   [NodeType.FunctionTool]: (nodeId) => ({
+    nodeKey: getFunctionToolGraphKey({ toolId: nodeId }),
     toolId: nodeId,
     subAgentId: null,
     relationshipId: null,
@@ -165,7 +167,7 @@ export const newNodeDefaults: {
 type NodeSelectionShape = Pick<Node, 'id' | 'type' | 'data'>;
 
 export function isNodeType<T extends keyof GraphNodeDataByType>(
-  node?: NodeSelectionShape | Node,
+  node: NodeSelectionShape | Node | undefined,
   type: T
 ): node is GraphNode<T> | (NodeSelectionShape & { type: T; data: GraphNodeDataByType[T] }) {
   return !!node && node.type === type;
