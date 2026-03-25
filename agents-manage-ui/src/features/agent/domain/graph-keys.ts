@@ -24,14 +24,14 @@ type RequiredFunctionToolGraphKeyArgs =
   | (FunctionToolGraphKeyArgs & { fallbackId: string });
 
 function getPrefixedGraphKey(prefix: string, value: string): string;
-function getPrefixedGraphKey(prefix: string, value?: MaybeString): string | null;
-function getPrefixedGraphKey(prefix: string, value?: MaybeString): string | null {
+function getPrefixedGraphKey(prefix: string, value: MaybeString): string | null;
+function getPrefixedGraphKey(prefix: string, value: MaybeString): string | null {
   return value ? `${prefix}:${value}` : null;
 }
 
 export function getSubAgentGraphKey(val: string): string;
-export function getSubAgentGraphKey(val?: MaybeString): string | null;
-export function getSubAgentGraphKey(subAgentId?: MaybeString) {
+export function getSubAgentGraphKey(val: MaybeString): string | null;
+export function getSubAgentGraphKey(subAgentId: MaybeString) {
   return getPrefixedGraphKey('sub-agent', subAgentId);
 }
 
@@ -77,13 +77,13 @@ export function getFunctionToolGraphKey({
 }
 
 export function getExternalAgentGraphKey(val: string): string;
-export function getExternalAgentGraphKey(val?: MaybeString): string | null;
-export function getExternalAgentGraphKey(externalAgentId?: MaybeString) {
+export function getExternalAgentGraphKey(val: MaybeString): string | null;
+export function getExternalAgentGraphKey(externalAgentId: MaybeString) {
   return getPrefixedGraphKey('external-agent', externalAgentId);
 }
 
 export function getTeamAgentGraphKey(val: string): string;
-export function getTeamAgentGraphKey(val?: MaybeString): string | null;
-export function getTeamAgentGraphKey(teamAgentId?: MaybeString) {
+export function getTeamAgentGraphKey(val: MaybeString): string | null;
+export function getTeamAgentGraphKey(teamAgentId: MaybeString) {
   return getPrefixedGraphKey('team-agent', teamAgentId);
 }
