@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, ChevronDown, ChevronRight, Lightbulb, X } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
 import { type ComponentProps, useEffect, useState } from 'react';
 import { useFormState } from 'react-hook-form';
 import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
@@ -202,10 +202,10 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
 
   const errorCount = data.reduce((acc, curr) => acc + curr.errors.length, 0);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset showErrors state when errors were changed
-  useEffect(() => {
-    setShowErrors(true);
-  }, [errorCount]);
+  ///biome-ignore lint/correctness/useExhaustiveDependencies: reset showErrors state when errors were changed
+  // useEffect(() => {
+  //   setShowErrors(true);
+  // }, [errorCount]);
 
   const { control } = useFullAgentFormContext();
   const { isSubmitted } = useFormState({ control });
@@ -223,6 +223,11 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
             <AlertCircle className="size-3" />
             {`Validation Errors (${errorCount})`}
           </div>
+          {/**
+           * Note: Temporarily commented out.
+           * Currently, if you close the error summary, it cannot be reopened unless there is a new error count.
+           * Need to rethink this behavior.
+           */}
           {/*<Button*/}
           {/*  variant="ghost"*/}
           {/*  size="icon-sm"*/}
