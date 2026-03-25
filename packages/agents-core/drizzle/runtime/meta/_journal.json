@@ -180,15 +180,8 @@
     {
       "idx": 25,
       "version": "7",
-      "when": 1774445372249,
-      "tag": "0025_solid_malice",
-      "breakpoints": true
-    },
-    {
-      "idx": 26,
-      "version": "7",
-      "when": 1774460835868,
-      "tag": "0026_gifted_william_stryker",
+      "when": 1774468869682,
+      "tag": "0025_spotty_wolf_cub",
       "breakpoints": true
     }
   ]

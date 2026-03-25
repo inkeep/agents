@@ -1,5 +1,5 @@
 {
-  "id": "f2952b69-0685-454a-a122-ec6ec9f24e23",
+  "id": "2f229658-7636-4a12-bd32-ba8497e4cec8",
   "prevId": "aed8320f-0737-4399-92c1-db038ccabe6b",
   "version": "7",
   "dialect": "postgresql",
@@ -1795,7 +1795,12 @@
         }
       },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "org_entitlement_resource_type_format": {
+          "name": "org_entitlement_resource_type_format",
+          "value": "resource_type ~ '^[a-z]+:[a-z][a-z0-9_]*$'"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.organization": {
