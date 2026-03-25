@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import {
   Table,
   TableBody,
@@ -222,49 +222,51 @@ export function ChannelDefaultsSection({
       </CardHeader>
       <CardContent className="space-y-4">
         {channels.length > 0 && (
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-3">
-              <ChannelFilter
-                isSelected={channelFilter === 'all'}
-                onClick={() => onChannelFilterChange('all')}
-                count={channels.length}
-                label="All"
-              />
-              <ChannelFilter
-                isSelected={channelFilter === 'private'}
-                onClick={() => onChannelFilterChange('private')}
-                count={channels.filter((c) => c.isPrivate).length}
-                label="Private"
-                Icon={Lock}
-              />
-              <ChannelFilter
-                isSelected={channelFilter === 'connect'}
-                onClick={() => onChannelFilterChange('connect')}
-                count={channels.filter((c) => c.isShared).length}
-                label="Slack Connect"
-                Icon={Building2}
-              />
-            </div>
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/40" />
-              <Input
+          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <div className="flex gap-3">
+                <ChannelFilter
+                    isSelected={channelFilter === 'all'}
+                    onClick={() => onChannelFilterChange('all')}
+                    count={channels.length}
+                    label="All"
+                />
+                <ChannelFilter
+                    isSelected={channelFilter === 'private'}
+                    onClick={() => onChannelFilterChange('private')}
+                    count={channels.filter((c) => c.isPrivate).length}
+                    label="Private"
+                    Icon={Lock}
+                />
+                <ChannelFilter
+                    isSelected={channelFilter === 'connect'}
+                    onClick={() => onChannelFilterChange('connect')}
+                    count={channels.filter((c) => c.isShared).length}
+                    label="Slack Connect"
+                    Icon={Building2}
+                />
+              </div>
+            <InputGroup className="max-w-md">
+              <InputGroupInput
                 placeholder="Search channels..."
                 value={channelSearchQuery}
                 onChange={(e) => onSearchQueryChange(e.target.value)}
-                className="pl-8 pr-8"
               />
+              <InputGroupAddon>
+                <Search />
+              </InputGroupAddon>
               {channelSearchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onSearchQueryChange('')}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-accent"
-                  aria-label="Clear search"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                <InputGroupAddon align="inline-end">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => onSearchQueryChange('')}
+                    aria-label="Clear search"
+                  >
+                    <X />
+                  </Button>
+                </InputGroupAddon>
               )}
-            </div>
+            </InputGroup>
           </div>
         )}
 
