@@ -3,6 +3,7 @@ import { Code, Shield } from 'lucide-react';
 import { useWatch } from 'react-hook-form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getFunctionIdForTool } from '@/features/agent/domain';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
 import { toolPoliciesNeedApproval } from '@/lib/utils/tool-policies';
@@ -22,9 +23,11 @@ export function FunctionToolNode({ data, selected }: NodeProps & { data: Functio
   const status = getNodeStatus(data);
 
   const functionTool = useWatch({ control, name: `functionTools.${toolId}` });
+  const functionTools = useWatch({ control, name: 'functionTools' });
+  const functionId = getFunctionIdForTool(toolId, functionTools) as string;
   const processedErrors = [
     ...useProcessedErrors('functionTools', toolId),
-    ...useProcessedErrors('functions', toolId),
+    ...useProcessedErrors('functions', functionId),
   ];
   if (!functionTool) {
     return (

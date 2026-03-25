@@ -125,12 +125,10 @@ export const FullAgentToolSchema = AgentWithinContextOfProjectSchema.shape.tools
   });
 const FullAgentExternalAgentSchema = z.object({
   ...ExternalAgentSchema.shape,
-  // TODO or tempHeaders
   headers: StringToStringRecordSchema.optional(),
 });
 export const FullAgentTeamAgentSchema = z.object({
   ...TeamAgentSchema.shape,
-  // TODO or tempHeaders
   headers: StringToStringRecordSchema.optional(),
 });
 const SubAgentStopWhenSchema = SubAgentSchema.shape.stopWhen.unwrap();
@@ -251,28 +249,27 @@ export function apiToFormValues(data: FullAgentResponse) {
   } = data;
   const statusUpdates = data.statusUpdates ?? {};
 
-  const relationHeadersByExternalAgentId = new Map<string, Record<string, string>>();
-  const relationHeadersByTeamAgentId = new Map<string, Record<string, string>>();
+  const sharedExternalAgentHeaders = new Map<string, string>();
+  const sharedTeamAgentHeaders = new Map<string, string>();
 
   for (const subAgent of Object.values(subAgents)) {
     for (const delegate of subAgent.canDelegateTo ?? []) {
-      if (typeof delegate !== 'object' || !delegate.headers) {
+      if (typeof delegate !== 'object') {
         continue;
       }
 
-      if (
-        'externalAgentId' in delegate &&
-        !relationHeadersByExternalAgentId.has(delegate.externalAgentId)
-      ) {
-        relationHeadersByExternalAgentId.set(delegate.externalAgentId, delegate.headers);
+      if ('externalAgentId' in delegate) {
+        if (!sharedExternalAgentHeaders.has(delegate.externalAgentId)) {
+          sharedExternalAgentHeaders.set(delegate.externalAgentId, serializeJson(delegate.headers));
+        }
+        continue;
       }
 
-      if ('agentId' in delegate && !relationHeadersByTeamAgentId.has(delegate.agentId)) {
-        relationHeadersByTeamAgentId.set(delegate.agentId, delegate.headers);
+      if ('agentId' in delegate && !sharedTeamAgentHeaders.has(delegate.agentId)) {
+        sharedTeamAgentHeaders.set(delegate.agentId, serializeJson(delegate.headers));
       }
     }
   }
-
   function serializeModels(models: NonNullable<typeof data.models>) {
     return {
       base: {
@@ -347,7 +344,7 @@ export function apiToFormValues(data: FullAgentResponse) {
         o.id,
         {
           ...o,
-          headers: serializeJson(relationHeadersByExternalAgentId.get(o.id)),
+          headers: sharedExternalAgentHeaders.get(o.id),
         },
       ])
     ),
@@ -356,7 +353,7 @@ export function apiToFormValues(data: FullAgentResponse) {
         o.id,
         {
           ...o,
-          headers: serializeJson(relationHeadersByTeamAgentId.get(o.id)),
+          headers: sharedTeamAgentHeaders.get(o.id),
         },
       ])
     ),

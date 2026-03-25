@@ -1,6 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useWatch } from 'react-hook-form';
 import {
   FullAgentFunctionSchema,
   FullAgentFunctionToolSchema,
@@ -24,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getFunctionIdForTool } from '@/features/agent/domain';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { isRequired } from '@/lib/utils';
@@ -43,8 +45,10 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
   const form = useFullAgentFormContext();
   const id = selectedNode.data.toolId;
+  const functionTools = useWatch({ control: form.control, name: 'functionTools' });
+  const functionId = getFunctionIdForTool(id, functionTools) as string;
   const path = <K extends string>(key: K) => `functionTools.${id}.${key}` as const;
-  const path$ = <K extends string>(key: K) => `functions.${id}.${key}` as const;
+  const path$ = <K extends string>(key: K) => `functions.${functionId}.${key}` as const;
 
   const [isWriteWithAIDialogOpen, setIsWriteWithAIDialogOpen] = useState(false);
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');

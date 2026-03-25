@@ -1,15 +1,16 @@
 import { useFormState } from 'react-hook-form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { findFunctionToolIdsForFunctionId } from '@/features/agent/domain';
 
 const EMPTY_OBJ = {};
 
 export function useGroupedAgentErrors() {
-  const { control } = useFullAgentFormContext();
-  const { errors } = useFormState({ control });
+  const form = useFullAgentFormContext();
+  const { errors } = useFormState({ control: form.control });
   const {
     subAgents = EMPTY_OBJ,
     functionTools,
-    functions,
+    functions = EMPTY_OBJ,
     externalAgents = EMPTY_OBJ,
     teamAgents = EMPTY_OBJ,
     tools,
@@ -17,12 +18,21 @@ export function useGroupedAgentErrors() {
     defaultSubAgentNodeId,
     ...agentSettings
   } = errors;
+  const functionToolFormData = form.getValues('functionTools');
+
+  const functionErrorsByToolId = Object.fromEntries(
+    Object.entries(functions).flatMap(([functionId, value]) => {
+      const toolIds = findFunctionToolIdsForFunctionId(functionId, functionToolFormData);
+
+      return toolIds.map((toolId) => [toolId, value]);
+    })
+  );
 
   return {
     subAgents,
     functionTools: {
       ...functionTools,
-      ...functions,
+      ...functionErrorsByToolId,
     },
     externalAgents,
     teamAgents,

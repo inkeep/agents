@@ -29,7 +29,6 @@ export function TeamAgentNodeEditor({ selectedNode }: TeamAgentNodeEditorProps) 
   const id = selectedNode.data.teamAgentId;
 
   const path = <K extends string>(key: K) => `teamAgents.${id}.${key}` as const;
-  const headersPath = path('headers');
 
   return (
     <div className="space-y-8 flex flex-col">
@@ -65,7 +64,7 @@ export function TeamAgentNodeEditor({ selectedNode }: TeamAgentNodeEditorProps) 
       />
       <GenericJsonEditor
         control={form.control}
-        name={headersPath}
+        name={path('headers')}
         label="Headers"
         placeholder="{}"
         customTemplate={teamAgentHeadersTemplate}

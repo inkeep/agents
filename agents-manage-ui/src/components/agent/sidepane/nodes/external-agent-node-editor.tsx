@@ -27,7 +27,6 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
   const id = selectedNode.data.externalAgentId;
 
   const path = <K extends string>(key: K) => `externalAgents.${id}.${key}` as const;
-  const headersPath = path('headers');
 
   return (
     <div className="space-y-8 flex flex-col">
@@ -72,7 +71,7 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
       />
       <GenericJsonEditor
         control={form.control}
-        name={headersPath}
+        name={path('headers')}
         label="Headers"
         placeholder="{}"
         customTemplate={externalAgentHeadersTemplate}
