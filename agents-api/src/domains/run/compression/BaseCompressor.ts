@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
-import { getLedgerArtifacts, SPAN_KEYS } from '@inkeep/agents-core';
+import { getLedgerArtifacts, upsertLedgerArtifact, SPAN_KEYS } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -528,6 +528,16 @@ export abstract class BaseCompressor {
     );
 
     this.cumulativeSummary = summary;
+
+    if (summary.related_artifacts?.length) {
+      this.persistArtifactKeyFindings(summary.related_artifacts).catch((err) =>
+        logger.warn(
+          { err: err instanceof Error ? err.message : String(err) },
+          'Failed to persist key_findings to artifacts'
+        )
+      );
+    }
+
     return summary;
   }
 
@@ -602,6 +612,62 @@ export abstract class BaseCompressor {
 
   getCompressionSummary(): ConversationSummary | null {
     return this.cumulativeSummary;
+  }
+
+  hasSummarizedArtifact(artifactId: string): boolean {
+    return this.cumulativeSummary?.related_artifacts?.some((a) => a.id === artifactId) ?? false;
+  }
+
+  getSummarizedArtifact(artifactId: string): { key_findings: string[]; tool_call_id: string } | null {
+    const artifact = this.cumulativeSummary?.related_artifacts?.find((a) => a.id === artifactId);
+    if (!artifact) return null;
+    return {
+      key_findings: artifact.key_findings,
+      tool_call_id: artifact.tool_call_id,
+    };
+  }
+
+  protected async persistArtifactKeyFindings(
+    relatedArtifacts: NonNullable<ConversationSummary['related_artifacts']>
+  ): Promise<void> {
+    for (const artifact of relatedArtifacts) {
+      if (!artifact.id || !artifact.key_findings?.length) continue;
+      try {
+        const existing = await getLedgerArtifacts(runDbClient)({
+          scopes: { tenantId: this.tenantId, projectId: this.projectId },
+          artifactId: artifact.id,
+        });
+        if (existing.length === 0) continue;
+
+        const dbArtifact = existing[0];
+        const parts = (dbArtifact.parts ?? []) as any[];
+        if (parts.length > 0 && parts[0]?.data?.summary) {
+          parts[0].data.summary = {
+            ...parts[0].data.summary,
+            key_findings: artifact.key_findings,
+          };
+        }
+
+        await upsertLedgerArtifact(runDbClient)({
+          scopes: { tenantId: this.tenantId, projectId: this.projectId },
+          contextId: this.conversationId,
+          taskId: dbArtifact.taskId ?? `task_${this.conversationId}-${this.sessionId}`,
+          toolCallId: dbArtifact.toolCallId,
+          artifact: {
+            ...dbArtifact,
+            parts,
+          },
+        });
+      } catch (error) {
+        logger.warn(
+          {
+            artifactId: artifact.id,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          'Failed to persist key_findings to artifact'
+        );
+      }
+    }
   }
 
   cleanup(options: { resetSummary?: boolean; keepRecentToolCalls?: number } = {}): void {
