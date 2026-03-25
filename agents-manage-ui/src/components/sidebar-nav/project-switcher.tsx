@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
@@ -92,17 +92,18 @@ export const ProjectSwitcher: FC = () => {
         align="end"
         sideOffset={4}
       >
-        <div className="flex items-center gap-2 px-2 py-1.5">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
-          <Input
+        <InputGroup className="h-7 border-0 has-[[data-slot=input-group-control]:focus-visible]:ring-0 shadow-none">
+          <InputGroupInput
             aria-label="Search projects"
             placeholder="Search projects..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.stopPropagation()}
-            className="h-7 border-none shadow-none focus-visible:ring-0 px-0"
           />
-        </div>
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+        </InputGroup>
         <DropdownMenuSeparator />
         <div className="overflow-y-auto max-h-[200px]">
           {filteredProjects.length === 0 ? (

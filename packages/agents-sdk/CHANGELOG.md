@@ -1,5 +1,14 @@
 # @inkeep/agents-sdk
 
+## 0.59.4
+
+### Patch Changes
+
+- 99b5edf: Update TypeScript to 6.0.2
+- Updated dependencies [be7f056]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+
 ## 0.59.3
 
 ### Patch Changes

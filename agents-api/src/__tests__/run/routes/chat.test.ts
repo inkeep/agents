@@ -1,6 +1,7 @@
 import { HTTPException } from 'hono/http-exception';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as execModule from '../../../domains/run/handlers/executionHandler';
+import { PdfUrlIngestionError } from '../../../domains/run/services/blob-storage/file-security-errors';
 import { makeRequest } from '../../utils/testRequest';
 
 // Mock context exports used by the chat route (routes/chat.ts imports from ../context)
@@ -15,6 +16,20 @@ vi.mock('../../../domains/run/context', () => ({
     await next();
   }),
 }));
+
+vi.mock(
+  '../../../domains/run/services/blob-storage/file-upload-helpers',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('../../../domains/run/services/blob-storage/file-upload-helpers')
+      >();
+    return {
+      ...actual,
+      inlineExternalPdfUrlParts: vi.fn(async (parts) => parts),
+    };
+  }
+);
 
 // Mock Management API calls used by projectConfigMiddleware so tests don't hit network
 const getFullProjectMock = vi.fn();
@@ -284,6 +299,40 @@ describe('Chat Routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should return 400 when PDF URL ingestion fails', async () => {
+      const { inlineExternalPdfUrlParts } = await import(
+        '../../../domains/run/services/blob-storage/file-upload-helpers'
+      );
+      vi.mocked(inlineExternalPdfUrlParts).mockRejectedValueOnce(
+        new PdfUrlIngestionError('https://example.com/report.pdf')
+      );
+
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this document' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'https://example.com/report.pdf',
+                    filename: 'document.pdf',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(400);
     });
 
     it('should handle conversation creation', async () => {

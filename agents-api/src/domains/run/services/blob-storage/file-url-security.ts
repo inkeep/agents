@@ -1,6 +1,6 @@
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import * as ipaddr from 'ipaddr.js';
+import ipaddr from 'ipaddr.js';
 import { getLogger } from '../../../../logger';
 import { ALLOWED_HTTP_PORTS } from './file-security-constants';
 import {
@@ -15,6 +15,13 @@ import {
 } from './file-security-errors';
 
 const logger = getLogger('file-security');
+
+export function makeSanitizedSourceUrl(rawUrl: string): string {
+  const parsed = new URL(rawUrl);
+  parsed.search = '';
+  parsed.hash = '';
+  return parsed.toString();
+}
 
 export function validateExternalFileUrl(rawUrl: string): URL {
   let parsed: URL;

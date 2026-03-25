@@ -34,7 +34,11 @@ import { tracer } from '../utils/tracer.js';
 
 const logger = getLogger('ExecutionHandler');
 
-interface ExecutionHandlerParams {
+function getResponsePartKind(part: { kind?: string; type?: string }): string | undefined {
+  return part.kind ?? part.type;
+}
+
+export interface ExecutionHandlerParams {
   executionContext: FullExecutionContext;
   conversationId: string;
   userMessage: string;
@@ -503,7 +507,7 @@ export class ExecutionHandler {
 
           let textContent = '';
           for (const part of responseParts) {
-            const isTextPart = (part.kind === 'text' || part.type === 'text') && part.text;
+            const isTextPart = getResponsePartKind(part) === 'text' && part.text;
 
             if (isTextPart) {
               textContent += part.text;
@@ -530,11 +534,17 @@ export class ExecutionHandler {
                   role: 'agent',
                   content: {
                     text: textContent || undefined,
-                    parts: responseParts.map((part: any) => ({
-                      kind: part.kind === 'text' ? 'text' : 'data',
-                      text: part.kind === 'text' ? part.text : undefined,
-                      data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
-                    })),
+                    parts: responseParts.map((part: any) => {
+                      const k = getResponsePartKind(part);
+                      if (k === 'text') {
+                        return { kind: 'text', text: part.text };
+                      }
+                      return {
+                        kind: 'data',
+                        text: undefined,
+                        data: k === 'data' ? JSON.stringify(part.data) : undefined,
+                      };
+                    }),
                   },
                   visibility: 'user-facing',
                   messageType: 'chat',
@@ -557,7 +567,7 @@ export class ExecutionHandler {
                       text: textContent,
                       parts: responseParts,
                       hasText: !!textContent,
-                      hasData: responseParts.some((p: any) => p.kind === 'data'),
+                      hasData: responseParts.some((p: any) => getResponsePartKind(p) === 'data'),
                     },
                   },
                 },

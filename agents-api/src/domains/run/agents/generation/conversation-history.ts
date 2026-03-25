@@ -3,6 +3,7 @@ import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-fo
 import { getLogger } from '../../../../logger';
 import {
   createDefaultConversationHistoryConfig,
+  formatMessagesAsConversationHistory,
   getConversationHistoryWithCompression,
 } from '../../data/conversations';
 import {
@@ -62,7 +63,7 @@ export async function buildConversationHistory(
         isDelegated: ctx.isDelegatedAgent,
       };
 
-      conversationHistory = await getConversationHistoryWithCompression({
+      const historyMessages = await getConversationHistoryWithCompression({
         tenantId: ctx.config.tenantId,
         projectId: ctx.config.projectId,
         conversationId: contextId,
@@ -74,8 +75,9 @@ export async function buildConversationHistory(
         streamRequestId,
         fullContextSize: initialContextBreakdown.total,
       });
+      conversationHistory = formatMessagesAsConversationHistory(historyMessages);
     } else if (historyConfig.mode === 'scoped') {
-      conversationHistory = await getConversationHistoryWithCompression({
+      const historyMessages = await getConversationHistoryWithCompression({
         tenantId: ctx.config.tenantId,
         projectId: ctx.config.projectId,
         conversationId: contextId,
@@ -92,6 +94,7 @@ export async function buildConversationHistory(
         streamRequestId,
         fullContextSize: initialContextBreakdown.total,
       });
+      conversationHistory = formatMessagesAsConversationHistory(historyMessages);
     }
   }
 
