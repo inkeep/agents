@@ -170,9 +170,14 @@ export function syncSavedAgentGraph({
   const preliminarilySyncedNodes = nodes
     .map((node) => {
       if (node.type === NodeType.SubAgent) {
+        const nextId = renameSubAgentId(node.id);
         return {
           ...node,
-          id: renameSubAgentId(node.id),
+          id: nextId,
+          data: {
+            ...node.data,
+            nodeKey: getSubAgentGraphKey(nextId),
+          },
         };
       }
 
@@ -196,6 +201,7 @@ export function syncSavedAgentGraph({
           id: renameMcpNodeId(node.id),
           data: {
             ...node.data,
+            nodeKey: renameMcpNodeId(node.id),
           },
         };
       }
@@ -220,6 +226,11 @@ export function syncSavedAgentGraph({
           ...node,
           data: {
             ...node.data,
+            nodeKey: getFunctionToolGraphKey({
+              relationshipId,
+              toolId: node.data.toolId,
+              fallbackId: node.id,
+            }),
             subAgentId,
             relationshipId,
           },
@@ -252,6 +263,7 @@ export function syncSavedAgentGraph({
           ...node,
           data: {
             ...node.data,
+            nodeKey: getExternalAgentGraphKey(externalAgentId),
             relationshipId: claimDelegateRelationId(
               getExternalDelegateKey(incomingEdge.source, externalAgentId),
               currentRelationshipId
@@ -275,6 +287,7 @@ export function syncSavedAgentGraph({
           ...node,
           data: {
             ...node.data,
+            nodeKey: getTeamAgentGraphKey(teamAgentId),
             relationshipId: claimDelegateRelationId(
               getTeamDelegateKey(incomingEdge.source, teamAgentId),
               currentRelationshipId
@@ -303,27 +316,21 @@ export function syncSavedAgentGraph({
               : selectedNode.id)
       )
     : undefined;
-  const nextNodeId = selectedSyncedNode
-    ? getNodeGraphKey(selectedSyncedNode, subAgentFormData)
-    : null;
+  const nextNodeId = selectedSyncedNode ? getNodeGraphKey(selectedSyncedNode) : null;
 
   const selectedSyncedEdge = selectedEdge
     ? keptEdges.find((edge) => edge.id === selectedEdge.id)
     : undefined;
-  const nextEdgeId = selectedSyncedEdge
-    ? getEdgeGraphKey(selectedSyncedEdge, syncedNodes, subAgentFormData)
-    : null;
+  const nextEdgeId = selectedSyncedEdge ? getEdgeGraphKey(selectedSyncedEdge, syncedNodes) : null;
 
   return {
     nodes: syncedNodes.map((node) => ({
       ...node,
-      selected: nextNodeId ? getNodeGraphKey(node, subAgentFormData) === nextNodeId : false,
+      selected: nextNodeId ? getNodeGraphKey(node) === nextNodeId : false,
     })),
     edges: keptEdges.map((edge) => ({
       ...edge,
-      selected: nextEdgeId
-        ? getEdgeGraphKey(edge, syncedNodes, subAgentFormData) === nextEdgeId
-        : false,
+      selected: nextEdgeId ? getEdgeGraphKey(edge, syncedNodes) === nextEdgeId : false,
     })),
     nodeId: nextNodeId,
     edgeId: nextEdgeId,

@@ -11,7 +11,9 @@ describe('syncSavedAgentGraph', () => {
         id: '473gigole08cp6vacy38s',
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
-        data: {},
+        data: {
+          nodeKey: 'sub-agent:sub-agent',
+        },
       },
       {
         id: 'weather-node',
@@ -33,7 +35,7 @@ describe('syncSavedAgentGraph', () => {
     const result = syncSavedAgentGraph({
       nodes,
       edges,
-      nodeId: '473gigole08cp6vacy38s',
+      nodeId: 'sub-agent:sub-agent',
       edgeId: null,
       savedAgent: {
         id: 'agent-1',
@@ -115,7 +117,9 @@ describe('syncSavedAgentGraph', () => {
         id: 'sub-agent',
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
-        data: {},
+        data: {
+          nodeKey: 'sub-agent:sub-agent',
+        },
       },
       {
         id: 'floating-tool',
@@ -187,7 +191,9 @@ describe('syncSavedAgentGraph', () => {
         id: '473gigole08cp6vacy38s',
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
-        data: {},
+        data: {
+          nodeKey: 'sub-agent:sub-agent',
+        },
       },
       {
         id: 'weather-node',
@@ -276,13 +282,17 @@ describe('syncSavedAgentGraph', () => {
         id: 'tmp-sub-agent-1',
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
-        data: {},
+        data: {
+          nodeKey: 'sub-agent:sub-agent-1',
+        },
       },
       {
         id: 'tmp-sub-agent-2',
         type: NodeType.SubAgent,
         position: { x: 300, y: 20 },
-        data: {},
+        data: {
+          nodeKey: 'sub-agent:sub-agent-2',
+        },
       },
     ];
     const edges: Edge[] = [
@@ -298,7 +308,7 @@ describe('syncSavedAgentGraph', () => {
       nodes,
       edges,
       nodeId: null,
-      edgeId: 'edge-tmp-sub-agent-1-tmp-sub-agent-2',
+      edgeId: 'a2a:sub-agent:sub-agent-1:sub-agent:sub-agent-2',
       savedAgent: {
         id: 'agent-1',
         name: 'Agent',
@@ -368,13 +378,16 @@ describe('syncSavedAgentGraph', () => {
         id: 'tmp-sub-agent',
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
-        data: {},
+        data: {
+          nodeKey: 'sub-agent:sub-agent',
+        },
       },
       {
         id: '7ubfdp65rn5qvh7l788ae',
         type: NodeType.ExternalAgent,
         position: { x: 300, y: 20 },
         data: {
+          nodeKey: 'external-agent:external-1',
           externalAgentId: 'external-1',
           relationshipId: null,
         },
@@ -384,6 +397,7 @@ describe('syncSavedAgentGraph', () => {
         type: NodeType.TeamAgent,
         position: { x: 300, y: 140 },
         data: {
+          nodeKey: 'team-agent:team-1',
           teamAgentId: 'team-1',
           relationshipId: null,
         },
@@ -405,7 +419,7 @@ describe('syncSavedAgentGraph', () => {
     const result = syncSavedAgentGraph({
       nodes,
       edges,
-      nodeId: '7ubfdp65rn5qvh7l788ae',
+      nodeId: 'external-agent:external-1',
       edgeId: null,
       savedAgent: {
         id: 'agent-1',
