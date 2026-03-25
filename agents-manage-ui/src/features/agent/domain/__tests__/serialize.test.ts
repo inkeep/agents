@@ -322,33 +322,29 @@ describe('serializeAgentData', () => {
     });
 
     it('should include all fields when they have values', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: { model: 'gpt-4' },
-              structuredOutput: { model: 'gpt-4o-2024-08-06' },
-              summarizer: { model: 'gpt-3.5-turbo' },
-            },
-            skills: [],
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges);
-
-      expect(result.subAgents.agent1.models).toEqual({
+      const models = {
         base: { model: 'gpt-4' },
         structuredOutput: { model: 'gpt-4o-2024-08-06' },
         summarizer: { model: 'gpt-3.5-turbo' },
+      };
+
+      const result = serializeAgentData(nodes, edges, undefined, undefined, undefined, undefined, {
+        agent1: createSubAgentFormValue('agent1', {
+          models,
+        }),
       });
+
+      expect(result.subAgents.agent1.models).toEqual(models);
     });
 
     it('should set models to undefined when no models data is provided', () => {
