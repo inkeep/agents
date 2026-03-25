@@ -124,4 +124,5 @@ progress.txt
 .pnpm-store/
 .vercel
 
-packages/agents-ui-local
+packages/agents-ui-local.claude/pr-diff/
+.agents/skills/pr-context/
