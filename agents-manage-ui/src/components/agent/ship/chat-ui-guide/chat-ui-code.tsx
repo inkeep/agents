@@ -1,5 +1,5 @@
 import type { InkeepBaseSettings } from '@inkeep/agents-ui/types';
-import { Tabs as RadixTabs } from 'radix-ui';
+import { Tabs as TabsPrimitive } from 'radix-ui';
 import { Streamdown } from 'streamdown';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { indentJson, replaceTemplatePlaceholders, serializeExtraSettings } from '../utils';
@@ -88,12 +88,12 @@ export const ChatUICode = ({
             Javascript
           </TabsTrigger>
         </TabsList>
-        <RadixTabs.TabsContent value="react">
+        <TabsPrimitive.TabsContent value="react">
           <Streamdown>{reactCode}</Streamdown>
-        </RadixTabs.TabsContent>
-        <RadixTabs.TabsContent value="js">
+        </TabsPrimitive.TabsContent>
+        <TabsPrimitive.TabsContent value="js">
           <Streamdown>{javascriptCode}</Streamdown>
-        </RadixTabs.TabsContent>
+        </TabsPrimitive.TabsContent>
       </Tabs>
     </div>
   );
