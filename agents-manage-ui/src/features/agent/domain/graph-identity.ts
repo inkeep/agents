@@ -9,7 +9,7 @@ export function getNodeGraphKey(node?: Node): string | null {
   if (nodeKey && typeof nodeKey === 'string') {
     return nodeKey;
   }
-  return null;
+  return node.id;
 }
 
 export function findNodeByGraphKey(nodes: Node[], graphKey?: string | null): Node | undefined {

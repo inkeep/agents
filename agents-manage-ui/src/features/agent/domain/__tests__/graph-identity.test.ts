@@ -9,24 +9,21 @@ import {
 } from '@/features/agent/domain/graph-identity';
 
 describe('graph identity', () => {
-  it('builds canonical graph keys for each node type', () => {
-    const subAgentFormData = {
-      'tmp-sub-agent': {
-        id: 'sub-agent-1',
-      },
-    } as any;
-
+  it('reads explicit node keys for each node type', () => {
     const subAgentNode: Node = {
       id: 'tmp-sub-agent',
       type: NodeType.SubAgent,
       position: { x: 0, y: 0 },
-      data: {},
+      data: {
+        nodeKey: 'sub-agent:sub-agent-1',
+      },
     };
     const mcpNode: Node = {
       id: 'mcp-node',
       type: NodeType.MCP,
       position: { x: 0, y: 0 },
       data: {
+        nodeKey: 'mcp:weather:mcp-node',
         toolId: 'weather',
       },
     };
@@ -35,6 +32,7 @@ describe('graph identity', () => {
       type: NodeType.FunctionTool,
       position: { x: 0, y: 0 },
       data: {
+        nodeKey: 'function-tool:function-tool-1',
         toolId: 'function-tool-1',
         relationshipId: 'relation-1',
       },
@@ -44,6 +42,7 @@ describe('graph identity', () => {
       type: NodeType.ExternalAgent,
       position: { x: 0, y: 0 },
       data: {
+        nodeKey: 'external-agent:external-agent-1',
         externalAgentId: 'external-agent-1',
         relationshipId: 'external-relation-1',
       },
@@ -53,91 +52,83 @@ describe('graph identity', () => {
       type: NodeType.TeamAgent,
       position: { x: 0, y: 0 },
       data: {
+        nodeKey: 'team-agent:team-agent-1',
         teamAgentId: 'team-agent-1',
         relationshipId: 'team-relation-1',
       },
     };
 
-    expect(getNodeGraphKey(subAgentNode, subAgentFormData)).toBe('sub-agent:sub-agent-1');
-    expect(getNodeGraphKey(mcpNode, subAgentFormData)).toBe('mcp:weather:mcp-node');
-    expect(getNodeGraphKey(functionToolNode, subAgentFormData)).toBe(
-      'function-tool:function-tool-1'
-    );
-    expect(getNodeGraphKey(externalAgentNode, subAgentFormData)).toBe(
-      'external-agent:external-agent-1'
-    );
-    expect(getNodeGraphKey(teamAgentNode, subAgentFormData)).toBe('team-agent:team-agent-1');
+    expect(getNodeGraphKey(subAgentNode)).toBe('sub-agent:sub-agent-1');
+    expect(getNodeGraphKey(mcpNode)).toBe('mcp:weather:mcp-node');
+    expect(getNodeGraphKey(functionToolNode)).toBe('function-tool:function-tool-1');
+    expect(getNodeGraphKey(externalAgentNode)).toBe('external-agent:external-agent-1');
+    expect(getNodeGraphKey(teamAgentNode)).toBe('team-agent:team-agent-1');
   });
 
-  it('finds nodes from canonical graph keys and legacy raw references', () => {
-    const subAgentFormData = {
-      'tmp-sub-agent': {
-        id: 'sub-agent-1',
-      },
-    } as any;
+  it('finds nodes from explicit graph keys and falls back to raw ids for transient nodes', () => {
     const nodes: Node[] = [
       {
         id: 'tmp-sub-agent',
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
-        data: {},
+        data: {
+          nodeKey: 'sub-agent:sub-agent-1',
+        },
       },
       {
         id: 'tmp-mcp-node',
         type: NodeType.MCP,
         position: { x: 0, y: 0 },
         data: {
+          nodeKey: 'mcp:weather:tmp-mcp-node',
           toolId: 'weather',
         },
+      },
+      {
+        id: 'tmp-placeholder',
+        type: NodeType.MCPPlaceholder,
+        position: { x: 0, y: 0 },
+        data: {},
       },
       {
         id: 'generic-external-node',
         type: NodeType.ExternalAgent,
         position: { x: 0, y: 0 },
         data: {
+          nodeKey: 'external-agent:external-agent-1',
           externalAgentId: 'external-agent-1',
           relationshipId: null,
         },
       },
     ];
 
-    expect(findNodeByGraphKey(nodes, 'sub-agent:sub-agent-1', subAgentFormData)?.id).toBe(
-      'tmp-sub-agent'
-    );
-    expect(findNodeByGraphKey(nodes, 'sub-agent-1', subAgentFormData)?.id).toBe('tmp-sub-agent');
-    expect(findNodeByGraphKey(nodes, 'mcp:weather:tmp-mcp-node', subAgentFormData)?.id).toBe(
-      'tmp-mcp-node'
-    );
-    expect(findNodeByGraphKey(nodes, 'weather', subAgentFormData)?.id).toBe('tmp-mcp-node');
-    expect(findNodeByGraphKey(nodes, 'external-agent:external-agent-1', subAgentFormData)?.id).toBe(
+    expect(findNodeByGraphKey(nodes, 'sub-agent:sub-agent-1')?.id).toBe('tmp-sub-agent');
+    expect(findNodeByGraphKey(nodes, 'mcp:weather:tmp-mcp-node')?.id).toBe('tmp-mcp-node');
+    expect(findNodeByGraphKey(nodes, 'external-agent:external-agent-1')?.id).toBe(
       'generic-external-node'
     );
-    expect(findNodeByGraphKey(nodes, 'external-agent-1', subAgentFormData)?.id).toBe(
-      'generic-external-node'
-    );
+    expect(findNodeByGraphKey(nodes, 'tmp-placeholder')?.id).toBe('tmp-placeholder');
+    expect(findNodeByGraphKey(nodes, 'sub-agent-1')).toBeUndefined();
+    expect(findNodeByGraphKey(nodes, 'weather')).toBeUndefined();
   });
 
-  it('canonicalizes agent edge graph keys from node graph keys', () => {
-    const subAgentFormData = {
-      'tmp-sub-agent-a': {
-        id: 'sub-agent-a',
-      },
-      'tmp-sub-agent-b': {
-        id: 'sub-agent-b',
-      },
-    } as any;
+  it('canonicalizes agent edge graph keys from explicit node keys', () => {
     const nodes: Node[] = [
       {
         id: 'tmp-sub-agent-a',
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
-        data: {},
+        data: {
+          nodeKey: 'sub-agent:sub-agent-a',
+        },
       },
       {
         id: 'tmp-sub-agent-b',
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
-        data: {},
+        data: {
+          nodeKey: 'sub-agent:sub-agent-b',
+        },
       },
     ];
     const edge: Edge = {
@@ -147,8 +138,6 @@ describe('graph identity', () => {
       target: 'tmp-sub-agent-b',
     };
 
-    expect(getEdgeGraphKey(edge, nodes, subAgentFormData)).toBe(
-      'a2a:sub-agent:sub-agent-a:sub-agent:sub-agent-b'
-    );
+    expect(getEdgeGraphKey(edge, nodes)).toBe('a2a:sub-agent:sub-agent-a:sub-agent:sub-agent-b');
   });
 });

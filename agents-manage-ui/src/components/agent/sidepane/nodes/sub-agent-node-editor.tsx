@@ -1,7 +1,7 @@
-import type { Node } from '@xyflow/react';
+import { type Node, useReactFlow } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import type { FC } from 'react';
+import { type FC, useEffect } from 'react';
 import { useWatch } from 'react-hook-form';
 import { FullAgentSubAgentSchema } from '@/components/agent/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
@@ -25,8 +25,10 @@ import {
 } from '@/components/ui/inheritance-indicator';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getSubAgentGraphKey } from '@/features/agent/domain';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { useDeleteNode } from '@/hooks/use-delete-node';
+import { useSidePane } from '@/hooks/use-side-pane';
 import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
@@ -61,6 +63,8 @@ interface SubAgentNodeEditorProps {
 export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }) => {
   'use memo';
   const form = useFullAgentFormContext();
+  const { updateNodeData } = useReactFlow();
+  const { setQueryState } = useSidePane();
   const nodeId = selectedNode.id;
   const subAgent = useWatch({ control: form.control, name: `subAgents.${nodeId}` });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
@@ -88,6 +92,28 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
     idField,
     isEditing: isPersistedSubAgent,
   });
+
+  // SubAgent is the only node type whose canonical graph identity changes inside its editor.
+  useEffect(() => {
+    const nextNodeKey = getSubAgentGraphKey(subAgent?.id);
+    if (!nextNodeKey || selectedNode.data.nodeKey === nextNodeKey) {
+      return;
+    }
+
+    updateNodeData(nodeId, {
+      ...selectedNode.data,
+      nodeKey: nextNodeKey,
+    });
+    setQueryState(
+      {
+        pane: 'node',
+        nodeId: nextNodeKey,
+        edgeId: null,
+      },
+      { history: 'replace' }
+    );
+  }, [nodeId, selectedNode.data, setQueryState, subAgent?.id]);
+
   if (!subAgent) {
     return null;
   }
