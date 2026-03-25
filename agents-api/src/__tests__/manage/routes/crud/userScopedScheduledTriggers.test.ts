@@ -668,6 +668,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       timeoutSeconds: 780,
       runAsUserId: 'user-a',
       createdBy: 'user-a',
+      ref: 'main',
       nextRunAt: '2025-01-01T09:00:00Z',
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-01-01T00:00:00Z',
