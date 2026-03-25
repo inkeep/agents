@@ -142,26 +142,32 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 
   const isSelfLoop = selectedEdge.source === selectedEdge.target;
 
-  function getNodeLabel(node: typeof sourceNode) {
-    if (!node) return;
-    switch (node.type) {
-      case NodeType.SubAgent:
-        return form.getValues(`subAgents.${node.id}.name`);
-      case NodeType.ExternalAgent:
-        return isNodeType(node, NodeType.ExternalAgent)
-          ? form.getValues(`externalAgents.${node.data.externalAgentId}.name`)
-          : undefined;
-      case NodeType.TeamAgent:
-        return isNodeType(node, NodeType.TeamAgent)
-          ? form.getValues(`teamAgents.${node.data.teamAgentId}.name`)
-          : undefined;
-      case NodeType.MCP:
-        return form.getValues(`tools.${node.data.toolId}.name`);
-      case NodeType.FunctionTool:
-        return form.getValues(`functionTools.${node.data.toolId}.name`);
-      default:
-        return node.id;
+  function getNodeLabel(node: typeof sourceNode | typeof targetNode) {
+    if (!node) {
+      return;
     }
+
+    if (isNodeType(node, NodeType.SubAgent)) {
+      return form.getValues(`subAgents.${node.id}.name`);
+    }
+
+    if (isNodeType(node, NodeType.ExternalAgent)) {
+      return form.getValues(`externalAgents.${node.data.externalAgentId}.name`);
+    }
+
+    if (isNodeType(node, NodeType.TeamAgent)) {
+      return form.getValues(`teamAgents.${node.data.teamAgentId}.name`);
+    }
+
+    if (isNodeType(node, NodeType.MCP)) {
+      return form.getValues(`tools.${node.data.toolId}.name`);
+    }
+
+    if (isNodeType(node, NodeType.FunctionTool)) {
+      return form.getValues(`functionTools.${node.data.toolId}.name`);
+    }
+
+    return node.id;
   }
 
   const checkForCycle = (delegateId: string): boolean => {
