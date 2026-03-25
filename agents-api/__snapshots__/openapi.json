@@ -42859,6 +42859,10 @@
       "name": "Data Components"
     },
     {
+      "description": "Operations for managing organization entitlements",
+      "name": "Entitlements"
+    },
+    {
       "description": "Operations for managing evaluations",
       "name": "Evaluations"
     },

@@ -19,6 +19,7 @@ export const TagToDescription = {
   Credentials: 'Operations for managing credentials',
   'Credential Stores': 'Operations for managing credential stores',
   'Data Components': 'Operations for managing data components',
+  Entitlements: 'Operations for managing organization entitlements',
   Evaluations: 'Operations for managing evaluations',
   'External Agents': 'Operations for managing external agents',
   'Function Tools': 'Operations for managing function tools',
