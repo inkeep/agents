@@ -11,10 +11,7 @@ describe('syncSavedAgentGraph', () => {
         id: '473gigole08cp6vacy38s',
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
-        data: {
-          id: 'sub-agent',
-          name: 'Sub Agent',
-        },
+        data: {},
       },
       {
         id: 'weather-node',
@@ -121,10 +118,7 @@ describe('syncSavedAgentGraph', () => {
         id: 'sub-agent',
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
-        data: {
-          id: 'sub-agent',
-          name: 'Sub Agent',
-        },
+        data: {},
       },
       {
         id: 'floating-tool',
@@ -198,10 +192,7 @@ describe('syncSavedAgentGraph', () => {
         id: '473gigole08cp6vacy38s',
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
-        data: {
-          id: 'sub-agent',
-          name: 'Sub Agent',
-        },
+        data: {},
       },
       {
         id: 'weather-node',
@@ -292,19 +283,13 @@ describe('syncSavedAgentGraph', () => {
         id: 'tmp-sub-agent-1',
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
-        data: {
-          id: 'sub-agent-1',
-          name: 'Sub Agent 1',
-        },
+        data: {},
       },
       {
         id: 'tmp-sub-agent-2',
         type: NodeType.SubAgent,
         position: { x: 300, y: 20 },
-        data: {
-          id: 'sub-agent-2',
-          name: 'Sub Agent 2',
-        },
+        data: {},
       },
     ];
     const edges: Edge[] = [
@@ -390,10 +375,7 @@ describe('syncSavedAgentGraph', () => {
         id: 'tmp-sub-agent',
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
-        data: {
-          id: 'sub-agent',
-          name: 'Sub Agent',
-        },
+        data: {},
       },
       {
         id: '7ubfdp65rn5qvh7l788ae',

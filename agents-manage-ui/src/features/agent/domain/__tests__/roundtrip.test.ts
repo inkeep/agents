@@ -5,6 +5,30 @@ import { deserializeAgentData } from '@/features/agent/domain/deserialize';
 import type { SerializeAgentFormState } from '@/features/agent/domain/serialize';
 import { serializeAgentData as serializeAgentDataInternal } from '@/features/agent/domain/serialize';
 
+function createSubAgentFormValue(
+  id: string,
+  overrides: Partial<SerializeAgentFormState['subAgents'][string]> = {}
+): SerializeAgentFormState['subAgents'][string] {
+  return {
+    id,
+    name: '',
+    description: '',
+    prompt: '',
+    type: 'internal',
+    models: {
+      base: {},
+      structuredOutput: {},
+      summarizer: {},
+    },
+    canUse: [],
+    dataComponents: [],
+    artifactComponents: [],
+    stopWhen: {},
+    skills: [],
+    ...overrides,
+  };
+}
+
 function createSerializeAgentFormState(nodes: Node[]): SerializeAgentFormState {
   return {
     mcpRelations: Object.fromEntries(
@@ -25,34 +49,22 @@ function createSerializeAgentFormState(nodes: Node[]): SerializeAgentFormState {
     subAgents: Object.fromEntries(
       nodes
         .filter((node) => node.type === NodeType.SubAgent)
-        .map((node) => [
-          node.id,
-          {
-            id: typeof node.data.id === 'string' ? node.data.id : node.id,
-            name: typeof node.data.name === 'string' ? node.data.name : '',
-            description: typeof node.data.description === 'string' ? node.data.description : '',
-            prompt: typeof node.data.prompt === 'string' ? node.data.prompt : '',
-            type: 'internal' as const,
-            models: {
-              base: {},
-              structuredOutput: {},
-              summarizer: {},
-            },
-            canUse: [],
-            dataComponents: [],
-            artifactComponents: [],
-            stopWhen: {},
-            skills: [],
-          },
-        ])
+        .map((node) => [node.id, createSubAgentFormValue(node.id)])
     ),
     functions: {},
     defaultSubAgentNodeId: undefined,
   };
 }
 
-function serializeAgentData(nodes: Node[], edges: Edge[]) {
-  return serializeAgentDataInternal(nodes, edges, createSerializeAgentFormState(nodes));
+function serializeAgentData(
+  nodes: Node[],
+  edges: Edge[],
+  subAgents?: SerializeAgentFormState['subAgents']
+) {
+  return serializeAgentDataInternal(nodes, edges, {
+    ...createSerializeAgentFormState(nodes),
+    ...(subAgents && { subAgents }),
+  });
 }
 
 describe('agent serialize/deserialize', () => {
@@ -62,21 +74,13 @@ describe('agent serialize/deserialize', () => {
         id: 'goodbye-agent',
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
-        data: {
-          id: 'goodbye-agent',
-          name: 'Goodbye Agent',
-          prompt: 'Say goodbye',
-        },
+        data: {},
       },
       {
         id: 'hello-agent',
         type: NodeType.SubAgent,
         position: { x: 0, y: 100 },
-        data: {
-          id: 'hello-agent',
-          name: 'Hello Agent',
-          prompt: 'Say hello',
-        },
+        data: {},
         deletable: false,
       },
     ];
@@ -133,20 +137,24 @@ describe('agent serialize/deserialize', () => {
         id: 'a1',
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
-        data: { id: 'a1', name: 'A1', prompt: 'i' },
+        data: {},
         deletable: false,
       },
       {
         id: 'a2',
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
-        data: { id: 'a2', name: 'A2', prompt: 'i' },
+        data: {},
       },
       {
         id: 't1node',
         type: NodeType.MCP,
         position: { x: 0, y: 0 },
-        data: { id: 't1', type: 'mcp', name: 'Tool1', config: {} },
+        data: {
+          toolId: 't1',
+          subAgentId: null,
+          relationshipId: null,
+        },
       },
     ];
     const edges: Edge[] = [
