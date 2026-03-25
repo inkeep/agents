@@ -370,9 +370,10 @@ describe('App Credential Authentication', () => {
       verifyPoWMock.mockResolvedValueOnce({ ok: false, error: 'pow_required' });
 
       app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.text('OK'));
+      app.post('/', (c) => c.text('OK'));
 
       const res = await app.request('/', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${VALID_ANON_JWT}`,
           'x-inkeep-app-id': 'app-id-1',
@@ -392,9 +393,10 @@ describe('App Credential Authentication', () => {
       verifyPoWMock.mockResolvedValueOnce({ ok: false, error: 'pow_invalid' });
 
       app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.text('OK'));
+      app.post('/', (c) => c.text('OK'));
 
       const res = await app.request('/', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${VALID_ANON_JWT}`,
           'x-inkeep-app-id': 'app-id-1',
@@ -414,9 +416,10 @@ describe('App Credential Authentication', () => {
       verifyPoWMock.mockResolvedValueOnce({ ok: false, error: 'pow_expired' });
 
       app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.text('OK'));
+      app.post('/', (c) => c.text('OK'));
 
       const res = await app.request('/', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${VALID_ANON_JWT}`,
           'x-inkeep-app-id': 'app-id-1',
@@ -431,7 +434,7 @@ describe('App Credential Authentication', () => {
       );
     });
 
-    it('should succeed when PoW passes', async () => {
+    it('should succeed when PoW passes on POST', async () => {
       const appRecord = makeWebClientApp();
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
@@ -447,10 +450,41 @@ describe('App Credential Authentication', () => {
       });
 
       app.use('*', apiKeyAuth());
-      app.get('/', (c) => {
+      app.post('/', (c) => {
         const ctx = (c as any).get('executionContext');
         return c.json(ctx);
       });
+
+      const res = await app.request('/', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${VALID_ANON_JWT}`,
+          'x-inkeep-app-id': 'app-id-1',
+          'x-inkeep-agent-id': 'agent-1',
+          Origin: 'https://help.customer.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(verifyPoWMock).toHaveBeenCalled();
+    });
+
+    it('should skip PoW for GET requests (e.g. stream resume)', async () => {
+      const appRecord = makeWebClientApp();
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      validateOriginMock.mockReturnValue(true);
+      jwtVerifyMock.mockResolvedValueOnce({
+        payload: {
+          sub: 'anon_test-uuid',
+          app: 'app-id-1',
+          tid: 'tenant_1',
+          pid: 'project_1',
+          type: 'anonymous',
+        },
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
 
       const res = await app.request('/', {
         headers: {
@@ -462,7 +496,7 @@ describe('App Credential Authentication', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(verifyPoWMock).toHaveBeenCalled();
+      expect(verifyPoWMock).not.toHaveBeenCalled();
     });
 
     it('should not call verifyPoW for non-web_client app types', async () => {
