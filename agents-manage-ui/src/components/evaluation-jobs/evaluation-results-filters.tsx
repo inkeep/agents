@@ -2,7 +2,7 @@
 
 import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import {
   Select,
   SelectContent,
@@ -61,16 +61,24 @@ export function EvaluationResultsFilters({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+        <InputGroup className="max-w-sm">
+          <InputGroupInput
             type="text"
             placeholder="Search input..."
             value={filters.searchInput || ''}
             onChange={(e) => updateFilter('searchInput', e.target.value)}
-            className="pl-9 h-9"
           />
-        </div>
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          {hasActiveFilters && (
+            <InputGroupAddon align="inline-end">
+              <Button variant="ghost" size="icon-sm" onClick={clearFilters}>
+                <X />
+              </Button>
+            </InputGroupAddon>
+          )}
+        </InputGroup>
 
         <Select
           value={filters.status || 'all'}
@@ -122,13 +130,6 @@ export function EvaluationResultsFilters({
             ))}
           </SelectContent>
         </Select>
-
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
-            <X className="h-4 w-4" />
-            Clear
-          </Button>
-        )}
       </div>
 
       <OutputSchemaFilters

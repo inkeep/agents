@@ -223,28 +223,28 @@ export function ChannelDefaultsSection({
       <CardContent className="space-y-4">
         {channels.length > 0 && (
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-              <div className="flex gap-3">
-                <ChannelFilter
-                    isSelected={channelFilter === 'all'}
-                    onClick={() => onChannelFilterChange('all')}
-                    count={channels.length}
-                    label="All"
-                />
-                <ChannelFilter
-                    isSelected={channelFilter === 'private'}
-                    onClick={() => onChannelFilterChange('private')}
-                    count={channels.filter((c) => c.isPrivate).length}
-                    label="Private"
-                    Icon={Lock}
-                />
-                <ChannelFilter
-                    isSelected={channelFilter === 'connect'}
-                    onClick={() => onChannelFilterChange('connect')}
-                    count={channels.filter((c) => c.isShared).length}
-                    label="Slack Connect"
-                    Icon={Building2}
-                />
-              </div>
+            <div className="flex gap-3">
+              <ChannelFilter
+                isSelected={channelFilter === 'all'}
+                onClick={() => onChannelFilterChange('all')}
+                count={channels.length}
+                label="All"
+              />
+              <ChannelFilter
+                isSelected={channelFilter === 'private'}
+                onClick={() => onChannelFilterChange('private')}
+                count={channels.filter((c) => c.isPrivate).length}
+                label="Private"
+                Icon={Lock}
+              />
+              <ChannelFilter
+                isSelected={channelFilter === 'connect'}
+                onClick={() => onChannelFilterChange('connect')}
+                count={channels.filter((c) => c.isShared).length}
+                label="Slack Connect"
+                Icon={Building2}
+              />
+            </div>
             <InputGroup className="max-w-md">
               <InputGroupInput
                 placeholder="Search channels..."
