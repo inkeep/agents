@@ -16,7 +16,7 @@ describe('graph identity', () => {
       type: NodeType.SubAgent,
       position: { x: 0, y: 0 },
       data: {
-        nodeKey: 'sub-agent:sub-agent-1',
+        nodeKey: 'sub-agent-1',
       },
     };
     const mcpNode: Node = {
@@ -58,7 +58,7 @@ describe('graph identity', () => {
       },
     };
 
-    expect(getNodeGraphKey(subAgentNode)).toBe('sub-agent:sub-agent-1');
+    expect(getNodeGraphKey(subAgentNode)).toBe('sub-agent-1');
     expect(getNodeGraphKey(mcpNode)).toBe('mcp:weather:mcp-node');
     expect(getNodeGraphKey(functionToolNode)).toBe('function-tool:function-tool-1');
     expect(getNodeGraphKey(externalAgentNode)).toBe('external-agent:external-agent-1');
@@ -72,7 +72,7 @@ describe('graph identity', () => {
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: {
-          nodeKey: 'sub-agent:sub-agent-1',
+          nodeKey: 'sub-agent-1',
         },
       },
       {
@@ -104,7 +104,7 @@ describe('graph identity', () => {
       },
     ];
 
-    expect(findNodeByGraphKey(nodes, 'sub-agent:sub-agent-1')?.id).toBe('tmp-sub-agent');
+    expect(findNodeByGraphKey(nodes, 'sub-agent-1')?.id).toBe('tmp-sub-agent');
     expect(findNodeByGraphKey(nodes, 'mcp:weather:tmp-mcp-node')?.id).toBe('tmp-mcp-node');
     expect(findNodeByGraphKey(nodes, 'external-agent:external-agent-1')?.id).toBe(
       'generic-external-node'
@@ -114,7 +114,6 @@ describe('graph identity', () => {
         ?.id
     ).toBe('tmp-placeholder');
     expect(findNodeByGraphKey(nodes, 'tmp-placeholder')).toBeUndefined();
-    expect(findNodeByGraphKey(nodes, 'sub-agent-1')).toBeUndefined();
     expect(findNodeByGraphKey(nodes, 'weather')).toBeUndefined();
   });
 
@@ -125,7 +124,7 @@ describe('graph identity', () => {
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: {
-          nodeKey: 'sub-agent:sub-agent-a',
+          nodeKey: 'sub-agent-a',
         },
       },
       {
@@ -133,7 +132,7 @@ describe('graph identity', () => {
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: {
-          nodeKey: 'sub-agent:sub-agent-b',
+          nodeKey: 'sub-agent-b',
         },
       },
     ];
@@ -144,7 +143,7 @@ describe('graph identity', () => {
       target: 'tmp-sub-agent-b',
     };
 
-    expect(getEdgeGraphKey(edge, nodes)).toBe('a2a:sub-agent:sub-agent-a:sub-agent:sub-agent-b');
+    expect(getEdgeGraphKey(edge, nodes)).toBe('a2a:sub-agent-a:sub-agent-b');
   });
 
   it('returns null when explicit graph identity is missing', () => {
