@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { ChevronDown } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from 'radix-ui';
+import { Collapsible as CollapsiblePrimitive } from 'radix-ui';
 import { Button } from './button';
 
 interface InfoCardProps {
@@ -37,11 +37,11 @@ export function CollapsibleInfoCard({
   Icon,
 }: CollapsibleInfoCardProps) {
   return (
-    <Collapsible
+    <CollapsiblePrimitive.Root
       defaultOpen={defaultOpen}
       className="text-xs text-gray-800 dark:text-muted-foreground bg-gray-100/80 dark:bg-sidebar rounded-md"
     >
-      <CollapsibleTrigger asChild>
+      <CollapsiblePrimitive.CollapsibleTrigger asChild>
         <Button
           variant="ghost"
           className="text-xs flex items-center justify-between h-auto gap-2 py-3 px-3 w-full font-medium text-foreground font-mono uppercase group/info-card"
@@ -55,8 +55,10 @@ export function CollapsibleInfoCard({
             className="w-3 h-3 text-muted-foreground group-data-[state=open]/info-card:rotate-180 transition-transform duration-200"
           />
         </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="px-3 pt-0 py-3">{children}</CollapsibleContent>
-    </Collapsible>
+      </CollapsiblePrimitive.CollapsibleTrigger>
+      <CollapsiblePrimitive.CollapsibleContent className="px-3 pt-0 py-3">
+        {children}
+      </CollapsiblePrimitive.CollapsibleContent>
+    </CollapsiblePrimitive.Root>
   );
 }

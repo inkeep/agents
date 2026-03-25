@@ -1,4 +1,4 @@
-import { Popover, PopoverContent, PopoverTrigger } from 'radix-ui';
+import { Popover as PopoverPrimitive } from 'radix-ui';
 import { HexColorInput, HexColorPicker } from 'react-colorful';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -26,8 +26,8 @@ export function ColorPickerInput({ placeholder, color, setColor }: ColorPickerIn
         placeholder={placeholder}
       />
       <div className="z-10 absolute right-3">
-        <Popover>
-          <PopoverTrigger asChild>
+        <PopoverPrimitive.Root>
+          <PopoverPrimitive.PopoverTrigger asChild>
             <Button
               aria-label="color picker"
               className="flex flex-row gap-2 rounded w-6 h-6"
@@ -37,11 +37,11 @@ export function ColorPickerInput({ placeholder, color, setColor }: ColorPickerIn
             >
               <span className="sr-only">Color picker</span>
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="flex flex-row w-fit p-2">
+          </PopoverPrimitive.PopoverTrigger>
+          <PopoverPrimitive.PopoverContent className="flex flex-row w-fit p-2">
             <HexColorPicker color={color} onChange={setColor} />
-          </PopoverContent>
-        </Popover>
+          </PopoverPrimitive.PopoverContent>
+        </PopoverPrimitive.Root>
       </div>
     </div>
   );
