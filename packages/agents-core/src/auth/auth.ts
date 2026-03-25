@@ -244,7 +244,20 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
           owner: ownerRole,
         },
         creatorRole: OrgRoles.ADMIN,
-        membershipLimit: 300,
+        membershipLimit: async (_user, org) => {
+          const { resolveTotalMembershipLimit } = await import('./entitlements');
+          const { eq } = await import('drizzle-orm');
+          const { organization: orgTable } = await import('./auth-schema');
+          const [orgRow] = await config.dbClient
+            .select({ serviceAccountUserId: orgTable.serviceAccountUserId })
+            .from(orgTable)
+            .where(eq(orgTable.id, org.id));
+          return resolveTotalMembershipLimit(
+            config.dbClient,
+            org.id,
+            !!orgRow?.serviceAccountUserId
+          );
+        },
         invitationLimit: 300,
         invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)
         async sendInvitationEmail(data) {
@@ -310,7 +323,14 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
           },
         },
         organizationHooks: {
+          beforeCreateInvitation: async ({ invitation, organization: org }) => {
+            const { enforcePerRoleSeatLimit } = await import('./entitlements');
+            await enforcePerRoleSeatLimit(config.dbClient, org.id, invitation.role);
+          },
           beforeAddMember: async ({ member, user, organization: org }) => {
+            const { enforcePerRoleSeatLimit } = await import('./entitlements');
+            await enforcePerRoleSeatLimit(config.dbClient, org.id, member.role);
+
             try {
               const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
               await syncOrgMemberToSpiceDb({
@@ -330,6 +350,9 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             }
           },
           beforeAcceptInvitation: async ({ invitation, user, organization: org }) => {
+            const { enforcePerRoleSeatLimit } = await import('./entitlements');
+            await enforcePerRoleSeatLimit(config.dbClient, org.id, invitation.role);
+
             try {
               const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
               await syncOrgMemberToSpiceDb({
@@ -355,9 +378,19 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {
-            const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
+            const { roleMatchesAdminBucket, enforcePerRoleSeatLimit } = await import(
+              './entitlements'
+            );
             const oldRole = member.role as OrgRole;
             const targetRole = newRole as OrgRole;
+
+            const oldBucketIsAdmin = roleMatchesAdminBucket(oldRole);
+            const newBucketIsAdmin = roleMatchesAdminBucket(targetRole);
+            if (oldBucketIsAdmin !== newBucketIsAdmin) {
+              await enforcePerRoleSeatLimit(config.dbClient, org.id, targetRole);
+            }
+
+            const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
 
             await changeOrgRole({
               tenantId: org.id,
