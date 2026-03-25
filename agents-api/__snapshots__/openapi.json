@@ -13232,6 +13232,10 @@
           "description": "Requires organization admin role",
           "permission": "admin",
           "resource": "organization"
+        },
+        "x-entitlement": {
+          "description": "Subject to quota:project limit when configured for the organization",
+          "resourceType": "quota:project"
         }
       }
     },
@@ -13915,7 +13919,7 @@
           "resource": "organization"
         },
         "x-entitlement": {
-          "description": "Requires Project entitlement capacity",
+          "description": "Subject to quota:project limit when configured for the organization",
           "resourceType": "quota:project"
         }
       }

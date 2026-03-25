@@ -72,7 +72,7 @@ export const requireEntitlement = <
 
   registerEntitlementMeta(mw, {
     resourceType,
-    description: `Requires ${displayLabel} entitlement capacity`,
+    description: `Subject to ${resourceType} limit when configured for the organization`,
   });
 
   return mw;

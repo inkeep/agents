@@ -4,6 +4,7 @@ import {
   cascadeDeleteByProject,
   checkoutBranch,
   commonGetErrorResponses,
+  countProjectsInRuntime,
   createApiError,
   createFullProjectServerSide,
   createProjectMetadataAndBranch,
@@ -23,6 +24,7 @@ import {
   listScheduledTriggers,
   listTriggers,
   type OrgRole,
+  QUOTA_RESOURCE_TYPES,
   type ResolvedRef,
   removeProjectFromSpiceDb,
   type ScheduledTrigger,
@@ -39,6 +41,7 @@ import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
+import { requireEntitlement } from '../../../middleware/requireEntitlement';
 import { requirePermission } from '../../../middleware/requirePermission';
 import type { ManageAppVariables } from '../../../types/app';
 import {
@@ -100,6 +103,11 @@ app.openapi(
     description:
       'Create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
     permission: requirePermission({ project: ['create'] }),
+    entitlement: requireEntitlement({
+      resourceType: QUOTA_RESOURCE_TYPES.PROJECT,
+      countFn: (tenantId) => countProjectsInRuntime(runDbClient)({ tenantId }),
+      label: 'Project',
+    }),
     request: {
       params: TenantParamsSchema,
       body: {
