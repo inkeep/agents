@@ -81,6 +81,11 @@ describe('syncSavedAgentGraph', () => {
           },
         },
       } as any,
+      subAgentFormData: {
+        '473gigole08cp6vacy38s': {
+          id: 'sub-agent',
+        },
+      } as any,
     });
 
     expect(result.nodeId).toBe('sub-agent:sub-agent');
@@ -263,6 +268,11 @@ describe('syncSavedAgentGraph', () => {
           },
         },
       } as any,
+      subAgentFormData: {
+        '473gigole08cp6vacy38s': {
+          id: 'sub-agent',
+        },
+      } as any,
     });
 
     expect(result.edgeId).toBe('edge-weather');
@@ -352,6 +362,14 @@ describe('syncSavedAgentGraph', () => {
         externalAgents: {},
         teamAgents: {},
         tools: {},
+      } as any,
+      subAgentFormData: {
+        'tmp-sub-agent-1': {
+          id: 'sub-agent-1',
+        },
+        'tmp-sub-agent-2': {
+          id: 'sub-agent-2',
+        },
       } as any,
     });
 
