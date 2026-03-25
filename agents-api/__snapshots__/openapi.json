@@ -10164,30 +10164,9 @@
             "type": "string"
           },
           "ref": {
-            "anyOf": [
+            "allOf": [
               {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
+                "$ref": "#/components/schemas/ResolvedRef"
               },
               {
                 "nullable": true
@@ -10269,7 +10248,6 @@
           "id",
           "triggerId",
           "conversationId",
-          "ref",
           "status",
           "requestPayload",
           "transformedPayload",
