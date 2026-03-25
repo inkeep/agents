@@ -41,5 +41,3 @@ function buildFkDepsFromSchema(): FkDeps {
 }
 
 export const manageFkDeps: FkDeps = buildFkDepsFromSchema();
-
-console.log(manageFkDeps);
