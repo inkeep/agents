@@ -73,15 +73,7 @@ export function getFunctionToolGraphKey({
   toolId,
   fallbackId,
 }: FunctionToolGraphKeyArgs): string | null {
-  if (toolId) {
-    return `function-tool:${toolId}`;
-  }
-
-  if (relationshipId) {
-    return `function-tool:${relationshipId}`;
-  }
-
-  return fallbackId ? `function-tool:${fallbackId}` : null;
+  return getPrefixedGraphKey('function-tool', toolId ?? relationshipId ?? fallbackId);
 }
 
 export function getExternalAgentGraphKey(val: string): string;
