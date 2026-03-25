@@ -79,6 +79,7 @@
     "spicedb:sync": "bash scripts/sync-spicedb.sh",
     "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply",
     "db:auth:init": "pnpm --filter @inkeep/agents-core db:auth:init",
+    "check:migration-lineage": "node scripts/check-migration-lineage.mjs",
     "check:dal-boundary": "bash scripts/lint-data-access-boundary.sh",
     "check:env-descriptions": "node scripts/check-env-descriptions.mjs",
     "check:route-handler-patterns": "node scripts/check-route-handler-patterns.mjs",
