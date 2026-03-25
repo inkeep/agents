@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { type Dispatch, type FC, type SetStateAction, useState } from 'react';
+import { type Dispatch, type FC, type SetStateAction, useTransition } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog } from '@/components/ui/dialog';
@@ -25,25 +25,25 @@ export const DeleteSkillFileConfirmation: FC<DeleteSkillFileConfirmationProps> =
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, startTransition] = useTransition();
 
-  const handleDelete = async () => {
-    setIsSubmitting(true);
-    const result = await deleteSkillFileAction(tenantId, projectId, skillId, fileId, filePath);
-    setIsSubmitting(false);
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deleteSkillFileAction(tenantId, projectId, skillId, fileId, filePath);
 
-    if (!result.success) {
-      toast.error(result.error ?? 'Failed to remove skill file');
-      return;
-    }
+      if (!result.success) {
+        toast.error(result.error ?? 'Failed to remove skill file');
+        return;
+      }
 
-    toast.success(`Removed ${filePath}`);
-    setIsOpen(false);
-    if (redirectPath) {
-      router.push(redirectPath);
-    }
-    router.refresh();
-  };
+      toast.success(`Removed ${filePath}`);
+      setIsOpen(false);
+      if (redirectPath) {
+        router.push(redirectPath);
+      }
+      router.refresh();
+    });
+  }
 
   return (
     <Dialog open onOpenChange={setIsOpen}>

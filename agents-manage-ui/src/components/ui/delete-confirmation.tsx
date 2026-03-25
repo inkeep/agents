@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DialogClose,
@@ -14,6 +15,7 @@ interface DeleteConfirmationProps {
   onDelete: () => Promise<void> | void;
   customTitle?: string;
   customDescription?: string;
+  children?: ReactNode;
 }
 
 export function DeleteConfirmation({
@@ -22,6 +24,7 @@ export function DeleteConfirmation({
   onDelete,
   customTitle = `Delete ${itemName}`,
   customDescription = `Are you sure you want to delete ${itemName}? This action cannot be undone.`,
+  children,
 }: DeleteConfirmationProps) {
   return (
     <DialogContent>
@@ -32,6 +35,7 @@ export function DeleteConfirmation({
       >
         {customDescription}
       </DialogDescription>
+      {children}
       <DialogFooter>
         <DialogClose asChild>
           <Button variant="outline">Cancel</Button>

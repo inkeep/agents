@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { File, Folder, Plus } from 'lucide-react';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FC, useState } from 'react';
+import { type FC, type FormEvent, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
@@ -16,7 +16,14 @@ import { SkillFileSchema, SUPPORTED_FILE_EXT } from '@/components/skills/form/va
 import type { DemoTreeNode } from '@/components/skills/tree-utils';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+  flatNestedFieldMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -219,66 +226,60 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   });
   const watchedFilePath = useWatch({ control: form.control, name: 'filePath' });
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const { isDirty, isValid, isSubmitting } = form.formState;
+  const { isDirty, isSubmitting } = form.formState;
   const currentFilePath = isCreateMode
     ? buildCreateFilePath(createDirectoryPath, watchedFilePath ?? '')
     : filePath;
   const breadcrumbPath = isCreateMode ? createDirectoryPath : filePath;
   const breadcrumbSegments = [skillId, ...breadcrumbPath.split('/').filter(Boolean)];
-  const isSaveDisabled = isSubmitting || !canEdit || !isDirty || !isValid;
   const isEntryFile = !isCreateMode && isSkillEntryFile(filePath);
 
-  const handleSave = async (): Promise<boolean> => {
-    if (!canEdit || (!isCreateMode && !isDirty)) {
-      return true;
-    }
-
+  async function handleSubmit(event?: FormEvent) {
     let didSave = false;
+    const handler = form.handleSubmit(
+      async ({ filePath, extension, content }) => {
+        const nextFilePath = isCreateMode
+          ? buildCreateFilePath(createDirectoryPath, `${filePath}${extension}`)
+          : filePath;
 
-    await form.handleSubmit(async ({ filePath, extension, content }) => {
-      const filePathWithExt = `${filePath}${extension}`;
-      const nextFilePath = isCreateMode
-        ? buildCreateFilePath(createDirectoryPath, filePathWithExt)
-        : filePathWithExt;
+        try {
+          const result = isCreateMode
+            ? await createSkillFileAction(tenantId, projectId, skillId, nextFilePath, content)
+            : await updateSkillFileAction(tenantId, projectId, skillId, fileId, filePath, content);
 
-      try {
-        const result = isCreateMode
-          ? await createSkillFileAction(tenantId, projectId, skillId, nextFilePath, content)
-          : await updateSkillFileAction(tenantId, projectId, skillId, fileId, filePath, content);
+          if (!result.success) {
+            const error =
+              result.error ?? `Failed to ${isCreateMode ? 'create' : 'update'} skill file`;
 
-        if (!result.success) {
-          toast.error(result.error ?? `Failed to ${isCreateMode ? 'create' : 'update'} skill file`);
-          return;
-        }
+            toast.error(error);
+            return;
+          }
 
-        const savedFilePath = result.data?.filePath ?? nextFilePath;
-        toast.success(isCreateMode ? `Created ${savedFilePath}` : `Saved ${filePath}`);
+          const savedFilePath = result.data?.filePath ?? nextFilePath;
+          toast.success(isCreateMode ? `Created ${savedFilePath}` : `Saved ${filePath}`);
 
-        if (isCreateMode) {
-          router.push(buildSkillFileViewHref(tenantId, projectId, skillId, savedFilePath));
-          router.refresh();
+          if (isCreateMode) {
+            router.push(buildSkillFileViewHref(tenantId, projectId, skillId, savedFilePath));
+            router.refresh();
+            didSave = true;
+            return;
+          }
+
+          form.reset({ filePath, content, extension });
           didSave = true;
-          return;
-        }
-
-        form.reset({ filePath, content });
-        router.refresh();
-        didSave = true;
-      } catch {}
-    })();
-
+        } catch {}
+      },
+      (error) => {
+        toast.error(flatNestedFieldMessage(error));
+      }
+    );
+    await handler(event);
     return didSave;
-  };
+  }
 
   return (
     <Form {...form}>
-      <form
-        className="contents"
-        onSubmit={(event) => {
-          event.preventDefault();
-          handleSave();
-        }}
-      >
+      <form className="contents" onSubmit={handleSubmit}>
         <div className="flex items-center border-b px-4 gap-2 h-(--header-height) shrink-0">
           <BreadcrumbNav>
             {breadcrumbSegments.map((segment, idx, arr) => {
@@ -344,13 +345,15 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
           {canEdit && (
             <div className="ml-auto flex gap-1">
               {!isCreateMode && (
-                <Button
-                  type="button"
-                  variant="destructive-outline"
-                  onClick={() => setIsDeleteOpen(true)}
-                  size="sm"
-                >
-                  {getSkillFileRemovalLabel(filePath)}
+                <>
+                  <Button
+                    type="button"
+                    variant="destructive-outline"
+                    onClick={() => setIsDeleteOpen(true)}
+                    size="sm"
+                  >
+                    {getSkillFileRemovalLabel(filePath)}
+                  </Button>
                   {isDeleteOpen &&
                     (isEntryFile ? (
                       <DeleteSkillConfirmation skillId={skillId} setIsOpen={setIsDeleteOpen} />
@@ -368,12 +371,12 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                         setIsOpen={setIsDeleteOpen}
                       />
                     ))}
-                </Button>
+                </>
               )}
-              <Button type="submit" disabled={isSaveDisabled} size="sm">
+              <Button type="submit" disabled={isSubmitting || !isDirty} size="sm">
                 Save
               </Button>
-              <UnsavedChangesDialog dirty={canEdit && isDirty} onSubmit={handleSave} />
+              <UnsavedChangesDialog dirty={canEdit && isDirty} onSubmit={handleSubmit} />
             </div>
           )}
         </div>

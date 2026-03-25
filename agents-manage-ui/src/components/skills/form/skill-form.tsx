@@ -188,16 +188,18 @@ Use this skill when the user needs to work with PDF files...
             </Button>
 
             {initialData && (
-              <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                <DialogTrigger asChild>
-                  <Button type="button" variant="destructive-outline">
-                    Delete Skill
-                  </Button>
-                </DialogTrigger>
+              <>
+                <Button
+                  type="button"
+                  variant="destructive-outline"
+                  onClick={() => setIsDeleteOpen(true)}
+                >
+                  Delete Skill
+                </Button>
                 {isDeleteOpen && (
                   <DeleteSkillConfirmation skillId={initialData.id} setIsOpen={setIsDeleteOpen} />
                 )}
-              </Dialog>
+              </>
             )}
           </div>
         )}

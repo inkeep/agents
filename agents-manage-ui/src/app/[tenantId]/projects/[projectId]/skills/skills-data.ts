@@ -26,10 +26,11 @@ export const fetchSkillsPageData = cache($fetchSkillsPageData);
 export async function resolveSkillFilePageData(
   tenantId: string,
   projectId: string,
-  fileSlug?: readonly string[]
+  fileSlug: string[] = []
 ) {
   const data = await fetchSkillsPageData(tenantId, projectId);
-  const selectedFile = resolveSkillFileFromRoute(data.files, fileSlug?.join('/'));
+  const slug = decodeURIComponent(fileSlug.join('/'));
+  const selectedFile = resolveSkillFileFromRoute(data.files, slug);
 
   return {
     ...data,
@@ -40,10 +41,13 @@ export async function resolveSkillFilePageData(
 export async function resolveSkillFolderPageData(
   tenantId: string,
   projectId: string,
-  folderSlug?: readonly string[]
+  folderSlug?: string[]
 ) {
   const data = await fetchSkillsPageData(tenantId, projectId);
-  const selectedFolder = folderSlug ? findNodeByPath(data.treeNodes, folderSlug.join('/')) : null;
+
+  const selectedFolder = folderSlug
+    ? findNodeByPath(data.treeNodes, decodeURIComponent(folderSlug.join('/')))
+    : null;
 
   return {
     ...data,
