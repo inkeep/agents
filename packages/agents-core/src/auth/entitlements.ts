@@ -1,7 +1,11 @@
-import { and, eq, like, or, sql } from 'drizzle-orm';
+import {
+  dalCountMembersByRoleBucket,
+  dalCountPendingInvitationsByRoleBucket,
+  dalGetServiceAccountUserId,
+  dalResolveEntitlement,
+  dalSumSeatEntitlements,
+} from '../data-access/runtime/entitlements';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
-import { orgEntitlement } from '../db/runtime/runtime-schema';
-import { invitation, member, organization } from './auth-schema';
 import { DEFAULT_MEMBERSHIP_LIMIT, SEAT_RESOURCE_TYPES } from './entitlement-constants';
 
 export { DEFAULT_MEMBERSHIP_LIMIT, SEAT_RESOURCE_TYPES } from './entitlement-constants';
@@ -19,15 +23,7 @@ export async function resolveEntitlement(
   orgId: string,
   resourceType: string
 ): Promise<number | null> {
-  const rows = await db
-    .select({ maxValue: orgEntitlement.maxValue })
-    .from(orgEntitlement)
-    .where(
-      and(eq(orgEntitlement.organizationId, orgId), eq(orgEntitlement.resourceType, resourceType))
-    );
-
-  if (rows.length === 0) return null;
-  return rows[0].maxValue;
+  return dalResolveEntitlement(db, orgId, resourceType);
 }
 
 export async function countSeatsByRole(
@@ -36,42 +32,10 @@ export async function countSeatsByRole(
   role: string
 ): Promise<number> {
   const isAdmin = roleMatchesAdminBucket(role);
-
-  const org = await db
-    .select({ serviceAccountUserId: organization.serviceAccountUserId })
-    .from(organization)
-    .where(eq(organization.id, orgId));
-  const serviceAccountUserId = org[0]?.serviceAccountUserId ?? null;
-
-  const memberCondition = isAdmin
-    ? or(eq(member.role, 'owner'), eq(member.role, 'admin'))
-    : eq(member.role, 'member');
-
-  const memberWhere = serviceAccountUserId
-    ? and(
-        eq(member.organizationId, orgId),
-        memberCondition,
-        sql`${member.userId} != ${serviceAccountUserId}`
-      )
-    : and(eq(member.organizationId, orgId), memberCondition);
-
-  const [memberCount] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(member)
-    .where(memberWhere);
-
-  const invitationRole = isAdmin
-    ? or(eq(invitation.role, 'owner'), eq(invitation.role, 'admin'))
-    : eq(invitation.role, 'member');
-
-  const [invitationCount] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(invitation)
-    .where(
-      and(eq(invitation.organizationId, orgId), eq(invitation.status, 'pending'), invitationRole)
-    );
-
-  return (memberCount?.count ?? 0) + (invitationCount?.count ?? 0);
+  const serviceAccountUserId = await dalGetServiceAccountUserId(db, orgId);
+  const memberCount = await dalCountMembersByRoleBucket(db, orgId, isAdmin, serviceAccountUserId);
+  const invitationCount = await dalCountPendingInvitationsByRoleBucket(db, orgId, isAdmin);
+  return memberCount + invitationCount;
 }
 
 export async function enforcePerRoleSeatLimit(
@@ -95,14 +59,7 @@ export async function resolveTotalMembershipLimit(
   orgId: string,
   hasServiceAccount: boolean
 ): Promise<number> {
-  const rows = await db
-    .select({ maxValue: orgEntitlement.maxValue })
-    .from(orgEntitlement)
-    .where(
-      and(eq(orgEntitlement.organizationId, orgId), like(orgEntitlement.resourceType, 'seat:%'))
-    );
-
-  const base =
-    rows.length === 0 ? DEFAULT_MEMBERSHIP_LIMIT : rows.reduce((sum, r) => sum + r.maxValue, 0);
+  const sum = await dalSumSeatEntitlements(db, orgId);
+  const base = sum === null ? DEFAULT_MEMBERSHIP_LIMIT : sum;
   return hasServiceAccount ? base + 1 : base;
 }
