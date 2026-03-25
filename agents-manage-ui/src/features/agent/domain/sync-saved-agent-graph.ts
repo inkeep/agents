@@ -184,11 +184,7 @@ export function syncSavedAgentGraph({
         };
       }
 
-      if (node.type === NodeType.MCP) {
-        if (!isNodeType(node, NodeType.MCP)) {
-          return node;
-        }
-
+      if (isNodeType(node, NodeType.MCP)) {
         const incomingEdge = renamedSourceEdges.find((edge) => edge.target === node.id);
         if (!incomingEdge) {
           return null;
@@ -209,10 +205,7 @@ export function syncSavedAgentGraph({
         };
       }
 
-      if (node.type === NodeType.FunctionTool) {
-        if (!isNodeType(node, NodeType.FunctionTool)) {
-          return node;
-        }
+      if (isNodeType(node, NodeType.FunctionTool)) {
         const incomingEdge = renamedSourceEdges.find((edge) => edge.target === node.id);
         const subAgentId = incomingEdge ? renameSubAgentId(incomingEdge.source) : null;
 
@@ -243,7 +236,7 @@ export function syncSavedAgentGraph({
 
       return node;
     })
-    .filter((node): node is Node => node !== null);
+    .filter((node) => !!node);
 
   const syncedEdges = renamedSourceEdges.map((edge) => ({
     ...edge,
@@ -252,10 +245,7 @@ export function syncSavedAgentGraph({
 
   const syncedNodes = preliminarilySyncedNodes
     .map((node) => {
-      if (node.type === NodeType.ExternalAgent) {
-        if (!isNodeType(node, NodeType.ExternalAgent)) {
-          return node;
-        }
+      if (isNodeType(node, NodeType.ExternalAgent)) {
         const { externalAgentId, relationshipId: currentRelationshipId } = node.data;
         const incomingEdge = syncedEdges.find((edge) => edge.target === node.id);
 
@@ -276,10 +266,7 @@ export function syncSavedAgentGraph({
         };
       }
 
-      if (node.type === NodeType.TeamAgent) {
-        if (!isNodeType(node, NodeType.TeamAgent)) {
-          return node;
-        }
+      if (isNodeType(node, NodeType.TeamAgent)) {
         const { teamAgentId, relationshipId: currentRelationshipId } = node.data;
         const incomingEdge = syncedEdges.find((edge) => edge.target === node.id);
 
@@ -302,7 +289,7 @@ export function syncSavedAgentGraph({
 
       return node;
     })
-    .filter((node): node is Node => node !== null);
+    .filter((node) => !!node);
 
   const keptNodeIds = new Set(syncedNodes.map((node) => node.id));
   const keptEdges = syncedEdges.filter(
@@ -330,11 +317,11 @@ export function syncSavedAgentGraph({
   return {
     nodes: syncedNodes.map((node) => ({
       ...node,
-      selected: nextNodeId ? getNodeGraphKey(node) === nextNodeId : false,
+      selected: nextNodeId ? nextNodeId === getNodeGraphKey(node) : false,
     })),
     edges: keptEdges.map((edge) => ({
       ...edge,
-      selected: nextEdgeId ? getEdgeGraphKey(edge, syncedNodes) === nextEdgeId : false,
+      selected: nextEdgeId ? nextEdgeId === getEdgeGraphKey(edge, syncedNodes) : false,
     })),
     nodeId: nextNodeId,
     edgeId: nextEdgeId,
