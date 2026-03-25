@@ -189,7 +189,7 @@ export function deserializeAgentData(data: AgentGraphData): TransformResult {
         const nodeData = {
           toolId,
           subAgentId,
-          relationshipId,
+          relationshipId: relationshipId ?? null,
         };
 
         const toolNode: Node = {
@@ -287,13 +287,13 @@ export function deserializeAgentData(data: AgentGraphData): TransformResult {
         let targetSubAgentId: string;
         let isTargetExternal: boolean;
         let isTargetTeamAgent: boolean;
-        let relationshipId: string | undefined;
+        let relationshipId: string | null = null;
 
         if (typeof targetSubAgent === 'object' && 'externalAgentId' in targetSubAgent) {
           targetSubAgentId = targetSubAgent.externalAgentId;
           isTargetExternal = true;
           isTargetTeamAgent = false;
-          relationshipId = targetSubAgent.subAgentExternalAgentRelationId;
+          relationshipId = targetSubAgent.subAgentExternalAgentRelationId ?? null;
 
           // Create external agent node if it doesn't exist
           if (!createdExternalAgentNodes.has(targetSubAgentId)) {
@@ -340,7 +340,7 @@ export function deserializeAgentData(data: AgentGraphData): TransformResult {
           targetSubAgentId = targetSubAgent.agentId;
           isTargetExternal = false;
           isTargetTeamAgent = true;
-          relationshipId = targetSubAgent.subAgentTeamAgentRelationId;
+          relationshipId = targetSubAgent.subAgentTeamAgentRelationId ?? null;
 
           // Create team agent node if it doesn't exist
           if (!createdTeamAgentNodes.has(targetSubAgentId)) {
