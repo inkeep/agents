@@ -23,15 +23,13 @@ import { EdgeType, edgeTypes } from '@/components/agent/configuration/edge-types
 import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
-  type ExternalAgentNodeData,
   externalAgentNodeTargetHandleId,
-  type FunctionToolNodeData,
   functionToolNodeHandleId,
+  isNodeType,
   mcpNodeHandleId,
   NodeType,
   newNodeDefaults,
   nodeTypes,
-  type TeamAgentNodeData,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
@@ -145,11 +143,12 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
+  const initialNodeId = generateId();
   const initialNode: Node = {
-    id: generateId(),
+    id: initialNodeId,
     type: NodeType.SubAgent,
     position: { x: 0, y: 0 },
-    data: {},
+    data: newNodeDefaults[NodeType.SubAgent](initialNodeId),
   };
 
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
@@ -428,18 +427,18 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           toast.error('This tool is already connected. Connect to a new tool node.');
           return;
         }
-        if (targetNode.type === NodeType.MCP) {
+        if (isNodeType(targetNode, NodeType.MCP)) {
           const relationKey = getMcpRelationFormKey({
             nodeId: targetNode.id,
-            relationshipId: targetNode.data.relationshipId as string | null | undefined,
+            relationshipId: targetNode.data.relationshipId,
           });
           const existingRelation = form.getValues(`mcpRelations.${relationKey}`);
           form.setValue(
             `mcpRelations.${relationKey}`,
             {
               ...createMcpRelationFormInput({
-                toolId: targetNode.data.toolId as string,
-                relationshipId: targetNode.data.relationshipId as string | null | undefined,
+                toolId: targetNode.data.toolId,
+                relationshipId: targetNode.data.relationshipId,
                 subAgentId: params.source,
               }),
               ...existingRelation,
@@ -470,18 +469,17 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       return;
     }
     const nodeType: keyof typeof newNodeDefaults = JSON.parse(node).type;
+    const newNodeId = generateId();
     const newNode = {
-      id: generateId(),
+      id: newNodeId,
       type: nodeType,
       position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
       selected: true,
-      // Should not use same reference data object for new nodes
-      data: { ...newNodeDefaults[nodeType] },
+      data: newNodeDefaults[nodeType](newNodeId),
     } satisfies Node;
     const toolId = nodeType === NodeType.FunctionTool ? newNode.id : null;
 
     if (toolId) {
-      newNode.data.toolId = toolId;
       form.setValue(
         `functionTools.${toolId}`,
         createFunctionToolFormInput({
@@ -736,24 +734,21 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             }));
             requestAnimationFrame(() => {
               for (const node of state.nodes) {
-                if (node.type === NodeType.FunctionTool) {
-                  const { toolId } = node.data as FunctionToolNodeData;
+                if (isNodeType(node, NodeType.FunctionTool)) {
+                  const { toolId } = node.data;
                   const functionId = form.getValues(`functionTools.${toolId}.functionId`) ?? toolId;
                   form.unregister([`functions.${functionId}`, `functionTools.${toolId}`]);
-                } else if (node.type === NodeType.MCP) {
+                } else if (isNodeType(node, NodeType.MCP)) {
                   form.unregister(
                     `mcpRelations.${getMcpRelationFormKey({
                       nodeId: node.id,
-                      relationshipId: (node.data as { relationshipId?: string | null })
-                        .relationshipId,
+                      relationshipId: node.data.relationshipId,
                     })}`
                   );
-                } else if (node.type === NodeType.TeamAgent) {
-                  form.unregister(`teamAgents.${(node.data as TeamAgentNodeData).teamAgentId}`);
-                } else if (node.type === NodeType.ExternalAgent) {
-                  form.unregister(
-                    `externalAgents.${(node.data as ExternalAgentNodeData).externalAgentId}`
-                  );
+                } else if (isNodeType(node, NodeType.TeamAgent)) {
+                  form.unregister(`teamAgents.${node.data.teamAgentId}`);
+                } else if (isNodeType(node, NodeType.ExternalAgent)) {
+                  form.unregister(`externalAgents.${node.data.externalAgentId}`);
                 } else if (node.type === NodeType.SubAgent) {
                   form.unregister(`subAgents.${node.id}`);
                 }
