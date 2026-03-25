@@ -5636,7 +5636,7 @@
             "items": {
               "properties": {
                 "authScheme": {
-                  "description": "The authentication scheme used by the MCP server (e.g., OAUTH2, API_KEY)",
+                  "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
                   "type": "string"
                 },
                 "category": {
@@ -7156,30 +7156,9 @@
             "type": "string"
           },
           "ref": {
-            "anyOf": [
+            "allOf": [
               {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
+                "$ref": "#/components/schemas/ResolvedRef"
               },
               {
                 "nullable": true
@@ -7218,7 +7197,6 @@
         "required": [
           "id",
           "scheduledTriggerId",
-          "ref",
           "status",
           "scheduledFor",
           "startedAt",
@@ -9170,7 +9148,7 @@
             "nullable": true,
             "properties": {
               "authScheme": {
-                "description": "The authentication scheme used by the MCP server (e.g., OAUTH2, API_KEY)",
+                "description": "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
                 "type": "string"
               },
               "category": {
