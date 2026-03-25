@@ -14,7 +14,6 @@
     "declaration": true,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
     "paths": {
       "@inkeep/ai-sdk-provider": ["./src/index.ts"],
       "@inkeep/ai-sdk-provider/*": ["./src/*"]
