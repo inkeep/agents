@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -292,9 +292,8 @@ function validateTargetAgainstBase(target, baseRef) {
   }
 
   const lastBaseSql = baseSqlTags.at(-1);
-  const expectedFirstNewPrefix = lastBaseSql?.prefix !== null && lastBaseSql?.prefix !== undefined
-    ? lastBaseSql.prefix + 1
-    : 0;
+  const expectedFirstNewPrefix =
+    lastBaseSql?.prefix !== null && lastBaseSql?.prefix !== undefined ? lastBaseSql.prefix + 1 : 0;
   const firstNewTag = appendedJournalTags[0];
   if (firstNewTag) {
     const match = firstNewTag.match(/^(\d{4})_/);
