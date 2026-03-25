@@ -1,12 +1,12 @@
 'use client';
 
-import { Dialog } from '@radix-ui/react-dialog';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import {
+  Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,

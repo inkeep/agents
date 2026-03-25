@@ -1,4 +1,3 @@
-import type { CheckedState } from '@radix-ui/react-checkbox';
 import { GripVertical, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
@@ -19,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSkillsQuery } from '@/lib/query/skills';
 import { cn } from '@/lib/utils';
+import type { Checkbox as RadixCheckbox } from 'radix-ui';
 
 interface SkillSelection {
   id: string;
@@ -85,7 +85,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
     onChange(newSelection.map((skill, index) => ({ ...skill, index })));
   };
 
-  const handleAlwaysLoadedChange = (id: string, checked: CheckedState) => {
+  const handleAlwaysLoadedChange = (id: string, checked: RadixCheckbox.CheckedState) => {
     const nextChecked = checked === 'indeterminate' ? true : checked;
     onChange(updateSkillAlwaysLoaded(selectedSkills, id, nextChecked));
   };
