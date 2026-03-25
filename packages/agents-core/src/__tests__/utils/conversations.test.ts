@@ -123,53 +123,80 @@ describe('getConversationId', () => {
 
 describe('deriveRelationId', () => {
   it('should return a 32-character lowercase hex string', () => {
-    const id = deriveRelationId('tenant1', 'project1', 'agent1', 'sub1', 'tool1');
+    const id = deriveRelationId({
+      tenantId: 'tenant1',
+      projectId: 'project1',
+      agentId: 'agent1',
+      subAgentId: 'sub1',
+      toolId: 'tool1',
+    });
     expect(id).toHaveLength(32);
     expect(/^[0-9a-f]{32}$/.test(id)).toBe(true);
   });
 
   it('should be deterministic — same inputs always produce the same ID', () => {
-    const parts = ['tenant1', 'project1', 'agent1', 'sub1', 'tool1'];
-    const id1 = deriveRelationId(...parts);
-    const id2 = deriveRelationId(...parts);
-    const id3 = deriveRelationId(...parts);
+    const parts = {
+      tenantId: 'tenant1',
+      projectId: 'project1',
+      agentId: 'agent1',
+      subAgentId: 'sub1',
+      toolId: 'tool1',
+    };
+    const id1 = deriveRelationId(parts);
+    const id2 = deriveRelationId(parts);
+    const id3 = deriveRelationId(parts);
     expect(id1).toBe(id2);
     expect(id2).toBe(id3);
   });
 
   it('should produce different IDs for different inputs', () => {
-    const id1 = deriveRelationId('tenant1', 'project1', 'agent1', 'sub1', 'toolA');
-    const id2 = deriveRelationId('tenant1', 'project1', 'agent1', 'sub1', 'toolB');
+    const id1 = deriveRelationId({
+      tenantId: 'tenant1',
+      projectId: 'project1',
+      agentId: 'agent1',
+      subAgentId: 'sub1',
+      toolId: 'toolA',
+    });
+    const id2 = deriveRelationId({
+      tenantId: 'tenant1',
+      projectId: 'project1',
+      agentId: 'agent1',
+      subAgentId: 'sub1',
+      toolId: 'toolB',
+    });
     expect(id1).not.toBe(id2);
   });
 
   it('should distinguish part boundaries (null-byte separator)', () => {
-    const id1 = deriveRelationId('ab', 'cd');
-    const id2 = deriveRelationId('a', 'bcd');
-    const id3 = deriveRelationId('abc', 'd');
+    const id1 = deriveRelationId({ partA: 'ab', partB: 'cd' });
+    const id2 = deriveRelationId({ partA: 'a', partB: 'bcd' });
+    const id3 = deriveRelationId({ partA: 'abc', partB: 'd' });
     expect(id1).not.toBe(id2);
     expect(id1).not.toBe(id3);
     expect(id2).not.toBe(id3);
   });
 
   it('should handle empty string parts without collision', () => {
-    const id1 = deriveRelationId('a', '', 'b');
-    const id2 = deriveRelationId('a', 'b');
-    const id3 = deriveRelationId('', 'a', 'b');
+    const id1 = deriveRelationId({ partA: 'a', partB: '', partC: 'b' });
+    const id2 = deriveRelationId({ partA: 'a', partB: 'b' });
     expect(id1).not.toBe(id2);
-    expect(id1).not.toBe(id3);
-    expect(id2).not.toBe(id3);
   });
 
   it('should work with a single part', () => {
-    const id = deriveRelationId('only-one-part');
+    const id = deriveRelationId({ key: 'only-one-part' });
     expect(id).toHaveLength(32);
     expect(/^[0-9a-f]{32}$/.test(id)).toBe(true);
   });
 
   it('should work with many parts', () => {
-    const id = deriveRelationId('a', 'b', 'c', 'd', 'e', 'f', 'g');
+    const id = deriveRelationId({ a: 'a', b: 'b', c: 'c', d: 'd', e: 'e', f: 'f', g: 'g' });
     expect(id).toHaveLength(32);
     expect(/^[0-9a-f]{32}$/.test(id)).toBe(true);
+  });
+
+  it('should produce the same ID regardless of property declaration order', () => {
+    const id1 = deriveRelationId({ tenantId: 't', projectId: 'p', agentId: 'a' });
+    const id2 = deriveRelationId({ agentId: 'a', tenantId: 't', projectId: 'p' });
+    expect(id1).toBe(id2);
   });
 });

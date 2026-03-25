@@ -652,13 +652,13 @@ export const addToolToAgent =
     headers?: Record<string, string> | null;
     toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
   }) => {
-    const id = deriveRelationId(
-      params.scopes.tenantId,
-      params.scopes.projectId,
-      params.scopes.agentId,
-      params.subAgentId,
-      params.toolId
-    );
+    const id = deriveRelationId({
+      tenantId: params.scopes.tenantId,
+      projectId: params.scopes.projectId,
+      agentId: params.scopes.agentId,
+      subAgentId: params.subAgentId,
+      toolId: params.toolId,
+    });
     const now = new Date().toISOString();
 
     const [created] = await db

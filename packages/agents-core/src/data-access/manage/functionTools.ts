@@ -305,13 +305,13 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
     const { scopes, subAgentId, functionToolId, toolPolicies } = params;
 
     try {
-      const relationId = deriveRelationId(
-        scopes.tenantId,
-        scopes.projectId,
-        scopes.agentId,
+      const relationId = deriveRelationId({
+        tenantId: scopes.tenantId,
+        projectId: scopes.projectId,
+        agentId: scopes.agentId,
         subAgentId,
-        functionToolId
-      );
+        functionToolId,
+      });
 
       const [result] = await db
         .insert(subAgentFunctionToolRelations)
