@@ -8,21 +8,25 @@ import {
   commonGetErrorResponses,
   createApiError,
   createApp,
-  deleteAppForTenant,
+  deleteAppForProject,
   ErrorResponseSchema,
   generateAppCredential,
-  getAppByIdForTenant,
+  getAppByIdForProject,
   listAppsPaginated,
   PaginationQueryParamsSchema,
   sanitizeAppConfig,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
-  updateAppForTenant,
+  updateAppForProject,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -101,9 +105,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, id } = c.req.valid('param');
-    const appRecord = await getAppByIdForTenant(runDbClient)({
-      scopes: { tenantId },
+    const { tenantId, projectId, id } = c.req.valid('param');
+    const appRecord = await getAppByIdForProject(runDbClient)({
+      scopes: { tenantId, projectId },
       id,
     });
 
@@ -175,62 +179,63 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update App',
-    description: 'Update an app credential configuration',
-    operationId: 'update-app',
-    tags: ['Apps'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: AppApiUpdateSchema,
-          },
+const updateAppRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update App',
+  description: 'Update an app credential configuration',
+  tags: ['Apps'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: AppApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'App updated successfully',
-        content: {
-          'application/json': {
-            schema: AppResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'App updated successfully',
+      content: {
+        'application/json': {
+          schema: AppResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    const data = { ...body };
-    if ('defaultAgentId' in data) {
-      data.defaultProjectId = data.defaultAgentId ? (data.defaultProjectId ?? projectId) : null;
-    }
+const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async (c) => {
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
 
-    const updatedApp = await updateAppForTenant(runDbClient)({
-      scopes: { tenantId },
-      id,
-      data,
-    });
-
-    if (!updatedApp) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'App not found',
-      });
-    }
-
-    return c.json({ data: sanitizeAppConfig(updatedApp) });
+  const data = { ...body };
+  if ('defaultAgentId' in data) {
+    data.defaultProjectId = data.defaultAgentId ? (data.defaultProjectId ?? projectId) : null;
   }
-);
+
+  const updatedApp = await updateAppForProject(runDbClient)({
+    scopes: { tenantId, projectId },
+    id,
+    data,
+  });
+
+  if (!updatedApp) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'App not found',
+    });
+  }
+
+  return c.json({ data: sanitizeAppConfig(updatedApp) });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateAppRouteConfig, updateAppHandler, {
+  operationId: 'update-app',
+});
 
 app.openapi(
   createProtectedRoute({
@@ -259,10 +264,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteAppForTenant(runDbClient)({
-      scopes: { tenantId },
+    const deleted = await deleteAppForProject(runDbClient)({
+      scopes: { tenantId, projectId },
       id,
     });
 

@@ -18,6 +18,7 @@
     "generate-openapi": "node --experimental-strip-types scripts/generate-openapi-docs.ts",
     "generate-classnames": "node --experimental-strip-types scripts/generate-classnames.ts",
     "generate-skill-collections": "node --experimental-strip-types scripts/generate-skill-collections.ts",
+    "generate-widget-changelog": "node --experimental-strip-types scripts/generate-widget-changelog.ts",
     "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link && pnpm validate-seo && pnpm generate-skill-collections",
     "validate-link": "node --experimental-strip-types scripts/validate-link.ts",
     "validate-seo": "node --experimental-strip-types scripts/validate-seo.ts"
@@ -25,7 +26,8 @@
   "dependencies": {
     "@inkeep/agents-cli": "workspace:*",
     "@inkeep/agents-core": "workspace:*",
-    "@inkeep/agents-ui": "^0.15.14",
+    "@inkeep/agents-ui": "^0.15.18",
+    "@inkeep/agents-ui-cloud": "^0.15.18",
     "@inkeep/cxkit-react": "^0.5.98",
     "@inkeep/docskit": "^0.0.8",
     "@radix-ui/react-collapsible": "^1.1.1",
@@ -43,7 +45,7 @@
     "hast-util-to-jsx-runtime": "^2.3.6",
     "llm-info": "^1.0.69",
     "lucide-react": "^0.503.0",
-    "next": "^16.1.6",
+    "next": "^16.2.1",
     "posthog-js": "^1.308.0",
     "posthog-node": "^5.17.3",
     "react": "19.3.0-canary-87ae75b3-20260128",
@@ -54,6 +56,7 @@
     "remark-mdx-snippets": "^0.2.0",
     "remark-rehype": "^11.1.2",
     "remark-source-code": "^0.0.3",
+    "resend": "^6.9.4",
     "tailwind-merge": "^3.2.0",
     "zod": "^4.3.6"
   },
@@ -73,7 +76,7 @@
     "schema-dts": "^1.1.5",
     "tailwindcss": "^4.1.11",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.8.3",
+    "typescript": "^6.0.2",
     "unist-util-visit": "^5.1.0"
   }
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { CredentialBadgeFallback } from '@/components/credentials/credential-name-badge';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
-import { useProjectPermissions } from '@/contexts/project';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -34,7 +34,9 @@ export function ViewExternalAgentDetails({
   projectId,
   className,
 }: ExternalAgentProps) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

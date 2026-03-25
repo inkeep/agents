@@ -1,4 +1,4 @@
-import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
@@ -21,6 +21,10 @@ import { HTTPException } from 'hono/http-exception';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import {
   onTriggerCreated,
   onTriggerDeleted,
@@ -169,161 +173,156 @@ app.openapi(
   }
 );
 
-// Update/upsert full agent
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{agentId}',
-    permission: requireProjectPermission('edit'),
-    summary: 'Update Full Agent',
-    operationId: 'update-full-agent',
-    tags: ['Agents'],
-    description:
-      'Update or create a complete agent with all agents, tools, and relationships from JSON definition',
-    request: {
-      params: TenantProjectAgentParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: AgentWithinContextOfProjectSchema,
-          },
+const updateFullAgentRouteConfig = {
+  path: '/{agentId}' as const,
+  permission: requireProjectPermission('edit'),
+  summary: 'Update Full Agent',
+  tags: ['Agents'],
+  description:
+    'Update or create a complete agent with all agents, tools, and relationships from JSON definition',
+  request: {
+    params: TenantProjectAgentParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: AgentWithinContextOfProjectSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Full agent updated successfully',
-        content: {
-          'application/json': {
-            schema: AgentWithinContextOfProjectResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Full agent updated successfully',
+      content: {
+        'application/json': {
+          schema: AgentWithinContextOfProjectResponse,
         },
       },
-      201: {
-        description: 'Full agent created successfully',
-        content: {
-          'application/json': {
-            schema: AgentWithinContextOfProjectResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId } = c.req.valid('param');
-    const agentData = c.req.valid('json');
+    201: {
+      description: 'Full agent created successfully',
+      content: {
+        'application/json': {
+          schema: AgentWithinContextOfProjectResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
 
-    try {
-      const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
+const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConfig> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, agentId } = c.req.valid('param');
+  const agentData = c.req.valid('json');
 
-      if (agentId !== validatedAgentData.id) {
-        throw createApiError({
-          code: 'bad_request',
-          message: `Agent ID mismatch: expected ${agentId}, got ${validatedAgentData.id}`,
+  try {
+    const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
+
+    if (agentId !== validatedAgentData.id) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Agent ID mismatch: expected ${agentId}, got ${validatedAgentData.id}`,
+      });
+    }
+
+    const existingAgent: FullAgentDefinition | null = await getFullAgent(
+      db,
+      logger
+    )({
+      scopes: { tenantId, projectId, agentId },
+    });
+    const isCreate = !existingAgent;
+
+    // Capture existing scheduled triggers before update for workflow reconciliation
+    let existingScheduledTriggers: ScheduledTrigger[] = [];
+    if (!isCreate) {
+      try {
+        existingScheduledTriggers = await listScheduledTriggers(db)({
+          scopes: { tenantId, projectId, agentId },
         });
+      } catch (err) {
+        logger.error({ err }, 'Failed to list existing scheduled triggers before update');
       }
+    }
 
-      const existingAgent: FullAgentDefinition | null = await getFullAgent(
-        db,
-        logger
-      )({
+    // Update/create the full agent using server-side data layer operations
+    const updatedAgent: FullAgentDefinition = isCreate
+      ? await createFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData)
+      : await updateFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData);
+
+    // Reconcile scheduled trigger workflows
+    try {
+      const newScheduledTriggers = await listScheduledTriggers(db)({
         scopes: { tenantId, projectId, agentId },
       });
-      const isCreate = !existingAgent;
+      const existingTriggerMap = new Map(existingScheduledTriggers.map((t) => [t.id, t]));
+      const newTriggerMap = new Map(newScheduledTriggers.map((t) => [t.id, t]));
 
-      // Capture existing scheduled triggers before update for workflow reconciliation
-      let existingScheduledTriggers: ScheduledTrigger[] = [];
-      if (!isCreate) {
+      // Handle created and updated triggers
+      for (const trigger of newScheduledTriggers) {
+        const existing = existingTriggerMap.get(trigger.id);
         try {
-          existingScheduledTriggers = await listScheduledTriggers(db)({
-            scopes: { tenantId, projectId, agentId },
-          });
+          if (!existing) {
+            await onTriggerCreated(trigger);
+          } else {
+            const scheduleChanged =
+              existing.cronExpression !== trigger.cronExpression ||
+              String(existing.runAt) !== String(trigger.runAt);
+            const previousEnabled = existing.enabled;
+            if (scheduleChanged || previousEnabled !== trigger.enabled) {
+              await onTriggerUpdated({ trigger, previousEnabled, scheduleChanged });
+            }
+          }
         } catch (err) {
-          logger.error({ err }, 'Failed to list existing scheduled triggers before update');
+          logger.error(
+            { err, scheduledTriggerId: trigger.id },
+            'Failed to reconcile scheduled trigger workflow'
+          );
         }
       }
 
-      // Update/create the full agent using server-side data layer operations
-      const updatedAgent: FullAgentDefinition = isCreate
-        ? await createFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData)
-        : await updateFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData);
-
-      // Reconcile scheduled trigger workflows
-      try {
-        const newScheduledTriggers = await listScheduledTriggers(db)({
-          scopes: { tenantId, projectId, agentId },
-        });
-        const existingTriggerMap = new Map(existingScheduledTriggers.map((t) => [t.id, t]));
-        const newTriggerMap = new Map(newScheduledTriggers.map((t) => [t.id, t]));
-
-        // Handle created and updated triggers
-        for (const trigger of newScheduledTriggers) {
-          const existing = existingTriggerMap.get(trigger.id);
+      // Handle deleted triggers
+      for (const existing of existingScheduledTriggers) {
+        if (!newTriggerMap.has(existing.id)) {
           try {
-            if (!existing) {
-              await onTriggerCreated(trigger);
-            } else {
-              const scheduleChanged =
-                existing.cronExpression !== trigger.cronExpression ||
-                String(existing.runAt) !== String(trigger.runAt);
-              const previousEnabled = existing.enabled;
-              if (scheduleChanged || previousEnabled !== trigger.enabled) {
-                await onTriggerUpdated({ trigger, previousEnabled, scheduleChanged });
-              }
-            }
+            await onTriggerDeleted(existing);
           } catch (err) {
             logger.error(
-              { err, scheduledTriggerId: trigger.id },
-              'Failed to reconcile scheduled trigger workflow'
+              { err, scheduledTriggerId: existing.id },
+              'Failed to stop workflow for deleted scheduled trigger'
             );
           }
         }
-
-        // Handle deleted triggers
-        for (const existing of existingScheduledTriggers) {
-          if (!newTriggerMap.has(existing.id)) {
-            try {
-              await onTriggerDeleted(existing);
-            } catch (err) {
-              logger.error(
-                { err, scheduledTriggerId: existing.id },
-                'Failed to stop workflow for deleted scheduled trigger'
-              );
-            }
-          }
-        }
-      } catch (err) {
-        logger.error({ err }, 'Failed to reconcile scheduled trigger workflows after update');
       }
+    } catch (err) {
+      logger.error({ err }, 'Failed to reconcile scheduled trigger workflows after update');
+    }
 
-      return c.json({ data: updatedAgent }, isCreate ? 201 : 200);
-    } catch (error) {
-      if (error instanceof HTTPException) {
-        throw error;
-      }
-      if (error instanceof z.ZodError) {
-        throw createApiError({
-          code: 'bad_request',
-          message: 'Invalid agent definition',
-        });
-      }
+    return c.json({ data: updatedAgent }, isCreate ? 201 : 200);
+  } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
 
-      if (error instanceof Error && error.message.includes('ID mismatch')) {
-        throw createApiError({
-          code: 'bad_request',
-          message: error.message,
-        });
-      }
-
+    if (error instanceof Error && error.message.includes('ID mismatch')) {
       throw createApiError({
-        code: 'internal_server_error',
-        message: 'Failed to update agent',
+        code: 'bad_request',
+        message: error.message,
       });
     }
+
+    throw createApiError({
+      code: 'internal_server_error',
+      message: 'Failed to update agent',
+    });
   }
-);
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateFullAgentRouteConfig, updateFullAgentHandler, {
+  operationId: 'update-full-agent',
+  canonical: 'put',
+});
 
 app.openapi(
   createProtectedRoute({

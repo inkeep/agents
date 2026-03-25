@@ -57,9 +57,11 @@ export interface ChatApiResponse {
 export class EvaluationService {
   private readonly agentsApiUrl: string | undefined;
   private readonly runApiBypassSecret: string | undefined;
+  private readonly manageApiBypassSecret: string | undefined;
 
   constructor() {
     this.runApiBypassSecret = env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET ?? undefined;
+    this.manageApiBypassSecret = env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET ?? undefined;
     this.agentsApiUrl = env.INKEEP_AGENTS_API_URL ?? '';
   }
 
@@ -655,6 +657,7 @@ Generate the next user message:`;
       tenantId,
       projectId,
       evaluationJobConfigId,
+      ref: resolvedRef,
     });
 
     const results: Array<EvaluationResultSelect> = [];
@@ -842,8 +845,11 @@ Generate the next user message:`;
       );
     }
 
-    // Fetch trace from SigNoz (similar to the example)
-    const prettifiedTrace = await this.fetchTraceFromSigNoz(conversation.id);
+    const prettifiedTrace = await this.fetchTraceFromSigNoz({
+      conversationId: conversation.id,
+      tenantId,
+      projectId,
+    });
 
     logger.info(
       {
@@ -1031,14 +1037,18 @@ Return your evaluation as a JSON object matching the schema above.`;
     }
   }
 
-  /**
-   * Fetch trace from SigNoz (similar to the example)
-   */
-  private async fetchTraceFromSigNoz(conversationId: string): Promise<any | null> {
+  private async fetchTraceFromSigNoz(params: {
+    conversationId: string;
+    tenantId: string;
+    projectId: string;
+  }): Promise<any | null> {
+    const { conversationId, tenantId, projectId } = params;
     const manageUIUrl = env.INKEEP_AGENTS_MANAGE_UI_URL;
     const maxRetries = 2;
     const retryDelayMs = 20000;
     const initialDelayMs = 30000;
+
+    const traceUrl = `${manageUIUrl}/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`;
 
     try {
       logger.info(
@@ -1055,9 +1065,12 @@ Return your evaluation as a JSON object matching the schema above.`;
             'Fetching trace from SigNoz'
           );
 
-          const traceResponse = await fetch(
-            `${manageUIUrl}/api/signoz/conversations/${conversationId}`
-          );
+          const headers: Record<string, string> = {};
+          if (this.manageApiBypassSecret) {
+            headers.Authorization = `Bearer ${this.manageApiBypassSecret}`;
+          }
+
+          const traceResponse = await fetch(traceUrl, { headers });
 
           if (!traceResponse.ok) {
             logger.warn(

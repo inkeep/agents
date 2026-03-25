@@ -26,11 +26,10 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
-import { useProjectData } from '@/hooks/use-project-data';
+import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
 import {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
@@ -84,11 +83,13 @@ export function MetadataEditor() {
     executionMode,
   } = metadata;
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-  const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
-  const { canUse } = useProjectPermissions();
+  const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
+  const {
+    data: { canUse },
+  } = useProjectPermissionsQuery();
 
   // Fetch project data for inheritance indicators
-  const { project } = useProjectData();
+  const { data: project } = useProjectQuery();
 
   const { markUnsaved, setMetadata } = useAgentActions();
 
@@ -122,23 +123,21 @@ export function MetadataEditor() {
       {agentId && (
         <div className="space-y-2">
           <div className="text-sm leading-none font-medium flex items-center gap-1">
-            Chat URL
+            Chat API Base URL
             <Tooltip>
               <TooltipTrigger asChild>
                 <Info className="w-3 h-3 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
-                Use this endpoint to chat with your agent or connect it to the Inkeep widget via the
-                agentUrl prop. Supports streaming responses with the Vercel AI SDK data stream
-                protocol.
+                Use this endpoint to chat with your agent by appending /run/api/chat or connect it
+                to the Inkeep widget via the baseUrl prop and specifying the appId. Supports
+                streaming responses with the Vercel AI SDK data stream protocol.
               </TooltipContent>
             </Tooltip>
           </div>
-          <CopyableSingleLineCode code={agentUrl} />
+          <CopyableSingleLineCode code={baseUrl} />
           {canUse && (
-            <ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
-              Create API key
-            </ExternalLink>
+            <ExternalLink href={`/${tenantId}/projects/${projectId}/apps`}>Create App</ExternalLink>
           )}
         </div>
       )}

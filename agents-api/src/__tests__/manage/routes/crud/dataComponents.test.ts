@@ -504,7 +504,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id} - render field persistence', () => {
+  describe('PATCH /{id} - render field persistence', () => {
     it('should update render field', async () => {
       const tenantId = await createTestTenantWithOrg('data-components-update-render');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -517,7 +517,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({
             name: 'Updated Component',
             description: 'Updated Description',
@@ -544,7 +544,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing data component', async () => {
       const tenantId = await createTestTenantWithOrg('data-components-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -569,7 +569,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -608,12 +608,43 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing data component via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('data-components-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { dataComponentId } = await createTestDataComponent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: 'PUT Updated Component',
+            description: 'Updated Description',
+            props: {
+              type: 'object',
+              properties: {
+                item: { type: 'string', description: 'An item' },
+              },
+            },
+            render: {
+              component: 'function Renderer() { return <span>Test</span>; }',
+              mockData: { value: 1 },
+            },
+          }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 

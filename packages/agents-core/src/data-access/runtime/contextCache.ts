@@ -4,6 +4,7 @@ import { contextCache } from '../../db/runtime/runtime-schema';
 import type { ContextCacheInsert, ContextCacheSelect } from '../../types/entities';
 import type { ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 /**
  * Get cached context data for a conversation with optional request hash validation
@@ -15,10 +16,12 @@ export const getCacheEntry =
     contextConfigId: string;
     contextVariableKey: string;
     requestHash?: string;
+    scopes: ProjectScopeConfig;
   }): Promise<ContextCacheSelect | null> => {
     try {
       const cacheEntry = await db.query.contextCache.findFirst({
         where: and(
+          projectScopedWhere(contextCache, params.scopes),
           eq(contextCache.conversationId, params.conversationId),
           eq(contextCache.contextConfigId, params.contextConfigId),
           eq(contextCache.contextVariableKey, params.contextVariableKey)
@@ -91,8 +94,7 @@ export const clearConversationCache =
       .delete(contextCache)
       .where(
         and(
-          eq(contextCache.tenantId, params.scopes.tenantId),
-          eq(contextCache.projectId, params.scopes.projectId),
+          projectScopedWhere(contextCache, params.scopes),
           eq(contextCache.conversationId, params.conversationId)
         )
       )
@@ -111,8 +113,7 @@ export const clearContextConfigCache =
       .delete(contextCache)
       .where(
         and(
-          eq(contextCache.tenantId, params.scopes.tenantId),
-          eq(contextCache.projectId, params.scopes.projectId),
+          projectScopedWhere(contextCache, params.scopes),
           eq(contextCache.contextConfigId, params.contextConfigId)
         )
       )
@@ -129,12 +130,7 @@ export const cleanupTenantCache =
   async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .delete(contextCache)
-      .where(
-        and(
-          eq(contextCache.tenantId, params.scopes.tenantId),
-          eq(contextCache.projectId, params.scopes.projectId)
-        )
-      )
+      .where(projectScopedWhere(contextCache, params.scopes))
       .returning();
 
     return result.length;
@@ -154,8 +150,7 @@ export const invalidateHeadersCache =
       .delete(contextCache)
       .where(
         and(
-          eq(contextCache.tenantId, params.scopes.tenantId),
-          eq(contextCache.projectId, params.scopes.projectId),
+          projectScopedWhere(contextCache, params.scopes),
           eq(contextCache.conversationId, params.conversationId),
           eq(contextCache.contextConfigId, params.contextConfigId),
           eq(contextCache.contextVariableKey, 'headers')
@@ -184,8 +179,7 @@ export const invalidateInvocationDefinitionsCache =
         .delete(contextCache)
         .where(
           and(
-            eq(contextCache.tenantId, params.scopes.tenantId),
-            eq(contextCache.projectId, params.scopes.projectId),
+            projectScopedWhere(contextCache, params.scopes),
             eq(contextCache.conversationId, params.conversationId),
             eq(contextCache.contextConfigId, params.contextConfigId),
             eq(contextCache.contextVariableKey, definitionId)
@@ -210,8 +204,7 @@ export const getConversationCacheEntries =
   }): Promise<ContextCacheSelect[]> => {
     const result = await db.query.contextCache.findMany({
       where: and(
-        eq(contextCache.tenantId, params.scopes.tenantId),
-        eq(contextCache.projectId, params.scopes.projectId),
+        projectScopedWhere(contextCache, params.scopes),
         eq(contextCache.conversationId, params.conversationId)
       ),
     });
@@ -233,8 +226,7 @@ export const getContextConfigCacheEntries =
   }): Promise<ContextCacheSelect[]> => {
     const result = await db.query.contextCache.findMany({
       where: and(
-        eq(contextCache.tenantId, params.scopes.tenantId),
-        eq(contextCache.projectId, params.scopes.projectId),
+        projectScopedWhere(contextCache, params.scopes),
         eq(contextCache.contextConfigId, params.contextConfigId)
       ),
     });

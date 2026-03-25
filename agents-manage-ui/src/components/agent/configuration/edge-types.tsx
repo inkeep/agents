@@ -1,4 +1,3 @@
-import type { Edge } from '@xyflow/react';
 import { ArrowRightLeft } from 'lucide-react';
 import { AgentToAgentEdge } from '../edges/agent-to-agent-edge';
 import { DefaultEdge } from '../edges/default-edge';
@@ -45,5 +44,3 @@ export const edgeTypeMap = {
     Icon: ArrowRightLeft,
   },
 } as const;
-
-export const initialEdges: Edge[] = [];

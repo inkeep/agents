@@ -16,7 +16,7 @@ import { getRun, start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
-import { buildPersistedMessageContent } from '../services/blob-storage/image-upload-helpers';
+import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
 import type { Message } from '../types/chat';
 import { ImageContentItemSchema } from '../types/chat';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
@@ -238,14 +238,15 @@ app.openapi(createExecutionRoute, async (c) => {
   });
 
   await createMessage(runDbClient)({
-    id: messageId,
-    tenantId,
-    projectId,
-    conversationId,
-    role: 'user',
-    content: messageContent,
-    visibility: 'user-facing',
-    messageType: 'chat',
+    scopes: { tenantId, projectId },
+    data: {
+      id: messageId,
+      conversationId,
+      role: 'user',
+      content: messageContent,
+      visibility: 'user-facing',
+      messageType: 'chat',
+    },
   });
 
   const requestId = `exec-${generateId()}`;

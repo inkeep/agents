@@ -104,7 +104,8 @@ export function wrapToolWithStreaming(
 
       const isInternalTool =
         toolName.includes('save_tool_result') || toolName.startsWith('transfer_to_');
-      const isInternalToolForUi = isInternalTool || toolName.startsWith('delegate_to_');
+      const isInternalToolForUi =
+        isInternalTool || toolName.startsWith('delegate_to_') || toolName === 'load_skill';
 
       const needsApproval = options?.needsApproval || false;
 
@@ -200,30 +201,29 @@ export function wrapToolWithStreaming(
               toolResultConversationId,
               messageId
             );
-            const messagePayload = {
-              id: messageId,
-              tenantId: ctx.config.tenantId,
-              projectId: ctx.config.projectId,
-              conversationId: toolResultConversationId,
-              role: 'assistant',
-              content: messageContent,
-              visibility: 'internal',
-              messageType: 'tool-result',
-              fromSubAgentId: ctx.config.id,
-              metadata: {
-                a2a_metadata: {
-                  toolName,
-                  toolCallId: effectiveToolCallId,
-                  toolArgs: args,
-                  toolOutput: result,
-                  timestamp: Date.now(),
-                  delegationId: ctx.delegationId,
-                  isDelegated: ctx.isDelegatedAgent,
+            await createMessage(runDbClient)({
+              scopes: { tenantId: ctx.config.tenantId, projectId: ctx.config.projectId },
+              data: {
+                id: messageId,
+                conversationId: toolResultConversationId,
+                role: 'assistant',
+                content: messageContent,
+                visibility: 'internal',
+                messageType: 'tool-result',
+                fromSubAgentId: ctx.config.id,
+                metadata: {
+                  a2a_metadata: {
+                    toolName,
+                    toolCallId: effectiveToolCallId,
+                    toolArgs: args,
+                    toolOutput: result,
+                    timestamp: Date.now(),
+                    delegationId: ctx.delegationId,
+                    isDelegated: ctx.isDelegatedAgent,
+                  },
                 },
               },
-            };
-
-            await createMessage(runDbClient)(messagePayload);
+            });
           } catch (error) {
             logger.warn(
               {

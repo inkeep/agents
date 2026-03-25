@@ -39,7 +39,10 @@ import type {
 } from './validation/schemas';
 import { FullAgentAgentInsertSchema, MAX_ID_LENGTH } from './validation/schemas';
 
-export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
+export {
+  DEFAULT_COMPOSIO_STORE_ID,
+  DEFAULT_NANGO_STORE_ID,
+} from './credential-stores/default-constants';
 
 export * from './validation/schemas';
 

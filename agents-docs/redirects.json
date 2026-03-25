@@ -207,5 +207,15 @@
     "source": "/guides/agent-engineering/failure-modes",
     "destination": "/guides/agent-engineering/prompt-troubleshooting",
     "permanent": true
+  },
+  {
+    "source": "/talk-to-your-agents/triggers/webhooks",
+    "destination": "/visual-builder/triggers/webhooks",
+    "permanent": true
+  },
+  {
+    "source": "/talk-to-your-agents/triggers/scheduled",
+    "destination": "/visual-builder/triggers/scheduled",
+    "permanent": true
   }
 ]

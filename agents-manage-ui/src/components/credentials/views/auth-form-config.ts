@@ -86,8 +86,8 @@ const FIELD_DEFINITIONS = {
     label: 'Scopes',
     type: 'textarea' as const,
     component: 'textarea' as const,
-    placeholder: 'Enter required scopes (space or comma separated)',
-    helpText: 'Leave empty to use default scopes for this provider',
+    placeholder: 'e.g. accounts.all,accountNotes.all',
+    helpText: 'Comma-separated, no spaces. Leave empty for default scopes.',
     required: false,
   },
   app_id: {

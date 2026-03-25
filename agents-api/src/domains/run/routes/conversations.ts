@@ -4,7 +4,7 @@ import {
   ConversationApiSelectSchema,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
-  countMessagesByConversation,
+  countVisibleMessages,
   createApiError,
   getConversation,
   getVisibleMessages,
@@ -17,6 +17,7 @@ import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-cor
 import { stream } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { resolveMessagesListBlobUris } from '../services/blob-storage/resolve-blob-uris';
 import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 
 const logger = getLogger('run-conversations');
@@ -46,11 +47,15 @@ function normalizeRole(role: string): string {
   return role;
 }
 
+function getPartKind(p: { kind?: string; type?: string }): string | undefined {
+  return p.kind ?? (p as any).type;
+}
+
 function extractText(content: MessageContent): string {
   if (content.text) return content.text;
   if (content.parts) {
     return content.parts
-      .filter((p) => p.kind === 'text' && p.text)
+      .filter((p) => getPartKind(p) === 'text' && p.text)
       .map((p) => p.text as string)
       .join('');
   }
@@ -69,6 +74,44 @@ function toVercelMessage(msg: {
 
   if (text) {
     parts.push({ type: 'text', text });
+  }
+
+  if (msg.content.parts) {
+    for (const p of msg.content.parts) {
+      const kind = getPartKind(p);
+      if (kind === 'text') {
+      } else if (kind === 'data') {
+        let parsed = p.data;
+        if (typeof parsed === 'string') {
+          try {
+            parsed = JSON.parse(parsed);
+          } catch {
+            // keep as string
+          }
+        }
+        const isArtifact =
+          parsed &&
+          typeof parsed === 'object' &&
+          (parsed as Record<string, unknown>).artifactId &&
+          (parsed as Record<string, unknown>).toolCallId;
+        parts.push({ type: isArtifact ? 'data-artifact' : 'data-component', data: parsed });
+      } else if (kind === 'file') {
+        const url = typeof p.data === 'string' ? p.data : undefined;
+        if (!url) {
+          logger.warn({ part: p }, 'File part missing data, skipping');
+          continue;
+        }
+        const meta = p.metadata as Record<string, unknown> | undefined;
+        const mediaType = typeof meta?.mimeType === 'string' ? meta.mimeType : undefined;
+        const filename = typeof meta?.filename === 'string' ? meta.filename : undefined;
+        parts.push({
+          type: 'file',
+          url,
+          ...(mediaType && { mediaType }),
+          ...(filename && { filename }),
+        });
+      }
+    }
   }
 
   if (msg.content.tool_calls) {
@@ -298,17 +341,22 @@ app.openapi(
         visibility: ['user-facing'],
         pagination: { page, limit },
       }),
-      countMessagesByConversation(runDbClient)({
+      countVisibleMessages(runDbClient)({
         scopes: { tenantId, projectId },
         conversationId,
+        visibility: ['user-facing'],
       }),
     ]);
 
-    const formattedMessages = messageList.map((msg) =>
+    const resolvedMessages = resolveMessagesListBlobUris(
+      messageList.map((msg) => ({ ...msg, content: msg.content as MessageContent }))
+    );
+
+    const formattedMessages = resolvedMessages.map((msg) =>
       toVercelMessage({
         id: msg.id,
         role: msg.role,
-        content: msg.content as MessageContent,
+        content: msg.content,
         createdAt: msg.createdAt,
       })
     );

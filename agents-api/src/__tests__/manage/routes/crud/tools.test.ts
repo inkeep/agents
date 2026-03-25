@@ -205,7 +205,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id} - field persistence', () => {
+  describe('PATCH /{id} - field persistence', () => {
     it('should update imageUrl field individually', async () => {
       const tenantId = await createTestTenantWithOrg('tools-update-imageurl');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -213,7 +213,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
-        { method: 'PUT', body: JSON.stringify({ imageUrl: 'https://example.com/new-icon.png' }) }
+        { method: 'PATCH', body: JSON.stringify({ imageUrl: 'https://example.com/new-icon.png' }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -234,7 +234,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
-        { method: 'PUT', body: JSON.stringify({ credentialScope: 'user' }) }
+        { method: 'PATCH', body: JSON.stringify({ credentialScope: 'user' }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -255,7 +255,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
-        { method: 'PUT', body: JSON.stringify({ isWorkApp: true }) }
+        { method: 'PATCH', body: JSON.stringify({ isWorkApp: true }) }
       );
       expect(updateRes.status).toBe(200);
       const updated = await updateRes.json();
@@ -270,7 +270,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update an existing tool', async () => {
       const tenantId = await createTestTenantWithOrg('tools-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -283,7 +283,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -302,11 +302,29 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated' }),
         }
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing tool via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('tools-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { toolId } = await createTestTool({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PUT Updated Tool Name' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 
@@ -359,7 +377,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated Tool' }),
         }
       );

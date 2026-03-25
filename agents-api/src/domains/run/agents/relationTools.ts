@@ -17,7 +17,7 @@ import {
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
-import manageDbPool from 'src/data/db/manageDbPool';
+import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { A2AClient } from '../a2a/client';
@@ -419,20 +419,21 @@ export function createDelegateToAgentTool({
       logger.info({ messageToSend }, 'messageToSend');
 
       await createMessage(runDbClient)({
-        id: generateId(),
-        tenantId: tenantId,
-        projectId: projectId,
-        conversationId: contextId,
-        role: 'agent',
-        content: {
-          text: input.message,
+        scopes: { tenantId, projectId },
+        data: {
+          id: generateId(),
+          conversationId: contextId,
+          role: 'agent',
+          content: {
+            text: input.message,
+          },
+          visibility: isInternal ? 'internal' : 'external',
+          messageType: 'a2a-request',
+          fromSubAgentId: callingAgentId,
+          ...(isInternal
+            ? { toSubAgentId: delegateConfig.config.id }
+            : { toExternalAgentId: delegateConfig.config.id }),
         },
-        visibility: isInternal ? 'internal' : 'external',
-        messageType: 'a2a-request',
-        fromSubAgentId: callingAgentId,
-        ...(isInternal
-          ? { toSubAgentId: delegateConfig.config.id }
-          : { toExternalAgentId: delegateConfig.config.id }),
       });
 
       logger.info({ messageToSend }, 'Created message in database');

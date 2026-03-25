@@ -34,12 +34,10 @@ async function ArtifactComponentsPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/artifacts'>) {
   const { tenantId, projectId } = await params;
   try {
-    const [{ data }, permissions] = await Promise.all([
+    const [{ data }, { canEdit }] = await Promise.all([
       fetchArtifactComponents(tenantId, projectId),
       fetchProjectPermissions(tenantId, projectId),
     ]);
-
-    const canEdit = permissions.canEdit;
 
     return data.length ? (
       <>

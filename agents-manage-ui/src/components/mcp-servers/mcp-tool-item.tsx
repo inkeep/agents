@@ -1,6 +1,7 @@
 'use client';
 
-import { Loader2, MoreVertical, Trash2 } from 'lucide-react';
+import { ArrowRight, Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -14,50 +15,30 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   ItemCardContent,
-  ItemCardFooter,
   ItemCardHeader,
   ItemCardLink,
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import { useProjectPermissions } from '@/contexts/project';
+import { URLDisplay } from '@/components/url-display';
 import { deleteToolAction } from '@/lib/actions/tools';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { MCPTool } from '@/lib/types/tools';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { formatDate } from '@/lib/utils/format-date';
-
 import { Badge } from '../ui/badge';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MCPToolImage } from './mcp-tool-image';
-
-// URL Display Component with ellipsis and tooltip
-function URLDisplay({ url }: { url: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="rounded py-1 min-w-0">
-          <code className="text-sm text-muted-foreground block truncate">{url}</code>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="max-w-md">
-        <code className="text-xs break-all">{url}</code>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 interface MCPToolDialogMenuProps {
   toolId: string;
   toolName?: string;
+  editPath: string;
 }
 
-function MCPToolDialogMenu({ toolId, toolName }: MCPToolDialogMenuProps) {
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+function MCPToolDialogMenu({ toolId, toolName, editPath }: MCPToolDialogMenuProps) {
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,9 +78,15 @@ function MCPToolDialogMenu({ toolId, toolName }: MCPToolDialogMenuProps) {
           align="end"
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
+          <DropdownMenuItem className="cursor-pointer" asChild>
+            <Link href={editPath}>
+              <Pencil className="size-4" />
+              Edit
+            </Link>
+          </DropdownMenuItem>
           <DialogTrigger asChild>
-            <DropdownMenuItem className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer">
-              <Trash2 className="size-4 text-destructive" />
+            <DropdownMenuItem variant="destructive">
+              <Trash2 />
               Delete
             </DropdownMenuItem>
           </DialogTrigger>
@@ -125,7 +112,9 @@ export function MCPToolItem({
   projectId: string;
   tool: MCPTool;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/mcp-servers/${initialTool.id}`;
 
   const { data: fetchedTool, isFetching: isLoadingStatus } = useMcpToolStatusQuery({
@@ -152,14 +141,16 @@ export function MCPToolItem({
               size={24}
               className="mt-0.5 flex-shrink-0"
             />
-            <span className="flex-1 min-w-0 text-base font-medium truncate">{tool.name}</span>
+            <span className="font-medium break-all">{tool.name}</span>
           </ItemCardTitle>
         </ItemCardLink>
-        {canEdit && <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} />}
+        {canEdit && (
+          <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} editPath={`${linkPath}/edit`} />
+        )}
       </ItemCardHeader>
       <ItemCardContent>
         <div className="space-y-3 min-w-0">
-          <URLDisplay url={tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''} />
+          <URLDisplay>{tool.config.type === 'mcp' && tool.config.mcp.server.url}</URLDisplay>
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -201,9 +192,21 @@ export function MCPToolItem({
             )}
           </div>
         </div>
-        <ItemCardFooter
-          footerText={tool.createdAt ? `Created ${formatDate(tool.createdAt)}` : 'Created recently'}
-        />
+        <div className="relative flex items-end justify-between">
+          <div className="space-y-0.5">
+            <div className="text-xs text-muted-foreground">
+              {tool.createdAt ? `Created ${formatDate(tool.createdAt)}` : 'Created recently'}
+            </div>
+            {tool.createdBy && (
+              <div className="text-xs text-muted-foreground">
+                Last Connected By {tool.createdBy}
+              </div>
+            )}
+          </div>
+          <div className="opacity-0 group-hover:opacity-60 transform translate-x-1 group-hover:translate-x-0 transition-all duration-300">
+            <ArrowRight className="w-4 h-4 text-muted-foreground opacity-60" />
+          </div>
+        </div>
       </ItemCardContent>
     </ItemCardRoot>
   );

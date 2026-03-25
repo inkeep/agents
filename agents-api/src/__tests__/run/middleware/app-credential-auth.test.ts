@@ -191,7 +191,7 @@ describe('App Credential Authentication', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Origin not allowed for this app');
+      expect(body).toContain('Invalid Token');
     });
 
     it('should reject when JWT app claim does not match', async () => {
@@ -219,7 +219,7 @@ describe('App Credential Authentication', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('JWT app claim does not match');
+      expect(body).toContain('Invalid Token');
     });
 
     it('should reject when JWT is invalid and HS256 is not enabled', async () => {
@@ -241,7 +241,7 @@ describe('App Credential Authentication', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Invalid end-user JWT');
+      expect(body).toContain('Invalid Token');
     });
   });
 
@@ -261,7 +261,7 @@ describe('App Credential Authentication', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('App not found');
+      expect(body).toContain('Invalid Token');
     });
 
     it('should reject when app is disabled', async () => {
@@ -280,7 +280,7 @@ describe('App Credential Authentication', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('App is disabled');
+      expect(body).toContain('Invalid Token');
     });
   });
 

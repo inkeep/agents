@@ -445,4 +445,21 @@ describe('MCP Tool GitHub Access Routes', () => {
       });
     });
   });
+
+  describe('PATCH /tools/:toolId/github-access (backward compatibility)', () => {
+    it('should update github access via PATCH', async () => {
+      setMcpToolRepositoryAccessMock.mockResolvedValue(undefined);
+
+      const response = await app.request(
+        `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'all' }),
+        }
+      );
+
+      expect(response.status).toBe(200);
+    });
+  });
 });

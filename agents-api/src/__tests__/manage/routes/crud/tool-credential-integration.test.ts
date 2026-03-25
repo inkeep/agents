@@ -106,7 +106,7 @@ describe('Tool-Credential Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({
             credentialReferenceId: credentialId,
           }),
@@ -130,7 +130,7 @@ describe('Tool-Credential Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({
             credentialReferenceId: null,
           }),
@@ -157,7 +157,7 @@ describe('Tool-Credential Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({
             credentialReferenceId: cred2,
           }),

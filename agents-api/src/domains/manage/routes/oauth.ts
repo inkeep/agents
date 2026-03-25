@@ -287,7 +287,10 @@ app.openapi(
       );
 
       // Store access token in keychain.
-      const credentialTokenKey = `oauth_token_${toolId}`;
+      const credentialTokenKey =
+        tool.credentialScope === 'user' && userId
+          ? `oauth_token_${toolId}_${encodeURIComponent(userId)}`
+          : `oauth_token_${toolId}`;
       let newCredentialData: CredentialReferenceApiInsert | undefined;
 
       const keychainStore = credentialStores.get('keychain-default');

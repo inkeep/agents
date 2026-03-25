@@ -13,10 +13,12 @@ concurrency:
 
 jobs:
   auto-format:
-    # On PRs: skip forks (can't push back). On push to main: always run.
+    # On PRs: skip forks (can't push back) and changeset release PRs (machine-generated).
+    # On push to main: always run.
     if: >-
       github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref != 'changeset-release/main')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

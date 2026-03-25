@@ -1,20 +1,17 @@
 'use client';
 
+import type { ColumnDef } from '@tanstack/react-table';
 import { Check, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useMemo } from 'react';
 import type { SelectOption } from '@/components/form/generic-select';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import type { App } from '@/lib/api/apps';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { Agent } from '@/lib/types/agent-full';
 import { formatDateAgo } from '@/lib/utils/format-date';
 import { AppItemMenu } from './app-item-menu';
@@ -23,7 +20,6 @@ interface AppsTableProps {
   apps: App[];
   agentLookup: Record<string, Agent>;
   agentOptions: SelectOption[];
-  canUse: boolean;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -57,78 +53,103 @@ function AppIdCell({ appId }: { appId: string }) {
   );
 }
 
-export function AppsTable({ apps, agentLookup, agentOptions, canUse }: AppsTableProps) {
+export function AppsTable({ apps, agentLookup, agentOptions }: AppsTableProps) {
   const { tenantId } = useParams<{ tenantId: string }>();
+  const {
+    data: { canUse },
+  } = useProjectPermissionsQuery();
+
+  const columns = useMemo<ColumnDef<App>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+        sortingFn: 'text',
+        cell: ({ row }) => (
+          <div className="flex flex-col">
+            <span className="font-medium text-foreground">{row.original.name}</span>
+            {row.original.description && (
+              <span className="text-sm text-muted-foreground truncate max-w-[200px]">
+                {row.original.description}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'type',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+        sortingFn: 'text',
+        cell: ({ row }) => (
+          <Badge variant={TYPE_BADGE_VARIANT[row.original.type] ?? 'secondary'}>
+            {TYPE_LABELS[row.original.type] ?? row.original.type}
+          </Badge>
+        ),
+      },
+      {
+        id: 'defaultAgent',
+        header: 'Default Agent',
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.defaultAgentId && row.original.defaultProjectId ? (
+            <Link
+              href={`/${tenantId}/projects/${row.original.defaultProjectId}/agents/${row.original.defaultAgentId}`}
+              className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
+            >
+              {agentLookup[row.original.defaultAgentId]?.name ?? row.original.defaultAgentId}
+            </Link>
+          ) : (
+            <span className="text-sm text-muted-foreground italic">None</span>
+          ),
+      },
+      {
+        id: 'appId',
+        header: 'App ID',
+        enableSorting: false,
+        cell: ({ row }) => <AppIdCell appId={row.original.id} />,
+      },
+      {
+        accessorKey: 'enabled',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        sortingFn: 'basic',
+        cell: ({ row }) => (
+          <Badge variant={row.original.enabled ? 'success' : 'warning'}>
+            {row.original.enabled ? 'Enabled' : 'Disabled'}
+          </Badge>
+        ),
+      },
+      {
+        id: 'createdAt',
+        accessorFn: (row) => (row.createdAt ? new Date(row.createdAt) : undefined),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+        sortingFn: 'datetime',
+        sortUndefined: 'last',
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {row.original.createdAt ? formatDateAgo(row.original.createdAt) : ''}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: ({ row }) => canUse && <AppItemMenu app={row.original} agentOptions={agentOptions} />,
+      },
+    ],
+    [agentLookup, agentOptions, canUse, tenantId]
+  );
+
   return (
     <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow noHover>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Default Agent</TableHead>
-            <TableHead>App ID</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="w-12" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {apps.length === 0 ? (
-            <TableRow noHover>
-              <TableCell colSpan={7} className="text-center text-muted-foreground">
-                No apps yet.
-              </TableCell>
-            </TableRow>
-          ) : (
-            apps.map((app) => (
-              <TableRow key={app.id} noHover>
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-foreground">{app.name}</span>
-                    {app.description && (
-                      <span className="text-sm text-muted-foreground truncate max-w-[200px]">
-                        {app.description}
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={TYPE_BADGE_VARIANT[app.type] ?? 'secondary'}>
-                    {TYPE_LABELS[app.type] ?? app.type}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {app.defaultAgentId && app.defaultProjectId ? (
-                    <Link
-                      href={`/${tenantId}/projects/${app.defaultProjectId}/agents/${app.defaultAgentId}`}
-                      className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
-                    >
-                      {agentLookup[app.defaultAgentId]?.name ?? app.defaultAgentId}
-                    </Link>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">None</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <AppIdCell appId={app.id} />
-                </TableCell>
-                <TableCell>
-                  <Badge variant={app.enabled ? 'success' : 'warning'}>
-                    {app.enabled ? 'Enabled' : 'Disabled'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {app.createdAt ? formatDateAgo(app.createdAt) : ''}
-                </TableCell>
-                <TableCell>
-                  {canUse && <AppItemMenu app={app} agentOptions={agentOptions} />}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={columns}
+        data={apps}
+        defaultSort={[{ id: 'name', desc: false }]}
+        emptyState="No apps yet."
+        getRowId={(row) => row.id}
+      />
     </div>
   );
 }

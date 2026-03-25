@@ -97,7 +97,6 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
     PUBLIC_INKEEP_COPILOT_TENANT_ID:
       process.env.PUBLIC_INKEEP_COPILOT_TENANT_ID ||
       process.env.NEXT_PUBLIC_INKEEP_COPILOT_TENANT_ID,
-    PUBLIC_AUTH0_DOMAIN: process.env.PUBLIC_AUTH0_DOMAIN || process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
     PUBLIC_GOOGLE_CLIENT_ID:
       process.env.PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
     PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT:

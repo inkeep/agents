@@ -166,8 +166,22 @@
     {
       "idx": 23,
       "version": "7",
-      "when": 1773096333649,
-      "tag": "0023_futuristic_ozymandias",
+      "when": 1773428665214,
+      "tag": "0023_bumpy_vampiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1773928319378,
+      "tag": "0024_moaning_kingpin",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1774379632177,
+      "tag": "0025_minor_obadiah_stane",
       "breakpoints": true
     }
   ]

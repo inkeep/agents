@@ -376,12 +376,16 @@ describe('A2A Handlers', () => {
       const innerMock = createMessageMock.mock.results[0].value;
       expect(innerMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          tenantId: 'test-tenant',
-          conversationId: 'conv-123',
-          role: 'agent',
-          fromSubAgentId: 'source-agent',
-          toSubAgentId: 'test-agent',
-          messageType: 'a2a-request',
+          scopes: expect.objectContaining({
+            tenantId: 'test-tenant',
+          }),
+          data: expect.objectContaining({
+            conversationId: 'conv-123',
+            role: 'agent',
+            fromSubAgentId: 'source-agent',
+            toSubAgentId: 'test-agent',
+            messageType: 'a2a-request',
+          }),
         })
       );
     });

@@ -128,6 +128,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     getConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue({ id: 'conv-123' })),
+    getWorkflowExecutionByConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(null)),
   };
 });
 
@@ -191,6 +192,34 @@ describe('Chat Data Stream Route', () => {
     // Check that the mock text is included in the stream
     expect(text).toMatch(/Test/);
     expect(text).toMatch(/response/);
+  });
+
+  it('should accept inline PDF file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this PDF',
+          parts: [
+            { type: 'text', text: 'Summarize this PDF' },
+            {
+              type: 'file',
+              text: 'data:application/pdf;base64,JVBERi0xLjQK',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
   });
 
   it('should stream approval UI events published to ToolApprovalUiBus (simulating delegated agent approval)', async () => {

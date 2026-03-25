@@ -212,7 +212,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ defaultAgentId: 'agent-2' }),
         }
       );
@@ -233,7 +233,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ defaultAgentId: null }),
         }
       );
@@ -244,7 +244,7 @@ describe('App CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update app name and config', async () => {
       const tenantId = await createTestTenantWithOrg('apps-update');
       const projectId = 'default-project';
@@ -255,7 +255,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({
             name: 'Updated Widget',
             enabled: false,
@@ -277,11 +277,31 @@ describe('App CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/apps/nonexistent-${generateId()}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated' }),
         }
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update app via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-put-compat');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { app } = await createTestApp({ tenantId, projectId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PUT Updated Widget' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 
@@ -313,7 +333,7 @@ describe('App CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId2}/projects/${projectId}/apps/${app.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Hijacked' }),
         }
       );
@@ -339,6 +359,80 @@ describe('App CRUD Routes - Integration Tests', () => {
         `/manage/tenants/${tenantId1}/projects/${projectId}/apps/${app.id}`
       );
       expect(getRes.status).toBe(200);
+    });
+  });
+
+  describe('project isolation', () => {
+    it('should return 404 when getting app from different project in same tenant', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-proj-iso-get');
+      const projectA = 'project-a';
+      const projectB = 'project-b';
+      await createTestProject(manageDbClient, tenantId, projectA);
+      await createTestProject(manageDbClient, tenantId, projectB);
+
+      const { app } = await createTestApp({ tenantId, projectId: projectA });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectB}/apps/${app.id}`
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 404 when updating app from different project in same tenant', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-proj-iso-update');
+      const projectA = 'project-a';
+      const projectB = 'project-b';
+      await createTestProject(manageDbClient, tenantId, projectA);
+      await createTestProject(manageDbClient, tenantId, projectB);
+
+      const { app } = await createTestApp({ tenantId, projectId: projectA });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectB}/apps/${app.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ name: 'Hijacked' }),
+        }
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 404 when deleting app from different project in same tenant', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-proj-iso-delete');
+      const projectA = 'project-a';
+      const projectB = 'project-b';
+      await createTestProject(manageDbClient, tenantId, projectA);
+      await createTestProject(manageDbClient, tenantId, projectB);
+
+      const { app } = await createTestApp({ tenantId, projectId: projectA });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectB}/apps/${app.id}`,
+        { method: 'DELETE' }
+      );
+      expect(res.status).toBe(404);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectA}/apps/${app.id}`
+      );
+      expect(getRes.status).toBe(200);
+    });
+
+    it('should not list apps from different project in same tenant', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-proj-iso-list');
+      const projectA = 'project-a';
+      const projectB = 'project-b';
+      await createTestProject(manageDbClient, tenantId, projectA);
+      await createTestProject(manageDbClient, tenantId, projectB);
+
+      await createTestApp({ tenantId, projectId: projectA });
+      await createTestApp({ tenantId, projectId: projectB, name: 'Project B App' });
+
+      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectA}/apps`);
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.data).toHaveLength(1);
     });
   });
 
