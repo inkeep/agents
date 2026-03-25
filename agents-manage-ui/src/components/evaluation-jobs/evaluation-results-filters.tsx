@@ -47,13 +47,6 @@ export function EvaluationResultsFilters({
     });
   };
 
-  const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
-    if (key === 'outputFilters') {
-      return Array.isArray(value) && value.length > 0;
-    }
-    return value !== undefined && value !== 'all';
-  });
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -67,7 +60,7 @@ export function EvaluationResultsFilters({
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
-          {hasActiveFilters && (
+          {filters.searchInput && (
             <InputGroupAddon align="inline-end">
               <Button
                 variant="ghost"

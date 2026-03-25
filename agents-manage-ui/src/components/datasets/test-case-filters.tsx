@@ -35,10 +35,6 @@ export function TestCaseFilters({ filters, onFiltersChange, agents }: TestCaseFi
     });
   };
 
-  const hasActiveFilters = Object.values(filters).some(
-    (value) => value !== undefined && value !== 'all'
-  );
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
