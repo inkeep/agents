@@ -97,7 +97,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
           // To avoid race conditions since we update query params of nodeId
           setTimeout(() => {
             router.push(`${url.pathname}${url.search}${url.hash}`);
-          }, 0)
+          }, 0);
         } else {
           location.href = url.href;
         }
@@ -145,9 +145,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Do you want to save the changes you made?</DialogTitle>
-          <DialogDescription>
-            Your changes will be lost if you don't save them.
-          </DialogDescription>
+          <DialogDescription>Your changes will be lost if you don't save them.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="ghost" onClick={handleGoBack} className="sm:mr-auto">
