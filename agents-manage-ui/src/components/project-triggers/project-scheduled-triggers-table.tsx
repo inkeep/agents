@@ -164,6 +164,7 @@ export function ProjectScheduledTriggersTable({
   };
 
   const runTrigger = async (triggerId: string, agentId: string, name: string) => {
+    if (loadingTriggers.has(triggerId)) return;
     setLoadingTriggers((prev) => new Set(prev).add(triggerId));
 
     try {

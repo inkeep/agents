@@ -455,6 +455,7 @@ app.openapi(
       body.cronExpression !== undefined ||
       body.cronTimezone !== undefined ||
       body.runAt !== undefined ||
+      body.ref !== undefined ||
       body.payload !== undefined ||
       body.messageTemplate !== undefined ||
       body.maxRetries !== undefined ||
