@@ -1,11 +1,11 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
-  PublicKeyAlgorithmSchema,
-  PublicKeyConfigSchema,
-  TenantProjectParamsSchema,
   commonGetErrorResponses,
   createApiError,
   getAppByIdForProject,
+  PublicKeyAlgorithmSchema,
+  PublicKeyConfigSchema,
+  TenantProjectParamsSchema,
   updateAppForProject,
   validatePublicKey,
 } from '@inkeep/agents-core';
@@ -51,7 +51,7 @@ app.openapi(
     summary: 'List Public Keys',
     description: 'List all public keys configured for app authentication',
     operationId: 'list-app-auth-keys',
-    tags: ['App Auth'],
+    tags: ['Apps'],
     permission: requireProjectPermission('view'),
     request: {
       params: AppAuthKeyParamsSchema,
@@ -89,7 +89,7 @@ app.openapi(
 
     const publicKeys = appRecord.config.webClient.auth?.publicKeys ?? [];
     return c.json({ data: publicKeys });
-  },
+  }
 );
 
 app.openapi(
@@ -98,8 +98,8 @@ app.openapi(
     path: '/',
     summary: 'Add Public Key',
     description: 'Add a public key for app authentication',
-    operationId: 'add-app-auth-key',
-    tags: ['App Auth'],
+    operationId: 'create-app-auth-key',
+    tags: ['Apps'],
     permission: requireProjectPermission('edit'),
     request: {
       params: AppAuthKeyParamsSchema,
@@ -148,7 +148,8 @@ app.openapi(
     if (existingKeys.length >= 5) {
       throw createApiError({
         code: 'bad_request',
-        message: 'Maximum of 5 public keys per app. Remove an existing key before adding a new one.',
+        message:
+          'Maximum of 5 public keys per app. Remove an existing key before adding a new one.',
       });
     }
 
@@ -195,7 +196,7 @@ app.openapi(
     });
 
     return c.json({ data: newKey }, 201);
-  },
+  }
 );
 
 app.openapi(
@@ -205,7 +206,7 @@ app.openapi(
     summary: 'Delete Public Key',
     description: 'Remove a public key by kid',
     operationId: 'delete-app-auth-key',
-    tags: ['App Auth'],
+    tags: ['Apps'],
     permission: requireProjectPermission('edit'),
     request: {
       params: AppAuthKeyWithKidParamsSchema,
@@ -267,7 +268,7 @@ app.openapi(
     });
 
     return c.body(null, 204);
-  },
+  }
 );
 
 export default app;

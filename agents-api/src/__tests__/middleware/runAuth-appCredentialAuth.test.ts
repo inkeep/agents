@@ -1,6 +1,6 @@
 import type { BaseExecutionContext } from '@inkeep/agents-core';
-import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { Hono } from 'hono';
+import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../data/db/runDbClient.js', () => ({ default: {} }));
@@ -28,17 +28,14 @@ vi.mock('../../domains/run/routes/auth.js', () => ({
   getAnonJwtSecret: vi.fn(() => new TextEncoder().encode('test-anon-secret-for-jwt-signing-1234')),
 }));
 
-const {
-  mockGetAppById,
-  mockValidateOrigin,
-  mockVerifyPoW,
-  mockCanUseProjectStrict,
-} = vi.hoisted(() => ({
-  mockGetAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
-  mockValidateOrigin: vi.fn().mockReturnValue(true),
-  mockVerifyPoW: vi.fn().mockResolvedValue({ ok: true }),
-  mockCanUseProjectStrict: vi.fn().mockResolvedValue(true),
-}));
+const { mockGetAppById, mockValidateOrigin, mockVerifyPoW, mockCanUseProjectStrict } = vi.hoisted(
+  () => ({
+    mockGetAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
+    mockValidateOrigin: vi.fn().mockReturnValue(true),
+    mockVerifyPoW: vi.fn().mockResolvedValue({ ok: true }),
+    mockCanUseProjectStrict: vi.fn().mockResolvedValue(true),
+  })
+);
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -160,7 +157,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
   describe('successful authentication', () => {
     it('should verify RS256 JWT and set authenticated auth method', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
@@ -178,7 +180,7 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(res.status).toBe(200);
       const ctx = getContext();
       expect(ctx?.metadata?.endUserId).toBe('user_123');
-      expect(ctx?.metadata?.authMethod).toBe('app_credential_authenticated');
+      expect(ctx?.metadata?.authMethod).toBe('app_credential_web_client_authenticated');
       expect(ctx?.apiKeyId).toBe('app:app_test123');
       expect(ctx?.tenantId).toBe('tenant-1');
       expect(ctx?.projectId).toBe('project-1');
@@ -186,7 +188,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should verify ES256 JWT', async () => {
       const app = makeAppWithAuth([
-        { kid: 'ec-key', publicKey: ecPublicKeyPem, algorithm: 'ES256', addedAt: new Date().toISOString() },
+        {
+          kid: 'ec-key',
+          publicKey: ecPublicKeyPem,
+          algorithm: 'ES256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
@@ -203,13 +210,23 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
       expect(res.status).toBe(200);
       expect(getContext()?.metadata?.endUserId).toBe('user_456');
-      expect(getContext()?.metadata?.authMethod).toBe('app_credential_authenticated');
+      expect(getContext()?.metadata?.authMethod).toBe('app_credential_web_client_authenticated');
     });
 
     it('should select correct key when multiple keys configured', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
-        { kid: 'key-2', publicKey: ecPublicKeyPem, algorithm: 'ES256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
+        {
+          kid: 'key-2',
+          publicKey: ecPublicKeyPem,
+          algorithm: 'ES256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
@@ -230,7 +247,14 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should validate audience when configured', async () => {
       const app = makeAppWithAuth(
-        [{ kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() }],
+        [
+          {
+            kid: 'key-1',
+            publicKey: rsaPublicKeyPem,
+            algorithm: 'RS256',
+            addedAt: new Date().toISOString(),
+          },
+        ],
         'https://api.example.com'
       );
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
@@ -259,7 +283,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
   describe('rejection cases', () => {
     it('should return 401 when kid is missing from JWT header', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
@@ -285,11 +314,21 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should return 401 when kid is not found on app', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
-      const token = await signJwt(rsaPrivateKey, 'RS256', {}, { kid: 'unknown-key', sub: 'user_123' });
+      const token = await signJwt(
+        rsaPrivateKey,
+        'RS256',
+        {},
+        { kid: 'unknown-key', sub: 'user_123' }
+      );
 
       const { app: testApp } = createTestApp();
       const res = await testApp.request('/test', {
@@ -305,7 +344,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should return 401 when sub claim is missing', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
@@ -330,7 +374,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should return 401 when iat claim is missing', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
@@ -355,7 +404,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should return 401 when token is expired', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
@@ -381,7 +435,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should return 401 when token lifetime exceeds 24 hours', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
@@ -407,7 +466,14 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should return 401 when audience does not match', async () => {
       const app = makeAppWithAuth(
-        [{ kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() }],
+        [
+          {
+            kid: 'key-1',
+            publicKey: rsaPublicKeyPem,
+            algorithm: 'RS256',
+            addedAt: new Date().toISOString(),
+          },
+        ],
         'https://api.example.com'
       );
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
@@ -433,7 +499,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should return 401 when signature is invalid (wrong key)', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 
@@ -494,7 +565,14 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
   describe('global app (tenantId null)', () => {
     it('should extract tid/pid from token claims and validate via canUseProjectStrict', async () => {
       const app = makeAppWithAuth(
-        [{ kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() }],
+        [
+          {
+            kid: 'key-1',
+            publicKey: rsaPublicKeyPem,
+            algorithm: 'RS256',
+            addedAt: new Date().toISOString(),
+          },
+        ],
         undefined,
         { tenantId: null, projectId: null }
       );
@@ -532,7 +610,14 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should return 401 when global app token is missing tid/pid claims', async () => {
       const app = makeAppWithAuth(
-        [{ kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() }],
+        [
+          {
+            kid: 'key-1',
+            publicKey: rsaPublicKeyPem,
+            algorithm: 'RS256',
+            addedAt: new Date().toISOString(),
+          },
+        ],
         undefined,
         { tenantId: null, projectId: null }
       );
@@ -554,7 +639,14 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
     it('should return 403 when canUseProjectStrict denies access for global app', async () => {
       const app = makeAppWithAuth(
-        [{ kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() }],
+        [
+          {
+            kid: 'key-1',
+            publicKey: rsaPublicKeyPem,
+            algorithm: 'RS256',
+            addedAt: new Date().toISOString(),
+          },
+        ],
         undefined,
         { tenantId: null, projectId: null }
       );
@@ -584,7 +676,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
   describe('clock skew tolerance', () => {
     it('should accept tokens with exp slightly in the past (within 60s skew)', async () => {
       const app = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
 

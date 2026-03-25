@@ -4,6 +4,7 @@ import {
   getAppById,
   getPoWErrorMessage,
   isSlackUserToken,
+  type PublicKeyConfig,
   updateAppLastUsed,
   validateAndGetApiKey,
   validateOrigin,
@@ -16,7 +17,7 @@ import {
 import { trace } from '@opentelemetry/api';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { errors, jwtVerify } from 'jose';
+import { decodeProtectedHeader, errors, importSPKI, jwtVerify } from 'jose';
 import runDbClient from '../data/db/runDbClient';
 import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
@@ -488,6 +489,93 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthAttempt {
  * Authenticate using an app credential (X-Inkeep-App-Id header).
  * Supports web_client (end-user JWT) and api (app secret) types.
  */
+async function tryAsymmetricJwtVerification(
+  bearerToken: string,
+  publicKeys: PublicKeyConfig[],
+  audience: string | undefined,
+  appId: string
+): Promise<
+  | { ok: true; endUserId: string; kid: string; claims: Record<string, unknown> }
+  | { ok: false; failureMessage: string }
+> {
+  let header: { kid?: string; alg?: string };
+  try {
+    header = decodeProtectedHeader(bearerToken);
+  } catch (err) {
+    logger.debug({ error: err, appId }, 'Failed to decode JWT protected header');
+    return { ok: false, failureMessage: 'Failed to decode JWT header' };
+  }
+
+  if (!header.kid) {
+    return { ok: false, failureMessage: 'JWT missing kid header' };
+  }
+
+  const matchedKey = publicKeys.find((k) => k.kid === header.kid);
+  if (!matchedKey) {
+    logger.warn({ kid: header.kid, appId }, 'App auth: kid not found in app public keys');
+    return { ok: false, failureMessage: `kid "${header.kid}" not found on app` };
+  }
+
+  let cryptoKey: CryptoKey;
+  try {
+    cryptoKey = await importSPKI(matchedKey.publicKey, matchedKey.algorithm);
+  } catch (err) {
+    logger.error({ error: err, kid: header.kid, appId }, 'Failed to import public key for verification');
+    return { ok: false, failureMessage: 'Failed to import public key' };
+  }
+
+  const verifyOptions: Parameters<typeof jwtVerify>[2] = {
+    clockTolerance: 60,
+  };
+  if (audience) {
+    verifyOptions.audience = audience;
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    const result = await jwtVerify(bearerToken, cryptoKey, verifyOptions);
+    payload = result.payload as Record<string, unknown>;
+  } catch (err) {
+    if (err instanceof errors.JWTExpired) {
+      return { ok: false, failureMessage: 'Token expired' };
+    }
+    if (err instanceof errors.JWSSignatureVerificationFailed) {
+      return { ok: false, failureMessage: 'Signature verification failed' };
+    }
+    if (err instanceof errors.JWTClaimValidationFailed) {
+      logger.debug({ error: err.message, appId }, 'JWT claim validation failed');
+      return { ok: false, failureMessage: 'JWT claim validation failed' };
+    }
+    logger.debug({ error: err, appId }, 'JWT verification failed');
+    return { ok: false, failureMessage: 'JWT verification failed' };
+  }
+
+  if (!payload.sub) {
+    return { ok: false, failureMessage: 'JWT missing required sub claim' };
+  }
+
+  if (!payload.iat) {
+    return { ok: false, failureMessage: 'JWT missing required iat claim' };
+  }
+
+  if (!payload.exp) {
+    return { ok: false, failureMessage: 'JWT missing required exp claim' };
+  }
+
+  const exp = payload.exp as number;
+  const iat = payload.iat as number;
+  if (exp - iat > 86400) {
+    return { ok: false, failureMessage: 'Token lifetime exceeds 24 hours' };
+  }
+
+  return {
+    ok: true,
+    endUserId: payload.sub as string,
+    kid: matchedKey.kid,
+    claims: payload,
+  };
+}
+
 async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> {
   const { appId: appIdHeader, apiKey: bearerToken, origin, agentId: requestedAgentId } = reqData;
 
@@ -504,14 +592,20 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
   }
 
   let endUserId: string | undefined;
-  let authMethod: 'app_credential_web_client' | 'app_credential_api';
+  let authMethod:
+    | 'app_credential_web_client'
+    | 'app_credential_api'
+    | 'app_credential_web_client_authenticated';
 
   if (app.type === 'web_client') {
-    authMethod = 'app_credential_web_client';
     const config = app.config as {
       type: 'web_client';
       webClient: {
         allowedDomains: string[];
+        auth?: {
+          publicKeys: PublicKeyConfig[];
+          audience?: string;
+        };
       };
     };
 
@@ -532,24 +626,125 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       return { authResult: null, failureMessage: 'Bearer token required for web_client app' };
     }
 
-    try {
-      const secret = getAnonJwtSecret();
-      const { payload } = await jwtVerify(bearerToken, secret, { issuer: 'inkeep' });
+    const publicKeys = config.webClient.auth?.publicKeys ?? [];
+    const hasAuthConfigured = publicKeys.length > 0;
 
-      if (payload.app !== appIdHeader) {
-        return { authResult: null, failureMessage: 'JWT app claim does not match request app ID' };
+    if (hasAuthConfigured) {
+      const asymResult = await tryAsymmetricJwtVerification(
+        bearerToken,
+        publicKeys,
+        config.webClient.auth?.audience,
+        app.id
+      );
+
+      if (!asymResult.ok) {
+        logger.debug(
+          { appId: app.id, reason: asymResult.failureMessage },
+          'Asymmetric JWT verification failed'
+        );
+        throw new HTTPException(401, { message: asymResult.failureMessage });
       }
 
-      endUserId = payload.sub;
-    } catch (err) {
-      const errorType =
-        err instanceof errors.JWTExpired
-          ? 'expired'
-          : err instanceof errors.JWSSignatureVerificationFailed
-            ? 'signature_invalid'
-            : 'unknown';
-      logger.debug({ errorType, appId: appIdHeader }, 'Anonymous JWT verification failed');
-      return { authResult: null, failureMessage: 'Invalid end-user JWT' };
+      authMethod = 'app_credential_web_client_authenticated';
+      endUserId = asymResult.endUserId;
+
+      const span = trace.getActiveSpan();
+      span?.setAttribute('app.auth.kid', asymResult.kid);
+      span?.setAttribute('app.auth.endUserId', asymResult.endUserId);
+      span?.setAttribute('app.auth.method', authMethod);
+
+      if (!app.tenantId) {
+        const claims = asymResult.claims;
+        const tid = typeof claims.tid === 'string' ? claims.tid : undefined;
+        const pid = typeof claims.pid === 'string' ? claims.pid : undefined;
+        const claimAgentId = typeof claims.agentId === 'string' ? claims.agentId : undefined;
+
+        if (!tid || !pid) {
+          throw new HTTPException(401, {
+            message: 'Global app requires tid and pid claims in token',
+          });
+        }
+
+        try {
+          const canUse = await canUseProjectStrict({
+            userId: asymResult.endUserId,
+            tenantId: tid,
+            projectId: pid,
+          });
+          if (!canUse) {
+            throw new HTTPException(403, {
+              message: 'Access denied: insufficient permissions',
+            });
+          }
+        } catch (error) {
+          if (error instanceof HTTPException) throw error;
+          logger.error({ error }, 'SpiceDB permission check failed for global app auth');
+          throw new HTTPException(503, {
+            message: 'Authorization service temporarily unavailable',
+          });
+        }
+
+        const agentId = claimAgentId || requestedAgentId || app.defaultAgentId || '';
+
+        if (Math.random() < 0.1) {
+          updateAppLastUsed(runDbClient)(app.id).catch((err) => {
+            logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
+          });
+        }
+
+        logger.info(
+          { appId: app.id, kid: asymResult.kid, endUserId, authMethod },
+          'App credential authenticated (global, asymmetric)'
+        );
+
+        return {
+          authResult: {
+            apiKey: bearerToken,
+            tenantId: tid,
+            projectId: pid,
+            agentId,
+            apiKeyId: `app:${app.id}`,
+            metadata: { endUserId, authMethod },
+          },
+        };
+      }
+
+      if (!app.tenantId || !app.projectId) {
+        logger.error(
+          { appId: app.id },
+          'App credential auth: tenant-scoped app missing tenantId or projectId'
+        );
+        throw new HTTPException(500, { message: 'App configuration error' });
+      }
+
+      logger.info(
+        { appId: app.id, kid: asymResult.kid, endUserId, authMethod },
+        'App credential authenticated (asymmetric)'
+      );
+    } else {
+      authMethod = 'app_credential_web_client';
+      try {
+        const secret = getAnonJwtSecret();
+        const { payload } = await jwtVerify(bearerToken, secret, { issuer: 'inkeep' });
+
+        if (payload.app !== appIdHeader) {
+          return {
+            authResult: null,
+            failureMessage: 'JWT app claim does not match request app ID',
+          };
+        }
+
+        endUserId = payload.sub;
+      } catch (err) {
+        const errorType =
+          err instanceof errors.JWTExpired
+            ? 'expired'
+            : err instanceof errors.JWSSignatureVerificationFailed
+              ? 'signature_invalid'
+              : 'unknown';
+        logger.debug({ errorType, appId: appIdHeader }, 'Anonymous JWT verification failed');
+        return { authResult: null, failureMessage: 'Invalid end-user JWT' };
+      }
     }
   } else {
     return { authResult: null, failureMessage: 'Unsupported app type' };

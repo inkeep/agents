@@ -148,7 +148,7 @@ describe('App Auth Keys Routes', () => {
             type: 'api',
             config: { type: 'api', api: {} },
           }),
-        },
+        }
       );
       const apiApp = (await createRes.json()).data.app;
 

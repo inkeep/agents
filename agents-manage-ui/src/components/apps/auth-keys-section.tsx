@@ -49,6 +49,8 @@ export function AuthKeysSection({ tenantId, projectId, appId }: AuthKeysSectionP
     const result = await fetchAppAuthKeysAction(tenantId, projectId, appId);
     if (result.success && result.data) {
       setKeys(result.data);
+    } else {
+      toast.error(result.error || 'Failed to load authentication keys');
     }
     setIsLoading(false);
   }, [tenantId, projectId, appId]);
@@ -145,8 +147,9 @@ export function AuthKeysSection({ tenantId, projectId, appId }: AuthKeysSectionP
                 className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-destructive"
                 disabled={deletingKid === key.kid}
                 onClick={() => handleDelete(key.kid)}
+                aria-label={`Remove key ${key.kid}`}
               >
-                <Trash2 className="size-3.5" />
+                <Trash2 className="size-3.5" aria-hidden="true" />
               </Button>
             </div>
           ))}
