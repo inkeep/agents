@@ -117,18 +117,28 @@ function Nodes() {
         <ExternalAgentNode
           {...baseProps}
           id="ExternalAgent"
-          data={{ externalAgentId: 'ExternalAgent' }}
+          data={{ externalAgentId: 'ExternalAgent', relationshipId: null }}
         />
         {divider}
-        <FunctionToolNode {...baseProps} data={{ toolId: TOOL_ID }} />
+        <FunctionToolNode
+          {...baseProps}
+          data={{ toolId: TOOL_ID, subAgentId: null, relationshipId: null }}
+        />
         {divider}
-        <MCPNode {...baseProps} data={{ toolId: TOOL_ID }} />
+        <MCPNode
+          {...baseProps}
+          data={{ toolId: TOOL_ID, subAgentId: null, relationshipId: null }}
+        />
         {divider}
-        <PlaceholderNode {...baseProps} data={{ name: DATA.name, type: NodeType.MCPPlaceholder }} />
+        <PlaceholderNode {...baseProps} type={NodeType.MCPPlaceholder} data={{}} />
         {divider}
         <SubAgentNode {...baseProps} id="SubAgent" />
         {divider}
-        <TeamAgentNode {...baseProps} id="TeamAgent" data={{ teamAgentId: 'TeamAgent' }} />
+        <TeamAgentNode
+          {...baseProps}
+          id="TeamAgent"
+          data={{ teamAgentId: 'TeamAgent', relationshipId: null }}
+        />
       </ReactFlowProvider>
     </FullAgentFormProvider>
   );
