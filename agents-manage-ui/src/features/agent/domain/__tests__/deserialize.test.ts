@@ -215,7 +215,7 @@ describe('apiToGraph', () => {
     expect(Number.isFinite(subAgentNode?.position.y)).toBe(true);
   });
 
-  it('keeps external agent nodes graph-focused and round-trips headers through RHF data', () => {
+  it('keeps external agent nodes graph-focused and round-trips shared headers through RHF data', () => {
     const fullAgent = {
       id: 'agent-1',
       name: 'Agent 1',
@@ -250,9 +250,6 @@ describe('apiToGraph', () => {
           description: 'External description',
           baseUrl: 'https://example.com/agent',
           credentialReferenceId: null,
-          headers: {
-            Authorization: 'Bearer token',
-          },
         },
       },
     } as any;
@@ -276,9 +273,14 @@ describe('apiToGraph', () => {
         subAgentExternalAgentRelationId: 'external-relation-1',
       },
     ]);
+    expect(
+      JSON.parse(apiToFormValues(fullAgent).externalAgents['external-agent-1']?.headers ?? '{}')
+    ).toEqual({
+      Authorization: 'Bearer token',
+    });
   });
 
-  it('keeps team agent nodes graph-focused and round-trips headers through RHF data', () => {
+  it('keeps team agent nodes graph-focused and round-trips shared headers through RHF data', () => {
     const fullAgent = {
       id: 'agent-1',
       name: 'Agent 1',
@@ -311,9 +313,6 @@ describe('apiToGraph', () => {
           id: 'team-agent-1',
           name: 'Team Agent',
           description: 'Team description',
-          headers: {
-            Authorization: 'Bearer token',
-          },
         },
       },
     } as any;
@@ -335,5 +334,10 @@ describe('apiToGraph', () => {
         subAgentTeamAgentRelationId: 'team-relation-1',
       },
     ]);
+    expect(
+      JSON.parse(apiToFormValues(fullAgent).teamAgents['team-agent-1']?.headers ?? '{}')
+    ).toEqual({
+      Authorization: 'Bearer token',
+    });
   });
 });
