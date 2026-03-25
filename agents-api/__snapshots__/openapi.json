@@ -39720,22 +39720,20 @@
                                   "mediaType": {
                                     "type": "string"
                                   },
-                                  "mimeType": {
-                                    "type": "string"
-                                  },
-                                  "text": {
-                                    "type": "string"
-                                  },
                                   "type": {
                                     "enum": [
                                       "file"
                                     ],
                                     "type": "string"
+                                  },
+                                  "url": {
+                                    "type": "string"
                                   }
                                 },
                                 "required": [
                                   "type",
-                                  "text"
+                                  "url",
+                                  "mediaType"
                                 ],
                                 "type": "object"
                               },
@@ -40409,8 +40407,16 @@
                                       "file": {
                                         "properties": {
                                           "file_data": {
-                                            "pattern": "^data:application\\/pdf;base64,",
-                                            "type": "string"
+                                            "anyOf": [
+                                              {
+                                                "pattern": "^data:application\\/pdf;base64,",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "format": "uri",
+                                                "type": "string"
+                                              }
+                                            ]
                                           },
                                           "filename": {
                                             "type": "string"

@@ -54,8 +54,8 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 The chat endpoint supports files in message content parts with different rules by type:
 
 - **Images (`image_url`)**: support either remote URLs (`https://...`) or base64 `data:` URIs
-- **Files (`file`)**: currently support **PDF only**, and only as base64 `data:` URIs
-- **External PDF URLs are rejected**: pass PDFs inline as `data:application/pdf;base64,...`
+- **Files (`file`)**: currently support **PDF only**
+- **PDF file inputs**: support either remote URLs (`https://...`) or base64 `data:` payloads
 
 ### Request shape for file parts
 
@@ -80,9 +80,15 @@ The chat endpoint supports files in message content parts with different rules b
         },
         {
           "type": "file",
-          "text": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...",
+          "url": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...",
           "mediaType": "application/pdf",
           "filename": "report.pdf"
+        },
+        {
+          "type": "file",
+          "url": "https://example.com/document.pdf",
+          "mediaType": "application/pdf",
+          "filename": "document.pdf"
         }
       ]
     }
@@ -94,16 +100,12 @@ The chat endpoint supports files in message content parts with different rules b
 
 - **Encoding**: data URIs must include a valid base64 payload
 - **Maximum size**: each inline file payload is limited to **10 MB**
-- **Vercel `parts` file typing**: include at least one of `mediaType` or `mimeType`
-  - If both are present, `mediaType` is preferred
+- **Vercel `parts` file typing**: for `/run/api/chat`, file parts use Vercel-compatible shape
+  with `url` (data URI or `https://` for PDFs) and required `mediaType`
 - **Content validation**:
   - Images are validated against supported image bytes
   - PDFs must start with the `%PDF-` signature bytes
-
-<Note>
-  This is intentionally asymmetric: image parts accept both remote URLs and data URIs, while file
-  parts accept PDF data URIs only.
-</Note>
+- **Remote PDF URLs**: must be reachable over `http` or `https` from the Run API. Unreachable hosts, non-PDF responses, or oversized bodies result in **HTTP 400** with an error message (query strings and fragments on the URL are not preserved in stored metadata).
 
 ### Optional Headers
 
