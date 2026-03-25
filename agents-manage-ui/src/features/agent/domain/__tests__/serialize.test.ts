@@ -200,22 +200,12 @@ function serializeAgentData(
 describe('serializeAgentData', () => {
   describe('models object processing', () => {
     it('should set models to undefined when models object has only empty values', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: undefined,
-              structuredOutput: undefined,
-              summarizer: undefined,
-            },
-            skills: [],
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
@@ -226,22 +216,12 @@ describe('serializeAgentData', () => {
     });
 
     it('should set models to undefined when models object has only whitespace values', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: undefined,
-              structuredOutput: undefined,
-              summarizer: undefined,
-            },
-            skills: [],
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
@@ -372,18 +352,12 @@ describe('serializeAgentData', () => {
     });
 
     it('should set models to undefined when no models data is provided', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            skills: [],
-            // no models property
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
