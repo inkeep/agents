@@ -16,7 +16,7 @@ import { isRequired } from '@/lib/utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
 
 interface TeamAgentNodeEditorProps {
-  selectedNode: Node<TeamAgentNodeData>;
+  selectedNode: Pick<Node<TeamAgentNodeData>, 'id' | 'data'>;
 }
 
 export function TeamAgentNodeEditor({ selectedNode }: TeamAgentNodeEditorProps) {

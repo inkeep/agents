@@ -55,7 +55,7 @@ const executionLimitInheritanceInfo = (
 );
 
 interface SubAgentNodeEditorProps {
-  selectedNode: Node<AgentNodeData>;
+  selectedNode: Pick<Node<AgentNodeData>, 'id' | 'data'>;
 }
 
 export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }) => {

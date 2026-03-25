@@ -14,7 +14,7 @@ import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
 
 interface ExternalAgentNodeEditorProps {
-  selectedNode: Node<ExternalAgentNodeData>;
+  selectedNode: Pick<Node<ExternalAgentNodeData>, 'id' | 'data'>;
 }
 
 export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEditorProps) {
@@ -77,9 +77,7 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
         placeholder="{}"
         customTemplate={externalAgentHeadersTemplate}
       />
-      <ExternalLink
-        href={`/${tenantId}/projects/${projectId}/external-agents/${id}/edit`}
-      >
+      <ExternalLink href={`/${tenantId}/projects/${projectId}/external-agents/${id}/edit`}>
         View External Agent
       </ExternalLink>
       {canEdit && (

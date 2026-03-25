@@ -86,17 +86,27 @@ export function SidePane({
         case NodeType.SubAgentPlaceholder:
           return <SubAgentSelector selectedNode={selectedNode as Node} />;
         case NodeType.SubAgent:
-          return <SubAgentNodeEditor selectedNode={selectedNode as Node<AgentNodeData>} />;
+          return (
+            <SubAgentNodeEditor
+              selectedNode={selectedNode as Pick<Node<AgentNodeData>, 'id' | 'data'>}
+            />
+          );
         case NodeType.ExternalAgent: {
           return (
-            <ExternalAgentNodeEditor selectedNode={selectedNode as Node<ExternalAgentNodeData>} />
+            <ExternalAgentNodeEditor
+              selectedNode={selectedNode as Pick<Node<ExternalAgentNodeData>, 'id' | 'data'>}
+            />
           );
         }
         case NodeType.ExternalAgentPlaceholder: {
           return <ExternalAgentSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.TeamAgent: {
-          return <TeamAgentNodeEditor selectedNode={selectedNode as Node<TeamAgentNodeData>} />;
+          return (
+            <TeamAgentNodeEditor
+              selectedNode={selectedNode as Pick<Node<TeamAgentNodeData>, 'id' | 'data'>}
+            />
+          );
         }
         case NodeType.TeamAgentPlaceholder: {
           return <TeamAgentSelector selectedNode={selectedNode as Node} />;
@@ -105,11 +115,17 @@ export function SidePane({
           return <MCPSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.MCP: {
-          return <MCPServerNodeEditor selectedNode={selectedNode as Node<MCPNodeData>} />;
+          return (
+            <MCPServerNodeEditor
+              selectedNode={selectedNode as Pick<Node<MCPNodeData>, 'id' | 'data'>}
+            />
+          );
         }
         case NodeType.FunctionTool: {
           return (
-            <FunctionToolNodeEditor selectedNode={selectedNode as Node<FunctionToolNodeData>} />
+            <FunctionToolNodeEditor
+              selectedNode={selectedNode as Pick<Node<FunctionToolNodeData>, 'id' | 'data'>}
+            />
           );
         }
         default:
@@ -132,7 +148,7 @@ export function SidePane({
       ? () => {
           updateNode(selectedNode.id, {
             type: parentPlaceholder,
-            data: newNodeDefaults[parentPlaceholder],
+            data: newNodeDefaults[parentPlaceholder](selectedNode.id),
           });
         }
       : backToAgent;

@@ -30,7 +30,7 @@ import type { MCPNodeData } from '../../configuration/node-types';
 import { SchemaOverrideBadge } from './schema-override-badge';
 
 interface MCPServerNodeEditorProps {
-  selectedNode: Node<MCPNodeData>;
+  selectedNode: Pick<Node<MCPNodeData>, 'id' | 'data'>;
 }
 
 export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) {

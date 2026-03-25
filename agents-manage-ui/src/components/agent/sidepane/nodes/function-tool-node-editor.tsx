@@ -30,7 +30,7 @@ import { isRequired } from '@/lib/utils';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 
 interface FunctionToolNodeEditorProps {
-  selectedNode: Node<FunctionToolNodeData>;
+  selectedNode: Pick<Node<FunctionToolNodeData>, 'id' | 'data'>;
 }
 
 export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorProps) {

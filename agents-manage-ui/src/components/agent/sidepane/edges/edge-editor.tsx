@@ -2,11 +2,7 @@ import { type Edge, useNodesData, useReactFlow } from '@xyflow/react';
 import { Spline, Trash2 } from 'lucide-react';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
-import {
-  type ExternalAgentNodeData,
-  NodeType,
-  type TeamAgentNodeData,
-} from '@/components/agent/configuration/node-types';
+import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -152,11 +148,13 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
       case NodeType.SubAgent:
         return form.getValues(`subAgents.${node.id}.name`);
       case NodeType.ExternalAgent:
-        return form.getValues(
-          `externalAgents.${(node.data as ExternalAgentNodeData).externalAgentId}.name`
-        );
+        return isNodeType(node, NodeType.ExternalAgent)
+          ? form.getValues(`externalAgents.${node.data.externalAgentId}.name`)
+          : undefined;
       case NodeType.TeamAgent:
-        return form.getValues(`teamAgents.${(node.data as TeamAgentNodeData).teamAgentId}.name`);
+        return isNodeType(node, NodeType.TeamAgent)
+          ? form.getValues(`teamAgents.${node.data.teamAgentId}.name`)
+          : undefined;
       case NodeType.MCP:
         return form.getValues(`tools.${node.data.toolId}.name`);
       case NodeType.FunctionTool:
