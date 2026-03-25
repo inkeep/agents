@@ -3,13 +3,7 @@ import type { z } from 'zod';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import {
-  type ExternalAgentNodeData,
-  type FunctionToolNodeData,
-  type MCPNodeData,
-  NodeType,
-  type TeamAgentNodeData,
-} from '@/components/agent/configuration/node-types';
+import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import type { AgentSkill, MCPRelationSchema } from '@/components/agent/form/validation';
 import type { FullAgentFormValues, FullAgentPayload } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
@@ -193,12 +187,11 @@ export function serializeAgentData(
       for (const edge of agentToMcpEdges) {
         const mcpNode = nodes.find((n) => n.id === edge.target);
 
-        if (mcpNode && mcpNode.type === NodeType.MCP) {
-          const mcpNodeData = mcpNode.data as MCPNodeData;
-          const toolId = mcpNodeData.toolId;
+        if (isNodeType(mcpNode, NodeType.MCP)) {
+          const toolId = mcpNode.data.toolId;
 
           if (toolId) {
-            const relationshipId = mcpNodeData.relationshipId;
+            const relationshipId = mcpNode.data.relationshipId;
             const relationKey = getMcpRelationFormKey({
               nodeId: mcpNode.id,
               relationshipId,
@@ -232,11 +225,9 @@ export function serializeAgentData(
       for (const edge of agentToFunctionToolEdges) {
         const functionToolNode = nodes.find((n) => n.id === edge.target);
 
-        if (functionToolNode && functionToolNode.type === NodeType.FunctionTool) {
-          const nodeData = functionToolNode.data as FunctionToolNodeData;
-
-          const functionToolId = nodeData.toolId || functionToolNode.id;
-          const relationshipId = nodeData.relationshipId;
+        if (isNodeType(functionToolNode, NodeType.FunctionTool)) {
+          const functionToolId = functionToolNode.data.toolId;
+          const relationshipId = functionToolNode.data.relationshipId;
           const functionTool = requireFormValue(
             functionToolFormData[functionToolId],
             `Missing RHF function tool data for node "${functionToolNode.id}".`
@@ -299,8 +290,10 @@ export function serializeAgentData(
 
       subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
-      const nodeData = node.data as ExternalAgentNodeData;
-      const externalAgentId = nodeData.externalAgentId;
+      if (!isNodeType(node, NodeType.ExternalAgent)) {
+        continue;
+      }
+      const externalAgentId = node.data.externalAgentId;
       const externalAgentForm = requireFormValue(
         externalAgentFormData[externalAgentId],
         `Missing RHF external agent data for node "${node.id}".`
@@ -319,13 +312,15 @@ export function serializeAgentData(
         updatedAt: '',
         credentialReferenceId: null,
         headers,
-        relationshipId: nodeData.relationshipId || null,
+        relationshipId: node.data.relationshipId || null,
       };
 
       externalAgents[externalAgentId] = externalAgent;
     } else if (node.type === NodeType.TeamAgent) {
-      const nodeData = node.data as TeamAgentNodeData;
-      const teamAgentId = nodeData.teamAgentId;
+      if (!isNodeType(node, NodeType.TeamAgent)) {
+        continue;
+      }
+      const teamAgentId = node.data.teamAgentId;
       const teamAgentForm = requireFormValue(
         teamAgentFormData[teamAgentId],
         `Missing RHF team agent data for node "${node.id}".`
@@ -339,7 +334,7 @@ export function serializeAgentData(
         name: teamAgentForm.name,
         description: teamAgentForm.description ?? '',
         headers,
-        relationshipId: nodeData.relationshipId || null,
+        relationshipId: node.data.relationshipId || null,
       };
       teamAgents[teamAgentId] = teamAgent;
     }
@@ -362,12 +357,11 @@ export function serializeAgentData(
       const targetAgentNode = nodes.find((node) => node.id === edge.target);
 
       const sourceSubAgentId = getSubAgentIdForNode(sourceAgentNode, subAgentFormData) as string;
-      const targetSubAgentId =
-        targetAgentNode?.type === NodeType.ExternalAgent
-          ? (targetAgentNode.data as ExternalAgentNodeData).externalAgentId
-          : targetAgentNode?.type === NodeType.TeamAgent
-            ? (targetAgentNode.data as TeamAgentNodeData).teamAgentId
-            : (getSubAgentIdForNode(targetAgentNode, subAgentFormData) as string);
+      const targetSubAgentId = isNodeType(targetAgentNode, NodeType.ExternalAgent)
+        ? targetAgentNode.data.externalAgentId
+        : isNodeType(targetAgentNode, NodeType.TeamAgent)
+          ? targetAgentNode.data.teamAgentId
+          : (getSubAgentIdForNode(targetAgentNode, subAgentFormData) as string);
       const sourceAgent: ExtendedAgent = subAgents[sourceSubAgentId];
 
       const targetAgent: ExtendedAgent | undefined = subAgents[targetSubAgentId];
