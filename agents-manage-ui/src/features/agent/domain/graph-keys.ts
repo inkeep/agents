@@ -1,31 +1,48 @@
-export function getSubAgentGraphKey(val: string): string;
-export function getSubAgentGraphKey(val?: null): null;
-export function getSubAgentGraphKey(subAgentId?: string | null) {
-  return subAgentId ? `sub-agent:${subAgentId}` : null;
+type MaybeString = string | null | undefined;
+
+type McpGraphKeyArgs = {
+  relationshipId: MaybeString;
+  subAgentId: MaybeString;
+  toolId: MaybeString;
+  fallbackId: MaybeString;
+};
+
+type RequiredMcpGraphKeyArgs =
+  | (McpGraphKeyArgs & { relationshipId: string })
+  | (McpGraphKeyArgs & { toolId: string })
+  | (McpGraphKeyArgs & { fallbackId: string });
+
+type FunctionToolGraphKeyArgs = {
+  toolId: MaybeString;
+  relationshipId: MaybeString;
+  fallbackId: MaybeString;
+};
+
+type RequiredFunctionToolGraphKeyArgs =
+  | (FunctionToolGraphKeyArgs & { toolId: string })
+  | (FunctionToolGraphKeyArgs & { relationshipId: string })
+  | (FunctionToolGraphKeyArgs & { fallbackId: string });
+
+function getPrefixedGraphKey(prefix: string, value: string): string;
+function getPrefixedGraphKey(prefix: string, value: MaybeString): string | null;
+function getPrefixedGraphKey(prefix: string, value: MaybeString): string | null {
+  return value ? `${prefix}:${value}` : null;
 }
 
-export function getMcpGraphKey(args: { relationshipId: string }): string;
-export function getMcpGraphKey(args: { subAgentId: string }): string;
-export function getMcpGraphKey(args: { toolId: string }): string;
-export function getMcpGraphKey(args: { fallbackId: string }): string;
-// If nothing is provided or all null/undefined → return null
-export function getMcpGraphKey(args: {
-  relationshipId?: null;
-  subAgentId?: null;
-  toolId?: null;
-  fallbackId?: null;
-}): null;
+export function getSubAgentGraphKey(val: string): string;
+export function getSubAgentGraphKey(val: MaybeString): string | null;
+export function getSubAgentGraphKey(subAgentId: MaybeString) {
+  return getPrefixedGraphKey('sub-agent', subAgentId);
+}
+
+export function getMcpGraphKey(args: RequiredMcpGraphKeyArgs): string;
+export function getMcpGraphKey(args: McpGraphKeyArgs): string | null;
 export function getMcpGraphKey({
   relationshipId,
   subAgentId,
   toolId,
   fallbackId,
-}: {
-  relationshipId?: string | null;
-  subAgentId?: string | null;
-  toolId?: string | null;
-  fallbackId?: string | null;
-}) {
+}: McpGraphKeyArgs): string | null {
   if (relationshipId) {
     return `mcp:${relationshipId}`;
   }
@@ -42,30 +59,20 @@ export function getMcpGraphKey({
     if (fallbackId) {
       return `mcp:${toolId}:${fallbackId}`;
     }
+
     return `mcp:${toolId}`;
   }
 
   return fallbackId ? `mcp:${fallbackId}` : null;
 }
 
-export function getFunctionToolGraphKey(args: { toolId: string }): string;
-export function getFunctionToolGraphKey(args: { relationshipId: string }): string;
-export function getFunctionToolGraphKey(args: { fallbackId: string }): string;
-// If nothing is provided or all null/undefined → return null
-export function getFunctionToolGraphKey(args: {
-  toolId?: null;
-  relationshipId?: null;
-  fallbackId?: null;
-}): null;
+export function getFunctionToolGraphKey(args: RequiredFunctionToolGraphKeyArgs): string;
+export function getFunctionToolGraphKey(args: FunctionToolGraphKeyArgs): string | null;
 export function getFunctionToolGraphKey({
   relationshipId,
   toolId,
   fallbackId,
-}: {
-  relationshipId?: string | null;
-  toolId?: string | null;
-  fallbackId?: string | null;
-}) {
+}: FunctionToolGraphKeyArgs): string | null {
   if (toolId) {
     return `function-tool:${toolId}`;
   }
@@ -78,13 +85,13 @@ export function getFunctionToolGraphKey({
 }
 
 export function getExternalAgentGraphKey(val: string): string;
-export function getExternalAgentGraphKey(val?: null): null;
-export function getExternalAgentGraphKey(externalAgentId?: string | null) {
-  return externalAgentId ? `external-agent:${externalAgentId}` : null;
+export function getExternalAgentGraphKey(val: MaybeString): string | null;
+export function getExternalAgentGraphKey(externalAgentId: MaybeString) {
+  return getPrefixedGraphKey('external-agent', externalAgentId);
 }
 
 export function getTeamAgentGraphKey(val: string): string;
-export function getTeamAgentGraphKey(val?: null): null;
-export function getTeamAgentGraphKey(teamAgentId?: string | null) {
-  return teamAgentId ? `team-agent:${teamAgentId}` : null;
+export function getTeamAgentGraphKey(val: MaybeString): string | null;
+export function getTeamAgentGraphKey(teamAgentId: MaybeString) {
+  return getPrefixedGraphKey('team-agent', teamAgentId);
 }
