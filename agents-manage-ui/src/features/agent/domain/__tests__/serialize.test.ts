@@ -8,6 +8,7 @@ import { syncSavedAgentGraph } from '../sync-saved-agent-graph';
 type TestMcpRelations = Record<
   string,
   {
+    relationshipId?: string | null;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
     toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
@@ -152,14 +153,10 @@ function createSerializeAgentFormState(
         nodes
           .filter((node) => node.type === NodeType.MCP)
           .map((node) => {
-            const relationKey =
-              typeof node.data.relationshipId === 'string' && node.data.relationshipId
-                ? node.data.relationshipId
-                : node.id;
-
             return [
-              relationKey,
+              node.id,
               {
+                relationshipId: undefined,
                 selectedTools: null,
                 headers: undefined,
                 toolPolicies: undefined,
@@ -212,6 +209,7 @@ function editorToPayload(
         Object.entries(mcpRelations).map(([key, value]) => [
           key,
           {
+            relationshipId: value.relationshipId ?? undefined,
             selectedTools: value.selectedTools,
             headers: value.headers ?? undefined,
             toolPolicies: value.toolPolicies ?? undefined,
@@ -388,8 +386,6 @@ describe('editorToPayload', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];
@@ -433,8 +429,6 @@ describe('editorToPayload', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];
@@ -479,8 +473,6 @@ describe('editorToPayload', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];
@@ -524,8 +516,6 @@ describe('editorToPayload', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];
@@ -563,8 +553,6 @@ describe('editorToPayload', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            relationshipId: 'rel-1',
-            subAgentId: null,
           },
         },
       ];
@@ -579,7 +567,8 @@ describe('editorToPayload', () => {
       ];
 
       const result = editorToPayload(nodes, edges, {
-        'rel-1': {
+        mcp1: {
+          relationshipId: 'rel-1',
           selectedTools: null,
           headers: null,
           toolPolicies: null,
@@ -611,8 +600,6 @@ describe('editorToPayload', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];
@@ -670,8 +657,6 @@ describe('editorToPayload', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];
@@ -1246,8 +1231,6 @@ describe('editorToPayload', () => {
           position: { x: 300, y: 0 },
           data: {
             toolId: 'weather',
-            subAgentId: tempNodeId,
-            relationshipId: null,
           },
         },
       ];
@@ -1340,7 +1323,7 @@ describe('editorToPayload', () => {
         expect.objectContaining({
           id: 'edge-weather',
           source: 'sub-agent1',
-          target: 'weather-node',
+          target: 'mcp:relation-1',
           selected: true,
         }),
       ]);

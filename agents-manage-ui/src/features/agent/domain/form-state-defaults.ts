@@ -45,29 +45,20 @@ export function createFunctionToolFormInput({
   };
 }
 
-export function getMcpRelationFormKey({
-  nodeId,
-  relationshipId,
-}: {
-  nodeId: string;
-  relationshipId?: string | null;
-}): string {
-  return relationshipId ?? nodeId;
+export function getMcpRelationFormKey({ nodeId }: { nodeId: string }): string {
+  return nodeId;
 }
 
 export function createMcpRelationFormInput({
   toolId,
   relationshipId,
-  subAgentId,
 }: {
   toolId: string;
   relationshipId?: string | null;
-  subAgentId?: string | null;
 }): MCPRelationFormInput {
   return {
     toolId,
     relationshipId: relationshipId ?? undefined,
-    subAgentId: subAgentId ?? undefined,
     selectedTools: null,
     headers: '{}',
     toolPolicies: {},

@@ -5,6 +5,7 @@ import {
   findEdgeByGraphKey,
   findNodeByGraphKey,
   getEdgeGraphKey,
+  getMcpGraphKey,
   getNodeGraphKey,
 } from './graph-identity';
 import { getSubAgentIdForNode } from './sub-agent-identity';
@@ -123,18 +124,78 @@ export function syncSavedAgentGraph({
     return current ?? null;
   };
 
+  const renamedSourceEdges = edges.map((edge) => ({
+    ...edge,
+    source: renameSubAgentId(edge.source),
+    target: renameSubAgentId(edge.target),
+  }));
+
+  const claimedMcpRelationIds = new Map<string, string>();
+  const renamedMcpNodeIds = new Map<string, string>();
+  for (const node of nodes) {
+    if (!isNodeType(node, NodeType.MCP)) {
+      continue;
+    }
+
+    const incomingEdge = renamedSourceEdges.find((edge) => edge.target === node.id);
+    if (!incomingEdge) {
+      continue;
+    }
+
+    const relationshipId = claimRelationId(incomingEdge.source, node.data.toolId);
+    if (!relationshipId) {
+      continue;
+    }
+    claimedMcpRelationIds.set(node.id, relationshipId);
+
+    const nextId = getMcpGraphKey({
+      relationshipId,
+      subAgentId: incomingEdge.source,
+      toolId: node.data.toolId,
+      fallbackId: node.id,
+    });
+    if (nextId && nextId !== node.id) {
+      renamedMcpNodeIds.set(node.id, nextId);
+    }
+  }
+
+  const renameMcpNodeId = (id: string) => renamedMcpNodeIds.get(id) ?? id;
+
   const preliminarilySyncedNodes = nodes
     .map((node) => {
       if (node.type === NodeType.SubAgent) {
-        const nextId = renameSubAgentId(node.id);
         return {
           ...node,
-          id: nextId,
+          id: renameSubAgentId(node.id),
         };
       }
 
-      if (node.type === NodeType.MCP || node.type === NodeType.FunctionTool) {
-        if (!isNodeType(node, NodeType.MCP) && !isNodeType(node, NodeType.FunctionTool)) {
+      if (node.type === NodeType.MCP) {
+        if (!isNodeType(node, NodeType.MCP)) {
+          return node;
+        }
+
+        const incomingEdge = renamedSourceEdges.find((edge) => edge.target === node.id);
+        if (!incomingEdge) {
+          return null;
+        }
+
+        const relationshipId = claimedMcpRelationIds.get(node.id) ?? null;
+        if (!relationshipId) {
+          return null;
+        }
+
+        return {
+          ...node,
+          id: renameMcpNodeId(node.id),
+          data: {
+            ...node.data,
+          },
+        };
+      }
+
+      if (node.type === NodeType.FunctionTool) {
+        if (!isNodeType(node, NodeType.FunctionTool)) {
           return node;
         }
         const subAgentId = node.data.subAgentId ? renameSubAgentId(node.data.subAgentId) : null;
@@ -143,8 +204,11 @@ export function syncSavedAgentGraph({
           return null;
         }
 
-        const toolId = node.data.toolId;
-        const relationshipId = claimRelationId(subAgentId, toolId, node.data.relationshipId);
+        const relationshipId = claimRelationId(
+          subAgentId,
+          node.data.toolId,
+          node.data.relationshipId
+        );
 
         return {
           ...node,
@@ -160,10 +224,9 @@ export function syncSavedAgentGraph({
     })
     .filter((node): node is Node => node !== null);
 
-  const syncedEdges = edges.map((edge) => ({
+  const syncedEdges = renamedSourceEdges.map((edge) => ({
     ...edge,
-    source: renameSubAgentId(edge.source),
-    target: renameSubAgentId(edge.target),
+    target: renameMcpNodeId(edge.target),
   }));
 
   const syncedNodes = preliminarilySyncedNodes
@@ -229,7 +292,9 @@ export function syncSavedAgentGraph({
           node.id ===
           (selectedNode.type === NodeType.SubAgent
             ? renameSubAgentId(selectedNode.id)
-            : selectedNode.id)
+            : selectedNode.type === NodeType.MCP
+              ? renameMcpNodeId(selectedNode.id)
+              : selectedNode.id)
       )
     : undefined;
   const nextNodeId = selectedSyncedNode

@@ -152,8 +152,6 @@ describe('agent serialize/deserialize', () => {
         position: { x: 0, y: 0 },
         data: {
           toolId: 't1',
-          subAgentId: null,
-          relationshipId: null,
         },
       },
     ];

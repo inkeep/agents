@@ -186,11 +186,14 @@ export function apiToGraph(data: AgentGraphData): TransformResult {
           continue;
         }
 
-        const nodeData = {
-          toolId,
-          subAgentId,
-          relationshipId: relationshipId ?? null,
-        };
+        const nodeData =
+          nodeType === NodeType.FunctionTool
+            ? {
+                toolId,
+                subAgentId,
+                relationshipId: relationshipId ?? null,
+              }
+            : { toolId };
 
         const toolNode: Node = {
           id: toolNodeId,

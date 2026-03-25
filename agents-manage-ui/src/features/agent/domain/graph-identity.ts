@@ -22,6 +22,10 @@ export function getMcpGraphKey({
     return `mcp:${relationshipId}`;
   }
 
+  if (fallbackId?.startsWith('mcp:')) {
+    return fallbackId;
+  }
+
   if (subAgentId && toolId) {
     return `mcp:${subAgentId}:${toolId}`;
   }
@@ -77,13 +81,8 @@ export function getNodeGraphKey(node?: Node, subAgentFormData?: SubAgentFormData
       if (!isNodeType(node, NodeType.MCP)) {
         return null;
       }
-      const { relationshipId, subAgentId, toolId } = node.data;
-      const resolvedSubAgentId =
-        (subAgentId && subAgentFormData?.[subAgentId]?.id) || subAgentId || null;
       return getMcpGraphKey({
-        relationshipId,
-        subAgentId: resolvedSubAgentId,
-        toolId,
+        toolId: node.data.toolId,
         fallbackId: node.id,
       });
     }
@@ -127,13 +126,15 @@ function matchesLegacyNodeReference(
       if (!isNodeType(node, NodeType.MCP)) {
         return false;
       }
-      const { relationshipId, subAgentId, toolId } = node.data;
-      const resolvedSubAgentId =
-        (subAgentId && subAgentFormData?.[subAgentId]?.id) || subAgentId || null;
+      const { toolId } = node.data;
+      const persistedRelationshipId =
+        node.id.startsWith('mcp:') && !node.id.startsWith(`mcp:${toolId}:`)
+          ? node.id.slice('mcp:'.length)
+          : null;
       return (
-        relationshipId === reference ||
+        persistedRelationshipId === reference ||
         toolId === reference ||
-        getMcpGraphKey({ subAgentId: resolvedSubAgentId, toolId }) === reference
+        getMcpGraphKey({ toolId, fallbackId: node.id }) === reference
       );
     }
     case NodeType.FunctionTool: {

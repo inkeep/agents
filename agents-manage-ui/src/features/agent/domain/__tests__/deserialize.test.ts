@@ -98,8 +98,6 @@ describe('apiToGraph', () => {
 
     expect(mcpNode?.data).toMatchObject({
       toolId: 'tool-1',
-      subAgentId: 'sub-agent-1',
-      relationshipId: 'relation-1',
     });
     expect(mcpNode?.id).toBe('mcp:relation-1');
 
