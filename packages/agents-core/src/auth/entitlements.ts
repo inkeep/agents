@@ -6,7 +6,10 @@ import {
   dalSumSeatEntitlements,
 } from '../data-access/runtime/entitlements';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
+import { getLogger } from '../utils/logger';
 import { DEFAULT_MEMBERSHIP_LIMIT, SEAT_RESOURCE_TYPES } from './entitlement-constants';
+
+const logger = getLogger('entitlements');
 
 export { DEFAULT_MEMBERSHIP_LIMIT, SEAT_RESOURCE_TYPES } from './entitlement-constants';
 
@@ -50,6 +53,10 @@ export async function enforcePerRoleSeatLimit(
   const current = await countSeatsByRole(db, orgId, role);
   if (current >= limit) {
     const bucket = roleMatchesAdminBucket(role) ? 'admin' : 'member';
+    logger.info(
+      { orgId, role, bucket, currentCount: current, maxValue: limit, action: 'enforce' },
+      `${bucket} seat limit reached (${current}/${limit})`
+    );
     throw new Error(`${bucket} seat limit reached (${current}/${limit})`);
   }
 }

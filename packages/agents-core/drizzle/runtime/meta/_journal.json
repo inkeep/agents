@@ -183,6 +183,13 @@
       "when": 1774445372249,
       "tag": "0025_solid_malice",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1774460835868,
+      "tag": "0026_gifted_william_stryker",
+      "breakpoints": true
     }
   ]
 }

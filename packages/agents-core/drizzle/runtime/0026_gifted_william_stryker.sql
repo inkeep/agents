@@ -1,0 +1,1 @@
+ALTER TABLE "org_entitlement" ADD CONSTRAINT "org_entitlement_resource_type_format" CHECK (resource_type ~ '^[a-z]+:[a-z][a-z0-9_]*$');

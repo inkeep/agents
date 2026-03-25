@@ -1,6 +1,7 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   foreignKey,
   index,
   integer,
@@ -991,5 +992,6 @@ export const orgEntitlement = pgTable(
       foreignColumns: [organization.id],
       name: 'org_entitlement_organization_fk',
     }).onDelete('cascade'),
+    check('org_entitlement_resource_type_format', sql`resource_type ~ '^[a-z]+:[a-z][a-z0-9_]*$'`),
   ]
 );
