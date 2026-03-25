@@ -1917,11 +1917,38 @@ const AllowedDomainSchema = z
     'Invalid domain pattern. Use a hostname (e.g. "example.com"), wildcard ("*.example.com"), or bare "*" to allow all origins.'
   );
 
+export const PublicKeyAlgorithmSchema = z.enum([
+  'RS256',
+  'RS384',
+  'RS512',
+  'ES256',
+  'ES384',
+  'ES512',
+  'EdDSA',
+]);
+
+export const PublicKeyConfigSchema = z
+  .object({
+    kid: z.string().min(1),
+    publicKey: z.string().min(1),
+    algorithm: PublicKeyAlgorithmSchema,
+    addedAt: z.string().datetime(),
+  })
+  .openapi('PublicKeyConfig');
+
+export const WebClientAuthConfigSchema = z
+  .object({
+    publicKeys: z.array(PublicKeyConfigSchema).max(5).default([]),
+    audience: z.string().optional(),
+  })
+  .openapi('WebClientAuthConfig');
+
 export const WebClientConfigSchema = z
   .object({
     type: z.literal('web_client'),
     webClient: z.object({
       allowedDomains: z.array(AllowedDomainSchema).min(1),
+      auth: WebClientAuthConfigSchema.optional(),
     }),
   })
   .openapi('WebClientConfig');
@@ -1942,6 +1969,7 @@ export const WebClientConfigResponseSchema = z
     type: z.literal('web_client'),
     webClient: z.object({
       allowedDomains: z.array(AllowedDomainSchema).min(1),
+      auth: WebClientAuthConfigSchema.optional(),
     }),
   })
   .openapi('WebClientConfigResponse');

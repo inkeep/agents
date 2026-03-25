@@ -9,8 +9,11 @@ import type {
   McpTransportConfigSchema,
   ModelSchema,
   ProjectModelSchema,
+  PublicKeyAlgorithmSchema,
+  PublicKeyConfigSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
+  WebClientAuthConfigSchema,
   WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
@@ -432,6 +435,9 @@ export type ChannelIds = z.infer<typeof ChannelIdsSchema>;
 
 export type AppType = 'web_client' | 'api';
 
+export type PublicKeyAlgorithm = z.infer<typeof PublicKeyAlgorithmSchema>;
+export type PublicKeyConfig = z.infer<typeof PublicKeyConfigSchema>;
+export type WebClientAuthConfig = z.infer<typeof WebClientAuthConfigSchema>;
 export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
 
 export type ApiConfig = z.infer<typeof ApiConfigSchema>;
