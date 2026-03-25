@@ -126,12 +126,7 @@ function Nodes() {
         {divider}
         <FunctionToolNode
           {...baseProps}
-          data={{
-            nodeKey: `function-tool:${TOOL_ID}`,
-            toolId: TOOL_ID,
-            subAgentId: null,
-            relationshipId: null,
-          }}
+          data={{ nodeKey: `function-tool:${TOOL_ID}`, toolId: TOOL_ID }}
         />
         {divider}
         <MCPNode {...baseProps} data={{ nodeKey: `mcp:${TOOL_ID}:foo`, toolId: TOOL_ID }} />

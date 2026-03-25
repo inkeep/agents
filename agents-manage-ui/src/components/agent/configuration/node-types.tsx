@@ -69,8 +69,6 @@ export type ExternalAgentNodeData = StrictNodeData<
 export type FunctionToolNodeData = StrictNodeData<
   AnimatableNodeFields & {
     toolId: string;
-    subAgentId: string | null;
-    relationshipId: string | null;
   }
 >;
 
@@ -160,8 +158,6 @@ export const newNodeDefaults: {
   [NodeType.FunctionTool]: (nodeId) => ({
     nodeKey: getFunctionToolGraphKey({ toolId: nodeId }),
     toolId: nodeId,
-    subAgentId: null,
-    relationshipId: null,
   }),
   [NodeType.TeamAgent]: (nodeId) => ({
     nodeKey: getTeamAgentGraphKey(nodeId),
