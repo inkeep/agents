@@ -267,6 +267,13 @@ export function TimelineItem({
                 <Streamdown>{activity.description}</Streamdown>
               </span>
             </button>
+            {activity.costUsd != null && (
+              <span className="flex-shrink-0 text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                {activity.costUsd < 0.01
+                  ? `$${activity.costUsd.toFixed(6)}`
+                  : `$${activity.costUsd.toFixed(4)}`}
+              </span>
+            )}
             {hasChildren && onToggleCollapse && (
               <button
                 type="button"
@@ -416,6 +423,14 @@ export function TimelineItem({
                 from={activity.transferFromSubAgentId || 'Unknown sub agent'}
                 to={activity.transferToSubAgentId || 'Unknown sub agent'}
               />
+            )}
+
+          {/* AI generation result subtitle */}
+          {(activity.type === ACTIVITY_TYPES.AI_GENERATION ||
+            activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT) &&
+            activity.result &&
+            activity.status !== ACTIVITY_STATUS.ERROR && (
+              <p className="text-xs text-muted-foreground line-clamp-2">{activity.result}</p>
             )}
 
           {/* tool purpose bubble */}

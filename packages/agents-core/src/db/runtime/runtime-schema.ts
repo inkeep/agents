@@ -649,6 +649,15 @@ export const userProfileRelations = relations(userProfile, ({ one }) => ({
 }));
 
 // ============================================================================
+// USAGE GENERATION TYPES (table removed — usage now tracked via OTel/SigNoz)
+// ============================================================================
+
+import { USAGE_GENERATION_TYPES } from '../../constants/otel-attributes';
+
+export { USAGE_GENERATION_TYPES };
+export type GenerationType = (typeof USAGE_GENERATION_TYPES)[number];
+
+// ============================================================================
 // RUNTIME RELATIONS
 // ============================================================================
 // Note: Relations only within the runtime DB. Cross-DB relations must be

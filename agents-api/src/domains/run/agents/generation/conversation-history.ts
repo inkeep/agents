@@ -1,4 +1,9 @@
 import type { FilePart } from '@inkeep/agents-core';
+import {
+  type ContextBreakdown,
+  calculateBreakdownTotal,
+  estimateTokens,
+} from '@inkeep/agents-core';
 import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { getLogger } from '../../../../logger';
 import {
@@ -6,11 +11,6 @@ import {
   formatMessagesAsConversationHistory,
   getConversationHistoryWithCompression,
 } from '../../data/conversations';
-import {
-  type ContextBreakdown,
-  calculateBreakdownTotal,
-  estimateTokens,
-} from '../../utils/token-estimator';
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 
