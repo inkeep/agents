@@ -62,25 +62,25 @@ function createFunctionToolFormValue(
 }
 
 function createExternalAgentFormValue(
-  externalAgentId: string,
+  id: string,
   overrides: Partial<SerializeAgentFormState['externalAgents'][string]> = {}
 ): SerializeAgentFormState['externalAgents'][string] {
   return {
-    id: externalAgentId,
+    id,
     name: '',
     description: '',
-    baseUrl: '',
+    baseUrl: 'https://example.com/agent',
     headers: undefined,
     ...overrides,
   };
 }
 
 function createTeamAgentFormValue(
-  teamAgentId: string,
+  id: string,
   overrides: Partial<SerializeAgentFormState['teamAgents'][string]> = {}
 ): SerializeAgentFormState['teamAgents'][string] {
   return {
-    id: teamAgentId,
+    id,
     name: '',
     description: '',
     headers: undefined,
@@ -125,22 +125,26 @@ function createSerializeAgentFormState(
       .filter((node) => node.type === NodeType.ExternalAgent)
       .map((node) => {
         const externalAgentId =
-          typeof node.data.externalAgentId === 'string' ? node.data.externalAgentId : node.id;
+          typeof node.data.externalAgentId === 'string' && node.data.externalAgentId
+            ? node.data.externalAgentId
+            : node.id;
 
         return [externalAgentId, createExternalAgentFormValue(externalAgentId)];
       })
-  );
+  ) as SerializeAgentFormState['externalAgents'];
 
   const teamAgents = Object.fromEntries(
     nodes
       .filter((node) => node.type === NodeType.TeamAgent)
       .map((node) => {
         const teamAgentId =
-          typeof node.data.teamAgentId === 'string' ? node.data.teamAgentId : node.id;
+          typeof node.data.teamAgentId === 'string' && node.data.teamAgentId
+            ? node.data.teamAgentId
+            : node.id;
 
         return [teamAgentId, createTeamAgentFormValue(teamAgentId)];
       })
-  );
+  ) as SerializeAgentFormState['teamAgents'];
 
   return {
     mcpRelations: {
@@ -797,7 +801,7 @@ describe('editorToPayload', () => {
       ]);
     });
 
-    it('should use RHF external/team headers for delegation relationships', () => {
+    it('should use shared external and team agent headers for delegation relationships', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
@@ -862,21 +866,15 @@ describe('editorToPayload', () => {
         undefined,
         undefined,
         {
-          'external-1': {
-            id: 'external-1',
-            name: 'External Agent',
-            baseUrl: 'https://example.com',
+          'external-1': createExternalAgentFormValue('external-1', {
             headers: { authorization: 'Bearer external-token' },
-          },
-        } as any,
+          }),
+        },
         {
-          'team-1': {
-            id: 'team-1',
-            name: 'Team Agent',
-            description: '',
+          'team-1': createTeamAgentFormValue('team-1', {
             headers: { authorization: 'Bearer team-token' },
-          },
-        } as any
+          }),
+        }
       );
 
       expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
@@ -956,21 +954,15 @@ describe('editorToPayload', () => {
         undefined,
         undefined,
         {
-          'external-1': {
-            id: 'external-1',
-            name: 'External Agent',
-            baseUrl: 'https://example.com',
+          'external-1': createExternalAgentFormValue('external-1', {
             headers: { authorization: 'Bearer external-token' },
-          },
-        } as any,
+          }),
+        },
         {
-          'team-1': {
-            id: 'team-1',
-            name: 'Team Agent',
-            description: '',
+          'team-1': createTeamAgentFormValue('team-1', {
             headers: { authorization: 'Bearer team-token' },
-          },
-        } as any
+          }),
+        },
       );
 
       expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
@@ -982,6 +974,136 @@ describe('editorToPayload', () => {
         agentId: 'team-1',
         headers: { authorization: 'Bearer team-token' },
         subAgentTeamAgentRelationId: 'team-rel-1',
+      });
+    });
+
+    it('shares external and team agent headers across connected subagents', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'agent2',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 200 },
+          data: {},
+        },
+        {
+          id: 'external-node-1',
+          type: NodeType.ExternalAgent,
+          position: { x: 300, y: -100 },
+          data: {
+            externalAgentId: 'external-1',
+            relationshipId: null,
+          },
+        },
+        {
+          id: 'team-node-1',
+          type: NodeType.TeamAgent,
+          position: { x: 300, y: 100 },
+          data: {
+            teamAgentId: 'team-1',
+            relationshipId: null,
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-ext-1',
+          type: EdgeType.A2AExternal,
+          source: 'agent1',
+          target: 'external-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-ext-2',
+          type: EdgeType.A2AExternal,
+          source: 'agent2',
+          target: 'external-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-team-1',
+          type: EdgeType.A2ATeam,
+          source: 'agent1',
+          target: 'team-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-team-2',
+          type: EdgeType.A2ATeam,
+          source: 'agent2',
+          target: 'team-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+      ];
+
+      const result = editorToPayload(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        {
+          'external-1': createExternalAgentFormValue('external-1', {
+            headers: { authorization: 'Bearer shared-external' },
+          }),
+        },
+        {
+          'team-1': createTeamAgentFormValue('team-1', {
+            headers: { authorization: 'Bearer shared-team' },
+          }),
+        },
+        undefined,
+        undefined
+      );
+
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        externalAgentId: 'external-1',
+        headers: { authorization: 'Bearer shared-external' },
+      });
+      expect(result.subAgents.agent2.canDelegateTo).toContainEqual({
+        externalAgentId: 'external-1',
+        headers: { authorization: 'Bearer shared-external' },
+      });
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        agentId: 'team-1',
+        headers: { authorization: 'Bearer shared-team' },
+      });
+      expect(result.subAgents.agent2.canDelegateTo).toContainEqual({
+        agentId: 'team-1',
+        headers: { authorization: 'Bearer shared-team' },
       });
     });
   });
