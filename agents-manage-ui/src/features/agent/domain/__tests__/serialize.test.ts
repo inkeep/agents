@@ -1,6 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import type { SerializeAgentFormState } from '../serialize';
 import { serializeAgentData as serializeAgentDataInternal } from '../serialize';
@@ -15,6 +14,80 @@ type TestMcpRelations = Record<
   }
 >;
 
+type SubAgentFormOverride = Omit<
+  Partial<SerializeAgentFormState['subAgents'][string]>,
+  'models'
+> & {
+  models?: Partial<NonNullable<SerializeAgentFormState['subAgents'][string]['models']>>;
+};
+
+function createSubAgentFormValue(
+  id: string,
+  overrides: SubAgentFormOverride = {}
+): SerializeAgentFormState['subAgents'][string] {
+  const { models, ...rest } = overrides;
+
+  return {
+    id,
+    name: '',
+    description: '',
+    prompt: '',
+    type: 'internal',
+    models: {
+      base: {},
+      structuredOutput: {},
+      summarizer: {},
+    },
+    canUse: [],
+    dataComponents: [],
+    artifactComponents: [],
+    stopWhen: {},
+    skills: [],
+    ...rest,
+    ...(models && { models: models as SerializeAgentFormState['subAgents'][string]['models'] }),
+  };
+}
+
+function createFunctionToolFormValue(
+  toolId: string,
+  overrides: Partial<SerializeAgentFormState['functionTools'][string]> = {}
+): SerializeAgentFormState['functionTools'][string] {
+  return {
+    functionId: toolId,
+    name: '',
+    description: '',
+    tempToolPolicies: {},
+    ...overrides,
+  };
+}
+
+function createExternalAgentFormValue(
+  externalAgentId: string,
+  overrides: Partial<SerializeAgentFormState['externalAgents'][string]> = {}
+): SerializeAgentFormState['externalAgents'][string] {
+  return {
+    id: externalAgentId,
+    name: '',
+    description: '',
+    baseUrl: '',
+    headers: undefined,
+    ...overrides,
+  };
+}
+
+function createTeamAgentFormValue(
+  teamAgentId: string,
+  overrides: Partial<SerializeAgentFormState['teamAgents'][string]> = {}
+): SerializeAgentFormState['teamAgents'][string] {
+  return {
+    id: teamAgentId,
+    name: '',
+    description: '',
+    headers: undefined,
+    ...overrides,
+  };
+}
+
 function createSerializeAgentFormState(
   nodes: Node[],
   overrides: Partial<SerializeAgentFormState> = {}
@@ -22,28 +95,7 @@ function createSerializeAgentFormState(
   const subAgents = Object.fromEntries(
     nodes
       .filter((node) => node.type === NodeType.SubAgent)
-      .map((node) => [
-        node.id,
-        {
-          id: typeof node.data.id === 'string' ? node.data.id : node.id,
-          name: typeof node.data.name === 'string' ? node.data.name : '',
-          description: typeof node.data.description === 'string' ? node.data.description : '',
-          prompt: typeof node.data.prompt === 'string' ? node.data.prompt : '',
-          type: 'internal' as const,
-          models: (node.data.models as SerializeAgentFormState['subAgents'][string]['models']) ?? {
-            base: {},
-            structuredOutput: {},
-            summarizer: {},
-          },
-          canUse: [],
-          dataComponents: Array.isArray(node.data.dataComponents) ? node.data.dataComponents : [],
-          artifactComponents: Array.isArray(node.data.artifactComponents)
-            ? node.data.artifactComponents
-            : [],
-          stopWhen: (node.data.stopWhen as Record<string, unknown>) ?? {},
-          skills: Array.isArray(node.data.skills) ? node.data.skills : [],
-        },
-      ])
+      .map((node) => [node.id, createSubAgentFormValue(node.id)])
   ) as SerializeAgentFormState['subAgents'];
 
   const functionTools = Object.fromEntries(
@@ -53,18 +105,7 @@ function createSerializeAgentFormState(
         const toolId =
           typeof node.data.toolId === 'string' && node.data.toolId ? node.data.toolId : node.id;
 
-        return [
-          toolId,
-          {
-            functionId: toolId,
-            name: typeof node.data.name === 'string' ? node.data.name : '',
-            description: typeof node.data.description === 'string' ? node.data.description : '',
-            tempToolPolicies:
-              (node.data
-                .tempToolPolicies as SerializeAgentFormState['functionTools'][string]['tempToolPolicies']) ??
-              {},
-          },
-        ];
+        return [toolId, createFunctionToolFormValue(toolId)];
       })
   ) as SerializeAgentFormState['functionTools'];
 
@@ -86,16 +127,7 @@ function createSerializeAgentFormState(
         const externalAgentId =
           typeof node.data.externalAgentId === 'string' ? node.data.externalAgentId : node.id;
 
-        return [
-          externalAgentId,
-          {
-            id: externalAgentId,
-            name: typeof node.data.name === 'string' ? node.data.name : '',
-            description: typeof node.data.description === 'string' ? node.data.description : '',
-            baseUrl: typeof node.data.baseUrl === 'string' ? node.data.baseUrl : '',
-            headers: undefined,
-          },
-        ];
+        return [externalAgentId, createExternalAgentFormValue(externalAgentId)];
       })
   );
 
@@ -106,15 +138,7 @@ function createSerializeAgentFormState(
         const teamAgentId =
           typeof node.data.teamAgentId === 'string' ? node.data.teamAgentId : node.id;
 
-        return [
-          teamAgentId,
-          {
-            id: teamAgentId,
-            name: typeof node.data.name === 'string' ? node.data.name : '',
-            description: typeof node.data.description === 'string' ? node.data.description : '',
-            headers: undefined,
-          },
-        ];
+        return [teamAgentId, createTeamAgentFormValue(teamAgentId)];
       })
   );
 
@@ -153,7 +177,10 @@ function createSerializeAgentFormState(
       ...teamAgents,
       ...overrides.teamAgents,
     },
-    subAgents: overrides.subAgents ?? subAgents,
+    subAgents: {
+      ...subAgents,
+      ...overrides.subAgents,
+    },
     functions: {
       ...functions,
       ...overrides.functions,
