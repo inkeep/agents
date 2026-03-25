@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
-import { getLedgerArtifacts, SPAN_KEYS, upsertLedgerArtifact } from '@inkeep/agents-core';
+import { getLedgerArtifacts, SPAN_KEYS, updateLedgerArtifactParts } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -530,12 +530,22 @@ export abstract class BaseCompressor {
     this.cumulativeSummary = summary;
 
     if (summary.related_artifacts?.length) {
-      this.persistArtifactKeyFindings(summary.related_artifacts).catch((err) =>
+      try {
+        const persistResult = await this.persistArtifactKeyFindings(summary.related_artifacts);
+        logger.debug(
+          { ...persistResult, conversationId: this.conversationId },
+          'Artifact key_findings persistence completed'
+        );
+      } catch (err) {
         logger.warn(
-          { err: err instanceof Error ? err.message : String(err) },
+          {
+            conversationId: this.conversationId,
+            artifactIds: summary.related_artifacts.map((a) => a.id),
+            err: err instanceof Error ? err.message : String(err),
+          },
           'Failed to persist key_findings to artifacts'
-        )
-      );
+        );
+      }
     }
 
     return summary;
@@ -631,45 +641,70 @@ export abstract class BaseCompressor {
 
   protected async persistArtifactKeyFindings(
     relatedArtifacts: NonNullable<ConversationSummary['related_artifacts']>
-  ): Promise<void> {
+  ): Promise<{ persisted: number; skipped: number; failed: number }> {
+    const result = { persisted: 0, skipped: 0, failed: 0 };
+
     for (const artifact of relatedArtifacts) {
-      if (!artifact.id || !artifact.key_findings?.length) continue;
+      if (!artifact.key_findings?.length) {
+        result.skipped++;
+        continue;
+      }
       try {
         const existing = await getLedgerArtifacts(runDbClient)({
           scopes: { tenantId: this.tenantId, projectId: this.projectId },
           artifactId: artifact.id,
         });
-        if (existing.length === 0) continue;
-
-        const dbArtifact = existing[0];
-        const parts = (dbArtifact.parts ?? []) as any[];
-        if (parts.length > 0 && parts[0]?.data?.summary) {
-          parts[0].data.summary = {
-            ...parts[0].data.summary,
-            key_findings: artifact.key_findings,
-          };
+        if (existing.length === 0) {
+          logger.debug(
+            { artifactId: artifact.id },
+            'Artifact not found in DB, skipping key_findings persistence'
+          );
+          result.skipped++;
+          continue;
         }
 
-        await upsertLedgerArtifact(runDbClient)({
+        const dbArtifact = existing[0];
+        const parts = structuredClone(dbArtifact.parts ?? []) as any[];
+        if (parts.length === 0 || !parts[0]?.data?.summary) {
+          logger.debug(
+            { artifactId: artifact.id, hasParts: parts.length > 0 },
+            'Artifact has no summary structure, skipping key_findings persistence'
+          );
+          result.skipped++;
+          continue;
+        }
+
+        parts[0].data.summary = {
+          ...parts[0].data.summary,
+          key_findings: artifact.key_findings,
+        };
+
+        const updated = await updateLedgerArtifactParts(runDbClient)({
           scopes: { tenantId: this.tenantId, projectId: this.projectId },
-          contextId: this.conversationId,
-          taskId: dbArtifact.taskId ?? `task_${this.conversationId}-${this.sessionId}`,
-          toolCallId: dbArtifact.toolCallId,
-          artifact: {
-            ...dbArtifact,
-            parts,
-          },
+          artifactId: artifact.id,
+          parts,
         });
+
+        if (updated) {
+          result.persisted++;
+        } else {
+          logger.warn({ artifactId: artifact.id }, 'updateLedgerArtifactParts matched no rows');
+          result.failed++;
+        }
       } catch (error) {
+        result.failed++;
         logger.warn(
           {
             artifactId: artifact.id,
+            conversationId: this.conversationId,
             error: error instanceof Error ? error.message : String(error),
           },
           'Failed to persist key_findings to artifact'
         );
       }
     }
+
+    return result;
   }
 
   cleanup(options: { resetSummary?: boolean; keepRecentToolCalls?: number } = {}): void {
