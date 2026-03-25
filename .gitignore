@@ -126,3 +126,5 @@ progress.txt
 
 packages/agents-ui-local.claude/pr-diff/
 .agents/skills/pr-context/
+.claude/pr-diff/
+.agents/skills/pr-context/
