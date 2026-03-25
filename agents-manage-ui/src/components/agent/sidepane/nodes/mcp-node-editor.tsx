@@ -99,9 +99,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   if (!toolData || !tool) {
     return (
       <div className="flex items-center justify-center p-4">
-        <div className="text-sm text-muted-foreground">
-          {!tool ? 'Loading tool configuration...' : `Tool data not found for ${toolId}.`}
-        </div>
+        <div className="text-sm text-muted-foreground">Tool data not found for {toolId}.</div>
       </div>
     );
   }
