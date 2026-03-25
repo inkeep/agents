@@ -25,7 +25,6 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { getFunctionIdForTool } from '@/features/agent/domain';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { isRequired } from '@/lib/utils';
@@ -45,8 +44,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
   const form = useFullAgentFormContext();
   const id = selectedNode.data.toolId;
-  const functionTools = useWatch({ control: form.control, name: 'functionTools' });
-  const functionId = getFunctionIdForTool(id, functionTools) as string;
+  const functionId = useWatch({ control: form.control, name: `functionTools.${id}.functionId` });
   const path = <K extends string>(key: K) => `functionTools.${id}.${key}` as const;
   const path$ = <K extends string>(key: K) => `functions.${functionId}.${key}` as const;
 
@@ -55,7 +53,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 
   const handleWriteWithAISubmit = () => {
     if (!chatFunctionsRef?.current) return;
-    const name = form.getValues(`functionTools.${id}.name`);
+    const name = form.getValues(path('name'));
     const baseMessage = `I want to update the code for the function tool "${name}".`;
     const message = writeWithAIInstructions.trim()
       ? `${baseMessage}\n\n${writeWithAIInstructions.trim()}`

@@ -69,32 +69,33 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
     control,
     name: `mcpRelations.${relationKey}`,
   });
-  const tool = useWatch({ control, name: `tools.${data.toolId}` });
+  const id = data.toolId;
+  const tool = useWatch({ control, name: `tools.${id}` });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const skeletonToolLookup = createLookup(mcpTools);
 
   // Get skeleton data from initial page load (status: 'unknown', availableTools: [])
-  const skeletonToolData = skeletonToolLookup[data.toolId];
+  const skeletonToolData = skeletonToolLookup[id];
 
   // Lazy-load actual status for this specific tool
   const { data: liveToolData, isLoading: isConnecting } = useMcpToolStatusQuery({
     tenantId,
     projectId,
-    toolId: data.toolId,
-    enabled: !!data.toolId,
+    toolId: id,
+    enabled: !!id,
   });
 
   // Use live data if available, fall back to skeleton
   const toolData = liveToolData ?? skeletonToolData;
   const processedErrors = [
-    ...useProcessedErrors('tools', data.toolId),
+    ...useProcessedErrors('tools', id),
     ...useProcessedErrors('mcpRelations', relationKey),
   ];
   if (!tool) {
     return (
       <BaseNode>
-        <BaseNodeContent className="text-sm text-destructive">{`MCP tool "${data.toolId}" not found.`}</BaseNodeContent>
+        <BaseNodeContent className="text-sm text-destructive">{`MCP tool "${id}" not found.`}</BaseNodeContent>
       </BaseNode>
     );
   }

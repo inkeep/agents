@@ -4,7 +4,6 @@ import { Code, Shield } from 'lucide-react';
 import { useWatch } from 'react-hook-form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { getFunctionIdForTool } from '@/features/agent/domain';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
 import { toolPoliciesNeedApproval } from '@/lib/utils/tool-policies';
@@ -20,20 +19,19 @@ import { Handle } from './handle';
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
   'use memo';
   const { control } = useFullAgentFormContext();
-  const { toolId } = data;
+  const id = data.toolId;
   const status = getNodeStatus(data);
 
-  const functionTool = useWatch({ control, name: `functionTools.${toolId}` });
-  const functionTools = useWatch({ control, name: 'functionTools' });
-  const functionId = getFunctionIdForTool(toolId, functionTools) as string;
+  const functionTool = useWatch({ control, name: `functionTools.${id}` });
+  const functionId = useWatch({ control, name: `functionTools.${id}.functionId` }) as string;
   const processedErrors = [
-    ...useProcessedErrors('functionTools', toolId),
+    ...useProcessedErrors('functionTools', id),
     ...useProcessedErrors('functions', functionId),
   ];
   if (!functionTool) {
     return (
       <BaseNode>
-        <BaseNodeContent className="text-sm text-destructive">{`Function Tool "${toolId}" not found.`}</BaseNodeContent>
+        <BaseNodeContent className="text-sm text-destructive">{`Function Tool "${id}" not found.`}</BaseNodeContent>
       </BaseNode>
     );
   }

@@ -95,20 +95,16 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
       );
     }
   }, [liveToolData, orphanedTools, selectedNode.id]);
-  if (!toolData || !tool) {
-    return;
-  }
-  const currentToolPolicies = mcpRelation?.toolPolicies ?? {};
-  const toolOverrides = tool.config.type === 'mcp' ? tool.config.mcp.toolOverrides : undefined;
-
   // Handle missing tool data
-  if (!toolData) {
+  if (!toolData || !tool) {
     return (
       <div className="flex items-center justify-center p-4">
         <div className="text-sm text-muted-foreground">Tool data not found for {toolId}.</div>
       </div>
     );
   }
+  const currentToolPolicies = mcpRelation?.toolPolicies ?? {};
+  const toolOverrides = tool.config.type === 'mcp' ? tool.config.mcp.toolOverrides : undefined;
 
   const toggleToolSelection = (toolName: string) => {
     // Handle null case (all tools selected) - convert to array of all tool names
