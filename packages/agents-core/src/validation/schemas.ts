@@ -1964,6 +1964,26 @@ export const AppConfigSchema = z
   .discriminatedUnion('type', [WebClientConfigSchema, ApiConfigSchema])
   .openapi('AppConfig');
 
+export const AddPublicKeyRequestSchema = z
+  .object({
+    kid: z.string().min(1).describe('Key identifier'),
+    publicKey: z.string().min(1).describe('PEM-encoded public key'),
+    algorithm: PublicKeyAlgorithmSchema.describe('Signing algorithm'),
+  })
+  .openapi('AddPublicKeyRequest');
+
+export const PublicKeyListResponseSchema = z
+  .object({
+    data: z.array(PublicKeyConfigSchema),
+  })
+  .openapi('PublicKeyListResponse');
+
+export const PublicKeyResponseSchema = z
+  .object({
+    data: PublicKeyConfigSchema,
+  })
+  .openapi('PublicKeyResponse');
+
 export const WebClientConfigResponseSchema = z
   .object({
     type: z.literal('web_client'),

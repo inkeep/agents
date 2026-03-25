@@ -1,12 +1,13 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  AddPublicKeyRequestSchema,
   commonGetErrorResponses,
   createApiError,
-  getAppByIdForProject,
-  PublicKeyAlgorithmSchema,
-  PublicKeyConfigSchema,
+  getAppAuthKeysForProject,
+  PublicKeyListResponseSchema,
+  PublicKeyResponseSchema,
   TenantProjectParamsSchema,
-  updateAppForProject,
+  updateAppAuthKeysForProject,
   validatePublicKey,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -21,26 +22,6 @@ const AppAuthKeyParamsSchema = TenantProjectParamsSchema.extend({
 const AppAuthKeyWithKidParamsSchema = AppAuthKeyParamsSchema.extend({
   kid: z.string().min(1),
 });
-
-const AddPublicKeyBodySchema = z
-  .object({
-    kid: z.string().min(1).describe('Key identifier'),
-    publicKey: z.string().min(1).describe('PEM-encoded public key'),
-    algorithm: PublicKeyAlgorithmSchema.describe('Signing algorithm'),
-  })
-  .openapi('AddPublicKeyRequest');
-
-const PublicKeyListResponseSchema = z
-  .object({
-    data: z.array(PublicKeyConfigSchema),
-  })
-  .openapi('PublicKeyListResponse');
-
-const PublicKeyResponseSchema = z
-  .object({
-    data: PublicKeyConfigSchema,
-  })
-  .openapi('PublicKeyResponse');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -71,7 +52,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, appId } = c.req.valid('param');
 
-    const appRecord = await getAppByIdForProject(runDbClient)({
+    const appRecord = await getAppAuthKeysForProject(runDbClient)({
       scopes: { tenantId, projectId },
       id: appId,
     });
@@ -106,7 +87,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: AddPublicKeyBodySchema,
+            schema: AddPublicKeyRequestSchema,
           },
         },
       },
@@ -127,7 +108,7 @@ app.openapi(
     const { tenantId, projectId, appId } = c.req.valid('param');
     const { kid, publicKey, algorithm } = c.req.valid('json');
 
-    const appRecord = await getAppByIdForProject(runDbClient)({
+    const appRecord = await getAppAuthKeysForProject(runDbClient)({
       scopes: { tenantId, projectId },
       id: appId,
     });
@@ -181,16 +162,14 @@ app.openapi(
       publicKeys: updatedKeys,
     };
 
-    await updateAppForProject(runDbClient)({
+    await updateAppAuthKeysForProject(runDbClient)({
       scopes: { tenantId, projectId },
       id: appId,
-      data: {
-        config: {
-          type: 'web_client',
-          webClient: {
-            ...appRecord.config.webClient,
-            auth: updatedAuth,
-          },
+      config: {
+        type: 'web_client',
+        webClient: {
+          ...appRecord.config.webClient,
+          auth: updatedAuth,
         },
       },
     });
@@ -221,7 +200,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, appId, kid } = c.req.valid('param');
 
-    const appRecord = await getAppByIdForProject(runDbClient)({
+    const appRecord = await getAppAuthKeysForProject(runDbClient)({
       scopes: { tenantId, projectId },
       id: appId,
     });
@@ -253,16 +232,14 @@ app.openapi(
       publicKeys: updatedKeys,
     };
 
-    await updateAppForProject(runDbClient)({
+    await updateAppAuthKeysForProject(runDbClient)({
       scopes: { tenantId, projectId },
       id: appId,
-      data: {
-        config: {
-          type: 'web_client',
-          webClient: {
-            ...appRecord.config.webClient,
-            auth: updatedAuth,
-          },
+      config: {
+        type: 'web_client',
+        webClient: {
+          ...appRecord.config.webClient,
+          auth: updatedAuth,
         },
       },
     });

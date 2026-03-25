@@ -81,6 +81,7 @@ export type ConversationMetadata = {
   preferences?: Record<string, unknown>;
   sessionData?: Record<string, unknown>;
   apiKeyId?: string;
+  externalUserId?: string;
   initiatedBy?: {
     type: 'user' | 'api_key';
     id: string;

@@ -5,6 +5,7 @@ import {
   getPoWErrorMessage,
   isSlackUserToken,
   type PublicKeyConfig,
+  type WebClientConfig,
   updateAppLastUsed,
   validateAndGetApiKey,
   validateOrigin,
@@ -520,7 +521,10 @@ async function tryAsymmetricJwtVerification(
   try {
     cryptoKey = await importSPKI(matchedKey.publicKey, matchedKey.algorithm);
   } catch (err) {
-    logger.error({ error: err, kid: header.kid, appId }, 'Failed to import public key for verification');
+    logger.error(
+      { error: err, kid: header.kid, appId },
+      'Failed to import public key for verification'
+    );
     return { ok: false, failureMessage: 'Failed to import public key' };
   }
 
@@ -598,16 +602,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
     | 'app_credential_web_client_authenticated';
 
   if (app.type === 'web_client') {
-    const config = app.config as {
-      type: 'web_client';
-      webClient: {
-        allowedDomains: string[];
-        auth?: {
-          publicKeys: PublicKeyConfig[];
-          audience?: string;
-        };
-      };
-    };
+    const config = app.config as WebClientConfig;
 
     if (!validateOrigin(origin, config.webClient.allowedDomains)) {
       logger.warn(
