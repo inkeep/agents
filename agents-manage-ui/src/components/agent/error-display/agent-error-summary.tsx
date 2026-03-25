@@ -223,15 +223,15 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
             <AlertCircle className="size-3" />
             {`Validation Errors (${errorCount})`}
           </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => {
-              setShowErrors((prev) => !prev);
-            }}
-          >
-            <X className="size-3" />
-          </Button>
+          {/*<Button*/}
+          {/*  variant="ghost"*/}
+          {/*  size="icon-sm"*/}
+          {/*  onClick={() => {*/}
+          {/*    setShowErrors((prev) => !prev);*/}
+          {/*  }}*/}
+          {/*>*/}
+          {/*  <X className="size-3" />*/}
+          {/*</Button>*/}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 px-3 overflow-y-auto max-h-[calc(80vh-80px)] scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">
