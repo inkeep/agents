@@ -1,5 +1,12 @@
 import type { Artifact } from '@inkeep/agents-core';
-import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
+import {
+  type AssembleResult,
+  type BreakdownComponentDef,
+  calculateBreakdownTotal,
+  createEmptyBreakdown,
+  estimateTokens,
+  V1_BREAKDOWN_SCHEMA,
+} from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../../../templates/v1/prompt/system-prompt.xml?raw';
 import toolTemplate from '../../../../../../templates/v1/prompt/tool.xml?raw';
@@ -15,13 +22,6 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../../../utils/schema-validation';
-import {
-  type AssembleResult,
-  type BreakdownComponentDef,
-  calculateBreakdownTotal,
-  createEmptyBreakdown,
-  estimateTokens,
-} from '../../../utils/token-estimator';
 import type {
   McpServerGroupData,
   SkillData,

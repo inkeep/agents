@@ -77,6 +77,23 @@ export interface ResolvedGenerationResponse {
   output?: any;
   object?: any;
   formattedContent?: MessageContent | null;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+  };
+  totalUsage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+  };
+  response?: {
+    modelId?: string;
+  };
 }
 
 /**
@@ -101,13 +118,16 @@ export async function resolveGenerationResponse(
   }
 
   try {
-    const [steps, text, finishReason, output] = await Promise.all([
+    const [steps, text, finishReason, output, usage, totalUsage, responseObj] = await Promise.all([
       Promise.resolve(
         stepsValue as PromiseLike<Array<StepResult<ToolSet>>> | Array<StepResult<ToolSet>>
       ),
       Promise.resolve(response.text as PromiseLike<string> | string),
       Promise.resolve(response.finishReason as PromiseLike<FinishReason> | FinishReason),
       Promise.resolve(response.output),
+      Promise.resolve(response.usage),
+      Promise.resolve(response.totalUsage),
+      Promise.resolve(response.response),
     ]);
 
     return {
@@ -116,6 +136,9 @@ export async function resolveGenerationResponse(
       text,
       finishReason,
       output,
+      usage,
+      totalUsage,
+      response: responseObj,
     } as ResolvedGenerationResponse;
   } catch (error) {
     throw new Error(
