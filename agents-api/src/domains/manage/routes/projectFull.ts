@@ -262,7 +262,11 @@ app.openapi(
     const db = c.get('db');
 
     try {
-      const project: FullProjectSelect | null = await getFullProject(db, undefined, runDbClient)({
+      const project: FullProjectSelect | null = await getFullProject(
+        db,
+        undefined,
+        runDbClient
+      )({
         scopes: { tenantId, projectId },
       });
 

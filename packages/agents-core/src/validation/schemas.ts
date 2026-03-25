@@ -909,9 +909,8 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
     updatedAt: true,
   })
   .openapi('TriggerCreate');
-export const TriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
-  TriggerUpdateSchema
-).openapi('TriggerUpdate');
+export const TriggerApiUpdateSchema =
+  createAgentScopedApiUpdateSchema(TriggerUpdateSchema).openapi('TriggerUpdate');
 
 // Extended Trigger schema with webhookUrl (for manage API responses)
 // Note: This extends the base TriggerApiSelectSchema to add the computed webhookUrl field

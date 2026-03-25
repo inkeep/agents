@@ -1259,7 +1259,11 @@ export const updateFullProjectServerSide =
  * Get a complete project definition with all nested resources
  */
 const getFullProjectInternal =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger, runDb?: AgentsRunDatabaseClient) =>
+  (
+    db: AgentsManageDatabaseClient,
+    logger: ProjectLogger = defaultLogger,
+    runDb?: AgentsRunDatabaseClient
+  ) =>
   async (params: {
     scopes: ProjectScopeConfig;
     includeRelationIds?: boolean;
@@ -1449,7 +1453,11 @@ const getFullProjectInternal =
               'Retrieving full agent definition'
             );
 
-            const fullAgent = await getAgentFn(db, logger, runDb)({
+            const fullAgent = await getAgentFn(
+              db,
+              logger,
+              runDb
+            )({
               scopes: { tenantId, projectId, agentId: agent.id },
             });
 
@@ -1537,7 +1545,11 @@ const getFullProjectInternal =
   };
 
 export const getFullProject =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger, runDb?: AgentsRunDatabaseClient) =>
+  (
+    db: AgentsManageDatabaseClient,
+    logger: ProjectLogger = defaultLogger,
+    runDb?: AgentsRunDatabaseClient
+  ) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectSelect | null> => {
     const { scopes } = params;
     return getFullProjectInternal(
@@ -1548,7 +1560,11 @@ export const getFullProject =
   };
 
 export const getFullProjectWithRelationIds =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger, runDb?: AgentsRunDatabaseClient) =>
+  (
+    db: AgentsManageDatabaseClient,
+    logger: ProjectLogger = defaultLogger,
+    runDb?: AgentsRunDatabaseClient
+  ) =>
   async (params: {
     scopes: ProjectScopeConfig;
   }): Promise<FullProjectSelectWithRelationIds | null> => {
