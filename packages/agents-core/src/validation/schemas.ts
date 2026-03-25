@@ -1128,7 +1128,7 @@ export type ScheduledTriggerInvocationUpdate = z.infer<
 export type ScheduledTriggerInvocationStatus = z.infer<typeof ScheduledTriggerInvocationStatusEnum>;
 
 export const SchedulerStateSelectSchema = createSelectSchema(schedulerState);
-export type SchedulerStateRow = z.infer<typeof SchedulerStateSelectSchema>;
+export type SchedulerState = z.infer<typeof SchedulerStateSelectSchema>;
 
 export const TaskSelectSchema = createSelectSchema(tasks).extend({
   ref: ResolvedRefSchema.nullable().optional(),

@@ -1,12 +1,12 @@
 import { eq, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { schedulerState } from '../../db/runtime/runtime-schema';
-import type { SchedulerStateRow } from '../../validation/schemas';
+import type { SchedulerState } from '../../validation/schemas';
 
 const SINGLETON_ID = 'singleton';
 
 export const getSchedulerState =
-  (db: AgentsRunDatabaseClient) => async (): Promise<SchedulerStateRow | undefined> => {
+  (db: AgentsRunDatabaseClient) => async (): Promise<SchedulerState | undefined> => {
     const row = await db.query.schedulerState.findFirst({
       where: eq(schedulerState.id, SINGLETON_ID),
     });
@@ -15,7 +15,7 @@ export const getSchedulerState =
 
 export const upsertSchedulerState =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { currentRunId: string }): Promise<SchedulerStateRow> => {
+  async (params: { currentRunId: string }): Promise<SchedulerState> => {
     const [row] = await db
       .insert(schedulerState)
       .values({
