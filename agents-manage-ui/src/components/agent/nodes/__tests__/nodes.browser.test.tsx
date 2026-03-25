@@ -74,7 +74,7 @@ function Nodes() {
     isConnectable: true,
     positionAbsoluteX: 0,
     positionAbsoluteY: 0,
-    data: {},
+    data: { nodeKey: 'sub-agent:SubAgent' },
   };
 
   return (
@@ -117,24 +117,37 @@ function Nodes() {
         <ExternalAgentNode
           {...baseProps}
           id="ExternalAgent"
-          data={{ externalAgentId: 'ExternalAgent', relationshipId: null }}
+          data={{
+            nodeKey: 'external-agent:ExternalAgent',
+            externalAgentId: 'ExternalAgent',
+            relationshipId: null,
+          }}
         />
         {divider}
         <FunctionToolNode
           {...baseProps}
-          data={{ toolId: TOOL_ID, subAgentId: null, relationshipId: null }}
+          data={{
+            nodeKey: `function-tool:${TOOL_ID}`,
+            toolId: TOOL_ID,
+            subAgentId: null,
+            relationshipId: null,
+          }}
         />
         {divider}
-        <MCPNode {...baseProps} data={{ toolId: TOOL_ID }} />
+        <MCPNode {...baseProps} data={{ nodeKey: `mcp:${TOOL_ID}:foo`, toolId: TOOL_ID }} />
         {divider}
         <PlaceholderNode {...baseProps} type={NodeType.MCPPlaceholder} data={{}} />
         {divider}
-        <SubAgentNode {...baseProps} id="SubAgent" />
+        <SubAgentNode {...baseProps} id="SubAgent" data={{ nodeKey: 'sub-agent:SubAgent' }} />
         {divider}
         <TeamAgentNode
           {...baseProps}
           id="TeamAgent"
-          data={{ teamAgentId: 'TeamAgent', relationshipId: null }}
+          data={{
+            nodeKey: 'team-agent:TeamAgent',
+            teamAgentId: 'TeamAgent',
+            relationshipId: null,
+          }}
         />
       </ReactFlowProvider>
     </FullAgentFormProvider>
