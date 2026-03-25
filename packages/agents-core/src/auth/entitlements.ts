@@ -2,13 +2,9 @@ import { and, eq, like, or, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { orgEntitlement } from '../db/runtime/runtime-schema';
 import { invitation, member, organization } from './auth-schema';
+import { DEFAULT_MEMBERSHIP_LIMIT, SEAT_RESOURCE_TYPES } from './entitlement-constants';
 
-export const SEAT_RESOURCE_TYPES = {
-  ADMIN: 'seat:admin',
-  MEMBER: 'seat:member',
-} as const;
-
-export const DEFAULT_MEMBERSHIP_LIMIT = 300;
+export { DEFAULT_MEMBERSHIP_LIMIT, SEAT_RESOURCE_TYPES } from './entitlement-constants';
 
 export function roleMatchesAdminBucket(role: string): boolean {
   return role === 'owner' || role === 'admin';

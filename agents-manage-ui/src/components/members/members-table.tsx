@@ -365,20 +365,38 @@ export function MembersTable({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {ROLE_OPTIONS.map((r) => (
-                                <DropdownMenuItem
-                                  key={r.value}
-                                  onClick={() => handleRoleChange(member, r.value)}
-                                  className={role === r.value ? 'bg-muted' : ''}
-                                >
-                                  <div className="flex flex-col">
-                                    <span>{r.label}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {r.description}
-                                    </span>
-                                  </div>
-                                </DropdownMenuItem>
-                              ))}
+                              {ROLE_OPTIONS.map((r) => {
+                                const isTargetFull = (() => {
+                                  if (!seatUsage || role === r.value) return false;
+                                  const isAdminTarget = r.value === 'admin' || r.value === 'owner';
+                                  const info = isAdminTarget ? seatUsage.admin : seatUsage.member;
+                                  return info ? info.used >= info.max : false;
+                                })();
+                                return (
+                                  <DropdownMenuItem
+                                    key={r.value}
+                                    onClick={() =>
+                                      !isTargetFull && handleRoleChange(member, r.value)
+                                    }
+                                    className={`${role === r.value ? 'bg-muted' : ''} ${isTargetFull ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={isTargetFull}
+                                  >
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center gap-2">
+                                        <span>{r.label}</span>
+                                        {isTargetFull && (
+                                          <span className="text-[10px] text-destructive font-medium">
+                                            Seat limit reached
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-xs text-muted-foreground">
+                                        {r.description}
+                                      </span>
+                                    </div>
+                                  </DropdownMenuItem>
+                                );
+                              })}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         ) : (
@@ -471,6 +489,7 @@ export function MembersTable({
         onOpenChange={setInviteDialogOpen}
         isOrgAdmin={isOrgAdmin}
         onInvitationsSent={onMemberUpdated}
+        seatUsage={seatUsage}
       />
 
       <ChangePasswordDialog
