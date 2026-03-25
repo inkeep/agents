@@ -7272,10 +7272,6 @@
       },
       "ScheduledTriggerUpdate": {
         "properties": {
-          "agentId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "createdBy": {
             "description": "User ID of the user who created this trigger",
             "example": "user_123",
@@ -7327,10 +7323,6 @@
             "nullable": true,
             "type": "object"
           },
-          "projectId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "ref": {
             "default": "main",
             "description": "Branch ref to run the agent from",
@@ -7351,10 +7343,6 @@
             "description": "One-time execution timestamp",
             "format": "date-time",
             "nullable": true,
-            "type": "string"
-          },
-          "tenantId": {
-            "maxLength": 256,
             "type": "string"
           },
           "timeoutSeconds": {
@@ -10400,10 +10388,6 @@
       },
       "TriggerUpdate": {
         "properties": {
-          "agentId": {
-            "maxLength": 256,
-            "type": "string"
-          },
           "authentication": {
             "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
@@ -10449,10 +10433,6 @@
           },
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
-          },
-          "projectId": {
-            "maxLength": 256,
-            "type": "string"
           },
           "runAsUserId": {
             "description": "User ID to run the webhook as",
@@ -10513,10 +10493,6 @@
           "signingSecretCredentialReferenceId": {
             "description": "Reference to credential containing signing secret",
             "nullable": true,
-            "type": "string"
-          },
-          "tenantId": {
-            "maxLength": 256,
             "type": "string"
           },
           "updatedAt": {
