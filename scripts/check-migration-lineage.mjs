@@ -225,9 +225,7 @@ function validateTargetAgainstBase(target, baseRef) {
     current.sqlTags.filter((entry) => entry.tag !== null).map((entry) => entry.tag)
   );
   const currentSqlTagMap = new Map(
-    current.sqlTags
-      .filter((entry) => entry.tag !== null)
-      .map((entry) => [entry.tag, entry])
+    current.sqlTags.filter((entry) => entry.tag !== null).map((entry) => [entry.tag, entry])
   );
   const baseSqlTagSet = new Set(
     baseSqlTags.filter((entry) => entry.tag !== null).map((entry) => entry.tag)
