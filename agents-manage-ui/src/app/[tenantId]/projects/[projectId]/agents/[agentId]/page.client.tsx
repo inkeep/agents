@@ -170,9 +170,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   } = useAgentActions();
 
   const applySelectionFromQueryState = (nextNodes: Node[], nextEdges: Edge[]) => {
-    const subAgentFormData = form.getValues('subAgents');
-    const selectedNode = findNodeByGraphKey(nextNodes, nodeId, subAgentFormData);
-    const selectedEdge = findEdgeByGraphKey(nextEdges, nextNodes, edgeId, subAgentFormData);
+    const selectedNode = findNodeByGraphKey(nextNodes, nodeId);
+    const selectedEdge = findEdgeByGraphKey(nextEdges, nextNodes, edgeId);
 
     return {
       nodes: nextNodes.map((node) => ({
@@ -534,13 +533,12 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       (edges[0]?.type === EdgeType.A2A || edges[0]?.type === EdgeType.SelfLoop)
         ? edges[0]
         : null;
-    const subAgentFormData = form.getValues('subAgents');
     const defaultPane = isOpen ? 'agent' : null;
     setQueryState(
       {
         pane: node ? 'node' : edge ? 'edge' : defaultPane,
-        nodeId: node ? getNodeGraphKey(node, subAgentFormData) : null,
-        edgeId: edge ? getEdgeGraphKey(edge, nodes, subAgentFormData) : null,
+        nodeId: node ? getNodeGraphKey(node) : null,
+        edgeId: edge ? getEdgeGraphKey(edge, nodes) : null,
       },
       { history: 'replace' }
     );
@@ -571,8 +569,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   };
 
   const handleNavigateToNode = (nodeId: string) => {
-    const subAgentFormData = form.getValues('subAgents');
-    const targetNode = findNodeByGraphKey(nodes, nodeId, subAgentFormData);
+    const targetNode = findNodeByGraphKey(nodes, nodeId);
 
     if (targetNode) {
       // Clear selection and select the target node
@@ -586,7 +583,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       // Open the sidepane for the selected node
       setQueryState({
         pane: 'node',
-        nodeId: getNodeGraphKey(targetNode, subAgentFormData),
+        nodeId: getNodeGraphKey(targetNode),
         edgeId: null,
       });
     }
@@ -678,9 +675,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   const showEmptyState = !nodes.length && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
   const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
-  const currentSubAgentFormData = form.getValues('subAgents');
-  const selectedNode = findNodeByGraphKey(nodes, nodeId, currentSubAgentFormData);
-  const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId, currentSubAgentFormData);
+  const selectedNode = findNodeByGraphKey(nodes, nodeId);
+  const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId);
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
