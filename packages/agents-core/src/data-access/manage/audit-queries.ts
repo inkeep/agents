@@ -1,4 +1,3 @@
-import { and, eq } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   agents as agentsTable,
@@ -6,18 +5,14 @@ import {
   tools as toolsTable,
 } from '../../db/manage/manage-schema';
 import type { ProjectScopeConfig } from '../../types/utility';
+import { projectScopedWhere } from './scope-helpers';
 
 export const listToolIdsByProject =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     const rows = await db
       .select({ id: toolsTable.id })
       .from(toolsTable)
-      .where(
-        and(
-          eq(toolsTable.tenantId, params.scopes.tenantId),
-          eq(toolsTable.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(toolsTable, params.scopes));
     return rows.map((r) => r.id);
   };
 
@@ -26,12 +21,7 @@ export const listContextConfigIdsByProject =
     const rows = await db
       .select({ id: contextConfigsTable.id })
       .from(contextConfigsTable)
-      .where(
-        and(
-          eq(contextConfigsTable.tenantId, params.scopes.tenantId),
-          eq(contextConfigsTable.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(contextConfigsTable, params.scopes));
     return rows.map((r) => r.id);
   };
 
@@ -40,11 +30,6 @@ export const listAgentIdsByProject =
     const rows = await db
       .select({ id: agentsTable.id })
       .from(agentsTable)
-      .where(
-        and(
-          eq(agentsTable.tenantId, params.scopes.tenantId),
-          eq(agentsTable.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(agentsTable, params.scopes));
     return rows.map((r) => r.id);
   };

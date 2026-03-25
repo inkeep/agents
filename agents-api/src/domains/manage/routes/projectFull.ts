@@ -1,4 +1,4 @@
-import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   type AgentsManageDatabaseClient,
   cascadeDeleteByProject,
@@ -20,12 +20,10 @@ import {
   getFullProjectWithRelationIds,
   getProjectMainBranchName,
   getProjectMetadata,
-  listScheduledTriggers,
   listTriggers,
   type OrgRole,
   type ResolvedRef,
   removeProjectFromSpiceDb,
-  type ScheduledTrigger,
   syncProjectToSpiceDb,
   TenantParamsSchema,
   TenantProjectParamsSchema,
@@ -35,17 +33,16 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute, registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { HTTPException } from 'hono/http-exception';
+import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
-import type { ManageAppVariables } from '../../../types/app';
 import {
   type ManageRouteHandler,
   openapiRegisterPutPatchRoutesForLegacy,
 } from '../../../utils/openapiDualRoute';
-import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { validateTriggerPermissions } from './triggerHelpers';
 
 const logger = getLogger('projectFull');
@@ -173,11 +170,8 @@ app.openapi(
 
           logger.debug({ projectMainBranch }, 'Checked out project branch for config writes');
 
-          const project = await createFullProjectServerSide(
-            configTx,
-            undefined,
-            runDbClient
-          )({
+          // 2. Create full project config in the project branch
+          const project = await createFullProjectServerSide(configTx)({
             scopes: { tenantId, projectId: validatedProjectData.id },
             projectData: validatedProjectData,
           });
@@ -262,11 +256,7 @@ app.openapi(
     const db = c.get('db');
 
     try {
-      const project: FullProjectSelect | null = await getFullProject(
-        db,
-        undefined,
-        runDbClient
-      )({
+      const project: FullProjectSelect | null = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
 
@@ -328,9 +318,7 @@ app.openapi(
 
     try {
       const project: FullProjectSelectWithRelationIds | null = await getFullProjectWithRelationIds(
-        db,
-        undefined,
-        runDbClient
+        db
       )({ scopes: { tenantId, projectId } });
 
       if (!project) {
@@ -417,32 +405,17 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
       });
     }
 
-    // fetch existing scheduled triggers and webhook triggers for all agents in parallel
-    const existingTriggersByAgent = new Map<string, ScheduledTrigger[]>();
     const existingWebhookTriggersByAgent = new Map<string, TriggerSelect[]>();
     if (!isCreate) {
       const agents = Object.keys(validatedProjectData.agents || {});
-      const [scheduledResults, webhookResults] = await Promise.all([
-        Promise.all(
-          agents.map(async (agentId) => ({
-            agentId,
-            triggers: await listScheduledTriggers(runDbClient)({
-              scopes: { tenantId, projectId, agentId },
-            }),
-          }))
-        ),
-        Promise.all(
-          agents.map(async (agentId) => ({
-            agentId,
-            triggers: await listTriggers(configDb)({
-              scopes: { tenantId, projectId, agentId },
-            }),
-          }))
-        ),
-      ]);
-      for (const { agentId, triggers } of scheduledResults) {
-        existingTriggersByAgent.set(agentId, triggers);
-      }
+      const webhookResults = await Promise.all(
+        agents.map(async (agentId) => ({
+          agentId,
+          triggers: await listTriggers(configDb)({
+            scopes: { tenantId, projectId, agentId },
+          }),
+        }))
+      );
       for (const { agentId, triggers } of webhookResults) {
         existingWebhookTriggersByAgent.set(agentId, triggers);
       }
@@ -456,24 +429,6 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
         code: 'unauthorized',
         message: 'Missing tenant role',
       });
-    }
-
-    for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
-      if (!agentData.scheduledTriggers) continue;
-
-      const existingTriggers = existingTriggersByAgent.get(agentId) || [];
-      const existingById = new Map(existingTriggers.map((t) => [t.id, t]));
-
-      for (const [triggerId, triggerData] of Object.entries(agentData.scheduledTriggers)) {
-        await validateTriggerPermissions({
-          triggerData,
-          existing: existingById.get(triggerId),
-          callerId,
-          tenantId,
-          projectId,
-          tenantRole,
-        });
-      }
     }
 
     for (const [agentId, agentData] of Object.entries(validatedProjectData.agents)) {
@@ -522,11 +477,7 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             });
 
             // Create the full project config
-            const project = await createFullProjectServerSide(
-              configTx,
-              undefined,
-              runDbClient
-            )({
+            const project = await createFullProjectServerSide(configTx)({
               scopes: { tenantId, projectId },
               projectData: validatedProjectData,
             });
@@ -547,81 +498,15 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
             return project;
           });
         })
-      : await updateFullProjectServerSide(
-          configDb,
-          undefined,
-          runDbClient
-        )({
+      : await updateFullProjectServerSide(configDb)({
           scopes: { tenantId, projectId },
           projectData: validatedProjectData,
         });
-
-    // Reconcile scheduled trigger workflows for all agents in the project
-    try {
-      const agents = Object.keys(validatedProjectData.agents || {});
-
-      logger.info(
-        { tenantId, projectId, agentIds: agents, agentCount: agents.length },
-        'Starting scheduled trigger workflow reconciliation'
-      );
-
-      await Promise.all(
-        agents.map(async (agentId) => {
-          const existingTriggersForAgent = existingTriggersByAgent.get(agentId) || [];
-          const newTriggersForAgent = await listScheduledTriggers(runDbClient)({
-            scopes: { tenantId, projectId, agentId },
-          });
-
-          const existingTriggerMap = new Map(existingTriggersForAgent.map((t) => [t.id, t]));
-
-          const workflowOperations: Promise<void>[] = [];
-
-          for (const trigger of newTriggersForAgent) {
-            const existing = existingTriggerMap.get(trigger.id);
-
-            if (existing) {
-              const scheduleChanged =
-                existing.cronExpression !== trigger.cronExpression ||
-                String(existing.runAt) !== String(trigger.runAt);
-              const previousEnabled = existing.enabled;
-
-              if (scheduleChanged || previousEnabled !== trigger.enabled) {
-                workflowOperations.push(
-                  onTriggerUpdated({ trigger, previousEnabled, scheduleChanged })
-                    .then(() =>
-                      logger.info(
-                        { tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                        'Updated workflow for scheduled trigger'
-                      )
-                    )
-                    .catch((err) =>
-                      logger.error(
-                        { err, tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
-                        'Failed to update workflow for scheduled trigger'
-                      )
-                    )
-                );
-              }
-            }
-          }
-
-          await Promise.allSettled(workflowOperations);
-        })
-      );
-    } catch (err) {
-      logger.error({ err }, 'Failed to reconcile scheduled trigger workflows');
-    }
 
     return c.json({ data: updatedProject }, isCreate ? 201 : 200);
   } catch (error: any) {
     if (error instanceof HTTPException) {
       throw error;
-    }
-    if (error instanceof z.ZodError) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'Invalid project definition',
-      });
     }
 
     if (error instanceof Error && error.message.includes('ID mismatch')) {

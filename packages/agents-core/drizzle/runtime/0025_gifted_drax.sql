@@ -30,6 +30,7 @@ CREATE TABLE "scheduler_state" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "scheduled_triggers" ADD CONSTRAINT "scheduled_triggers_run_as_user_id_user_id_fk" FOREIGN KEY ("run_as_user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "scheduled_triggers_agent_idx" ON "scheduled_triggers" USING btree ("tenant_id","project_id","agent_id");--> statement-breakpoint
 CREATE INDEX "scheduled_triggers_ref_idx" ON "scheduled_triggers" USING btree ("ref");--> statement-breakpoint
 CREATE INDEX "scheduled_triggers_next_run_at_idx" ON "scheduled_triggers" USING btree ("enabled","next_run_at");

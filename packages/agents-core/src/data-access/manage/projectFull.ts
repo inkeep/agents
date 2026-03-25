@@ -5,7 +5,6 @@
  */
 
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import type {
   ArtifactComponentApiSelect,
   CredentialReferenceApiSelect,
@@ -61,11 +60,7 @@ function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
  * This function creates a complete project with all agent and their nested resources.
  */
 export const createFullProjectServerSide =
-  (
-    db: AgentsManageDatabaseClient,
-    logger: ProjectLogger = defaultLogger,
-    runDb?: AgentsRunDatabaseClient
-  ) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -421,11 +416,10 @@ export const createFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await createFullAgentServerSide(
-              db,
-              logger,
-              runDb
-            )({ tenantId, projectId: typed.id }, agentDataWithoutSubAgents);
+            await createFullAgentServerSide(db, logger)(
+              { tenantId, projectId: typed.id },
+              agentDataWithoutSubAgents
+            );
 
             logger.info(
               { projectId: typed.id, agentId },
@@ -482,11 +476,10 @@ export const createFullProjectServerSide =
                 subAgents: agentData.subAgents, // Include all sub-agents with their relationships
               };
 
-              await updateFullAgentServerSide(
-                db,
-                logger,
-                runDb
-              )({ tenantId, projectId: typed.id }, updateData as any);
+              await updateFullAgentServerSide(db, logger)(
+                { tenantId, projectId: typed.id },
+                updateData as any
+              );
 
               logger.info(
                 { projectId: typed.id, agentId },
@@ -527,8 +520,7 @@ export const createFullProjectServerSide =
 
       const fullProject = await getFullProject(
         db,
-        logger,
-        runDb
+        logger
       )({
         scopes: { tenantId, projectId: typed.id },
       });
@@ -556,11 +548,7 @@ export const createFullProjectServerSide =
  * This function updates a complete project with all agent and their nested resources.
  */
 export const updateFullProjectServerSide =
-  (
-    db: AgentsManageDatabaseClient,
-    logger: ProjectLogger = defaultLogger,
-    runDb?: AgentsRunDatabaseClient
-  ) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -591,8 +579,7 @@ export const updateFullProjectServerSide =
         logger.info({ projectId: typed.id }, 'Project not found, creating new project');
         return await createFullProjectServerSide(
           db,
-          logger,
-          runDb
+          logger
         )({
           scopes: { tenantId, projectId: typed.id },
           projectData,
@@ -1185,11 +1172,10 @@ export const updateFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await updateFullAgentServerSide(
-              db,
-              logger,
-              runDb
-            )({ tenantId, projectId: typed.id }, agentDataWithProjectResources);
+            await updateFullAgentServerSide(db, logger)(
+              { tenantId, projectId: typed.id },
+              agentDataWithProjectResources
+            );
 
             logger.info({ projectId: typed.id, agentId }, 'Agent updated successfully in project');
           } catch (error) {
@@ -1231,8 +1217,7 @@ export const updateFullProjectServerSide =
 
       const fullProject = await getFullProject(
         db,
-        logger,
-        runDb
+        logger
       )({
         scopes: { tenantId, projectId: typed.id },
       });
@@ -1259,11 +1244,7 @@ export const updateFullProjectServerSide =
  * Get a complete project definition with all nested resources
  */
 const getFullProjectInternal =
-  (
-    db: AgentsManageDatabaseClient,
-    logger: ProjectLogger = defaultLogger,
-    runDb?: AgentsRunDatabaseClient
-  ) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
     includeRelationIds?: boolean;
@@ -1453,11 +1434,7 @@ const getFullProjectInternal =
               'Retrieving full agent definition'
             );
 
-            const fullAgent = await getAgentFn(
-              db,
-              logger,
-              runDb
-            )({
+            const fullAgent = await getAgentFn(db)({
               scopes: { tenantId, projectId, agentId: agent.id },
             });
 
@@ -1545,34 +1522,24 @@ const getFullProjectInternal =
   };
 
 export const getFullProject =
-  (
-    db: AgentsManageDatabaseClient,
-    logger: ProjectLogger = defaultLogger,
-    runDb?: AgentsRunDatabaseClient
-  ) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectSelect | null> => {
     const { scopes } = params;
     return getFullProjectInternal(
       db,
-      logger,
-      runDb
+      logger
     )({ scopes, includeRelationIds: false }) as Promise<FullProjectSelect | null>;
   };
 
 export const getFullProjectWithRelationIds =
-  (
-    db: AgentsManageDatabaseClient,
-    logger: ProjectLogger = defaultLogger,
-    runDb?: AgentsRunDatabaseClient
-  ) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
   }): Promise<FullProjectSelectWithRelationIds | null> => {
     const { scopes } = params;
     return getFullProjectInternal(
       db,
-      logger,
-      runDb
+      logger
     )({ scopes, includeRelationIds: true }) as Promise<FullProjectSelectWithRelationIds | null>;
   };
 

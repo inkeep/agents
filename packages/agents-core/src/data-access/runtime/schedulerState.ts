@@ -1,8 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { schedulerState } from '../../db/runtime/runtime-schema';
-
-export type SchedulerStateRow = typeof schedulerState.$inferSelect;
+import type { SchedulerStateRow } from '../../validation/schemas';
 
 const SINGLETON_ID = 'singleton';
 
