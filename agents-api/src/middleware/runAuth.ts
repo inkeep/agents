@@ -612,11 +612,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       return { authResult: null, failureMessage: 'Origin not allowed for this app' };
     }
 
-    const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
-    if (!pow.ok) {
-      throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
-    }
-
     if (!bearerToken) {
       return { authResult: null, failureMessage: 'Bearer token required for web_client app' };
     }
@@ -717,6 +712,11 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         'App credential authenticated (asymmetric)'
       );
     } else {
+      const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
+      if (!pow.ok) {
+        throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+      }
+
       authMethod = 'app_credential_web_client';
       try {
         const secret = getAnonJwtSecret();
