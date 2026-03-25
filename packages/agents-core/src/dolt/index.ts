@@ -3,6 +3,7 @@ export * from './branch';
 export * from './branches-api';
 export * from './commit';
 export * from './diff';
+export * from './fk-map';
 export * from './merge';
 export * from './pk-map';
 export * from './ref-helpers';
