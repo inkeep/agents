@@ -4,6 +4,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { type FC, useEffect } from 'react';
 import { CopilotProvider } from '@/contexts/copilot';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useInitialCollapsedSidebar } from '@/hooks/use-initial-collapsed-sidebar';
 import { getContextSuggestions } from '@/lib/context-suggestions';
 
 function tryJsonParse(json = ''): object {
@@ -20,15 +21,10 @@ function tryJsonParse(json = ''): object {
 const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents/[agentId]'>> = ({
   children,
 }) => {
-  const { setSidebarOpen, setVariableSuggestions } = useAgentActions();
+  const { setVariableSuggestions } = useAgentActions();
   const contextConfig = useAgentStore((state) => state.metadata.contextConfig);
 
-  useEffect(() => {
-    setSidebarOpen({ isSidebarSessionOpen: false });
-    return () => {
-      setSidebarOpen({ isSidebarSessionOpen: true });
-    };
-  }, []);
+  useInitialCollapsedSidebar();
 
   // Generate suggestions from context config
   useEffect(() => {

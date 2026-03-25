@@ -9,18 +9,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 type PendingNavigation = () => void;
 
 interface UnsavedChangesDialogProps {
+  dirty: boolean;
   onSubmit: () => Promise<boolean>;
 }
 
-export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }) => {
+export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ dirty, onSubmit }) => {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [isSavingPendingNavigation, startSavingPendingNavigation] = useTransition();
-  const dirty = useAgentStore((state) => state.dirty);
   const pendingNavigationRef = useRef<PendingNavigation>(null);
   const isNavigatingRef = useRef(false);
   const router = useRouter();

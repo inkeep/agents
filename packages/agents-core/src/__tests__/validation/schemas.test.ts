@@ -13,7 +13,7 @@ import {
   TaskInsertSchema,
   TriggerApiUpdateSchema,
   TriggerInsertSchema,
-} from '../../validation/schemas';
+} from '../../validation';
 
 describe('Validation Schemas', () => {
   describe('ResourceIdSchema', () => {

@@ -11,34 +11,32 @@ import {
 interface DeleteConfirmationProps {
   itemName?: string;
   isSubmitting: boolean;
-  onDelete: () => Promise<void>;
+  onDelete: () => Promise<void> | void;
   customTitle?: string;
   customDescription?: string;
 }
 
 export function DeleteConfirmation({
-  itemName,
+  itemName = 'this item',
   isSubmitting,
   onDelete,
-  customTitle,
-  customDescription,
+  customTitle = `Delete ${itemName}`,
+  customDescription = `Are you sure you want to delete ${itemName}? This action cannot be undone.`,
 }: DeleteConfirmationProps) {
-  const handleDelete = async () => {
-    await onDelete();
-  };
-
   return (
     <DialogContent>
-      <DialogTitle>{customTitle || `Delete ${itemName || 'this item'}`}</DialogTitle>
-      <DialogDescription>
-        {customDescription ||
-          `Are you sure you want to delete ${itemName || 'this item'}? This action cannot be undone.`}
+      <DialogTitle>{customTitle}</DialogTitle>
+      <DialogDescription
+        // respect \n in message
+        className="whitespace-pre-wrap"
+      >
+        {customDescription}
       </DialogDescription>
       <DialogFooter>
         <DialogClose asChild>
           <Button variant="outline">Cancel</Button>
         </DialogClose>
-        <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
+        <Button variant="destructive" onClick={onDelete} disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="size-4 animate-spin" /> Deleting...

@@ -272,6 +272,32 @@ export const skills = pgTable(
   ]
 );
 
+export const skillFiles = pgTable(
+  'skill_files',
+  {
+    ...projectScoped,
+    skillId: varchar('skill_id', { length: 64 }).notNull(),
+    filePath: varchar('file_path', { length: 1024 }).notNull(),
+    content: text('content').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.skillId],
+      foreignColumns: [skills.tenantId, skills.projectId, skills.id],
+      name: 'skill_files_skill_fk',
+    }).onDelete('cascade'),
+    unique('skill_files_skill_path_unique').on(
+      table.tenantId,
+      table.projectId,
+      table.skillId,
+      table.filePath
+    ),
+    index('skill_files_skill_idx').on(table.skillId),
+  ]
+);
+
 export const subAgentSkills = pgTable(
   'sub_agent_skills',
   {
@@ -1015,6 +1041,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   artifactComponents: many(artifactComponents),
   credentialReferences: many(credentialReferences),
   skills: many(skills),
+  skillFiles: many(skillFiles),
 }));
 
 export const contextConfigsRelations = relations(contextConfigs, ({ many, one }) => ({
@@ -1181,7 +1208,19 @@ export const skillsRelations = relations(skills, ({ one, many }) => ({
     fields: [skills.tenantId, skills.projectId],
     references: [projects.tenantId, projects.id],
   }),
+  files: many(skillFiles),
   subAgentRelations: many(subAgentSkills),
+}));
+
+export const skillFilesRelations = relations(skillFiles, ({ one }) => ({
+  project: one(projects, {
+    fields: [skillFiles.tenantId, skillFiles.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  skill: one(skills, {
+    fields: [skillFiles.tenantId, skillFiles.projectId, skillFiles.skillId],
+    references: [skills.tenantId, skills.projectId, skills.id],
+  }),
 }));
 
 export const subAgentSkillsRelations = relations(subAgentSkills, ({ one }) => ({

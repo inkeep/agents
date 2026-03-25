@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import type { SkillOutput } from '@/components/skills/form/validation';
 import { createSkill, fetchSkill, fetchSkills, updateSkill } from '@/lib/api/skills';
-import type { Skill } from '@/lib/types/skills';
+import type { SkillDetail } from '@/lib/types/skills';
 
 const skillQueryKeys = {
   list: (tenantId: string, projectId: string) => ['skills', tenantId, projectId] as const,
@@ -57,7 +57,7 @@ export function useSkillQuery({
     throw new Error('tenantId and projectId are required');
   }
 
-  return useQuery<Skill | null>({
+  return useQuery<SkillDetail | null>({
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     staleTime: 30_000,
@@ -83,7 +83,7 @@ export function useUpsertSkillMutation() {
     throw new Error('tenantId and projectId are required');
   }
 
-  return useMutation<Skill, Error, UpsertSkillInput>({
+  return useMutation<SkillDetail, Error, UpsertSkillInput>({
     async mutationFn({ skillId, data }) {
       const result = skillId
         ? await updateSkill(tenantId, projectId, skillId, data)

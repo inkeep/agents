@@ -3,14 +3,24 @@
  */
 'use server';
 
-import type { SkillApiInsert, SkillApiSelect, SkillApiUpdate } from '@inkeep/agents-core';
+import type {
+  SkillApiInsertSchema,
+  SkillApiSelect,
+  SkillApiUpdate,
+  SkillFileApiInsert,
+  SkillFileApiSelect,
+  SkillFileApiUpdate,
+  SkillWithFilesApiSelect,
+} from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
+import type { z } from 'zod';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export type Skill = SkillApiSelect;
+export type SkillDetail = SkillWithFilesApiSelect;
 
 export async function fetchSkills(
   tenantId: string,
@@ -24,11 +34,15 @@ export async function fetchSkills(
   );
 }
 
-async function $fetchSkill(tenantId: string, projectId: string, skillId: string): Promise<Skill> {
+async function $fetchSkill(
+  tenantId: string,
+  projectId: string,
+  skillId: string
+): Promise<SkillDetail> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Skill>>(
+  const response = await makeManagementApiRequest<SingleResponse<SkillDetail>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}`
   );
 
@@ -39,12 +53,12 @@ export const fetchSkill = cache($fetchSkill);
 export async function createSkill(
   tenantId: string,
   projectId: string,
-  skill: SkillApiInsert
-): Promise<Skill> {
+  skill: z.input<typeof SkillApiInsertSchema>
+): Promise<SkillDetail> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Skill>>(
+  const response = await makeManagementApiRequest<SingleResponse<SkillDetail>>(
     `tenants/${tenantId}/projects/${projectId}/skills`,
     {
       method: 'POST',
@@ -61,15 +75,58 @@ export async function updateSkill(
   projectId: string,
   skillId: string,
   skill: SkillApiUpdate
-): Promise<Skill> {
+): Promise<SkillDetail> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Skill>>(
+  const response = await makeManagementApiRequest<SingleResponse<SkillDetail>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}`,
     {
       method: 'PUT',
       body: JSON.stringify(skill),
+    }
+  );
+  revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
+
+  return response.data;
+}
+
+export async function updateSkillFile(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  fileId: string,
+  file: SkillFileApiUpdate
+): Promise<SkillFileApiSelect> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<SingleResponse<SkillFileApiSelect>>(
+    `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files/${fileId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(file),
+    }
+  );
+  revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
+
+  return response.data;
+}
+
+export async function createSkillFile(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  file: SkillFileApiInsert
+): Promise<SkillFileApiSelect> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<SingleResponse<SkillFileApiSelect>>(
+    `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files`,
+    {
+      method: 'POST',
+      body: JSON.stringify(file),
     }
   );
   revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
@@ -84,4 +141,21 @@ export async function deleteSkill(tenantId: string, projectId: string, skillId: 
   await makeManagementApiRequest(`tenants/${tenantId}/projects/${projectId}/skills/${skillId}`, {
     method: 'DELETE',
   });
+  revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
+}
+
+export async function deleteSkillFile(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  fileId: string
+) {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  await makeManagementApiRequest(
+    `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files/${fileId}`,
+    { method: 'DELETE' }
+  );
+  revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
 }

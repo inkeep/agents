@@ -7,6 +7,7 @@ import type {
   FullAgentDefinition,
   McpTransportConfig,
   ModelSettings,
+  SkillApiInsertSchema,
   StatusUpdateSettings,
   SubAgentApiInsert,
   ToolInsert,
@@ -83,14 +84,8 @@ export interface ToolResult {
   error?: string;
 }
 
-export interface SkillDefinition {
+export interface SkillDefinition extends z.input<typeof SkillApiInsertSchema> {
   id: string;
-  name: string;
-  description: string;
-  content: string;
-  metadata: Record<string, string> | null;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export type SkillReference =

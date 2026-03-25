@@ -5,6 +5,7 @@ import { Check, Info, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { type FC, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 import FullPageError from '@/components/errors/full-page-error';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
@@ -17,7 +18,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
-import type { Skill } from '@/lib/types/skills';
+import type { SkillDetail } from '@/lib/types/skills';
 import { isRequired, serializeJson } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
@@ -29,7 +30,7 @@ interface SkillFormProps {
 
 const resolver = zodResolver(schema);
 
-function formatFormData(data: Skill | null): SkillInput {
+function formatFormData(data: SkillDetail | null): SkillInput {
   if (data) {
     return {
       ...data,
@@ -69,13 +70,14 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
 
   const onSubmit = form.handleSubmit(async (data) => {
     await upsertSkill({
-      skillId: initialData ? data.name : undefined,
+      skillId: initialData?.id,
       data,
     });
     onSuccess?.();
     if (!skillId) {
       router.push(`/${tenantId}/projects/${projectId}/skills`);
     }
+    // router.refresh();
   });
 
   useEffect(() => {
@@ -165,17 +167,19 @@ Use this skill when the user needs to work with PDF files...
 ...`}
           isRequired={isRequired(schema, 'content')}
         />
-        <GenericJsonEditor
-          control={form.control}
-          name="metadata"
-          label="Metadata (JSON)"
-          placeholder={`{
+        <CollapsibleSettings title="Advanced">
+          <GenericJsonEditor
+            control={form.control}
+            name="metadata"
+            label="Metadata (JSON)"
+            placeholder={`{
   "version": "1.0.0",
   "author": "example"
 }`}
-          isRequired={isRequired(schema, 'metadata')}
-          readOnly={readOnly}
-        />
+            isRequired={isRequired(schema, 'metadata')}
+            readOnly={readOnly}
+          />
+        </CollapsibleSettings>
 
         {!readOnly && (
           <div className="flex w-full justify-between">
@@ -191,13 +195,7 @@ Use this skill when the user needs to work with PDF files...
                   </Button>
                 </DialogTrigger>
                 {isDeleteOpen && (
-                  <DeleteSkillConfirmation
-                    tenantId={tenantId}
-                    projectId={projectId}
-                    skillId={initialData.id}
-                    skillName={initialData.name}
-                    setIsOpen={setIsDeleteOpen}
-                  />
+                  <DeleteSkillConfirmation skillId={initialData.id} setIsOpen={setIsDeleteOpen} />
                 )}
               </Dialog>
             )}

@@ -524,12 +524,12 @@ export const firecrawlMcpTool = mcpTool({
     const project = createProjectFixture();
     project.skills = {
       'weather-safety-guardrails': {
-        id: 'weather-safety-guardrails',
-        name: 'Weather Safety Guardrails',
+        name: 'weather-safety-guardrails',
         description: 'Safety guidance for weather planning',
         content: '# Weather safety guidance',
+        files: [],
       },
-    } as any;
+    };
 
     const indexFilePath = join(testDir, 'index.ts');
     const before = `import path from 'node:path';
