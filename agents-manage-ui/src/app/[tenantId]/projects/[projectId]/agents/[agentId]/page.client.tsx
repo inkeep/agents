@@ -655,6 +655,47 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     }
   );
 
+  // React Flow selection can stay the same while a selected node/edge gets a new graph key,
+  // so mirror the current canvas selection back into query state here.
+  useEffect(() => {
+    const selectedCanvasNode = nodes.filter((node) => node.selected);
+    const selectedCanvasEdge = edges.filter((edge) => edge.selected);
+    const singleSelectedNode = selectedCanvasNode.length === 1 ? selectedCanvasNode[0] : null;
+    const singleSelectedEdge = selectedCanvasEdge.length === 1 ? selectedCanvasEdge[0] : null;
+
+    if (singleSelectedNode) {
+      const nextNodeId = getNodeGraphKey(singleSelectedNode);
+      if (nextNodeId && nextNodeId !== nodeId) {
+        setQueryState(
+          {
+            pane: 'node',
+            nodeId: nextNodeId,
+            edgeId: null,
+          },
+          { history: 'replace' }
+        );
+      }
+      return;
+    }
+
+    if (
+      singleSelectedEdge &&
+      (singleSelectedEdge.type === EdgeType.A2A || singleSelectedEdge.type === EdgeType.SelfLoop)
+    ) {
+      const nextEdgeId = getEdgeGraphKey(singleSelectedEdge, nodes);
+      if (nextEdgeId && nextEdgeId !== edgeId) {
+        setQueryState(
+          {
+            pane: 'edge',
+            nodeId: null,
+            edgeId: nextEdgeId,
+          },
+          { history: 'replace' }
+        );
+      }
+    }
+  }, [edgeId, nodeId, nodes, edges, setQueryState]);
+
   useAnimateGraph();
 
   const onNodeClick: ReactFlowProps['onNodeClick'] = (_, node) => {
