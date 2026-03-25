@@ -1,12 +1,13 @@
 import type { Edge, Node } from '@xyflow/react';
 import { describe, expect, it } from 'vitest';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import { NodeType } from '@/components/agent/configuration/node-types';
+import { NodeType, newNodeDefaults } from '@/components/agent/configuration/node-types';
 import {
   findNodeByGraphKey,
   getEdgeGraphKey,
   getNodeGraphKey,
 } from '@/features/agent/domain/graph-identity';
+import { getPlaceholderGraphKey } from '@/features/agent/domain/graph-keys';
 
 describe('graph identity', () => {
   it('reads explicit node keys for each node type', () => {
@@ -65,7 +66,7 @@ describe('graph identity', () => {
     expect(getNodeGraphKey(teamAgentNode)).toBe('team-agent:team-agent-1');
   });
 
-  it('finds nodes from explicit graph keys and falls back to raw ids for transient nodes', () => {
+  it('finds nodes from explicit graph keys only', () => {
     const nodes: Node[] = [
       {
         id: 'tmp-sub-agent',
@@ -88,7 +89,9 @@ describe('graph identity', () => {
         id: 'tmp-placeholder',
         type: NodeType.MCPPlaceholder,
         position: { x: 0, y: 0 },
-        data: {},
+        data: {
+          nodeKey: getPlaceholderGraphKey(NodeType.MCPPlaceholder, 'tmp-placeholder'),
+        },
       },
       {
         id: 'generic-external-node',
@@ -107,7 +110,11 @@ describe('graph identity', () => {
     expect(findNodeByGraphKey(nodes, 'external-agent:external-agent-1')?.id).toBe(
       'generic-external-node'
     );
-    expect(findNodeByGraphKey(nodes, 'tmp-placeholder')?.id).toBe('tmp-placeholder');
+    expect(
+      findNodeByGraphKey(nodes, getPlaceholderGraphKey(NodeType.MCPPlaceholder, 'tmp-placeholder'))
+        ?.id
+    ).toBe('tmp-placeholder');
+    expect(findNodeByGraphKey(nodes, 'tmp-placeholder')).toBeUndefined();
     expect(findNodeByGraphKey(nodes, 'sub-agent-1')).toBeUndefined();
     expect(findNodeByGraphKey(nodes, 'weather')).toBeUndefined();
   });
@@ -139,5 +146,41 @@ describe('graph identity', () => {
     };
 
     expect(getEdgeGraphKey(edge, nodes)).toBe('a2a:sub-agent:sub-agent-a:sub-agent:sub-agent-b');
+  });
+
+  it('returns null when explicit graph identity is missing', () => {
+    const malformedNode: Node = {
+      id: 'tmp-sub-agent-a',
+      type: NodeType.SubAgent,
+      position: { x: 0, y: 0 },
+      data: {},
+    };
+    const edge: Edge = {
+      id: 'edge-tmp-sub-agent-a-tmp-sub-agent-a',
+      type: EdgeType.SelfLoop,
+      source: 'tmp-sub-agent-a',
+      target: 'tmp-sub-agent-a',
+    };
+
+    expect(getNodeGraphKey(malformedNode)).toBeNull();
+    expect(getEdgeGraphKey(edge, [malformedNode])).toBeNull();
+  });
+
+  it('seeds explicit node keys for every non-placeholder live node', () => {
+    const liveNodeTypes = [
+      NodeType.SubAgent,
+      NodeType.ExternalAgent,
+      NodeType.TeamAgent,
+      NodeType.MCP,
+      NodeType.FunctionTool,
+    ] as const;
+
+    for (const nodeType of liveNodeTypes) {
+      expect(newNodeDefaults[nodeType]('node-1')).toEqual(
+        expect.objectContaining({
+          nodeKey: expect.any(String),
+        })
+      );
+    }
   });
 });

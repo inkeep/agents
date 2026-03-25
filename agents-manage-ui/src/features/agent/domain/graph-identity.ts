@@ -9,7 +9,7 @@ export function getNodeGraphKey(node?: Node): string | null {
   if (nodeKey && typeof nodeKey === 'string') {
     return nodeKey;
   }
-  return node.id;
+  return null;
 }
 
 export function findNodeByGraphKey(nodes: Node[], graphKey?: string | null): Node | undefined {
@@ -40,7 +40,7 @@ export function getEdgeGraphKey(edge: Edge | undefined, nodes: Node[]): string |
   const targetGraphKey = getNodeGraphKey(targetNode);
 
   if (!sourceGraphKey || !targetGraphKey) {
-    return edge.id;
+    return null;
   }
 
   if (edge.type === EdgeType.SelfLoop) {

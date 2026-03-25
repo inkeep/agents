@@ -4,6 +4,7 @@ import {
   getExternalAgentGraphKey,
   getFunctionToolGraphKey,
   getMcpGraphKey,
+  getPlaceholderGraphKey,
   getSubAgentGraphKey,
   getTeamAgentGraphKey,
 } from '@/features/agent/domain/graph-keys';
@@ -48,7 +49,7 @@ interface AnimatableNodeFields extends GraphIdentityFields {
   animation?: NodeAnimation;
 }
 
-export type PlaceholderNodeData = Record<string, never>;
+export type PlaceholderNodeData = StrictNodeData<GraphIdentityFields>;
 
 export type MCPNodeData = StrictNodeData<
   AnimatableNodeFields & {
@@ -135,7 +136,9 @@ export const teamAgentNodeTargetHandleId = 'target-team-agent';
 export const newNodeDefaults: {
   [T in keyof GraphNodeDataByType]: (nodeId: string) => GraphNodeDataByType[T];
 } = {
-  [NodeType.SubAgentPlaceholder]: () => ({}),
+  [NodeType.SubAgentPlaceholder]: (nodeId) => ({
+    nodeKey: getPlaceholderGraphKey(NodeType.SubAgentPlaceholder, nodeId),
+  }),
   [NodeType.SubAgent]: (nodeId) => ({
     nodeKey: getSubAgentGraphKey(nodeId),
   }),
@@ -144,12 +147,16 @@ export const newNodeDefaults: {
     externalAgentId: nodeId,
     relationshipId: null,
   }),
-  [NodeType.ExternalAgentPlaceholder]: () => ({}),
+  [NodeType.ExternalAgentPlaceholder]: (nodeId) => ({
+    nodeKey: getPlaceholderGraphKey(NodeType.ExternalAgentPlaceholder, nodeId),
+  }),
   [NodeType.MCP]: (nodeId) => ({
     nodeKey: getMcpGraphKey({ toolId: nodeId }),
     toolId: nodeId,
   }),
-  [NodeType.MCPPlaceholder]: () => ({}),
+  [NodeType.MCPPlaceholder]: (nodeId) => ({
+    nodeKey: getPlaceholderGraphKey(NodeType.MCPPlaceholder, nodeId),
+  }),
   [NodeType.FunctionTool]: (nodeId) => ({
     nodeKey: getFunctionToolGraphKey({ toolId: nodeId }),
     toolId: nodeId,
@@ -161,7 +168,9 @@ export const newNodeDefaults: {
     teamAgentId: nodeId,
     relationshipId: null,
   }),
-  [NodeType.TeamAgentPlaceholder]: () => ({}),
+  [NodeType.TeamAgentPlaceholder]: (nodeId) => ({
+    nodeKey: getPlaceholderGraphKey(NodeType.TeamAgentPlaceholder, nodeId),
+  }),
 };
 
 type NodeSelectionShape = Pick<Node, 'id' | 'type' | 'data'>;

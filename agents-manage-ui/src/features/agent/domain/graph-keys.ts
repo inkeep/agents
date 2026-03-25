@@ -35,6 +35,10 @@ export function getSubAgentGraphKey(subAgentId: MaybeString) {
   return getPrefixedGraphKey('sub-agent', subAgentId);
 }
 
+export function getPlaceholderGraphKey(placeholderType: string, nodeId: string): string {
+  return `${placeholderType}:${nodeId}`;
+}
+
 export function getMcpGraphKey(args: RequiredMcpGraphKeyArgs): string;
 export function getMcpGraphKey(args: McpGraphKeyArgs): string | null;
 export function getMcpGraphKey({

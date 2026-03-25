@@ -136,7 +136,11 @@ function Nodes() {
         {divider}
         <MCPNode {...baseProps} data={{ nodeKey: `mcp:${TOOL_ID}:foo`, toolId: TOOL_ID }} />
         {divider}
-        <PlaceholderNode {...baseProps} type={NodeType.MCPPlaceholder} data={{}} />
+        <PlaceholderNode
+          {...baseProps}
+          type={NodeType.MCPPlaceholder}
+          data={{ nodeKey: 'mcp-placeholder:foo' }}
+        />
         {divider}
         <SubAgentNode {...baseProps} id="SubAgent" data={{ nodeKey: 'sub-agent:SubAgent' }} />
         {divider}

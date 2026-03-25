@@ -1,6 +1,10 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import type { MouseEvent } from 'react';
-import { NodeType, nodeTypeMap } from '@/components/agent/configuration/node-types';
+import {
+  NodeType,
+  newNodeDefaults,
+  nodeTypeMap,
+} from '@/components/agent/configuration/node-types';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { createSubAgentFormInput } from '@/features/agent/domain';
 import { SelectorItem, SelectorItemIcon } from '../selector-item';
@@ -34,11 +38,11 @@ export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
         `subAgents.${nodeId}`,
         createSubAgentFormInput({ name: findName('sub-agent') })
       );
-      updateNode(nodeId, { type: nodeType, data: {} });
+      updateNode(nodeId, { type: nodeType, data: newNodeDefaults[nodeType](nodeId) });
       return;
     }
 
-    updateNode(nodeId, { type: nodeType });
+    updateNode(nodeId, { type: nodeType, data: newNodeDefaults[nodeType](nodeId) });
   }
 
   return (
