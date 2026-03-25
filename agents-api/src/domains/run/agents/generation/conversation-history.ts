@@ -8,11 +8,11 @@ import {
 } from '../../data/conversations';
 import { fromBlobUri, getBlobStorageProvider, isBlobUri } from '../../services/blob-storage';
 import { normalizeInlineFileBytes } from '../../services/blob-storage/file-content-security';
+import { UnsupportedTextAttachmentSourceError } from '../../services/blob-storage/file-security-errors';
 import {
   buildTextAttachmentBlock,
   decodeTextDocumentBytes,
   isTextDocumentMimeType,
-  UnsupportedTextAttachmentSourceError,
 } from '../../utils/text-document-attachments';
 import {
   type ContextBreakdown,

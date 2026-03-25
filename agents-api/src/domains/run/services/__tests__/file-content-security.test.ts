@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { TEXT_DOCUMENT_MAX_BYTES } from '../../utils/text-document-attachments';
 import {
   normalizeInlineFileBytes,
   normalizeInlineImageBytes,
   resolveDownloadedFileMimeType,
 } from '../blob-storage/file-content-security';
-import { MAX_FILE_BYTES } from '../blob-storage/file-security-constants';
+import { MAX_FILE_BYTES, TEXT_DOCUMENT_MAX_BYTES } from '../blob-storage/file-security-constants';
 import {
   BlockedInlineFileExceedingError,
   BlockedInlineUnsupportedFileBytesError,

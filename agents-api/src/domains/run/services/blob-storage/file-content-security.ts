@@ -2,9 +2,12 @@ import { fileTypeFromBuffer } from 'file-type';
 import {
   decodeTextDocumentBytes,
   isTextDocumentMimeType,
-  TEXT_DOCUMENT_MAX_BYTES,
 } from '../../utils/text-document-attachments';
-import { ALLOWED_EXTERNAL_IMAGE_MIME_TYPES, MAX_FILE_BYTES } from './file-security-constants';
+import {
+  ALLOWED_EXTERNAL_IMAGE_MIME_TYPES,
+  MAX_FILE_BYTES,
+  TEXT_DOCUMENT_MAX_BYTES,
+} from './file-security-constants';
 import {
   BlockedExternalUnsupportedBytesError,
   BlockedInlineFileExceedingError,

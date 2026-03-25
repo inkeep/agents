@@ -2,8 +2,10 @@ import {
   ALLOWED_TEXT_DOCUMENT_MIME_TYPES,
   normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
-
-export const TEXT_DOCUMENT_MAX_BYTES = 256 * 1024;
+import {
+  InvalidUtf8TextDocumentError,
+  TextDocumentControlCharacterError,
+} from '../services/blob-storage/file-security-errors';
 
 function isDisallowedTextControlCharacter(codePoint: number): boolean {
   return (
@@ -24,31 +26,6 @@ function hasDisallowedControlCharacters(value: string): boolean {
   }
 
   return false;
-}
-
-export class TextDocumentAttachmentError extends Error {
-  constructor(message: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = new.target.name;
-  }
-}
-
-export class InvalidUtf8TextDocumentError extends TextDocumentAttachmentError {
-  constructor(options?: ErrorOptions) {
-    super('Invalid UTF-8 text document', options);
-  }
-}
-
-export class TextDocumentControlCharacterError extends TextDocumentAttachmentError {
-  constructor(options?: ErrorOptions) {
-    super('Text document contains disallowed control characters', options);
-  }
-}
-
-export class UnsupportedTextAttachmentSourceError extends TextDocumentAttachmentError {
-  constructor(mimeType: string, options?: ErrorOptions) {
-    super(`Unsupported text attachment source for mime type: ${mimeType}`, options);
-  }
 }
 
 export function isTextDocumentMimeType(mimeType: string | undefined): boolean {

@@ -132,6 +132,31 @@ export class InvalidInlineFileMalformedBase64Error extends FileSecurityError {
   }
 }
 
+export class TextDocumentAttachmentError extends FileSecurityError {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = new.target.name;
+  }
+}
+
+export class InvalidUtf8TextDocumentError extends TextDocumentAttachmentError {
+  constructor(options?: ErrorOptions) {
+    super('Invalid UTF-8 text document', options);
+  }
+}
+
+export class TextDocumentControlCharacterError extends TextDocumentAttachmentError {
+  constructor(options?: ErrorOptions) {
+    super('Text document contains disallowed control characters', options);
+  }
+}
+
+export class UnsupportedTextAttachmentSourceError extends TextDocumentAttachmentError {
+  constructor(mimeType: string, options?: ErrorOptions) {
+    super(`Unsupported text attachment source for mime type: ${mimeType}`, options);
+  }
+}
+
 export class PdfUrlIngestionError extends FileSecurityError {
   readonly sourceUrl: string;
 

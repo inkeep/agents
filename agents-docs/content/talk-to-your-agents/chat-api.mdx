@@ -137,14 +137,14 @@ The chat endpoint supports files in message content parts with different rules b
 - **Encoding**: data URIs must include a valid base64 payload
 - **Maximum size**:
   - Images and PDFs: each inline file payload is limited to **10 MB**
-  - Plain text and Markdown: each inline file payload is limited to **256 KB**
+  - Text documents (`text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`): each inline file payload is limited to **256 KB**
 - **Vercel `parts` file typing**: for `/run/api/chat`, file parts use Vercel-compatible shape
   with `url` (data URI or `https://` for PDFs) and required `mediaType`
 - **Content validation**:
   - Images are validated against supported image bytes
   - PDFs must start with the `%PDF-` signature bytes
   - Text documents must decode as valid UTF-8 text and are rejected if they contain binary-style control characters
-- **Model input replay for text documents**: persisted text attachments are injected back into prompt context as XML-tagged blocks so the model can distinguish attachment content from the user's main message
+- **Model input handling for text documents**: text attachments are injected into the prompt only on the turn where the user sends them; persisted text attachments are not re-injected from later conversation history
 - **HTML semantics**: `text/html` files are treated as raw source text. The API does not render, sanitize, or convert HTML to visible page text before injection.
 - **Remote PDF URLs**: must be reachable over `http` or `https` from the Run API. Unreachable hosts, non-PDF responses, or oversized bodies result in **HTTP 400** with an error message (query strings and fragments on the URL are not preserved in stored metadata).
 - **Remote text document URLs**: are not supported. Use inline base64 `data:text/...;base64,...` payloads instead.
