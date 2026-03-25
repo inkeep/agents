@@ -27,6 +27,14 @@ const MIGRATION_RELATED_PATHS = [
   'packages/agents-core/drizzle/runtime/',
 ];
 
+function fail(message, error) {
+  console.error(`❌ ${message}`);
+  if (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+  }
+  process.exit(1);
+}
+
 function runGit(args, options = {}) {
   return execFileSync('git', args, {
     cwd: ROOT_DIR,
@@ -38,7 +46,7 @@ function runGit(args, options = {}) {
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  let baseRef;
+  let baseRef = 'origin/main';
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -56,46 +64,14 @@ function parseArgs() {
   return { baseRef };
 }
 
-function resolveBaseRef(cliBaseRef) {
-  const candidates = [
-    cliBaseRef,
-    process.env.MIGRATION_LINEAGE_BASE_REF,
-    process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : undefined,
-    'origin/main',
-    'origin/master',
-  ].filter(Boolean);
-
-  for (const candidate of candidates) {
-    try {
-      runGit(['rev-parse', '--verify', candidate]);
-      return candidate;
-    } catch {
-      continue;
-    }
-  }
-
-  return null;
-}
-
 function getChangedFiles(baseRef) {
   try {
-    if (baseRef) {
-      return runGit(['diff', '--name-only', `${baseRef}...HEAD`])
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean);
-    }
-
-    const tracked = runGit(['diff', '--name-only', 'HEAD']);
-    const staged = runGit(['diff', '--name-only', '--cached', 'HEAD']);
-    const untracked = runGit(['ls-files', '--others', '--exclude-standard']);
-    return [...tracked.split('\n'), ...staged.split('\n'), ...untracked.split('\n')]
+    return runGit(['diff', '--name-only', `${baseRef}...HEAD`])
+      .split('\n')
       .map((line) => line.trim())
       .filter(Boolean);
   } catch (error) {
-    console.error('❌ Failed to determine changed files for migration lineage check.');
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exit(1);
+    fail('Failed to determine changed files for migration lineage check.', error);
   }
 }
 
@@ -103,29 +79,30 @@ function isMigrationRelated(file) {
   return MIGRATION_RELATED_PATHS.some((prefix) => file === prefix || file.startsWith(prefix));
 }
 
+function toSqlTag(file) {
+  const match = file.match(/^(\d{4})_(.+)\.sql$/);
+  if (!match) {
+    return {
+      file,
+      prefix: null,
+      tag: null,
+    };
+  }
+
+  return {
+    file,
+    prefix: Number.parseInt(match[1], 10),
+    tag: `${match[1]}_${match[2]}`,
+  };
+}
+
 function collectSqlTags(dir) {
-  const sqlFiles = fs
+  return fs
     .readdirSync(path.join(ROOT_DIR, dir), { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith('.sql'))
     .map((entry) => entry.name)
-    .sort();
-
-  return sqlFiles.map((file) => {
-    const match = file.match(/^(\d{4})_(.+)\.sql$/);
-    if (!match) {
-      return {
-        file,
-        prefix: null,
-        tag: null,
-      };
-    }
-
-    return {
-      file,
-      prefix: Number.parseInt(match[1], 10),
-      tag: `${match[1]}_${match[2]}`,
-    };
-  });
+    .sort()
+    .map(toSqlTag);
 }
 
 function collectJournalEntries(journalPath) {
@@ -154,22 +131,7 @@ function collectSqlTagsAtRef(baseRef, dir) {
     .filter((line) => line.endsWith('.sql'))
     .map((filePath) => path.basename(filePath))
     .sort()
-    .map((file) => {
-      const match = file.match(/^(\d{4})_(.+)\.sql$/);
-      if (!match) {
-        return {
-          file,
-          prefix: null,
-          tag: null,
-        };
-      }
-
-      return {
-        file,
-        prefix: Number.parseInt(match[1], 10),
-        tag: `${match[1]}_${match[2]}`,
-      };
-    });
+    .map(toSqlTag);
 }
 
 function validateTarget(target) {
@@ -335,20 +297,21 @@ function validateTargetAgainstBase(target, baseRef) {
 }
 
 function main() {
-  const { baseRef: cliBaseRef } = parseArgs();
-  const baseRef = resolveBaseRef(cliBaseRef);
+  const { baseRef } = parseArgs();
+  try {
+    runGit(['rev-parse', '--verify', baseRef]);
+  } catch (error) {
+    fail(`Migration lineage base ref '${baseRef}' does not exist.`, error);
+  }
+
   const changedFiles = getChangedFiles(baseRef);
   const relevantFiles = changedFiles.filter(isMigrationRelated);
 
   if (relevantFiles.length === 0) {
-    const scope = baseRef ? ` compared to ${baseRef}` : '';
-    console.log(`Skipping migration lineage check: no migration-related changes detected${scope}.`);
+    console.log(
+      `Skipping migration lineage check: no migration-related changes detected compared to ${baseRef}.`
+    );
     process.exit(0);
-  }
-
-  if (!baseRef) {
-    console.error('❌ Migration lineage check requires a base ref when migrations change.');
-    process.exit(1);
   }
 
   console.log('Checking migration lineage...');
