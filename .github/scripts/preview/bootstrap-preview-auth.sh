@@ -40,10 +40,6 @@ fi
 
 require_env_vars RUN_DB_URL SPICEDB_ENDPOINT
 
-echo "::group::Wait for SpiceDB endpoint"
-wait_for_tcp_endpoint "${SPICEDB_ENDPOINT}" "SpiceDB endpoint"
-echo "::endgroup::"
-
 export INKEEP_AGENTS_API_URL="${API_URL}"
 export INKEEP_AGENTS_RUN_DATABASE_URL="${RUN_DB_URL}"
 export SPICEDB_ENDPOINT
