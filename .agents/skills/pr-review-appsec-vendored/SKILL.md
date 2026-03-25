@@ -1,6 +1,6 @@
 ---
 name: pr-review-appsec-vendored
-description: "Stack-specific application security checklist for this repo's frameworks: better-auth, SpiceDB/AuthZed, Next.js RSC, MCP protocol, and Vercel Edge. Extends the generalizable pr-review-appsec agent with patterns that require framework-specific knowledge to detect."
+description: "Stack-specific application security checklist for this repo's frameworks: better-auth, SpiceDB/AuthZed, and Next.js RSC. Extends the generalizable pr-review-appsec agent with patterns that require framework-specific knowledge to detect."
 user-invocable: false
 disable-model-invocation: true
 ---
@@ -8,6 +8,12 @@ disable-model-invocation: true
 # Stack-Specific Application Security Checks
 
 Security patterns specific to this repo's technology stack. Each item includes what to flag, why it matters, and a concrete detection pattern.
+
+## How to Use This Checklist
+
+- Review changed files against the relevant framework sections below.
+- Not every section applies to every PR — better-auth checks only apply to auth code, SpiceDB checks only apply to `.zed` files and permission-check code, Next.js RSC checks only apply to components with `'use server'` or `'use client'` directives.
+- When unsure whether a pattern is vulnerable, lower confidence rather than asserting.
 
 ---
 
@@ -67,7 +73,7 @@ Security patterns specific to this repo's technology stack. Each item includes w
 
 ### Secrets as string literals in Server Functions
 - **Flag:** Hardcoded secrets (API keys, database URLs, signing keys) as string literals in files containing `'use server'` directives.
-- **Why:** Server Function source code can be exposed via certain React Flight protocol vulnerabilities (e.g., CVE-2025-55183). Secrets accessed via `process.env` are safe because only the reference is in source; literal strings are in the source itself and would be exposed.
+- **Why:** Server Function source code can be exposed via React Flight protocol vulnerabilities. Secrets accessed via `process.env` are safe because only the reference is in source; literal strings are in the source itself and would be exposed.
 - **Pattern:** String literals matching secret patterns (long hex/base64 strings, `sk-*`, `pk-*`, connection strings) in `'use server'` files. Safe: `process.env.SECRET_NAME`.
 
 ### Server Action closure captures server-side variables
@@ -92,18 +98,20 @@ Security patterns specific to this repo's technology stack. Each item includes w
 
 ---
 
-## MCP Protocol (1 item)
+## Severity Calibration
 
-### Elicitation three-state response flattened to binary
-- **Flag:** MCP credential elicitation handlers that treat `decline` and `cancel` as the same response.
-- **Why:** The MCP elicitation protocol defines three distinct response states: `accept` (provide credentials), `decline` (user refuses this specific credential request), and `cancel` (user wants to abort the entire operation). Flattening to binary (`accept`/`reject`) loses the distinction — a `cancel` should stop the agent's current task, while a `decline` should allow the agent to continue with degraded capability or try an alternative.
-- **Pattern:** Elicitation response handlers with `if (response !== 'accept')` or a two-branch switch that treats all non-accept responses identically. Safe: three-branch handling with distinct behavior for each state.
-
----
-
-## Vercel Edge Runtime (1 item)
-
-### node:crypto in Edge Functions
-- **Flag:** Import or usage of `node:crypto` (or `crypto` module) in files that run on Vercel's Edge Runtime.
-- **Why:** Vercel Edge Functions run on a V8-based runtime (not Node.js). The `node:crypto` module is partially available but behaves differently — some methods silently return different results, others throw at runtime. Code that works in Node.js development may fail or produce incorrect results in Edge production.
-- **Pattern:** `import crypto from 'node:crypto'` or `require('crypto')` in files with `export const runtime = 'edge'` or in `middleware.ts` (which runs on Edge by default in Next.js). Safe: use the Web Crypto API (`crypto.subtle`) which is natively available on Edge, or ensure the specific `node:crypto` methods used are supported.
+| Finding | Severity | Rationale |
+|---|---|---|
+| SSO session missing organization context | CRITICAL | Silent authorization bypass — downstream code gets undefined org |
+| Re-authentication missing for sensitive operations | CRITICAL | Session hijack → full account takeover |
+| Secrets as string literals in Server Functions | CRITICAL | Potential secret exposure via React Flight |
+| SSO auto-provisioning bypasses membership hooks | MAJOR | Membership gating circumvented |
+| Triple onboarding path duplicates | MAJOR | Conflicting permissions across duplicate memberships |
+| LookupResources unbounded with wildcards | MAJOR | DoS risk on SpiceDB server |
+| Security event logging absent | MAJOR | Incident detection impossible |
+| Server Action closure captures server vars | MAJOR | Sensitive data serialized to client |
+| RSC prop serialization leaks data | MAJOR | User data in client bundle |
+| NEXT_PUBLIC_ on sensitive env vars | MAJOR | Secrets bundled into client JS |
+| ISR caches sensitive data | MAJOR | Authenticated data served publicly |
+| Social providers not enforceable per-tenant | MINOR | UI-only gating, bypassable via direct auth endpoint |
+| Intersection operator on hot paths | MINOR | Performance impact, not direct security vulnerability |
