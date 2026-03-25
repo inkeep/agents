@@ -1,3 +1,4 @@
+'use client';
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
 import type { FC } from 'react';
@@ -98,61 +99,54 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   }[modelSlug];
 
   return (
-    <div className="relative">
+    <BaseNode
+      isSelected={selected || isDelegating}
+      className={cn(
+        isDefault && 'rounded-tl-none',
+        hasErrors && 'ring-2 ring-red-300 border-red-300',
+        isExecuting && 'node-executing',
+        isInvertedDelegating && 'node-delegating-inverted'
+      )}
+      style={{ width: NODE_WIDTH }}
+    >
       {isDefault && <NodeTab isSelected={selected || isDelegating}>Default</NodeTab>}
-      <BaseNode
-        isSelected={selected || isDelegating}
-        className={cn(
-          isDefault && 'rounded-tl-none',
-          hasErrors && 'ring-2 ring-red-300 border-red-300',
-          isExecuting && 'node-executing',
-          isInvertedDelegating && 'node-delegating-inverted'
+      <BaseNodeHeader className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Bot className="size-4 text-muted-foreground" />
+          <BaseNodeHeaderTitle>
+            {name || <i className="text-muted-foreground/50">No name</i>}
+          </BaseNodeHeaderTitle>
+        </div>
+        <Badge variant="primary" className="text-xs uppercase">
+          Sub Agent
+        </Badge>
+        {hasErrors && <ErrorIndicator errors={processedErrors} />}
+      </BaseNodeHeader>
+      <BaseNodeContent>
+        <div className="text-sm text-muted-foreground">
+          {description || <i className="text-muted-foreground/50">No description</i>}
+        </div>
+        <Badge className="text-xs max-w-full" variant="code">
+          {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
+          <span className="truncate">{modelName}</span> {!subAgent.models && '(inherited)'}
+        </Badge>
+        {dataComponentNames?.length > 0 && (
+          <ListSection
+            title={STATIC_LABELS.components}
+            items={dataComponentNames}
+            Icon={Component}
+          />
         )}
-        style={{ width: NODE_WIDTH }}
-      >
-        <BaseNodeHeader className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Bot className="size-4 text-muted-foreground" />
-            <BaseNodeHeaderTitle>
-              {name || <i className="text-muted-foreground/50">No name</i>}
-            </BaseNodeHeaderTitle>
-          </div>
-          <Badge variant="primary" className="text-xs uppercase">
-            Sub Agent
-          </Badge>
-          {hasErrors && <ErrorIndicator errors={processedErrors} />}
-        </BaseNodeHeader>
-        <BaseNodeContent>
-          <div className="text-sm text-muted-foreground">
-            {description || <i className="text-muted-foreground/50">No description</i>}
-          </div>
-          <Badge className="text-xs max-w-full" variant="code">
-            {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
-            <span className="truncate">{modelName}</span> {!subAgent.models && '(inherited)'}
-          </Badge>
-          {dataComponentNames?.length > 0 && (
-            <ListSection
-              title={STATIC_LABELS.components}
-              items={dataComponentNames}
-              Icon={Component}
-            />
-          )}
-          {artifactComponentNames?.length > 0 && (
-            <ListSection
-              title={STATIC_LABELS.artifacts}
-              items={artifactComponentNames}
-              Icon={Library}
-            />
-          )}
-        </BaseNodeContent>
-        <Handle id={agentNodeTargetHandleId} type="source" position={Position.Top} isConnectable />
-        <Handle
-          id={agentNodeSourceHandleId}
-          type="source"
-          position={Position.Bottom}
-          isConnectable
-        />
-      </BaseNode>
-    </div>
+        {artifactComponentNames?.length > 0 && (
+          <ListSection
+            title={STATIC_LABELS.artifacts}
+            items={artifactComponentNames}
+            Icon={Library}
+          />
+        )}
+      </BaseNodeContent>
+      <Handle id={agentNodeTargetHandleId} type="source" position={Position.Top} isConnectable />
+      <Handle id={agentNodeSourceHandleId} type="source" position={Position.Bottom} isConnectable />
+    </BaseNode>
   );
 }

@@ -1,3 +1,4 @@
+'use client';
 import { type NodeProps, Position } from '@xyflow/react';
 import { Shield } from 'lucide-react';
 import { useParams } from 'next/navigation';
