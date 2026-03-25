@@ -125,10 +125,7 @@ function Nodes() {
           data={{ toolId: TOOL_ID, subAgentId: null, relationshipId: null }}
         />
         {divider}
-        <MCPNode
-          {...baseProps}
-          data={{ toolId: TOOL_ID, subAgentId: null, relationshipId: null }}
-        />
+        <MCPNode {...baseProps} data={{ toolId: TOOL_ID }} />
         {divider}
         <PlaceholderNode {...baseProps} type={NodeType.MCPPlaceholder} data={{}} />
         {divider}

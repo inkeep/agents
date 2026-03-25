@@ -5,6 +5,7 @@ import {
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
+import { getMcpGraphKey } from '@/features/agent/domain/graph-identity';
 import { serializeJson } from '@/lib/utils';
 
 const OriginalContextConfigSchema =
@@ -95,7 +96,6 @@ const ToolPoliciesSchema = z
 export const MCPRelationSchema = z.strictObject({
   toolId: z.string().trim().nonempty(),
   relationshipId: z.string().trim().optional(),
-  subAgentId: z.string().trim().optional(),
   selectedTools: z.array(z.string()).nullable().optional(),
   headers: StringToStringRecordSchema,
   toolPolicies: ToolPoliciesSchema,
@@ -376,11 +376,14 @@ export function apiToFormValues(data: FullAgentResponse) {
 
           return [
             [
-              canUseItem.agentToolRelationId,
+              getMcpGraphKey({
+                subAgentId,
+                toolId: canUseItem.toolId,
+                relationshipId: canUseItem.agentToolRelationId,
+              }) ?? canUseItem.agentToolRelationId,
               {
                 toolId: canUseItem.toolId,
                 relationshipId: canUseItem.agentToolRelationId,
-                subAgentId,
                 selectedTools: canUseItem.toolSelection ?? null,
                 headers: serializeJson(canUseItem.headers),
                 toolPolicies: canUseItem.toolPolicies ?? {},

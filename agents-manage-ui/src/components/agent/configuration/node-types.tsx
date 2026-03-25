@@ -42,8 +42,6 @@ export type PlaceholderNodeData = Record<string, never>;
 export type MCPNodeData = StrictNodeData<
   AnimatableNodeFields & {
     toolId: string;
-    subAgentId: string | null;
-    relationshipId: string | null;
   }
 >;
 
@@ -135,8 +133,6 @@ export const newNodeDefaults: {
   [NodeType.ExternalAgentPlaceholder]: () => ({}),
   [NodeType.MCP]: (nodeId) => ({
     toolId: nodeId,
-    subAgentId: null,
-    relationshipId: null,
   }),
   [NodeType.MCPPlaceholder]: () => ({}),
   [NodeType.FunctionTool]: (nodeId) => ({

@@ -64,10 +64,7 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
   'use memo';
 
   const { control } = useFullAgentFormContext();
-  const relationKey = getMcpRelationFormKey({
-    nodeId: props.id,
-    relationshipId: data.relationshipId,
-  });
+  const relationKey = getMcpRelationFormKey({ nodeId: props.id });
   const mcpRelation = useWatch({
     control,
     name: `mcpRelations.${relationKey}`,

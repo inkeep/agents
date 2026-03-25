@@ -39,8 +39,6 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
       type: NodeType.MCP,
       data: {
         toolId: nodeId,
-        subAgentId: null,
-        relationshipId: null,
       },
     });
   }

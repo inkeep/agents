@@ -161,7 +161,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     setNodes,
     setEdges,
     onNodesChange,
-    onEdgesChange,
+    onEdgesChange: onEdgesChangeAction,
     setInitial,
     markSaved,
     clearSelection,
@@ -336,6 +336,36 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     } catch (error) {
       console.error('Failed to refresh agent graph:', error);
     }
+  };
+
+  const onEdgesChangeWrapped: ReactFlowProps['onEdgesChange'] = (changes) => {
+    const removedMcpRelationKeys = changes.flatMap((change) => {
+      if (change.type !== 'remove') {
+        return [];
+      }
+
+      const edgeToRemove = edges.find((edge) => edge.id === change.id);
+      if (!edgeToRemove || edgeToRemove.targetHandle !== mcpNodeHandleId) {
+        return [];
+      }
+
+      const targetNode = nodes.find((node) => node.id === edgeToRemove.target);
+      if (!isNodeType(targetNode, NodeType.MCP)) {
+        return [];
+      }
+
+      return [getMcpRelationFormKey({ nodeId: targetNode.id })];
+    });
+
+    onEdgesChangeAction(changes);
+
+    requestAnimationFrame(() => {
+      for (const relationKey of removedMcpRelationKeys) {
+        form.setValue(`mcpRelations.${relationKey}.relationshipId`, undefined, {
+          shouldDirty: true,
+        });
+      }
+    });
   };
 
   const onConnectWrapped: ReactFlowProps['onConnect'] = (params) => {
@@ -694,7 +724,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onEdgesChange={onEdgesChangeWrapped}
           onConnect={onConnectWrapped}
           onDrop={onDrop}
           onDragOver={(event) => {
@@ -739,12 +769,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
                   const functionId = form.getValues(`functionTools.${toolId}.functionId`) ?? toolId;
                   form.unregister([`functions.${functionId}`, `functionTools.${toolId}`]);
                 } else if (isNodeType(node, NodeType.MCP)) {
-                  form.unregister(
-                    `mcpRelations.${getMcpRelationFormKey({
-                      nodeId: node.id,
-                      relationshipId: node.data.relationshipId,
-                    })}`
-                  );
+                  form.unregister(`mcpRelations.${getMcpRelationFormKey({ nodeId: node.id })}`);
                 } else if (isNodeType(node, NodeType.TeamAgent)) {
                   form.unregister(`teamAgents.${node.data.teamAgentId}`);
                 } else if (isNodeType(node, NodeType.ExternalAgent)) {

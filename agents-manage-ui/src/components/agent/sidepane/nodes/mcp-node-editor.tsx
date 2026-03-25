@@ -37,10 +37,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   'use memo';
   const form = useFullAgentFormContext();
   const { toolId } = selectedNode.data;
-  const relationKey = getMcpRelationFormKey({
-    nodeId: selectedNode.id,
-    relationshipId: selectedNode.data.relationshipId,
-  });
+  const relationKey = getMcpRelationFormKey({ nodeId: selectedNode.id });
   const tool = useWatch({ control: form.control, name: `tools.${toolId}` });
   const mcpRelation = useWatch({
     control: form.control,

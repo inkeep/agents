@@ -12,7 +12,11 @@ import {
 } from '@/components/agent/configuration/node-types';
 import { useDefaultSubAgentNodeIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { findSubAgentNodeId, getSubAgentIdForNode } from '@/features/agent/domain';
+import {
+  findSubAgentNodeId,
+  getMcpRelationFormKey,
+  getSubAgentIdForNode,
+} from '@/features/agent/domain';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { sentry } from '@/lib/sentry';
 
@@ -39,8 +43,12 @@ export function useAnimateGraph(): void {
           findSubAgentNodeId(prevNodes, subAgentId, subAgentFormData) ?? subAgentId;
 
         const getRelationshipId = (node: Node | undefined): string | null => {
+          if (isNodeType(node, NodeType.MCP)) {
+            const relationKey = getMcpRelationFormKey({ nodeId: node.id });
+            return form.getValues(`mcpRelations.${relationKey}.relationshipId`) ?? null;
+          }
+
           if (
-            isNodeType(node, NodeType.MCP) ||
             isNodeType(node, NodeType.FunctionTool) ||
             isNodeType(node, NodeType.ExternalAgent) ||
             isNodeType(node, NodeType.TeamAgent)
