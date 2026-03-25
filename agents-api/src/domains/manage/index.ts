@@ -4,6 +4,7 @@ import type { ManageAppVariables } from '../../types/app';
 import authLookupRoutes from './routes/authLookup';
 import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
+import entitlementsRoutes from './routes/entitlements';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
@@ -34,6 +35,9 @@ export function createManageRoutes() {
 
   // Mount invitations routes - includes /verify (unauthenticated) and /pending (authenticated)
   app.route('/api/invitations', invitationsRoutes);
+
+  // Mount entitlements routes under tenant
+  app.route('/tenants/:tenantId/entitlements', entitlementsRoutes);
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
