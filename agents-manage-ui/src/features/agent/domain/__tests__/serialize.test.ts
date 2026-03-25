@@ -962,7 +962,7 @@ describe('editorToPayload', () => {
           'team-1': createTeamAgentFormValue('team-1', {
             headers: { authorization: 'Bearer team-token' },
           }),
-        },
+        }
       );
 
       expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
