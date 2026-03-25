@@ -32,7 +32,7 @@ function getPrefixedGraphKey(prefix: string, value: MaybeString): string | null 
 export function getSubAgentGraphKey(val: string): string;
 export function getSubAgentGraphKey(val: MaybeString): string | null;
 export function getSubAgentGraphKey(subAgentId: MaybeString) {
-  return getPrefixedGraphKey('sub-agent', subAgentId);
+  return subAgentId;
 }
 
 export function getPlaceholderGraphKey(placeholderType: string, nodeId: string): string {

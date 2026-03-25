@@ -74,7 +74,7 @@ function Nodes() {
     isConnectable: true,
     positionAbsoluteX: 0,
     positionAbsoluteY: 0,
-    data: { nodeKey: 'sub-agent:SubAgent' },
+    data: {},
   };
 
   return (
@@ -137,7 +137,7 @@ function Nodes() {
           data={{ nodeKey: 'mcp-placeholder:foo' }}
         />
         {divider}
-        <SubAgentNode {...baseProps} id="SubAgent" data={{ nodeKey: 'sub-agent:SubAgent' }} />
+        <SubAgentNode {...baseProps} id="SubAgent" data={{ nodeKey: 'SubAgent' }} />
         {divider}
         <TeamAgentNode
           {...baseProps}

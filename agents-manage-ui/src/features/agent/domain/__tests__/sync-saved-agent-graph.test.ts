@@ -12,7 +12,7 @@ describe('syncSavedAgentGraph', () => {
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
         data: {
-          nodeKey: 'sub-agent:sub-agent',
+          nodeKey: 'sub-agent',
         },
       },
       {
@@ -35,7 +35,7 @@ describe('syncSavedAgentGraph', () => {
     const result = syncSavedAgentGraph({
       nodes,
       edges,
-      nodeId: 'sub-agent:sub-agent',
+      nodeId: 'sub-agent',
       edgeId: null,
       savedAgent: {
         id: 'agent-1',
@@ -85,7 +85,7 @@ describe('syncSavedAgentGraph', () => {
       } as any,
     });
 
-    expect(result.nodeId).toBe('sub-agent:sub-agent');
+    expect(result.nodeId).toBe('sub-agent');
     expect(result.edgeId).toBeNull();
     expect(result.nodes).toEqual(
       expect.arrayContaining([
@@ -118,7 +118,7 @@ describe('syncSavedAgentGraph', () => {
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: {
-          nodeKey: 'sub-agent:sub-agent',
+          nodeKey: 'sub-agent',
         },
       },
       {
@@ -192,7 +192,7 @@ describe('syncSavedAgentGraph', () => {
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
         data: {
-          nodeKey: 'sub-agent:sub-agent',
+          nodeKey: 'sub-agent',
         },
       },
       {
@@ -283,7 +283,7 @@ describe('syncSavedAgentGraph', () => {
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
         data: {
-          nodeKey: 'sub-agent:sub-agent-1',
+          nodeKey: 'sub-agent-1',
         },
       },
       {
@@ -291,7 +291,7 @@ describe('syncSavedAgentGraph', () => {
         type: NodeType.SubAgent,
         position: { x: 300, y: 20 },
         data: {
-          nodeKey: 'sub-agent:sub-agent-2',
+          nodeKey: 'sub-agent-2',
         },
       },
     ];
@@ -308,7 +308,7 @@ describe('syncSavedAgentGraph', () => {
       nodes,
       edges,
       nodeId: null,
-      edgeId: 'a2a:sub-agent:sub-agent-1:sub-agent:sub-agent-2',
+      edgeId: 'a2a:sub-agent-1:sub-agent-2',
       savedAgent: {
         id: 'agent-1',
         name: 'Agent',
@@ -361,7 +361,7 @@ describe('syncSavedAgentGraph', () => {
       } as any,
     });
 
-    expect(result.edgeId).toBe('a2a:sub-agent:sub-agent-1:sub-agent:sub-agent-2');
+    expect(result.edgeId).toBe('a2a:sub-agent-1:sub-agent-2');
     expect(result.edges).toEqual([
       expect.objectContaining({
         id: 'edge-tmp-sub-agent-1-tmp-sub-agent-2',
@@ -379,7 +379,7 @@ describe('syncSavedAgentGraph', () => {
         type: NodeType.SubAgent,
         position: { x: 10, y: 20 },
         data: {
-          nodeKey: 'sub-agent:sub-agent',
+          nodeKey: 'sub-agent',
         },
       },
       {
@@ -517,5 +517,121 @@ describe('syncSavedAgentGraph', () => {
         }),
       ])
     );
+  });
+
+  it('reconciles function tool graph keys from edges and RHF relation state', () => {
+    const nodes: Node[] = [
+      {
+        id: 'tmp-sub-agent',
+        type: NodeType.SubAgent,
+        position: { x: 10, y: 20 },
+        data: {
+          nodeKey: 'sub-agent',
+        },
+      },
+      {
+        id: 'function-node-1',
+        type: NodeType.FunctionTool,
+        position: { x: 300, y: 20 },
+        data: {
+          nodeKey: 'function-tool:function-tool-1',
+          toolId: 'function-tool-1',
+        },
+      },
+    ];
+    const edges: Edge[] = [
+      {
+        id: 'edge-function',
+        source: 'tmp-sub-agent',
+        target: 'function-node-1',
+      },
+    ];
+
+    const result = syncSavedAgentGraph({
+      nodes,
+      edges,
+      nodeId: 'function-tool:function-tool-1',
+      edgeId: null,
+      savedAgent: {
+        id: 'agent-1',
+        name: 'Agent',
+        description: '',
+        prompt: '',
+        contextConfig: null,
+        statusUpdates: null,
+        stopWhen: null,
+        models: {},
+        defaultSubAgentId: 'sub-agent',
+        subAgents: {
+          'sub-agent': {
+            id: 'sub-agent',
+            name: 'Sub Agent',
+            description: '',
+            prompt: '',
+            type: 'internal',
+            dataComponents: [],
+            artifactComponents: [],
+            canUse: [
+              {
+                toolId: 'function-tool-1',
+                agentToolRelationId: 'function-relation-1',
+              },
+            ],
+            canTransferTo: [],
+            canDelegateTo: [],
+          },
+        },
+        functions: {
+          'function-1': {
+            id: 'function-1',
+            executeCode: '',
+            inputSchema: {},
+            dependencies: {},
+          },
+        },
+        functionTools: {
+          'function-tool-1': {
+            id: 'function-tool-1',
+            name: 'Lookup customer',
+            description: '',
+            functionId: 'function-1',
+          },
+        },
+        externalAgents: {},
+        teamAgents: {},
+        tools: {},
+      } as any,
+      subAgentFormData: {
+        'tmp-sub-agent': {
+          id: 'sub-agent',
+        },
+      } as any,
+      functionToolRelations: {
+        'function-tool:function-tool-1': {
+          relationshipId: 'function-relation-1',
+        },
+      },
+    });
+
+    expect(result.nodeId).toBe('function-tool:function-tool-1');
+    expect(result.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'function-node-1',
+          data: expect.objectContaining({
+            nodeKey: 'function-tool:function-tool-1',
+            toolId: 'function-tool-1',
+          }),
+          selected: true,
+        }),
+      ])
+    );
+    expect(result.edges).toEqual([
+      expect.objectContaining({
+        id: 'edge-function',
+        source: 'sub-agent',
+        target: 'function-node-1',
+      }),
+    ]);
   });
 });
