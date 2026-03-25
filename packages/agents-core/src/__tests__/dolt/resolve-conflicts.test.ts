@@ -566,6 +566,44 @@ describe('applyResolutions', () => {
     );
   });
 
+  it('allows column overrides matching rowDefaultPick when a side is removed', async () => {
+    mockDb.queryResults['dolt_conflicts_agent'] = {
+      rows: [
+        {
+          our_diff_type: 'modified',
+          their_diff_type: 'removed',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: 'Our Agent',
+          their_name: null,
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'ours',
+        columns: { name: 'ours' },
+      },
+    ];
+
+    await applyResolutions(mockDb.db)(resolutions);
+
+    const mutationQueries = mockDb.executedQueries.filter(
+      (q) => !q.includes('DOLT_CONFLICTS_RESOLVE') && !q.includes('dolt_conflicts_')
+    );
+    expect(mutationQueries).toHaveLength(0);
+  });
+
   it('processes DELETEs before INSERTs across different tables', async () => {
     mockDb.queryResults['dolt_conflicts_functions'] = {
       rows: [

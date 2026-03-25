@@ -136,7 +136,10 @@ export const applyResolutions =
       if (hasColumnOverrides) {
         const ourDiffType = conflictRow.our_diff_type as string;
         const theirDiffType = conflictRow.their_diff_type as string;
-        if (ourDiffType === 'removed' || theirDiffType === 'removed') {
+        const hasEffectiveOverrides = Object.values(resolution.columns!).some(
+          (pick) => pick !== resolution.rowDefaultPick
+        );
+        if (hasEffectiveOverrides && (ourDiffType === 'removed' || theirDiffType === 'removed')) {
           const removedSide = ourDiffType === 'removed' ? 'ours' : 'theirs';
           throw new ResolutionValidationError(
             `Cannot apply column overrides for table ${resolution.table} ` +
