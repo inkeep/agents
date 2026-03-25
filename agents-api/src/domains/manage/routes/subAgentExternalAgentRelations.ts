@@ -177,7 +177,13 @@ app.openapi(
 
     const relation = await createSubAgentExternalAgentRelation(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
-      relationId: deriveRelationId({ tenantId, projectId, agentId, subAgentId, externalAgentId: body.externalAgentId }),
+      relationId: deriveRelationId({
+        tenantId,
+        projectId,
+        agentId,
+        subAgentId,
+        externalAgentId: body.externalAgentId,
+      }),
       data: {
         ...body,
         headers: body.headers || null,
