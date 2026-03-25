@@ -92,7 +92,7 @@ export const ProjectSwitcher: FC = () => {
         align="end"
         sideOffset={4}
       >
-        <InputGroup className="h-7 border-0 has-[[data-slot=input-group-control]:focus-visible]:ring-0">
+        <InputGroup className="h-7 border-0 has-[[data-slot=input-group-control]:focus-visible]:ring-0 shadow-none">
           <InputGroupInput
             aria-label="Search projects"
             placeholder="Search projects..."
