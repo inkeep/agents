@@ -1,5 +1,6 @@
 import {
   advanceScheduledTriggerNextRunAt,
+  computeNextRunAt,
   type DueScheduledTrigger,
   findDueScheduledTriggersAcrossProjects,
 } from '@inkeep/agents-core';
@@ -10,7 +11,6 @@ import {
   scheduledTriggerRunnerWorkflow,
   type TriggerPayload,
 } from '../workflow/functions/scheduledTriggerRunner';
-import { computeNextRunAt } from '@inkeep/agents-core';
 
 const logger = getLogger('triggerDispatcher');
 

@@ -96,10 +96,9 @@ describe('dispatchDueTriggers', () => {
 
     await dispatchDueTriggers();
 
-    expect(mockStart).toHaveBeenCalledWith(
-      expect.anything(),
-      [expect.objectContaining({ ref: 'feat/new-prompt' })],
-    );
+    expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({ ref: 'feat/new-prompt' }),
+    ]);
   });
 
   it('passes default ref for triggers without explicit ref', async () => {
@@ -109,10 +108,9 @@ describe('dispatchDueTriggers', () => {
 
     await dispatchDueTriggers();
 
-    expect(mockStart).toHaveBeenCalledWith(
-      expect.anything(),
-      [expect.objectContaining({ ref: 'main' })],
-    );
+    expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({ ref: 'main' }),
+    ]);
   });
 
   it('continues dispatching after individual trigger failures', async () => {
