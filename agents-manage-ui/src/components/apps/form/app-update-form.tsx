@@ -3,12 +3,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { AuthKeysSection } from '@/components/apps/auth-keys-section';
 import { GenericComboBox } from '@/components/form/generic-combo-box';
 import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { updateAppAction } from '@/lib/actions/apps';
 import type { App } from '@/lib/api/apps';
@@ -24,6 +26,9 @@ interface AppUpdateFormProps {
 
 interface WebClientConfigShape {
   allowedDomains?: string[];
+  auth?: {
+    audience?: string;
+  };
 }
 
 export function AppUpdateForm({
@@ -49,6 +54,7 @@ export function AppUpdateForm({
       ...(app.type === 'web_client' && webConfig
         ? {
             allowedDomains: webConfig.allowedDomains?.join(', ') ?? '',
+            audience: webConfig.auth?.audience ?? '',
           }
         : {}),
     },
@@ -69,14 +75,23 @@ export function AppUpdateForm({
       };
 
       if (app.type === 'web_client' && data.allowedDomains !== undefined) {
+        const webClientConfig: Record<string, unknown> = {
+          allowedDomains: data.allowedDomains
+            .split(',')
+            .map((d: string) => d.trim())
+            .filter(Boolean),
+        };
+
+        if (data.audience !== undefined) {
+          webClientConfig.auth = {
+            ...((webConfig?.auth as Record<string, unknown>) ?? {}),
+            audience: data.audience.trim() || undefined,
+          };
+        }
+
         payload.config = {
           type: 'web_client',
-          webClient: {
-            allowedDomains: data.allowedDomains
-              .split(',')
-              .map((d: string) => d.trim())
-              .filter(Boolean),
-          },
+          webClient: webClientConfig,
         };
       }
 
@@ -150,6 +165,20 @@ export function AppUpdateForm({
           description="Optional instructions that customize the agent's behavior when accessed through this app. These are added to the agent's existing instructions."
           rows={4}
         />
+
+        {app.type === 'web_client' && (
+          <>
+            <Separator />
+            <AuthKeysSection tenantId={tenantId} projectId={projectId} appId={app.id} />
+            <GenericInput
+              control={form.control}
+              name="audience"
+              label="Audience (aud)"
+              placeholder="https://your-app.example.com"
+              description="Optional. When set, tokens must include a matching aud claim."
+            />
+          </>
+        )}
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>

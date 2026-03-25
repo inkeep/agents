@@ -53,6 +53,7 @@ export const AppUpdateFormSchema = z.object({
     .string()
     .optional()
     .refine(validateDomainList, { message: DOMAIN_VALIDATION_MESSAGE }),
+  audience: z.string().optional(),
 });
 
 export type AppCreateFormInput = z.infer<typeof AppCreateFormSchema>;
