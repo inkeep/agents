@@ -1,6 +1,7 @@
 import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/rest';
 import { minimatch } from 'minimatch';
+import { format as oxfmtFormat } from 'oxfmt';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
 import type {
@@ -1035,6 +1036,16 @@ async function commitTreeEntries({
   return newCommit.data.sha;
 }
 
+async function formatContent(filePath: string, content: string): Promise<string> {
+  try {
+    const { code } = await oxfmtFormat(filePath, content);
+    return code;
+  } catch (error) {
+    logger.warn({ filePath, error }, 'oxfmt formatting failed, using unformatted content');
+    return content;
+  }
+}
+
 async function commitContent({
   githubClient,
   owner,
@@ -1078,6 +1089,7 @@ export async function commitFileChanges({
   branchName,
   operations,
   commitMessage,
+  format = false,
 }: {
   githubClient: Octokit;
   owner: string;
@@ -1087,9 +1099,13 @@ export async function commitFileChanges({
   branchName: string;
   operations: LLMUpdateOperation[];
   commitMessage: string;
+  format?: boolean;
 }): Promise<string> {
   try {
-    const updatedContent = applyOperations(fileContent, operations);
+    let updatedContent = applyOperations(fileContent, operations);
+    if (format) {
+      updatedContent = await formatContent(filePath, updatedContent);
+    }
     return await commitContent({
       githubClient,
       owner,
@@ -1114,6 +1130,7 @@ export async function commitNewFile({
   branchName,
   content,
   commitMessage,
+  format = false,
 }: {
   githubClient: Octokit;
   owner: string;
@@ -1122,15 +1139,17 @@ export async function commitNewFile({
   branchName: string;
   content: string;
   commitMessage: string;
+  format?: boolean;
 }): Promise<string> {
   try {
+    const finalContent = format ? await formatContent(filePath, content) : content;
     return await commitContent({
       githubClient,
       owner,
       repo,
       filePath,
       branchName,
-      content,
+      content: finalContent,
       commitMessage,
     });
   } catch (error) {
