@@ -44,12 +44,13 @@
  *   - Run from monorepo root with env vars exported:
  *       export $(grep -v '^#' .env | xargs) && npx tsx packages/agents-core/scripts/...
  */
-import { drizzle } from 'drizzle-orm/node-postgres';
+
 import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { computeNextRunAt } from '../src/utils/compute-next-run-at';
 import * as manageSchema from '../src/db/manage/manage-schema';
 import * as runtimeSchema from '../src/db/runtime/runtime-schema';
+import { computeNextRunAt } from '../src/utils/compute-next-run-at';
 
 const MANAGE_DB_URL = process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
 const RUNTIME_DB_URL = process.env.INKEEP_AGENTS_RUN_DATABASE_URL;
@@ -80,33 +81,33 @@ async function main() {
     for (const branch of branches.rows) {
       const branchName = branch.name;
 
-      let triggers: { rows: Array<{
-        tenant_id: string;
-        id: string;
-        project_id: string;
-        agent_id: string;
-        name: string;
-        description: string | null;
-        enabled: boolean;
-        cron_expression: string | null;
-        cron_timezone: string | null;
-        run_at: string | null;
-        payload: Record<string, unknown> | null;
-        message_template: string | null;
-        max_retries: string;
-        retry_delay_seconds: string;
-        timeout_seconds: string;
-        run_as_user_id: string | null;
-        created_by: string | null;
-        created_at: string;
-        updated_at: string;
-      }> };
+      let triggers: {
+        rows: Array<{
+          tenant_id: string;
+          id: string;
+          project_id: string;
+          agent_id: string;
+          name: string;
+          description: string | null;
+          enabled: boolean;
+          cron_expression: string | null;
+          cron_timezone: string | null;
+          run_at: string | null;
+          payload: Record<string, unknown> | null;
+          message_template: string | null;
+          max_retries: string;
+          retry_delay_seconds: string;
+          timeout_seconds: string;
+          run_as_user_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        }>;
+      };
 
       try {
         triggers = await manageDb.execute(
-          sql.raw(
-            `SELECT * FROM scheduled_triggers AS OF '${branchName}'`
-          )
+          sql.raw(`SELECT * FROM scheduled_triggers AS OF '${branchName}'`)
         );
       } catch {
         console.log(`Branch "${branchName}": skipped (no scheduled_triggers table)`);
@@ -122,9 +123,7 @@ async function main() {
 
       for (const t of triggers.rows) {
         const prefix = `${t.tenant_id}_${t.project_id}_`;
-        const refName = branchName.startsWith(prefix)
-          ? branchName.slice(prefix.length)
-          : 'main';
+        const refName = branchName.startsWith(prefix) ? branchName.slice(prefix.length) : 'main';
         const nextRunAt = t.enabled
           ? computeNextRunAt({
               cronExpression: t.cron_expression,
