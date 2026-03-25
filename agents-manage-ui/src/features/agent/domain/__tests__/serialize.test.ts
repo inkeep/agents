@@ -401,11 +401,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -413,7 +409,8 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -449,12 +446,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            selectedTools: { mcp1: ['existing'] }, // existing selection
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -462,7 +454,8 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -499,11 +492,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -511,7 +500,8 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -547,11 +537,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -559,7 +545,8 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -589,11 +576,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -602,6 +585,7 @@ describe('serializeAgentData', () => {
           data: {
             toolId: 'mcp1',
             relationshipId: 'rel-1',
+            subAgentId: null,
           },
         },
       ];
@@ -640,11 +624,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -652,6 +632,8 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -701,11 +683,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -713,7 +691,8 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -758,12 +737,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            skills: [],
-          },
+          data: {},
         },
         {
           id: 'function-node-1',
@@ -771,6 +745,8 @@ describe('serializeAgentData', () => {
           position: { x: 300, y: 0 },
           data: {
             toolId: 'function-tool-1',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -812,12 +788,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            skills: [],
-          },
+          data: {},
         },
         {
           id: 'function-node-1',
@@ -825,6 +796,8 @@ describe('serializeAgentData', () => {
           position: { x: 300, y: 0 },
           data: {
             toolId: 'function-tool-1',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -855,12 +828,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            skills: [],
-          },
+          data: {},
         },
         {
           id: 'external-node-1',
@@ -954,12 +922,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            skills: [],
-          },
+          data: {},
         },
         {
           id: '7ubfdp65rn5qvh7l788ae',
@@ -1055,12 +1018,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            skills: [],
-          },
+          data: {},
         },
       ];
 
@@ -1076,12 +1034,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Stale agent name',
-            prompt: 'Stale prompt',
-            skills: [],
-          },
+          data: {},
         },
         {
           id: 'function-node-1',
@@ -1089,6 +1042,8 @@ describe('serializeAgentData', () => {
           position: { x: 300, y: 0 },
           data: {
             toolId: 'function-tool-1',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -1186,12 +1141,7 @@ describe('serializeAgentData', () => {
           id: tempNodeId,
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: tempNodeId,
-            name: 'Stale sub agent',
-            prompt: 'Stale prompt',
-            skills: [],
-          },
+          data: {},
         },
         {
           id: 'weather-node',
@@ -1305,12 +1255,7 @@ describe('serializeAgentData', () => {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            skills: [],
-          },
+          data: {},
         },
         {
           id: 'function-node-1',
@@ -1318,6 +1263,8 @@ describe('serializeAgentData', () => {
           position: { x: 300, y: 0 },
           data: {
             toolId: 'function-tool-1',
+            subAgentId: null,
+            relationshipId: null,
           },
         },
       ];
@@ -1403,12 +1350,7 @@ describe('serializeAgentData', () => {
             id: tempNodeId,
             type: NodeType.SubAgent,
             position: { x: 0, y: 0 },
-            data: {
-              id: tempNodeId,
-              name: 'Sub Agent',
-              prompt: 'Hi',
-              skills: [],
-            },
+            data: {},
           },
         ],
         [],
