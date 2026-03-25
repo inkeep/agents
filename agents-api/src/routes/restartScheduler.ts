@@ -36,9 +36,14 @@ restartWorkflowHandler.openapi(
     }
 
     const authHeader = c.req.header('Authorization');
-    const token = authHeader?.replace('Bearer ', '');
 
-    if (!token || !constantTimeEqual(token, env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET)) {
+    if (!authHeader?.startsWith('Bearer ')) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const token = authHeader.slice(7);
+
+    if (!constantTimeEqual(token, env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET)) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
 

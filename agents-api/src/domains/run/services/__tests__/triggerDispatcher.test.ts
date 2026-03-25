@@ -27,8 +27,8 @@ vi.mock('../../../../logger', () => ({
   }),
 }));
 
-vi.mock('../workflow/functions/scheduledTriggerRunner', () => ({
-  scheduledTriggerRunnerWorkflow: 'mock-workflow',
+vi.mock('../../workflow/functions/scheduledTriggerRunner', () => ({
+  scheduledTriggerRunnerWorkflow: { workflowId: 'mock-workflow' },
 }));
 
 import {
@@ -53,7 +53,7 @@ function makeTrigger(overrides: Partial<DueScheduledTrigger> = {}): DueScheduled
     runAt: null,
     nextRunAt: '2026-03-13T10:00:00.000Z',
     enabled: true,
-    ref: null,
+    ref: 'main',
     ...overrides,
   };
 }
@@ -96,21 +96,23 @@ describe('dispatchDueTriggers', () => {
 
     await dispatchDueTriggers();
 
-    expect(mockStart).toHaveBeenCalledWith('mock-workflow', [
-      expect.objectContaining({ ref: 'feat/new-prompt' }),
-    ]);
+    expect(mockStart).toHaveBeenCalledWith(
+      expect.anything(),
+      [expect.objectContaining({ ref: 'feat/new-prompt' })],
+    );
   });
 
-  it('passes null ref for triggers without a ref', async () => {
-    const triggers = [makeTrigger({ ref: null })];
+  it('passes default ref for triggers without explicit ref', async () => {
+    const triggers = [makeTrigger({ ref: 'main' })];
 
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve(triggers));
 
     await dispatchDueTriggers();
 
-    expect(mockStart).toHaveBeenCalledWith('mock-workflow', [
-      expect.objectContaining({ ref: null }),
-    ]);
+    expect(mockStart).toHaveBeenCalledWith(
+      expect.anything(),
+      [expect.objectContaining({ ref: 'main' })],
+    );
   });
 
   it('continues dispatching after individual trigger failures', async () => {
@@ -151,7 +153,7 @@ describe('dispatchDueTriggers', () => {
     expect(callOrder).toEqual(['start', 'advance']);
   });
 
-  it('disables one-time triggers and sets nextRunAt to null', async () => {
+  it('sets nextRunAt to null for one-time triggers without disabling', async () => {
     const trigger = makeTrigger({
       cronExpression: null,
       runAt: '2026-03-13T10:00:00.000Z',
@@ -170,8 +172,8 @@ describe('dispatchDueTriggers', () => {
 
     expect(capturedAdvanceArgs).toMatchObject({
       nextRunAt: null,
-      enabled: false,
     });
+    expect(capturedAdvanceArgs?.enabled).toBeUndefined();
   });
 
   it('computes next cron occurrence for recurring triggers', async () => {

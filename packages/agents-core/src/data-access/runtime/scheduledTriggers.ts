@@ -20,7 +20,7 @@ export type DueScheduledTrigger = {
   runAt: string | null;
   nextRunAt: string | null;
   enabled: boolean;
-  ref: string | null;
+  ref: string;
 };
 
 export const getScheduledTriggerById =
@@ -130,11 +130,6 @@ export const upsertScheduledTrigger =
     scopes: AgentScopeConfig;
     data: RuntimeScheduledTriggerInsert;
   }): Promise<RuntimeScheduledTrigger> => {
-    const existing = await getScheduledTriggerById(db)({
-      scopes: params.scopes,
-      scheduledTriggerId: params.data.id,
-    });
-
     const enabled = params.data.enabled ?? true;
     const nextRunAt = enabled
       ? computeNextRunAt({
@@ -144,15 +139,19 @@ export const upsertScheduledTrigger =
         })
       : null;
 
-    if (existing) {
-      return await updateScheduledTrigger(db)({
-        scopes: params.scopes,
-        scheduledTriggerId: params.data.id,
-        data: { ...params.data, nextRunAt },
-      });
-    }
+    const now = new Date().toISOString();
+    const values = { ...params.data, nextRunAt };
 
-    return await createScheduledTrigger(db)({ ...params.data, nextRunAt });
+    const result = await db
+      .insert(scheduledTriggers)
+      .values(values)
+      .onConflictDoUpdate({
+        target: [scheduledTriggers.tenantId, scheduledTriggers.id],
+        set: { ...values, updatedAt: now },
+      })
+      .returning();
+
+    return result[0]!;
   };
 
 export const deleteScheduledTriggersByRunAsUserId =

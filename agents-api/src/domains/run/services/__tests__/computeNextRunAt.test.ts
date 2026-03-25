@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { computeNextRunAt } from '../computeNextRunAt';
+import { computeNextRunAt } from '@inkeep/agents-core';
 
 describe('computeNextRunAt', () => {
   afterEach(() => {
