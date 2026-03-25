@@ -22,19 +22,6 @@ export function formatJson(jsonString: string) {
   }
 }
 
-export function formatJsonField(value: unknown): string {
-  if (value === undefined || value === null) {
-    return '';
-  }
-
-  const stringifiedValue = JSON.stringify(value);
-  if (stringifiedValue.trim()) {
-    return formatJson(stringifiedValue);
-  }
-
-  return '';
-}
-
 /**
  * Transform an array of components into a lookup map by ID
  * Works with any component type that has an 'id' property

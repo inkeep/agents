@@ -34,7 +34,7 @@ export type PlaceholderType =
 
 export type GraphNodeStatus = 'delegating' | 'inverted-delegating' | 'executing' | 'error' | null;
 
-export interface NodeAnimation {
+interface NodeAnimation {
   status: GraphNodeStatus;
 }
 
