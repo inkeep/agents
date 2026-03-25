@@ -6,9 +6,8 @@ import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import type { AgentSkill, MCPRelationSchema } from '@/components/agent/form/validation';
 import type { FullAgentFormValues, FullAgentPayload } from '@/lib/types/agent-full';
-import type { ExternalAgent } from '@/lib/types/external-agents';
-import type { TeamAgent } from '@/lib/types/team-agents';
 import { getMcpRelationFormKey } from './form-state-defaults';
+import { getFunctionIdForTool } from './function-tool-identity';
 import { getSubAgentIdForNode } from './sub-agent-identity';
 
 type ExtendedAgent = FullAgentPayload['subAgents'][string];
@@ -103,9 +102,9 @@ type PartialMCPRelation = Pick<
 type MCPRelationFormData = Record<string, PartialMCPRelation>;
 type SerializeSubAgentFormData = NonNullable<FullAgentFormValues['subAgents']>;
 type SerializeFunctionToolFormData = NonNullable<FullAgentFormValues['functionTools']>;
+type SerializeFunctionsFormData = NonNullable<FullAgentFormValues['functions']>;
 type SerializeExternalAgentFormData = NonNullable<FullAgentFormValues['externalAgents']>;
 type SerializeTeamAgentFormData = NonNullable<FullAgentFormValues['teamAgents']>;
-type SerializeFunctionsFormData = NonNullable<FullAgentFormValues['functions']>;
 
 export interface SerializeAgentFormState {
   mcpRelations: MCPRelationFormData;
@@ -136,21 +135,13 @@ export function editorToPayload(
   const {
     mcpRelations,
     functionTools: functionToolFormData,
-    externalAgents: externalAgentFormData,
-    teamAgents: teamAgentFormData,
+    externalAgents,
+    teamAgents,
     subAgents: subAgentFormData,
     functions: functionsFormData,
     defaultSubAgentNodeId,
   } = formState;
   const subAgents: SerializeAgentDataType['subAgents'] = {};
-  const externalAgents: Record<
-    string,
-    ExternalAgent & { relationshipId: string | null; headers?: Record<string, string> }
-  > = {};
-  const teamAgents: Record<
-    string,
-    TeamAgent & { relationshipId: string | null; headers?: Record<string, string> }
-  > = {};
   const functionTools: NonNullable<SerializeAgentDataType['functionTools']> = {};
   const functions: NonNullable<SerializeAgentDataType['functions']> = {};
 
@@ -226,13 +217,19 @@ export function editorToPayload(
         const functionToolNode = nodes.find((n) => n.id === edge.target);
 
         if (isNodeType(functionToolNode, NodeType.FunctionTool)) {
-          const functionToolId = functionToolNode.data.toolId;
+          const functionToolId = requireFormValue(
+            functionToolNode.data.toolId,
+            `Missing function tool id for node "${functionToolNode.id}".`
+          );
           const relationshipId = functionToolNode.data.relationshipId;
           const functionTool = requireFormValue(
             functionToolFormData[functionToolId],
             `Missing RHF function tool data for node "${functionToolNode.id}".`
           );
-          const functionId = functionTool?.functionId ?? functionToolId;
+          const functionId = requireFormValue(
+            getFunctionIdForTool(functionToolId, functionToolFormData),
+            `Missing RHF function id for tool "${functionToolId}".`
+          );
           const formFunction = requireFormValue(
             functionsFormData[functionId],
             `Missing RHF function data for function "${functionId}".`
@@ -289,56 +286,7 @@ export function editorToPayload(
       };
 
       subAgents[subAgentId] = agent;
-    } else if (node.type === NodeType.ExternalAgent) {
-      if (!isNodeType(node, NodeType.ExternalAgent)) {
-        continue;
-      }
-      const externalAgentId = node.data.externalAgentId;
-      const externalAgentForm = requireFormValue(
-        externalAgentFormData[externalAgentId],
-        `Missing RHF external agent data for node "${node.id}".`
-      );
-      const headers = externalAgentForm.headers ?? undefined;
-
-      const externalAgent: ExternalAgent & {
-        headers?: Record<string, string>;
-        relationshipId: string | null;
-      } = {
-        id: externalAgentId,
-        name: externalAgentForm.name,
-        description: externalAgentForm.description ?? '',
-        baseUrl: externalAgentForm.baseUrl,
-        createdAt: '',
-        updatedAt: '',
-        credentialReferenceId: null,
-        headers,
-        relationshipId: node.data.relationshipId || null,
-      };
-
-      externalAgents[externalAgentId] = externalAgent;
-    } else if (node.type === NodeType.TeamAgent) {
-      if (!isNodeType(node, NodeType.TeamAgent)) {
-        continue;
-      }
-      const teamAgentId = node.data.teamAgentId;
-      const teamAgentForm = requireFormValue(
-        teamAgentFormData[teamAgentId],
-        `Missing RHF team agent data for node "${node.id}".`
-      );
-      const headers = teamAgentForm.headers ?? undefined;
-      const teamAgent: TeamAgent & {
-        relationshipId: string | null;
-        headers?: Record<string, string>;
-      } = {
-        id: teamAgentId,
-        name: teamAgentForm.name,
-        description: teamAgentForm.description ?? '',
-        headers,
-        relationshipId: node.data.relationshipId || null,
-      };
-      teamAgents[teamAgentId] = teamAgent;
     }
-    // External agent nodes are skipped - they are project-scoped resources
   }
 
   const subAgentExternalDelegateMap: Record<string, Record<string, any>> = {}; // subAgentId -> relationshipId ->  relationship data
@@ -365,10 +313,8 @@ export function editorToPayload(
       const sourceAgent: ExtendedAgent = subAgents[sourceSubAgentId];
 
       const targetAgent: ExtendedAgent | undefined = subAgents[targetSubAgentId];
-      const targetExternalAgent: ExternalAgent | undefined = externalAgents[targetSubAgentId];
-      const targetTeamAgent: TeamAgent | undefined = teamAgents[targetSubAgentId];
-      const isTargetExternal = targetExternalAgent !== undefined;
-      const isTargetTeamAgent = targetTeamAgent !== undefined;
+      const isTargetExternal = isNodeType(targetAgentNode, NodeType.ExternalAgent);
+      const isTargetTeamAgent = isNodeType(targetAgentNode, NodeType.TeamAgent);
 
       if (!sourceAgent || !edge.data?.relationships) {
         continue;
@@ -446,10 +392,18 @@ export function editorToPayload(
       // Handle edges to external agents (only delegation is allowed)
       if (isTargetExternal) {
         if (relationships.delegateSourceToTarget) {
-          const relationshipId = (targetExternalAgent as any).relationshipId as string | undefined;
-          const externalAgentHeaders = (targetExternalAgent as any).headers as
-            | Record<string, string>
-            | undefined;
+          const relationshipId = isNodeType(targetAgentNode, NodeType.ExternalAgent)
+            ? targetAgentNode.data.relationshipId || undefined
+            : undefined;
+          const externalAgentId = isNodeType(targetAgentNode, NodeType.ExternalAgent)
+            ? targetAgentNode.data.externalAgentId
+            : undefined;
+          const externalAgentFormData = externalAgentId
+            ? requireFormValue(
+                externalAgents[externalAgentId],
+                `Missing RHF external agent data for "${externalAgentId}".`
+              )
+            : undefined;
 
           addRelationship(
             sourceAgent,
@@ -457,7 +411,7 @@ export function editorToPayload(
             targetSubAgentId,
             true, // isExternal
             false, // isTeamAgent
-            externalAgentHeaders,
+            externalAgentFormData?.headers,
             relationshipId
           );
         }
@@ -467,10 +421,18 @@ export function editorToPayload(
       // Handle edges to team agents (only delegation is allowed)
       if (isTargetTeamAgent) {
         if (relationships.delegateSourceToTarget) {
-          const relationshipId = (targetTeamAgent as any).relationshipId as string | undefined;
-          const teamAgentHeaders = (targetTeamAgent as any).headers as
-            | Record<string, string>
-            | undefined;
+          const relationshipId = isNodeType(targetAgentNode, NodeType.TeamAgent)
+            ? targetAgentNode.data.relationshipId || undefined
+            : undefined;
+          const teamAgentId = isNodeType(targetAgentNode, NodeType.TeamAgent)
+            ? targetAgentNode.data.teamAgentId
+            : undefined;
+          const teamAgentFormData = teamAgentId
+            ? requireFormValue(
+                teamAgents[teamAgentId],
+                `Missing RHF team agent data for "${teamAgentId}".`
+              )
+            : undefined;
 
           addRelationship(
             sourceAgent,
@@ -478,7 +440,7 @@ export function editorToPayload(
             targetSubAgentId,
             false, // isExternal
             true, // isTeamAgent
-            teamAgentHeaders,
+            teamAgentFormData?.headers,
             relationshipId
           );
         }
