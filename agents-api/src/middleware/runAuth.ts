@@ -643,7 +643,14 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       span?.setAttribute('app.auth.endUserId', asymResult.endUserId);
       span?.setAttribute('app.auth.method', authMethod);
 
+      // Resolve scope: global apps get scope from token claims, tenant-scoped apps from the app record.
+      // Authorization is the token issuer's responsibility — agents-api trusts verified tokens.
+      let resolvedTenantId: string;
+      let resolvedProjectId: string;
+      let resolvedAgentId: string;
+
       if (!app.tenantId) {
+        // Global app — scope comes from token claims
         const claims = asymResult.claims;
         const tid = typeof claims.tid === 'string' ? claims.tid : undefined;
         const pid = typeof claims.pid === 'string' ? claims.pid : undefined;
@@ -655,91 +662,74 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
           });
         }
 
-        try {
-          const canUse = await canUseProjectStrict({
-            userId: asymResult.endUserId,
-            tenantId: tid,
-            projectId: pid,
-          });
-          if (!canUse) {
-            throw new HTTPException(403, {
-              message: 'Access denied: insufficient permissions',
-            });
-          }
-        } catch (error) {
-          if (error instanceof HTTPException) throw error;
-          logger.error({ error }, 'SpiceDB permission check failed for global app auth');
-          throw new HTTPException(503, {
-            message: 'Authorization service temporarily unavailable',
-          });
+        resolvedTenantId = tid;
+        resolvedProjectId = pid;
+        resolvedAgentId = claimAgentId || requestedAgentId || app.defaultAgentId || '';
+      } else {
+        // Tenant-scoped app — scope comes from app record
+        if (!app.projectId) {
+          logger.error(
+            { appId: app.id },
+            'App credential auth: tenant-scoped app missing projectId'
+          );
+          throw new HTTPException(500, { message: 'App configuration error' });
         }
 
-        const agentId = claimAgentId || requestedAgentId || app.defaultAgentId || '';
-
-        if (Math.random() < 0.1) {
-          updateAppLastUsed(runDbClient)(app.id).catch((err) => {
-            logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
-          });
-        }
-
-        logger.info(
-          { appId: app.id, kid: asymResult.kid, endUserId, authMethod },
-          'App credential authenticated (global, asymmetric)'
-        );
-
-        return {
-          authResult: {
-            apiKey: bearerToken,
-            tenantId: tid,
-            projectId: pid,
-            agentId,
-            apiKeyId: `app:${app.id}`,
-            metadata: { endUserId, authMethod },
-          },
-        };
+        resolvedTenantId = app.tenantId;
+        resolvedProjectId = app.projectId;
+        resolvedAgentId = requestedAgentId || app.defaultAgentId || '';
       }
 
-      if (!app.tenantId || !app.projectId) {
-        logger.error(
-          { appId: app.id },
-          'App credential auth: tenant-scoped app missing tenantId or projectId'
-        );
-        throw new HTTPException(500, { message: 'App configuration error' });
+      if (Math.random() < 0.1) {
+        updateAppLastUsed(runDbClient)(app.id).catch((err) => {
+          logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
+        });
       }
 
       logger.info(
-        { appId: app.id, kid: asymResult.kid, endUserId, authMethod },
+        { appId: app.id, kid: asymResult.kid, endUserId, authMethod, global: !app.tenantId },
         'App credential authenticated (asymmetric)'
       );
-    } else {
-      const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
-      if (!pow.ok) {
-        throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+
+      return {
+        authResult: {
+          apiKey: bearerToken,
+          tenantId: resolvedTenantId,
+          projectId: resolvedProjectId,
+          agentId: resolvedAgentId,
+          apiKeyId: `app:${app.id}`,
+          metadata: { endUserId, authMethod },
+        },
+      };
+    }
+
+    const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
+    if (!pow.ok) {
+      throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+    }
+
+    authMethod = 'app_credential_web_client';
+    try {
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(bearerToken, secret, { issuer: 'inkeep' });
+
+      if (payload.app !== appIdHeader) {
+        return {
+          authResult: null,
+          failureMessage: 'JWT app claim does not match request app ID',
+        };
       }
 
-      authMethod = 'app_credential_web_client';
-      try {
-        const secret = getAnonJwtSecret();
-        const { payload } = await jwtVerify(bearerToken, secret, { issuer: 'inkeep' });
-
-        if (payload.app !== appIdHeader) {
-          return {
-            authResult: null,
-            failureMessage: 'JWT app claim does not match request app ID',
-          };
-        }
-
-        endUserId = payload.sub;
-      } catch (err) {
-        const errorType =
-          err instanceof errors.JWTExpired
-            ? 'expired'
-            : err instanceof errors.JWSSignatureVerificationFailed
-              ? 'signature_invalid'
-              : 'unknown';
-        logger.debug({ errorType, appId: appIdHeader }, 'Anonymous JWT verification failed');
-        return { authResult: null, failureMessage: 'Invalid end-user JWT' };
-      }
+      endUserId = payload.sub;
+    } catch (err) {
+      const errorType =
+        err instanceof errors.JWTExpired
+          ? 'expired'
+          : err instanceof errors.JWSSignatureVerificationFailed
+            ? 'signature_invalid'
+            : 'unknown';
+      logger.debug({ errorType, appId: appIdHeader }, 'Anonymous JWT verification failed');
+      return { authResult: null, failureMessage: 'Invalid end-user JWT' };
     }
   } else {
     return { authResult: null, failureMessage: 'Unsupported app type' };
