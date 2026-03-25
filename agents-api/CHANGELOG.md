@@ -1,5 +1,25 @@
 # @inkeep/agents-api
 
+## 0.60.0
+
+### Minor Changes
+
+- 1199d45: BREAKING: File parts on `/run/api/chat` use a Vercel-compatible shape (`url` and required `mediaType`; no `text` or `mimeType`). Add PDF URL ingestion for chat attachments with explicit bad-request errors on PDF URL ingest failures.
+
+### Patch Changes
+
+- 2eaebb3: Fix deterministic ID generation for sub-agent relation/junction tables to prevent Dolt merge conflicts
+- c0018a6: Use actual AI SDK token usage for compression decisions and fix pricing service model ID lookup
+- ed10886: Add optional prompt field to app deployments for surface-specific behavioral tuning
+- Updated dependencies [2eaebb3]
+- Updated dependencies [c0018a6]
+- Updated dependencies [ed10886]
+- Updated dependencies [b1199eb]
+  - @inkeep/agents-core@0.60.0
+  - @inkeep/agents-work-apps@0.60.0
+  - @inkeep/agents-email@0.60.0
+  - @inkeep/agents-mcp@0.60.0
+
 ## 0.59.4
 
 ### Patch Changes
