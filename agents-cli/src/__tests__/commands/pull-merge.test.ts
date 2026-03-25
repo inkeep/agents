@@ -1,7 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import type { ConflictItem } from '../../commands/pull-v4/merge-conflicts';
-
-vi.mock('@clack/prompts');
+import type { ConflictItem } from '@inkeep/agents-core';
+import { describe, expect, it } from 'vitest';
 
 const SAMPLE_CONFLICTS: ConflictItem[] = [
   {
@@ -65,45 +63,5 @@ describe('resolveConflictsInteractive', () => {
     });
 
     expect(resolutions).toEqual([]);
-  });
-
-  it('should prompt interactively when no conflict strategy provided', async () => {
-    const p = await import('@clack/prompts');
-    vi.mocked(p.select).mockResolvedValueOnce('ours').mockResolvedValueOnce('theirs');
-    vi.mocked(p.confirm).mockResolvedValueOnce(true);
-
-    const { resolveConflictsInteractive } = await import('../../commands/pull-v4/merge-conflicts');
-
-    const resolutions = await resolveConflictsInteractive(SAMPLE_CONFLICTS, {});
-
-    expect(p.select).toHaveBeenCalledTimes(2);
-    expect(p.confirm).toHaveBeenCalledTimes(1);
-    expect(resolutions[0].rowDefaultPick).toBe('ours');
-    expect(resolutions[1].rowDefaultPick).toBe('theirs');
-  });
-
-  it('should throw when user cancels selection', async () => {
-    const p = await import('@clack/prompts');
-    vi.mocked(p.select).mockResolvedValueOnce(Symbol.for('cancel'));
-    vi.mocked(p.isCancel).mockReturnValueOnce(true);
-
-    const { resolveConflictsInteractive } = await import('../../commands/pull-v4/merge-conflicts');
-
-    await expect(resolveConflictsInteractive(SAMPLE_CONFLICTS, {})).rejects.toThrow(
-      'Conflict resolution cancelled'
-    );
-  });
-
-  it('should throw when user declines confirmation', async () => {
-    const p = await import('@clack/prompts');
-    vi.mocked(p.select).mockResolvedValueOnce('ours').mockResolvedValueOnce('theirs');
-    vi.mocked(p.isCancel).mockReturnValue(false);
-    vi.mocked(p.confirm).mockResolvedValueOnce(false);
-
-    const { resolveConflictsInteractive } = await import('../../commands/pull-v4/merge-conflicts');
-
-    await expect(resolveConflictsInteractive(SAMPLE_CONFLICTS, {})).rejects.toThrow(
-      'Conflict resolution cancelled'
-    );
   });
 });

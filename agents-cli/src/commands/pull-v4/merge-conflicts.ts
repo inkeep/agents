@@ -1,22 +1,11 @@
 import { styleText } from 'node:util';
-import * as p from '@clack/prompts';
-import type { PullV3Options } from './introspect';
+import type { ConflictItem, ConflictResolution } from '@inkeep/agents-core';
+import { render } from 'ink';
+import { createElement } from 'react';
+import { MergeApp } from './merge-ui/merge-app';
 
-export interface ConflictItem {
-  table: string;
-  primaryKey: Record<string, string>;
-  ourDiffType: string;
-  theirDiffType: string;
-  base: Record<string, unknown> | null;
-  ours: Record<string, unknown> | null;
-  theirs: Record<string, unknown> | null;
-}
-
-export interface ConflictResolution {
-  table: string;
-  primaryKey: Record<string, string>;
-  rowDefaultPick: 'ours' | 'theirs';
-  columns?: Record<string, 'ours' | 'theirs'>;
+export interface ResolveConflictsOptions {
+  conflictStrategy?: 'ours' | 'theirs';
 }
 
 function formatEntityId(primaryKey: Record<string, string>): string {
@@ -46,7 +35,7 @@ function formatConflictDescription(conflict: ConflictItem): string {
 
 export async function resolveConflictsInteractive(
   conflicts: ConflictItem[],
-  options: PullV3Options
+  options: ResolveConflictsOptions
 ): Promise<ConflictResolution[]> {
   if (options.conflictStrategy) {
     const pick = options.conflictStrategy;
@@ -69,52 +58,12 @@ export async function resolveConflictsInteractive(
 
   console.log();
 
-  const resolutions: ConflictResolution[] = [];
+  const instance = render(createElement(MergeApp, { conflicts }));
+  const result = await instance.waitUntilExit();
 
-  for (let i = 0; i < conflicts.length; i++) {
-    const conflict = conflicts[i];
-    const entity = formatEntityId(conflict.primaryKey);
-
-    const pick = await p.select({
-      message: `[${i + 1}/${conflicts.length}] ${conflict.table} "${entity}" — keep which version?`,
-      options: [
-        {
-          value: 'ours' as const,
-          label: `ours (local — ${conflict.ourDiffType})`,
-        },
-        {
-          value: 'theirs' as const,
-          label: `theirs (remote — ${conflict.theirDiffType})`,
-        },
-      ],
-    });
-
-    if (p.isCancel(pick)) {
-      console.log('Conflict resolution cancelled');
-      throw new Error('Conflict resolution cancelled');
-    }
-
-    resolutions.push({
-      table: conflict.table,
-      primaryKey: conflict.primaryKey,
-      rowDefaultPick: pick,
-    });
+  if (result instanceof Error) {
+    throw result;
   }
 
-  console.log(styleText('cyan', '\nResolution summary:'));
-  for (const resolution of resolutions) {
-    const entity = formatEntityId(resolution.primaryKey);
-    const pickLabel = resolution.rowDefaultPick === 'ours' ? 'local' : 'remote';
-    console.log(`  ${resolution.table} "${entity}" → ${pickLabel}`);
-  }
-
-  const confirmed = await p.confirm({
-    message: 'Apply these resolutions?',
-  });
-
-  if (p.isCancel(confirmed) || !confirmed) {
-    throw new Error('Conflict resolution cancelled');
-  }
-
-  return resolutions;
+  return result as ConflictResolution[];
 }

@@ -39,6 +39,7 @@ export interface PullV3Options {
   all?: boolean;
   tag?: string;
   quiet?: boolean;
+  conflictStrategy?: 'ours' | 'theirs';
   /** Internal: used for batch operations to return results instead of calling process.exit() */
   _batchMode?: boolean;
 }
@@ -334,7 +335,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         if (preview.hasConflicts) {
           s.stop('Conflicts detected');
           const { resolveConflictsInteractive } = await import('../merge-conflicts');
-          if (options.debug) console.log(preview.conflicts);
+          console.log(preview.conflicts);
           const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
 
           s.start('Executing merge with resolutions...');
