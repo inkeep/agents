@@ -22,7 +22,6 @@ import {
   markCompletedStep,
   markFailedStep,
   markRunningStep,
-  resetInvocationToPendingStep,
 } from '../steps/scheduledTriggerSteps';
 
 export type TriggerPayload = {
@@ -167,7 +166,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
         currentAttempt: attemptNumber,
       });
       attemptNumber++;
-      const backoffMultiplier = Math.pow(2, attemptNumber - 1);
+      const backoffMultiplier = 2 ** (attemptNumber - 1);
       const jitter = Math.random() * 0.3;
       await sleep(trigger.retryDelaySeconds * 1000 * backoffMultiplier * (1 + jitter));
     } else {

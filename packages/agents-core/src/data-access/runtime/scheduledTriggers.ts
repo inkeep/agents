@@ -78,7 +78,11 @@ export const createScheduledTrigger =
   (db: AgentsRunDatabaseClient) =>
   async (params: RuntimeScheduledTriggerInsert): Promise<RuntimeScheduledTrigger> => {
     const result = await db.insert(scheduledTriggers).values(params).returning();
-    return result[0]!;
+    const created = result[0];
+    if (!created) {
+      throw new Error('Failed to create scheduled trigger');
+    }
+    return created;
   };
 
 export const updateScheduledTrigger =
@@ -155,7 +159,11 @@ export const upsertScheduledTrigger =
       })
       .returning();
 
-    return result[0]!;
+    const upserted = result[0];
+    if (!upserted) {
+      throw new Error(`Failed to upsert scheduled trigger ${params.data.id}`);
+    }
+    return upserted;
   };
 
 export const deleteScheduledTriggersByRunAsUserId =
