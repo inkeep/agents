@@ -58,9 +58,7 @@ describe('schedulerSteps', () => {
 
   describe('checkSchedulerCurrentStep', () => {
     it('returns true when run ID matches current state', async () => {
-      mockGetSchedulerState.mockReturnValue(() =>
-        Promise.resolve({ currentRunId: 'run-abc' })
-      );
+      mockGetSchedulerState.mockReturnValue(() => Promise.resolve({ currentRunId: 'run-abc' }));
 
       const result = await checkSchedulerCurrentStep({ runId: 'run-abc' });
 
@@ -68,9 +66,7 @@ describe('schedulerSteps', () => {
     });
 
     it('returns false when run ID does not match', async () => {
-      mockGetSchedulerState.mockReturnValue(() =>
-        Promise.resolve({ currentRunId: 'run-xyz' })
-      );
+      mockGetSchedulerState.mockReturnValue(() => Promise.resolve({ currentRunId: 'run-xyz' }));
 
       const result = await checkSchedulerCurrentStep({ runId: 'run-abc' });
 
@@ -86,9 +82,7 @@ describe('schedulerSteps', () => {
     });
 
     it('returns false when state has no currentRunId', async () => {
-      mockGetSchedulerState.mockReturnValue(() =>
-        Promise.resolve({ currentRunId: null })
-      );
+      mockGetSchedulerState.mockReturnValue(() => Promise.resolve({ currentRunId: null }));
 
       const result = await checkSchedulerCurrentStep({ runId: 'run-abc' });
 

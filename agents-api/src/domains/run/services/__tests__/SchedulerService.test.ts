@@ -43,9 +43,7 @@ describe('SchedulerService', () => {
 
   describe('startSchedulerWorkflow', () => {
     it('starts a new workflow and returns run IDs', async () => {
-      mockGetSchedulerState.mockReturnValue(() =>
-        Promise.resolve({ currentRunId: 'old-run-123' })
-      );
+      mockGetSchedulerState.mockReturnValue(() => Promise.resolve({ currentRunId: 'old-run-123' }));
       mockStart.mockResolvedValue({ runId: 'new-run-456' });
 
       const result = await startSchedulerWorkflow();
@@ -70,9 +68,7 @@ describe('SchedulerService', () => {
     });
 
     it('returns null previousRunId when state has no currentRunId', async () => {
-      mockGetSchedulerState.mockReturnValue(() =>
-        Promise.resolve({ currentRunId: null })
-      );
+      mockGetSchedulerState.mockReturnValue(() => Promise.resolve({ currentRunId: null }));
       mockStart.mockResolvedValue({ runId: 'new-run' });
 
       const result = await startSchedulerWorkflow();
