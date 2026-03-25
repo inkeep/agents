@@ -2,13 +2,10 @@ import { trace } from '@opentelemetry/api';
 import type { LanguageModelMiddleware } from 'ai';
 import { SPAN_KEYS } from '../constants/otel-attributes';
 import { getLogger } from './logger';
-import { ModelFactory } from './model-factory';
-import type { TokenUsage } from './pricing-service';
-import { getPricingService } from './pricing-service';
 
 const logger = getLogger('usage-cost-middleware');
 
-function extractUsageTokens(usage: any): {
+export function extractUsageTokens(usage: any): {
   inputTokens: number;
   outputTokens: number;
   reasoningTokens?: number;
@@ -33,78 +30,52 @@ function extractUsageTokens(usage: any): {
   return { inputTokens, outputTokens, reasoningTokens, cachedReadTokens, cachedWriteTokens };
 }
 
-function calculateAndSetCost(
-  modelId: string,
-  providerId: string | undefined,
-  usage: {
-    inputTokens: number;
-    outputTokens: number;
-    reasoningTokens?: number;
-    cachedReadTokens?: number;
-    cachedWriteTokens?: number;
-  }
-): void {
+function extractGatewayCost(providerMetadata: Record<string, any> | undefined): number {
+  const gw = providerMetadata?.gateway;
+  if (!gw) return 0;
+
+  const cost = parseFloat(gw.cost as string);
+  if (!Number.isNaN(cost) && cost > 0) return cost;
+
+  const marketCost = parseFloat(gw.marketCost as string);
+  if (!Number.isNaN(marketCost) && marketCost > 0) return marketCost;
+
+  return 0;
+}
+
+function setGatewayCostOnSpan(providerMetadata: Record<string, any> | undefined): void {
   const activeSpan = trace.getActiveSpan();
   if (!activeSpan) return;
 
-  let provider: string;
-  let modelName: string;
-  if (providerId) {
-    provider = providerId;
-    modelName = modelId.includes('/') ? modelId.split('/').slice(1).join('/') : modelId;
-  } else {
-    try {
-      const parsed = ModelFactory.parseModelString(modelId);
-      provider = parsed.provider;
-      modelName = parsed.modelName;
-    } catch (parseError) {
-      logger.debug(
-        { modelId, error: parseError instanceof Error ? parseError.message : String(parseError) },
-        'Failed to parse model string for cost calculation, using unknown provider'
-      );
-      provider = 'unknown';
-      modelName = modelId;
-    }
-  }
+  const cost = extractGatewayCost(providerMetadata);
+  activeSpan.setAttribute(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, cost);
 
-  const tokenUsage: TokenUsage = {
-    inputTokens: usage.inputTokens,
-    outputTokens: usage.outputTokens,
-    reasoningTokens: usage.reasoningTokens,
-    cachedReadTokens: usage.cachedReadTokens,
-    cachedWriteTokens: usage.cachedWriteTokens,
-  };
-
-  const pricingService = getPricingService();
-  const pricing = pricingService.getModelPricing(modelName, provider);
-  if (pricing) {
-    const cost = pricingService.calculateCost(tokenUsage, pricing);
-    activeSpan.setAttribute(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, cost);
-  } else {
-    activeSpan.setAttribute(SPAN_KEYS.GEN_AI_COST_PRICING_UNAVAILABLE, true);
+  if (providerMetadata?.gateway && cost === 0) {
+    logger.warn(
+      { gateway: providerMetadata.gateway },
+      'Routed through gateway but no cost data in response'
+    );
   }
 }
 
-export const usageCostMiddleware: LanguageModelMiddleware = {
+export const gatewayCostMiddleware: LanguageModelMiddleware = {
   specificationVersion: 'v3',
 
-  async wrapGenerate({ doGenerate, model }) {
+  async wrapGenerate({ doGenerate }) {
     const result = await doGenerate();
 
     try {
-      calculateAndSetCost(model.modelId, model.provider, extractUsageTokens(result.usage));
+      setGatewayCostOnSpan(result.providerMetadata as Record<string, any> | undefined);
     } catch (error) {
-      logger.warn({ error }, 'Failed to calculate cost in wrapGenerate');
+      logger.warn({ error }, 'Failed to extract gateway cost in wrapGenerate');
     }
 
     return result;
   },
 
-  async wrapStream({ doStream, model }) {
+  async wrapStream({ doStream }) {
     const { stream, ...rest } = await doStream();
 
-    const modelId = model.modelId;
-    const providerId = model.provider;
     const wrappedStream = stream.pipeThrough(
       new TransformStream({
         transform(chunk, controller) {
@@ -112,9 +83,9 @@ export const usageCostMiddleware: LanguageModelMiddleware = {
 
           if (chunk.type === 'finish') {
             try {
-              calculateAndSetCost(modelId, providerId, extractUsageTokens(chunk.usage));
+              setGatewayCostOnSpan(chunk.providerMetadata as Record<string, any> | undefined);
             } catch (error) {
-              logger.warn({ error }, 'Failed to calculate cost in wrapStream');
+              logger.warn({ error }, 'Failed to extract gateway cost in wrapStream');
             }
           }
         },

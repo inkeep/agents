@@ -86,7 +86,6 @@ export const SPAN_KEYS = {
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
-  GEN_AI_COST_PRICING_UNAVAILABLE: 'gen_ai.cost.pricing_unavailable',
   GEN_AI_COST_ESTIMATED_USD: 'gen_ai.cost.estimated_usd',
 
   // Context attributes

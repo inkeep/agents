@@ -12,9 +12,11 @@ import { wrapLanguageModel } from 'ai';
 import type { ModelSettings } from '../validation/schemas.js';
 import { getLogger } from './logger';
 import { createMockModel } from './mock-provider.js';
-import { usageCostMiddleware } from './usage-cost-middleware';
+import { gatewayCostMiddleware } from './usage-cost-middleware';
 
 const logger = getLogger('ModelFactory');
+
+const GATEWAY_ROUTABLE_PROVIDERS = ['anthropic', 'openai', 'google'] as const;
 
 // NVIDIA NIM default provider instance
 const nimDefault = createOpenAICompatible({
@@ -202,9 +204,19 @@ export class ModelFactory {
 
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
 
-    // Azure always needs custom configuration; mock never does
+    const shouldRouteViaGateway =
+      !!process.env.AI_GATEWAY_API_KEY &&
+      (GATEWAY_ROUTABLE_PROVIDERS as readonly string[]).includes(provider) &&
+      Object.keys(providerConfig).length === 0;
+
     let model: LanguageModel;
-    if (provider !== 'mock' && (provider === 'azure' || Object.keys(providerConfig).length > 0)) {
+
+    if (shouldRouteViaGateway) {
+      model = gateway(`${provider}/${modelName}`);
+    } else if (
+      provider !== 'mock' &&
+      (provider === 'azure' || Object.keys(providerConfig).length > 0)
+    ) {
       logger.info({ config: providerConfig }, `Applying custom ${provider} provider configuration`);
       const customProvider = ModelFactory.createProvider(provider, providerConfig);
       model = customProvider.languageModel(modelName);
@@ -245,7 +257,7 @@ export class ModelFactory {
 
     return wrapLanguageModel({
       model: model as Parameters<typeof wrapLanguageModel>[0]['model'],
-      middleware: usageCostMiddleware,
+      middleware: gatewayCostMiddleware,
     });
   }
 

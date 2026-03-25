@@ -5,10 +5,6 @@ export let onRequestError: typeof SentryNs.captureRequestError;
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.ENVIRONMENT !== 'test') {
     await import('./otel');
-    const { getPricingService } = await import('@inkeep/agents-core');
-    getPricingService()
-      .initialize()
-      .catch(() => {});
   }
 
   if (process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.NEXT_RUNTIME === 'edge') {
