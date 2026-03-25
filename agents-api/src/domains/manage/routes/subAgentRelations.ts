@@ -214,14 +214,14 @@ app.openapi(
       ...body,
       agentId,
       tenantId,
-      id: deriveRelationId({
+      id: deriveRelationId(
         tenantId,
         projectId,
         agentId,
-        sourceSubAgentId: body.sourceSubAgentId,
-        targetId: body.targetSubAgentId ?? body.externalSubAgentId ?? body.teamSubAgentId ?? '',
-        relationType: body.relationType ?? '',
-      }),
+        body.sourceSubAgentId,
+        body.targetSubAgentId ?? body.externalSubAgentId ?? body.teamSubAgentId ?? '',
+        body.relationType ?? '',
+      ),
       projectId,
     };
 

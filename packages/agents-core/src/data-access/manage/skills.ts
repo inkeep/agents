@@ -214,13 +214,13 @@ export const upsertSubAgentSkill =
 
     const insertData: SubAgentSkillInsert = {
       ...params.scopes,
-      id: deriveRelationId({
-        tenantId: params.scopes.tenantId,
-        projectId: params.scopes.projectId,
-        agentId: params.scopes.agentId,
-        subAgentId: params.scopes.subAgentId,
-        skillId: params.skillId,
-      }),
+      id: deriveRelationId(
+        params.scopes.tenantId,
+        params.scopes.projectId,
+        params.scopes.agentId,
+        params.scopes.subAgentId,
+        params.skillId,
+      ),
       skillId: params.skillId,
       index: params.index,
       alwaysLoaded: params.alwaysLoaded ?? false,

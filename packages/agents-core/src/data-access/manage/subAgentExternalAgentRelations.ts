@@ -242,13 +242,13 @@ export const createSubAgentExternalAgentRelation =
   }) => {
     const finalRelationId =
       params.relationId ??
-      deriveRelationId({
-        tenantId: params.scopes.tenantId,
-        projectId: params.scopes.projectId,
-        agentId: params.scopes.agentId,
-        subAgentId: params.scopes.subAgentId,
-        externalAgentId: params.data.externalAgentId,
-      });
+      deriveRelationId(
+        params.scopes.tenantId,
+        params.scopes.projectId,
+        params.scopes.agentId,
+        params.scopes.subAgentId,
+        params.data.externalAgentId,
+      );
 
     const relation = await db
       .insert(subAgentExternalAgentRelations)

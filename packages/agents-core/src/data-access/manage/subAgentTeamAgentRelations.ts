@@ -230,13 +230,13 @@ export const createSubAgentTeamAgentRelation =
   }) => {
     const finalRelationId =
       params.relationId ??
-      deriveRelationId({
-        tenantId: params.scopes.tenantId,
-        projectId: params.scopes.projectId,
-        agentId: params.scopes.agentId,
-        subAgentId: params.scopes.subAgentId,
-        targetAgentId: params.data.targetAgentId,
-      });
+      deriveRelationId(
+        params.scopes.tenantId,
+        params.scopes.projectId,
+        params.scopes.agentId,
+        params.scopes.subAgentId,
+        params.data.targetAgentId,
+      );
 
     const relation = await db
       .insert(subAgentTeamAgentRelations)
