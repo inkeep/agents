@@ -969,3 +969,27 @@ export const workAppSlackMcpToolAccessConfig = pgTable(
     }).onDelete('cascade'),
   ]
 );
+
+// ============================================================================
+// ORG ENTITLEMENTS
+// ============================================================================
+
+export const orgEntitlement = pgTable(
+  'org_entitlement',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    organizationId: varchar('organization_id', { length: 256 }).notNull(),
+    resourceType: text('resource_type').notNull(),
+    maxValue: integer('max_value').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    unique('org_entitlement_org_resource_unique').on(table.organizationId, table.resourceType),
+    index('org_entitlement_org_idx').on(table.organizationId),
+    foreignKey({
+      columns: [table.organizationId],
+      foreignColumns: [organization.id],
+      name: 'org_entitlement_organization_fk',
+    }).onDelete('cascade'),
+  ]
+);
