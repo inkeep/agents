@@ -203,8 +203,6 @@ export function apiToGraph(data: AgentGraphData): TransformResult {
                   fallbackId: toolNodeId,
                 }),
                 toolId,
-                subAgentId,
-                relationshipId: relationshipId ?? null,
               }
             : {
                 nodeKey: getMcpGraphKey({

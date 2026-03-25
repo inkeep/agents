@@ -35,7 +35,6 @@ describe('graph identity', () => {
       data: {
         nodeKey: 'function-tool:function-tool-1',
         toolId: 'function-tool-1',
-        relationshipId: 'relation-1',
       },
     };
     const externalAgentNode: Node = {
