@@ -176,6 +176,13 @@
       "when": 1773928319378,
       "tag": "0024_moaning_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1774372432511,
+      "tag": "0025_faulty_kylun",
+      "breakpoints": true
     }
   ]
 }
