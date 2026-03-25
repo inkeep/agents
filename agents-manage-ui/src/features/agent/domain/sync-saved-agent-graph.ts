@@ -1,6 +1,7 @@
 import type { Edge, Node } from '@xyflow/react';
 import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import type { FullAgentFormValues, FullAgentResponse } from '@/lib/types/agent-full';
+import { getFunctionToolRelationFormKey } from './form-state-defaults';
 import {
   findEdgeByGraphKey,
   findNodeByGraphKey,
@@ -23,6 +24,7 @@ interface SyncSavedAgentGraphParams {
   nodeId: string | null;
   edgeId: string | null;
   subAgentFormData?: FullAgentFormValues['subAgents'];
+  functionToolRelations?: FullAgentFormValues['functionToolRelations'];
 }
 
 interface SyncSavedAgentGraphResult {
@@ -51,6 +53,7 @@ export function syncSavedAgentGraph({
   nodeId,
   edgeId,
   subAgentFormData,
+  functionToolRelations,
 }: SyncSavedAgentGraphParams): SyncSavedAgentGraphResult {
   const selectedNode = findNodeByGraphKey(nodes, nodeId);
   const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId);
@@ -210,17 +213,20 @@ export function syncSavedAgentGraph({
         if (!isNodeType(node, NodeType.FunctionTool)) {
           return node;
         }
-        const subAgentId = node.data.subAgentId ? renameSubAgentId(node.data.subAgentId) : null;
+        const incomingEdge = renamedSourceEdges.find((edge) => edge.target === node.id);
+        const subAgentId = incomingEdge ? renameSubAgentId(incomingEdge.source) : null;
 
         if (!subAgentId) {
           return null;
         }
 
-        const relationshipId = claimRelationId(
-          subAgentId,
-          node.data.toolId,
-          node.data.relationshipId
-        );
+        const relationKey = getNodeGraphKey(node);
+        const currentRelationshipId =
+          relationKey && functionToolRelations
+            ? (functionToolRelations[getFunctionToolRelationFormKey({ nodeKey: relationKey })]
+                ?.relationshipId ?? null)
+            : null;
+        const relationshipId = claimRelationId(subAgentId, node.data.toolId, currentRelationshipId);
 
         return {
           ...node,
@@ -231,8 +237,6 @@ export function syncSavedAgentGraph({
               toolId: node.data.toolId,
               fallbackId: node.id,
             }),
-            subAgentId,
-            relationshipId,
           },
         };
       }

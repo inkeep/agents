@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   createFunctionToolFormInput,
+  createFunctionToolRelationFormInput,
   createMcpRelationFormInput,
   createSubAgentFormInput,
+  getFunctionToolRelationFormKey,
   getMcpRelationFormKey,
 } from '@/features/agent/domain/form-state-defaults';
 
@@ -59,5 +61,13 @@ describe('form state defaults', () => {
       description: '',
       tempToolPolicies: {},
     });
+
+    expect(createFunctionToolRelationFormInput()).toEqual({
+      relationshipId: undefined,
+    });
+
+    expect(getFunctionToolRelationFormKey({ nodeKey: 'function-tool:function-tool-1' })).toBe(
+      'function-tool:function-tool-1'
+    );
   });
 });

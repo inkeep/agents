@@ -43,6 +43,15 @@ function createSerializeAgentFormState(nodes: Node[]): SerializeAgentFormState {
           },
         ])
     ),
+    functionToolRelations: Object.fromEntries(
+      nodes
+        .filter((node) => node.type === NodeType.FunctionTool)
+        .flatMap((node) =>
+          typeof node.data.nodeKey === 'string'
+            ? [[node.data.nodeKey, { relationshipId: undefined }]]
+            : []
+        )
+    ),
     functionTools: {},
     externalAgents: {},
     teamAgents: {},

@@ -34,11 +34,15 @@ describe('apiToGraph', () => {
         },
       ])
     );
+    const functionToolRelations = Object.fromEntries(
+      Object.entries(formData.functionToolRelations ?? {}).map(([key, value]) => [key, value])
+    );
 
     return {
       deserialized,
       serialized: editorToPayload(deserialized.nodes, deserialized.edges, {
         mcpRelations,
+        functionToolRelations,
         functionTools: formData.functionTools ?? {},
         externalAgents,
         teamAgents,
@@ -173,8 +177,11 @@ describe('apiToGraph', () => {
     expect(functionToolNode?.id).toBe('function-tool:function-tool-1');
     expect(functionToolNode?.data).toMatchObject({
       toolId: 'function-tool-1',
-      subAgentId: 'sub-agent-1',
-      relationshipId: 'function-relation-1',
+    });
+    expect(apiToFormValues(fullAgent).functionToolRelations).toEqual({
+      'function-tool:function-tool-1': {
+        relationshipId: 'function-relation-1',
+      },
     });
   });
 

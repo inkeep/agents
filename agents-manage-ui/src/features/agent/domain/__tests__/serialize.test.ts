@@ -15,6 +15,13 @@ type TestMcpRelations = Record<
   }
 >;
 
+type TestFunctionToolRelations = Record<
+  string,
+  {
+    relationshipId?: string | null;
+  }
+>;
+
 type SubAgentFormOverride = Omit<
   Partial<SerializeAgentFormState['subAgents'][string]>,
   'models'
@@ -166,6 +173,18 @@ function createSerializeAgentFormState(
       ),
       ...overrides.mcpRelations,
     },
+    functionToolRelations: {
+      ...Object.fromEntries(
+        nodes
+          .filter((node) => node.type === NodeType.FunctionTool)
+          .flatMap((node) =>
+            typeof node.data.nodeKey === 'string'
+              ? [[node.data.nodeKey, { relationshipId: undefined }]]
+              : []
+          )
+      ),
+      ...overrides.functionToolRelations,
+    },
     functionTools: {
       ...functionTools,
       ...overrides.functionTools,
@@ -199,7 +218,8 @@ function editorToPayload(
   teamAgents: SerializeAgentFormState['teamAgents'] = {},
   subAgents?: SerializeAgentFormState['subAgents'],
   functions: SerializeAgentFormState['functions'] = {},
-  defaultSubAgentNodeId?: SerializeAgentFormState['defaultSubAgentNodeId']
+  defaultSubAgentNodeId?: SerializeAgentFormState['defaultSubAgentNodeId'],
+  functionToolRelations: TestFunctionToolRelations = {}
 ) {
   return editorToPayloadInternal(
     nodes,
@@ -213,6 +233,14 @@ function editorToPayload(
             selectedTools: value.selectedTools,
             headers: value.headers ?? undefined,
             toolPolicies: value.toolPolicies ?? undefined,
+          },
+        ])
+      ),
+      functionToolRelations: Object.fromEntries(
+        Object.entries(functionToolRelations).map(([key, value]) => [
+          key,
+          {
+            relationshipId: value.relationshipId ?? undefined,
           },
         ])
       ),
@@ -616,6 +644,7 @@ describe('editorToPayload', () => {
       expect(() =>
         editorToPayloadInternal(nodes, edges, {
           mcpRelations: {},
+          functionToolRelations: {},
           functionTools: {},
           externalAgents: {},
           teamAgents: {},
@@ -708,9 +737,8 @@ describe('editorToPayload', () => {
           type: NodeType.FunctionTool,
           position: { x: 300, y: 0 },
           data: {
+            nodeKey: 'function-tool:function-tool-1',
             toolId: 'function-tool-1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];
@@ -746,6 +774,63 @@ describe('editorToPayload', () => {
       ]);
     });
 
+    it('should use RHF function tool relation ids when serializing canUse', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            nodeKey: 'function-tool:function-tool-1',
+            toolId: 'function-tool-1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const result = editorToPayload(
+        nodes,
+        edges,
+        undefined,
+        {
+          'function-tool-1': createFunctionToolFormValue('function-tool-1'),
+        },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          'function-tool:function-tool-1': {
+            relationshipId: 'function-relation-1',
+          },
+        }
+      );
+
+      expect(result.subAgents.agent1.canUse).toEqual([
+        {
+          toolId: 'function-tool-1',
+          toolSelection: null,
+          headers: null,
+          agentToolRelationId: 'function-relation-1',
+        },
+      ]);
+    });
+
     it('should omit function tool policies when form state is missing', () => {
       const nodes: Node[] = [
         {
@@ -759,9 +844,8 @@ describe('editorToPayload', () => {
           type: NodeType.FunctionTool,
           position: { x: 300, y: 0 },
           data: {
+            nodeKey: 'function-tool:function-tool-1',
             toolId: 'function-tool-1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];
@@ -1123,9 +1207,8 @@ describe('editorToPayload', () => {
           type: NodeType.FunctionTool,
           position: { x: 300, y: 0 },
           data: {
+            nodeKey: 'function-tool:function-tool-1',
             toolId: 'function-tool-1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];
@@ -1342,9 +1425,8 @@ describe('editorToPayload', () => {
           type: NodeType.FunctionTool,
           position: { x: 300, y: 0 },
           data: {
+            nodeKey: 'function-tool:function-tool-1',
             toolId: 'function-tool-1',
-            subAgentId: null,
-            relationshipId: null,
           },
         },
       ];

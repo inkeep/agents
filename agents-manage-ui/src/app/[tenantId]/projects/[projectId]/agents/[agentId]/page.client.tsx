@@ -53,12 +53,14 @@ import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/command
 import {
   apiToGraph,
   createFunctionToolFormInput,
+  createFunctionToolRelationFormInput,
   createMcpRelationFormInput,
   createSubAgentFormInput,
   editorToPayload,
   findEdgeByGraphKey,
   findNodeByGraphKey,
   getEdgeGraphKey,
+  getFunctionToolRelationFormKey,
   getMcpRelationFormKey,
   getNodeGraphKey,
   syncSavedAgentGraph,
@@ -151,7 +153,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     data: newNodeDefaults[NodeType.SubAgent](initialNodeId),
   };
 
-  const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const form = useFullAgentFormContext();
   const { nodes, edges } = useAgentStore((state) => ({
     nodes: state.nodes,
@@ -355,12 +357,35 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
       return [getMcpRelationFormKey({ nodeId: targetNode.id })];
     });
+    const removedFunctionToolRelationKeys = changes.flatMap((change) => {
+      if (change.type !== 'remove') {
+        return [];
+      }
+
+      const edgeToRemove = edges.find((edge) => edge.id === change.id);
+      if (!edgeToRemove || edgeToRemove.targetHandle !== functionToolNodeHandleId) {
+        return [];
+      }
+
+      const targetNode = nodes.find((node) => node.id === edgeToRemove.target);
+      if (!isNodeType(targetNode, NodeType.FunctionTool)) {
+        return [];
+      }
+
+      const nodeKey = getNodeGraphKey(targetNode);
+      return nodeKey ? [getFunctionToolRelationFormKey({ nodeKey })] : [];
+    });
 
     onEdgesChangeAction(changes);
 
     requestAnimationFrame(() => {
       for (const relationKey of removedMcpRelationKeys) {
         form.setValue(`mcpRelations.${relationKey}.relationshipId`, undefined, {
+          shouldDirty: true,
+        });
+      }
+      for (const relationKey of removedFunctionToolRelationKeys) {
+        form.setValue(`functionToolRelations.${relationKey}.relationshipId`, undefined, {
           shouldDirty: true,
         });
       }
@@ -442,7 +467,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       };
     }
 
-    // Update tool node subAgentId when connecting agent to a tool
     if (
       (targetHandle === mcpNodeHandleId || targetHandle === functionToolNodeHandleId) &&
       (sourceHandle === agentNodeSourceHandleId || sourceHandle === agentNodeTargetHandleId)
@@ -470,10 +494,20 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             { shouldDirty: true }
           );
         } else {
-          updateNodeData(targetNode.id, {
-            ...targetNode.data,
-            subAgentId: params.source,
-          });
+          const relationKey = getNodeGraphKey(targetNode);
+          if (!relationKey) {
+            toast.error('Function tool is missing graph identity.');
+            return;
+          }
+          const existingRelation = form.getValues(`functionToolRelations.${relationKey}`);
+          form.setValue(
+            `functionToolRelations.${getFunctionToolRelationFormKey({ nodeKey: relationKey })}`,
+            {
+              ...createFunctionToolRelationFormInput(),
+              ...existingRelation,
+            },
+            { shouldDirty: true }
+          );
         }
       }
     }
@@ -593,6 +627,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     async ({ mcpRelations, defaultSubAgentNodeId, ...data }): Promise<void> => {
       const serializedData = editorToPayload(nodes, edges, {
         mcpRelations: mcpRelations ?? {},
+        functionToolRelations: data.functionToolRelations ?? {},
         functionTools: data.functionTools ?? {},
         externalAgents: data.externalAgents ?? {},
         teamAgents: data.teamAgents ?? {},
@@ -618,6 +653,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           nodeId,
           edgeId,
           subAgentFormData: data.subAgents,
+          functionToolRelations: data.functionToolRelations,
         });
 
         setQueryState((prev) => ({
@@ -799,7 +835,12 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
                 if (isNodeType(node, NodeType.FunctionTool)) {
                   const { toolId } = node.data;
                   const functionId = form.getValues(`functionTools.${toolId}.functionId`) ?? toolId;
-                  form.unregister([`functions.${functionId}`, `functionTools.${toolId}`]);
+                  const relationKey = getNodeGraphKey(node);
+                  form.unregister([
+                    `functions.${functionId}`,
+                    `functionTools.${toolId}`,
+                    ...(relationKey ? [`functionToolRelations.${relationKey}` as const] : []),
+                  ]);
                 } else if (isNodeType(node, NodeType.MCP)) {
                   form.unregister(`mcpRelations.${getMcpRelationFormKey({ nodeId: node.id })}`);
                 } else if (isNodeType(node, NodeType.TeamAgent)) {

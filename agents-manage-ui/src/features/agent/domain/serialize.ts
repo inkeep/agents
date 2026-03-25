@@ -4,10 +4,15 @@ import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
-import type { AgentSkill, MCPRelationSchema } from '@/components/agent/form/validation';
+import type {
+  AgentSkill,
+  FunctionToolRelationSchema,
+  MCPRelationSchema,
+} from '@/components/agent/form/validation';
 import type { FullAgentFormValues, FullAgentPayload } from '@/lib/types/agent-full';
-import { getMcpRelationFormKey } from './form-state-defaults';
+import { getFunctionToolRelationFormKey, getMcpRelationFormKey } from './form-state-defaults';
 import { getFunctionIdForTool } from './function-tool-identity';
+import { getNodeGraphKey } from './graph-identity';
 import { getSubAgentIdForNode } from './sub-agent-identity';
 
 type ExtendedAgent = FullAgentPayload['subAgents'][string];
@@ -100,6 +105,11 @@ type PartialMCPRelation = Pick<
   'relationshipId' | 'selectedTools' | 'headers' | 'toolPolicies'
 >;
 type MCPRelationFormData = Record<string, PartialMCPRelation>;
+type PartialFunctionToolRelation = Pick<
+  z.output<typeof FunctionToolRelationSchema>,
+  'relationshipId'
+>;
+type FunctionToolRelationFormData = Record<string, PartialFunctionToolRelation>;
 type SerializeSubAgentFormData = NonNullable<FullAgentFormValues['subAgents']>;
 type SerializeFunctionToolFormData = NonNullable<FullAgentFormValues['functionTools']>;
 type SerializeFunctionsFormData = NonNullable<FullAgentFormValues['functions']>;
@@ -108,6 +118,7 @@ type SerializeTeamAgentFormData = NonNullable<FullAgentFormValues['teamAgents']>
 
 export interface SerializeAgentFormState {
   mcpRelations: MCPRelationFormData;
+  functionToolRelations: FunctionToolRelationFormData;
   functionTools: SerializeFunctionToolFormData;
   externalAgents: SerializeExternalAgentFormData;
   teamAgents: SerializeTeamAgentFormData;
@@ -134,6 +145,7 @@ export function editorToPayload(
 ): SerializeAgentDataType {
   const {
     mcpRelations,
+    functionToolRelations,
     functionTools: functionToolFormData,
     externalAgents,
     teamAgents,
@@ -218,7 +230,13 @@ export function editorToPayload(
             functionToolNode.data.toolId,
             `Missing function tool id for node "${functionToolNode.id}".`
           );
-          const relationshipId = functionToolNode.data.relationshipId;
+          const relationKey = requireFormValue(
+            getNodeGraphKey(functionToolNode),
+            `Missing graph key for function tool node "${functionToolNode.id}".`
+          );
+          const relationshipId =
+            functionToolRelations[getFunctionToolRelationFormKey({ nodeKey: relationKey })]
+              ?.relationshipId ?? null;
           const functionTool = requireFormValue(
             functionToolFormData[functionToolId],
             `Missing RHF function tool data for node "${functionToolNode.id}".`

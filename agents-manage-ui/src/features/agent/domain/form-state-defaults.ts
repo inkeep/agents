@@ -2,6 +2,9 @@ import type { FullAgentFormInputValues } from '@/components/agent/form/validatio
 
 type SubAgentFormInput = NonNullable<FullAgentFormInputValues['subAgents']>[string];
 type FunctionToolFormInput = NonNullable<FullAgentFormInputValues['functionTools']>[string];
+type FunctionToolRelationFormInput = NonNullable<
+  FullAgentFormInputValues['functionToolRelations']
+>[string];
 type MCPRelationFormInput = NonNullable<FullAgentFormInputValues['mcpRelations']>[string];
 
 export function createSubAgentFormInput({
@@ -42,6 +45,20 @@ export function createFunctionToolFormInput({
     name,
     description: '',
     tempToolPolicies: {},
+  };
+}
+
+export function getFunctionToolRelationFormKey({ nodeKey }: { nodeKey: string }): string {
+  return nodeKey;
+}
+
+export function createFunctionToolRelationFormInput({
+  relationshipId,
+}: {
+  relationshipId?: string | null;
+} = {}): FunctionToolRelationFormInput {
+  return {
+    relationshipId: relationshipId ?? undefined,
   };
 }
 

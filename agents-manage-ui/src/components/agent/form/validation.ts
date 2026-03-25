@@ -5,7 +5,7 @@ import {
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import { getMcpGraphKey } from '@/features/agent/domain/graph-keys';
+import { getFunctionToolGraphKey, getMcpGraphKey } from '@/features/agent/domain/graph-keys';
 import { serializeJson } from '@/lib/utils';
 
 const OriginalContextConfigSchema =
@@ -101,6 +101,10 @@ export const MCPRelationSchema = z.strictObject({
   toolPolicies: ToolPoliciesSchema,
 });
 
+export const FunctionToolRelationSchema = z.strictObject({
+  relationshipId: z.string().trim().optional(),
+});
+
 export const FullAgentFunctionToolSchema = z.object({
   ...FunctionToolSchema.shape,
   tempToolPolicies: ToolPoliciesSchema,
@@ -186,6 +190,7 @@ export const FullAgentFormSchema = z.strictObject({
     })
     .optional(),
   functionTools: z.record(z.string(), FullAgentFunctionToolSchema).optional(),
+  functionToolRelations: z.record(z.string(), FunctionToolRelationSchema).optional(),
   functions: z.record(z.string(), FullAgentFunctionSchema).optional(),
   externalAgents: z.record(z.string(), FullAgentExternalAgentSchema).optional(),
   teamAgents: z.record(z.string(), FullAgentTeamAgentSchema).optional(),
@@ -329,6 +334,24 @@ export function apiToFormValues(data: FullAgentResponse) {
       ])
     ),
     functionTools: Object.fromEntries(Object.values(functionTools).map((tool) => [tool.id, tool])),
+    functionToolRelations: Object.fromEntries(
+      Object.entries(subAgents).flatMap(([_subAgentId, subAgent]) =>
+        (subAgent.canUse ?? []).flatMap((canUseItem) => {
+          if (!canUseItem.agentToolRelationId || !functionTools[canUseItem.toolId]) {
+            return [];
+          }
+
+          return [
+            [
+              getFunctionToolGraphKey({ toolId: canUseItem.toolId }),
+              {
+                relationshipId: canUseItem.agentToolRelationId,
+              },
+            ],
+          ];
+        })
+      )
+    ),
     functions: Object.fromEntries(
       Object.values(functions).map((tool) => [
         tool.id,
@@ -380,7 +403,7 @@ export function apiToFormValues(data: FullAgentResponse) {
                 subAgentId,
                 toolId: canUseItem.toolId,
                 relationshipId: canUseItem.agentToolRelationId,
-              }) ?? canUseItem.agentToolRelationId,
+              }),
               {
                 toolId: canUseItem.toolId,
                 relationshipId: canUseItem.agentToolRelationId,

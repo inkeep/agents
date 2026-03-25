@@ -14,7 +14,9 @@ import { useDefaultSubAgentNodeIdRef } from '@/components/agent/use-default-sub-
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import {
   findSubAgentNodeId,
+  getFunctionToolRelationFormKey,
   getMcpRelationFormKey,
+  getNodeGraphKey,
   getSubAgentIdForNode,
 } from '@/features/agent/domain';
 import { agentStore } from '@/features/agent/state/use-agent-store';
@@ -48,11 +50,19 @@ export function useAnimateGraph(): void {
             return form.getValues(`mcpRelations.${relationKey}.relationshipId`) ?? null;
           }
 
-          if (
-            isNodeType(node, NodeType.FunctionTool) ||
-            isNodeType(node, NodeType.ExternalAgent) ||
-            isNodeType(node, NodeType.TeamAgent)
-          ) {
+          if (isNodeType(node, NodeType.FunctionTool)) {
+            const nodeKey = getNodeGraphKey(node);
+            if (!nodeKey) {
+              return null;
+            }
+            return (
+              form.getValues(
+                `functionToolRelations.${getFunctionToolRelationFormKey({ nodeKey })}.relationshipId`
+              ) ?? null
+            );
+          }
+
+          if (isNodeType(node, NodeType.ExternalAgent) || isNodeType(node, NodeType.TeamAgent)) {
             return node.data.relationshipId;
           }
 
