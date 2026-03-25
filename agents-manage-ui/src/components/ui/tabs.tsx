@@ -1,6 +1,6 @@
 'use client';
 
-import * as TabsPrimitive from '@radix-ui/react-tabs';
+import { Tabs as TabsPrimitive } from 'radix-ui';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { ComponentProps, FC } from 'react';
 import { cn } from '@/lib/utils';

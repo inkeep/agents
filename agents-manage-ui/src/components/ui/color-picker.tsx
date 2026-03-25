@@ -1,4 +1,4 @@
-import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
+import { Popover, PopoverContent, PopoverTrigger } from 'radix-ui';
 import { HexColorInput, HexColorPicker } from 'react-colorful';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
