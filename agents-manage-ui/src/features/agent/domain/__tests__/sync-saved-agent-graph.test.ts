@@ -19,8 +19,6 @@ describe('syncSavedAgentGraph', () => {
         position: { x: 300, y: 20 },
         data: {
           toolId: 'weather',
-          subAgentId: '473gigole08cp6vacy38s',
-          relationshipId: null,
         },
       },
     ];
@@ -95,10 +93,9 @@ describe('syncSavedAgentGraph', () => {
           selected: true,
         }),
         expect.objectContaining({
-          id: 'weather-node',
+          id: 'mcp:relation-1',
           data: expect.objectContaining({
-            subAgentId: 'sub-agent',
-            relationshipId: 'relation-1',
+            toolId: 'weather',
           }),
         }),
       ])
@@ -107,7 +104,7 @@ describe('syncSavedAgentGraph', () => {
       expect.objectContaining({
         id: 'edge-weather',
         source: 'sub-agent',
-        target: 'weather-node',
+        target: 'mcp:relation-1',
       }),
     ]);
   });
@@ -126,8 +123,6 @@ describe('syncSavedAgentGraph', () => {
         position: { x: 200, y: 0 },
         data: {
           toolId: 'weather',
-          subAgentId: null,
-          relationshipId: null,
         },
       },
       {
@@ -200,8 +195,6 @@ describe('syncSavedAgentGraph', () => {
         position: { x: 300, y: 20 },
         data: {
           toolId: 'weather',
-          subAgentId: '473gigole08cp6vacy38s',
-          relationshipId: null,
         },
       },
     ];
@@ -271,7 +264,7 @@ describe('syncSavedAgentGraph', () => {
       expect.objectContaining({
         id: 'edge-weather',
         source: 'sub-agent',
-        target: 'weather-node',
+        target: 'mcp:relation-1',
         selected: true,
       }),
     ]);

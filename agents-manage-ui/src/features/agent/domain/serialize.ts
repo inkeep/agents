@@ -97,7 +97,7 @@ type SerializeAgentDataType = Pick<
 
 type PartialMCPRelation = Pick<
   z.output<typeof MCPRelationSchema>,
-  'selectedTools' | 'headers' | 'toolPolicies'
+  'relationshipId' | 'selectedTools' | 'headers' | 'toolPolicies'
 >;
 type MCPRelationFormData = Record<string, PartialMCPRelation>;
 type SerializeSubAgentFormData = NonNullable<FullAgentFormValues['subAgents']>;
@@ -182,15 +182,12 @@ export function editorToPayload(
           const toolId = mcpNode.data.toolId;
 
           if (toolId) {
-            const relationshipId = mcpNode.data.relationshipId;
-            const relationKey = getMcpRelationFormKey({
-              nodeId: mcpNode.id,
-              relationshipId,
-            });
+            const relationKey = getMcpRelationFormKey({ nodeId: mcpNode.id });
             const relationFormData = requireFormValue(
               mcpRelations[relationKey],
               `Missing RHF MCP relation data for node "${mcpNode.id}".`
             );
+            const relationshipId = relationFormData.relationshipId ?? null;
             const toolSelection = relationFormData.selectedTools ?? null;
             const toolHeaders = relationFormData.headers ?? null;
             const toolPolicies = relationFormData.toolPolicies ?? null;

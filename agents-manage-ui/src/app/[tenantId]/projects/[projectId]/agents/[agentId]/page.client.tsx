@@ -458,29 +458,24 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           return;
         }
         if (isNodeType(targetNode, NodeType.MCP)) {
-          const relationKey = getMcpRelationFormKey({
-            nodeId: targetNode.id,
-            relationshipId: targetNode.data.relationshipId,
-          });
+          const relationKey = getMcpRelationFormKey({ nodeId: targetNode.id });
           const existingRelation = form.getValues(`mcpRelations.${relationKey}`);
           form.setValue(
             `mcpRelations.${relationKey}`,
             {
               ...createMcpRelationFormInput({
                 toolId: targetNode.data.toolId,
-                relationshipId: targetNode.data.relationshipId,
-                subAgentId: params.source,
               }),
               ...existingRelation,
-              subAgentId: params.source,
             },
             { shouldDirty: true }
           );
+        } else {
+          updateNodeData(targetNode.id, {
+            ...targetNode.data,
+            subAgentId: params.source,
+          });
         }
-        updateNodeData(targetNode.id, {
-          ...targetNode.data,
-          subAgentId: params.source,
-        });
       }
     }
 

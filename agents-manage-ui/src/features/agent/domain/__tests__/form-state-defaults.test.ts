@@ -36,19 +36,16 @@ describe('form state defaults', () => {
     expect(
       createMcpRelationFormInput({
         toolId: 'weather',
-        subAgentId: 'sub-agent-1',
       })
     ).toEqual({
       toolId: 'weather',
       relationshipId: undefined,
-      subAgentId: 'sub-agent-1',
       selectedTools: null,
       headers: '{}',
       toolPolicies: {},
     });
 
-    expect(getMcpRelationFormKey({ nodeId: 'tmp-node', relationshipId: null })).toBe('tmp-node');
-    expect(getMcpRelationFormKey({ nodeId: 'tmp-node', relationshipId: 'rel-1' })).toBe('rel-1');
+    expect(getMcpRelationFormKey({ nodeId: 'tmp-node' })).toBe('tmp-node');
   });
 
   it('creates explicit function tool defaults', () => {
