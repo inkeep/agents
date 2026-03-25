@@ -5,7 +5,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import type { ConversationStats } from '@/lib/api/signoz-stats';
 import EmptyState from '../../layout/empty-state';
 import { ConversationListItem } from './conversation-list-item';
@@ -104,8 +104,8 @@ export function ConversationStatsCard({
     <Card className="shadow-none bg-background mt-8 pb-4">
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
-          <CardTitle className="flex font-medium items-center gap-4 text-foreground">
-            <div className="flex items-center gap-2">
+          <CardTitle className="flex font-medium items-center gap-4 text-foreground w-full">
+            <div className="flex items-center gap-2 shrink-0">
               <MessageSquare className="h-4 w-4 text-gray-400 dark:text-white/40" />
               Recent conversations
             </div>
@@ -113,34 +113,32 @@ export function ConversationStatsCard({
             <Badge variant="count" className="text-xs">
               {totalConversations ?? 0}
             </Badge>
+            <div className="lg:w-md ml-auto flex flex-col gap-1">
+              <InputGroup>
+                <InputGroupInput
+                  placeholder="Search conversations..."
+                  value={localQuery}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setLocalQuery(v);
+                    debouncedSearch(v);
+                  }}
+                  aria-invalid={!!searchError}
+                />
+                <InputGroupAddon>
+                  <Search />
+                </InputGroupAddon>
+                {localQuery && (
+                  <InputGroupAddon align="inline-end">
+                    <Button variant="ghost" size="icon-sm" onClick={clearSearch}>
+                      <X />
+                    </Button>
+                  </InputGroupAddon>
+                )}
+              </InputGroup>
+              {searchError && <p className="text-xs text-destructive">{searchError}</p>}
+            </div>
           </CardTitle>
-
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/40" />
-            <Input
-              placeholder="Search conversations..."
-              value={localQuery}
-              onChange={(e) => {
-                const v = e.target.value;
-                setLocalQuery(v);
-                debouncedSearch(v);
-              }}
-              className="pl-8 pr-8"
-            />
-            {localQuery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearSearch}
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-accent"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-            {searchError && (
-              <p className="absolute left-0 -bottom-5 text-xs text-red-500">{searchError}</p>
-            )}
-          </div>
         </div>
       </CardHeader>
       <CardContent className="px-0">
