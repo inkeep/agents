@@ -31,5 +31,6 @@ export * from './tracer-factory';
 export * from './trigger-auth';
 export * from './usage-cost-middleware';
 export * from './usage-tracker';
+export * from './validate-public-key';
 export * from './wait-until';
 export * from './work-app-mcp';
