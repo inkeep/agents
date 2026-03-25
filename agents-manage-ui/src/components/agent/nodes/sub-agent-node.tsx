@@ -15,8 +15,12 @@ import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { useProjectQuery } from '@/lib/query/projects';
 import { cn, createLookup } from '@/lib/utils';
-import type { AgentNodeData } from '../configuration/node-types';
-import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
+import {
+  type AgentNodeData,
+  agentNodeSourceHandleId,
+  agentNodeTargetHandleId,
+  getNodeStatus,
+} from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
@@ -44,7 +48,7 @@ const ListSection: FC<{
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
   'use memo';
-  const { status } = data;
+  const status = getNodeStatus(data);
 
   const { control } = useFullAgentFormContext();
   const formKey = `subAgents.${id}` as const;

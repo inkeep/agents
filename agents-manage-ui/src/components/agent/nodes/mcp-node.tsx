@@ -15,7 +15,7 @@ import { cn, createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { findOrphanedTools } from '@/lib/utils/orphaned-tools-detector';
 import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';
-import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
+import { getNodeStatus, type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
@@ -163,11 +163,12 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
       needsApproval: isSynthetic ? false : toolPolicyNeedsApprovalForTool(toolPolicies, label),
     };
   });
-  const isDelegating = data.status === 'delegating';
-  const isInvertedDelegating = data.status === 'inverted-delegating';
-  const isExecuting = data.status === 'executing';
+  const status = getNodeStatus(data);
+  const isDelegating = status === 'delegating';
+  const isInvertedDelegating = status === 'inverted-delegating';
+  const isExecuting = status === 'executing';
   const hasErrors = processedErrors.length > 0;
-  const hasStatusErrors = data.status === 'error';
+  const hasStatusErrors = status === 'error';
   const needsAuth = toolData?.status === 'needs_auth';
   const isTimeout = toolData?.status === 'unavailable';
 

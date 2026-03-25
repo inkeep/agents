@@ -6,7 +6,11 @@ import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { cn } from '@/lib/utils';
 import { toolPoliciesNeedApproval } from '@/lib/utils/tool-policies';
-import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
+import {
+  type FunctionToolNodeData,
+  functionToolNodeHandleId,
+  getNodeStatus,
+} from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
@@ -14,7 +18,8 @@ import { Handle } from './handle';
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
   'use memo';
   const { control } = useFullAgentFormContext();
-  const { toolId = '', status } = data;
+  const { toolId } = data;
+  const status = getNodeStatus(data);
 
   const functionTool = useWatch({ control, name: `functionTools.${toolId}` });
   const processedErrors = [
