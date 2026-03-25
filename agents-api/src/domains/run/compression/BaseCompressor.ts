@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
-import { getLedgerArtifacts, upsertLedgerArtifact, SPAN_KEYS } from '@inkeep/agents-core';
+import { getLedgerArtifacts, SPAN_KEYS, upsertLedgerArtifact } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -618,7 +618,9 @@ export abstract class BaseCompressor {
     return this.cumulativeSummary?.related_artifacts?.some((a) => a.id === artifactId) ?? false;
   }
 
-  getSummarizedArtifact(artifactId: string): { key_findings: string[]; tool_call_id: string } | null {
+  getSummarizedArtifact(
+    artifactId: string
+  ): { key_findings: string[]; tool_call_id: string } | null {
     const artifact = this.cumulativeSummary?.related_artifacts?.find((a) => a.id === artifactId);
     if (!artifact) return null;
     return {
