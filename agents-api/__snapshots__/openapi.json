@@ -41367,6 +41367,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Resume from after this chunk index (omit for full replay)",
+            "in": "query",
+            "name": "afterIdx",
+            "required": false,
+            "schema": {
+              "description": "Resume from after this chunk index (omit for full replay)",
+              "nullable": true,
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -41378,7 +41389,7 @@
                 }
               }
             },
-            "description": "Active stream — replays from beginning"
+            "description": "Active stream — replays from given index or beginning"
           },
           "204": {
             "description": "No active stream"

@@ -11,8 +11,7 @@
 
 const BASE = process.env.BASE_URL || 'http://localhost:3002';
 const API_KEY =
-  process.env.API_KEY ||
-  'sk_ij6mIhKOcKVQ.gqJKEcQmQDbCgrKlSFXlhlh-OWmYipB7g9Jrxqj5G5c';
+  process.env.API_KEY || 'sk_ij6mIhKOcKVQ.gqJKEcQmQDbCgrKlSFXlhlh-OWmYipB7g9Jrxqj5G5c';
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -82,9 +81,7 @@ async function run() {
     // abort may throw
   }
 
-  console.log(
-    `\n  Read ${chunkCount} chunks (${partialData.length} bytes) before disconnect`
-  );
+  console.log(`\n  Read ${chunkCount} chunks (${partialData.length} bytes) before disconnect`);
 
   try {
     controller.abort();
@@ -101,10 +98,9 @@ async function run() {
   // --- Step 4: Reconnect via resume endpoint ---
   console.log('\n--- Step 4: Reconnect via GET /conversations/:id/stream ---');
 
-  const resumeRes = await fetch(
-    `${BASE}/run/v1/conversations/${conversationId}/stream`,
-    { headers: { Authorization: `Bearer ${API_KEY}` } }
-  );
+  const resumeRes = await fetch(`${BASE}/run/v1/conversations/${conversationId}/stream`, {
+    headers: { Authorization: `Bearer ${API_KEY}` },
+  });
 
   console.log(`  Resume status: ${resumeRes.status}`);
   console.log(`  Content-Type: ${resumeRes.headers.get('content-type')}`);
@@ -174,9 +170,13 @@ async function run() {
 
     const partialSnippet = partialData.substring(0, Math.min(50, partialData.length));
     if (partialSnippet && resumedData.includes(partialSnippet)) {
-      console.log('  ✓ Full replay confirmed — resumed data includes content from before disconnect');
+      console.log(
+        '  ✓ Full replay confirmed — resumed data includes content from before disconnect'
+      );
     } else {
-      console.log('  (Could not confirm overlap — partial snippet may have been a header/event prefix)');
+      console.log(
+        '  (Could not confirm overlap — partial snippet may have been a header/event prefix)'
+      );
     }
   } else {
     console.log('\n  ✗ FAIL: No data received from resumed stream');
