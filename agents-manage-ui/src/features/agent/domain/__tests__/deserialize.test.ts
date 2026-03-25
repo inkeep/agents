@@ -208,7 +208,9 @@ describe('apiToGraph', () => {
     const deserialized = apiToGraph(fullAgent);
     const subAgentNode = deserialized.nodes.find((node) => node.type === NodeType.SubAgent);
 
-    expect(subAgentNode?.data).toEqual({});
+    expect(subAgentNode?.data).toEqual({
+      nodeKey: 'sub-agent:sub-agent-1',
+    });
     expect(Number.isFinite(subAgentNode?.position.x)).toBe(true);
     expect(Number.isFinite(subAgentNode?.position.y)).toBe(true);
   });

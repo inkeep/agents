@@ -11,7 +11,13 @@ import {
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
 import type { FullAgentPayload, FullAgentResponse } from '@/components/agent/form/validation';
-import { getFunctionToolGraphKey, getMcpGraphKey } from './graph-identity';
+import {
+  getExternalAgentGraphKey,
+  getFunctionToolGraphKey,
+  getMcpGraphKey,
+  getSubAgentGraphKey,
+  getTeamAgentGraphKey,
+} from './graph-keys';
 
 interface TransformResult {
   nodes: Node[];
@@ -163,7 +169,9 @@ export function apiToGraph(data: AgentGraphData): TransformResult {
       id: subAgentId,
       type: NodeType.SubAgent,
       position: { x: 0, y: 0 },
-      data: {},
+      data: {
+        nodeKey: getSubAgentGraphKey(subAgentId),
+      },
     };
     nodes.push(agentNode);
   }
@@ -189,11 +197,24 @@ export function apiToGraph(data: AgentGraphData): TransformResult {
         const nodeData =
           nodeType === NodeType.FunctionTool
             ? {
+                nodeKey: getFunctionToolGraphKey({
+                  relationshipId,
+                  toolId,
+                  fallbackId: toolNodeId,
+                }),
                 toolId,
                 subAgentId,
                 relationshipId: relationshipId ?? null,
               }
-            : { toolId };
+            : {
+                nodeKey: getMcpGraphKey({
+                  relationshipId,
+                  subAgentId,
+                  toolId,
+                  fallbackId: toolNodeId,
+                }),
+                toolId,
+              };
 
         const toolNode: Node = {
           id: toolNodeId,
@@ -307,6 +328,7 @@ export function apiToGraph(data: AgentGraphData): TransformResult {
                 type: NodeType.ExternalAgent,
                 position: { x: 0, y: 0 },
                 data: {
+                  nodeKey: getExternalAgentGraphKey(targetSubAgentId),
                   externalAgentId: targetSubAgentId,
                   relationshipId,
                 },
@@ -354,6 +376,7 @@ export function apiToGraph(data: AgentGraphData): TransformResult {
                 type: NodeType.TeamAgent,
                 position: { x: 0, y: 0 },
                 data: {
+                  nodeKey: getTeamAgentGraphKey(targetSubAgentId),
                   teamAgentId: targetSubAgentId,
                   relationshipId,
                 },
