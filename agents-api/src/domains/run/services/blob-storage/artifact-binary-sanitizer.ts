@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-image-formats';
+import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { getBlobStorageProvider, isBlobUri, toBlobUri } from './index';
 import { buildStorageKey } from './storage-keys';
 
