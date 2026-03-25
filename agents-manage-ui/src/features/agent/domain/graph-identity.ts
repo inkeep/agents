@@ -1,12 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import {
-  type ExternalAgentNodeData,
-  type FunctionToolNodeData,
-  type MCPNodeData,
-  NodeType,
-  type TeamAgentNodeData,
-} from '@/components/agent/configuration/node-types';
+import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import { getSubAgentIdForNode, type SubAgentFormData } from './sub-agent-identity';
 
 export function getSubAgentGraphKey(subAgentId?: string | null): string | null {
@@ -80,7 +74,10 @@ export function getNodeGraphKey(node?: Node, subAgentFormData?: SubAgentFormData
     case NodeType.SubAgent:
       return getSubAgentGraphKey(getSubAgentIdForNode(node, subAgentFormData) ?? node.id);
     case NodeType.MCP: {
-      const { relationshipId, subAgentId, toolId } = node.data as MCPNodeData;
+      if (!isNodeType(node, NodeType.MCP)) {
+        return null;
+      }
+      const { relationshipId, subAgentId, toolId } = node.data;
       const resolvedSubAgentId =
         (subAgentId && subAgentFormData?.[subAgentId]?.id) || subAgentId || null;
       return getMcpGraphKey({
@@ -91,7 +88,10 @@ export function getNodeGraphKey(node?: Node, subAgentFormData?: SubAgentFormData
       });
     }
     case NodeType.FunctionTool: {
-      const { relationshipId, toolId } = node.data as FunctionToolNodeData;
+      if (!isNodeType(node, NodeType.FunctionTool)) {
+        return null;
+      }
+      const { relationshipId, toolId } = node.data;
       return getFunctionToolGraphKey({
         relationshipId,
         toolId,
@@ -99,11 +99,13 @@ export function getNodeGraphKey(node?: Node, subAgentFormData?: SubAgentFormData
       });
     }
     case NodeType.ExternalAgent:
-      return getExternalAgentGraphKey(
-        (node.data as ExternalAgentNodeData).externalAgentId ?? node.id
-      );
+      return isNodeType(node, NodeType.ExternalAgent)
+        ? getExternalAgentGraphKey(node.data.externalAgentId ?? node.id)
+        : null;
     case NodeType.TeamAgent:
-      return getTeamAgentGraphKey((node.data as TeamAgentNodeData).teamAgentId ?? node.id);
+      return isNodeType(node, NodeType.TeamAgent)
+        ? getTeamAgentGraphKey(node.data.teamAgentId ?? node.id)
+        : null;
     default:
       return node.id;
   }
@@ -122,7 +124,10 @@ function matchesLegacyNodeReference(
     case NodeType.SubAgent:
       return getSubAgentIdForNode(node, subAgentFormData) === reference;
     case NodeType.MCP: {
-      const { relationshipId, subAgentId, toolId } = node.data as MCPNodeData;
+      if (!isNodeType(node, NodeType.MCP)) {
+        return false;
+      }
+      const { relationshipId, subAgentId, toolId } = node.data;
       const resolvedSubAgentId =
         (subAgentId && subAgentFormData?.[subAgentId]?.id) || subAgentId || null;
       return (
@@ -132,13 +137,16 @@ function matchesLegacyNodeReference(
       );
     }
     case NodeType.FunctionTool: {
-      const { relationshipId, toolId } = node.data as FunctionToolNodeData;
+      if (!isNodeType(node, NodeType.FunctionTool)) {
+        return false;
+      }
+      const { relationshipId, toolId } = node.data;
       return relationshipId === reference || toolId === reference;
     }
     case NodeType.ExternalAgent:
-      return (node.data as ExternalAgentNodeData).externalAgentId === reference;
+      return isNodeType(node, NodeType.ExternalAgent) && node.data.externalAgentId === reference;
     case NodeType.TeamAgent:
-      return (node.data as TeamAgentNodeData).teamAgentId === reference;
+      return isNodeType(node, NodeType.TeamAgent) && node.data.teamAgentId === reference;
     default:
       return false;
   }
