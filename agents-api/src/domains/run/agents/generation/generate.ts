@@ -229,7 +229,17 @@ export async function runGenerate(
 
         const shouldStream = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
 
-        const dataComponentsSchema = hasStructuredOutput ? buildDataComponentsSchema(ctx) : null;
+        let dataComponentsSchema: z.ZodType<any> | null = null;
+        if (hasStructuredOutput) {
+          try {
+            dataComponentsSchema = buildDataComponentsSchema(ctx);
+          } catch (err) {
+            logger.error(
+              { agentId: ctx.config.id, err },
+              'Failed to build data components schema — continuing without structured output'
+            );
+          }
+        }
 
         const baseConfig = buildBaseGenerationConfig(
           ctx,

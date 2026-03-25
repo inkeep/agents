@@ -391,3 +391,11 @@ jobs:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           SPICEDB_PRESHARED_KEY: dev-secret-key
+
+      - name: run agents-core integration tests
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: pnpm --filter @inkeep/agents-core test:integration
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+          SPICEDB_PRESHARED_KEY: dev-secret-key

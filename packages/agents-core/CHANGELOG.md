@@ -1,5 +1,19 @@
 # @inkeep/agents-core
 
+## 0.59.4
+
+### Patch Changes
+
+- be7f056: Add two-phase Doltgres branch merge API with stateless conflict preview and per-row resolution
+- 99b5edf: Update TypeScript to 6.0.2
+
+## 0.59.3
+
+### Patch Changes
+
+- 51d6dfd: Verify Work App domain.
+- 6ca8164: v4 to v5 signoz migration
+
 ## 0.59.2
 
 ## 0.59.1

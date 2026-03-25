@@ -1,5 +1,23 @@
 # @inkeep/agents-work-apps
 
+## 0.59.4
+
+### Patch Changes
+
+- 6a8a439: Add oxfmt format option to github file tools
+- 99b5edf: Update TypeScript to 6.0.2
+- Updated dependencies [be7f056]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+
+## 0.59.3
+
+### Patch Changes
+
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+
 ## 0.59.2
 
 ### Patch Changes
