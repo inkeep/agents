@@ -2,19 +2,21 @@ import { useFormState } from 'react-hook-form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { findFunctionToolIdsForFunctionId } from '@/features/agent/domain';
 
-const EMPTY_OBJ = {};
+type ErrorGroup = Record<string, Record<string, unknown> | undefined>;
+
+const EMPTY_GROUP: ErrorGroup = {};
 
 export function useGroupedAgentErrors() {
   const form = useFullAgentFormContext();
   const { errors } = useFormState({ control: form.control });
   const {
-    subAgents = EMPTY_OBJ,
+    subAgents = EMPTY_GROUP,
     functionTools,
-    functions = EMPTY_OBJ,
-    externalAgents = EMPTY_OBJ,
-    teamAgents = EMPTY_OBJ,
+    functions = EMPTY_GROUP,
+    externalAgents = EMPTY_GROUP,
+    teamAgents = EMPTY_GROUP,
     tools,
-    mcpRelations = EMPTY_OBJ,
+    mcpRelations = EMPTY_GROUP,
     defaultSubAgentNodeId,
     ...agentSettings
   } = errors;
@@ -44,6 +46,6 @@ export function useGroupedAgentErrors() {
       ),
     },
     agentSettings,
-    other: defaultSubAgentNodeId ? { defaultSubAgentNodeId } : EMPTY_OBJ,
+    other: defaultSubAgentNodeId ? { defaultSubAgentNodeId } : EMPTY_GROUP,
   };
 }

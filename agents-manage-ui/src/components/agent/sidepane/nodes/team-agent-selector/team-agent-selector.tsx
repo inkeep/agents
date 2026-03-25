@@ -1,6 +1,8 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getTeamAgentGraphKey } from '@/features/agent/domain';
+import { useSidePane } from '@/hooks/use-side-pane';
 import { useAgentsQuery } from '@/lib/query/agents';
 import type { Agent } from '@/lib/types/agent-full';
 import { NodeType } from '../../../configuration/node-types';
@@ -20,6 +22,7 @@ export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
   // Filter out the current agent to prevent self-selection
   const availableAgents = agents.filter((agent) => agent.id !== agentId);
   const form = useFullAgentFormContext();
+  const { setQueryState } = useSidePane();
 
   function handleSelect(data: Agent) {
     const nodeId = data.id;
@@ -41,6 +44,14 @@ export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
         relationshipId: null, // Will be set after saving to database
       },
     });
+    setQueryState(
+      {
+        pane: 'node',
+        nodeId: getTeamAgentGraphKey(nodeId),
+        edgeId: null,
+      },
+      { history: 'replace' }
+    );
   }
 
   if (isFetching) {
