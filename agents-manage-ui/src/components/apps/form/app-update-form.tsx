@@ -44,7 +44,7 @@ export function AppUpdateForm({
       name: app.name,
       description: app.description ?? '',
       defaultAgentId: app.defaultAgentId ?? '',
-      prompt: ((app as Record<string, unknown>).prompt as string) ?? '',
+      prompt: app.prompt ?? '',
       enabled: app.enabled,
       ...(app.type === 'web_client' && webConfig
         ? {
