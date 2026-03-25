@@ -1,9 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
-import {
-  type ExternalAgentNodeData,
-  NodeType,
-  type TeamAgentNodeData,
-} from '@/components/agent/configuration/node-types';
+import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import type { FullAgentFormValues, FullAgentResponse } from '@/lib/types/agent-full';
 import {
   findEdgeByGraphKey,
@@ -138,18 +134,17 @@ export function syncSavedAgentGraph({
       }
 
       if (node.type === NodeType.MCP || node.type === NodeType.FunctionTool) {
-        const subAgentId =
-          typeof node.data.subAgentId === 'string' ? renameSubAgentId(node.data.subAgentId) : null;
+        if (!isNodeType(node, NodeType.MCP) && !isNodeType(node, NodeType.FunctionTool)) {
+          return node;
+        }
+        const subAgentId = node.data.subAgentId ? renameSubAgentId(node.data.subAgentId) : null;
 
         if (!subAgentId) {
           return null;
         }
 
-        const toolId = typeof node.data.toolId === 'string' ? node.data.toolId : null;
-        const relationshipId =
-          toolId === null
-            ? node.data.relationshipId
-            : claimRelationId(subAgentId, toolId, node.data.relationshipId as string | null);
+        const toolId = node.data.toolId;
+        const relationshipId = claimRelationId(subAgentId, toolId, node.data.relationshipId);
 
         return {
           ...node,
@@ -174,8 +169,10 @@ export function syncSavedAgentGraph({
   const syncedNodes = preliminarilySyncedNodes
     .map((node) => {
       if (node.type === NodeType.ExternalAgent) {
-        const { externalAgentId, relationshipId: currentRelationshipId } =
-          node.data as ExternalAgentNodeData;
+        if (!isNodeType(node, NodeType.ExternalAgent)) {
+          return node;
+        }
+        const { externalAgentId, relationshipId: currentRelationshipId } = node.data;
         const incomingEdge = syncedEdges.find((edge) => edge.target === node.id);
 
         if (!incomingEdge || !externalAgentId) {
@@ -195,8 +192,10 @@ export function syncSavedAgentGraph({
       }
 
       if (node.type === NodeType.TeamAgent) {
-        const { teamAgentId, relationshipId: currentRelationshipId } =
-          node.data as TeamAgentNodeData;
+        if (!isNodeType(node, NodeType.TeamAgent)) {
+          return node;
+        }
+        const { teamAgentId, relationshipId: currentRelationshipId } = node.data;
         const incomingEdge = syncedEdges.find((edge) => edge.target === node.id);
 
         if (!incomingEdge || !teamAgentId) {
