@@ -1,106 +1,165 @@
-import EventEmitter from 'node:events';
+import {
+  deleteStreamChunks,
+  getStreamChunks,
+  insertStreamChunks,
+  markStreamComplete,
+} from '@inkeep/agents-core';
+import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 
-interface BufferEntry {
-  chunks: Uint8Array[];
-  done: boolean;
-  emitter: EventEmitter;
-  timeoutId?: ReturnType<typeof setTimeout>;
-}
-
-const CLEANUP_DELAY_MS = 60_000;
-const REGISTRY_KEY = '__inkeep_streamBufferRegistry';
 const logger = getLogger('stream-buffer-registry');
 
-function getBufferMap(): Map<string, BufferEntry> {
-  const g = globalThis as Record<string, unknown>;
-  if (!g[REGISTRY_KEY]) {
-    g[REGISTRY_KEY] = new Map<string, BufferEntry>();
-  }
-  return g[REGISTRY_KEY] as Map<string, BufferEntry>;
+const FLUSH_INTERVAL_MS = 100;
+const POLL_INTERVAL_MS = 200;
+
+interface StreamScope {
+  tenantId: string;
+  projectId: string;
+  conversationId: string;
 }
 
-class StreamBufferRegistry {
-  private get buffers() {
-    return getBufferMap();
-  }
+interface WriteBuffer {
+  scope: StreamScope;
+  pendingChunks: { idx: number; data: string }[];
+  nextIdx: number;
+  flushTimer: ReturnType<typeof setInterval> | null;
+  done: boolean;
+}
 
-  register(conversationId: string): void {
-    const existing = this.buffers.get(conversationId);
-    if (existing) {
-      if (existing.timeoutId) clearTimeout(existing.timeoutId);
-      if (!existing.done) {
-        existing.done = true;
-        existing.emitter.emit('done');
-      }
+class PgStreamBufferRegistry {
+  private writeBuffers = new Map<string, WriteBuffer>();
+  private encoder = new TextDecoder();
+
+  register(scope: StreamScope): void {
+    const key = scope.conversationId;
+    const existing = this.writeBuffers.get(key);
+    if (existing?.flushTimer) {
+      clearInterval(existing.flushTimer);
     }
-    this.buffers.set(conversationId, {
-      chunks: [],
-      done: false,
-      emitter: new EventEmitter(),
+
+    deleteStreamChunks(runDbClient)(scope).catch((err) => {
+      logger.warn({ err, conversationId: key }, 'Failed to clear old stream chunks');
     });
-    logger.debug({ conversationId }, 'Stream buffer registered for resumption');
+
+    const buffer: WriteBuffer = {
+      scope,
+      pendingChunks: [],
+      nextIdx: 0,
+      flushTimer: null,
+      done: false,
+    };
+
+    buffer.flushTimer = setInterval(() => {
+      this.flush(key).catch((err) => {
+        logger.error({ err, conversationId: key }, 'Failed to flush stream chunks');
+      });
+    }, FLUSH_INTERVAL_MS);
+
+    this.writeBuffers.set(key, buffer);
+    logger.debug({ conversationId: key }, 'Pg stream buffer registered');
   }
 
   push(conversationId: string, chunk: Uint8Array): void {
-    const entry = this.buffers.get(conversationId);
-    if (!entry || entry.done) return;
-    entry.chunks.push(chunk);
-    entry.emitter.emit('chunk', chunk);
+    const buffer = this.writeBuffers.get(conversationId);
+    if (!buffer || buffer.done) return;
+
+    buffer.pendingChunks.push({
+      idx: buffer.nextIdx++,
+      data: this.encoder.decode(chunk),
+    });
   }
 
-  complete(conversationId: string): void {
-    const entry = this.buffers.get(conversationId);
-    if (!entry) return;
-    entry.done = true;
-    entry.emitter.emit('done');
-    entry.timeoutId = setTimeout(() => {
-      this.buffers.delete(conversationId);
-    }, CLEANUP_DELAY_MS);
+  async complete(conversationId: string): Promise<void> {
+    const buffer = this.writeBuffers.get(conversationId);
+    if (!buffer) return;
+
+    buffer.done = true;
+    if (buffer.flushTimer) {
+      clearInterval(buffer.flushTimer);
+      buffer.flushTimer = null;
+    }
+
+    await this.flush(conversationId);
+
+    await markStreamComplete(runDbClient)({
+      ...buffer.scope,
+      finalIdx: buffer.nextIdx,
+    });
+
+    this.writeBuffers.delete(conversationId);
+    logger.debug({ conversationId }, 'Pg stream buffer completed');
   }
 
-  createReadable(conversationId: string): ReadableStream<Uint8Array> | null {
-    const entry = this.buffers.get(conversationId);
-    logger.debug({ conversationId, found: !!entry }, 'Stream buffer createReadable');
-    if (!entry) return null;
-
-    let onChunk: ((chunk: Uint8Array) => void) | null = null;
-    let onDone: (() => void) | null = null;
+  createReadable(scope: StreamScope, afterIdx = -1): ReadableStream<Uint8Array> {
+    const encoder = new TextEncoder();
+    let lastIdx = afterIdx;
+    let cancelled = false;
+    let buffer: { idx: number; data: string; isFinal: boolean }[] = [];
 
     return new ReadableStream<Uint8Array>({
-      start(controller) {
-        onChunk = (chunk: Uint8Array) => controller.enqueue(chunk);
-        onDone = () => {
-          if (onChunk) entry.emitter.off('chunk', onChunk);
-          if (onDone) entry.emitter.off('done', onDone);
-          onChunk = null;
-          onDone = null;
-          controller.close();
-        };
+      async pull(controller) {
+        if (cancelled) return;
 
-        entry.emitter.on('chunk', onChunk);
-        entry.emitter.on('done', onDone);
+        try {
+          // Refill buffer from Postgres when empty
+          while (buffer.length === 0) {
+            if (cancelled) return;
+            const rows = await getStreamChunks(runDbClient)({
+              ...scope,
+              afterIdx: lastIdx,
+            });
+            if (rows.length > 0) {
+              buffer = rows;
+            } else {
+              await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+            }
+          }
 
-        for (const chunk of entry.chunks) {
-          controller.enqueue(chunk);
-        }
-
-        if (entry.done) {
-          onDone();
+          // Yield one chunk per pull() for back-pressure
+          const row = buffer.shift()!;
+          if (row.isFinal) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(encoder.encode(row.data));
+          lastIdx = row.idx;
+        } catch (err) {
+          if (!cancelled) {
+            controller.error(err);
+          }
         }
       },
       cancel() {
-        if (onChunk) entry.emitter.off('chunk', onChunk);
-        if (onDone) entry.emitter.off('done', onDone);
-        onChunk = null;
-        onDone = null;
+        cancelled = true;
       },
     });
   }
 
-  has(conversationId: string): boolean {
-    return this.buffers.has(conversationId);
+  async hasChunks(scope: StreamScope): Promise<boolean> {
+    const rows = await getStreamChunks(runDbClient)({
+      ...scope,
+      afterIdx: -1,
+    });
+    return rows.length > 0;
+  }
+
+  private async flush(conversationId: string): Promise<void> {
+    const buffer = this.writeBuffers.get(conversationId);
+    if (!buffer || buffer.pendingChunks.length === 0) return;
+
+    const toFlush = buffer.pendingChunks.splice(0);
+    try {
+      await insertStreamChunks(runDbClient)({
+        ...buffer.scope,
+        chunks: toFlush,
+      });
+    } catch (err) {
+      logger.error(
+        { err, conversationId, count: toFlush.length },
+        'Failed to insert stream chunks'
+      );
+    }
   }
 }
 
-export const streamBufferRegistry = new StreamBufferRegistry();
+export const streamBufferRegistry = new PgStreamBufferRegistry();

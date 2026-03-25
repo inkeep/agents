@@ -428,7 +428,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
         c.header('connection', 'keep-alive');
         c.header('x-vercel-ai-data-stream', 'v2');
         c.header('x-accel-buffering', 'no');
-        streamBufferRegistry.register(conversationId);
+        streamBufferRegistry.register({ tenantId, projectId, conversationId });
         return stream(c, async (s) => {
           try {
             const encoder = new TextEncoder();
@@ -447,7 +447,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             );
             await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
           } finally {
-            streamBufferRegistry.complete(conversationId);
+            await streamBufferRegistry.complete(conversationId);
           }
         });
       }
@@ -621,7 +621,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
       const [clientStream, bufferStream] = encodedStream.tee();
 
-      streamBufferRegistry.register(conversationId);
+      streamBufferRegistry.register({ tenantId, projectId, conversationId });
       (async () => {
         const reader = bufferStream.getReader();
         try {
@@ -633,7 +633,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
         } catch (error) {
           logger.error({ error, conversationId }, 'Error buffering stream for resumption');
         } finally {
-          streamBufferRegistry.complete(conversationId);
+          await streamBufferRegistry.complete(conversationId);
         }
       })();
 

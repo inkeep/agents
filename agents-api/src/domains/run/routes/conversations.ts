@@ -8,6 +8,7 @@ import {
   createApiError,
   getConversation,
   getVisibleMessages,
+  getWorkflowExecutionByConversation,
   ListResponseSchema,
   listConversations,
   type MessageContent,
@@ -15,6 +16,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { stream } from 'hono/streaming';
+import { getRun } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { resolveMessagesListBlobUris } from '../services/blob-storage/resolve-blob-uris';
@@ -410,10 +412,15 @@ const resumeConversationStreamRoute = createProtectedRoute({
   permission: inheritedRunApiKeyAuth(),
   request: {
     params: z.object({ conversationId: z.string() }),
+    query: z.object({
+      afterIdx: z.coerce.number().int().optional().openapi({
+        description: 'Resume from after this chunk index (omit for full replay)',
+      }),
+    }),
   },
   responses: {
     200: {
-      description: 'Active stream — replays from beginning',
+      description: 'Active stream — replays from given index or beginning',
       content: { 'text/event-stream': { schema: z.string() } },
     },
     204: { description: 'No active stream' },
@@ -424,39 +431,70 @@ const resumeConversationStreamRoute = createProtectedRoute({
 app.openapi(resumeConversationStreamRoute, async (c) => {
   const executionContext = c.get('executionContext');
   const { tenantId, projectId } = executionContext;
-  const endUserId = requireEndUserId(executionContext);
+  const endUserId = executionContext.metadata?.endUserId;
   const { conversationId } = c.req.valid('param');
-
-  const readable = streamBufferRegistry.createReadable(conversationId);
-
-  if (readable) {
-    const conversation = await getConversation(runDbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-    });
-
-    if (conversation && conversation.userId !== endUserId) {
-      return new Response(null, { status: 204 });
-    }
-
-    logger.debug({ conversationId }, 'Resuming conversation stream');
-
-    c.header('content-type', 'text/event-stream');
-    c.header('cache-control', 'no-cache');
-    c.header('connection', 'keep-alive');
-    c.header('x-vercel-ai-data-stream', 'v2');
-    c.header('x-accel-buffering', 'no');
-
-    return stream(c, (s) => s.pipe(readable));
-  }
+  const { afterIdx } = c.req.valid('query');
 
   const conversation = await getConversation(runDbClient)({
     scopes: { tenantId, projectId },
     conversationId,
   });
 
-  if (!conversation || conversation.userId !== endUserId) {
+  if (!conversation) {
     return new Response(null, { status: 204 });
+  }
+
+  if (endUserId && conversation.userId !== endUserId) {
+    return new Response(null, { status: 204 });
+  }
+
+  const durableExecution = await getWorkflowExecutionByConversation(runDbClient)({
+    tenantId,
+    projectId,
+    conversationId,
+  });
+
+  const setStreamHeaders = () => {
+    c.header('content-type', 'text/event-stream');
+    c.header('cache-control', 'no-cache');
+    c.header('connection', 'keep-alive');
+    c.header('x-vercel-ai-data-stream', 'v2');
+    c.header('x-accel-buffering', 'no');
+  };
+
+  if (durableExecution) {
+    const startIndex = afterIdx !== undefined ? afterIdx + 1 : 0;
+    const run = getRun(durableExecution.id);
+    setStreamHeaders();
+    return stream(c, async (s) => {
+      const readable = run.getReadable({ startIndex });
+      const reader = readable.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        await s.write(value);
+      }
+    });
+  }
+
+  const scope = { tenantId, projectId, conversationId };
+  const hasStream = await streamBufferRegistry.hasChunks(scope);
+
+  if (hasStream) {
+    setStreamHeaders();
+    const readable = streamBufferRegistry.createReadable(scope, afterIdx);
+    return stream(c, async (s) => {
+      const reader = readable.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          await s.write(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    });
   }
 
   return new Response(null, { status: 204 });
