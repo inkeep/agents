@@ -1,179 +1,26 @@
 import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
-import { getSubAgentIdForNode, type SubAgentFormData } from './sub-agent-identity';
 
-export function getSubAgentGraphKey(subAgentId?: string | null): string | null {
-  return subAgentId ? `sub-agent:${subAgentId}` : null;
-}
-
-export function getMcpGraphKey({
-  relationshipId,
-  subAgentId,
-  toolId,
-  fallbackId,
-}: {
-  relationshipId?: string | null;
-  subAgentId?: string | null;
-  toolId?: string | null;
-  fallbackId?: string | null;
-}): string | null {
-  if (relationshipId) {
-    return `mcp:${relationshipId}`;
-  }
-
-  if (fallbackId?.startsWith('mcp:')) {
-    return fallbackId;
-  }
-
-  if (subAgentId && toolId) {
-    return `mcp:${subAgentId}:${toolId}`;
-  }
-
-  if (toolId && fallbackId) {
-    return `mcp:${toolId}:${fallbackId}`;
-  }
-
-  if (toolId) {
-    return `mcp:${toolId}`;
-  }
-
-  return fallbackId ? `mcp:${fallbackId}` : null;
-}
-
-export function getFunctionToolGraphKey({
-  relationshipId,
-  toolId,
-  fallbackId,
-}: {
-  relationshipId?: string | null;
-  toolId?: string | null;
-  fallbackId?: string | null;
-}): string | null {
-  if (toolId) {
-    return `function-tool:${toolId}`;
-  }
-
-  if (relationshipId) {
-    return `function-tool:${relationshipId}`;
-  }
-
-  return fallbackId ? `function-tool:${fallbackId}` : null;
-}
-
-export function getExternalAgentGraphKey(externalAgentId?: string | null): string | null {
-  return externalAgentId ? `external-agent:${externalAgentId}` : null;
-}
-
-export function getTeamAgentGraphKey(teamAgentId?: string | null): string | null {
-  return teamAgentId ? `team-agent:${teamAgentId}` : null;
-}
-
-export function getNodeGraphKey(node?: Node, subAgentFormData?: SubAgentFormData): string | null {
+export function getNodeGraphKey(node?: Node): string | null {
   if (!node) {
     return null;
   }
-
-  switch (node.type) {
-    case NodeType.SubAgent:
-      return getSubAgentGraphKey(getSubAgentIdForNode(node, subAgentFormData) ?? node.id);
-    case NodeType.MCP: {
-      if (!isNodeType(node, NodeType.MCP)) {
-        return null;
-      }
-      return getMcpGraphKey({
-        toolId: node.data.toolId,
-        fallbackId: node.id,
-      });
-    }
-    case NodeType.FunctionTool: {
-      if (!isNodeType(node, NodeType.FunctionTool)) {
-        return null;
-      }
-      const { relationshipId, toolId } = node.data;
-      return getFunctionToolGraphKey({
-        relationshipId,
-        toolId,
-        fallbackId: node.id,
-      });
-    }
-    case NodeType.ExternalAgent:
-      return isNodeType(node, NodeType.ExternalAgent)
-        ? getExternalAgentGraphKey(node.data.externalAgentId ?? node.id)
-        : null;
-    case NodeType.TeamAgent:
-      return isNodeType(node, NodeType.TeamAgent)
-        ? getTeamAgentGraphKey(node.data.teamAgentId ?? node.id)
-        : null;
-    default:
-      return node.id;
+  const { nodeKey } = node.data;
+  if (nodeKey && typeof nodeKey === 'string') {
+    return nodeKey;
   }
+  return null;
 }
 
-function matchesLegacyNodeReference(
-  node: Node,
-  reference: string,
-  subAgentFormData?: SubAgentFormData
-): boolean {
-  if (reference === node.id) {
-    return true;
-  }
-
-  switch (node.type) {
-    case NodeType.SubAgent:
-      return getSubAgentIdForNode(node, subAgentFormData) === reference;
-    case NodeType.MCP: {
-      if (!isNodeType(node, NodeType.MCP)) {
-        return false;
-      }
-      const { toolId } = node.data;
-      const persistedRelationshipId =
-        node.id.startsWith('mcp:') && !node.id.startsWith(`mcp:${toolId}:`)
-          ? node.id.slice('mcp:'.length)
-          : null;
-      return (
-        persistedRelationshipId === reference ||
-        toolId === reference ||
-        getMcpGraphKey({ toolId, fallbackId: node.id }) === reference
-      );
-    }
-    case NodeType.FunctionTool: {
-      if (!isNodeType(node, NodeType.FunctionTool)) {
-        return false;
-      }
-      const { relationshipId, toolId } = node.data;
-      return relationshipId === reference || toolId === reference;
-    }
-    case NodeType.ExternalAgent:
-      return isNodeType(node, NodeType.ExternalAgent) && node.data.externalAgentId === reference;
-    case NodeType.TeamAgent:
-      return isNodeType(node, NodeType.TeamAgent) && node.data.teamAgentId === reference;
-    default:
-      return false;
-  }
-}
-
-export function findNodeByGraphKey(
-  nodes: Node[],
-  graphKey?: string | null,
-  subAgentFormData?: SubAgentFormData
-): Node | undefined {
+export function findNodeByGraphKey(nodes: Node[], graphKey?: string | null): Node | undefined {
   if (!graphKey) {
     return undefined;
   }
 
-  return nodes.find(
-    (node) =>
-      getNodeGraphKey(node, subAgentFormData) === graphKey ||
-      matchesLegacyNodeReference(node, graphKey, subAgentFormData)
-  );
+  return nodes.find((node) => getNodeGraphKey(node) === graphKey);
 }
 
-export function getEdgeGraphKey(
-  edge: Edge | undefined,
-  nodes: Node[],
-  subAgentFormData?: SubAgentFormData
-): string | null {
+export function getEdgeGraphKey(edge: Edge | undefined, nodes: Node[]): string | null {
   if (!edge) {
     return null;
   }
@@ -189,8 +36,8 @@ export function getEdgeGraphKey(
 
   const sourceNode = nodes.find((node) => node.id === edge.source);
   const targetNode = nodes.find((node) => node.id === edge.target);
-  const sourceGraphKey = getNodeGraphKey(sourceNode, subAgentFormData);
-  const targetGraphKey = getNodeGraphKey(targetNode, subAgentFormData);
+  const sourceGraphKey = getNodeGraphKey(sourceNode);
+  const targetGraphKey = getNodeGraphKey(targetNode);
 
   if (!sourceGraphKey || !targetGraphKey) {
     return edge.id;
@@ -207,14 +54,11 @@ export function getEdgeGraphKey(
 export function findEdgeByGraphKey(
   edges: Edge[],
   nodes: Node[],
-  graphKey?: string | null,
-  subAgentFormData?: SubAgentFormData
+  graphKey?: string | null
 ): Edge | undefined {
   if (!graphKey) {
     return undefined;
   }
 
-  return edges.find(
-    (edge) => getEdgeGraphKey(edge, nodes, subAgentFormData) === graphKey || edge.id === graphKey
-  );
+  return edges.find((edge) => getEdgeGraphKey(edge, nodes) === graphKey);
 }

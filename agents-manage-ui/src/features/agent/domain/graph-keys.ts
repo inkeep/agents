@@ -4,6 +4,17 @@ export function getSubAgentGraphKey(subAgentId?: string | null) {
   return subAgentId ? `sub-agent:${subAgentId}` : null;
 }
 
+export function getMcpGraphKey(args: { relationshipId: string }): string;
+export function getMcpGraphKey(args: { subAgentId: string }): string;
+export function getMcpGraphKey(args: { toolId: string }): string;
+export function getMcpGraphKey(args: { fallbackId: string }): string;
+// If nothing is provided or all null/undefined → return null
+export function getMcpGraphKey(args: {
+  relationshipId?: null;
+  subAgentId?: null;
+  toolId?: null;
+  fallbackId?: null;
+}): null;
 export function getMcpGraphKey({
   relationshipId,
   subAgentId,
@@ -14,7 +25,7 @@ export function getMcpGraphKey({
   subAgentId?: string | null;
   toolId?: string | null;
   fallbackId?: string | null;
-}): string | null {
+}) {
   if (relationshipId) {
     return `mcp:${relationshipId}`;
   }
@@ -37,6 +48,15 @@ export function getMcpGraphKey({
   return fallbackId ? `mcp:${fallbackId}` : null;
 }
 
+export function getFunctionToolGraphKey(args: { toolId: string }): string;
+export function getFunctionToolGraphKey(args: { relationshipId: string }): string;
+export function getFunctionToolGraphKey(args: { fallbackId: string }): string;
+// If nothing is provided or all null/undefined → return null
+export function getFunctionToolGraphKey(args: {
+  toolId?: null;
+  relationshipId?: null;
+  fallbackId?: null;
+}): null;
 export function getFunctionToolGraphKey({
   relationshipId,
   toolId,
@@ -45,7 +65,7 @@ export function getFunctionToolGraphKey({
   relationshipId?: string | null;
   toolId?: string | null;
   fallbackId?: string | null;
-}): string | null {
+}) {
   if (toolId) {
     return `function-tool:${toolId}`;
   }

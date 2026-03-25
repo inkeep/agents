@@ -34,6 +34,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
     updateNode(selectedNode.id, {
       type: NodeType.ExternalAgent,
       data: {
+        nodeKey: getExternalAgentGraphKey(nodeId),
         externalAgentId: nodeId,
         relationshipId: null, // Will be set after saving to database
       },

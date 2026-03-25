@@ -40,6 +40,7 @@ export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
     updateNode(selectedNode.id, {
       type: NodeType.TeamAgent,
       data: {
+        nodeKey: getTeamAgentGraphKey(nodeId),
         teamAgentId: nodeId,
         relationshipId: null, // Will be set after saving to database
       },

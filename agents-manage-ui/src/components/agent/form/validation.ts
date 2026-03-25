@@ -5,7 +5,7 @@ import {
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import { getMcpGraphKey } from '@/features/agent/domain/graph-identity';
+import { getMcpGraphKey } from '@/features/agent/domain/graph-keys';
 import { serializeJson } from '@/lib/utils';
 
 const OriginalContextConfigSchema =

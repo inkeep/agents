@@ -5,9 +5,15 @@ import {
   findEdgeByGraphKey,
   findNodeByGraphKey,
   getEdgeGraphKey,
-  getMcpGraphKey,
   getNodeGraphKey,
 } from './graph-identity';
+import {
+  getExternalAgentGraphKey,
+  getFunctionToolGraphKey,
+  getMcpGraphKey,
+  getSubAgentGraphKey,
+  getTeamAgentGraphKey,
+} from './graph-keys';
 import { getSubAgentIdForNode } from './sub-agent-identity';
 
 interface SyncSavedAgentGraphParams {
@@ -46,8 +52,8 @@ export function syncSavedAgentGraph({
   edgeId,
   subAgentFormData,
 }: SyncSavedAgentGraphParams): SyncSavedAgentGraphResult {
-  const selectedNode = findNodeByGraphKey(nodes, nodeId, subAgentFormData);
-  const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId, subAgentFormData);
+  const selectedNode = findNodeByGraphKey(nodes, nodeId);
+  const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId);
   const renamedSubAgentIds = new Map<string, string>();
 
   for (const node of nodes) {
