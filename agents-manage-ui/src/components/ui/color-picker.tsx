@@ -27,7 +27,7 @@ export function ColorPickerInput({ placeholder, color, setColor }: ColorPickerIn
       />
       <div className="z-10 absolute right-3">
         <PopoverPrimitive.Root>
-          <PopoverPrimitive.PopoverTrigger asChild>
+          <PopoverPrimitive.Trigger asChild>
             <Button
               aria-label="color picker"
               className="flex flex-row gap-2 rounded w-6 h-6"
@@ -37,10 +37,10 @@ export function ColorPickerInput({ placeholder, color, setColor }: ColorPickerIn
             >
               <span className="sr-only">Color picker</span>
             </Button>
-          </PopoverPrimitive.PopoverTrigger>
-          <PopoverPrimitive.PopoverContent className="flex flex-row w-fit p-2">
+          </PopoverPrimitive.Trigger>
+          <PopoverPrimitive.Content className="flex flex-row w-fit p-2">
             <HexColorPicker color={color} onChange={setColor} />
-          </PopoverPrimitive.PopoverContent>
+          </PopoverPrimitive.Content>
         </PopoverPrimitive.Root>
       </div>
     </div>
