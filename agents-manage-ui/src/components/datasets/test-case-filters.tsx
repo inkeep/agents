@@ -3,7 +3,7 @@
 import { Filter, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -46,16 +46,24 @@ export function TestCaseFilters({ filters, onFiltersChange, agents }: TestCaseFi
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+        <InputGroup className="max-w-sm">
+          <InputGroupInput
             type="text"
             placeholder="Search test cases..."
             value={filters.searchInput || ''}
             onChange={(e) => updateFilter('searchInput', e.target.value)}
-            className="pl-9 h-9"
           />
-        </div>
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          {hasActiveFilters && (
+            <InputGroupAddon align="inline-end">
+              <Button variant="ghost" size="icon-sm" onClick={clearFilters}>
+                <X />
+              </Button>
+            </InputGroupAddon>
+          )}
+        </InputGroup>
         <Button
           variant="outline"
           size="sm"
@@ -65,12 +73,6 @@ export function TestCaseFilters({ filters, onFiltersChange, agents }: TestCaseFi
           <Filter className="h-4 w-4" />
           {isExpanded ? 'Hide Filters' : 'Show Filters'}
         </Button>
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
-            <X className="h-4 w-4" />
-            Clear Filters
-          </Button>
-        )}
       </div>
 
       {isExpanded && (
