@@ -70,22 +70,18 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   // Use live data if available, fall back to skeleton from store
   const skeletonToolData = skeletonToolLookup[toolId];
   const toolData = liveToolData ?? skeletonToolData;
-  const selectedTools = mcpRelation?.selectedTools ?? null;
-  const currentToolPolicies = mcpRelation?.toolPolicies ?? {};
-
   const activeTools = getActiveTools({
-    availableTools: toolData.availableTools,
+    availableTools: toolData?.availableTools,
     activeTools: tool && tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
   });
+  const selectedTools = mcpRelation?.selectedTools ?? null;
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
-
   // Track if we've already shown the warning for this node to avoid repeated toasts
   const hasShownOrphanedWarningRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (
       liveToolData &&
-      orphanedTools.length > 0 &&
+      orphanedTools.length &&
       hasShownOrphanedWarningRef.current !== selectedNode.id
     ) {
       hasShownOrphanedWarningRef.current = selectedNode.id;
@@ -99,11 +95,10 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
       );
     }
   }, [liveToolData, orphanedTools, selectedNode.id]);
-
-  if (!tool) {
+  if (!toolData) {
     return;
   }
-
+  const currentToolPolicies = mcpRelation?.toolPolicies ?? {};
   const toolOverrides = tool.config.type === 'mcp' ? tool.config.mcp.toolOverrides : undefined;
 
   // Handle missing tool data

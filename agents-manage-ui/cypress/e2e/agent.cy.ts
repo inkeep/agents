@@ -15,7 +15,7 @@ describe('Agent', () => {
         const beforeUnloadEvent = new win.Event('beforeunload');
         win.dispatchEvent(beforeUnloadEvent);
       });
-      cy.get('[role=dialog]').contains('Save changes').click();
+      cy.get('[role=dialog]').contains('Save').click();
       cy.get('[role=dialog]').should('not.exist');
     });
 
@@ -29,14 +29,14 @@ describe('Agent', () => {
     it('should closes the dialog when saving changes and validation errors are present', () => {
       cy.get('label').contains('Id').next().clear();
       cy.contains('Projects').click();
-      cy.get('[role=dialog]').contains('Save changes').click();
+      cy.get('[role=dialog]').contains('Save').click();
       cy.get('[role=dialog]').should('not.exist');
     });
 
     it('should navigates to the page when changes are saved', () => {
       cy.get('label').contains('Description').next().type('TEST');
       cy.contains('Projects').click();
-      cy.get('[role=dialog]').contains('Save changes').click();
+      cy.get('[role=dialog]').contains('Save').click();
       cy.get('[role=dialog]').should('not.exist');
       cy.location('pathname').should('eq', '/default/projects');
     });

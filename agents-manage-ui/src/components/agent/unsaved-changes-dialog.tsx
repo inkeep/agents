@@ -63,17 +63,19 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     if (!isDirty) {
       return;
     }
-    const requestNavigationConfirmation = (navigate: PendingNavigation) => {
+    function requestNavigationConfirmation(navigate: PendingNavigation) {
       pendingNavigationRef.current = navigate;
       setShowUnsavedDialog(true);
-    };
-    const handleDocumentClick = (event: MouseEvent) => {
+    }
+    function handleDocumentClick(event: MouseEvent) {
       if (!isDirty || isNavigatingRef.current) {
         return;
       }
-      const el = (event.target as HTMLElement | null)?.closest(
-        'a[href]'
-      ) as HTMLAnchorElement | null;
+      const target = event.target;
+      if (!(target && target instanceof HTMLElement)) {
+        return;
+      }
+      const el = target.closest<HTMLAnchorElement>('a[href]');
       const href = el?.href;
       if (
         !href ||
@@ -92,12 +94,15 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
       event.preventDefault();
       requestNavigationConfirmation(() => {
         if (url.origin === location.origin) {
-          router.push(`${url.pathname}${url.search}${url.hash}`);
+          // To avoid race conditions since we update query params of nodeId
+          setTimeout(() => {
+            router.push(`${url.pathname}${url.search}${url.hash}`);
+          }, 0)
         } else {
           location.href = url.href;
         }
       });
-    };
+    }
 
     document.addEventListener('click', handleDocumentClick, true);
     return () => {
@@ -111,13 +116,13 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
       return;
     }
     // Catches browser closing window
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
       if (isNavigatingRef.current) {
         return;
       }
       event.preventDefault();
       setShowUnsavedDialog(true);
-    };
+    }
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -139,21 +144,20 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Unsaved changes</DialogTitle>
+          <DialogTitle>Do you want to save the changes you made?</DialogTitle>
           <DialogDescription>
-            You have unsaved changes. Are you sure you want to leave this page and discard your
-            changes?
+            Your changes will be lost if you don't save them.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="ghost" onClick={handleGoBack} className="sm:mr-auto">
-            Go back
+            Cancel
           </Button>
           <Button variant="secondary" onClick={proceedWithNavigation} className="max-sm:order-1">
             Discard
           </Button>
           <Button onClick={handleSaveAndLeave} disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save changes'}
+            {isSubmitting ? 'Saving...' : 'Save'}
           </Button>
         </DialogFooter>
       </DialogContent>
