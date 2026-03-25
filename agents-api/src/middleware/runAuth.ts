@@ -5,7 +5,6 @@ import {
   getPoWErrorMessage,
   isSlackUserToken,
   type PublicKeyConfig,
-  type WebClientConfig,
   updateAppLastUsed,
   validateAndGetApiKey,
   validateOrigin,
@@ -14,6 +13,7 @@ import {
   verifyServiceToken,
   verifySlackUserToken,
   verifyTempToken,
+  type WebClientConfig,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { createMiddleware } from 'hono/factory';

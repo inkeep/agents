@@ -267,8 +267,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
           ? {
               metadata: {
                 ...(body.userProperties ? { userContext: body.userProperties } : {}),
-                ...(executionContext.metadata?.authMethod === 'app_credential_web_client_authenticated' &&
-                executionContext.metadata?.endUserId
+                ...(executionContext.metadata?.authMethod ===
+                  'app_credential_web_client_authenticated' && executionContext.metadata?.endUserId
                   ? { externalUserId: executionContext.metadata.endUserId }
                   : {}),
               },
