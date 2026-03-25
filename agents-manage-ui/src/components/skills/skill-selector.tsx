@@ -1,6 +1,7 @@
 import { GripVertical, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
+import type { Checkbox as RadixCheckbox } from 'radix-ui';
 import { type FC, useState } from 'react';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
@@ -18,7 +19,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSkillsQuery } from '@/lib/query/skills';
 import { cn } from '@/lib/utils';
-import type { Checkbox as RadixCheckbox } from 'radix-ui';
 
 interface SkillSelection {
   id: string;

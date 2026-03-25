@@ -1,6 +1,6 @@
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from 'radix-ui';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from 'radix-ui';
 import { Button } from './button';
 
 interface InfoCardProps {
