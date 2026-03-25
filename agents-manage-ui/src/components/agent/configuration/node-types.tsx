@@ -1,5 +1,12 @@
 import type { Node } from '@xyflow/react';
 import { Bot, Code, Globe, Hammer, Users } from 'lucide-react';
+import {
+  getExternalAgentGraphKey,
+  getFunctionToolGraphKey,
+  getMcpGraphKey,
+  getSubAgentGraphKey,
+  getTeamAgentGraphKey,
+} from '@/features/agent/domain/graph-keys';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
@@ -33,7 +40,11 @@ export interface NodeAnimation {
 
 type StrictNodeData<T extends object> = T & Record<string, unknown>;
 
-interface AnimatableNodeFields {
+interface GraphIdentityFields {
+  nodeKey: string;
+}
+
+interface AnimatableNodeFields extends GraphIdentityFields {
   animation?: NodeAnimation;
 }
 
@@ -125,8 +136,11 @@ export const newNodeDefaults: {
   [T in keyof GraphNodeDataByType]: (nodeId: string) => GraphNodeDataByType[T];
 } = {
   [NodeType.SubAgentPlaceholder]: () => ({}),
-  [NodeType.SubAgent]: () => ({}),
+  [NodeType.SubAgent]: (nodeId) => ({
+    nodeKey: getSubAgentGraphKey(nodeId),
+  }),
   [NodeType.ExternalAgent]: (nodeId) => ({
+    nodeKey: getExternalAgentGraphKey(nodeId),
     externalAgentId: nodeId,
     relationshipId: null,
   }),
@@ -141,6 +155,7 @@ export const newNodeDefaults: {
     relationshipId: null,
   }),
   [NodeType.TeamAgent]: (nodeId) => ({
+    nodeKey: getTeamAgentGraphKey(nodeId),
     teamAgentId: nodeId,
     relationshipId: null,
   }),
@@ -150,14 +165,14 @@ export const newNodeDefaults: {
 type NodeSelectionShape = Pick<Node, 'id' | 'type' | 'data'>;
 
 export function isNodeType<T extends keyof GraphNodeDataByType>(
-  node: NodeSelectionShape | Node | undefined,
+  node?: NodeSelectionShape | Node,
   type: T
 ): node is GraphNode<T> | (NodeSelectionShape & { type: T; data: GraphNodeDataByType[T] }) {
   return !!node && node.type === type;
 }
 
 export function isAnimatableGraphNode(
-  node: NodeSelectionShape | Node | undefined
+  node?: NodeSelectionShape | Node
 ): node is
   | AnimatableGraphNode
   | (NodeSelectionShape & { type: AnimatableGraphNode['type']; data: AnimatableGraphNodeData }) {
