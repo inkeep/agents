@@ -41,7 +41,7 @@ export function CollapsibleInfoCard({
       defaultOpen={defaultOpen}
       className="text-xs text-gray-800 dark:text-muted-foreground bg-gray-100/80 dark:bg-sidebar rounded-md"
     >
-      <CollapsiblePrimitive.CollapsibleTrigger asChild>
+      <CollapsiblePrimitive.Trigger asChild>
         <Button
           variant="ghost"
           className="text-xs flex items-center justify-between h-auto gap-2 py-3 px-3 w-full font-medium text-foreground font-mono uppercase group/info-card"
@@ -55,10 +55,10 @@ export function CollapsibleInfoCard({
             className="w-3 h-3 text-muted-foreground group-data-[state=open]/info-card:rotate-180 transition-transform duration-200"
           />
         </Button>
-      </CollapsiblePrimitive.CollapsibleTrigger>
-      <CollapsiblePrimitive.CollapsibleContent className="px-3 pt-0 py-3">
+      </CollapsiblePrimitive.Trigger>
+      <CollapsiblePrimitive.Content className="px-3 pt-0 py-3">
         {children}
-      </CollapsiblePrimitive.CollapsibleContent>
+      </CollapsiblePrimitive.Content>
     </CollapsiblePrimitive.Root>
   );
 }
