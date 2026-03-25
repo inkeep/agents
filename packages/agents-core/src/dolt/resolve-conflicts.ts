@@ -136,7 +136,7 @@ export const applyResolutions =
       if (hasColumnOverrides) {
         const ourDiffType = conflictRow.our_diff_type as string;
         const theirDiffType = conflictRow.their_diff_type as string;
-        const hasEffectiveOverrides = Object.values(resolution.columns!).some(
+        const hasEffectiveOverrides = Object.values(resolution.columns ?? {}).some(
           (pick) => pick !== resolution.rowDefaultPick
         );
         if (hasEffectiveOverrides && (ourDiffType === 'removed' || theirDiffType === 'removed')) {

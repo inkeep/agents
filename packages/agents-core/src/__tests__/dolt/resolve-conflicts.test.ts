@@ -73,7 +73,7 @@ describe('applyResolutions', () => {
   });
 
   it('applies theirs pick with UPDATE for modified rows', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -112,7 +112,7 @@ describe('applyResolutions', () => {
   });
 
   it('applies DELETE for theirs pick when theirDiffType is removed', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -148,7 +148,7 @@ describe('applyResolutions', () => {
   });
 
   it('applies mixed column resolution', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -189,7 +189,7 @@ describe('applyResolutions', () => {
 
   it('serializes jsonb object values correctly in UPDATE', async () => {
     const configObj = { maxTokens: 100, nested: { key: 'value' } };
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -229,7 +229,7 @@ describe('applyResolutions', () => {
 
   it('serializes jsonb object values correctly in INSERT (ourDiffType=removed)', async () => {
     const configObj = { enabled: true };
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'removed',
@@ -270,7 +270,7 @@ describe('applyResolutions', () => {
   it('serializes jsonb object values correctly in mixed resolution', async () => {
     const oursConfig = { source: 'ours' };
     const theirsConfig = { source: 'theirs' };
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -311,7 +311,7 @@ describe('applyResolutions', () => {
   });
 
   it('finds conflict row when base PK columns are NULL (add-add conflict)', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'added',
@@ -367,7 +367,7 @@ describe('applyResolutions', () => {
   });
 
   it('inserts parent table before child table when both need INSERT', async () => {
-    mockDb.queryResults['dolt_conflicts_functions'] = {
+    mockDb.queryResults.dolt_conflicts_functions = {
       rows: [
         {
           our_diff_type: 'removed',
@@ -387,7 +387,7 @@ describe('applyResolutions', () => {
       ],
     };
 
-    mockDb.queryResults['dolt_conflicts_function_tools'] = {
+    mockDb.queryResults.dolt_conflicts_function_tools = {
       rows: [
         {
           our_diff_type: 'removed',
@@ -432,7 +432,7 @@ describe('applyResolutions', () => {
   });
 
   it('deletes child table before parent table when both need DELETE', async () => {
-    mockDb.queryResults['dolt_conflicts_functions'] = {
+    mockDb.queryResults.dolt_conflicts_functions = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -452,7 +452,7 @@ describe('applyResolutions', () => {
       ],
     };
 
-    mockDb.queryResults['dolt_conflicts_function_tools'] = {
+    mockDb.queryResults.dolt_conflicts_function_tools = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -497,7 +497,7 @@ describe('applyResolutions', () => {
   });
 
   it('rejects column overrides when ours side deleted the row', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'removed',
@@ -532,7 +532,7 @@ describe('applyResolutions', () => {
   });
 
   it('rejects column overrides when theirs side deleted the row', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -567,7 +567,7 @@ describe('applyResolutions', () => {
   });
 
   it('allows column overrides matching rowDefaultPick when a side is removed', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -605,7 +605,7 @@ describe('applyResolutions', () => {
   });
 
   it('processes DELETEs before INSERTs across different tables', async () => {
-    mockDb.queryResults['dolt_conflicts_functions'] = {
+    mockDb.queryResults.dolt_conflicts_functions = {
       rows: [
         {
           our_diff_type: 'removed',
@@ -625,7 +625,7 @@ describe('applyResolutions', () => {
       ],
     };
 
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
