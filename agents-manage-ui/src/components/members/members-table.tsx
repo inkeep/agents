@@ -1,4 +1,4 @@
-import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
+import { type OrgRole, OrgRoles, SEAT_RESOURCE_TYPES } from '@inkeep/agents-core/client-exports';
 import { ChevronDown, Plus } from 'lucide-react';
 
 import { useMemo, useState } from 'react';
@@ -23,6 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuthClient } from '@/contexts/auth-client';
+import type { OrgEntitlement } from '@/hooks/use-org-entitlements';
 import { createPasswordResetLink } from '@/lib/actions/password-reset';
 import type { UserProvider } from '@/lib/actions/user-accounts';
 import { InvitationActionsMenu } from './components/invitation-actions-menu';
@@ -40,6 +41,7 @@ interface MembersTableProps {
   onMemberUpdated?: () => void;
   isOrgAdmin: boolean;
   memberProviders?: UserProvider[];
+  entitlements?: OrgEntitlement[];
 }
 
 export function MembersTable({
@@ -50,6 +52,7 @@ export function MembersTable({
   onMemberUpdated,
   isOrgAdmin,
   memberProviders = [],
+  entitlements = [],
 }: MembersTableProps) {
   const authClient = useAuthClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -93,6 +96,28 @@ export function MembersTable({
       return nameA.localeCompare(nameB);
     });
   }, [members]);
+
+  const seatUsage = useMemo(() => {
+    if (entitlements.length === 0) return null;
+
+    const isAdminRole = (role: string) => role === 'owner' || role === 'admin';
+    const adminEntitlement = entitlements.find((e) => e.resourceType === SEAT_RESOURCE_TYPES.ADMIN);
+    const memberEntitlement = entitlements.find(
+      (e) => e.resourceType === SEAT_RESOURCE_TYPES.MEMBER
+    );
+
+    const adminCount =
+      members.filter((m) => isAdminRole(m.role)).length +
+      pendingInvitations.filter((i) => isAdminRole(i.role)).length;
+    const memberCount =
+      members.filter((m) => m.role === 'member').length +
+      pendingInvitations.filter((i) => i.role === 'member').length;
+
+    return {
+      admin: adminEntitlement ? { used: adminCount, max: adminEntitlement.maxValue } : null,
+      member: memberEntitlement ? { used: memberCount, max: memberEntitlement.maxValue } : null,
+    };
+  }, [members, pendingInvitations, entitlements]);
 
   const handleRoleChange = async (member: Member, newRole: OrgRole) => {
     if (!isOrgAdmin) return;
@@ -273,6 +298,20 @@ export function MembersTable({
             </Button>
           )}
         </div>
+        {seatUsage && (
+          <div className="flex gap-4 px-4 pb-3 text-sm text-muted-foreground">
+            {seatUsage.admin && (
+              <span>
+                {seatUsage.admin.used}/{seatUsage.admin.max} admin seats
+              </span>
+            )}
+            {seatUsage.member && (
+              <span>
+                {seatUsage.member.used}/{seatUsage.member.max} member seats
+              </span>
+            )}
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow noHover>

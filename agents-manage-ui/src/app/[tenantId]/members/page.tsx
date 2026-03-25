@@ -5,12 +5,14 @@ import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/members/members-table';
 import { OrgRoles } from '@/constants/signoz';
 import { useAuthClient } from '@/contexts/auth-client';
+import { useOrgEntitlements } from '@/hooks/use-org-entitlements';
 import { getUserProviders, type UserProvider } from '@/lib/actions/user-accounts';
 import MembersLoadingSkeleton from './loading';
 
 export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>) {
   const authClient = useAuthClient();
   const { tenantId } = use(params);
+  const { entitlements } = useOrgEntitlements(tenantId);
   const [organization, setOrganization] = useState<
     typeof authClient.$Infer.ActiveOrganization | null
   >();
@@ -98,6 +100,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
       onMemberUpdated={fetchData}
       isOrgAdmin={isOrgAdmin}
       memberProviders={memberProviders}
+      entitlements={entitlements}
     />
   );
 }
