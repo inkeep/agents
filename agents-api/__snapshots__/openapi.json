@@ -6868,7 +6868,6 @@
           },
           "ref": {
             "maxLength": 256,
-            "nullable": true,
             "type": "string"
           },
           "retryDelaySeconds": {
@@ -6978,8 +6977,9 @@
             "type": "object"
           },
           "ref": {
+            "default": "main",
+            "description": "Branch ref to run the agent from",
             "maxLength": 256,
-            "nullable": true,
             "type": "string"
           },
           "retryDelaySeconds": {
@@ -7068,8 +7068,9 @@
             "type": "object"
           },
           "ref": {
+            "default": "main",
+            "description": "Branch ref to run the agent from",
             "maxLength": 256,
-            "nullable": true,
             "type": "string"
           },
           "retryDelaySeconds": {
@@ -7331,8 +7332,9 @@
             "type": "string"
           },
           "ref": {
+            "default": "main",
+            "description": "Branch ref to run the agent from",
             "maxLength": 256,
-            "nullable": true,
             "type": "string"
           },
           "retryDelaySeconds": {
