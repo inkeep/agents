@@ -919,7 +919,9 @@ export const TriggerWithWebhookUrlSchema = TriggerApiSelectSchema.extend({
 }).openapi('TriggerWithWebhookUrl');
 
 // Trigger Invocation schemas
-export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
+export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations).extend({
+  ref: ResolvedRefSchema.nullable().optional(),
+});
 
 export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocations, {
   id: () => ResourceIdSchema,
