@@ -655,65 +655,86 @@ export abstract class BaseCompressor {
     relatedArtifacts: NonNullable<ConversationSummary['related_artifacts']>
   ): Promise<{ persisted: number; skipped: number; failed: number }> {
     const result = { persisted: 0, skipped: 0, failed: 0 };
+    const scopes = { tenantId: this.tenantId, projectId: this.projectId };
 
-    for (const artifact of relatedArtifacts) {
-      if (!artifact.key_findings?.length) {
+    const artifactsWithFindings = relatedArtifacts.filter((a) => a.key_findings?.length);
+    result.skipped += relatedArtifacts.length - artifactsWithFindings.length;
+
+    if (artifactsWithFindings.length === 0) return result;
+
+    const fetchResults = await Promise.allSettled(
+      artifactsWithFindings.map((artifact) =>
+        getLedgerArtifacts(runDbClient)({ scopes, artifactId: artifact.id }).then((existing) => ({
+          artifact,
+          existing,
+        }))
+      )
+    );
+
+    const updates: Array<{ artifact: (typeof artifactsWithFindings)[number]; parts: Part[] }> = [];
+
+    for (const settled of fetchResults) {
+      if (settled.status === 'rejected') {
+        result.failed++;
+        logger.warn(
+          { conversationId: this.conversationId, error: String(settled.reason) },
+          'Failed to fetch artifact for key_findings persistence'
+        );
+        continue;
+      }
+
+      const { artifact, existing } = settled.value;
+      if (existing.length === 0) {
+        logger.debug(
+          { artifactId: artifact.id },
+          'Artifact not found in DB, skipping key_findings persistence'
+        );
         result.skipped++;
         continue;
       }
-      try {
-        const existing = await getLedgerArtifacts(runDbClient)({
-          scopes: { tenantId: this.tenantId, projectId: this.projectId },
-          artifactId: artifact.id,
-        });
-        if (existing.length === 0) {
-          logger.debug(
-            { artifactId: artifact.id },
-            'Artifact not found in DB, skipping key_findings persistence'
-          );
-          result.skipped++;
-          continue;
-        }
 
-        const dbArtifact = existing[0];
-        const parts = structuredClone(dbArtifact.parts ?? []) as Part[];
-        const firstPart = parts[0];
-        if (!firstPart || firstPart.kind !== 'data' || !firstPart.data?.summary) {
-          logger.debug(
-            { artifactId: artifact.id, hasParts: parts.length > 0 },
-            'Artifact has no data part with summary structure, skipping key_findings persistence'
-          );
-          result.skipped++;
-          continue;
-        }
+      const parts = structuredClone(existing[0].parts ?? []) as Part[];
+      const firstPart = parts[0];
+      if (!firstPart || firstPart.kind !== 'data' || !firstPart.data?.summary) {
+        logger.debug(
+          { artifactId: artifact.id, hasParts: parts.length > 0 },
+          'Artifact has no data part with summary structure, skipping key_findings persistence'
+        );
+        result.skipped++;
+        continue;
+      }
 
-        firstPart.data.summary = {
-          ...firstPart.data.summary,
-          key_findings: artifact.key_findings,
-        };
+      firstPart.data.summary = {
+        ...firstPart.data.summary,
+        key_findings: artifact.key_findings,
+      };
 
-        const updated = await updateLedgerArtifactParts(runDbClient)({
-          scopes: { tenantId: this.tenantId, projectId: this.projectId },
-          artifactId: artifact.id,
-          parts,
-        });
+      updates.push({ artifact, parts });
+    }
 
-        if (updated) {
-          result.persisted++;
-        } else {
-          logger.warn({ artifactId: artifact.id }, 'updateLedgerArtifactParts matched no rows');
-          result.failed++;
-        }
-      } catch (error) {
+    const updateResults = await Promise.allSettled(
+      updates.map(({ artifact, parts }) =>
+        updateLedgerArtifactParts(runDbClient)({ scopes, artifactId: artifact.id, parts }).then(
+          (updated) => ({ artifact, updated })
+        )
+      )
+    );
+
+    for (const settled of updateResults) {
+      if (settled.status === 'rejected') {
         result.failed++;
         logger.warn(
-          {
-            artifactId: artifact.id,
-            conversationId: this.conversationId,
-            error: error instanceof Error ? error.message : String(error),
-          },
+          { conversationId: this.conversationId, error: String(settled.reason) },
           'Failed to persist key_findings to artifact'
         );
+        continue;
+      }
+      const { artifact, updated } = settled.value;
+      if (updated) {
+        result.persisted++;
+      } else {
+        logger.warn({ artifactId: artifact.id }, 'updateLedgerArtifactParts matched no rows');
+        result.failed++;
       }
     }
 
