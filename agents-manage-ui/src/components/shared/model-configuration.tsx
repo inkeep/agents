@@ -1,8 +1,11 @@
 'use client';
 
+import { Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { Button } from '@/components/ui/button';
+import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { azureModelProviderOptionsTemplate, providerOptionsTemplate } from '@/lib/templates';
 import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
@@ -36,6 +39,12 @@ interface ModelConfigurationProps {
   getJsonPlaceholder?: (model?: string) => string;
   /** Whether the component is disabled/read-only */
   disabled?: boolean;
+  /** Ordered list of fallback models */
+  fallbackModels?: string[];
+  /** Inherited fallback models to show when no value is set */
+  inheritedFallbackModels?: string[];
+  /** Called when fallback models change */
+  onFallbackModelsChange?: (models: string[]) => void;
 }
 
 export function ModelConfiguration({
@@ -53,7 +62,11 @@ export function ModelConfiguration({
   editorNamePrefix = 'model',
   getJsonPlaceholder,
   disabled = false,
+  fallbackModels,
+  inheritedFallbackModels,
+  onFallbackModelsChange,
 }: ModelConfigurationProps) {
+  const { data: capabilities } = useCapabilitiesQuery();
   // Internal state for provider options to handle immediate updates
   const [internalProviderOptions, setInternalProviderOptions] = useState<
     string | Record<string, unknown> | undefined
@@ -187,6 +200,65 @@ export function ModelConfiguration({
             customTemplate={jsonPlaceholder}
             readOnly={disabled || isUsingInheritedOptions}
           />
+        </div>
+      )}
+
+      {/* Fallback Models */}
+      {capabilities?.modelFallback?.enabled && effectiveModel && onFallbackModelsChange && (
+        <div className="space-y-2">
+          <FieldLabel
+            id={`${editorNamePrefix}-fallback-models`}
+            label="Fallback models"
+            tooltip="Ordered list of models to try if the primary model fails. Requires AI Gateway."
+          />
+          {(fallbackModels ?? inheritedFallbackModels ?? []).map((model, index) => (
+            <div key={`${editorNamePrefix}-fallback-${index}`} className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground w-4 shrink-0">{index + 1}.</span>
+              <div className="flex-1">
+                <ModelSelector
+                  value={model}
+                  gatewayOnly
+                  onValueChange={(newValue) => {
+                    const models = [...(fallbackModels ?? [])];
+                    if (newValue) {
+                      models[index] = newValue;
+                    } else {
+                      models.splice(index, 1);
+                    }
+                    onFallbackModelsChange(models);
+                  }}
+                  placeholder="Select fallback model..."
+                  canClear={false}
+                  disabled={disabled || (!fallbackModels && !!inheritedFallbackModels)}
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => {
+                  const models = [...(fallbackModels ?? [])];
+                  models.splice(index, 1);
+                  onFallbackModelsChange(models);
+                }}
+                disabled={disabled || (!fallbackModels && !!inheritedFallbackModels)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              onFallbackModelsChange([...(fallbackModels ?? []), '']);
+            }}
+            disabled={disabled}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add fallback model
+          </Button>
         </div>
       )}
     </div>

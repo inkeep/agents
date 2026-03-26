@@ -128,6 +128,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
                     providerOptions: subAgent.models.base.providerOptions
                       ? formatJsonField(subAgent.models.base.providerOptions)
                       : undefined,
+                    fallbackModels: subAgent.models.base.fallbackModels,
                   }
                 : undefined,
               structuredOutput: subAgent.models.structuredOutput
@@ -136,6 +137,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
                     providerOptions: subAgent.models.structuredOutput.providerOptions
                       ? formatJsonField(subAgent.models.structuredOutput.providerOptions)
                       : undefined,
+                    fallbackModels: subAgent.models.structuredOutput.fallbackModels,
                   }
                 : undefined,
               summarizer: subAgent.models.summarizer
@@ -144,6 +146,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
                     providerOptions: subAgent.models.summarizer.providerOptions
                       ? formatJsonField(subAgent.models.summarizer.providerOptions)
                       : undefined,
+                    fallbackModels: subAgent.models.summarizer.fallbackModels,
                   }
                 : undefined,
             }

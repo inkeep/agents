@@ -1,6 +1,7 @@
 type ModelSettings = {
   model: string;
   providerOptions?: string; // JSON string representation for form compatibility
+  fallbackModels?: string[];
 };
 
 import type { AgentStopWhen } from '@inkeep/agents-core/client-exports';

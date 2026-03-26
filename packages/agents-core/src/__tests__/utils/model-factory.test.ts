@@ -492,4 +492,69 @@ describe('ModelFactory', () => {
       });
     });
   });
+
+  describe('fallbackModels in prepareGenerationConfig', () => {
+    beforeEach(() => {
+      delete process.env.AI_GATEWAY_API_KEY;
+    });
+
+    afterEach(() => {
+      delete process.env.AI_GATEWAY_API_KEY;
+    });
+
+    test('should inject fallbackModels into gateway providerOptions when AI_GATEWAY_API_KEY is set', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        fallbackModels: ['openai/gpt-5.2', 'google/gemini-2.5-pro'],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      expect(result.providerOptions).toBeDefined();
+      expect((result.providerOptions as any).gateway.models).toEqual([
+        'openai/gpt-5.2',
+        'google/gemini-2.5-pro',
+      ]);
+    });
+
+    test('should ignore fallbackModels when AI_GATEWAY_API_KEY is not set', () => {
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        fallbackModels: ['openai/gpt-5.2'],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      expect(result.providerOptions?.gateway).toBeUndefined();
+    });
+
+    test('should not inject when fallbackModels is empty', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        fallbackModels: [],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      expect(result.providerOptions?.gateway).toBeUndefined();
+    });
+
+    test('should preserve existing gateway options when merging fallbackModels', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        providerOptions: {
+          gateway: { order: ['anthropic', 'openai'] },
+        },
+        fallbackModels: ['openai/gpt-5.2'],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      const gateway = (result.providerOptions as any).gateway;
+      expect(gateway.order).toEqual(['anthropic', 'openai']);
+      expect(gateway.models).toEqual(['openai/gpt-5.2']);
+    });
+  });
 });

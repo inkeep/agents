@@ -35,6 +35,7 @@ import {
 import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
+import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
 import type { NavItemProps } from './nav-item';
@@ -49,6 +50,8 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const { user } = useAuthSession();
 
   const isWorkAppsEnabled = process.env.NEXT_PUBLIC_ENABLE_WORK_APPS === 'true';
+  const { data: capabilities } = useCapabilitiesQuery();
+  const costTrackingEnabled = capabilities?.costTracking?.enabled;
 
   const topNavItems: NavItemProps[] = projectId
     ? []
@@ -63,11 +66,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/stats`,
           icon: BarChart3,
         },
-        {
-          title: 'Cost',
-          url: `/${tenantId}/cost`,
-          icon: Coins,
-        },
+        ...(costTrackingEnabled
+          ? [
+              {
+                title: 'Cost',
+                url: `/${tenantId}/cost`,
+                icon: Coins,
+              },
+            ]
+          : []),
         ...(isWorkAppsEnabled
           ? [
               {
@@ -185,11 +192,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/evaluations`,
           icon: BarChart3,
         },
-        {
-          title: 'Cost',
-          url: `/${tenantId}/projects/${projectId}/cost`,
-          icon: Coins,
-        },
+        ...(costTrackingEnabled
+          ? [
+              {
+                title: 'Cost',
+                url: `/${tenantId}/projects/${projectId}/cost`,
+                icon: Coins,
+              },
+            ]
+          : []),
       ]
     : [];
 

@@ -9,6 +9,12 @@ export type Capabilities = {
     provider?: 'native' | 'vercel';
     runtime?: 'node22' | 'typescript';
   };
+  modelFallback: {
+    enabled: boolean;
+  };
+  costTracking: {
+    enabled: boolean;
+  };
 };
 
 export async function getCapabilitiesAction(): Promise<ActionResult<Capabilities>> {
