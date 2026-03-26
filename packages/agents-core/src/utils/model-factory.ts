@@ -16,7 +16,7 @@ import { gatewayCostMiddleware } from './usage-cost-middleware';
 
 const logger = getLogger('ModelFactory');
 
-const GATEWAY_ROUTABLE_PROVIDERS = ['anthropic', 'openai', 'google'] as const;
+import { GATEWAY_ROUTABLE_PROVIDERS } from '../constants/models.js';
 
 // NVIDIA NIM default provider instance
 const nimDefault = createOpenAICompatible({

@@ -35,7 +35,10 @@ const FallbackModelsSection: FC<{
         tooltip="Ordered list of models to try if the primary model fails. Requires AI Gateway."
       />
       {savedModels.map((model, index) => (
-        <div key={`${editorNamePrefix}-fallback-${index}`} className="flex items-center gap-2">
+        <div
+          key={`${editorNamePrefix}-fallback-${model}-${index}`}
+          className="flex items-center gap-2"
+        >
           <span className="text-xs text-muted-foreground w-4 shrink-0">{index + 1}.</span>
           <div className="flex-1">
             <ModelSelector

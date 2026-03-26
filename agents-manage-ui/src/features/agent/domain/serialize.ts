@@ -76,7 +76,7 @@ function processModels(modelsData: AgentMetadata['models']): AgentMetadata['mode
               model: modelsData.base.model,
               providerOptions: safeJsonParse(modelsData.base.providerOptions),
               ...(modelsData.base.fallbackModels?.length && {
-                fallbackModels: modelsData.base.fallbackModels,
+                fallbackModels: modelsData.base.fallbackModels.filter(Boolean),
               }),
             }
           : undefined,
@@ -85,7 +85,7 @@ function processModels(modelsData: AgentMetadata['models']): AgentMetadata['mode
               model: modelsData.structuredOutput.model,
               providerOptions: safeJsonParse(modelsData.structuredOutput.providerOptions),
               ...(modelsData.structuredOutput.fallbackModels?.length && {
-                fallbackModels: modelsData.structuredOutput.fallbackModels,
+                fallbackModels: modelsData.structuredOutput.fallbackModels.filter(Boolean),
               }),
             }
           : undefined,
@@ -94,7 +94,7 @@ function processModels(modelsData: AgentMetadata['models']): AgentMetadata['mode
               model: modelsData.summarizer.model,
               providerOptions: safeJsonParse(modelsData.summarizer.providerOptions),
               ...(modelsData.summarizer.fallbackModels?.length && {
-                fallbackModels: modelsData.summarizer.fallbackModels,
+                fallbackModels: modelsData.summarizer.fallbackModels.filter(Boolean),
               }),
             }
           : undefined,

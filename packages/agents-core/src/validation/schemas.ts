@@ -222,7 +222,7 @@ export const ModelSettingsSchema = z
       .optional()
       .describe('The provider options to use for the project.'),
     fallbackModels: z
-      .array(z.string())
+      .array(z.string().min(1))
       .optional()
       .describe(
         'Ordered list of fallback models if the primary fails. Requires AI Gateway. Format: provider/model (e.g. "openai/gpt-5.2").'
