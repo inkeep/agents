@@ -1,6 +1,5 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
 import {
   Background,
   ConnectionMode,
@@ -52,6 +51,7 @@ import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   apiToGraph,
+  applySelectionFromQueryState,
   createFunctionToolFormInput,
   createFunctionToolRelationFormInput,
   createMcpRelationFormInput,
@@ -70,13 +70,9 @@ import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { updateFullAgentAction } from '@/lib/actions/agent-full';
-import { getFullProjectAction } from '@/lib/actions/project-full';
-import { projectQueryKeys } from '@/lib/query/keys/projects';
-import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { FullAgentResponse } from '@/lib/types/agent-full';
 import { generateId } from '@/lib/utils/id-utils';
-import { convertFullProjectToProject } from '@/lib/utils/project-converter';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -136,13 +132,11 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
-  const queryClient = useQueryClient();
   const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
     projectId: string;
     agentId: string;
   }>();
-  const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
   const initialNodeId = generateId();
@@ -170,24 +164,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     markUnsaved,
     reset,
   } = useAgentActions();
-
-  const applySelectionFromQueryState = (nextNodes: Node[], nextEdges: Edge[]) => {
-    const selectedNode = findNodeByGraphKey(nextNodes, nodeId);
-    const selectedEdge = findEdgeByGraphKey(nextEdges, nextNodes, edgeId);
-
-    return {
-      nodes: nextNodes.map((node) => ({
-        ...node,
-        selected: selectedNode ? node.id === selectedNode.id : false,
-      })),
-      edges: nextEdges.map((edge) => ({
-        ...edge,
-        selected: selectedEdge ? edge.id === selectedEdge.id : false,
-      })),
-      selectedNode,
-      selectedEdge,
-    };
-  };
 
   function onAddInitialNode(): void {
     const newNode = {
@@ -224,7 +200,12 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       edges: agentEdges,
       selectedNode,
       selectedEdge,
-    } = applySelectionFromQueryState(result.nodes, result.edges);
+    } = applySelectionFromQueryState({
+      nodes: result.nodes,
+      edges: result.edges,
+      nodeId,
+      edgeId,
+    });
 
     setInitial(agentNodes, agentEdges);
 
@@ -279,65 +260,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
     return () => clearTimeout(timer);
   }, [showPlayground, isCopilotChatOpen, fitView]);
-
-  // Callback function to fetch and update agent graph from copilot
-  const refreshAgentGraph = async (options?: { fetchTools?: boolean }) => {
-    // Workaround for a React Compiler limitation.
-    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-    async function doRequest(): Promise<void> {
-      const [fullProjectResult] = await Promise.all([
-        getFullProjectAction(tenantId, projectId),
-        options?.fetchTools ? refetchMcpTools() : Promise.resolve(null),
-      ]);
-
-      if (!fullProjectResult.success) {
-        console.error('Failed to refresh agent graph:', fullProjectResult.error);
-        return;
-      }
-      const fullProject = fullProjectResult.data;
-      const updatedAgent = fullProject?.agents?.[agentId];
-      // This makes current values the new default values
-      form.reset(apiToFormValues(updatedAgent));
-
-      // Deserialize agent data to nodes and edges
-      const { nodes, edges } = apiToGraph(updatedAgent);
-      const {
-        nodes: nodesWithSelection,
-        edges: edgesWithSelection,
-        selectedNode,
-        selectedEdge,
-      } = applySelectionFromQueryState(nodes, edges);
-
-      // Update the store with all refreshed data
-      setInitial(nodesWithSelection, edgesWithSelection);
-
-      if (nodeId && !selectedNode) {
-        setQueryState((prev) => ({
-          ...prev,
-          pane: 'agent',
-          nodeId: null,
-        }));
-      }
-
-      if (edgeId && !selectedEdge) {
-        setQueryState((prev) => ({
-          ...prev,
-          pane: 'agent',
-          edgeId: null,
-        }));
-      }
-
-      // Update project data in React Query cache so components using useProjectQuery get fresh data
-      const convertedProject = convertFullProjectToProject(fullProject, tenantId);
-      queryClient.setQueryData(projectQueryKeys.detail(tenantId, projectId), convertedProject);
-    }
-
-    try {
-      await doRequest();
-    } catch (error) {
-      console.error('Failed to refresh agent graph:', error);
-    }
-  };
 
   const onEdgesChangeWrapped: ReactFlowProps['onEdgesChange'] = (changes) => {
     const removedMcpRelationKeys = changes.flatMap((change) => {
@@ -599,27 +521,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     });
   };
 
-  const handleNavigateToNode = (nodeId: string) => {
-    const targetNode = findNodeByGraphKey(nodes, nodeId);
-
-    if (targetNode) {
-      // Clear selection and select the target node
-      setNodes((nodes) =>
-        nodes.map((node) => ({
-          ...node,
-          selected: node.id === targetNode.id,
-        }))
-      );
-      setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
-      // Open the sidepane for the selected node
-      setQueryState({
-        pane: 'node',
-        nodeId: getNodeGraphKey(targetNode),
-        edgeId: null,
-      });
-    }
-  };
-
   const onSubmit = form.handleSubmit(
     async ({ mcpRelations, defaultSubAgentNodeId, ...data }): Promise<void> => {
       const serializedData = editorToPayload(nodes, edges, {
@@ -773,7 +674,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       autoSaveId="agent-resizable-layout-state"
       className="relative bg-muted/20 dark:bg-background flex overflow-hidden no-parent-container"
     >
-      <CopilotChat refreshAgentGraph={refreshAgentGraph} />
+      <CopilotChat />
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
@@ -890,7 +791,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             </Panel>
           )}
           <Panel position="bottom-left" className="max-w-sm left-8!">
-            <AgentErrorSummary onNavigateToNode={handleNavigateToNode} />
+            <AgentErrorSummary />
           </Panel>
         </ReactFlow>
       </ResizablePanel>
