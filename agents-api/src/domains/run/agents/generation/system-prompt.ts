@@ -328,9 +328,12 @@ export async function buildSystemPrompt(
   );
   const clientCurrentTime = getClientCurrentTime(ctx);
 
+  const appPrompt = ctx.executionContext.metadata?.appPrompt;
+
   const config: SystemPromptV1 = {
     corePrompt: processedPrompt,
     prompt,
+    appPrompt,
     skills: ctx.config.skills || [],
     tools: toolDefinitions,
     mcpServerGroups,

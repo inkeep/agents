@@ -4,8 +4,8 @@ import {
   createApiError,
   createSubAgentTeamAgentRelation,
   deleteSubAgentTeamAgentRelation,
+  deriveRelationId,
   ErrorResponseSchema,
-  generateId,
   getSubAgentTeamAgentRelationById,
   listSubAgentTeamAgentRelations,
   type Pagination,
@@ -176,7 +176,7 @@ app.openapi(
 
     const relation = await createSubAgentTeamAgentRelation(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
-      relationId: generateId(),
+      relationId: deriveRelationId(tenantId, projectId, agentId, subAgentId, body.targetAgentId),
       data: {
         ...body,
         headers: body.headers || null,
