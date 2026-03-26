@@ -830,28 +830,26 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
               history: [...state.history, { nodes: state.nodes, edges: state.edges }],
               dirty: true,
             }));
-            requestAnimationFrame(() => {
-              for (const node of state.nodes) {
-                if (isNodeType(node, NodeType.FunctionTool)) {
-                  const { toolId } = node.data;
-                  const functionId = form.getValues(`functionTools.${toolId}.functionId`) ?? toolId;
-                  const relationKey = getNodeGraphKey(node);
-                  form.unregister([
-                    `functions.${functionId}`,
-                    `functionTools.${toolId}`,
-                    ...(relationKey ? [`functionToolRelations.${relationKey}` as const] : []),
-                  ]);
-                } else if (isNodeType(node, NodeType.MCP)) {
-                  form.unregister(`mcpRelations.${getMcpRelationFormKey({ nodeId: node.id })}`);
-                } else if (isNodeType(node, NodeType.TeamAgent)) {
-                  form.unregister(`teamAgents.${node.data.teamAgentId}`);
-                } else if (isNodeType(node, NodeType.ExternalAgent)) {
-                  form.unregister(`externalAgents.${node.data.externalAgentId}`);
-                } else if (node.type === NodeType.SubAgent) {
-                  form.unregister(`subAgents.${node.id}`);
-                }
+            for (const node of state.nodes) {
+              if (isNodeType(node, NodeType.FunctionTool)) {
+                const { toolId } = node.data;
+                const functionId = form.getValues(`functionTools.${toolId}.functionId`);
+                const relationKey = getNodeGraphKey(node);
+                form.unregister([
+                  `functions.${functionId}`,
+                  `functionTools.${toolId}`,
+                  ...(relationKey ? [`functionToolRelations.${relationKey}` as const] : []),
+                ]);
+              } else if (isNodeType(node, NodeType.MCP)) {
+                form.unregister(`mcpRelations.${getMcpRelationFormKey({ nodeId: node.id })}`);
+              } else if (isNodeType(node, NodeType.TeamAgent)) {
+                form.unregister(`teamAgents.${node.data.teamAgentId}`);
+              } else if (isNodeType(node, NodeType.ExternalAgent)) {
+                form.unregister(`externalAgents.${node.data.externalAgentId}`);
+              } else if (node.type === NodeType.SubAgent) {
+                form.unregister(`subAgents.${node.id}`);
               }
-            });
+            }
 
             return state;
           }}

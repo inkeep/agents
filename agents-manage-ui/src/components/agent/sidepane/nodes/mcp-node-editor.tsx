@@ -37,7 +37,8 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   'use memo';
   const form = useFullAgentFormContext();
   const { toolId } = selectedNode.data;
-  const relationKey = getMcpRelationFormKey({ nodeId: selectedNode.id });
+  const nodeId = selectedNode.id;
+  const relationKey = getMcpRelationFormKey({ nodeId });
   const tool = useWatch({ control: form.control, name: `tools.${toolId}` });
   const mcpRelation = useWatch({
     control: form.control,
@@ -50,7 +51,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
-  const { deleteNode } = useDeleteNode(selectedNode.id);
+  const { deleteNode } = useDeleteNode(nodeId);
 
   const { tenantId, projectId } = useParams<{
     tenantId: string;
@@ -79,12 +80,8 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   // Track if we've already shown the warning for this node to avoid repeated toasts
   const hasShownOrphanedWarningRef = useRef<string | null>(null);
   useEffect(() => {
-    if (
-      liveToolData &&
-      orphanedTools.length &&
-      hasShownOrphanedWarningRef.current !== selectedNode.id
-    ) {
-      hasShownOrphanedWarningRef.current = selectedNode.id;
+    if (liveToolData && orphanedTools.length && hasShownOrphanedWarningRef.current !== nodeId) {
+      hasShownOrphanedWarningRef.current = nodeId;
       const toolText = orphanedTools.length > 1 ? 'tools are' : 'tool is';
       toast.warning(
         `${orphanedTools.length} selected ${toolText} no longer available: ${orphanedTools.join(', ')}. Uncheck to remove.`,
@@ -94,7 +91,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
         }
       );
     }
-  }, [liveToolData, orphanedTools, selectedNode.id]);
+  }, [liveToolData, orphanedTools, nodeId]);
   // Handle missing tool data
   if (!toolData || !tool) {
     return (
