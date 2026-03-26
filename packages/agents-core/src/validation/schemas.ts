@@ -2533,14 +2533,14 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   stopWhen: SubAgentStopWhenSchema.optional(),
 }).openapi('FullAgentAgentInsert');
 
-export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
-  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
-  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
-  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
-  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
+export const AgentWithinContextOfProjectSchemaBase = AgentApiInsertSchema.extend({
+  subAgents: z.record(z.string(), FullAgentAgentInsertSchema),
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(),
+  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(),
+  teamAgents: z.record(z.string(), TeamAgentSchema).optional(),
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(),
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
+  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(),
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
@@ -2553,15 +2553,6 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
       `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
     )
     .optional(),
-  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
-  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
-  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
-  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-  //
-  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
-  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
 });
 
 export const AgentWithinContextOfProjectSchema = AgentWithinContextOfProjectSchemaBase.superRefine(
