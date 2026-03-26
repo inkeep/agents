@@ -162,6 +162,16 @@ import type {
   ProjectMetadataSelectSchema,
   ProjectSelectSchema,
   ProjectUpdateSchema,
+  ScheduledTriggerApiInsertSchema,
+  ScheduledTriggerApiSelectSchema,
+  ScheduledTriggerApiUpdateSchema,
+  ScheduledTriggerInsertSchema,
+  ScheduledTriggerInvocationInsertSchema,
+  ScheduledTriggerInvocationSelectSchema,
+  ScheduledTriggerInvocationUpdateSchema,
+  ScheduledTriggerSelectSchema,
+  ScheduledTriggerUpdateSchema,
+  SchedulerStateSelectSchema,
   SkillApiInsertSchema,
   SkillApiSelectSchema,
   SkillApiUpdateSchema,
@@ -252,16 +262,6 @@ import type {
   TriggerInvocationUpdateSchema,
   TriggerSelectSchema,
   TriggerUpdateSchema,
-  ScheduledTriggerSelectSchema,
-  ScheduledTriggerInsertSchema,
-  ScheduledTriggerUpdateSchema,
-  ScheduledTriggerApiInsertSchema,
-  ScheduledTriggerApiSelectSchema,
-  ScheduledTriggerApiUpdateSchema,
-  ScheduledTriggerInvocationSelectSchema,
-  ScheduledTriggerInvocationInsertSchema,
-  ScheduledTriggerInvocationUpdateSchema,
-  SchedulerStateSelectSchema,
   UserProfileApiInsertSchema,
   UserProfileApiUpdateSchema,
   UserProfileInsertSchema,
@@ -439,8 +439,12 @@ export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsert
 export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
 
 export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationSelectSchema>;
-export type ScheduledTriggerInvocationInsert = z.infer<typeof ScheduledTriggerInvocationInsertSchema>;
-export type ScheduledTriggerInvocationUpdate = z.infer<typeof ScheduledTriggerInvocationUpdateSchema>;
+export type ScheduledTriggerInvocationInsert = z.infer<
+  typeof ScheduledTriggerInvocationInsertSchema
+>;
+export type ScheduledTriggerInvocationUpdate = z.infer<
+  typeof ScheduledTriggerInvocationUpdateSchema
+>;
 
 export type SchedulerState = z.infer<typeof SchedulerStateSelectSchema>;
 
