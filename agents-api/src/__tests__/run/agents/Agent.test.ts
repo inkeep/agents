@@ -137,6 +137,10 @@ const {
   getToolsForAgentMock,
   getFunctionToolsForSubAgentMock,
   buildPersistedMessageContentMock,
+  createDefaultConversationHistoryConfigMock,
+  getFormattedConversationHistoryMock,
+  getConversationHistoryWithCompressionMock,
+  formatMessagesAsConversationHistoryMock,
 } = vi.hoisted(() => {
   const getCredentialReferenceMock = vi.fn(() => vi.fn().mockResolvedValue(null));
   const getContextConfigByIdMock = vi.fn(() => vi.fn().mockResolvedValue(null));
@@ -159,6 +163,20 @@ const {
   );
   const getFunctionToolsForSubAgentMock = vi.fn().mockResolvedValue([]);
   const buildPersistedMessageContentMock = vi.fn();
+  const createDefaultConversationHistoryConfigMock = vi.fn().mockReturnValue({
+    mode: 'full',
+    limit: 50,
+    includeInternal: true,
+    messageTypes: ['chat'],
+    maxOutputTokens: 4000,
+  });
+  const getFormattedConversationHistoryMock = vi
+    .fn()
+    .mockResolvedValue('Mock conversation history');
+  const getConversationHistoryWithCompressionMock = vi.fn().mockResolvedValue([]);
+  const formatMessagesAsConversationHistoryMock = vi
+    .fn()
+    .mockReturnValue('Mock conversation history');
 
   return {
     getCredentialReferenceMock,
@@ -170,6 +188,10 @@ const {
     getToolsForAgentMock,
     getFunctionToolsForSubAgentMock,
     buildPersistedMessageContentMock,
+    createDefaultConversationHistoryConfigMock,
+    getFormattedConversationHistoryMock,
+    getConversationHistoryWithCompressionMock,
+    formatMessagesAsConversationHistoryMock,
   };
 });
 
@@ -229,9 +251,10 @@ vi.mock('../../../domains/run/data/conversations', async (importOriginal) => {
   const actual = (await importOriginal()) as any;
   return {
     ...actual,
-    getConversationHistoryWithCompression: vi
-      .fn()
-      .mockResolvedValue('Mock conversation history as string'),
+    createDefaultConversationHistoryConfig: createDefaultConversationHistoryConfigMock,
+    getFormattedConversationHistory: getFormattedConversationHistoryMock,
+    getConversationHistoryWithCompression: getConversationHistoryWithCompressionMock,
+    formatMessagesAsConversationHistory: formatMessagesAsConversationHistoryMock,
   };
 });
 
@@ -362,20 +385,16 @@ vi.mock('../../../domains/run/agents/SystemPromptBuilder.js', () => ({
   })),
 }));
 
-vi.mock('../../../domains/run/data/conversations.js', () => ({
-  createDefaultConversationHistoryConfig: vi.fn().mockReturnValue({
-    mode: 'full',
-    limit: 50,
-    includeInternal: true,
-    messageTypes: ['chat'],
-    maxOutputTokens: 4000,
-  }),
-  getFormattedConversationHistory: vi.fn().mockResolvedValue('Mock conversation history'),
-  getConversationScopedArtifacts: vi.fn().mockResolvedValue([]),
-  getConversationHistoryWithCompression: vi
-    .fn()
-    .mockResolvedValue('Mock conversation history as string'),
-}));
+vi.mock('../../../domains/run/data/conversations.js', async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
+  return {
+    ...actual,
+    createDefaultConversationHistoryConfig: createDefaultConversationHistoryConfigMock,
+    getFormattedConversationHistory: getFormattedConversationHistoryMock,
+    getConversationHistoryWithCompression: getConversationHistoryWithCompressionMock,
+    formatMessagesAsConversationHistory: formatMessagesAsConversationHistoryMock,
+  };
+});
 
 // Import the mocked module - these will automatically be mocked
 import {

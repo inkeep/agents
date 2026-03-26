@@ -337,6 +337,65 @@ describe('Ledger Artifacts Data Access', () => {
       expect(result[0].name).toBe('Specific Artifact');
     });
 
+    it('returns multiple artifacts for the same toolCallId', async () => {
+      const sharedToolCallId = 'tool-call-shared';
+      const mockRows = [
+        {
+          id: 'artifact-a',
+          tenantId: testTenantId,
+          projectId: testProjectId,
+          taskId: testTaskId,
+          toolCallId: sharedToolCallId,
+          contextId: testContextId,
+          type: 'binary-child',
+          name: 'Image A',
+          description: 'First artifact',
+          parts: [{ kind: 'data', data: { blobUri: 'blob://a' } }],
+          metadata: {},
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: 'artifact-b',
+          tenantId: testTenantId,
+          projectId: testProjectId,
+          taskId: testTaskId,
+          toolCallId: sharedToolCallId,
+          contextId: testContextId,
+          type: 'binary-child',
+          name: 'Image B',
+          description: 'Second artifact',
+          parts: [{ kind: 'data', data: { blobUri: 'blob://b' } }],
+          metadata: {},
+          createdAt: '2024-01-01T00:00:01Z',
+          updatedAt: '2024-01-01T00:00:01Z',
+        },
+      ];
+
+      const mockQuery = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(mockRows),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        select: mockQuery,
+      } as any;
+
+      const result = await getLedgerArtifacts(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        toolCallId: sharedToolCallId,
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((artifact) => artifact.artifactId).sort()).toEqual([
+        'artifact-a',
+        'artifact-b',
+      ]);
+      expect(result.every((artifact) => artifact.toolCallId === sharedToolCallId)).toBe(true);
+    });
+
     it('should throw error when neither taskId nor artifactId provided', async () => {
       const mockDb = {} as any;
 

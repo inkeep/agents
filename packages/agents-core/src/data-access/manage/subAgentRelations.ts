@@ -12,7 +12,7 @@ import type {
   SubAgentToolRelationUpdate,
 } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../../types/utility';
-import { generateId } from '../../utils/conversations';
+import { deriveRelationId } from '../../utils/conversations';
 import { agentScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
 export const getAgentRelationById =
@@ -313,7 +313,15 @@ export const createAgentToolRelation =
       toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
     };
   }) => {
-    const finalRelationId = params.relationId ?? generateId();
+    const finalRelationId =
+      params.relationId ??
+      deriveRelationId(
+        params.scopes.tenantId,
+        params.scopes.projectId,
+        params.scopes.agentId,
+        params.data.subAgentId,
+        params.data.toolId
+      );
 
     const relation = await db
       .insert(subAgentToolRelations)

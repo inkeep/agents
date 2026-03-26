@@ -1,4 +1,4 @@
-import type { Artifact, ArtifactComponentApiInsert } from '@inkeep/agents-core';
+import type { Artifact, ArtifactComponentApiInsert, AssembleResult } from '@inkeep/agents-core';
 import { TemplateEngine } from '@inkeep/agents-core';
 import type { ToolSet } from 'ai';
 import { getLogger } from '../../../../logger';
@@ -7,7 +7,6 @@ import {
   createDefaultConversationHistoryConfig,
   getConversationScopedArtifacts,
 } from '../../data/conversations';
-import type { AssembleResult } from '../../utils/token-estimator';
 import type { AgentRunContext, AiSdkToolDefinition } from '../agent-types';
 import { agentHasArtifactComponents, createLoadSkillTool } from '../tools/default-tools';
 import type { SystemPromptV1 } from '../types';
@@ -329,9 +328,12 @@ export async function buildSystemPrompt(
   );
   const clientCurrentTime = getClientCurrentTime(ctx);
 
+  const appPrompt = ctx.executionContext.metadata?.appPrompt;
+
   const config: SystemPromptV1 = {
     corePrompt: processedPrompt,
     prompt,
+    appPrompt,
     skills: ctx.config.skills || [],
     tools: toolDefinitions,
     mcpServerGroups,

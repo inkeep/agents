@@ -23,6 +23,7 @@ export function setupCompression(
         contextId,
         ctx.config.tenantId,
         ctx.config.projectId,
+        ctx.config.agentId,
         compressionConfig,
         getSummarizerModel(ctx.config),
         primaryModelSettings

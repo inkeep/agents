@@ -12,6 +12,8 @@ import type {
 import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+  estimateTokens,
+  GENERATION_TYPES,
   getLedgerArtifacts,
   ModelFactory,
 } from '@inkeep/agents-core';
@@ -35,7 +37,6 @@ import { getFormattedConversationHistory, getScopedHistory } from '../data/conve
 import { getStreamHelper } from '../stream/stream-registry';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getModelContextWindow } from '../utils/model-context-utils';
-import { estimateTokens } from '../utils/token-estimator';
 import { setSpanWithError, tracer } from '../utils/tracer';
 
 const logger = getLogger('AgentSession');
@@ -1123,7 +1124,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           }
           const statusUpdateGenerationConfig = ModelFactory.prepareGenerationConfig(modelToUse);
 
-          const { output: object } = await generateText({
+          const statusUpdateConfig = {
             ...statusUpdateGenerationConfig,
             prompt,
             output: Output.object({
@@ -1135,13 +1136,22 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               recordInputs: true,
               recordOutputs: true,
               metadata: {
-                operation: 'structured_status_update_generation',
+                generationType: GENERATION_TYPES.STATUS_UPDATE,
+                tenantId: this.executionContext.tenantId,
+                projectId: this.executionContext.projectId,
+                agentId: this.executionContext.agentId,
+                subAgentId: this.executionContext.subAgentId,
+                conversationId: this.contextId,
                 sessionId: this.sessionId,
               },
             },
-          });
+          };
 
-          const result = object as any;
+          const statusUpdateResult = await generateText(
+            statusUpdateConfig as Parameters<typeof generateText>[0]
+          );
+
+          const result = statusUpdateResult.output as any;
           logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
 
           const summaries = [];
@@ -1677,7 +1687,7 @@ Make the name extremely specific to what this tool call actually returned, not g
 
                 for (let attempt = 1; attempt <= maxRetries; attempt++) {
                   try {
-                    const result = await generateText({
+                    const artifactGenConfig = {
                       ...artifactMetadataGenerationConfig,
                       prompt,
                       output: Output.object({
@@ -1689,12 +1699,21 @@ Make the name extremely specific to what this tool call actually returned, not g
                         recordInputs: true,
                         recordOutputs: true,
                         metadata: {
-                          operation: 'artifact_name_description_generation',
+                          generationType: GENERATION_TYPES.ARTIFACT_METADATA,
+                          tenantId: this.executionContext.tenantId,
+                          projectId: this.executionContext.projectId,
+                          agentId: this.executionContext.agentId,
+                          subAgentId: this.executionContext.subAgentId,
+                          conversationId: this.contextId,
                           sessionId: this.sessionId,
                           attempt,
                         },
                       },
-                    });
+                    };
+
+                    const result = await generateText(
+                      artifactGenConfig as Parameters<typeof generateText>[0]
+                    );
 
                     generationSpan.setAttributes({
                       'artifact.id': artifactData.artifactId,
@@ -1713,6 +1732,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                     });
 
                     generationSpan.setStatus({ code: SpanStatusCode.OK });
+
                     return result;
                   } catch (error) {
                     lastError = error instanceof Error ? error : new Error(String(error));

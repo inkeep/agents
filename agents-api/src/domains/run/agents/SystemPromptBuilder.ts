@@ -1,5 +1,5 @@
+import type { AssembleResult } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import type { AssembleResult } from '../utils/token-estimator';
 import type { VersionConfig } from './types';
 
 const logger = getLogger('SystemPromptBuilder');
