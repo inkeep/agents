@@ -132,8 +132,19 @@ async function buildTextAttachmentPart(
     const normalized = await normalizeInlineFileBytes(file);
     content = decodeTextDocumentBytes(normalized.data);
   } else if ('uri' in file && file.uri && isBlobUri(file.uri)) {
-    const downloaded = await getBlobStorageProvider().download(fromBlobUri(file.uri));
-    content = decodeTextDocumentBytes(downloaded.data);
+    try {
+      const downloaded = await getBlobStorageProvider().download(fromBlobUri(file.uri));
+      content = decodeTextDocumentBytes(downloaded.data);
+    } catch (err) {
+      logger.warn(
+        { err, uri: file.uri, mimeType },
+        'Failed to download text attachment from blob storage'
+      );
+      return {
+        type: 'text',
+        text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
+      };
+    }
   } else {
     throw new UnsupportedTextAttachmentSourceError(mimeType);
   }

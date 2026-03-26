@@ -98,9 +98,6 @@ async function sniffAllowedInlineFileMimeType(
   }
 
   if (isTextDocumentMimeType(requestedMimeType)) {
-    if (!requestedMimeType) {
-      throw new BlockedInlineUnsupportedFileBytesError('unknown');
-    }
     try {
       decodeTextDocumentBytes(data);
       return requestedMimeType;

@@ -28,7 +28,7 @@ function hasDisallowedControlCharacters(value: string): boolean {
   return false;
 }
 
-export function isTextDocumentMimeType(mimeType: string | undefined): boolean {
+export function isTextDocumentMimeType(mimeType: string | undefined): mimeType is string {
   return ALLOWED_TEXT_DOCUMENT_MIME_TYPES.has(normalizeMimeType(mimeType ?? ''));
 }
 
