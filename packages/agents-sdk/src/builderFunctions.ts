@@ -542,4 +542,3 @@ export function trigger(config: Omit<TriggerApiInsert, 'id'> & { id?: string }):
   // Cast is needed because TriggerApiInsert has broader inputSchema type from Drizzle
   return new Trigger(config as TriggerConfig);
 }
-
