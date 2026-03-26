@@ -521,27 +521,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     });
   };
 
-  const handleNavigateToNode = (nodeId: string) => {
-    const targetNode = findNodeByGraphKey(nodes, nodeId);
-
-    if (targetNode) {
-      // Clear selection and select the target node
-      setNodes((nodes) =>
-        nodes.map((node) => ({
-          ...node,
-          selected: node.id === targetNode.id,
-        }))
-      );
-      setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
-      // Open the sidepane for the selected node
-      setQueryState({
-        pane: 'node',
-        nodeId: getNodeGraphKey(targetNode),
-        edgeId: null,
-      });
-    }
-  };
-
   const onSubmit = form.handleSubmit(
     async ({ mcpRelations, defaultSubAgentNodeId, ...data }): Promise<void> => {
       const serializedData = editorToPayload(nodes, edges, {
@@ -812,7 +791,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             </Panel>
           )}
           <Panel position="bottom-left" className="max-w-sm left-8!">
-            <AgentErrorSummary onNavigateToNode={handleNavigateToNode} />
+            <AgentErrorSummary />
           </Panel>
         </ReactFlow>
       </ResizablePanel>
