@@ -164,24 +164,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     reset,
   } = useAgentActions();
 
-  const applySelectionFromQueryState = (nextNodes: Node[], nextEdges: Edge[]) => {
-    const selectedNode = findNodeByGraphKey(nextNodes, nodeId);
-    const selectedEdge = findEdgeByGraphKey(nextEdges, nextNodes, edgeId);
-
-    return {
-      nodes: nextNodes.map((node) => ({
-        ...node,
-        selected: selectedNode ? node.id === selectedNode.id : false,
-      })),
-      edges: nextEdges.map((edge) => ({
-        ...edge,
-        selected: selectedEdge ? edge.id === selectedEdge.id : false,
-      })),
-      selectedNode,
-      selectedEdge,
-    };
-  };
-
   function onAddInitialNode(): void {
     const newNode = {
       ...initialNode,
