@@ -1,20 +1,30 @@
 'use client';
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
+import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { apiToFormValues } from '@/components/agent/form/validation';
 import { Button } from '@/components/ui/button';
 import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { apiToGraph } from '@/features/agent/domain';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
+import { useSidePane } from '@/hooks/use-side-pane';
+import { getFullProjectAction } from '@/lib/actions/project-full';
+import { projectQueryKeys } from '@/lib/query/keys/projects';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { sentry } from '@/lib/sentry';
 import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
+import { convertFullProjectToProject } from '@/lib/utils/project-converter';
 import { IkpTool } from './message-parts/message';
 
 const ANALYTICS_EXCLUDED_EVENTS = new Set(['sidebar_chat_opened', 'sidebar_chat_closed']);
@@ -48,6 +58,66 @@ export function CopilotChat() {
     projectId: string;
     agentId: string;
   }>();
+
+  const form = useFullAgentFormContext();
+  const queryClient = useQueryClient();
+  const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
+  const { nodeId, edgeId, setQueryState } = useSidePane();
+  const { setInitial } = useAgentActions();
+
+  // Callback function to fetch and update agent graph from copilot
+  async function refreshAgentGraph(options?: { fetchTools?: boolean }) {
+    try {
+      const [fullProjectResult] = await Promise.all([
+        getFullProjectAction(tenantId, projectId),
+        options?.fetchTools ? refetchMcpTools() : Promise.resolve(null),
+      ]);
+
+      if (!fullProjectResult.success) {
+        console.error('Failed to refresh agent graph:', fullProjectResult.error);
+        return;
+      }
+      const fullProject = fullProjectResult.data;
+      const updatedAgent = fullProject?.agents?.[agentId];
+      // This makes current values the new default values
+      form.reset(apiToFormValues(updatedAgent));
+
+      // Deserialize agent data to nodes and edges
+      const { nodes, edges } = apiToGraph(updatedAgent);
+      const {
+        nodes: nodesWithSelection,
+        edges: edgesWithSelection,
+        selectedNode,
+        selectedEdge,
+      } = applySelectionFromQueryState(nodes, edges);
+
+      // Update the store with all refreshed data
+      setInitial(nodesWithSelection, edgesWithSelection);
+
+      if (nodeId && !selectedNode) {
+        setQueryState((prev) => ({
+          ...prev,
+          pane: 'agent',
+          nodeId: null,
+        }));
+      }
+
+      if (edgeId && !selectedEdge) {
+        setQueryState((prev) => ({
+          ...prev,
+          pane: 'agent',
+          edgeId: null,
+        }));
+      }
+
+      // Update project data in React Query cache so components using useProjectQuery get fresh data
+      const convertedProject = convertFullProjectToProject(fullProject, tenantId);
+      queryClient.setQueryData(projectQueryKeys.detail(tenantId, projectId), convertedProject);
+    } catch (error) {
+      console.error('Failed to refresh agent graph:', error);
+    }
+  }
+
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
