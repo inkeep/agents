@@ -688,13 +688,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       autoSaveId="agent-resizable-layout-state"
       className="relative bg-muted/20 dark:bg-background flex overflow-hidden no-parent-container"
     >
-      <CopilotChat
-        agentId={agentId}
-        projectId={projectId}
-        tenantId={tenantId}
-        refreshAgentGraph={refreshAgentGraph}
-      />
-
+      <CopilotChat refreshAgentGraph={refreshAgentGraph} />
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
@@ -816,9 +810,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           className={showTraces ? 'w-full flex-none!' : ''}
         >
           <Playground
-            agentId={agentId}
-            projectId={projectId}
-            tenantId={tenantId}
             setShowPlayground={setShowPlayground}
             closeSidePane={closeSidePane}
             showTraces={showTraces}

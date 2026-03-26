@@ -18,11 +18,9 @@ import {
 import { createCustomHeadersSchema } from '@/lib/validation';
 import { ChatWidget } from './chat-widget';
 import { CustomHeadersDialog } from './custom-headers-dialog';
+import { useParams } from 'next/navigation';
 
 interface PlaygroundProps {
-  agentId: string;
-  projectId: string;
-  tenantId: string;
   setShowPlayground: (show: boolean) => void;
   closeSidePane: () => void;
   showTraces: boolean;
@@ -30,14 +28,16 @@ interface PlaygroundProps {
 }
 
 export const Playground = ({
-  agentId,
-  projectId,
-  tenantId,
   closeSidePane,
   setShowPlayground,
   showTraces,
   setShowTraces,
 }: PlaygroundProps) => {
+  const { tenantId, projectId, agentId } = useParams<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+  }>();
   const { setIsOpen: setIsCopilotOpen } = useCopilotContext();
   const { resetPlaygroundConversationId } = useAgentActions();
   const conversationId = useAgentStore(({ playgroundConversationId }) => playgroundConversationId);
