@@ -17,11 +17,7 @@ import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { IkpTool } from './message-parts/message';
 
-const ANALYTICS_EXCLUDED_EVENTS = ['sidebar_chat_opened', 'sidebar_chat_closed'];
-
-interface CopilotChatProps {
-  refreshAgentGraph: (options?: { fetchTools?: boolean }) => Promise<void>;
-}
+const ANALYTICS_EXCLUDED_EVENTS = new Set(['sidebar_chat_opened', 'sidebar_chat_closed']);
 
 const styleOverrides = css`
 .ikp-markdown-code {
@@ -35,7 +31,7 @@ const styleOverrides = css`
 }
 `;
 
-export function CopilotChat({ refreshAgentGraph }: CopilotChatProps) {
+export function CopilotChat() {
   const {
     chatFunctionsRef,
     isOpen,
@@ -55,7 +51,7 @@ export function CopilotChat({ refreshAgentGraph }: CopilotChatProps) {
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
-    onFinish: () => {
+    onFinish() {
       refreshAgentGraph({ fetchTools: true });
     },
   });
@@ -155,7 +151,7 @@ export function CopilotChat({ refreshAgentGraph }: CopilotChatProps) {
           position="left"
           baseSettings={{
             async onEvent(event) {
-              if (!ANALYTICS_EXCLUDED_EVENTS.includes(event.eventName)) {
+              if (!ANALYTICS_EXCLUDED_EVENTS.has(event.eventName)) {
                 posthog?.capture(event.eventName, {
                   ...event.properties,
                   source: 'copilot_chat',

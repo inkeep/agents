@@ -281,10 +281,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   }, [showPlayground, isCopilotChatOpen, fitView]);
 
   // Callback function to fetch and update agent graph from copilot
-  const refreshAgentGraph = async (options?: { fetchTools?: boolean }) => {
-    // Workaround for a React Compiler limitation.
-    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-    async function doRequest(): Promise<void> {
+  async function refreshAgentGraph(options?: { fetchTools?: boolean }) {
+    try {
       const [fullProjectResult] = await Promise.all([
         getFullProjectAction(tenantId, projectId),
         options?.fetchTools ? refetchMcpTools() : Promise.resolve(null),
@@ -330,14 +328,10 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       // Update project data in React Query cache so components using useProjectQuery get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);
       queryClient.setQueryData(projectQueryKeys.detail(tenantId, projectId), convertedProject);
-    }
-
-    try {
-      await doRequest();
     } catch (error) {
       console.error('Failed to refresh agent graph:', error);
     }
-  };
+  }
 
   const onEdgesChangeWrapped: ReactFlowProps['onEdgesChange'] = (changes) => {
     const removedMcpRelationKeys = changes.flatMap((change) => {
