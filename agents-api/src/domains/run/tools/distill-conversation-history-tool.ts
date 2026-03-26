@@ -1,4 +1,4 @@
-import type { ModelSettings } from '@inkeep/agents-core';
+import type { GenerationType, ModelSettings } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { getLogger } from '../../../logger';
 import { distillWithTruncation } from './distill-utils';
@@ -81,8 +81,15 @@ export async function distillConversationHistory(params: {
   summarizerModel: ModelSettings;
   currentSummary?: ConversationHistorySummary | null;
   messageFormatter: (maxChars?: number) => string;
+  usageContext?: {
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+    generationType: GenerationType;
+  };
 }): Promise<ConversationHistorySummary> {
-  const { conversationId, summarizerModel, currentSummary, messageFormatter } = params;
+  const { conversationId, summarizerModel, currentSummary, messageFormatter, usageContext } =
+    params;
 
   const priorSummarySection = currentSummary
     ? `**Prior summary (build on this — the new summary must incorporate everything from here plus the new messages below):**\n\n\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\`\n\n**New messages to incorporate:**`
@@ -93,6 +100,7 @@ export async function distillConversationHistory(params: {
       conversationId,
       summarizerModel,
       schema: ConversationHistorySummarySchema,
+      usageContext,
       buildPrompt: (
         formattedMessages
       ) => `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.

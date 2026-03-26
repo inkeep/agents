@@ -50,6 +50,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.head_ref || github.ref }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         if: steps.changeset-check.outputs.is_changeset != 'true'
@@ -154,6 +155,25 @@ jobs:
         run: |
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
+
+      - name: Fetch main for migration lineage
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: |
+          if git rev-parse --is-shallow-repository | grep -q true; then
+            git fetch --no-tags --prune --unshallow origin
+          fi
+
+          git fetch --no-tags --prune origin +refs/heads/main:refs/remotes/origin/main
+
+          if ! git merge-base origin/main HEAD >/dev/null; then
+            echo "Unable to compute merge base between origin/main and HEAD after fetching history."
+            git log --oneline --decorate --graph --max-count=20 --all
+            exit 1
+          fi
+
+      - name: Check migration lineage
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: pnpm check:migration-lineage
 
       # Run all CI checks in parallel with Turborepo
       # agents-docs build is excluded (causes OOM) — Vercel preview handles the Next.js build

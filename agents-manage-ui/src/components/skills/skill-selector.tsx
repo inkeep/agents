@@ -1,7 +1,7 @@
-import type { CheckedState } from '@radix-ui/react-checkbox';
 import { GripVertical, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
+import type { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { type FC, useState } from 'react';
 import type { AgentSkill } from '@/components/agent/form/validation';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
@@ -81,7 +81,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
     onChange(newSelection.map((skill, index) => ({ ...skill, index })));
   }
 
-  function handleAlwaysLoadedChange(id: string, checked: CheckedState): void {
+  function handleAlwaysLoadedChange(id: string, checked: CheckboxPrimitive.CheckedState): void {
     const nextChecked = checked === 'indeterminate' ? true : checked;
     onChange(updateSkillAlwaysLoaded(selectedSkills, id, nextChecked));
   }

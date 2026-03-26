@@ -24,33 +24,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
-import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
-
-interface TokenUsageStats {
-  byModel: Array<{
-    modelId: string;
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-  }>;
-  byAgent: Array<{
-    agentId: string;
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-  }>;
-  byProject: Array<{
-    projectId: string;
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-  }>;
-  totals: {
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-  };
-}
+import { getSigNozStatsClient, type TokenUsageResult } from '@/lib/api/signoz-stats';
 
 function formatTokenCount(count: number): string {
   if (count >= 1_000_000) {
@@ -108,7 +82,7 @@ export default function AICallsBreakdown({
     }[]
   >([]);
   const [modelCalls, setModelCalls] = useState<{ modelId: string; totalCalls: number }[]>([]);
-  const [tokenUsage, setTokenUsage] = useState<TokenUsageStats>({
+  const [tokenUsage, setTokenUsage] = useState<TokenUsageResult>({
     byModel: [],
     byAgent: [],
     byProject: [],

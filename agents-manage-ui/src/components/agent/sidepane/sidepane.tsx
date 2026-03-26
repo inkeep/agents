@@ -47,31 +47,27 @@ export function SidePane({
   const selectedNode = useNodesData(selectedNodeId || '');
   const { updateNode } = useReactFlow();
   const edges = useEdges();
+  const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
+  let selectedEdge: Edge | null = null;
+  let heading = '';
+  let HeadingIcon: LucideIcon | undefined;
 
-  const selectedEdge = selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null;
-
-  const { heading, HeadingIcon } = (() => {
-    let heading = '';
-    let HeadingIcon: LucideIcon | undefined;
-
-    if (selectedNodeId) {
-      const nodeType = (selectedNode?.type as keyof typeof nodeTypeMap) || NodeType.SubAgent;
-      const nodeConfig = nodeTypeMap[nodeType];
-      heading = nodeConfig?.name || 'Node';
-      HeadingIcon = nodeConfig?.Icon;
-    } else if (selectedEdgeId) {
-      const edgeType = (selectedEdge?.type as keyof typeof edgeTypeMap) || 'default';
-      const edgeConfig = edgeTypeMap[edgeType];
-      heading = edgeConfig?.name || 'Connection';
-      HeadingIcon = edgeConfig?.Icon;
-    } else {
-      heading = 'Agent';
-      HeadingIcon = Workflow;
-    }
-
-    return { heading, HeadingIcon };
-  })();
-
+  if (selectedNodeId) {
+    const nodeType = (selectedNode?.type as keyof typeof nodeTypeMap) || NodeType.SubAgent;
+    const nodeConfig = nodeTypeMap[nodeType];
+    heading = nodeConfig?.name || 'Node';
+    HeadingIcon = nodeConfig?.Icon;
+  } else if (selectedEdgeId) {
+    const edge = edges.find((edge) => edge.id === selectedEdgeId);
+    if (edge) selectedEdge = edge;
+    const edgeType = (selectedEdge?.type as keyof typeof edgeTypeMap) || 'default';
+    const edgeConfig = edgeTypeMap[edgeType];
+    heading = edgeConfig?.name || 'Connection';
+    HeadingIcon = edgeConfig?.Icon;
+  } else {
+    heading = 'Agent';
+    HeadingIcon = Workflow;
+  }
   function renderContent() {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;

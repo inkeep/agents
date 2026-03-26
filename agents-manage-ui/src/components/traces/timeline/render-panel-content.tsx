@@ -180,7 +180,13 @@ export function renderPanelContent({
             <Info label="Model" value={<ModelBadge model={a.aiModel || 'Unknown'} />} />
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            <Info label="Sub agent" value={a.subAgentName || '-'} />
+            {a.costUsd != null && (
+              <Info
+                label="Estimated cost"
+                value={a.costUsd < 0.01 ? `$${a.costUsd.toFixed(6)}` : `$${a.costUsd.toFixed(4)}`}
+              />
+            )}
+            {a.subAgentName && <Info label="Sub agent" value={a.subAgentName} />}
             {a.aiResponseText && (
               <LabeledBlock label="Response text">
                 <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
@@ -588,6 +594,12 @@ export function renderPanelContent({
             )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
+            {a.costUsd != null && (
+              <Info
+                label="Estimated cost"
+                value={a.costUsd < 0.01 ? `$${a.costUsd.toFixed(6)}` : `$${a.costUsd.toFixed(4)}`}
+              />
+            )}
             {structuredContent && (
               <JsonEditorWithCopy
                 value={structuredContent}

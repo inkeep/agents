@@ -16,7 +16,7 @@ import {
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { type FC, useEffect, useState } from 'react';
+import { Activity, type ComponentProps, type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { EdgeType, edgeTypes } from '@/components/agent/configuration/edge-types';
@@ -749,6 +749,19 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const isMounted = useIsMounted();
 
   const showEmptyState = !nodes.length && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
+
+  const showSidePane =
+    isOpen &&
+    /**
+     * Prevents layout shift of pane when it's opened by default (when nodeId/edgeId are in query params).
+     *
+     * The panel width depends on values stored in `localStorage`, which are only
+     * accessible after the component has mounted. This component delays rendering
+     * until then to avoid visual layout jumps.
+     */
+    isMounted &&
+    !showEmptyState;
+
   const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
   const selectedNode = findNodeByGraphKey(nodes, nodeId);
   const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId);
@@ -758,15 +771,9 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       id="agent-panel-group"
       direction="horizontal"
       autoSaveId="agent-resizable-layout-state"
-      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
+      className="relative bg-muted/20 dark:bg-background flex overflow-hidden no-parent-container"
     >
-      <CopilotChat
-        agentId={agentId}
-        projectId={projectId}
-        tenantId={tenantId}
-        refreshAgentGraph={refreshAgentGraph}
-      />
-
+      <CopilotChat refreshAgentGraph={refreshAgentGraph} />
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
@@ -861,7 +868,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           )}
 
           {showEmptyState && canEdit && (
-            <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
+            <Panel position="top-center" className="top-1/2! -translate-y-1/2">
               <EmptyState onAddInitialNode={onAddInitialNode} />
             </Panel>
           )}
@@ -888,57 +895,40 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         </ReactFlow>
       </ResizablePanel>
 
-      {isOpen &&
-        /**
-         * Prevents layout shift of pane when it's opened by default (when nodeId/edgeId are in query params).
-         *
-         * The panel width depends on values stored in `localStorage`, which are only
-         * accessible after the component has mounted. This component delays rendering
-         * until then to avoid visual layout jumps.
-         */
-        isMounted &&
-        !showEmptyState && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel
-              minSize={30}
-              // Panel id and order props recommended when panels are dynamically rendered
-              id="side-pane"
-              order={2}
-            >
-              <SidePane
-                selectedNodeId={selectedNode?.id ?? null}
-                selectedEdgeId={selectedEdge?.id ?? null}
-                onClose={closeSidePane}
-                backToAgent={backToAgent}
-                disabled={isCopilotStreaming || !canEdit}
-              />
-            </ResizablePanel>
-          </>
-        )}
-
-      {showPlayground && (
-        <>
-          {!showTraces && <ResizableHandle withHandle />}
-          <ResizablePanel
-            minSize={25}
-            // Panel id and order props recommended when panels are dynamically rendered
-            id="playground-pane"
-            order={3}
-            className={showTraces ? 'w-full flex-none!' : ''}
-          >
-            <Playground
-              agentId={agentId}
-              projectId={projectId}
-              tenantId={tenantId}
-              setShowPlayground={setShowPlayground}
-              closeSidePane={closeSidePane}
-              showTraces={showTraces}
-              setShowTraces={setShowTraces}
-            />
-          </ResizablePanel>
-        </>
-      )}
+      <Activity mode={showSidePane ? 'visible' : 'hidden'}>
+        <ResizableHandle withHandle />
+        <ResizablePanel
+          minSize={30}
+          // Panel id and order props recommended when panels are dynamically rendered
+          id="side-pane"
+          order={2}
+        >
+          <SidePane
+            selectedNodeId={selectedNode?.id ?? null}
+            selectedEdgeId={selectedEdge?.id ?? null}
+            onClose={closeSidePane}
+            backToAgent={backToAgent}
+            disabled={isCopilotStreaming || !canEdit}
+          />
+        </ResizablePanel>
+      </Activity>
+      <Activity mode={showPlayground ? 'visible' : 'hidden'}>
+        {!showTraces && <ResizableHandle withHandle />}
+        <ResizablePanel
+          minSize={25}
+          // Panel id and order props recommended when panels are dynamically rendered
+          id="playground-pane"
+          order={3}
+          className={showTraces ? 'w-full flex-none!' : ''}
+        >
+          <Playground
+            setShowPlayground={setShowPlayground}
+            closeSidePane={closeSidePane}
+            showTraces={showTraces}
+            setShowTraces={setShowTraces}
+          />
+        </ResizablePanel>
+      </Activity>
       <UnsavedChangesDialog onSubmit={onSubmit} />
     </ResizablePanelGroup>
   );

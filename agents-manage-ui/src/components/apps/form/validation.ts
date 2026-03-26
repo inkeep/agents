@@ -36,6 +36,7 @@ export const AppCreateFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   defaultAgentId: z.string().optional(),
+  prompt: z.string().optional(),
   allowedDomains: z
     .string()
     .optional()
@@ -46,6 +47,7 @@ export const AppUpdateFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   defaultAgentId: z.string().optional(),
+  prompt: z.string().optional(),
   enabled: z.boolean(),
   allowedDomains: z
     .string()
