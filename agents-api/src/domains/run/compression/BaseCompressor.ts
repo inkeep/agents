@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
 import {
   estimateTokens as estimateTokensUtil,
+  GENERATION_TYPES,
   getLedgerArtifacts,
   SPAN_KEYS,
   updateLedgerArtifactParts,
