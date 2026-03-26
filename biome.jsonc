@@ -128,6 +128,10 @@
               {
                 "name": "useCopilotContext",
                 "stableResult": ["setIsOpen", "setIsStreaming", "openCopilot", "setDynamicHeaders"]
+              },
+              {
+                "name": "useSidePane",
+                "stableResult": ["setQueryState","openAgentPane"]
               }
             ]
           }

@@ -33,8 +33,7 @@ export function useAgentSelectionSync({
   setEdges,
   setQueryState,
 }: UseAgentSelectionSyncParams) {
-  const selectedNode = findNodeByGraphKey(nodes, nodeId);
-  const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId);
+  'use memo'
 
   useOnSelectionChange({
     onChange({ nodes: selectedNodes, edges: selectedEdges }) {
@@ -94,35 +93,31 @@ export function useAgentSelectionSync({
         );
       }
     }
-  }, [edgeId, nodeId, nodes, edges, setQueryState]);
+  }, [edgeId, nodeId, nodes, edges]);
 
   function clearCanvasSelection() {
     setEdges((prevEdges) => prevEdges.map((edge) => ({ ...edge, selected: false })));
     setNodes((prevNodes) => prevNodes.map((node) => ({ ...node, selected: false })));
   }
 
-  function closeSidePane() {
-    clearCanvasSelection();
-    setQueryState({
-      pane: null,
-      nodeId: null,
-      edgeId: null,
-    });
-  }
-
-  function backToAgent() {
-    clearCanvasSelection();
-    setQueryState({
-      pane: 'agent',
-      nodeId: null,
-      edgeId: null,
-    });
-  }
-
   return {
-    selectedNode,
-    selectedEdge,
-    closeSidePane,
-    backToAgent,
+    selectedNode: findNodeByGraphKey(nodes, nodeId),
+    selectedEdge: findEdgeByGraphKey(edges, nodes, edgeId),
+    closeSidePane() {
+      clearCanvasSelection();
+      setQueryState({
+        pane: null,
+        nodeId: null,
+        edgeId: null,
+      });
+    },
+    backToAgent() {
+      clearCanvasSelection();
+      setQueryState({
+        pane: 'agent',
+        nodeId: null,
+        edgeId: null,
+      });
+    },
   };
 }
