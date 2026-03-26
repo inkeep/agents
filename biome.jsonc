@@ -130,7 +130,7 @@
               },
               {
                 "name": "useSidePane",
-                "stableResult": ["setQueryState","openAgentPane"]
+                "stableResult": ["setQueryState", "openAgentPane"]
               }
             ]
           }

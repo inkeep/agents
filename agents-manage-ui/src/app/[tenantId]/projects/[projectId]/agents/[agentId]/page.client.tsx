@@ -646,7 +646,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             setNodes(resolveCollisions);
           }}
           onBeforeDelete={async (state) => {
-            const defaultSubAgentNodeId = form.getValues('defaultSubAgentNodeId')
+            const defaultSubAgentNodeId = form.getValues('defaultSubAgentNodeId');
             const hasDefaultNode = state.nodes.some((node) => node.id === defaultSubAgentNodeId);
             if (hasDefaultNode) {
               toast.error(`Cannot delete default subagent "${defaultSubAgentNodeId}"`);
