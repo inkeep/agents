@@ -28,7 +28,6 @@ function isInlineBinaryPart(value: unknown): value is InlineBinaryPart {
   return (
     (v.type === 'image' || v.type === 'file') &&
     typeof v.data === 'string' &&
-    v.data.length > 1 &&
     !isBlobUri(v.data) &&
     !v.data.startsWith('http')
   );
