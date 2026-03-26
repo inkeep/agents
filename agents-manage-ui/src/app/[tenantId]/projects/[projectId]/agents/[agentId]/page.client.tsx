@@ -165,9 +165,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     isOpen,
     nodeId,
     edgeId,
-    setNodes,
-    setEdges,
-    setQueryState,
   });
 
   function onAddInitialNode(): void {

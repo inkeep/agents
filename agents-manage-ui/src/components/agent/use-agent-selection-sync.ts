@@ -7,10 +7,8 @@ import {
   getEdgeGraphKey,
   getNodeGraphKey,
 } from '@/features/agent/domain';
-import type { useSidePane } from '@/hooks/use-side-pane';
-
-type SetGraphState<T extends Node | Edge> = (updater: (prev: T[]) => T[]) => void;
-type SetQueryState = ReturnType<typeof useSidePane>['setQueryState'];
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
+import { useSidePane } from '@/hooks/use-side-pane';
 
 interface UseAgentSelectionSyncParams {
   nodes: Node[];
@@ -18,9 +16,6 @@ interface UseAgentSelectionSyncParams {
   isOpen: boolean;
   nodeId: string | null;
   edgeId: string | null;
-  setNodes: SetGraphState<Node>;
-  setEdges: SetGraphState<Edge>;
-  setQueryState: SetQueryState;
 }
 
 export function useAgentSelectionSync({
@@ -29,11 +24,10 @@ export function useAgentSelectionSync({
   isOpen,
   nodeId,
   edgeId,
-  setNodes,
-  setEdges,
-  setQueryState,
 }: UseAgentSelectionSyncParams) {
   'use memo';
+  const { setNodes, setEdges } = useAgentActions();
+  const { setQueryState } = useSidePane();
 
   useOnSelectionChange({
     onChange({ nodes: selectedNodes, edges: selectedEdges }) {
@@ -93,7 +87,7 @@ export function useAgentSelectionSync({
         );
       }
     }
-  }, [edgeId, nodeId, nodes, edges, setQueryState]);
+  }, [edgeId, nodeId, nodes, edges]);
 
   function clearCanvasSelection() {
     setEdges((prevEdges) => prevEdges.map((edge) => ({ ...edge, selected: false })));
