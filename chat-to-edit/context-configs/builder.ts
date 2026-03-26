@@ -10,6 +10,8 @@ export const headersBuilder = headers({
     'x-inkeep-from-conversation-id': z.string().optional(),
     'x-inkeep-from-message-id': z.string().optional(),
     'x-forwarded-cookie': z.string().optional(),
+    'x-target-dataset-ids': z.string().optional(),
+    'x-target-evaluator-ids': z.string().optional(),
   }),
 });
 

@@ -20,6 +20,30 @@ export interface ConversationHistoryResponse {
 /**
  * Fetches conversation history from the API
  */
+export interface ConversationBoundsResponse {
+  data: {
+    createdAt: string;
+    updatedAt: string;
+    agentId: string | null;
+  };
+}
+
+export async function fetchConversationBounds(
+  tenantId: string,
+  projectId: string,
+  conversationId: string
+): Promise<ConversationBoundsResponse['data'] | null> {
+  try {
+    const response = await makeManagementApiRequest<ConversationBoundsResponse>(
+      `tenants/${tenantId}/projects/${projectId}/conversations/${conversationId}/bounds`
+    );
+    return response.data;
+  } catch (error) {
+    console.warn('Failed to fetch conversation bounds:', error);
+    return null;
+  }
+}
+
 export async function fetchConversationHistory(
   tenantId: string,
   projectId: string,

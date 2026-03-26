@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "analyze": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "fd02e52d88008c86acdca958a6ad312d8b914b2cd8621cc151040752050dc399"
+    },
     "browser": {
       "source": "inkeep/team-skills",
       "sourceType": "github",
@@ -36,10 +41,25 @@
       "sourceType": "github",
       "computedHash": "31554f8a7742f10e264d577aba5699264e7b1cb1cc1787a18d756b9a682a9223"
     },
+    "research": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "5a9ae9e87eb00a96f1a4e9dc4a2837dcab645d7868ebf7ade53ae47dfb02653b"
+    },
     "review": {
       "source": "inkeep/team-skills",
       "sourceType": "github",
       "computedHash": "667ea421c148ba3087a8b9c1552c62d546cf232d74d127cc430c019faee9d5bd"
+    },
+    "saas-session-recon": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "9d15d6df774412e50fbc03d664cab10ea70aa8e880512673fb53c57cb2733533"
+    },
+    "screengrabs": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "daf2644a674983a79656ca9f71979263f131c390b5e2182037e979b75380081d"
     },
     "ship": {
       "source": "inkeep/team-skills",
@@ -55,6 +75,16 @@
       "source": "inkeep/team-skills",
       "sourceType": "github",
       "computedHash": "3830b118899555fc19daa54725b3136fb0ee2d8aaf39a2f60f8b48e439843566"
+    },
+    "write-agent": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "f3cf25b4ca08fa98779b4fd75ad7e96b359e5acfdd8afa7b223fa572ba8d8da5"
+    },
+    "write-skill": {
+      "source": "inkeep/team-skills",
+      "sourceType": "github",
+      "computedHash": "41aaa2e05f3f24db90086276a9479cb3e9c697dd648d78416ffadff20c86541c"
     }
   }
 }

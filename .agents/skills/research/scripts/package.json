@@ -1,0 +1,11 @@
+{
+  "name": "research-catalogue",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "catalogue": "bun run generate-catalogue.ts"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  }
+}

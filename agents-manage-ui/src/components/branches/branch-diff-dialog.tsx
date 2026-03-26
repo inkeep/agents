@@ -100,6 +100,9 @@ function EntityChangeCard({
       {change.changeType === 'removed' && change.fields.length === 0 && (
         <div className="text-sm text-muted-foreground">Entity deleted</div>
       )}
+      {change.changeType === 'modified' && change.fields.length === 0 && (
+        <div className="text-sm text-muted-foreground">Metadata updated (no visible field changes)</div>
+      )}
     </div>
   );
 }

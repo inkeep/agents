@@ -4,8 +4,13 @@ import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
 import type { BranchInfo } from '../validation/dolt-schemas';
 
 function naiveDateToUtcIso(d: Date | string): string {
-    return typeof d === 'string' ? d.endsWith('Z') ? d : `${d.replace(' ', 'T')}Z` : d.toISOString();
+  return typeof d === 'string'
+    ? d.endsWith('Z')
+      ? d
+      : `${d.replace(' ', 'T')}Z`
+    : d.toISOString();
 }
+
 import {
   doltBranch,
   doltCheckout,
@@ -230,7 +235,9 @@ export const createBranch =
       baseName: name,
       fullName,
       hash: newBranch.hash,
-      latestCommitDate: newBranch.latest_commit_date ? naiveDateToUtcIso(newBranch.latest_commit_date) : null,
+      latestCommitDate: newBranch.latest_commit_date
+        ? naiveDateToUtcIso(newBranch.latest_commit_date)
+        : null,
     };
   };
 
@@ -286,7 +293,9 @@ export const getBranch =
       baseName: name,
       fullName,
       hash: branch.hash,
-      latestCommitDate: branch.latest_commit_date ? naiveDateToUtcIso(branch.latest_commit_date) : null,
+      latestCommitDate: branch.latest_commit_date
+        ? naiveDateToUtcIso(branch.latest_commit_date)
+        : null,
     };
   };
 

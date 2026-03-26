@@ -244,6 +244,10 @@ app.openapi(
         description: validatedBody.description,
         defaultSubAgentId: validatedBody.defaultSubAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
+        prompt: validatedBody.prompt,
+        models: validatedBody.models,
+        statusUpdates: validatedBody.statusUpdates,
+        stopWhen: validatedBody.stopWhen,
       });
 
       return c.json({ data: agent }, 201);
@@ -301,6 +305,10 @@ app.openapi(
         description: validatedBody.description,
         defaultSubAgentId: validatedBody.defaultSubAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
+        prompt: validatedBody.prompt,
+        models: validatedBody.models,
+        statusUpdates: validatedBody.statusUpdates,
+        stopWhen: validatedBody.stopWhen,
       },
     });
 

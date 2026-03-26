@@ -99,11 +99,11 @@ export const createProjectMetadataAndBranch =
   };
 
 /**
- * Delete a project and its branch
+ * Delete a project and all its branches (main + feature branches).
  *
  * This utility:
  * 1. Gets the project from runtime DB to find the branch name
- * 2. Deletes the project branch from config DB (Doltgres)
+ * 2. Enumerates and deletes all Dolt branches matching `{tenantId}_{projectId}_*`
  * 3. Deletes the project record from runtime DB
  *
  * Note: Callers should handle cascade deletion of runtime entities (conversations, etc.)
@@ -129,20 +129,28 @@ export const deleteProjectWithBranch =
 
     const { mainBranchName } = project;
 
-    // 2. Checkout main branch and then delete the project branch from config DB
+    // 2. Checkout global main and delete all project branches from config DB
     try {
-      // 2.1. Checkout main branch
       await doltCheckout(configDb)({ branch: 'main' });
 
-      // 2.2. Delete the project branch
-      await doltDeleteBranch(configDb)({ name: mainBranchName, force: true });
-      logger.info({ mainBranchName }, 'Deleted project branch');
+      const projectPrefix = `${tenantId}_${projectId}_%`;
+      const result = await configDb.execute(
+        sql`SELECT name FROM dolt_branches WHERE name LIKE ${projectPrefix}`
+      );
+      const branchNames = result.rows.map((r: any) => r.name as string);
+
+      for (const branchName of branchNames) {
+        try {
+          await doltDeleteBranch(configDb)({ name: branchName, force: true });
+          logger.info({ branchName }, 'Deleted project branch');
+        } catch (branchError) {
+          logger.error({ error: branchError, branchName }, 'Failed to delete project branch');
+        }
+      }
     } catch (error) {
-      // Log but continue - the branch might not exist or might have other issues
-      // We still want to clean up the runtime record
       logger.error(
         { error, mainBranchName },
-        'Failed to delete project branch, continuing with runtime cleanup'
+        'Failed to delete project branches, continuing with runtime cleanup'
       );
     }
 

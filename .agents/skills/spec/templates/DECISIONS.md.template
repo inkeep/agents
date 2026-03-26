@@ -1,0 +1,13 @@
+Use when: You want a standalone, diffable decision log.
+Priority: P1
+Impact: Decisions blur together; rationale is lost; reversibility isn't tracked.
+
+---
+
+# Decision Log — <Feature/Product>
+
+**Last updated:** YYYY-MM-DD
+
+| ID | Decision | Type (P/T/X) | 1-way door? | Date | Status | Options considered | Rationale | Implications / follow-ups | Evidence / links |
+|---|---|---|---|---|---|---|---|---|---|
+| D1 |  |  | Yes/No | YYYY-MM-DD | Decided | A/B/C |  |  |  |

@@ -82,8 +82,8 @@ function MessagePartsDisplay({
   if (!parts || !Array.isArray(parts) || parts.length === 0) {
     return messageContent ? (
       <div className="max-h-[3em] overflow-hidden">
-          <Streamdown>{messageContent}</Streamdown>
-        </div>
+        <Streamdown>{messageContent}</Streamdown>
+      </div>
     ) : null;
   }
 

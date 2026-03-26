@@ -255,9 +255,17 @@ function parseDoltDiffRows(rows: any[]): Array<{
       const oldVal = row[`from_${col}`] ?? null;
       const newVal = row[`to_${col}`] ?? null;
       const oldStr =
-        oldVal != null ? (typeof oldVal === 'object' ? JSON.stringify(oldVal, null, 2) : String(oldVal)) : null;
+        oldVal != null
+          ? typeof oldVal === 'object'
+            ? JSON.stringify(oldVal, null, 2)
+            : String(oldVal)
+          : null;
       const newStr =
-        newVal != null ? (typeof newVal === 'object' ? JSON.stringify(newVal, null, 2) : String(newVal)) : null;
+        newVal != null
+          ? typeof newVal === 'object'
+            ? JSON.stringify(newVal, null, 2)
+            : String(newVal)
+          : null;
       if (oldStr === newStr) continue;
       fields.push({
         field: col,

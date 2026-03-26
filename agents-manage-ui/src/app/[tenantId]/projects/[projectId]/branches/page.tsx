@@ -3,7 +3,7 @@ import { BranchesTable } from '@/components/branches/branches-table';
 import FullPageError from '@/components/errors/full-page-error';
 import { PageHeader } from '@/components/layout/page-header';
 import { STATIC_LABELS } from '@/constants/theme';
-import { fetchBranches, fetchBranchDiffSummary } from '@/lib/api/branches';
+import { fetchBranchDiffSummary, fetchBranches } from '@/lib/api/branches';
 
 export const dynamic = 'force-dynamic';
 

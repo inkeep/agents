@@ -1,0 +1,38 @@
+Use when: You need detailed end-to-end flows per persona (happy path + failure/recovery + debugging).
+Priority: P1
+Impact: Spec lacks real UX; failure experience is missing; onboarding is unclear.
+
+---
+
+# User Journeys — <Feature/Product>
+
+## Persona 1: <name / role>
+### Context / prerequisites
+- Preconditions:
+- Trust/security concerns:
+
+### Happy path (end-to-end)
+1. ...
+2. ...
+3. ...
+
+### First success ("aha moment")
+- What confirms it worked:
+- What the user sees:
+
+### Failure & recovery paths
+- Failure 1:
+  - Symptom:
+  - Error shown:
+  - Recovery steps:
+- Failure 2:
+  ...
+
+### Ongoing usage
+- Daily workflow:
+- Scaling/growth:
+
+### Notes for implementation
+- UX surfaces touched:
+- Telemetry to add:
+- Docs needed:

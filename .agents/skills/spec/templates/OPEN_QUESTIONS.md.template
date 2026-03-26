@@ -1,0 +1,13 @@
+Use when: Open Questions are numerous and you want a standalone living backlog.
+Priority: P1
+Impact: Open questions get lost; sessions restart with repeated discovery.
+
+---
+
+# Open Questions — <Feature/Product>
+
+**Last updated:** YYYY-MM-DD
+
+| ID | Question | Type (Product/Technical/Cross) | Priority (P0/P1/P2) | 1-way door? | Blocking Phase 1? | Plan to resolve / next action | Owner | Status |
+|---|---|---|---|---|---|---|---|---|
+| Q1 |  |  | P0 | Yes/No | Yes/No |  |  | Open |

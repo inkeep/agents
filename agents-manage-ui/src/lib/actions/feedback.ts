@@ -7,6 +7,7 @@ import {
   type Feedback,
   type FeedbackCreate,
 } from '../api/feedback';
+import { fetchConversationBounds } from '../api/conversations-client';
 import { rerunTrigger } from '../api/triggers';
 import { ApiError } from '../types/errors';
 import { buildSummarizedTrace } from '../utils/trace-formatter';
@@ -80,7 +81,8 @@ export async function triggerFeedbackImprovementAction(
     messageId?: string;
     targetTenantId: string;
     targetProjectId: string;
-    targetAgentId?: string;
+    datasetIds?: string[];
+    evaluatorIds?: string[];
   }
 ): Promise<ActionResult<{ invocationId: string; conversationId: string }>> {
   try {
@@ -88,14 +90,29 @@ export async function triggerFeedbackImprovementAction(
       'x-target-tenant-id': params.targetTenantId,
       'x-target-project-id': params.targetProjectId,
     };
-    if (params.targetAgentId) {
-      forwardedHeaders['x-target-agent-id'] = params.targetAgentId;
+
+    if (params.conversationId) {
+      const bounds = await fetchConversationBounds(
+        params.targetTenantId,
+        params.targetProjectId,
+        params.conversationId
+      );
+      if (bounds?.agentId) {
+        forwardedHeaders['x-target-agent-id'] = bounds.agentId;
+      }
     }
+
     if (params.conversationId) {
       forwardedHeaders['x-inkeep-from-conversation-id'] = params.conversationId;
     }
     if (params.messageId) {
       forwardedHeaders['x-inkeep-from-message-id'] = params.messageId;
+    }
+    if (params.datasetIds?.length) {
+      forwardedHeaders['x-target-dataset-ids'] = params.datasetIds.join(',');
+    }
+    if (params.evaluatorIds?.length) {
+      forwardedHeaders['x-target-evaluator-ids'] = params.evaluatorIds.join(',');
     }
 
     let userMessage = params.feedbackDetails;

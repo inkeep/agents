@@ -1,0 +1,29 @@
+{
+  "name": "playwright-skill",
+  "version": "4.1.0",
+  "description": "Browser automation with Playwright for Claude Code — headless by default for Docker/CI",
+  "author": "lackeyjb",
+  "main": "run.js",
+  "scripts": {
+    "setup": "npm install && npx playwright install chromium",
+    "install-all-browsers": "npx playwright install chromium firefox webkit"
+  },
+  "keywords": [
+    "playwright",
+    "automation",
+    "browser-testing",
+    "web-automation",
+    "claude-skill"
+  ],
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.65",
+    "@playwright/mcp": "^0.0.68",
+    "@vimeo/vimeo": "^2.3.1",
+    "gif-encoder-2": "^1.0.5",
+    "playwright": "^1.57.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "license": "MIT"
+}

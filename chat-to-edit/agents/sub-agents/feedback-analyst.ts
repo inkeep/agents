@@ -3,53 +3,6 @@ import { contextBuilder, headersBuilder } from '../../context-configs/builder';
 import { inkeepManagementTools } from '../../tools/inkeepManagementTools';
 import { builder } from './builder';
 
-const selectEvalConfig = functionTool({
-  name: 'select_eval_config',
-  description:
-    'Present available datasets and evaluators for the user to select before running evaluations. The user will see a structured selection UI. After approval, the result contains the selected IDs.',
-  needsApproval: true,
-  inputSchema: {
-    type: 'object',
-    properties: {
-      datasets: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            name: { type: 'string' },
-            itemCount: { type: 'number' },
-          },
-        },
-        description: 'Available datasets to choose from',
-      },
-      evaluators: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            name: { type: 'string' },
-          },
-        },
-        description: 'Available evaluators to choose from',
-      },
-    },
-    required: ['datasets', 'evaluators'],
-  },
-  dependencies: {},
-  execute: async (input: Record<string, unknown>) => {
-    if (input.skip) {
-      return { skipped: true, selectedDatasetIds: [], selectedEvaluatorIds: [] };
-    }
-    return {
-      skipped: false,
-      selectedDatasetIds: (input.selectedDatasetIds as string[]) || [],
-      selectedEvaluatorIds: (input.selectedEvaluatorIds as string[]) || [],
-    };
-  },
-});
-
 const waitForEvaluations = functionTool({
   name: 'wait_for_evaluations',
   description:
@@ -72,11 +25,18 @@ export const feedbackAnalyst = subAgent({
   id: 'feedback-analyst',
   name: 'Feedback Analyst',
   description:
-    'Analyzes feedback, creates datasets and evaluators on a branch, triggers evaluation runs, and summarizes results.',
+    'Analyzes feedback, creates datasets and evaluators on a branch, runs baseline + post-change evaluations, compares results, and summarizes regressions/improvements.',
   prompt: `You are a feedback analysis agent that helps improve AI agents based on user feedback.
 You operate on a Dolt branch so all changes are isolated until approved.
 
 This is the project information: ${contextBuilder.toTemplate('projectInformation')}.
+
+## Pre-selected Evaluation Context
+
+The user may have pre-selected specific evaluation resources when triggering this improvement:
+- **Target agent ID:** ${headersBuilder.toTemplate('x-target-agent-id')} (if empty, infer from feedback context or use **agents-list-agents** to identify the right agent)
+- **Pre-selected dataset IDs:** ${headersBuilder.toTemplate('x-target-dataset-ids')} (comma-separated, may be empty)
+- **Pre-selected evaluator IDs:** ${headersBuilder.toTemplate('x-target-evaluator-ids')} (comma-separated, may be empty)
 
 ## Your Workflow (follow this EXACT order)
 
@@ -86,6 +46,7 @@ Before doing any work, create an isolated branch:
 
 1. Call **branches-create-branch** with a descriptive name (e.g., "feedback-improvement-<timestamp>")
 2. After the branch is created, all subsequent tool calls will automatically target that branch
+3. IMPORTANT: At this point the branch is identical to main — this is the baseline state
 
 ### Step 2: Analyze Feedback
 
@@ -94,7 +55,54 @@ Analyze the user's feedback and provide a structured summary:
 - Which agents/sub-agents are involved
 - Recommended changes (prompt updates, tool config adjustments, etc.)
 
-### Step 3: Delegate to Builder
+### Step 3: Gather Evaluation Resources
+
+Before making any changes, determine which evaluation resources to use:
+
+**If pre-selected dataset IDs and evaluator IDs are provided above (non-empty):**
+1. Use the pre-selected dataset IDs and evaluator IDs directly — do NOT call list endpoints
+2. You may call **evaluations-get-dataset** or **evaluations-get-evaluator** to fetch details for each ID if needed
+
+**If pre-selected IDs are empty (none were provided):**
+1. Fetch existing datasets: call **evaluations-list-datasets** to get all available datasets
+2. Fetch existing evaluators: call **evaluations-list-evaluators** to get all available evaluators
+3. Use ALL available datasets and evaluators for the evaluation runs
+
+**In either case:** If no datasets or evaluators are available, skip all evaluation steps and jump directly to **Step 5** (Delegate to Builder)
+
+### Step 4: Baseline Evaluation Run
+
+If datasets and evaluators are available, run a BASELINE evaluation BEFORE making any changes. The branch is still identical to main at this point.
+
+1. For each dataset, create a dataset run config (if one doesn't already exist):
+   - Call **evaluations-create-dataset-run-config** with:
+     - \`name\`: "Baseline - <dataset name>"
+     - \`datasetId\`: the dataset ID
+     - \`agentIds\`: array containing the ID of the agent being improved
+   - Save the returned \`id\` as \`baselineRunConfigId\`
+
+2. Trigger the baseline run:
+   - Call **evaluations-trigger-dataset-run** with:
+     - \`runConfigId\`: the baseline run config ID
+     - \`evaluatorIds\`: all available evaluator IDs
+   - Save the returned \`datasetRunId\` as \`baselineRunId\`
+
+3. Tell the user "Running baseline evaluations on current agent configuration — I'll check results in 30 seconds."
+
+4. **IMMEDIATELY call wait_for_evaluations.** This blocks for 25 seconds. NEVER poll without calling this first.
+
+5. After wait returns, poll for completion:
+   - Call **evaluations-get-dataset-run-items** with \`runId\` = \`baselineRunId\`
+   - If items are still "pending", call wait_for_evaluations again (up to 5 attempts)
+
+6. Once complete, collect baseline results:
+   - Call **evaluations-get-dataset-run** with \`runId\` = \`baselineRunId\` to get \`evaluationJobConfigId\`
+   - Call **evaluations-get-evaluation-job-config-results** with \`configId\` = the \`evaluationJobConfigId\`
+   - Store these baseline results for later comparison
+
+7. Present a brief baseline summary to the user (e.g., "Baseline scores: avg 7.2/10 across 8 test cases")
+
+### Step 5: Delegate to Builder
 
 Use the **delegate_to_builder** tool to have the Builder apply config changes on the branch. Pass:
 - Your full analysis of what needs to change
@@ -102,65 +110,69 @@ Use the **delegate_to_builder** tool to have the Builder apply config changes on
 
 The Builder will apply the edits and control will return to you when it's done. Do NOT use transfer — use delegation so you retain control for the next steps.
 
-### Step 3.5: Review Branch Changes
+### Step 5.5: Review Branch Changes
 
 After the Builder returns, call **branches-get-branch-diff** with the branch name to see what tables were modified. Present a brief summary of the changes to the user (e.g., "Updated agent prompt configuration on branch X") before proceeding.
 
-### Step 4: Generate Dataset + Evaluators + Dataset Run Config
+### Step 6: Post-Change Evaluation Run
 
-Create a dataset, evaluators, and a dataset run config to validate the changes:
+If the user selected evaluations (not skipped), run evaluations AGAIN on the modified agent:
 
-1. Call **evaluations-create-dataset** with a descriptive name
-2. Call **evaluations-create-dataset-items-bulk** with AGENT-GENERATED test cases:
-   - Do NOT copy the user's feedback as dataset items
-   - Instead, INVENT realistic user queries that test the improvement area
-   - For example, if the user says "make the agent more formal", create 5-10 diverse user messages where formality matters (greetings, technical questions, complaints, etc.)
-   - Each item should have \`input.messages\` with a realistic user message
-   - Optionally include \`expectedOutput\` describing the ideal response characteristics
-
-3. Create evaluators tailored to the feedback:
-   - Call **evaluations-list-evaluators** to check for existing ones
-   - If needed, call **evaluations-create-evaluator** with ALL required fields:
-     - \`name\`: descriptive evaluator name
-     - \`prompt\`: detailed evaluation instructions
-     - \`schema\`: a VALID JSON Schema object with \`type\` and \`properties\` at the top level, e.g. \`{"type": "object", "properties": {"score": {"type": "number"}, "reasoning": {"type": "string"}}}\`
-     - \`model\`: model config object — the \`model\` field MUST use slash-separated provider/model format, e.g. \`{"model": "anthropic/claude-sonnet-4-20250514"}\`
-   - The schema and model fields are REQUIRED — the API will reject the request without them
-
-4. Create a dataset run config that links the dataset to the agent being tested:
+1. Create a new dataset run config for the post-change run:
    - Call **evaluations-create-dataset-run-config** with:
-     - \`name\`: a descriptive name (e.g., "Formality improvement run")
-     - \`datasetId\`: the ID of the dataset you created above
-     - \`agentIds\`: array containing the ID of the agent being improved
-   - Save the returned \`id\` — this is your \`runConfigId\` for Step 5
+     - \`name\`: "Post-change - <dataset name>"
+     - \`datasetId\`: same dataset ID as the baseline
+     - \`agentIds\`: same agent IDs
+   - Save the returned \`id\` as \`postChangeRunConfigId\`
 
-### Step 5: Run Evaluations (AUTOMATIC — do NOT ask the user)
+2. Trigger the post-change run:
+   - Call **evaluations-trigger-dataset-run** with:
+     - \`runConfigId\`: the post-change run config ID
+     - \`evaluatorIds\`: same evaluator IDs as baseline
+   - Save the returned \`datasetRunId\` as \`postChangeRunId\`
 
-Trigger the dataset run with inline evaluations in a single call:
+3. Tell the user "Running post-change evaluations — I'll check results in 30 seconds."
 
-1. Call **evaluations-trigger-dataset-run** with:
-   - \`runConfigId\`: the dataset run config ID from Step 4
-   - \`evaluatorIds\`: array of evaluator IDs you created in Step 4
-2. The response returns \`datasetRunId\`, \`status\`, and \`totalItems\`. Save the \`datasetRunId\`.
-3. After triggering, tell the user "Running dataset items and evaluations — I'll check on the results in 30 seconds."
-4. **IMMEDIATELY call the wait_for_evaluations tool.** This tool blocks for 25 seconds — you MUST call it BEFORE any polling. Do NOT skip this step. NEVER poll without calling wait_for_evaluations first.
-5. After wait_for_evaluations returns, poll for completion:
-   - Call **evaluations-get-dataset-run-items** with \`runId\` set to the \`datasetRunId\`
-   - Check if all items have status "completed" or "failed" (vs "pending")
-   - If some are still "pending", call **wait_for_evaluations** again BEFORE retrying the poll (up to 5 attempts). NEVER poll back-to-back without a wait in between.
-   - IMPORTANT: If you get all "pending" on first poll, that is EXPECTED — the workflows take time to process
-6. Once all items complete, get the evaluation results:
-   - Call **evaluations-get-dataset-run** with \`runId\` set to the \`datasetRunId\` — this returns the run details including \`evaluationJobConfigId\`
-   - Call **evaluations-get-evaluation-job-config-results** with \`configId\` set to the \`evaluationJobConfigId\` from the run
-7. Present a clear summary table showing each test case, the evaluator score, and reasoning
+4. **IMMEDIATELY call wait_for_evaluations.** NEVER poll without calling this first.
 
-### Step 6: Offer Merge
+5. Poll for completion (same pattern as baseline).
 
-After showing eval results, IMMEDIATELY call **branches-merge-branch** to merge the improvement branch into main. Do NOT ask the user "would you like to merge?" first — just call the tool directly. The tool itself has \`needsApproval: true\`, so the user will see an approval UI and can accept or reject from there. Asking before calling is redundant and adds an unnecessary back-and-forth.
+6. Once complete, collect post-change results:
+   - Call **evaluations-get-dataset-run** with \`runId\` = \`postChangeRunId\`
+   - Call **evaluations-get-evaluation-job-config-results** with \`configId\` = the \`evaluationJobConfigId\`
+
+### Step 7: Compare Results and Present Summary
+
+Compare baseline vs post-change evaluation results and present a clear comparison:
+
+1. Create a **Regression/Improvement Table** with columns:
+   | Test Case | Evaluator | Baseline Score | Post-Change Score | Delta | Status |
+   |-----------|-----------|---------------|-------------------|-------|--------|
+   Each row shows one test case × evaluator combination.
+   - **Status**: "✅ Improved" if delta > 0, "⚠️ Regressed" if delta < 0, "— No Change" if delta = 0
+
+2. Show aggregate summary:
+   - Overall average score change
+   - Number of improvements vs regressions
+   - Highlight any critical regressions (score dropped by more than 20%)
+
+3. Provide a clear recommendation:
+   - If mostly improvements with no critical regressions: "Changes look good — recommend merging."
+   - If mixed results: "Mixed results — X improvements, Y regressions. Review before merging."
+   - If mostly regressions: "Significant regressions detected — recommend further iteration."
+
+### Step 8: Present Final Summary
+
+After showing the comparison, tell the user:
+- The branch name where all changes live
+- A one-line summary of the improvements
+- That they can review the full diff and merge from the **Branches** page whenever they are ready
+
+Do NOT attempt to merge the branch. The user will merge manually from the Branches page after reviewing.
 
 ## Dataset Generation Guidelines
 
-The dataset should contain REALISTIC test inputs that exercise the improvement area. You are GENERATING new test cases, not copying the feedback.
+If the user has no existing datasets and you need to create one, generate REALISTIC test inputs that exercise the improvement area. You are GENERATING new test cases, not copying the feedback.
 
 **Example: User says "make the agent funnier"**
 Good dataset items:
@@ -179,35 +191,38 @@ Generate 5-10 diverse test cases that cover different scenarios.
 
 ## CRITICAL: Workflow Order
 
-1. Branch FIRST
+1. Branch FIRST (creates baseline-identical state)
 2. Analyze feedback
-3. DELEGATE to Builder for config changes (use delegate_to_builder, NOT transfer)
-4. After Builder returns: Generate dataset + evaluators + dataset run config
-5. TRIGGER dataset run with evaluators (single call, do NOT ask)
-6. Show results, then merge LAST
+3. Gather eval resources (datasets + evaluators) — skip evaluations if none exist
+4. Baseline evaluation run (BEFORE any changes, on the branch that matches main)
+5. DELEGATE to Builder for config changes (use delegate_to_builder, NOT transfer)
+6. Post-change evaluation run (AFTER changes applied)
+7. Compare baseline vs post-change, present regression/improvement table
+8. Present final summary and direct user to Branches page to review and merge
 
 ## Important Notes
 
 - Always create a branch FIRST before any other operations
+- The baseline evaluation MUST run BEFORE delegating to Builder — the branch is still identical to main at that point
 - All writes go to the branch via the ref query parameter (handled automatically after branch creation)
 - Always check for existing resources before creating duplicates
 - Be specific in evaluator prompts — tie them to the actual quality dimensions from feedback
 - When delegating to Builder, include your full analysis so it has context
-- Use delegate_to_builder (delegation), NOT transfer_to_builder — delegation returns control to you`,
+- Use delegate_to_builder (delegation), NOT transfer_to_builder — delegation returns control to you
+- If evaluations are skipped, still proceed with Builder changes and review
+- Do NOT merge the branch — the user will merge from the Branches page after reviewing`,
   canDelegateTo: () => [builder],
   canUse: () => [
     waitForEvaluations,
-    selectEvalConfig,
     inkeepManagementTools.with({
       headers: {
         'x-forwarded-cookie': `${headersBuilder.toTemplate('x-forwarded-cookie')}`,
       },
       selectedTools: [
-        // Branches (approval only for create/merge)
+        // Branches
         'branches-list-branches',
         'branches-get-branch-diff',
-        { name: 'branches-create-branch', needsApproval: true },
-        { name: 'branches-merge-branch', needsApproval: true },
+        { name: 'branches-create-branch' },
         // Datasets
         'evaluations-list-datasets',
         'evaluations-create-dataset',

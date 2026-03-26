@@ -1,0 +1,11 @@
+Use when: The feature has multiple consumer types (SDK, UI, API, internal runtime, agents, etc.).
+Priority: P1
+Impact: Design optimizes for one consumer and breaks another; gaps go unnoticed.
+
+---
+
+# Consumer Matrix — <Feature/Product>
+
+| Consumer | Primary goal | Entry point | Auth / permissions | Configuration surface | Runtime constraints | Failure experience | Observability needs |
+|---|---|---|---|---|---|---|---|
+|  |  |  |  |  |  |  |  |

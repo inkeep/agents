@@ -1,11 +1,21 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Loader2, MessageSquare, Search, Sparkles, Trash2, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  MessageSquare,
+  Search,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import { toast } from 'sonner';
 import { DeleteFeedbackConfirmation } from '@/components/feedback/delete-feedback-confirmation';
+import { ImprovementTriggerDialog } from '@/components/feedback/improvement-trigger-dialog';
 import EmptyState from '@/components/layout/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,17 +67,20 @@ export function FeedbackTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { PUBLIC_INKEEP_COPILOT_TENANT_ID, PUBLIC_INKEEP_COPILOT_PROJECT_ID } =
-    useRuntimeConfig();
+  const { PUBLIC_INKEEP_COPILOT_TENANT_ID, PUBLIC_INKEEP_COPILOT_PROJECT_ID } = useRuntimeConfig();
 
   const [conversationId, setConversationId] = React.useState(filters.conversationId ?? '');
   const [messageId, setMessageId] = React.useState(filters.messageId ?? '');
   const [deleteFeedbackId, setDeleteFeedbackId] = React.useState<string | null>(null);
   const [improvingId, setImprovingId] = React.useState<string | null>(null);
+  const [improvementDialogItem, setImprovementDialogItem] = React.useState<Feedback | null>(null);
 
-  const handleImprove = async (item: Feedback) => {
-    if (!PUBLIC_INKEEP_COPILOT_TENANT_ID || !PUBLIC_INKEEP_COPILOT_PROJECT_ID) {
-      toast.error('Copilot is not configured');
+  const handleImproveConfirm = async (selection: {
+    datasetIds: string[];
+    evaluatorIds: string[];
+  }) => {
+    const item = improvementDialogItem;
+    if (!item || !PUBLIC_INKEEP_COPILOT_TENANT_ID || !PUBLIC_INKEEP_COPILOT_PROJECT_ID) {
       return;
     }
 
@@ -88,16 +101,27 @@ export function FeedbackTable({
         messageId: item.messageId ?? undefined,
         targetTenantId: tenantId,
         targetProjectId: projectId,
+        datasetIds: selection.datasetIds,
+        evaluatorIds: selection.evaluatorIds,
       }
     );
 
     setImprovingId(null);
+    setImprovementDialogItem(null);
 
     if (result.success) {
       toast.success('Improvement started — check the Branches page when the agent is done');
     } else {
       toast.error(result.error ?? 'Failed to trigger improvement');
     }
+  };
+
+  const handleImproveClick = (item: Feedback) => {
+    if (!PUBLIC_INKEEP_COPILOT_TENANT_ID || !PUBLIC_INKEEP_COPILOT_PROJECT_ID) {
+      toast.error('Copilot is not configured');
+      return;
+    }
+    setImprovementDialogItem(item);
   };
 
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -295,7 +319,7 @@ export function FeedbackTable({
                       className="text-muted-foreground hover:text-foreground"
                       aria-label="Improve with AI"
                       disabled={improvingId === item.id}
-                      onClick={() => handleImprove(item)}
+                      onClick={() => handleImproveClick(item)}
                     >
                       {improvingId === item.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -318,6 +342,17 @@ export function FeedbackTable({
             })}
           </TableBody>
         </Table>
+
+        <ImprovementTriggerDialog
+          isOpen={improvementDialogItem !== null}
+          onOpenChange={(open) => {
+            if (!open) setImprovementDialogItem(null);
+          }}
+          onConfirm={handleImproveConfirm}
+          isSubmitting={improvingId !== null}
+          tenantId={tenantId}
+          projectId={projectId}
+        />
 
         {deleteFeedbackId ? (
           <DeleteFeedbackConfirmation

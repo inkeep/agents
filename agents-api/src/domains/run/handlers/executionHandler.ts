@@ -47,6 +47,8 @@ interface ExecutionHandlerParams {
   datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
   /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for auth) */
   forwardedHeaders?: Record<string, string>;
+  /** Pre-generated message ID for the assistant response, sent to the client via the stream's start chunk. */
+  responseMessageId?: string;
 }
 
 interface ExecutionResult {
@@ -507,8 +509,7 @@ export class ExecutionHandler {
             }
           }
 
-          // Stream completion operation - wrapped in span for tracing
-          const responseMessageId = generateId();
+          const responseMessageId = params.responseMessageId ?? generateId();
           return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
             try {
               span.setAttributes({

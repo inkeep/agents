@@ -32,7 +32,12 @@ interface BranchesTableProps {
   branchHasChanges?: Record<string, boolean>;
 }
 
-export function BranchesTable({ tenantId, projectId, branches, branchHasChanges }: BranchesTableProps) {
+export function BranchesTable({
+  tenantId,
+  projectId,
+  branches,
+  branchHasChanges,
+}: BranchesTableProps) {
   const router = useRouter();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);

@@ -1,0 +1,168 @@
+Use when: Creating the canonical combined PRD + Technical Spec artifact.
+Priority: P0
+Impact: No durable spec; decisions and research do not converge into an implementable plan.
+
+---
+
+# <Feature/Product Name> — Spec
+
+**Status:** Draft | In Review | Approved
+**Owner(s):** <names>
+**Last updated:** YYYY-MM-DD
+**Links:**
+- Research report(s): <.claude/reports/...> (if any)
+- Evidence: <./evidence/...> (spec-local findings, if any)
+- Design artifacts: <Figma/diagrams>
+- Tracking: <issue/epic>
+
+---
+
+## 1) Problem statement
+- Who is affected:
+- What pain / job-to-be-done:
+- Why now:
+- Current workaround(s):
+
+## 2) Goals
+- G1:
+- G2:
+
+## 3) Non-goals
+- NG1:
+- NG2:
+
+## 4) Personas / consumers
+List primary consumer types (be specific):
+- P1:
+- P2:
+
+## 5) User journeys
+For each primary persona:
+- Happy path (steps 1..N)
+- Failure / recovery path
+- "Aha moment"
+- Debug experience
+
+(Optionally link to USER_JOURNEYS.md)
+
+## 6) Requirements
+### Functional requirements
+| Priority | Requirement | Acceptance criteria | Notes |
+|---|---|---|---|
+| Must |  |  |  |
+| Should |  |  |  |
+| Could |  |  |  |
+
+### Non-functional requirements
+- Performance:
+- Reliability:
+- Security/privacy:
+- Operability (telemetry, alerts, debug):
+- Cost:
+
+## 7) Success metrics & instrumentation
+- Metric 1:
+  - Baseline:
+  - Target:
+  - Instrumentation notes:
+- Metric 2:
+  - Baseline:
+  - Target:
+  - Instrumentation notes:
+- What we will log/trace:
+- How we'll know adoption/value:
+
+## 8) Current state (how it works today)
+- Summary of current behavior:
+- Key constraints:
+- Known gaps/bugs discovered during research:
+
+## 9) Proposed solution (vertical slice)
+### User experience / surfaces
+- Dashboard/admin UI:
+- API endpoints:
+- SDK:
+- CLI (if any):
+- Docs/onboarding:
+- Error messages:
+- Billing/limits (if relevant):
+
+### System design
+- Architecture overview:
+- Data model:
+- API/transport:
+- Auth/permissions:
+- Enforcement point(s):
+- Failure modes and handling:
+- Observability:
+
+### Alternatives considered
+- Option A:
+- Option B:
+- Why we chose the proposed solution:
+
+## 10) Decision log
+(Optionally link to DECISIONS.md)
+
+| ID | Decision | Type (P/T/X) | 1-way door? | Status | Rationale | Evidence / links | Implications |
+|---|---|---|---|---|---|---|---|
+| D1 |  |  |  |  |  |  |  |
+
+## 11) Open questions
+(Optionally link to OPEN_QUESTIONS.md)
+
+| ID | Question | Type (P/T/X) | Priority | Blocking? | Plan to resolve / next action | Status |
+|---|---|---|---|---|---|---|
+| Q1 |  |  | P0 | Yes/No |  | Open |
+
+## 12) Assumptions
+Assumptions are temporary scaffolding. Every assumption must have confidence, a verification plan, and an expiry.
+
+| ID | Assumption | Confidence | Verification plan | Expiry | Status |
+|---|---|---|---|---|---|
+| A1 |  | HIGH/MED/LOW |  | e.g., "Before Phase 2" | Active |
+
+## 13) Phases & rollout plan
+### Phase 1 (validate the core)
+- Goal:
+- Non-goals:
+- In scope:
+- Out of scope:
+- Blockers (must be resolved or explicitly deferred):
+- Owner(s)/DRI:
+- Next actions (tickets/tasks):
+- Acceptance criteria:
+- Risks + mitigations:
+
+### Additional phases
+<!-- Add a phase only when it passes the qualification bar: concrete goal,
+     verifiable acceptance criteria, assigned owner, and planned timeframe.
+     If you can't fill these in, the item belongs in Documented Deferrals (section 15).
+     Not every feature needs multiple phases — Phase 1 + deferrals is often right. -->
+
+<!-- For each additional phase, copy this template:
+
+### Phase N
+- Goal:
+- Non-goals:
+- In scope:
+- Out of scope:
+- Blockers:
+- Owner(s)/DRI:
+- Next actions:
+- Acceptance criteria:
+- Risks + mitigations:
+
+-->
+
+## 14) Risks & mitigations
+| Risk | Likelihood | Impact | Mitigation | Owner |
+|---|---|---|---|---|
+|  |  |  |  |  |
+
+## 15) Appendices (documented deferrals)
+For each deferred item:
+- What we learned:
+- Why deferred:
+- Trigger to revisit:
+- Implementation sketch:
