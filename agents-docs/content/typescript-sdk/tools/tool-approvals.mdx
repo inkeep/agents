@@ -53,6 +53,10 @@ When a tool requires approval, you’ll see a `tool-approval-request` in the str
 
 See [Chat API](/talk-to-your-agents/chat-api#tool-approval) for the tool event payloads (including approval requests, tool inputs, and tool outputs).
 
+<Note>
+  In [durable execution mode](#durable-execution-mode), the workflow **suspends** instead of holding the HTTP connection open. Approvals can be submitted via a dedicated REST endpoint, and the workflow automatically resumes after a response is received.
+</Note>
+
 ### Denial reason propagation
 
 When a user denies a tool request with a `reason`, the agent receives the denial reason as a clean, human-readable string. This allows the agent to understand why the request was denied and adapt its behavior — for example, trying a different approach based on the user's feedback.
@@ -172,6 +176,45 @@ export default function Chat() {
   includes other tool approval parts in message history (for example `state:
   "approval-requested"`), the server ignores them.
 </Note>
+
+### Durable execution mode
+
+When an agent runs with `executionMode: 'durable'`, tool approvals work differently from the default in-memory flow. Instead of holding the HTTP connection open while waiting for a response, the durable workflow **suspends** and frees server resources.
+
+You can submit approvals via the dedicated REST endpoint:
+
+```
+POST /run/api/executions/:executionId/approvals/:toolCallId
+```
+
+The `executionId` is returned in the `x-workflow-run-id` response header when the execution starts. The `toolCallId` comes from the `tool-approval-request` event in the stream.
+
+#### Example: approve a tool call
+
+```bash
+curl -X POST "http://localhost:3002/run/api/executions/$EXECUTION_ID/approvals/$TOOL_CALL_ID" \
+  -H "Authorization: Bearer $INKEEP_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "approved": true
+  }'
+```
+
+To deny a tool call, set `approved` to `false` and optionally include a `reason`:
+
+```bash
+curl -X POST "http://localhost:3002/run/api/executions/$EXECUTION_ID/approvals/$TOOL_CALL_ID" \
+  -H "Authorization: Bearer $INKEEP_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "approved": false,
+    "reason": "Use a different city"
+  }'
+```
+
+After the approval is submitted, the workflow automatically resumes and continues execution. If your client was disconnected, you can reconnect to the stream using `GET /run/api/executions/:executionId/stream`.
+
+See the [Chat API](/talk-to-your-agents/chat-api) for the full durable executions reference.
 
 ## Tool approvals in Slack
 
