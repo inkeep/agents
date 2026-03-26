@@ -1,3 +1,4 @@
+'use client';
 import { type NodeProps, Position } from '@xyflow/react';
 import { Shield } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -8,13 +9,14 @@ import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getMcpRelationFormKey } from '@/features/agent/domain';
 import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { cn, createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { findOrphanedTools } from '@/lib/utils/orphaned-tools-detector';
 import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';
-import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
+import { getNodeStatus, type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
@@ -62,37 +64,38 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
   'use memo';
 
   const { control } = useFullAgentFormContext();
-  const relationKey = data.relationshipId ?? props.id;
+  const relationKey = getMcpRelationFormKey({ nodeId: props.id });
   const mcpRelation = useWatch({
     control,
     name: `mcpRelations.${relationKey}`,
   });
-  const tool = useWatch({ control, name: `tools.${data.toolId}` });
+  const id = data.toolId;
+  const tool = useWatch({ control, name: `tools.${id}` });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const skeletonToolLookup = createLookup(mcpTools);
 
   // Get skeleton data from initial page load (status: 'unknown', availableTools: [])
-  const skeletonToolData = skeletonToolLookup[data.toolId];
+  const skeletonToolData = skeletonToolLookup[id];
 
   // Lazy-load actual status for this specific tool
   const { data: liveToolData, isLoading: isConnecting } = useMcpToolStatusQuery({
     tenantId,
     projectId,
-    toolId: data.toolId,
-    enabled: !!data.toolId,
+    toolId: id,
+    enabled: !!id,
   });
 
   // Use live data if available, fall back to skeleton
   const toolData = liveToolData ?? skeletonToolData;
   const processedErrors = [
-    ...useProcessedErrors('tools', data.toolId),
+    ...useProcessedErrors('tools', id),
     ...useProcessedErrors('mcpRelations', relationKey),
   ];
   if (!tool) {
     return (
       <BaseNode>
-        <BaseNodeContent className="text-sm text-destructive">{`MCP tool "${data.toolId}" not found.`}</BaseNodeContent>
+        <BaseNodeContent className="text-sm text-destructive">{`MCP tool "${id}" not found.`}</BaseNodeContent>
       </BaseNode>
     );
   }
@@ -102,8 +105,8 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
     activeTools: tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
   });
 
-  const selectedTools = mcpRelation?.selectedTools ?? data.tempSelectedTools ?? null;
-  const toolPolicies = mcpRelation?.toolPolicies ?? data.tempToolPolicies ?? {};
+  const selectedTools = mcpRelation?.selectedTools ?? null;
+  const toolPolicies = mcpRelation?.toolPolicies ?? {};
 
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
   const hasOrphanedTools = orphanedTools.length > 0;
@@ -159,11 +162,12 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
       needsApproval: isSynthetic ? false : toolPolicyNeedsApprovalForTool(toolPolicies, label),
     };
   });
-  const isDelegating = data.status === 'delegating';
-  const isInvertedDelegating = data.status === 'inverted-delegating';
-  const isExecuting = data.status === 'executing';
+  const status = getNodeStatus(data);
+  const isDelegating = status === 'delegating';
+  const isInvertedDelegating = status === 'inverted-delegating';
+  const isExecuting = status === 'executing';
   const hasErrors = processedErrors.length > 0;
-  const hasStatusErrors = data.status === 'error';
+  const hasStatusErrors = status === 'error';
   const needsAuth = toolData?.status === 'needs_auth';
   const isTimeout = toolData?.status === 'unavailable';
 

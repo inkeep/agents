@@ -5,7 +5,6 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -103,13 +102,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   // Separate "namespace" for actions
   actions: {
     setInitial(nodes, edges) {
-      set({
-        nodes,
-        edges,
-        dirty: false,
-        history: [],
-        future: [],
-      });
+      set({ nodes, edges, dirty: false, history: [], future: [] });
     },
     reset() {
       // Exclude `isSidebarSessionOpen` from the initial state.
@@ -146,28 +139,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       const hasModifyingChange = changes.some((change) => NODE_MODIFIED_CHANGE.has(change.type));
 
       set((state) => {
-        // Check for edge removals that disconnect agent from MCP node
-        const removeChanges = changes.filter((change) => change.type === 'remove');
-        let updatedNodes = state.nodes;
-
-        for (const removeChange of removeChanges) {
-          const edgeToRemove = state.edges.find((e) => e.id === removeChange.id);
-          if (edgeToRemove && edgeToRemove.targetHandle === mcpNodeHandleId) {
-            // Find the target MCP node and clear its subAgentId
-            const mcpNode = state.nodes.find((n) => n.id === edgeToRemove.target);
-            if (mcpNode && mcpNode.type === NodeType.MCP) {
-              updatedNodes = updatedNodes.map((n) =>
-                n.id === mcpNode.id
-                  ? { ...n, data: { ...n.data, subAgentId: null, relationshipId: null } }
-                  : n
-              );
-            }
-          }
-        }
-
         return {
           history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-          nodes: updatedNodes,
+          nodes: state.nodes,
           edges: applyEdgeChanges(changes, state.edges),
           dirty: hasModifyingChange ? true : state.dirty,
         };

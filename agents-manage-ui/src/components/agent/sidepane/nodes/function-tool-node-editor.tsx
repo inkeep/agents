@@ -1,6 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useWatch } from 'react-hook-form';
 import {
   FullAgentFunctionSchema,
   FullAgentFunctionToolSchema,
@@ -30,7 +31,7 @@ import { isRequired } from '@/lib/utils';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 
 interface FunctionToolNodeEditorProps {
-  selectedNode: Node<FunctionToolNodeData>;
+  selectedNode: Pick<Node<FunctionToolNodeData>, 'id' | 'data'>;
 }
 
 export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorProps) {
@@ -43,15 +44,20 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const { chatFunctionsRef, openCopilot, isCopilotConfigured } = useCopilotContext();
   const form = useFullAgentFormContext();
   const id = selectedNode.data.toolId;
-  const path = <K extends string>(key: K) => `functionTools.${id}.${key}` as const;
-  const path$ = <K extends string>(key: K) => `functions.${id}.${key}` as const;
-
+  const functionId = useWatch({ control: form.control, name: `functionTools.${id}.functionId` });
   const [isWriteWithAIDialogOpen, setIsWriteWithAIDialogOpen] = useState(false);
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');
+  // if we remove function tool, functionId can be undefined
+  if (!functionId) {
+    return;
+  }
+
+  const path = <K extends string>(key: K) => `functionTools.${id}.${key}` as const;
+  const path$ = <K extends string>(key: K) => `functions.${functionId}.${key}` as const;
 
   const handleWriteWithAISubmit = () => {
     if (!chatFunctionsRef?.current) return;
-    const name = form.getValues(`functionTools.${id}.name`);
+    const name = form.getValues(path('name'));
     const baseMessage = `I want to update the code for the function tool "${name}".`;
     const message = writeWithAIInstructions.trim()
       ? `${baseMessage}\n\n${writeWithAIInstructions.trim()}`

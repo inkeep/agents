@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { serializeAgentForm } from '@/components/agent/form/validation';
+import { apiToFormValues } from '@/components/agent/form/validation';
 import FullPageError from '@/components/errors/full-page-error';
 import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 import { getFullAgent } from '@/lib/api/agent-full-client';
@@ -14,7 +14,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   try {
     const agent = await getFullAgent(tenantId, projectId, agentId);
     return (
-      <FullAgentFormProvider defaultValues={serializeAgentForm(agent.data)}>
+      <FullAgentFormProvider defaultValues={apiToFormValues(agent.data)}>
         <Agent agent={agent.data} />
       </FullAgentFormProvider>
     );

@@ -1,39 +1,93 @@
 import { useFormState } from 'react-hook-form';
+import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { findFunctionToolIdsForFunctionId, getNodeGraphKey } from '@/features/agent/domain';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
-const EMPTY_OBJ = {};
+type ErrorGroup = Record<string, Record<string, unknown> | undefined>;
+type GraphKeyEntry = [string, string];
+
+const EMPTY_GROUP: ErrorGroup = {};
+
+function getGraphKeyEntries(key: string, graphKey?: string | null): GraphKeyEntry[] {
+  return graphKey ? [[key, graphKey]] : [];
+}
 
 export function useGroupedAgentErrors() {
-  const { control } = useFullAgentFormContext();
-  const { errors } = useFormState({ control });
+  const form = useFullAgentFormContext();
+  const { errors } = useFormState({ control: form.control });
+  const nodes = useAgentStore((state) => state.nodes);
   const {
-    subAgents = EMPTY_OBJ,
+    subAgents = EMPTY_GROUP,
     functionTools,
-    functions,
-    externalAgents = EMPTY_OBJ,
-    teamAgents = EMPTY_OBJ,
+    functions = EMPTY_GROUP,
+    externalAgents = EMPTY_GROUP,
+    teamAgents = EMPTY_GROUP,
     tools,
-    mcpRelations = EMPTY_OBJ,
-    defaultSubAgentId,
+    mcpRelations = EMPTY_GROUP,
+    defaultSubAgentNodeId,
     ...agentSettings
   } = errors;
+  const functionToolFormData = form.getValues('functionTools');
+  const nodeGraphKeysByNodeId = new Map(
+    nodes.flatMap((node) => getGraphKeyEntries(node.id, getNodeGraphKey(node)))
+  );
+  const functionToolGraphKeysByToolId = new Map(
+    nodes.flatMap((node) =>
+      isNodeType(node, NodeType.FunctionTool)
+        ? getGraphKeyEntries(node.data.toolId, getNodeGraphKey(node))
+        : []
+    )
+  );
+  const externalAgentGraphKeysById = new Map(
+    nodes.flatMap((node) =>
+      isNodeType(node, NodeType.ExternalAgent)
+        ? getGraphKeyEntries(node.data.externalAgentId, getNodeGraphKey(node))
+        : []
+    )
+  );
+  const teamAgentGraphKeysById = new Map(
+    nodes.flatMap((node) =>
+      isNodeType(node, NodeType.TeamAgent)
+        ? getGraphKeyEntries(node.data.teamAgentId, getNodeGraphKey(node))
+        : []
+    )
+  );
+  const remapErrorGroup = (
+    group: ErrorGroup,
+    getGraphKey: (key: string) => string | null | undefined
+  ): ErrorGroup =>
+    Object.fromEntries(
+      Object.entries(group).map(([key, value]) => [getGraphKey(key) ?? '', value])
+    );
+
+  const functionErrorsByToolId = Object.fromEntries(
+    Object.entries(functions).flatMap(([functionId, value]) => {
+      const toolIds = findFunctionToolIdsForFunctionId(functionId, functionToolFormData);
+
+      return toolIds.map((toolId) => [functionToolGraphKeysByToolId.get(toolId) ?? '', value]);
+    })
+  );
 
   return {
-    subAgents,
+    subAgents: remapErrorGroup(subAgents, (nodeId) => nodeGraphKeysByNodeId.get(nodeId)),
     functionTools: {
-      ...functionTools,
-      ...functions,
+      ...remapErrorGroup(functionTools ?? EMPTY_GROUP, (toolId) =>
+        functionToolGraphKeysByToolId.get(toolId)
+      ),
+      ...functionErrorsByToolId,
     },
-    externalAgents,
-    teamAgents,
+    externalAgents: remapErrorGroup(externalAgents, (externalAgentId) =>
+      externalAgentGraphKeysById.get(externalAgentId)
+    ),
+    teamAgents: remapErrorGroup(teamAgents, (teamAgentId) =>
+      teamAgentGraphKeysById.get(teamAgentId)
+    ),
     tools: {
       ...tools,
-      // clean node id which will not open sidepane
-      ...Object.fromEntries(
-        Object.entries(mcpRelations).map(([_key, value]) => ['', value as Record<string, unknown>])
-      ),
+      ...remapErrorGroup(mcpRelations, (nodeId) => nodeGraphKeysByNodeId.get(nodeId)),
     },
     agentSettings,
-    other: defaultSubAgentId ? { defaultSubAgentId } : EMPTY_OBJ,
+    other: defaultSubAgentNodeId ? { defaultSubAgentNodeId } : EMPTY_GROUP,
   };
 }

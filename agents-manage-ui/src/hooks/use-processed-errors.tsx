@@ -1,3 +1,5 @@
+'use client';
+
 import { useFormState } from 'react-hook-form';
 import { flatNestedFieldMessage } from '@/components/ui/form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';

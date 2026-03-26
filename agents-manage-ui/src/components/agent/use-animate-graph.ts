@@ -1,14 +1,32 @@
 import type { Edge, Node } from '@xyflow/react';
 import { useEffect } from 'react';
 import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
-import type { AnimatedNode } from '@/components/agent/configuration/node-types';
-import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
+import {
+  type AnimatableGraphNode,
+  type GraphNodeStatus,
+  getNodeStatus,
+  isAnimatableGraphNode,
+  isNodeType,
+  NodeType,
+  setNodeStatus,
+} from '@/components/agent/configuration/node-types';
+import { useDefaultSubAgentNodeIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import {
+  findSubAgentNodeId,
+  getFunctionToolRelationFormKey,
+  getMcpRelationFormKey,
+  getNodeGraphKey,
+  getSubAgentIdForNode,
+} from '@/features/agent/domain';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { sentry } from '@/lib/sentry';
 
 export function useAnimateGraph(): void {
-  const defaultSubAgentIdRef = useDefaultSubAgentIdRef();
+  const form = useFullAgentFormContext();
+  const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: subscribe once and read latest form values imperatively
   useEffect(() => {
     const animateGraph: EventListenerOrEventListenerObject = (event) => {
       // @ts-expect-error -- improve types
@@ -21,23 +39,52 @@ export function useAnimateGraph(): void {
 
       agentStore.setState((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
+        const subAgentFormData = form.getValues('subAgents');
 
-        function updateNodeStatus(
-          cb: (node: Node<AnimatedNode & Record<string, unknown>>) => AnimatedNode['status']
-        ) {
+        const resolveSubAgentNodeId = (subAgentId?: string | null) =>
+          findSubAgentNodeId(prevNodes, subAgentId, subAgentFormData) ?? subAgentId;
+
+        const getRelationshipId = (node: Node | undefined): string | null => {
+          if (isNodeType(node, NodeType.MCP)) {
+            const relationKey = getMcpRelationFormKey({ nodeId: node.id });
+            return form.getValues(`mcpRelations.${relationKey}.relationshipId`) ?? null;
+          }
+
+          if (isNodeType(node, NodeType.FunctionTool)) {
+            const nodeKey = getNodeGraphKey(node);
+            if (!nodeKey) {
+              return null;
+            }
+            return (
+              form.getValues(
+                `functionToolRelations.${getFunctionToolRelationFormKey({ nodeKey })}.relationshipId`
+              ) ?? null
+            );
+          }
+
+          if (isNodeType(node, NodeType.ExternalAgent) || isNodeType(node, NodeType.TeamAgent)) {
+            return node.data.relationshipId;
+          }
+
+          return null;
+        };
+
+        const getCurrentStatus = (node: Node): GraphNodeStatus =>
+          isAnimatableGraphNode(node) ? getNodeStatus(node.data) : null;
+
+        function updateNodeStatus(cb: (node: AnimatableGraphNode) => GraphNodeStatus) {
           return prevNodes.map((node) => {
+            if (!isAnimatableGraphNode(node)) {
+              return node;
+            }
+
             return {
               ...node,
-              data: {
-                ...node.data,
-                status: cb(node),
-              },
+              data: setNodeStatus(node.data, cb(node)),
             };
           });
         }
-        function updateEdgeStatus(
-          cb: (edge: Edge<AnimatedEdge & Record<string, unknown>>) => AnimatedEdge['status']
-        ) {
+        function updateEdgeStatus(cb: (edge: Edge<AnimatedEdge>) => AnimatedEdge['status']) {
           return prevEdges.map((node) => {
             return {
               ...node,
@@ -54,45 +101,49 @@ export function useAnimateGraph(): void {
               nodes: updateNodeStatus((node) => {
                 // this prevents the node from highlighting if the copilot triggers this event
                 if (data?.details?.agentId !== /* agentId */ location.pathname.split('/')[5]) {
-                  return;
+                  return null;
                 }
-                if (node.id === defaultSubAgentIdRef.current) {
+                if (node.id === defaultSubAgentNodeIdRef.current) {
                   return 'delegating';
                 }
-                return node.data.status;
+                return getCurrentStatus(node);
               }),
             };
           }
           case 'delegation_sent':
           case 'transfer': {
             const { fromSubAgent, targetSubAgent } = data.details?.data || {};
+            const fromNodeId = resolveSubAgentNodeId(fromSubAgent);
+            const targetNodeId = resolveSubAgentNodeId(targetSubAgent);
 
             return {
               edges: updateEdgeStatus((edge) =>
-                edge.source === fromSubAgent && edge.target === targetSubAgent
+                edge.source === fromNodeId && edge.target === targetNodeId
                   ? 'delegating'
                   : edge.data?.status
               ),
               nodes: updateNodeStatus((node) =>
-                node.id === fromSubAgent || node.id === targetSubAgent
+                node.id === fromNodeId || node.id === targetNodeId
                   ? 'delegating'
-                  : node.data.status
+                  : getCurrentStatus(node)
               ),
             };
           }
           case 'delegation_returned': {
             const { targetSubAgent, fromSubAgent } = data.details?.data || {};
+            const targetNodeId = resolveSubAgentNodeId(targetSubAgent);
+            const fromNodeId = resolveSubAgentNodeId(fromSubAgent);
             return {
               edges: updateEdgeStatus((edge) =>
-                edge.source === targetSubAgent && edge.target === fromSubAgent
+                edge.source === targetNodeId && edge.target === fromNodeId
                   ? 'inverted-delegating'
                   : edge.data?.status
               ),
               nodes: updateNodeStatus((node) => {
-                if (node.id === targetSubAgent) {
+                if (node.id === targetNodeId) {
                   return 'delegating';
                 }
-                return node.id === fromSubAgent ? 'inverted-delegating' : node.data.status;
+                return node.id === fromNodeId ? 'inverted-delegating' : getCurrentStatus(node);
               }),
             };
           }
@@ -106,16 +157,20 @@ export function useAnimateGraph(): void {
             return {
               edges: updateEdgeStatus((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
-                return !!relationshipId && relationshipId === node?.data.relationshipId
+                return !!relationshipId && relationshipId === getRelationshipId(node)
                   ? 'delegating'
                   : edge.data?.status;
               }),
-              nodes: updateNodeStatus((node) =>
-                node.data.id === data.details?.subAgentId ||
-                (relationshipId && relationshipId === node.data.relationshipId)
+              nodes: updateNodeStatus((node) => {
+                const subAgentId =
+                  node.type === NodeType.SubAgent
+                    ? getSubAgentIdForNode(node, subAgentFormData)
+                    : undefined;
+                return subAgentId === data.details?.subAgentId ||
+                  (relationshipId && relationshipId === getRelationshipId(node))
                   ? 'delegating'
-                  : node.data.status
-              ),
+                  : getCurrentStatus(node);
+              }),
             };
           }
           case 'error': {
@@ -126,16 +181,21 @@ export function useAnimateGraph(): void {
               console.warn(error);
             }
             return {
-              nodes: updateNodeStatus((node) =>
-                relationshipId === node.data.relationshipId ||
-                [agent, data.agent].includes(node.data.id)
+              nodes: updateNodeStatus((node) => {
+                const subAgentId =
+                  node.type === NodeType.SubAgent
+                    ? getSubAgentIdForNode(node, subAgentFormData)
+                    : undefined;
+                return relationshipId === getRelationshipId(node) ||
+                  [agent, data.agent].includes(subAgentId)
                   ? 'error'
-                  : node.data.status
-              ),
+                  : getCurrentStatus(node);
+              }),
             };
           }
           case 'tool_result': {
             const relationshipId = data.details?.data?.relationshipId;
+            const subAgentNodeId = resolveSubAgentNodeId(data.details?.subAgentId);
             if (!relationshipId) {
               const error = new Error('[type: tool_result] relationshipId is missing');
               sentry.captureException(error, { extra: data });
@@ -145,21 +205,21 @@ export function useAnimateGraph(): void {
               edges: updateEdgeStatus((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
 
-                return data.details?.subAgentId === edge.source &&
+                return subAgentNodeId === edge.source &&
                   relationshipId &&
-                  relationshipId === node?.data.relationshipId
+                  relationshipId === getRelationshipId(node)
                   ? 'inverted-delegating'
                   : edge.data?.status;
               }),
               nodes: updateNodeStatus((node) => {
-                if (relationshipId && relationshipId === node.data.relationshipId) {
+                if (relationshipId && relationshipId === getRelationshipId(node)) {
                   return data.details?.data?.error ? 'error' : 'inverted-delegating';
                 }
-                if (node.id === data.details?.subAgentId) {
+                if (node.id === subAgentNodeId) {
                   return 'delegating';
                 }
 
-                return node.data.status;
+                return getCurrentStatus(node);
               }),
             };
           }
@@ -171,9 +231,10 @@ export function useAnimateGraph(): void {
           }
           case 'agent_reasoning':
           case 'agent_generate': {
+            const subAgentNodeId = resolveSubAgentNodeId(data.details?.subAgentId);
             return {
               nodes: updateNodeStatus((node) =>
-                node.id === data.details?.subAgentId ? 'executing' : node.data.status
+                node.id === subAgentNodeId ? 'executing' : getCurrentStatus(node)
               ),
             };
           }

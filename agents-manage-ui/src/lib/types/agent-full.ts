@@ -13,7 +13,7 @@ import type { SingleResponse } from './response';
 // Re-export types and schemas
 // TODO remove this export
 export type {
-  FullAgentOutput,
+  FullAgentFormValues,
   FullAgentPayload,
   FullAgentResponse,
 } from '@/components/agent/form/validation';

@@ -1,6 +1,8 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getExternalAgentGraphKey } from '@/features/agent/domain';
+import { useSidePane } from '@/hooks/use-side-pane';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { NodeType } from '../../../configuration/node-types';
@@ -14,6 +16,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: externalAgents, isFetching, error } = useExternalAgentsQuery();
   const form = useFullAgentFormContext();
+  const { setQueryState } = useSidePane();
 
   function handleSelect(data: ExternalAgent) {
     const nodeId = data.id;
@@ -24,16 +27,26 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
         name: data.name,
         description: data.description,
         baseUrl: data.baseUrl,
+        headers: '{}',
       },
       { shouldDirty: true }
     );
     updateNode(selectedNode.id, {
       type: NodeType.ExternalAgent,
       data: {
-        id: nodeId,
+        nodeKey: getExternalAgentGraphKey(nodeId),
+        externalAgentId: nodeId,
         relationshipId: null, // Will be set after saving to database
       },
     });
+    setQueryState(
+      {
+        pane: 'node',
+        nodeId: getExternalAgentGraphKey(nodeId),
+        edgeId: null,
+      },
+      { history: 'replace' }
+    );
   }
 
   if (isFetching) {

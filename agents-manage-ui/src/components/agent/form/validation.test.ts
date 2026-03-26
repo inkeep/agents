@@ -1,6 +1,6 @@
-import { FullAgentUpdateSchema } from './validation';
+import { apiToFormValues, FullAgentFormSchema } from './validation';
 
-describe('FullAgentUpdateSchema', () => {
+describe('FullAgentFormSchema', () => {
   function createSchema(value: string) {
     return {
       id: 'test',
@@ -32,7 +32,7 @@ describe('FullAgentUpdateSchema', () => {
   }
 
   it('should disallow null as input for json editors', () => {
-    const result = FullAgentUpdateSchema.safeParse(createSchema('null'));
+    const result = FullAgentFormSchema.safeParse(createSchema('null'));
     expect(result.success).toBe(false);
     expect(JSON.parse((result.error as any).message)).toStrictEqual([
       {
@@ -69,12 +69,12 @@ describe('FullAgentUpdateSchema', () => {
   });
 
   it('should allow empty string', () => {
-    const result = FullAgentUpdateSchema.safeParse(createSchema(''));
+    const result = FullAgentFormSchema.safeParse(createSchema(''));
     expect(result.error).toBeUndefined();
   });
 
   it('should be able remove fields', () => {
-    const result = FullAgentUpdateSchema.safeParse({
+    const result = FullAgentFormSchema.safeParse({
       id: '_',
       name: '_',
       statusUpdates: {},
@@ -114,5 +114,170 @@ describe('FullAgentUpdateSchema', () => {
       expect(result.data.models.structuredOutput.providerOptions).toBe(undefined);
       expect(result.data.models.summarizer.providerOptions).toBe(undefined);
     }
+  });
+
+  it('should keep defaultSubAgentNodeId in form values without transforming it to agent id', () => {
+    const result = FullAgentFormSchema.safeParse({
+      id: '_',
+      name: '_',
+      defaultSubAgentNodeId: 'temp-node-id',
+      statusUpdates: {},
+      contextConfig: {
+        id: '_',
+        contextVariables: '',
+        headersSchema: '',
+      },
+      models: {
+        base: {
+          model: 'anthropic/claude-opus-4-6',
+          providerOptions: '',
+        },
+        structuredOutput: {
+          model: 'anthropic/claude-3-5-haiku-latest',
+          providerOptions: '',
+        },
+        summarizer: {
+          model: 'anthropic/claude-sonnet-4-0',
+          providerOptions: '',
+        },
+      },
+      subAgents: {
+        'temp-node-id': {
+          id: 'persisted-agent-id',
+          name: 'Sub Agent',
+          prompt: 'Hi',
+          type: 'internal',
+          models: {
+            base: {
+              model: '',
+            },
+            structuredOutput: {
+              model: '',
+            },
+            summarizer: {
+              model: '',
+            },
+          },
+          canUse: [],
+          dataComponents: [],
+          artifactComponents: [],
+          stopWhen: {},
+        },
+      },
+      externalAgents: {},
+      teamAgents: {},
+      tools: {},
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.defaultSubAgentNodeId).toBe('temp-node-id');
+    }
+  });
+});
+
+describe('apiToFormValues', () => {
+  it('rehydrates external agent headers from delegation relations when top-level external agent headers are missing', () => {
+    const result = apiToFormValues({
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: '',
+      prompt: '',
+      defaultSubAgentId: 'sub-agent-1',
+      contextConfig: null,
+      statusUpdates: null,
+      stopWhen: null,
+      models: {},
+      subAgents: {
+        'sub-agent-1': {
+          id: 'sub-agent-1',
+          name: 'Sub agent 1',
+          description: '',
+          prompt: 'Handle requests',
+          type: 'internal',
+          dataComponents: [],
+          artifactComponents: [],
+          canUse: [],
+          canTransferTo: [],
+          canDelegateTo: [
+            {
+              externalAgentId: 'external-agent-1',
+              headers: {
+                Authorization: 'Bearer external-token',
+              },
+              subAgentExternalAgentRelationId: 'ext-rel-1',
+            },
+          ],
+        },
+      },
+      functions: {},
+      functionTools: {},
+      externalAgents: {
+        'external-agent-1': {
+          id: 'external-agent-1',
+          name: 'External Agent',
+          description: '',
+          baseUrl: 'https://example.com/agent',
+          credentialReferenceId: null,
+        },
+      },
+      teamAgents: {},
+      tools: {},
+    } as any);
+
+    expect(JSON.parse(result.externalAgents['external-agent-1']?.headers ?? '{}')).toEqual({
+      Authorization: 'Bearer external-token',
+    });
+  });
+
+  it('rehydrates team agent headers from delegation relations when top-level team agent headers are missing', () => {
+    const result = apiToFormValues({
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: '',
+      prompt: '',
+      defaultSubAgentId: 'sub-agent-1',
+      contextConfig: null,
+      statusUpdates: null,
+      stopWhen: null,
+      models: {},
+      subAgents: {
+        'sub-agent-1': {
+          id: 'sub-agent-1',
+          name: 'Sub agent 1',
+          description: '',
+          prompt: 'Handle requests',
+          type: 'internal',
+          dataComponents: [],
+          artifactComponents: [],
+          canUse: [],
+          canTransferTo: [],
+          canDelegateTo: [
+            {
+              agentId: 'team-agent-1',
+              headers: {
+                Authorization: 'Bearer team-token',
+              },
+              subAgentTeamAgentRelationId: 'team-rel-1',
+            },
+          ],
+        },
+      },
+      functions: {},
+      functionTools: {},
+      externalAgents: {},
+      teamAgents: {
+        'team-agent-1': {
+          id: 'team-agent-1',
+          name: 'Team Agent',
+          description: '',
+        },
+      },
+      tools: {},
+    } as any);
+
+    expect(JSON.parse(result.teamAgents['team-agent-1']?.headers ?? '{}')).toEqual({
+      Authorization: 'Bearer team-token',
+    });
   });
 });

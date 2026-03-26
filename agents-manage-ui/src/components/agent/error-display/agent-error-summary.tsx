@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, ChevronDown, ChevronRight, Lightbulb, X } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
 import { type ComponentProps, useEffect, useState } from 'react';
 import { useFormState } from 'react-hook-form';
 import { useGroupedAgentErrors } from '@/components/agent/use-grouped-agent-errors';
@@ -149,14 +149,18 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
   const { setQueryState } = useSidePane();
 
   function handleNavigateToNode(nodeId: string) {
+    if (onNavigateToNode) {
+      onNavigateToNode(nodeId);
+      return;
+    }
+
     setQueryState({ pane: 'node', nodeId, edgeId: null });
-    onNavigateToNode?.(nodeId);
   }
 
   const { subAgents, functionTools, externalAgents, teamAgents, tools, agentSettings, other } =
     useGroupedAgentErrors();
 
-  const [showErrors, setShowErrors] = useState(true);
+  // const [showErrors, setShowErrors] = useState(true);
   const data: ComponentProps<typeof ErrorGroup>[] = [
     {
       title: 'Sub Agent',
@@ -198,16 +202,16 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
 
   const errorCount = data.reduce((acc, curr) => acc + curr.errors.length, 0);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset showErrors state when errors were changed
-  useEffect(() => {
-    setShowErrors(true);
-  }, [errorCount]);
+  ///biome-ignore lint/correctness/useExhaustiveDependencies: reset showErrors state when errors were changed
+  // useEffect(() => {
+  //   setShowErrors(true);
+  // }, [errorCount]);
 
   const { control } = useFullAgentFormContext();
   const { isSubmitted } = useFormState({ control });
   const isFocused = useWindowFocus();
 
-  if (!errorCount || !showErrors || (!isSubmitted && isFocused)) {
+  if (!errorCount /*|| !showErrors*/ || (!isSubmitted && isFocused)) {
     return null;
   }
 
@@ -219,15 +223,20 @@ export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) 
             <AlertCircle className="size-3" />
             {`Validation Errors (${errorCount})`}
           </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => {
-              setShowErrors((prev) => !prev);
-            }}
-          >
-            <X className="size-3" />
-          </Button>
+          {/**
+           * Note: Temporarily commented out.
+           * Currently, if you close the error summary, it cannot be reopened unless there is a new error count.
+           * Need to rethink this behavior.
+           */}
+          {/*<Button*/}
+          {/*  variant="ghost"*/}
+          {/*  size="icon-sm"*/}
+          {/*  onClick={() => {*/}
+          {/*    setShowErrors((prev) => !prev);*/}
+          {/*  }}*/}
+          {/*>*/}
+          {/*  <X className="size-3" />*/}
+          {/*</Button>*/}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 px-3 overflow-y-auto max-h-[calc(80vh-80px)] scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">

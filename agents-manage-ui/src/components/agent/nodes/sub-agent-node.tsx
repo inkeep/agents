@@ -1,3 +1,4 @@
+'use client';
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
 import type { FC } from 'react';
@@ -7,6 +8,7 @@ import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
+import { getModelInheritanceStatus } from '@/components/ui/inheritance-indicator';
 import { STATIC_LABELS } from '@/constants/theme';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
@@ -15,8 +17,12 @@ import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { useProjectQuery } from '@/lib/query/projects';
 import { cn, createLookup } from '@/lib/utils';
-import type { AgentNodeData } from '../configuration/node-types';
-import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
+import {
+  type AgentNodeData,
+  agentNodeSourceHandleId,
+  agentNodeTargetHandleId,
+  getNodeStatus,
+} from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
@@ -44,13 +50,13 @@ const ListSection: FC<{
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
   'use memo';
-  const { status } = data;
+  const status = getNodeStatus(data);
 
   const { control } = useFullAgentFormContext();
   const formKey = `subAgents.${id}` as const;
   const subAgent = useWatch({ control, name: formKey });
   const processedErrors = useProcessedErrors('subAgents', id);
-  const defaultSubAgentId = useWatch({ control, name: 'defaultSubAgentId' });
+  const defaultSubAgentNodeId = useWatch({ control, name: 'defaultSubAgentNodeId' });
   const agentModel = useWatch({ control, name: 'models' });
   const { data: project } = useProjectQuery();
   const { data: artifactComponents } = useArtifactComponentsQuery();
@@ -69,10 +75,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     dataComponents: dataComponentIds = [],
     artifactComponents: artifactComponentIds = [],
   } = subAgent;
-  const isDefault = id === defaultSubAgentId;
-  const projectModel = project?.models;
-  const modelName =
-    subAgent.models?.base.model ?? agentModel.base.model ?? (projectModel?.base.model as string);
+  const isDefault = id === defaultSubAgentNodeId;
 
   const dataComponentsById = createLookup(dataComponents);
   const artifactComponentsById = createLookup(artifactComponents);
@@ -85,6 +88,13 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';
 
+  const ModelName = {
+    subAgent: subAgent.models?.base.model,
+    agent: agentModel.base.model,
+    project: project?.models?.base.model ?? '',
+  };
+
+  const modelName = ModelName.subAgent ?? ModelName.agent ?? ModelName.project;
   const [modelSlug] = modelName.split('/', 1);
 
   const ModelIcon = {
@@ -93,62 +103,62 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     google: GoogleIcon,
   }[modelSlug];
 
+  const { inheritedFrom } = getModelInheritanceStatus(
+    'subagent',
+    ModelName.subAgent,
+    ModelName.agent,
+    ModelName.project
+  );
+
   return (
-    <div className="relative">
+    <BaseNode
+      isSelected={selected || isDelegating}
+      className={cn(
+        isDefault && 'rounded-tl-none',
+        hasErrors && 'ring-2 ring-red-300 border-red-300',
+        isExecuting && 'node-executing',
+        isInvertedDelegating && 'node-delegating-inverted'
+      )}
+      style={{ width: NODE_WIDTH }}
+    >
       {isDefault && <NodeTab isSelected={selected || isDelegating}>Default</NodeTab>}
-      <BaseNode
-        isSelected={selected || isDelegating}
-        className={cn(
-          isDefault && 'rounded-tl-none',
-          hasErrors && 'ring-2 ring-red-300 border-red-300',
-          isExecuting && 'node-executing',
-          isInvertedDelegating && 'node-delegating-inverted'
+      <BaseNodeHeader className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Bot className="size-4 text-muted-foreground" />
+          <BaseNodeHeaderTitle>
+            {name || <i className="text-muted-foreground/50">No name</i>}
+          </BaseNodeHeaderTitle>
+        </div>
+        <Badge variant="primary" className="text-xs uppercase">
+          Sub Agent
+        </Badge>
+        {hasErrors && <ErrorIndicator errors={processedErrors} />}
+      </BaseNodeHeader>
+      <BaseNodeContent>
+        <div className="text-sm text-muted-foreground">
+          {description || <i className="text-muted-foreground/50">No description</i>}
+        </div>
+        <Badge className="text-xs max-w-full" variant="code">
+          {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
+          <span className="truncate">{modelName}</span> {inheritedFrom && '(inherited)'}
+        </Badge>
+        {dataComponentNames?.length > 0 && (
+          <ListSection
+            title={STATIC_LABELS.components}
+            items={dataComponentNames}
+            Icon={Component}
+          />
         )}
-        style={{ width: NODE_WIDTH }}
-      >
-        <BaseNodeHeader className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Bot className="size-4 text-muted-foreground" />
-            <BaseNodeHeaderTitle>
-              {name || <i className="text-muted-foreground/50">No name</i>}
-            </BaseNodeHeaderTitle>
-          </div>
-          <Badge variant="primary" className="text-xs uppercase">
-            Sub Agent
-          </Badge>
-          {hasErrors && <ErrorIndicator errors={processedErrors} />}
-        </BaseNodeHeader>
-        <BaseNodeContent>
-          <div className="text-sm text-muted-foreground">
-            {description || <i className="text-muted-foreground/50">No description</i>}
-          </div>
-          <Badge className="text-xs max-w-full" variant="code">
-            {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
-            <span className="truncate">{modelName}</span> {!subAgent.models && '(inherited)'}
-          </Badge>
-          {dataComponentNames?.length > 0 && (
-            <ListSection
-              title={STATIC_LABELS.components}
-              items={dataComponentNames}
-              Icon={Component}
-            />
-          )}
-          {artifactComponentNames?.length > 0 && (
-            <ListSection
-              title={STATIC_LABELS.artifacts}
-              items={artifactComponentNames}
-              Icon={Library}
-            />
-          )}
-        </BaseNodeContent>
-        <Handle id={agentNodeTargetHandleId} type="source" position={Position.Top} isConnectable />
-        <Handle
-          id={agentNodeSourceHandleId}
-          type="source"
-          position={Position.Bottom}
-          isConnectable
-        />
-      </BaseNode>
-    </div>
+        {artifactComponentNames?.length > 0 && (
+          <ListSection
+            title={STATIC_LABELS.artifacts}
+            items={artifactComponentNames}
+            Icon={Library}
+          />
+        )}
+      </BaseNodeContent>
+      <Handle id={agentNodeTargetHandleId} type="source" position={Position.Top} isConnectable />
+      <Handle id={agentNodeSourceHandleId} type="source" position={Position.Bottom} isConnectable />
+    </BaseNode>
   );
 }

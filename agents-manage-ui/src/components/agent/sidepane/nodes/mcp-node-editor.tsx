@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getMcpRelationFormKey } from '@/features/agent/domain';
 import { useDeleteNode } from '@/hooks/use-delete-node';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
@@ -29,14 +30,15 @@ import type { MCPNodeData } from '../../configuration/node-types';
 import { SchemaOverrideBadge } from './schema-override-badge';
 
 interface MCPServerNodeEditorProps {
-  selectedNode: Node<MCPNodeData>;
+  selectedNode: Pick<Node<MCPNodeData>, 'id' | 'data'>;
 }
 
 export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) {
   'use memo';
   const form = useFullAgentFormContext();
   const { toolId } = selectedNode.data;
-  const relationKey = selectedNode.data.relationshipId ?? selectedNode.id;
+  const nodeId = selectedNode.id;
+  const relationKey = getMcpRelationFormKey({ nodeId });
   const tool = useWatch({ control: form.control, name: `tools.${toolId}` });
   const mcpRelation = useWatch({
     control: form.control,
@@ -49,12 +51,8 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
-  const { deleteNode } = useDeleteNode(selectedNode.id);
-
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { deleteNode } = useDeleteNode(nodeId);
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const skeletonToolLookup = createLookup(mcpTools);
 
@@ -69,74 +67,38 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   // Use live data if available, fall back to skeleton from store
   const skeletonToolData = skeletonToolLookup[toolId];
   const toolData = liveToolData ?? skeletonToolData;
-  const selectedTools = mcpRelation?.selectedTools ?? selectedNode.data.tempSelectedTools ?? null;
-  const currentToolPolicies = mcpRelation?.toolPolicies ?? selectedNode.data.tempToolPolicies ?? {};
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally hydrate once per selected node
-  useEffect(() => {
-    const existingRelation = form.getValues(`mcpRelations.${relationKey}`);
-    // On mount, a relation may already exist but contain only empty headers,
-    // without `toolId` or `relationshipId`.
-    if (existingRelation?.toolId) {
-      return;
-    }
-
-    const newHeaders = selectedNode.data.tempHeaders ?? {};
-    form.setValue(
-      `mcpRelations.${relationKey}`,
-      {
-        toolId,
-        relationshipId: selectedNode.data.relationshipId ?? undefined,
-        subAgentId: selectedNode.data.subAgentId ?? undefined,
-        selectedTools,
-        headers: JSON.stringify(newHeaders, null, 2),
-        toolPolicies: currentToolPolicies,
-      },
-      { shouldDirty: false }
-    );
-  }, [relationKey]);
-
   const activeTools = getActiveTools({
-    availableTools: toolData.availableTools,
+    availableTools: toolData?.availableTools,
     activeTools: tool && tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
   });
+  const selectedTools = mcpRelation?.selectedTools ?? null;
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
-
   // Track if we've already shown the warning for this node to avoid repeated toasts
   const hasShownOrphanedWarningRef = useRef<string | null>(null);
-
   useEffect(() => {
-    if (
-      liveToolData &&
-      orphanedTools.length > 0 &&
-      hasShownOrphanedWarningRef.current !== selectedNode.id
-    ) {
-      hasShownOrphanedWarningRef.current = selectedNode.id;
+    if (liveToolData && orphanedTools.length && hasShownOrphanedWarningRef.current !== nodeId) {
+      hasShownOrphanedWarningRef.current = nodeId;
       const toolText = orphanedTools.length > 1 ? 'tools are' : 'tool is';
       toast.warning(
         `${orphanedTools.length} selected ${toolText} no longer available: ${orphanedTools.join(', ')}. Uncheck to remove.`,
-        {
-          closeButton: true,
-          duration: 6000,
-        }
+        { closeButton: true, duration: 6000 }
       );
     }
-  }, [liveToolData, orphanedTools, selectedNode.id]);
-
-  if (!tool) {
+  }, [liveToolData, orphanedTools, nodeId]);
+  // MCP was removed, fix race condition when mcpRelation.headers will be set as ''
+  if (!mcpRelation) {
     return;
   }
-
-  const toolOverrides = tool.config.type === 'mcp' ? tool.config.mcp.toolOverrides : undefined;
-
   // Handle missing tool data
-  if (!toolData) {
+  if (!toolData || !tool) {
     return (
       <div className="flex items-center justify-center p-4">
         <div className="text-sm text-muted-foreground">Tool data not found for {toolId}.</div>
       </div>
     );
   }
+  const currentToolPolicies = mcpRelation?.toolPolicies ?? {};
+  const toolOverrides = tool.config.type === 'mcp' ? tool.config.mcp.toolOverrides : undefined;
 
   const toggleToolSelection = (toolName: string) => {
     // Handle null case (all tools selected) - convert to array of all tool names

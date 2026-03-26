@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
-import { FullAgentUpdateSchema as schema } from '@/components/agent/form/validation';
+import { FullAgentFormSchema as schema } from '@/components/agent/form/validation';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';

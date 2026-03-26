@@ -5,6 +5,7 @@ import {
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
+import { getFunctionToolGraphKey, getMcpGraphKey } from '@/features/agent/domain/graph-keys';
 import { serializeJson } from '@/lib/utils';
 
 const OriginalContextConfigSchema =
@@ -95,10 +96,13 @@ const ToolPoliciesSchema = z
 export const MCPRelationSchema = z.strictObject({
   toolId: z.string().trim().nonempty(),
   relationshipId: z.string().trim().optional(),
-  subAgentId: z.string().trim().optional(),
   selectedTools: z.array(z.string()).nullable().optional(),
   headers: StringToStringRecordSchema,
   toolPolicies: ToolPoliciesSchema,
+});
+
+export const FunctionToolRelationSchema = z.strictObject({
+  relationshipId: z.string().trim().optional(),
 });
 
 export const FullAgentFunctionToolSchema = z.object({
@@ -125,12 +129,10 @@ export const FullAgentToolSchema = AgentWithinContextOfProjectSchema.shape.tools
   });
 const FullAgentExternalAgentSchema = z.object({
   ...ExternalAgentSchema.shape,
-  // TODO or tempHeaders
   headers: StringToStringRecordSchema.optional(),
 });
 export const FullAgentTeamAgentSchema = z.object({
   ...TeamAgentSchema.shape,
-  // TODO or tempHeaders
   headers: StringToStringRecordSchema.optional(),
 });
 const SubAgentStopWhenSchema = SubAgentSchema.shape.stopWhen.unwrap();
@@ -157,64 +159,58 @@ const FullAgentSchema = AgentWithinContextOfProjectSchema.pick({
   prompt: true,
 });
 
-export const FullAgentUpdateSchema = z
-  .strictObject({
-    ...FullAgentSchema.shape,
-    defaultSubAgentId: AgentWithinContextOfProjectSchema.shape.defaultSubAgentId.refine(
-      (val) => val,
-      'Default sub agent ID is required, please select a default sub agent.'
-    ),
-    subAgents: z
-      .record(z.string(), FullAgentSubAgentSchema)
-      .superRefine((subAgents, ctx) => {
-        const nodeIdsBySubAgentId = new Map<string, string[]>();
+export const FullAgentFormSchema = z.strictObject({
+  ...FullAgentSchema.shape,
+  defaultSubAgentNodeId: AgentWithinContextOfProjectSchema.shape.defaultSubAgentId.refine(
+    (val) => val,
+    'Default sub agent ID is required, please select a default sub agent.'
+  ),
+  subAgents: z
+    .record(z.string(), FullAgentSubAgentSchema)
+    .superRefine((subAgents, ctx) => {
+      const nodeIdsBySubAgentId = new Map<string, string[]>();
 
-        for (const [nodeId, subAgent] of Object.entries(subAgents)) {
-          const subAgentId = subAgent.id;
-          const current = nodeIdsBySubAgentId.get(subAgentId) ?? [];
-          nodeIdsBySubAgentId.set(subAgentId, [...current, nodeId]);
+      for (const [nodeId, subAgent] of Object.entries(subAgents)) {
+        const subAgentId = subAgent.id;
+        const current = nodeIdsBySubAgentId.get(subAgentId) ?? [];
+        nodeIdsBySubAgentId.set(subAgentId, [...current, nodeId]);
+      }
+
+      for (const [subAgentId, nodeIds] of nodeIdsBySubAgentId) {
+        if (nodeIds.length < 2) continue;
+
+        for (const nodeId of nodeIds) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [nodeId, 'id'],
+            message: `Sub agent ID "${subAgentId}" must be unique.`,
+          });
         }
+      }
+    })
+    .optional(),
+  functionTools: z.record(z.string(), FullAgentFunctionToolSchema).optional(),
+  functionToolRelations: z.record(z.string(), FunctionToolRelationSchema).optional(),
+  functions: z.record(z.string(), FullAgentFunctionSchema).optional(),
+  externalAgents: z.record(z.string(), FullAgentExternalAgentSchema).optional(),
+  teamAgents: z.record(z.string(), FullAgentTeamAgentSchema).optional(),
+  tools: z.record(z.string(), FullAgentToolSchema),
+  mcpRelations: z.record(z.string(), MCPRelationSchema).optional(),
+  stopWhen: AgentStopWhenSchema.extend({
+    transferCountIs: NullToUndefinedSchema.pipe(
+      AgentStopWhenSchema.shape.transferCountIs
+    ).optional(),
+  }).optional(),
+  contextConfig: ContextConfigSchema,
+  statusUpdates: z.strictObject({
+    ...StatusUpdatesSchema,
+    numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
+    timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
+    statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
+  }),
+  models: MyModelsSchema,
+});
 
-        for (const [subAgentId, nodeIds] of nodeIdsBySubAgentId) {
-          if (nodeIds.length < 2) continue;
-
-          for (const nodeId of nodeIds) {
-            ctx.addIssue({
-              code: 'custom',
-              path: [nodeId, 'id'],
-              message: `Sub agent ID "${subAgentId}" must be unique.`,
-            });
-          }
-        }
-      })
-      .optional(),
-    functionTools: z.record(z.string(), FullAgentFunctionToolSchema).optional(),
-    functions: z.record(z.string(), FullAgentFunctionSchema).optional(),
-    externalAgents: z.record(z.string(), FullAgentExternalAgentSchema).optional(),
-    teamAgents: z.record(z.string(), FullAgentTeamAgentSchema).optional(),
-    tools: z.record(z.string(), FullAgentToolSchema),
-    mcpRelations: z.record(z.string(), MCPRelationSchema).optional(),
-    stopWhen: AgentStopWhenSchema.extend({
-      transferCountIs: NullToUndefinedSchema.pipe(
-        AgentStopWhenSchema.shape.transferCountIs
-      ).optional(),
-    }).optional(),
-    contextConfig: ContextConfigSchema,
-    statusUpdates: z.strictObject({
-      ...StatusUpdatesSchema,
-      numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
-      timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
-      statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
-    }),
-    models: MyModelsSchema,
-  })
-  .transform(({ defaultSubAgentId, ...value }) => {
-    return {
-      ...value,
-      // Agent ID can be changed
-      defaultSubAgentId: defaultSubAgentId && value.subAgents?.[defaultSubAgentId]?.id,
-    };
-  });
 // TODO future improvement
 // .superRefine((value, ctx) => {
 //   for (const [functionToolId, functionTool] of Object.entries(value.functionTools)) {
@@ -234,17 +230,18 @@ export const FullAgentUpdateSchema = z
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 
-export type FullAgentOutput = z.output<typeof FullAgentUpdateSchema>;
+export type FullAgentFormInputValues = z.input<typeof FullAgentFormSchema>;
+export type FullAgentFormValues = z.output<typeof FullAgentFormSchema>;
+
 export type FullAgentPayload = z.infer<typeof AgentWithinContextOfProjectSchema>;
 
-export function serializeAgentForm(data: FullAgentResponse) {
+export function apiToFormValues(data: FullAgentResponse) {
   const {
     id,
     name,
     description,
     prompt,
     contextConfig,
-    statusUpdates = {},
     stopWhen,
     models = {},
     subAgents,
@@ -255,7 +252,56 @@ export function serializeAgentForm(data: FullAgentResponse) {
     tools = {},
     defaultSubAgentId,
   } = data;
+  const statusUpdates = data.statusUpdates ?? {};
 
+  const sharedExternalAgentHeaders = new Map<string, string>();
+  const sharedTeamAgentHeaders = new Map<string, string>();
+  const sharedFunctionToolPolicies = new Map<string, Record<string, { needsApproval?: boolean }>>();
+
+  for (const subAgent of Object.values(subAgents)) {
+    for (const delegate of subAgent.canDelegateTo ?? []) {
+      if (typeof delegate !== 'object') {
+        continue;
+      }
+
+      if ('externalAgentId' in delegate) {
+        if (!sharedExternalAgentHeaders.has(delegate.externalAgentId)) {
+          sharedExternalAgentHeaders.set(delegate.externalAgentId, serializeJson(delegate.headers));
+        }
+        continue;
+      }
+
+      if ('agentId' in delegate && !sharedTeamAgentHeaders.has(delegate.agentId)) {
+        sharedTeamAgentHeaders.set(delegate.agentId, serializeJson(delegate.headers));
+      }
+    }
+
+    for (const canUseItem of subAgent.canUse ?? []) {
+      if (!functionTools[canUseItem.toolId] || !canUseItem.toolPolicies) {
+        continue;
+      }
+
+      const mergedPolicies = sharedFunctionToolPolicies.get(canUseItem.toolId) ?? {};
+
+      for (const [toolName, policy] of Object.entries(canUseItem.toolPolicies)) {
+        const currentPolicy = mergedPolicies[toolName];
+        const needsApproval =
+          currentPolicy?.needsApproval === true || policy.needsApproval === true
+            ? true
+            : currentPolicy?.needsApproval === false || policy.needsApproval === false
+              ? false
+              : undefined;
+
+        mergedPolicies[toolName] = {
+          ...currentPolicy,
+          ...policy,
+          ...(needsApproval !== undefined ? { needsApproval } : {}),
+        };
+      }
+
+      sharedFunctionToolPolicies.set(canUseItem.toolId, mergedPolicies);
+    }
+  }
   function serializeModels(models: NonNullable<typeof data.models>) {
     return {
       base: {
@@ -295,7 +341,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
       transferCountIs: stopWhen?.transferCountIs ?? 10,
     },
     models: serializeModels(models),
-    defaultSubAgentId,
+    defaultSubAgentNodeId: defaultSubAgentId,
     subAgents: Object.fromEntries(
       Object.entries(subAgents).map(([key, value]) => [
         key,
@@ -314,7 +360,33 @@ export function serializeAgentForm(data: FullAgentResponse) {
         },
       ])
     ),
-    functionTools: Object.fromEntries(Object.values(functionTools).map((tool) => [tool.id, tool])),
+    functionTools: Object.fromEntries(
+      Object.values(functionTools).map((tool) => [
+        tool.id,
+        {
+          ...tool,
+          tempToolPolicies: sharedFunctionToolPolicies.get(tool.id) ?? {},
+        },
+      ])
+    ),
+    functionToolRelations: Object.fromEntries(
+      Object.entries(subAgents).flatMap(([_subAgentId, subAgent]) =>
+        (subAgent.canUse ?? []).flatMap((canUseItem) => {
+          if (!canUseItem.agentToolRelationId || !functionTools[canUseItem.toolId]) {
+            return [];
+          }
+
+          return [
+            [
+              getFunctionToolGraphKey({ toolId: canUseItem.toolId }),
+              {
+                relationshipId: canUseItem.agentToolRelationId,
+              },
+            ],
+          ];
+        })
+      )
+    ),
     functions: Object.fromEntries(
       Object.values(functions).map((tool) => [
         tool.id,
@@ -330,8 +402,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
         o.id,
         {
           ...o,
-          // @ts-expect-error
-          headers: serializeJson(o.headers),
+          headers: sharedExternalAgentHeaders.get(o.id),
         },
       ])
     ),
@@ -340,8 +411,7 @@ export function serializeAgentForm(data: FullAgentResponse) {
         o.id,
         {
           ...o,
-          // @ts-expect-error
-          headers: serializeJson(o.headers),
+          headers: sharedTeamAgentHeaders.get(o.id),
         },
       ])
     ),
@@ -364,11 +434,14 @@ export function serializeAgentForm(data: FullAgentResponse) {
 
           return [
             [
-              canUseItem.agentToolRelationId,
+              getMcpGraphKey({
+                subAgentId,
+                toolId: canUseItem.toolId,
+                relationshipId: canUseItem.agentToolRelationId,
+              }),
               {
                 toolId: canUseItem.toolId,
                 relationshipId: canUseItem.agentToolRelationId,
-                subAgentId,
                 selectedTools: canUseItem.toolSelection ?? null,
                 headers: serializeJson(canUseItem.headers),
                 toolPolicies: canUseItem.toolPolicies ?? {},

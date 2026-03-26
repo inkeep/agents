@@ -80,49 +80,74 @@ function Nodes() {
   return (
     <FullAgentFormProvider
       defaultValues={{
-        defaultSubAgentId: 'SubAgent',
+        defaultSubAgentNodeId: 'SubAgent',
         subAgents: {
           // @ts-expect-error
-          SubAgent: data,
+          SubAgent: DATA,
         },
         externalAgents: {
           // @ts-expect-error
-          ExternalAgent: data,
+          ExternalAgent: DATA,
         },
         teamAgents: {
           // @ts-expect-error
-          TeamAgent: data,
+          TeamAgent: DATA,
         },
         tools: {
-          Tool: {
+          [TOOL_ID]: {
             ...DATA,
             config: {
               type: 'mcp',
+              // @ts-expect-error
               mcp: {},
             },
           },
         },
         functionTools: {
           // @ts-expect-error
-          Tool: data,
+          [TOOL_ID]: DATA,
         },
+        // @ts-expect-error
         models: {
           base: {},
         },
       }}
     >
       <ReactFlowProvider>
-        <ExternalAgentNode {...baseProps} data={{ ...DATA, id: 'ExternalAgent', baseUrl: 'foo' }} />
+        <ExternalAgentNode
+          {...baseProps}
+          id="ExternalAgent"
+          data={{
+            nodeKey: 'external-agent:ExternalAgent',
+            externalAgentId: 'ExternalAgent',
+            relationshipId: null,
+          }}
+        />
         {divider}
-        <FunctionToolNode {...baseProps} data={{ ...DATA, toolId: 'Tool' }} />
+        <FunctionToolNode
+          {...baseProps}
+          data={{ nodeKey: `function-tool:${TOOL_ID}`, toolId: TOOL_ID }}
+        />
         {divider}
-        <MCPNode {...baseProps} data={{ ...DATA, toolId: TOOL_ID }} />
+        <MCPNode {...baseProps} data={{ nodeKey: `mcp:${TOOL_ID}:foo`, toolId: TOOL_ID }} />
         {divider}
-        <PlaceholderNode {...baseProps} data={{ ...DATA, type: NodeType.MCPPlaceholder }} />
+        <PlaceholderNode
+          {...baseProps}
+          type={NodeType.MCPPlaceholder}
+          data={{ nodeKey: 'mcp-placeholder:foo' }}
+        />
         {divider}
-        <SubAgentNode {...baseProps} id="SubAgent" data={{ ...DATA, skills: [] }} />
+        <SubAgentNode {...baseProps} id="SubAgent" data={{ nodeKey: 'SubAgent' }} />
         {divider}
-        <TeamAgentNode {...baseProps} data={{ ...DATA, id: 'TeamAgent' }} />
+        <TeamAgentNode
+          {...baseProps}
+          id="TeamAgent"
+          data={{
+            nodeKey: 'team-agent:TeamAgent',
+            teamAgentId: 'TeamAgent',
+            relationshipId: null,
+          }}
+        />
       </ReactFlowProvider>
     </FullAgentFormProvider>
   );

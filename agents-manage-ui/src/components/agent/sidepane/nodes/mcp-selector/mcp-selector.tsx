@@ -1,6 +1,8 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { createMcpRelationFormInput, getMcpGraphKey } from '@/features/agent/domain';
+import { useSidePane } from '@/hooks/use-side-pane';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { NodeType } from '../../../configuration/node-types';
@@ -16,9 +18,14 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
     projectId: string;
   }>();
   const { data: tools } = useMcpToolsQuery({ skipDiscovery: true });
+  const { setQueryState } = useSidePane();
 
   function handleSelect(data: MCPTool) {
     const nodeId = data.id;
+    const nextNodeId = getMcpGraphKey({
+      toolId: nodeId,
+      fallbackId: selectedNode.id,
+    });
     form.setValue(
       `tools.${nodeId}`,
       {
@@ -28,15 +35,27 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
       },
       { shouldDirty: true }
     );
+    form.setValue(
+      `mcpRelations.${selectedNode.id}`,
+      createMcpRelationFormInput({ toolId: nodeId }),
+      { shouldDirty: true }
+    );
 
     updateNode(selectedNode.id, {
       type: NodeType.MCP,
       data: {
+        nodeKey: nextNodeId,
         toolId: nodeId,
-        subAgentId: null,
-        relationshipId: null,
       },
     });
+    setQueryState(
+      {
+        pane: 'node',
+        nodeId: nextNodeId,
+        edgeId: null,
+      },
+      { history: 'replace' }
+    );
   }
 
   if (!tools.length) {

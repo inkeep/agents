@@ -1,7 +1,6 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect } from 'react';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -15,7 +14,7 @@ import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
 
 interface ExternalAgentNodeEditorProps {
-  selectedNode: Node<ExternalAgentNodeData>;
+  selectedNode: Pick<Node<ExternalAgentNodeData>, 'id' | 'data'>;
 }
 
 export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEditorProps) {
@@ -25,20 +24,9 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
   const { deleteNode } = useDeleteNode(selectedNode.id);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const form = useFullAgentFormContext();
-  const id = selectedNode.data.id;
+  const id = selectedNode.data.externalAgentId;
 
   const path = <K extends string>(key: K) => `externalAgents.${id}.${key}` as const;
-  const headersPath = path('headers');
-  // Sync input value when node changes (but not on every data change)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
-  useEffect(() => {
-    const existingHeaders = form.getValues(headersPath);
-    if (existingHeaders !== undefined) {
-      return;
-    }
-    const newHeaders = selectedNode.data.tempHeaders ?? {};
-    form.setValue(headersPath, JSON.stringify(newHeaders, null, 2));
-  }, [headersPath]);
 
   return (
     <div className="space-y-8 flex flex-col">
@@ -83,14 +71,12 @@ export function ExternalAgentNodeEditor({ selectedNode }: ExternalAgentNodeEdito
       />
       <GenericJsonEditor
         control={form.control}
-        name={headersPath}
+        name={path('headers')}
         label="Headers"
         placeholder="{}"
         customTemplate={externalAgentHeadersTemplate}
       />
-      <ExternalLink
-        href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.data.id}/edit`}
-      >
+      <ExternalLink href={`/${tenantId}/projects/${projectId}/external-agents/${id}/edit`}>
         View External Agent
       </ExternalLink>
       {canEdit && (

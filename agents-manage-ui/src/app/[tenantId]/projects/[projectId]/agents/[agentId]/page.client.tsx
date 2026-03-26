@@ -7,6 +7,7 @@ import {
   Controls,
   type Edge,
   type Node,
+  type OnSelectionChangeFunc,
   Panel,
   ReactFlow,
   type ReactFlowProps,
@@ -23,9 +24,8 @@ import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
   externalAgentNodeTargetHandleId,
-  type FunctionToolNodeData,
   functionToolNodeHandleId,
-  type MCPNodeData,
+  isNodeType,
   mcpNodeHandleId,
   NodeType,
   newNodeDefaults,
@@ -36,7 +36,7 @@ import { resolveCollisions } from '@/components/agent/configuration/resolve-coll
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
-import { serializeAgentForm } from '@/components/agent/form/validation';
+import { apiToFormValues } from '@/components/agent/form/validation';
 import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
@@ -44,16 +44,26 @@ import { Toolbar } from '@/components/agent/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
 import { useAnimateGraph } from '@/components/agent/use-animate-graph';
-import { useDefaultSubAgentIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
+import { useDefaultSubAgentNodeIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
-  deserializeAgentData,
-  hydrateNodesWithFormData,
-  serializeAgentData,
+  apiToGraph,
+  createFunctionToolFormInput,
+  createFunctionToolRelationFormInput,
+  createMcpRelationFormInput,
+  createSubAgentFormInput,
+  editorToPayload,
+  findEdgeByGraphKey,
+  findNodeByGraphKey,
+  getEdgeGraphKey,
+  getFunctionToolRelationFormKey,
+  getMcpRelationFormKey,
+  getNodeGraphKey,
+  syncSavedAgentGraph,
 } from '@/features/agent/domain';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useIsMounted } from '@/hooks/use-is-mounted';
@@ -135,14 +145,15 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
+  const initialNodeId = generateId();
   const initialNode: Node = {
-    id: generateId(),
+    id: initialNodeId,
     type: NodeType.SubAgent,
     position: { x: 0, y: 0 },
-    data: {},
+    data: newNodeDefaults[NodeType.SubAgent](initialNodeId),
   };
 
-  const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const form = useFullAgentFormContext();
   const { nodes, edges } = useAgentStore((state) => ({
     nodes: state.nodes,
@@ -152,13 +163,31 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     setNodes,
     setEdges,
     onNodesChange,
-    onEdgesChange,
+    onEdgesChange: onEdgesChangeAction,
     setInitial,
     markSaved,
     clearSelection,
     markUnsaved,
     reset,
   } = useAgentActions();
+
+  const applySelectionFromQueryState = (nextNodes: Node[], nextEdges: Edge[]) => {
+    const selectedNode = findNodeByGraphKey(nextNodes, nodeId);
+    const selectedEdge = findEdgeByGraphKey(nextEdges, nextNodes, edgeId);
+
+    return {
+      nodes: nextNodes.map((node) => ({
+        ...node,
+        selected: selectedNode ? node.id === selectedNode.id : false,
+      })),
+      edges: nextEdges.map((edge) => ({
+        ...edge,
+        selected: selectedEdge ? edge.id === selectedEdge.id : false,
+      })),
+      selectedNode,
+      selectedEdge,
+    };
+  };
 
   function onAddInitialNode(): void {
     const newNode = {
@@ -170,18 +199,13 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     commandManager.execute(new AddNodeCommand(newNode));
     form.setValue(
       `subAgents.${newNode.id}`,
-      {
+      createSubAgentFormInput({
         id: newNode.id,
-        name: newNodeDefaults[NodeType.SubAgent].name,
-        models: { base: {}, summarizer: {}, structuredOutput: {} },
-        canUse: [],
-        dataComponents: [],
-        artifactComponents: [],
-        stopWhen: {},
-      },
+        name: 'Sub Agent',
+      }),
       { shouldDirty: true }
     );
-    form.setValue('defaultSubAgentId', newNode.id, { shouldDirty: true });
+    form.setValue('defaultSubAgentNodeId', newNode.id, { shouldDirty: true });
     // Wait for sidebar to open (350ms for CSS transition) then center the node
     setTimeout(() => {
       fitView({
@@ -194,21 +218,13 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
-    const result = deserializeAgentData(agent);
-
-    const agentNodes = nodeId
-      ? result.nodes.map((node) => ({
-          ...node,
-          selected: node.id === nodeId,
-        }))
-      : result.nodes;
-
-    const agentEdges = edgeId
-      ? result.edges.map((edge) => ({
-          ...edge,
-          selected: edge.id === edgeId,
-        }))
-      : result.edges;
+    const result = apiToGraph(agent);
+    const {
+      nodes: agentNodes,
+      edges: agentEdges,
+      selectedNode,
+      selectedEdge,
+    } = applySelectionFromQueryState(result.nodes, result.edges);
 
     setInitial(agentNodes, agentEdges);
 
@@ -219,14 +235,14 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     }
 
     // If the nodeId or edgeId in URL doesn't exist in the agent, clear it
-    if (nodeId && !agentNodes.some((node) => node.id === nodeId)) {
+    if (nodeId && !selectedNode) {
       setQueryState((prev) => ({
         ...prev,
         nodeId: null,
         pane: 'agent',
       }));
     }
-    if (edgeId && !agentEdges.some((edge) => edge.id === edgeId)) {
+    if (edgeId && !selectedEdge) {
       setQueryState((prev) => ({
         ...prev,
         edgeId: null,
@@ -281,28 +297,35 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       const fullProject = fullProjectResult.data;
       const updatedAgent = fullProject?.agents?.[agentId];
       // This makes current values the new default values
-      form.reset(serializeAgentForm(updatedAgent));
+      form.reset(apiToFormValues(updatedAgent));
 
       // Deserialize agent data to nodes and edges
-      const { nodes, edges } = deserializeAgentData(updatedAgent);
-
-      // Preserve selection state based on current URL state
-      const nodesWithSelection = nodeId
-        ? nodes.map((node) => ({
-            ...node,
-            selected: node.id === nodeId,
-          }))
-        : nodes;
-
-      const edgesWithSelection = edgeId
-        ? edges.map((edge) => ({
-            ...edge,
-            selected: edge.id === edgeId,
-          }))
-        : edges;
+      const { nodes, edges } = apiToGraph(updatedAgent);
+      const {
+        nodes: nodesWithSelection,
+        edges: edgesWithSelection,
+        selectedNode,
+        selectedEdge,
+      } = applySelectionFromQueryState(nodes, edges);
 
       // Update the store with all refreshed data
       setInitial(nodesWithSelection, edgesWithSelection);
+
+      if (nodeId && !selectedNode) {
+        setQueryState((prev) => ({
+          ...prev,
+          pane: 'agent',
+          nodeId: null,
+        }));
+      }
+
+      if (edgeId && !selectedEdge) {
+        setQueryState((prev) => ({
+          ...prev,
+          pane: 'agent',
+          edgeId: null,
+        }));
+      }
 
       // Update project data in React Query cache so components using useProjectQuery get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);
@@ -314,6 +337,56 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     } catch (error) {
       console.error('Failed to refresh agent graph:', error);
     }
+  };
+
+  const onEdgesChangeWrapped: ReactFlowProps['onEdgesChange'] = (changes) => {
+    const removedMcpRelationKeys = changes.flatMap((change) => {
+      if (change.type !== 'remove') {
+        return [];
+      }
+
+      const edgeToRemove = edges.find((edge) => edge.id === change.id);
+      if (!edgeToRemove || edgeToRemove.targetHandle !== mcpNodeHandleId) {
+        return [];
+      }
+
+      const targetNode = nodes.find((node) => node.id === edgeToRemove.target);
+      if (!isNodeType(targetNode, NodeType.MCP)) {
+        return [];
+      }
+
+      return [getMcpRelationFormKey({ nodeId: targetNode.id })];
+    });
+    const removedFunctionToolRelationKeys = changes.flatMap((change) => {
+      if (change.type !== 'remove') {
+        return [];
+      }
+
+      const edgeToRemove = edges.find((edge) => edge.id === change.id);
+      if (!edgeToRemove || edgeToRemove.targetHandle !== functionToolNodeHandleId) {
+        return [];
+      }
+
+      const targetNode = nodes.find((node) => node.id === edgeToRemove.target);
+      if (!isNodeType(targetNode, NodeType.FunctionTool)) {
+        return [];
+      }
+
+      const nodeKey = getNodeGraphKey(targetNode);
+      return nodeKey ? [getFunctionToolRelationFormKey({ nodeKey })] : [];
+    });
+
+    onEdgesChangeAction(changes);
+
+    const ids = [
+      ...removedMcpRelationKeys.map(
+        (relationKey) => `mcpRelations.${relationKey}.relationshipId` as const
+      ),
+      ...removedFunctionToolRelationKeys.map(
+        (relationKey) => `functionToolRelations.${relationKey}.relationshipId` as const
+      ),
+    ];
+    form.unregister(ids);
   };
 
   const onConnectWrapped: ReactFlowProps['onConnect'] = (params) => {
@@ -391,7 +464,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       };
     }
 
-    // Update tool node subAgentId when connecting agent to a tool
     if (
       (targetHandle === mcpNodeHandleId || targetHandle === functionToolNodeHandleId) &&
       (sourceHandle === agentNodeSourceHandleId || sourceHandle === agentNodeTargetHandleId)
@@ -405,10 +477,35 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           toast.error('This tool is already connected. Connect to a new tool node.');
           return;
         }
-        updateNodeData(targetNode.id, {
-          ...targetNode.data,
-          subAgentId: params.source,
-        });
+        if (isNodeType(targetNode, NodeType.MCP)) {
+          const relationKey = getMcpRelationFormKey({ nodeId: targetNode.id });
+          const existingRelation = form.getValues(`mcpRelations.${relationKey}`);
+          form.setValue(
+            `mcpRelations.${relationKey}`,
+            {
+              ...createMcpRelationFormInput({
+                toolId: targetNode.data.toolId,
+              }),
+              ...existingRelation,
+            },
+            { shouldDirty: true }
+          );
+        } else {
+          const relationKey = getNodeGraphKey(targetNode);
+          if (!relationKey) {
+            toast.error('Function tool is missing graph identity.');
+            return;
+          }
+          const existingRelation = form.getValues(`functionToolRelations.${relationKey}`);
+          form.setValue(
+            `functionToolRelations.${getFunctionToolRelationFormKey({ nodeKey: relationKey })}`,
+            {
+              ...createFunctionToolRelationFormInput(),
+              ...existingRelation,
+            },
+            { shouldDirty: true }
+          );
+        }
       }
     }
 
@@ -427,24 +524,23 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       return;
     }
     const nodeType: keyof typeof newNodeDefaults = JSON.parse(node).type;
+    const newNodeId = generateId();
     const newNode = {
-      id: generateId(),
+      id: newNodeId,
       type: nodeType,
       position: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
       selected: true,
-      // Should not use same reference data object for new nodes
-      data: { ...newNodeDefaults[nodeType] },
+      data: newNodeDefaults[nodeType](newNodeId),
     } satisfies Node;
     const toolId = nodeType === NodeType.FunctionTool ? newNode.id : null;
 
     if (toolId) {
-      newNode.data.toolId = toolId;
       form.setValue(
         `functionTools.${toolId}`,
-        {
+        createFunctionToolFormInput({
           functionId: toolId,
-          name: newNode.data.name,
-        },
+          name: 'Function Tool',
+        }),
         { shouldDirty: true }
       );
       form.setValue(
@@ -461,7 +557,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     commandManager.execute(new AddNodeCommand(newNode));
   };
 
-  const onSelectionChange = ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
+  const onSelectionChange: OnSelectionChangeFunc = ({ nodes, edges }) => {
     const node = nodes.length === 1 ? nodes[0] : null;
     const edge =
       edges.length === 1 &&
@@ -472,8 +568,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     setQueryState(
       {
         pane: node ? 'node' : edge ? 'edge' : defaultPane,
-        nodeId: node ? node.id : null,
-        edgeId: edge ? edge.id : null,
+        nodeId: node ? getNodeGraphKey(node) : null,
+        edgeId: edge ? getEdgeGraphKey(edge, nodes) : null,
       },
       { history: 'replace' }
     );
@@ -504,13 +600,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   };
 
   const handleNavigateToNode = (nodeId: string) => {
-    // The nodeId parameter is actually the agent ID from error parsing
-    // We need to find the React Flow node that has this agent ID
-    const targetNode = nodes.find(
-      (node) =>
-        node.id === nodeId || // Direct match (no custom ID set)
-        node.data?.id === nodeId // Custom agent ID match
-    );
+    const targetNode = findNodeByGraphKey(nodes, nodeId);
 
     if (targetNode) {
       // Clear selection and select the target node
@@ -524,121 +614,121 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       // Open the sidepane for the selected node
       setQueryState({
         pane: 'node',
-        nodeId: targetNode.id,
+        nodeId: getNodeGraphKey(targetNode),
         edgeId: null,
       });
     }
   };
 
-  const onSubmit = form.handleSubmit(async ({ mcpRelations, ...data }): Promise<void> => {
-    // TODO: next step will be to refactoring deserializeAgentData/serializeAgentData
-    const hydratedNodes = hydrateNodesWithFormData(nodes, data);
-    const serializedData = serializeAgentData(
-      hydratedNodes,
-      edges,
-      mcpRelations,
-      data.functionTools,
-      data.externalAgents,
-      data.teamAgents
-    );
-    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
-      ...data,
-      subAgents: serializedData.subAgents,
-      functionTools: serializedData.functionTools,
-      functions: serializedData.functions,
-    });
-
-    if (res.success) {
-      toast.success('Agent saved', { closeButton: true });
-      markSaved();
-      // This makes current values the new default values
-      requestAnimationFrame(() => {
-        form.reset(serializeAgentForm(res.data));
+  const onSubmit = form.handleSubmit(
+    async ({ mcpRelations, defaultSubAgentNodeId, ...data }): Promise<void> => {
+      const serializedData = editorToPayload(nodes, edges, {
+        mcpRelations: mcpRelations ?? {},
+        functionToolRelations: data.functionToolRelations ?? {},
+        functionTools: data.functionTools ?? {},
+        externalAgents: data.externalAgents ?? {},
+        teamAgents: data.teamAgents ?? {},
+        subAgents: data.subAgents ?? {},
+        functions: data.functions ?? {},
+        defaultSubAgentNodeId,
+      });
+      const res = await updateFullAgentAction(tenantId, projectId, agentId, {
+        ...data,
+        defaultSubAgentId: serializedData.defaultSubAgentId,
+        subAgents: serializedData.subAgents,
+        functionTools: serializedData.functionTools,
+        functions: serializedData.functions,
       });
 
-      // Update tool nodes with new relationshipIds from backend response
-      if (res.data) {
-        const processedRelationships = new Set<string>();
+      if (res.success) {
+        toast.success('Agent saved', { closeButton: true });
+        markSaved();
+        const syncedGraph = syncSavedAgentGraph({
+          nodes,
+          edges,
+          savedAgent: res.data,
+          nodeId,
+          edgeId,
+          subAgentFormData: data.subAgents,
+          functionToolRelations: data.functionToolRelations,
+        });
 
-        setNodes((currentNodes) =>
-          currentNodes
-            .map((node) => {
-              if (
-                (node.type === NodeType.ExternalAgent || node.type === NodeType.TeamAgent) &&
-                !node.data.relationshipId
-              ) {
-                return null;
-              }
+        setQueryState((prev) => ({
+          ...prev,
+          pane:
+            (prev.pane === 'node' && !syncedGraph.nodeId) ||
+            (prev.pane === 'edge' && !syncedGraph.edgeId)
+              ? 'agent'
+              : prev.pane,
+          nodeId: syncedGraph.nodeId,
+          edgeId: syncedGraph.edgeId,
+        }));
+        form.reset(apiToFormValues(res.data));
+        setInitial(syncedGraph.nodes, syncedGraph.edges);
+        return;
+      }
 
-              if (node.type !== NodeType.MCP && node.type !== NodeType.FunctionTool) {
-                return node;
-              }
+      if (res.code && nonValidationErrors.has(res.code)) {
+        const error = res.error || 'An error occurred while saving the agent';
+        toast.error(error, { closeButton: true });
+        return;
+      }
 
-              const toolNode = node as Node & { data: MCPNodeData };
-              // For new nodes (relationshipId is null), find the first unprocessed relationship
-              // that matches this agent and tool
-              const { subAgentId, toolId, relationshipId } = toolNode.data;
-              if (!subAgentId) {
-                if (node.type === NodeType.MCP) {
-                  form.unregister(`mcpRelations.${node.id}`);
-                } else {
-                  form.unregister([`functions.${toolId}`, `functionTools.${toolId}`]);
-                }
-                return null;
-              }
+      // Handle validation errors (422 status - unprocessable_entity)
+      try {
+        const issues: z.ZodIssue[] = JSON.parse(res.error);
+        issues.forEach(({ path, code, message }) => {
+          form.setError(path.join('.') as any, { type: code, message });
+        });
+      } catch (parseError) {
+        // Fallback for unparseable errors
+        console.error('Failed to parse validation errors:', parseError);
+        toast.error('Failed to save agent', { closeButton: true });
+      }
+    },
+    console.error
+  );
 
-              if (!toolId || relationshipId) {
-                return node;
-              }
+  // React Flow selection can stay the same while a selected node/edge gets a new graph key,
+  // so mirror the current canvas selection back into query state here.
+  useEffect(() => {
+    const selectedCanvasNode = nodes.filter((node) => node.selected);
+    const selectedCanvasEdge = edges.filter((edge) => edge.selected);
+    const singleSelectedNode = selectedCanvasNode.length === 1 ? selectedCanvasNode[0] : null;
+    const singleSelectedEdge = selectedCanvasEdge.length === 1 ? selectedCanvasEdge[0] : null;
 
-              const savedSubAgent = res.data.subAgents[subAgentId];
-              if (savedSubAgent?.canUse) {
-                const matchingRelationship = savedSubAgent.canUse.find(
-                  (tool: any) =>
-                    tool.toolId === toolId &&
-                    tool.agentToolRelationId &&
-                    !processedRelationships.has(tool.agentToolRelationId)
-                );
-
-                if (matchingRelationship?.agentToolRelationId) {
-                  processedRelationships.add(matchingRelationship.agentToolRelationId);
-                  return {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      relationshipId: matchingRelationship.agentToolRelationId,
-                    },
-                  };
-                }
-              }
-              return node;
-            })
-            .filter((v) => !!v)
+    if (singleSelectedNode) {
+      const nextNodeId = getNodeGraphKey(singleSelectedNode);
+      if (nextNodeId && nextNodeId !== nodeId) {
+        setQueryState(
+          {
+            pane: 'node',
+            nodeId: nextNodeId,
+            edgeId: null,
+          },
+          { history: 'replace' }
         );
       }
       return;
     }
 
-    if (res.code && nonValidationErrors.has(res.code)) {
-      toast.error(res.error || 'An error occurred while saving the agent', {
-        closeButton: true,
-      });
-      return;
+    if (
+      singleSelectedEdge &&
+      (singleSelectedEdge.type === EdgeType.A2A || singleSelectedEdge.type === EdgeType.SelfLoop)
+    ) {
+      const nextEdgeId = getEdgeGraphKey(singleSelectedEdge, nodes);
+      if (nextEdgeId && nextEdgeId !== edgeId) {
+        setQueryState(
+          {
+            pane: 'edge',
+            nodeId: null,
+            edgeId: nextEdgeId,
+          },
+          { history: 'replace' }
+        );
+      }
     }
-
-    // Handle validation errors (422 status - unprocessable_entity)
-    try {
-      const issues: z.ZodIssue[] = JSON.parse(res.error);
-      issues.forEach(({ path, code, message }) => {
-        form.setError(path.join('.') as any, { type: code, message });
-      });
-    } catch (parseError) {
-      // Fallback for unparseable errors
-      console.error('Failed to parse validation errors:', parseError);
-      toast.error('Failed to save agent', { closeButton: true });
-    }
-    return;
-  });
+  }, [edgeId, nodeId, nodes, edges, setQueryState]);
 
   useAnimateGraph();
 
@@ -659,7 +749,9 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   const isMounted = useIsMounted();
 
   const showEmptyState = !nodes.length && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
-  const defaultSubAgentIdRef = useDefaultSubAgentIdRef();
+  const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
+  const selectedNode = findNodeByGraphKey(nodes, nodeId);
+  const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId);
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
@@ -698,7 +790,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onEdgesChange={onEdgesChangeWrapped}
           onConnect={onConnectWrapped}
           onDrop={onDrop}
           onDragOver={(event) => {
@@ -725,10 +817,10 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             setNodes(resolveCollisions);
           }}
           onBeforeDelete={async (state) => {
-            const defaultSubAgentId = defaultSubAgentIdRef.current;
-            const hasDefaultNode = state.nodes.some((node) => node.id === defaultSubAgentId);
+            const defaultSubAgentNodeId = defaultSubAgentNodeIdRef.current;
+            const hasDefaultNode = state.nodes.some((node) => node.id === defaultSubAgentNodeId);
             if (hasDefaultNode) {
-              toast.error(`Cannot delete default subagent "${defaultSubAgentId}"`);
+              toast.error(`Cannot delete default subagent "${defaultSubAgentNodeId}"`);
               return false;
             }
             // Trigger dirty state
@@ -736,22 +828,26 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
               history: [...state.history, { nodes: state.nodes, edges: state.edges }],
               dirty: true,
             }));
-            requestAnimationFrame(() => {
-              for (const node of state.nodes) {
-                if (node.type === NodeType.FunctionTool) {
-                  const { toolId } = node.data as FunctionToolNodeData;
-                  form.unregister([`functions.${toolId}`, `functionTools.${toolId}`]);
-                } else if (node.type === NodeType.MCP) {
-                  form.unregister(`mcpRelations.${node.id}`);
-                } else if (node.type === NodeType.TeamAgent) {
-                  form.unregister(`teamAgents.${node.id}`);
-                } else if (node.type === NodeType.ExternalAgent) {
-                  form.unregister(`externalAgents.${node.id}`);
-                } else if (node.type === NodeType.SubAgent) {
-                  form.unregister(`subAgents.${node.id}`);
-                }
+            for (const node of state.nodes) {
+              if (isNodeType(node, NodeType.FunctionTool)) {
+                const { toolId } = node.data;
+                const functionId = form.getValues(`functionTools.${toolId}.functionId`);
+                const relationKey = getNodeGraphKey(node);
+                form.unregister([
+                  ...(functionId ? ([`functions.${functionId}`] as const) : []),
+                  `functionTools.${toolId}`,
+                  ...(relationKey ? ([`functionToolRelations.${relationKey}`] as const) : []),
+                ]);
+              } else if (isNodeType(node, NodeType.MCP)) {
+                form.unregister(`mcpRelations.${getMcpRelationFormKey({ nodeId: node.id })}`);
+              } else if (isNodeType(node, NodeType.TeamAgent)) {
+                form.unregister(`teamAgents.${node.data.teamAgentId}`);
+              } else if (isNodeType(node, NodeType.ExternalAgent)) {
+                form.unregister(`externalAgents.${node.data.externalAgentId}`);
+              } else if (node.type === NodeType.SubAgent) {
+                form.unregister(`subAgents.${node.id}`);
               }
-            });
+            }
 
             return state;
           }}
@@ -811,8 +907,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
               order={2}
             >
               <SidePane
-                selectedNodeId={nodeId}
-                selectedEdgeId={edgeId}
+                selectedNodeId={selectedNode?.id ?? null}
+                selectedEdgeId={selectedEdge?.id ?? null}
                 onClose={closeSidePane}
                 backToAgent={backToAgent}
                 disabled={isCopilotStreaming || !canEdit}

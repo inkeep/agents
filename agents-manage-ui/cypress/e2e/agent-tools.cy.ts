@@ -23,9 +23,7 @@ describe('Agent Tools', () => {
     cy.contains('Create agent').click();
     cy.get('[name=name]').type(generateId(), { delay: 0 });
     cy.get('button[type=submit]').click();
-    cy.get('#agent').click();
     cy.get('[name$=".name"]').type('test', { delay: 0 });
-    cy.contains('Is default sub agent').click();
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 1);
 
     dragNode('[aria-label="Drag Function Tool node"]');
