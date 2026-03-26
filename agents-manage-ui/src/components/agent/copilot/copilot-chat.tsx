@@ -13,7 +13,7 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { apiToGraph } from '@/features/agent/domain';
+import { apiToGraph, applySelectionFromQueryState } from '@/features/agent/domain';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
@@ -89,7 +89,12 @@ export function CopilotChat() {
         edges: edgesWithSelection,
         selectedNode,
         selectedEdge,
-      } = applySelectionFromQueryState(nodes, edges);
+      } = applySelectionFromQueryState({
+        nodes,
+        edges,
+        nodeId,
+        edgeId,
+      });
 
       // Update the store with all refreshed data
       setInitial(nodesWithSelection, edgesWithSelection);

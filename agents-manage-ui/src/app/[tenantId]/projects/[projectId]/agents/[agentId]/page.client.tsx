@@ -51,6 +51,7 @@ import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   apiToGraph,
+  applySelectionFromQueryState,
   createFunctionToolFormInput,
   createFunctionToolRelationFormInput,
   createMcpRelationFormInput,
@@ -199,7 +200,12 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       edges: agentEdges,
       selectedNode,
       selectedEdge,
-    } = applySelectionFromQueryState(result.nodes, result.edges);
+    } = applySelectionFromQueryState({
+      nodes: result.nodes,
+      edges: result.edges,
+      nodeId,
+      edgeId,
+    });
 
     setInitial(agentNodes, agentEdges);
 

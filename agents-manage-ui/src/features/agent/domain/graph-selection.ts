@@ -9,8 +9,8 @@ export function applySelectionFromQueryState({
 }: {
   nodes: Node[];
   edges: Edge[];
-  nodeId: string;
-  edgeId: string;
+  nodeId: string | null;
+  edgeId: string | null;
 }) {
   const selectedNode = findNodeByGraphKey(nodes, nodeId);
   const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId);
