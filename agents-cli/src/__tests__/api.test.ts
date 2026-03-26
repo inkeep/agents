@@ -529,7 +529,7 @@ describe('ApiClient', () => {
           sourceBranch: 'main',
           targetBranch: 'main',
         })
-      ).rejects.toThrow('Merge preview failed (500)');
+      ).rejects.toThrow('Failed to preview merge: Internal Server Error');
     });
   });
 
@@ -587,7 +587,214 @@ describe('ApiClient', () => {
           sourceHash: 'stale-hash',
           targetHash: 'stale-hash',
         })
-      ).rejects.toThrow('Merge execute failed (409)');
+      ).rejects.toThrow('Failed to execute merge: Conflict');
+    });
+  });
+
+  describe('getBranch', () => {
+    it('should fetch and return branch data', async () => {
+      const mockBranch = { baseName: 'main', fullName: 'test-tenant-id/main', hash: 'abc123' };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockBranch }),
+      });
+
+      const result = await apiClient.getBranch('test-project-id', 'main');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/branches/main',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+          }),
+        })
+      );
+      expect(result).toEqual(mockBranch);
+    });
+
+    it('should throw error when branch fetch fails', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Not Found',
+        text: async () => 'Branch not found',
+      });
+
+      await expect(apiClient.getBranch('test-project-id', 'missing-branch')).rejects.toThrow(
+        'Failed to fetch branch "missing-branch": Not Found\nBranch not found'
+      );
+    });
+
+    it('should throw error when server returns empty error body', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Internal Server Error',
+        text: async () => '',
+      });
+
+      await expect(apiClient.getBranch('test-project-id', 'main')).rejects.toThrow(
+        'Failed to fetch branch "main": Internal Server Error'
+      );
+    });
+  });
+
+  describe('createBranch', () => {
+    it('should create a branch with fromBranch option', async () => {
+      const mockBranch = {
+        baseName: 'feature',
+        fullName: 'test-tenant-id/feature',
+        hash: 'new123',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockBranch }),
+      });
+
+      const result = await apiClient.createBranch('test-project-id', {
+        name: 'feature',
+        fromBranch: 'main',
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/branches',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ name: 'feature', fromBranch: 'main' }),
+        })
+      );
+      expect(result).toEqual(mockBranch);
+    });
+
+    it('should create a branch with fromCommit option', async () => {
+      const mockBranch = {
+        baseName: 'hotfix',
+        fullName: 'test-tenant-id/hotfix',
+        hash: 'commit456',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockBranch }),
+      });
+
+      const result = await apiClient.createBranch('test-project-id', {
+        name: 'hotfix',
+        fromCommit: 'commit456',
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/branches',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ name: 'hotfix', fromCommit: 'commit456' }),
+        })
+      );
+      expect(result).toEqual(mockBranch);
+    });
+
+    it('should throw error when branch creation fails', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Conflict',
+        text: async () => 'Branch already exists',
+      });
+
+      await expect(
+        apiClient.createBranch('test-project-id', { name: 'existing-branch' })
+      ).rejects.toThrow(
+        'Failed to create branch "existing-branch": Conflict\nBranch already exists'
+      );
+    });
+  });
+
+  describe('deleteBranch', () => {
+    it('should delete a branch', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await apiClient.deleteBranch('test-project-id', 'old-branch');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/branches/old-branch',
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+
+    it('should append force query param when force is true', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await apiClient.deleteBranch('test-project-id', 'old-branch', true);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/branches/old-branch?force=true',
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+
+    it('should not append force query param when force is false', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await apiClient.deleteBranch('test-project-id', 'old-branch', false);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/branches/old-branch',
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+
+    it('should throw error when branch deletion fails', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Forbidden',
+        text: async () => 'Cannot delete protected branch',
+      });
+
+      await expect(apiClient.deleteBranch('test-project-id', 'main')).rejects.toThrow(
+        'Failed to delete branch "main": Forbidden\nCannot delete protected branch'
+      );
+    });
+  });
+
+  describe('pushFullProject', () => {
+    it('should push project data to a branch', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      const projectData = { agents: [{ id: 'agent-1', name: 'Test' }] };
+      await apiClient.pushFullProject('test-project-id', 'feature-branch', projectData);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/manage/tenants/test-tenant-id/project-full/test-project-id?ref=feature-branch',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify(projectData),
+        })
+      );
+    });
+
+    it('should throw error when push fails', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Bad Request',
+        text: async () => 'Invalid project data',
+      });
+
+      await expect(
+        apiClient.pushFullProject('test-project-id', 'feature-branch', {})
+      ).rejects.toThrow(
+        'Failed to push project to branch "feature-branch": Bad Request\nInvalid project data'
+      );
+    });
+
+    it('should throw error with no body when text() fails', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Internal Server Error',
+        text: async () => '',
+      });
+
+      await expect(
+        apiClient.pushFullProject('test-project-id', 'feature-branch', {})
+      ).rejects.toThrow('Failed to push project to branch "feature-branch": Internal Server Error');
     });
   });
 
