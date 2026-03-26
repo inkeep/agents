@@ -42,6 +42,8 @@ const styleOverrides = css`
 `;
 
 export function CopilotChat() {
+  'use memo'
+
   const {
     chatFunctionsRef,
     isOpen,
@@ -133,7 +135,7 @@ export function CopilotChat() {
 
   useEffect(() => {
     return () => setIsStreaming(false);
-  }, [setIsStreaming]);
+  }, []);
 
   useEffect(() => {
     const updateAgentGraph = (event: any) => {
@@ -194,7 +196,7 @@ export function CopilotChat() {
       });
       setIsOpen(false);
     }
-  }, [tokenError, isLoadingToken, isOpen, setIsOpen, refreshToken]);
+  }, [tokenError, isLoadingToken, isOpen, refreshToken]);
 
   if (!isCopilotConfigured) {
     return null;
