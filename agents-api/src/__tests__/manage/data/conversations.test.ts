@@ -241,12 +241,13 @@ describe('addMessage', () => {
     });
 
     const result = await createMessage(runDbClient)({
-      id: 'msg-123',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      conversationId: 'conv-123',
-      role: 'user',
-      content: { text: 'Hello world' },
+      scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
+      data: {
+        id: 'msg-123',
+        conversationId: 'conv-123',
+        role: 'user',
+        content: { text: 'Hello world' },
+      },
     });
 
     expect(result).toEqual(expectedMessage);
@@ -285,14 +286,15 @@ describe('addMessage', () => {
     });
 
     const result = await createMessage(runDbClient)({
-      id: 'msg-125',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      conversationId: 'conv-123',
-      role: 'agent',
-      content: { text: 'Hello! How can I help?' },
-      fromSubAgentId: 'agent-1',
-      metadata: { openai_model: 'gpt-4o' },
+      scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
+      data: {
+        id: 'msg-125',
+        conversationId: 'conv-123',
+        role: 'agent',
+        content: { text: 'Hello! How can I help?' },
+        fromSubAgentId: 'agent-1',
+        metadata: { openai_model: 'gpt-4o' },
+      },
     });
 
     expect(result).toEqual(expectedMessage);
@@ -330,16 +332,17 @@ describe('addMessage', () => {
     });
 
     const result = await createMessage(runDbClient)({
-      id: 'msg-126',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      conversationId: 'conv-123',
-      role: 'agent',
-      content: { text: 'Delegating task to specialist' },
-      messageType: 'a2a-request',
-      fromSubAgentId: 'agent-1',
-      toSubAgentId: 'agent-2',
-      taskId: 'task-123',
+      scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
+      data: {
+        id: 'msg-126',
+        conversationId: 'conv-123',
+        role: 'agent',
+        content: { text: 'Delegating task to specialist' },
+        messageType: 'a2a-request',
+        fromSubAgentId: 'agent-1',
+        toSubAgentId: 'agent-2',
+        taskId: 'task-123',
+      },
     });
 
     expect(result).toEqual(expectedMessage);
@@ -377,16 +380,17 @@ describe('addMessage', () => {
     });
 
     const result = await createMessage(runDbClient)({
-      id: 'msg-126',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      conversationId: 'conv-123',
-      role: 'agent',
-      content: { text: 'Response from external service' },
-      messageType: 'a2a-response',
-      fromExternalAgentId: 'external-1',
-      toSubAgentId: 'agent-1',
-      visibility: 'external',
+      scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
+      data: {
+        id: 'msg-126',
+        conversationId: 'conv-123',
+        role: 'agent',
+        content: { text: 'Response from external service' },
+        messageType: 'a2a-response',
+        fromExternalAgentId: 'external-1',
+        toSubAgentId: 'agent-1',
+        visibility: 'external',
+      },
     });
 
     expect(result).toEqual(expectedMessage);
@@ -560,22 +564,24 @@ describe('Message Content Validation', () => {
 
     // Test text content
     await createMessage(runDbClient)({
-      id: 'msg-1',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      conversationId: 'conv-123',
-      role: 'user',
-      content: textContent,
+      scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
+      data: {
+        id: 'msg-1',
+        conversationId: 'conv-123',
+        role: 'user',
+        content: textContent,
+      },
     });
 
     // Test rich content
     await createMessage(runDbClient)({
-      id: 'msg-2',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      conversationId: 'conv-123',
-      role: 'user',
-      content: richContent,
+      scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
+      data: {
+        id: 'msg-2',
+        conversationId: 'conv-123',
+        role: 'user',
+        content: richContent,
+      },
     });
 
     // Verify the insert was called for both messages
@@ -593,12 +599,13 @@ describe('Error Handling', () => {
 
     await expect(
       createMessage(runDbClient)({
-        id: 'msg-1',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        conversationId: 'conv-123',
-        role: 'user',
-        content: { text: 'Hello' },
+        scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
+        data: {
+          id: 'msg-1',
+          conversationId: 'conv-123',
+          role: 'user',
+          content: { text: 'Hello' },
+        },
       })
     ).rejects.toThrow('DB Error');
   });

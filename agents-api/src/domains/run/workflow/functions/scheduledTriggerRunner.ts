@@ -17,9 +17,9 @@ import {
   updateScheduledWorkflowRunId,
   withRef,
 } from '@inkeep/agents-core';
-import { manageDbClient } from 'src/data/db';
 import { getWorkflowMetadata, sleep } from 'workflow';
 import { start } from 'workflow/api';
+import { manageDbClient } from '../../../../data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import { getLogger } from '../../../../logger';
 import {
@@ -36,6 +36,7 @@ import {
   markCompletedStep,
   markFailedStep,
   markRunningStep,
+  resetInvocationToPendingStep,
 } from '../steps/scheduledTriggerSteps';
 
 const logger = getLogger('workflow-scheduled-trigger-runner');
@@ -215,13 +216,85 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     });
     invocation = result.invocation;
 
-    if (isOneTime && result.alreadyExists && invocation.status !== 'pending') {
+    if (
+      isOneTime &&
+      result.alreadyExists &&
+      invocation.status !== 'pending' &&
+      invocation.status !== 'cancelled'
+    ) {
       await logStep('One-time trigger already executed', {
         scheduledTriggerId,
         invocationId: invocation.id,
         status: invocation.status,
       });
       return { status: 'already_executed', invocationId: invocation.id };
+    }
+
+    if (result.alreadyExists && invocation.status === 'cancelled') {
+      const scheduledTime = new Date(scheduledFor).getTime();
+      const now = Date.now();
+
+      if (scheduledTime > now) {
+        await logStep('Cancelled idempotent invocation still in future, resetting to pending', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          scheduledFor,
+        });
+        let resetResult: Awaited<ReturnType<typeof resetInvocationToPendingStep>> | undefined;
+        try {
+          resetResult = await resetInvocationToPendingStep({
+            tenantId,
+            projectId,
+            agentId,
+            scheduledTriggerId,
+            invocationId: invocation.id,
+          });
+        } catch (err) {
+          await logStep('Failed to reset cancelled invocation to pending', {
+            scheduledTriggerId,
+            invocationId: invocation.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          throw err;
+        }
+
+        if (!resetResult) {
+          await logStep('Reset skipped — invocation status changed concurrently, exiting', {
+            scheduledTriggerId,
+            invocationId: invocation.id,
+          });
+          return { status: 'skipped' as const, reason: 'concurrent_status_change' };
+        }
+        invocation = { ...invocation, status: 'pending' };
+      } else {
+        await logStep('Cancelled idempotent invocation in the past, skipping to next iteration', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          scheduledFor,
+        });
+
+        if (!isOneTime) {
+          try {
+            await startNextIterationStep({
+              tenantId,
+              projectId,
+              agentId,
+              scheduledTriggerId,
+              lastScheduledFor: scheduledFor,
+              currentRunId: runnerId,
+            });
+          } catch (err) {
+            await logStep('Failed to chain after cancelled idempotent invocation', {
+              scheduledTriggerId,
+              invocationId: invocation.id,
+              error: err instanceof Error ? err.message : String(err),
+            });
+            throw err;
+          }
+        }
+
+        return { status: 'skipped_cancelled', invocationId: invocation.id };
+      }
     }
   }
 

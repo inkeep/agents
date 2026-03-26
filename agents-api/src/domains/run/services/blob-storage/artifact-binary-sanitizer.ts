@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
-import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-image-formats';
+import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
+import { getLogger } from '../../../../logger';
+import { parseDataUri } from '../../utils/message-parts';
 import { getBlobStorageProvider, isBlobUri, toBlobUri } from './index';
 import { buildStorageKey } from './storage-keys';
+
+const logger = getLogger('artifact-binary-sanitizer');
 
 export interface ArtifactBinaryContext {
   tenantId: string;
@@ -24,10 +28,8 @@ function isInlineBinaryPart(value: unknown): value is InlineBinaryPart {
   return (
     (v.type === 'image' || v.type === 'file') &&
     typeof v.data === 'string' &&
-    v.data.length > 100 &&
     !isBlobUri(v.data) &&
-    !v.data.startsWith('http') &&
-    !v.data.startsWith('data:')
+    !v.data.startsWith('http')
   );
 }
 
@@ -36,8 +38,10 @@ async function uploadInlinePart(
   ctx: ArtifactBinaryContext
 ): Promise<InlineBinaryPart> {
   const storage = getBlobStorageProvider();
-  const buffer = Buffer.from(part.data, 'base64');
-  const mimeType = part.mimeType ?? 'application/octet-stream';
+  const parsed = parseDataUri(part.data);
+  const base64Data = parsed ? parsed.base64Data : part.data;
+  const mimeType = parsed?.mimeType ?? part.mimeType ?? 'application/octet-stream';
+  const buffer = Buffer.from(base64Data, 'base64');
   const contentHash = createHash('sha256').update(buffer).digest('hex');
   const ext = getExtensionFromMimeType(mimeType);
 
@@ -50,7 +54,22 @@ async function uploadInlinePart(
     ext,
   });
 
-  await storage.upload({ key, data: buffer, contentType: mimeType });
+  try {
+    await storage.upload({ key, data: buffer, contentType: mimeType });
+  } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        tenantId: ctx.tenantId,
+        projectId: ctx.projectId,
+        artifactId: ctx.artifactId,
+        mimeType,
+        size: buffer.length,
+      },
+      'Failed to upload artifact binary data to blob storage, returning original inline data'
+    );
+    return part;
+  }
 
   return { ...part, data: toBlobUri(key) };
 }
@@ -102,7 +121,7 @@ export function stripBinaryDataForObservability(value: unknown): unknown {
 
   const visit = (current: unknown): unknown => {
     if (isInlineBinaryPart(current)) {
-      const part = current as InlineBinaryPart;
+      const part = current;
       const approxBytes = Math.round(part.data.length * 0.75);
       return {
         ...part,

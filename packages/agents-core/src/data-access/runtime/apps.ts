@@ -2,8 +2,13 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { apps } from '../../db/runtime/runtime-schema';
 import type { AppInsert, AppSelect, AppUpdate } from '../../types/entities';
-import type { AppType, PaginationConfig, TenantScopeConfig } from '../../types/utility';
-import { tenantScopedWhere } from '../manage/scope-helpers';
+import type {
+  AppType,
+  PaginationConfig,
+  ProjectScopeConfig,
+  TenantScopeConfig,
+} from '../../types/utility';
+import { projectScopedWhere, tenantScopedWhere } from '../manage/scope-helpers';
 
 // ── Unscoped (for runtime auth lookups — no tenant/project gating) ───────────
 
@@ -19,13 +24,21 @@ export const updateAppLastUsed =
     await db.update(apps).set({ lastUsedAt: new Date().toISOString() }).where(eq(apps.id, id));
   };
 
-// ── Tenant-scoped (for management operations) ───────────────────────────────
+// ── Scoped lookups (tenant- and project-level) ──────────────────────────────
 
 export const getAppByIdForTenant =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: TenantScopeConfig; id: string }): Promise<AppSelect | undefined> => {
     return db.query.apps.findFirst({
       where: and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)),
+    });
+  };
+
+export const getAppByIdForProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<AppSelect | undefined> => {
+    return db.query.apps.findFirst({
+      where: and(eq(apps.id, params.id), projectScopedWhere(apps, params.scopes)),
     });
   };
 
@@ -89,37 +102,58 @@ export const createApp = (db: AgentsRunDatabaseClient) => async (params: AppInse
   return app;
 };
 
+const _updateApp =
+  (db: AgentsRunDatabaseClient, scopeWhere: ReturnType<typeof tenantScopedWhere>) =>
+  async (id: string, data: AppUpdate): Promise<AppSelect | undefined> => {
+    const now = new Date().toISOString();
+
+    const [updatedApp] = await db
+      .update(apps)
+      .set({ ...data, updatedAt: now })
+      .where(and(eq(apps.id, id), scopeWhere))
+      .returning();
+
+    return updatedApp;
+  };
+
+const _deleteApp =
+  (db: AgentsRunDatabaseClient, scopeWhere: ReturnType<typeof tenantScopedWhere>) =>
+  async (id: string): Promise<boolean> => {
+    const result = await db
+      .delete(apps)
+      .where(and(eq(apps.id, id), scopeWhere))
+      .returning();
+
+    return result.length > 0;
+  };
+
 export const updateAppForTenant =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: TenantScopeConfig;
     id: string;
     data: AppUpdate;
-  }): Promise<AppSelect | undefined> => {
-    const now = new Date().toISOString();
+  }): Promise<AppSelect | undefined> =>
+    _updateApp(db, tenantScopedWhere(apps, params.scopes))(params.id, params.data);
 
-    const [updatedApp] = await db
-      .update(apps)
-      .set({
-        ...params.data,
-        updatedAt: now,
-      })
-      .where(and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)))
-      .returning();
-
-    return updatedApp;
-  };
+export const updateAppForProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    id: string;
+    data: AppUpdate;
+  }): Promise<AppSelect | undefined> =>
+    _updateApp(db, projectScopedWhere(apps, params.scopes))(params.id, params.data);
 
 export const deleteAppForTenant =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: TenantScopeConfig; id: string }): Promise<boolean> => {
-    const result = await db
-      .delete(apps)
-      .where(and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)))
-      .returning();
+  async (params: { scopes: TenantScopeConfig; id: string }): Promise<boolean> =>
+    _deleteApp(db, tenantScopedWhere(apps, params.scopes))(params.id);
 
-    return result.length > 0;
-  };
+export const deleteAppForProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> =>
+    _deleteApp(db, projectScopedWhere(apps, params.scopes))(params.id);
 
 // ── Cascade delete helpers (called from cascade-delete.ts) ──────────────────
 

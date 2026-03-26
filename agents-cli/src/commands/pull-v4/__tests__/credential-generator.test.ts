@@ -15,7 +15,7 @@ describe('Credential Generator', () => {
   const testCredentialData = {
     id: 'inkeep-api-key',
     name: 'Inkeep API Key',
-    type: 'memory',
+    type: 'memory' as const,
     credentialStoreId: 'memory-default',
     retrievalParams: {
       key: 'INKEEP_API_KEY',
@@ -25,7 +25,7 @@ describe('Credential Generator', () => {
   const envCredentialData = {
     id: 'database-url',
     name: 'Database URL',
-    type: 'memory',
+    type: 'memory' as const,
     credentialStoreId: 'env-production',
     retrievalParams: {
       key: 'DATABASE_URL',
@@ -36,7 +36,7 @@ describe('Credential Generator', () => {
   const keychainCredentialData = {
     id: 'slack-token',
     name: 'Slack Token',
-    type: 'keychain',
+    type: 'keychain' as const,
     credentialStoreId: 'keychain-main',
     retrievalParams: {
       service: 'slack-bot',
@@ -63,7 +63,7 @@ describe('Credential Generator', () => {
       const credentialId = 'database-connection-url';
       const conversionData = {
         name: 'Database Connection URL',
-        type: 'memory',
+        type: 'memory' as const,
         credentialStoreId: 'env-default',
       };
       const definition = generateCredentialDefinition({ credentialId, ...conversionData });
@@ -76,7 +76,7 @@ describe('Credential Generator', () => {
       const credentialId = 'my-credential';
       const requiredFieldsData = {
         name: 'My Credential',
-        type: 'memory',
+        type: 'memory' as const,
         credentialStoreId: 'memory-default',
       };
       const definition = generateCredentialDefinition({ credentialId, ...requiredFieldsData });
@@ -125,7 +125,7 @@ describe('Credential Generator', () => {
         new Error(`Validation failed for credential:
 ✖ Invalid input: expected string, received undefined
   → at name
-✖ Invalid option: expected one of "memory"|"keychain"|"nango"
+✖ Invalid option: expected one of "memory"|"keychain"|"nango"|"composio"
   → at type
 ✖ Invalid input: expected string, received undefined
   → at credentialStoreId`)
@@ -136,7 +136,7 @@ describe('Credential Generator', () => {
       const credentialId = 'complex';
       const complexCredential = {
         name: 'Complex Credential',
-        type: 'keychain',
+        type: 'keychain' as const,
         credentialStoreId: 'keychain-main',
         retrievalParams: {
           service: 'oauth-service',
@@ -164,7 +164,7 @@ describe('Credential Generator', () => {
       const credentialId = 'mixed';
       const mixedParamsCredential = {
         name: 'Mixed Params Credential',
-        type: 'memory',
+        type: 'memory' as const,
         credentialStoreId: 'env-default',
         retrievalParams: {
           key: 'API_KEY',
@@ -193,7 +193,7 @@ describe('Credential Generator', () => {
       const credentialId = 'null-test';
       const credentialData = {
         name: 'Null Test Credential',
-        type: 'memory',
+        type: 'memory' as const,
         credentialStoreId: 'env-default',
         retrievalParams: {
           key: 'API_KEY',
@@ -214,7 +214,7 @@ describe('Credential Generator', () => {
       const credentialId = 'empty-params';
       const credentialData = {
         name: 'Empty Params Credential',
-        type: 'memory',
+        type: 'memory' as const,
         credentialStoreId: 'memory-default',
         retrievalParams: {},
       };

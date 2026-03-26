@@ -1,5 +1,113 @@
 # @inkeep/agents-cli
 
+## 0.59.4
+
+### Patch Changes
+
+- 9dec3ff: Refactor `inkeep pull` introspect-generator into modular architecture with per-generator `task.collect` functions
+- 99b5edf: Update TypeScript to 6.0.2
+- Updated dependencies [be7f056]
+- Updated dependencies [82bd424]
+- Updated dependencies [296c79a]
+- Updated dependencies [ef7987f]
+- Updated dependencies [1b37b29]
+- Updated dependencies [99b5edf]
+- Updated dependencies [6f1c5da]
+  - @inkeep/agents-core@0.59.4
+  - @inkeep/agents-manage-ui@0.59.4
+  - @inkeep/agents-sdk@0.59.4
+
+## 0.59.3
+
+### Patch Changes
+
+- Updated dependencies [51d6dfd]
+- Updated dependencies [ed09910]
+- Updated dependencies [e2c4c2d]
+- Updated dependencies [6ca8164]
+- Updated dependencies [b78771b]
+  - @inkeep/agents-core@0.59.3
+  - @inkeep/agents-manage-ui@0.59.3
+  - @inkeep/agents-sdk@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- Updated dependencies [028a801]
+- Updated dependencies [6cc27ba]
+- Updated dependencies [825690c]
+- Updated dependencies [0b4669f]
+  - @inkeep/agents-manage-ui@0.59.2
+  - @inkeep/agents-core@0.59.2
+  - @inkeep/agents-sdk@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- Updated dependencies [eb3a4bb]
+- Updated dependencies [bab9603]
+- Updated dependencies [7ee7de1]
+  - @inkeep/agents-manage-ui@0.59.1
+  - @inkeep/agents-core@0.59.1
+  - @inkeep/agents-sdk@0.59.1
+
+## 0.59.0
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+- Updated dependencies [3d54b6b]
+  - @inkeep/agents-core@0.59.0
+  - @inkeep/agents-manage-ui@0.59.0
+  - @inkeep/agents-sdk@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- Updated dependencies [64b0d88]
+  - @inkeep/agents-manage-ui@0.58.21
+  - @inkeep/agents-core@0.58.21
+  - @inkeep/agents-sdk@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+- Updated dependencies [9c06353]
+- Updated dependencies [9e0dd71]
+- Updated dependencies [ac53c07]
+  - @inkeep/agents-core@0.58.20
+  - @inkeep/agents-manage-ui@0.58.20
+  - @inkeep/agents-sdk@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- f8f16f4: Add GPT-5.4 Mini and GPT-5.4 Nano to model constants, UI picker, and CLI
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+- Updated dependencies [56a8a91]
+  - @inkeep/agents-core@0.58.19
+  - @inkeep/agents-manage-ui@0.58.19
+  - @inkeep/agents-sdk@0.58.19
+
+## 0.58.18
+
+### Patch Changes
+
+- Updated dependencies [ad867c5]
+  - @inkeep/agents-manage-ui@0.58.18
+  - @inkeep/agents-core@0.58.18
+  - @inkeep/agents-sdk@0.58.18
+
 ## 0.58.17
 
 ### Patch Changes

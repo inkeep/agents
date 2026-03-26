@@ -1,7 +1,11 @@
+import { join } from 'node:path';
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCredentialReferenceName } from '../utils';
+import { buildSequentialNameFileNames } from '../generation-resolver';
+import type { GenerationTask } from '../generation-types';
+import { generateSimpleFactoryDefinition } from '../simple-factory-generator';
+import { toCredentialReferenceName } from '../utils';
 
 const MySchema = FullProjectDefinitionSchema.shape.credentialReferences.unwrap().valueType.omit({
   id: true,
@@ -28,22 +32,44 @@ export function generateCredentialDefinition({
   userId,
   ...data
 }: CredentialInput & Record<string, unknown>): SourceFile {
-  const result = CredentialSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for credential:\n${z.prettifyError(result.error)}`);
-  }
-
-  const parsed = result.data;
-  const credentialVarName = toCredentialReferenceName(parsed.name);
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'credential',
-    variableName: credentialVarName,
+  return generateSimpleFactoryDefinition(data, {
+    schema: CredentialSchema,
+    factory: {
+      importName: 'credential',
+      variableName: (parsed) => toCredentialReferenceName(parsed.name),
+    },
+    buildConfig(parsed) {
+      const { credentialId, ...rest } = parsed;
+      return {
+        id: credentialId,
+        ...rest,
+      };
+    },
   });
-
-  const { credentialId, ...rest } = parsed;
-
-  for (const [k, v] of Object.entries({ id: credentialId, ...rest })) {
-    addValueToObject(configObject, k, v);
-  }
-  return sourceFile;
 }
+
+export const task = {
+  type: 'credential',
+  collect(context) {
+    if (!context.project.credentialReferences) {
+      return [];
+    }
+
+    const credentialEntries = Object.entries(context.project.credentialReferences);
+    const fileNamesByCredentialId = buildSequentialNameFileNames(credentialEntries);
+
+    return credentialEntries.map(([credentialId, credentialData]) => ({
+      id: credentialId,
+      filePath: context.resolver.resolveOutputFilePath(
+        'credentials',
+        credentialId,
+        join(context.paths.credentialsDir, fileNamesByCredentialId[credentialId])
+      ),
+      payload: {
+        credentialId,
+        ...credentialData,
+      } as Parameters<typeof generateCredentialDefinition>[0],
+    }));
+  },
+  generate: generateCredentialDefinition,
+} satisfies GenerationTask<Parameters<typeof generateCredentialDefinition>[0]>;

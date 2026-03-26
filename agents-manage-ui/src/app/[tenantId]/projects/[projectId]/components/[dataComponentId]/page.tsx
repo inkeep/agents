@@ -1,7 +1,6 @@
 import { DataComponentForm } from '@/components/data-components/form/data-component-form';
 import FullPageError from '@/components/errors/full-page-error';
 import { fetchDataComponent } from '@/lib/api/data-components';
-import { fetchProjectPermissions } from '@/lib/api/projects';
 import { serializeJson } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -13,12 +12,11 @@ export default async function DataComponentPage({
   const { tenantId, projectId, dataComponentId } = await params;
 
   try {
-    const [dataComponent, permissions] = await Promise.all([
-      fetchDataComponent(tenantId, projectId, dataComponentId),
-      fetchProjectPermissions(tenantId, projectId),
-    ]);
-
-    const { name, description, props, render } = dataComponent;
+    const { name, description, props, render } = await fetchDataComponent(
+      tenantId,
+      projectId,
+      dataComponentId
+    );
 
     return (
       <DataComponentForm
@@ -26,7 +24,6 @@ export default async function DataComponentPage({
         tenantId={tenantId}
         projectId={projectId}
         id={dataComponentId}
-        readOnly={!permissions.canEdit}
         defaultValues={{
           id: dataComponentId,
           name,

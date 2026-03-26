@@ -1,10 +1,14 @@
+'use client';
+
 import type { ExternalAgentApiSelect, McpTool } from '@inkeep/agents-core';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
+import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 
 interface CredentialResourcesListProps {
   tools?: McpTool[];
   externalAgents?: ExternalAgentApiSelect[];
+  toolId?: string;
   label?: string;
   tenantId?: string;
   projectId?: string;
@@ -97,11 +101,21 @@ function ExternalAgentItem({ externalAgent, tenantId, projectId }: ExternalAgent
 export function CredentialResourcesList({
   tools,
   externalAgents,
+  toolId,
   label = 'Resources using this credential',
   tenantId,
   projectId,
 }: CredentialResourcesListProps) {
-  const hasTools = tools && tools.length > 0;
+  const canFetchTool = !!(toolId && tenantId && projectId);
+  const { data: fetchedTool, isLoading: isLoadingTool } = useMcpToolStatusQuery({
+    tenantId: tenantId ?? '',
+    projectId: projectId ?? '',
+    toolId: toolId ?? '',
+    enabled: canFetchTool,
+  });
+
+  const resolvedTools = toolId ? (fetchedTool ? [fetchedTool] : []) : tools;
+  const hasTools = resolvedTools && resolvedTools.length > 0;
   const hasExternalAgents = externalAgents && externalAgents.length > 0;
   const hasAnyResources = hasTools || hasExternalAgents;
 
@@ -110,12 +124,15 @@ export function CredentialResourcesList({
       <Label>{label}</Label>
       {hasAnyResources ? (
         <div className="space-y-4">
+          {isLoadingTool && canFetchTool && (
+            <div className="text-sm text-muted-foreground p-3 py-2">Loading...</div>
+          )}
           {hasTools && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 MCP Servers
               </p>
-              {tools.map((tool) => (
+              {resolvedTools.map((tool) => (
                 <ToolItem key={tool.id} tool={tool} tenantId={tenantId} projectId={projectId} />
               ))}
             </div>

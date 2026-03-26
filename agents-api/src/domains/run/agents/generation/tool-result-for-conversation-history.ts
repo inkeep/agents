@@ -1,6 +1,6 @@
 import type { MessageContent, Part } from '@inkeep/agents-core';
-import { makeMessageContentParts } from '../../services/blob-storage/image-upload';
-import { buildPersistedMessageContent } from '../../services/blob-storage/image-upload-helpers';
+import { makeMessageContentParts } from '../../services/blob-storage/file-upload';
+import { buildPersistedMessageContent } from '../../services/blob-storage/file-upload-helpers';
 import { isToolResultDenied } from '../../utils/tool-result';
 import type { AgentRunContext } from '../agent-types';
 

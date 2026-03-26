@@ -13,7 +13,6 @@
     "declaration": true,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
     "jsx": "react-jsx",
     "jsxImportSource": "react"
   },

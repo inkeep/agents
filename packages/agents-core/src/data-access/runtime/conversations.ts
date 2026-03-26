@@ -264,8 +264,8 @@ function applyContextWindowManagement(
           a2aTaskId: null,
           a2aSessionId: null,
           metadata: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: referenceMessage.createdAt,
+          updatedAt: referenceMessage.updatedAt,
         };
         managedHistory.unshift(summaryMessage);
       }

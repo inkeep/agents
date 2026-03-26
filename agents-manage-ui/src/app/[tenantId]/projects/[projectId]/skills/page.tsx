@@ -42,12 +42,12 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
   const { tenantId, projectId } = await params;
 
   try {
-    const [skills, permissions] = await Promise.all([
+    const [skills, { canEdit }] = await Promise.all([
       fetchSkills(tenantId, projectId),
       fetchProjectPermissions(tenantId, projectId),
     ]);
 
-    const action = permissions.canEdit ? (
+    const action = canEdit ? (
       <Button asChild className="flex items-center gap-2">
         <NextLink href={`/${tenantId}/projects/${projectId}/skills/new`}>
           <Plus />

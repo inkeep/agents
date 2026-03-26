@@ -49,36 +49,63 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 - **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
 - **`conversationId`** — Optional; server generates one if omitted
 
+## File inputs (images and PDFs)
 
-### Sending Images
+The chat endpoint supports files in message content parts with different rules by type:
 
-Images can be included as part of multi-part message content. Supported formats are **PNG**, **JPEG**, and **WebP**.
+- **Images (`image_url`)**: support either remote URLs (`https://...`) or base64 `data:` URIs
+- **Files (`file`)**: currently support **PDF only**
+- **PDF file inputs**: support either remote URLs (`https://...`) or base64 `data:` payloads
 
-There are two ways to include images:
-
-- **Inline data URIs** — Base64-encoded images with the format `data:image/{png|jpeg|jpg|webp};base64,{data}`
-- **External URLs** — HTTP/HTTPS URLs pointing to hosted images
-
-When both `content` and `parts` are provided, the server keeps all valid `parts` and also includes `content` as text input. If text in `content` and `parts` does not match, the server logs a warning to help identify payload-construction bugs.
+### Request shape for file parts
 
 ```json
 {
   "messages": [
     {
       "role": "user",
-      "content": "What's in this image?",
+      "content": "Summarize these attachments",
       "parts": [
-        { "type": "text", "text": "What's in this image?" },
-        { "type": "image", "text": "data:image/png;base64,iVBORw0KGgo..." }
+        {
+          "type": "text",
+          "text": "Summarize these attachments"
+        },
+        {
+          "type": "image",
+          "text": "https://example.com/image.png"
+        },
+        {
+          "type": "image",
+          "text": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+        },
+        {
+          "type": "file",
+          "url": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...",
+          "mediaType": "application/pdf",
+          "filename": "report.pdf"
+        },
+        {
+          "type": "file",
+          "url": "https://example.com/document.pdf",
+          "mediaType": "application/pdf",
+          "filename": "document.pdf"
+        }
       ]
     }
   ]
 }
 ```
 
-<Note>
-  Images are validated server-side: MIME types are verified against actual content via byte-sniffing, a 10 MB size limit is enforced, and external URLs must use HTTP/HTTPS with no embedded credentials. DNS checks block requests to private/internal IP addresses.
-</Note>
+### Base64 and size requirements
+
+- **Encoding**: data URIs must include a valid base64 payload
+- **Maximum size**: each inline file payload is limited to **10 MB**
+- **Vercel `parts` file typing**: for `/run/api/chat`, file parts use Vercel-compatible shape
+  with `url` (data URI or `https://` for PDFs) and required `mediaType`
+- **Content validation**:
+  - Images are validated against supported image bytes
+  - PDFs must start with the `%PDF-` signature bytes
+- **Remote PDF URLs**: must be reachable over `http` or `https` from the Run API. Unreachable hosts, non-PDF responses, or oversized bodies result in **HTTP 400** with an error message (query strings and fragments on the URL are not preserved in stored metadata).
 
 ### Optional Headers
 

@@ -1,5 +1,0 @@
-{
-  "title": "Triggers",
-  "icon": "LuZap",
-  "pages": ["scheduled", "webhooks"]
-}

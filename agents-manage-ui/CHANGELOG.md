@@ -1,5 +1,101 @@
 # @inkeep/agents-manage-ui
 
+## 0.59.4
+
+### Patch Changes
+
+- 82bd424: Add InputGroup compound component and use it in ProjectSwitcher search input
+- 296c79a: Remove unused tooltip rendering from sidebar nav items to improve performance
+- ef7987f: Replace ad-hoc search input patterns with unified InputGroup compound component
+- 1b37b29: Migrate from individual @radix-ui/react-\* packages to unified radix-ui package
+- 99b5edf: Update TypeScript to 6.0.2
+- 6f1c5da: fix(dashboard): Ensures rounded bottom corners render correctly in dark mode
+- Updated dependencies [be7f056]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+
+## 0.59.3
+
+### Patch Changes
+
+- ed09910: Fix silent error swallowing in pending invitations and add tenant auth to Nango integration actions
+- e2c4c2d: Remove redundant TooltipProvider wrappers to reduce unnecessary React context overhead
+- 6ca8164: v4 to v5 signoz migration
+- b78771b: update Next.js to 16.2.1
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- 028a801: - Replace prop-drilled permission flags (`readOnly`, `canEdit`, `canUse`, `canManage`) with direct consumption via `useProjectPermissionsQuery()` hook in client components
+  - Fix empty breadcrumb on `/[tenantId]/profile` page
+- 6cc27ba: replace manual `useEffect` and `fetchProjectsAction` with `useProjectsQuery` hook and adopt `PageProps` types
+- 825690c: Add back link to sidebar and org settings link to user menu
+- 0b4669f: Fix user-scoped MCP credential card not updating after connect or disconnect without manual page refresh
+  - @inkeep/agents-core@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- eb3a4bb: Fix URL validation bypass and permission guard in credential provider setup
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+- 7ee7de1: Fix scopes field placeholder to show correct comma-separated format expected by Nango API
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+### Patch Changes
+
+- 3d54b6b: Remove `useProject`, `useProjectPermissions`, `useProjectActions`, `useProjectData` in favor of `useProjectPermissionsQuery` and `useProjectQuery` React Query hooks
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- 64b0d88: Improve custom header ux by deriving template json from the headers schema
+  - @inkeep/agents-core@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- 9c06353: Remove `enrichNodes` helper and fix MCP tool image not displaying in sidepane
+- 9e0dd71: fix unauthenticated access to span details
+- ac53c07: rename the api to remove references to signoz
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+  - @inkeep/agents-core@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- f8f16f4: Add GPT-5.4 Mini and GPT-5.4 Nano to model constants, UI picker, and CLI
+- 56a8a91: - Enable sorting for simple tables
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+
+## 0.58.18
+
+### Patch Changes
+
+- ad867c5: Fix Nango MCP integration reuse regression causing 'integration already exists' error on OAuth login
+  - @inkeep/agents-core@0.58.18
+
 ## 0.58.17
 
 ### Patch Changes

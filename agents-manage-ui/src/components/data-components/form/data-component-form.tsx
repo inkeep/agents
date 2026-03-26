@@ -17,6 +17,7 @@ import {
   createDataComponentAction,
   updateDataComponentAction,
 } from '@/lib/actions/data-components';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { cn, isRequired } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
@@ -30,7 +31,6 @@ interface DataComponentFormProps {
   projectId: string;
   id?: string;
   defaultValues?: DataComponentInput;
-  readOnly?: boolean;
   className?: string;
 }
 
@@ -39,9 +39,12 @@ export function DataComponentForm({
   projectId,
   id,
   defaultValues = initialData,
-  readOnly = false,
   className,
 }: DataComponentFormProps) {
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const readOnly = !canEdit;
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm({
     resolver,

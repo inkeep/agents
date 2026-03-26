@@ -19,14 +19,13 @@ vi.mock('../blob-storage/storage-keys', () => ({
   ),
 }));
 
-const SMALL_BASE64 = 'aGVsbG8=';
-const LARGE_BASE64 = Buffer.from('x'.repeat(200)).toString('base64');
+const SAMPLE_BASE64 = Buffer.from('sample image bytes').toString('base64');
 
 const CTX = { tenantId: 'tenant-1', projectId: 'proj-1', artifactId: 'art-1' };
 
 describe('stripBinaryDataForObservability', () => {
   it('replaces image part data with placeholder', () => {
-    const input = { type: 'image', data: LARGE_BASE64, mimeType: 'image/png' };
+    const input = { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/png' };
     const result = stripBinaryDataForObservability(input) as any;
     expect(result.type).toBe('image');
     expect(result.data).toMatch(/^\[binary data ~\d+ bytes, mimeType: image\/png\]$/);
@@ -34,7 +33,7 @@ describe('stripBinaryDataForObservability', () => {
   });
 
   it('replaces file part data with placeholder', () => {
-    const input = { type: 'file', data: LARGE_BASE64, mimeType: 'application/pdf' };
+    const input = { type: 'file', data: SAMPLE_BASE64, mimeType: 'application/pdf' };
     const result = stripBinaryDataForObservability(input) as any;
     expect(result.data).toMatch(/^\[binary data ~\d+ bytes/);
   });
@@ -45,23 +44,27 @@ describe('stripBinaryDataForObservability', () => {
     expect(result.data).toBe('blob://some/key');
   });
 
-  it('leaves small strings untouched (below 100 char threshold)', () => {
-    const input = { type: 'image', data: SMALL_BASE64, mimeType: 'image/png' };
-    const result = stripBinaryDataForObservability(input) as any;
-    expect(result.data).toBe(SMALL_BASE64);
-  });
-
   it('leaves http URLs untouched', () => {
     const input = { type: 'image', data: 'https://example.com/img.png', mimeType: 'image/png' };
     const result = stripBinaryDataForObservability(input) as any;
     expect(result.data).toBe('https://example.com/img.png');
   });
 
+  it('strips data: URIs', () => {
+    const input = {
+      type: 'image',
+      data: 'data:image/png;base64,iVBORw0KGgo=',
+      mimeType: 'image/png',
+    };
+    const result = stripBinaryDataForObservability(input) as any;
+    expect(result.data).toMatch(/^\[binary data/);
+  });
+
   it('recursively strips nested binary parts', () => {
     const input = {
       toolResult: [
         { type: 'text', text: 'Ticket info' },
-        { type: 'image', data: LARGE_BASE64, mimeType: 'image/jpeg' },
+        { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/jpeg' },
       ],
     };
     const result = stripBinaryDataForObservability(input) as any;
@@ -72,7 +75,7 @@ describe('stripBinaryDataForObservability', () => {
   it('handles arrays at top level', () => {
     const input = [
       { type: 'text', text: 'hi' },
-      { type: 'image', data: LARGE_BASE64, mimeType: 'image/png' },
+      { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/png' },
     ];
     const result = stripBinaryDataForObservability(input) as any[];
     expect(result[0]).toEqual({ type: 'text', text: 'hi' });
@@ -109,7 +112,7 @@ describe('sanitizeArtifactBinaryData', () => {
   });
 
   it('uploads an inline image part and replaces data with blob:// URI', async () => {
-    const input = { type: 'image', data: LARGE_BASE64, mimeType: 'image/png' };
+    const input = { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/png' };
     const result = (await sanitizeArtifactBinaryData(input, CTX)) as any;
 
     expect(mockUpload).toHaveBeenCalledOnce();
@@ -119,7 +122,7 @@ describe('sanitizeArtifactBinaryData', () => {
   });
 
   it('preserves non-binary fields on the image part', async () => {
-    const input = { type: 'image', data: LARGE_BASE64, mimeType: 'image/jpeg', extra: 'keep' };
+    const input = { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/jpeg', extra: 'keep' };
     const result = (await sanitizeArtifactBinaryData(input, CTX)) as any;
     expect(result.extra).toBe('keep');
   });
@@ -134,7 +137,7 @@ describe('sanitizeArtifactBinaryData', () => {
     const input = {
       toolResult: [
         { type: 'text', text: 'Ticket data' },
-        { type: 'image', data: LARGE_BASE64, mimeType: 'image/png' },
+        { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/png' },
       ],
       toolName: 'get-zendesk-ticket',
     };
@@ -149,8 +152,8 @@ describe('sanitizeArtifactBinaryData', () => {
   it('uploads multiple image parts independently', async () => {
     const input = {
       images: [
-        { type: 'image', data: LARGE_BASE64, mimeType: 'image/png' },
-        { type: 'image', data: LARGE_BASE64, mimeType: 'image/jpeg' },
+        { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/png' },
+        { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/jpeg' },
       ],
     };
     await sanitizeArtifactBinaryData(input, CTX);
@@ -170,7 +173,7 @@ describe('sanitizeArtifactBinaryData', () => {
   });
 
   it('produces a deterministic blob:// URI via content hash', async () => {
-    const input = { type: 'image', data: LARGE_BASE64, mimeType: 'image/png' };
+    const input = { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/png' };
     const r1 = (await sanitizeArtifactBinaryData(input, CTX)) as any;
     const r2 = (await sanitizeArtifactBinaryData(input, CTX)) as any;
     expect(r1.data).toBe(r2.data);
@@ -178,12 +181,35 @@ describe('sanitizeArtifactBinaryData', () => {
 
   it('handles circular references safely', async () => {
     const input: Record<string, unknown> = {
-      toolResult: [{ type: 'image', data: LARGE_BASE64, mimeType: 'image/png' }],
+      toolResult: [{ type: 'image', data: SAMPLE_BASE64, mimeType: 'image/png' }],
     };
     input.self = input;
 
     const result = (await sanitizeArtifactBinaryData(input, CTX)) as Record<string, unknown>;
     expect(result.self).toBe('[Circular Reference]');
     expect(mockUpload).toHaveBeenCalledOnce();
+  });
+
+  it('uploads data: URI parts, extracting base64 payload and mimeType from the prefix', async () => {
+    const base64Payload = Buffer.from('png bytes').toString('base64');
+    const input = {
+      type: 'image',
+      data: `data:image/png;base64,${base64Payload}`,
+      mimeType: 'image/jpeg',
+    };
+    const result = (await sanitizeArtifactBinaryData(input, CTX)) as any;
+    expect(mockUpload).toHaveBeenCalledOnce();
+    const { data: uploadedData, contentType } = mockUpload.mock.calls[0][0];
+    expect(uploadedData).toEqual(Buffer.from(base64Payload, 'base64'));
+    expect(contentType).toBe('image/png');
+    expect(result.data).toMatch(/^blob:\/\//);
+  });
+
+  it('returns original inline data when upload fails', async () => {
+    mockUpload.mockRejectedValueOnce(new Error('storage unavailable'));
+    const input = { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/png' };
+    const result = (await sanitizeArtifactBinaryData(input, CTX)) as any;
+    expect(result.data).toBe(SAMPLE_BASE64);
+    expect(result.type).toBe('image');
   });
 });

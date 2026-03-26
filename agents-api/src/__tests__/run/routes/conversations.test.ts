@@ -278,34 +278,37 @@ describe('Run API - End-User Conversation History', () => {
       });
 
       await createMessage(runDbClient)({
-        id: `msg-${crypto.randomUUID()}`,
-        tenantId,
-        projectId,
-        conversationId: conv.id,
-        role: 'user',
-        content: { text: 'Hello, I need help' },
-        visibility: 'user-facing',
-        messageType: 'chat',
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'user',
+          content: { text: 'Hello, I need help' },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
       });
       await createMessage(runDbClient)({
-        id: `msg-${crypto.randomUUID()}`,
-        tenantId,
-        projectId,
-        conversationId: conv.id,
-        role: 'agent',
-        content: { text: 'Sure, how can I help?' },
-        visibility: 'user-facing',
-        messageType: 'chat',
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'agent',
+          content: { text: 'Sure, how can I help?' },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
       });
       await createMessage(runDbClient)({
-        id: `msg-${crypto.randomUUID()}`,
-        tenantId,
-        projectId,
-        conversationId: conv.id,
-        role: 'system',
-        content: { text: 'Internal routing note' },
-        visibility: 'internal',
-        messageType: 'chat',
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'system',
+          content: { text: 'Internal routing note' },
+          visibility: 'internal',
+          messageType: 'chat',
+        },
       });
 
       return { tenantId, projectId, appId, token, anonUserId, conv };
@@ -449,14 +452,15 @@ describe('Run API - End-User Conversation History', () => {
       });
 
       await createMessage(runDbClient)({
-        id: `msg-${crypto.randomUUID()}`,
-        tenantId,
-        projectId,
-        conversationId: conv.id,
-        role: 'user',
-        content: { text: 'What is the weather like today?' },
-        visibility: 'user-facing',
-        messageType: 'chat',
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'user',
+          content: { text: 'What is the weather like today?' },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
       });
 
       const res = await app.request(`/run/v1/conversations/${conv.id}`, {
@@ -489,27 +493,28 @@ describe('Run API - End-User Conversation History', () => {
       });
 
       await createMessage(runDbClient)({
-        id: `msg-${crypto.randomUUID()}`,
-        tenantId,
-        projectId,
-        conversationId: conv.id,
-        role: 'agent',
-        content: {
-          text: 'Here is the result',
-          parts: [
-            { kind: 'text', text: 'Here is the result' },
-            {
-              kind: 'data',
-              data: JSON.stringify({
-                type: 'artifact',
-                title: 'Code Example',
-                content: 'console.log("hello")',
-              }),
-            },
-          ],
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'agent',
+          content: {
+            text: 'Here is the result',
+            parts: [
+              { kind: 'text', text: 'Here is the result' },
+              {
+                kind: 'data',
+                data: JSON.stringify({
+                  type: 'artifact',
+                  title: 'Code Example',
+                  content: 'console.log("hello")',
+                }),
+              },
+            ],
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
         },
-        visibility: 'user-facing',
-        messageType: 'chat',
       });
 
       const res = await app.request(`/run/v1/conversations/${conv.id}`, {
@@ -549,27 +554,28 @@ describe('Run API - End-User Conversation History', () => {
       });
 
       await createMessage(runDbClient)({
-        id: `msg-${crypto.randomUUID()}`,
-        tenantId,
-        projectId,
-        conversationId: conv.id,
-        role: 'agent',
-        content: {
-          text: 'Here is the artifact',
-          parts: [
-            { kind: 'text', text: 'Here is the artifact' },
-            {
-              kind: 'data',
-              data: JSON.stringify({
-                artifactId: 'art-123',
-                toolCallId: 'call-456',
-                content: 'some artifact content',
-              }),
-            },
-          ],
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'agent',
+          content: {
+            text: 'Here is the artifact',
+            parts: [
+              { kind: 'text', text: 'Here is the artifact' },
+              {
+                kind: 'data',
+                data: JSON.stringify({
+                  artifactId: 'art-123',
+                  toolCallId: 'call-456',
+                  content: 'some artifact content',
+                }),
+              },
+            ],
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
         },
-        visibility: 'user-facing',
-        messageType: 'chat',
       });
 
       const res = await app.request(`/run/v1/conversations/${conv.id}`, {
@@ -607,20 +613,21 @@ describe('Run API - End-User Conversation History', () => {
       });
 
       await createMessage(runDbClient)({
-        id: `msg-${crypto.randomUUID()}`,
-        tenantId,
-        projectId,
-        conversationId: conv.id,
-        role: 'agent',
-        content: {
-          text: 'Legacy response',
-          parts: [
-            { type: 'text', text: 'Legacy response' } as any,
-            { type: 'data', data: JSON.stringify({ component: 'chart' }) } as any,
-          ],
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'agent',
+          content: {
+            text: 'Legacy response',
+            parts: [
+              { type: 'text', text: 'Legacy response' } as any,
+              { type: 'data', data: JSON.stringify({ component: 'chart' }) } as any,
+            ],
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
         },
-        visibility: 'user-facing',
-        messageType: 'chat',
       });
 
       const res = await app.request(`/run/v1/conversations/${conv.id}`, {
@@ -656,20 +663,21 @@ describe('Run API - End-User Conversation History', () => {
       });
 
       await createMessage(runDbClient)({
-        id: `msg-${crypto.randomUUID()}`,
-        tenantId,
-        projectId,
-        conversationId: conv.id,
-        role: 'user',
-        content: {
-          text: 'Check this image',
-          parts: [
-            { kind: 'text', text: 'Check this image' },
-            { kind: 'file', data: 'base64data', metadata: { mimeType: 'image/png' } },
-          ],
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'user',
+          content: {
+            text: 'Check this image',
+            parts: [
+              { kind: 'text', text: 'Check this image' },
+              { kind: 'file', data: 'base64data', metadata: { mimeType: 'image/png' } },
+            ],
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
         },
-        visibility: 'user-facing',
-        messageType: 'chat',
       });
 
       const res = await app.request(`/run/v1/conversations/${conv.id}`, {
@@ -683,8 +691,8 @@ describe('Run API - End-User Conversation History', () => {
       expect(msg.parts[0]).toEqual({ type: 'text', text: 'Check this image' });
       expect(msg.parts[1]).toEqual({
         type: 'file',
-        data: 'base64data',
-        metadata: { mimeType: 'image/png' },
+        url: 'base64data',
+        mediaType: 'image/png',
       });
     });
 
@@ -709,20 +717,21 @@ describe('Run API - End-User Conversation History', () => {
       });
 
       await createMessage(runDbClient)({
-        id: `msg-${crypto.randomUUID()}`,
-        tenantId,
-        projectId,
-        conversationId: conv.id,
-        role: 'agent',
-        content: {
-          text: 'Response with bad data',
-          parts: [
-            { kind: 'text', text: 'Response with bad data' },
-            { kind: 'data', data: '{invalid json' },
-          ],
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'agent',
+          content: {
+            text: 'Response with bad data',
+            parts: [
+              { kind: 'text', text: 'Response with bad data' },
+              { kind: 'data', data: '{invalid json' },
+            ],
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
         },
-        visibility: 'user-facing',
-        messageType: 'chat',
       });
 
       const res = await app.request(`/run/v1/conversations/${conv.id}`, {

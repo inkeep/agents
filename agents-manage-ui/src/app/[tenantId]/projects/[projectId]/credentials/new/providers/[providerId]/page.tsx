@@ -29,7 +29,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthClient } from '@/contexts/auth-client';
-import { useProjectPermissions } from '@/contexts/project';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
@@ -42,6 +41,7 @@ import {
   updateNangoIntegrationCredentials,
 } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -51,7 +51,9 @@ function ProviderSetupPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers/[providerId]'>) {
   const router = useRouter();
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { providers, loading: providersLoading } = useNangoProviders();
   const [loading, setLoading] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
@@ -65,16 +67,16 @@ function ProviderSetupPage({
   const authClient = useAuthClient();
   const { providerId, tenantId, projectId } = use(params);
 
+  const provider = providers?.find((p: ApiProvider) => encodeURIComponent(p.name) === providerId);
+
   useEffect(() => {
     if (!canEdit) {
       router.replace(`/${tenantId}/projects/${projectId}/credentials`);
     }
   }, [canEdit, router, tenantId, projectId]);
 
-  const provider = providers?.find((p: ApiProvider) => encodeURIComponent(p.name) === providerId);
-
   useEffect(() => {
-    if (!provider || !requiresCredentialForm(provider.auth_mode)) return;
+    if (!canEdit || !provider || !requiresCredentialForm(provider.auth_mode)) return;
     const load = async () => {
       try {
         const result = await listNangoProviderIntegrations(provider.name, tenantId);
@@ -84,11 +86,11 @@ function ProviderSetupPage({
       }
     };
     load();
-  }, [provider, tenantId]);
+  }, [canEdit, provider, tenantId]);
 
   const handleNangoConnect = useCallback(
     async (event: any) => {
-      if (!provider || event.type !== 'connect') return;
+      if (!canEdit || !provider || event.type !== 'connect') return;
 
       if (!event.payload?.connectionId || !event.payload?.providerConfigKey) {
         console.error('Missing required connection data:', event.payload);
@@ -122,12 +124,12 @@ function ProviderSetupPage({
         }
       }
     },
-    [provider, tenantId, projectId, router, user?.email]
+    [canEdit, provider, tenantId, projectId, router, user?.email]
   );
 
   const startConnectFlow = useCallback(
     async (integrationKey: string, credentials?: Record<string, any>) => {
-      if (!provider) return;
+      if (!canEdit || !provider) return;
 
       const { data: organizationData } = await authClient.organization.getFullOrganization();
 
@@ -168,12 +170,21 @@ function ProviderSetupPage({
         setLoading(false);
       }
     },
-    [provider, openNangoConnect, handleNangoConnect, user?.id, user?.email, user?.name, authClient]
+    [
+      canEdit,
+      provider,
+      openNangoConnect,
+      handleNangoConnect,
+      user?.id,
+      user?.email,
+      user?.name,
+      authClient,
+    ]
   );
 
   const handleCreateNewIntegration = useCallback(
     async (credentials?: Record<string, any>) => {
-      if (!provider) return;
+      if (!canEdit || !provider) return;
 
       const integrationKey = `${provider.name}-${tenantId}-${generateId().slice(0, 6)}`;
 
@@ -186,12 +197,12 @@ function ProviderSetupPage({
         console.error('Failed to refresh integrations list:', error);
       }
     },
-    [provider, tenantId, startConnectFlow]
+    [canEdit, provider, tenantId, startConnectFlow]
   );
 
   const handleUpdateCredentials = useCallback(
     async (credentials?: Record<string, any>) => {
-      if (!provider || !credentials || formMode.type !== 'update') return;
+      if (!canEdit || !provider || !credentials || formMode.type !== 'update') return;
 
       setLoading(true);
       try {
@@ -204,6 +215,7 @@ function ProviderSetupPage({
         await updateNangoIntegrationCredentials({
           uniqueKey: formMode.integrationKey,
           credentials: payload,
+          tenantId,
         });
 
         toast.success('App credentials updated');
@@ -226,16 +238,16 @@ function ProviderSetupPage({
         setLoading(false);
       }
     },
-    [provider, tenantId, formMode]
+    [canEdit, provider, tenantId, formMode]
   );
 
   const handleDeleteIntegration = useCallback(
     async (uniqueKey: string) => {
-      if (!provider) return;
+      if (!canEdit || !provider) return;
 
       setLoading(true);
       try {
-        await deleteNangoIntegration(uniqueKey);
+        await deleteNangoIntegration(uniqueKey, tenantId);
         toast.success('OAuth app deleted');
 
         try {
@@ -255,19 +267,23 @@ function ProviderSetupPage({
         setLoading(false);
       }
     },
-    [provider, tenantId]
+    [canEdit, provider, tenantId]
   );
 
   const cancelToInterstitial = useCallback(() => setFormMode({ type: 'idle' }), []);
 
   useEffect(() => {
-    if (!provider || loading || hasAttempted) return;
+    if (!canEdit || !provider || loading || hasAttempted) return;
     if (!requiresCredentialForm(provider.auth_mode)) {
       startConnectFlow(`${provider.name}-${tenantId}`);
     }
-  }, [provider, loading, hasAttempted, startConnectFlow, tenantId]);
+  }, [canEdit, provider, loading, hasAttempted, startConnectFlow, tenantId]);
 
   const backLink = `/${tenantId}/projects/${projectId}/credentials/new/providers` as const;
+
+  if (!canEdit) {
+    return null;
+  }
 
   if (providersLoading) {
     return <div className="flex items-center justify-center h-64">Loading provider...</div>;
