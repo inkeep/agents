@@ -8,6 +8,7 @@ import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
+import { getModelInheritanceStatus } from '@/components/ui/inheritance-indicator';
 import { STATIC_LABELS } from '@/constants/theme';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
@@ -26,7 +27,6 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
-import { getModelInheritanceStatus } from '@/components/ui/inheritance-indicator';
 
 const ListSection: FC<{
   title: string;

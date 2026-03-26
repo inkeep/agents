@@ -45,11 +45,15 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const form = useFullAgentFormContext();
   const id = selectedNode.data.toolId;
   const functionId = useWatch({ control: form.control, name: `functionTools.${id}.functionId` });
-  const path = <K extends string>(key: K) => `functionTools.${id}.${key}` as const;
-  const path$ = <K extends string>(key: K) => `functions.${functionId}.${key}` as const;
-
   const [isWriteWithAIDialogOpen, setIsWriteWithAIDialogOpen] = useState(false);
   const [writeWithAIInstructions, setWriteWithAIInstructions] = useState('');
+  // if we remove function tool, functionId can be undefined
+  if (!functionId) {
+    return;
+  }
+
+  const path = <K extends string>(key: K) => `functionTools.${id}.${key}` as const;
+  const path$ = <K extends string>(key: K) => `functions.${functionId}.${key}` as const;
 
   const handleWriteWithAISubmit = () => {
     if (!chatFunctionsRef?.current) return;

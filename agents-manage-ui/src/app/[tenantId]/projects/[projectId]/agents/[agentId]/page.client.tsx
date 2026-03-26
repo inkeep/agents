@@ -378,18 +378,19 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
     onEdgesChangeAction(changes);
 
-    requestAnimationFrame(() => {
-      for (const relationKey of removedMcpRelationKeys) {
-        form.setValue(`mcpRelations.${relationKey}.relationshipId`, undefined, {
-          shouldDirty: true,
-        });
-      }
-      for (const relationKey of removedFunctionToolRelationKeys) {
-        form.setValue(`functionToolRelations.${relationKey}.relationshipId`, undefined, {
-          shouldDirty: true,
-        });
-      }
-    });
+    const ids = [
+      ...removedMcpRelationKeys.flatMap(
+        (relationKey) =>
+          [
+            `mcpRelations.${relationKey}.relationshipId`,
+            `mcpRelations.${relationKey}.headers`,
+          ] as const
+      ),
+      ...removedFunctionToolRelationKeys.map(
+        (relationKey) => `functionToolRelations.${relationKey}.relationshipId` as const
+      ),
+    ];
+    form.unregister(ids);
   };
 
   const onConnectWrapped: ReactFlowProps['onConnect'] = (params) => {
@@ -688,7 +689,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         console.error('Failed to parse validation errors:', parseError);
         toast.error('Failed to save agent', { closeButton: true });
       }
-    }
+    },
+    console.error
   );
 
   // React Flow selection can stay the same while a selected node/edge gets a new graph key,
@@ -836,9 +838,9 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
                 const functionId = form.getValues(`functionTools.${toolId}.functionId`);
                 const relationKey = getNodeGraphKey(node);
                 form.unregister([
-                  `functions.${functionId}`,
+                  ...(functionId ? ([`functions.${functionId}`] as const) : []),
                   `functionTools.${toolId}`,
-                  ...(relationKey ? [`functionToolRelations.${relationKey}` as const] : []),
+                  ...(relationKey ? ([`functionToolRelations.${relationKey}`] as const) : []),
                 ]);
               } else if (isNodeType(node, NodeType.MCP)) {
                 form.unregister(`mcpRelations.${getMcpRelationFormKey({ nodeId: node.id })}`);
