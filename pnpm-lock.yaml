@@ -6,12 +6,6 @@ settings:
 
 catalogs:
   default:
-    '@better-auth/infra':
-      specifier: 0.1.11
-      version: 0.1.11
-    '@better-auth/sso':
-      specifier: 1.5.5
-      version: 1.5.5
     '@opentelemetry/api':
       specifier: ^1.9.0
       version: 1.9.0
@@ -42,9 +36,6 @@ catalogs:
     '@opentelemetry/semantic-conventions':
       specifier: ^1.39.0
       version: 1.39.0
-    better-auth:
-      specifier: 1.5.5
-      version: 1.5.5
 
 overrides:
   '@hono/node-server': '>=1.19.10'
@@ -186,9 +177,6 @@ importers:
       '@vercel/sandbox':
         specifier: ^0.0.24
         version: 0.0.24
-      '@workflow/ai':
-        specifier: ^4.0.1-beta.54
-        version: 4.0.1-beta.56(ai@6.0.14(zod@4.3.6))(workflow@4.2.0-beta.67(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.0)(@swc/cli@0.8.0(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.5.2)(next@16.2.1(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-router@7.13.1(react-dom@19.2.3(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(typescript@6.0.2))
       '@workflow/builders':
         specifier: ^4.0.1-beta.58
         version: 4.0.1-beta.59(@opentelemetry/api@1.9.0)
@@ -212,7 +200,7 @@ importers:
         version: 1.4.1
       axios:
         specifier: ^1.13.5
-        version: 1.13.5(debug@4.4.3)
+        version: 1.13.5
       cron-parser:
         specifier: ^5.5.0
         version: 5.5.0
@@ -1351,12 +1339,6 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/openai-compatible@2.0.37':
-    resolution: {integrity: sha512-+POSFVcgiu47BK64dhsI6OpcDC0/VAE2ZSaXdXGNNhpC/ava++uSRJYks0k2bpfY0wwCTgpAWZsXn/dG2Yppiw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
   '@ai-sdk/openai-compatible@2.0.4':
     resolution: {integrity: sha512-kzsXyybJKM3wtUtGZkNbvmpDwqpsvg/hTjlPZe3s/bCx3enVdAlRtXD853nnj6mZjteNCDLoR2OgVLuDpyRN5Q==}
     engines: {node: '>=18'}
@@ -1393,12 +1375,6 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4
 
-  '@ai-sdk/provider-utils@4.0.21':
-    resolution: {integrity: sha512-MtFUYI1/8mgDvRmaBDjbLJPFFrMG777AvSgyIFQtZHIMzm88R/12vYBBpnk7pfiWLFE1DSZzY4WDYzGbKAcmiw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
   '@ai-sdk/provider-utils@4.0.4':
     resolution: {integrity: sha512-VxhX0B/dWGbpNHxrKCWUAJKXIXV015J4e7qYjdIU9lLWeptk0KMLGcqkB4wFxff5Njqur8dt8wRi1MN9lZtDqg==}
     engines: {node: '>=18'}
@@ -1427,10 +1403,6 @@ packages:
     resolution: {integrity: sha512-5KXyBOSEX+l67elrEa+wqo/LSsSTtrPj9Uoh3zMbe/ceQX4ucHI3b9nUEfNkGF3Ry1svv90widAt+aiKdIJasQ==}
     engines: {node: '>=18'}
 
-  '@ai-sdk/provider@3.0.8':
-    resolution: {integrity: sha512-oGMAgGoQdBXbZqNG0Ze56CHjDZ1IDYOwGYxYjO5KLSlz5HiNQ9udIXsPZ61VWaHGZ5XW/jyjmr6t2xz2jGVwbQ==}
-    engines: {node: '>=18'}
-
   '@ai-sdk/react@2.0.5':
     resolution: {integrity: sha512-rXcraxZ+cAwKWS/wbCIx9gl1Ep7DNmOXTtB/U2WPSEpez4kc+A/2dwibJqRQ9wujbRv05jsTTVLUjE92Ovzhyg==}
     engines: {node: '>=18'}
@@ -1452,12 +1424,6 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.23.8
-
-  '@ai-sdk/xai@3.0.74':
-    resolution: {integrity: sha512-HDDLsT+QrzE3c2QZLRV/HKAwMtXDb0PMDdk1PYUXLJ3r9Qv76zGKGyvJLX7Pu6c8TOHD1mwLrOVYrsTpC/eTMw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -9165,12 +9131,6 @@ packages:
   '@webassemblyjs/wast-printer@1.14.1':
     resolution: {integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==}
 
-  '@workflow/ai@4.0.1-beta.56':
-    resolution: {integrity: sha512-H6yllzz1lrP+QDnTzbpzc/yfwAH4u/lLgKJUMp1ae7vUyLC8V8lSZZ1pMYkFDOhFJAO9tSAU7HUWMPMh4i/AGA==}
-    peerDependencies:
-      ai: ^5 || ^6
-      workflow: ^4.2.0-beta.69
-
   '@workflow/astro@4.0.0-beta.41':
     resolution: {integrity: sha512-CHpZduft3RFjlpsbAidIhHrGifYtj/y4ueb/+BqWLagt/Vlye9lTn/RPOvfJLcXL/bkn8fo+22giIwZCCGK1/A==}
 
@@ -16506,13 +16466,6 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.4(zod@4.3.6)
       zod: 4.3.6
 
-  '@ai-sdk/openai-compatible@2.0.37(zod@4.3.6)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.8
-      '@ai-sdk/provider-utils': 4.0.21(zod@4.3.6)
-      zod: 4.3.6
-    optional: true
-
   '@ai-sdk/openai-compatible@2.0.4(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.2
@@ -16552,14 +16505,6 @@ snapshots:
       zod: 4.3.6
       zod-to-json-schema: 3.25.1(zod@4.3.6)
 
-  '@ai-sdk/provider-utils@4.0.21(zod@4.3.6)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.8
-      '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.0.6
-      zod: 4.3.6
-    optional: true
-
   '@ai-sdk/provider-utils@4.0.4(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.2
@@ -16589,11 +16534,6 @@ snapshots:
   '@ai-sdk/provider@3.0.4':
     dependencies:
       json-schema: 0.4.0
-
-  '@ai-sdk/provider@3.0.8':
-    dependencies:
-      json-schema: 0.4.0
-    optional: true
 
   '@ai-sdk/react@2.0.5(react@19.2.0)(zod@4.3.6)':
     dependencies:
@@ -16631,14 +16571,6 @@ snapshots:
       '@ai-sdk/provider-utils': 2.2.8(zod@4.3.6)
       zod: 4.3.6
       zod-to-json-schema: 3.25.1(zod@4.3.6)
-
-  '@ai-sdk/xai@3.0.74(zod@4.3.6)':
-    dependencies:
-      '@ai-sdk/openai-compatible': 2.0.37(zod@4.3.6)
-      '@ai-sdk/provider': 3.0.8
-      '@ai-sdk/provider-utils': 4.0.21(zod@4.3.6)
-      zod: 4.3.6
-    optional: true
 
   '@alloc/quick-lru@5.2.0': {}
 
@@ -28060,19 +27992,6 @@ snapshots:
       '@xtuc/long': 4.2.2
     optional: true
 
-  '@workflow/ai@4.0.1-beta.56(ai@6.0.14(zod@4.3.6))(workflow@4.2.0-beta.67(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.0)(@swc/cli@0.8.0(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.5.2)(next@16.2.1(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-router@7.13.1(react-dom@19.2.3(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(typescript@6.0.2))':
-    dependencies:
-      '@ai-sdk/provider': 3.0.2
-      ai: 6.0.14(zod@4.3.6)
-      workflow: 4.2.0-beta.67(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.0)(@swc/cli@0.8.0(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.5.2)(next@16.2.1(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-router@7.13.1(react-dom@19.2.3(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(typescript@6.0.2)
-      zod: 4.3.6
-    optionalDependencies:
-      '@ai-sdk/anthropic': 3.0.7(zod@4.3.6)
-      '@ai-sdk/gateway': 3.0.9(zod@4.3.6)
-      '@ai-sdk/google': 3.0.4(zod@4.3.6)
-      '@ai-sdk/openai': 3.0.7(zod@4.3.6)
-      '@ai-sdk/xai': 3.0.74(zod@4.3.6)
-
   '@workflow/astro@4.0.0-beta.41(@opentelemetry/api@1.9.0)':
     dependencies:
       '@swc/core': 1.15.3
@@ -28986,6 +28905,14 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  axios@1.13.5:
+    dependencies:
+      follow-redirects: 1.15.11
+      form-data: 4.0.5
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
+
   axios@1.13.5(debug@4.4.3):
     dependencies:
       follow-redirects: 1.15.11(debug@4.4.3)
@@ -29330,7 +29257,7 @@ snapshots:
 
   bun-types@1.3.5:
     dependencies:
-      '@types/node': 22.19.3
+      '@types/node': 20.19.27
 
   bun@1.3.5:
     optionalDependencies:
@@ -31055,6 +30982,8 @@ snapshots:
       fs-extra: 10.1.0
     transitivePeerDependencies:
       - supports-color
+
+  follow-redirects@1.15.11: {}
 
   follow-redirects@1.15.11(debug@4.4.3):
     optionalDependencies:
@@ -33430,7 +33359,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.3.0-canary-87ae75b3-20260128
       react-dom: 19.2.3(react@19.3.0-canary-87ae75b3-20260128)
-      styled-jsx: 5.1.6(@babel/core@7.28.5)(react@19.3.0-canary-87ae75b3-20260128)
+      styled-jsx: 5.1.6(react@19.3.0-canary-87ae75b3-20260128)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.2.1
       '@next/swc-darwin-x64': 16.2.1
@@ -35412,7 +35341,7 @@ snapshots:
     dependencies:
       '@img/colour': 1.0.0
       detect-libc: 2.1.2
-      semver: 7.7.3
+      semver: 7.7.4
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.5
       '@img/sharp-darwin-x64': 0.34.5
@@ -35863,6 +35792,12 @@ snapshots:
     dependencies:
       client-only: 0.0.1
       react: 19.2.3
+    optional: true
+
+  styled-jsx@5.1.6(react@19.3.0-canary-87ae75b3-20260128):
+    dependencies:
+      client-only: 0.0.1
+      react: 19.3.0-canary-87ae75b3-20260128
     optional: true
 
   stylis@4.3.6: {}
