@@ -26,6 +26,7 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
+import { getModelInheritanceStatus } from '@/components/ui/inheritance-indicator';
 
 const ListSection: FC<{
   title: string;
@@ -77,7 +78,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const isDefault = id === defaultSubAgentNodeId;
   const projectModel = project?.models;
   const modelName =
-    subAgent.models?.base.model ?? agentModel.base.model ?? projectModel?.base.model ?? '';
+    subAgent.models.base.model ?? agentModel.base.model ?? projectModel?.base.model ?? '';
 
   const dataComponentsById = createLookup(dataComponents);
   const artifactComponentsById = createLookup(artifactComponents);
@@ -97,6 +98,13 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     anthropic: AnthropicIcon,
     google: GoogleIcon,
   }[modelSlug];
+
+  const inheritance = getModelInheritanceStatus(
+    'subagent',
+    subAgent.models.base.model,
+    agentModel.base.model,
+    projectModel?.base.model
+  );
 
   return (
     <BaseNode
@@ -128,7 +136,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
         </div>
         <Badge className="text-xs max-w-full" variant="code">
           {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
-          <span className="truncate">{modelName}</span> {!subAgent.models && '(inherited)'}
+          <span className="truncate">{modelName}</span> {inheritance.inheritedFrom && '(inherited)'}
         </Badge>
         {dataComponentNames?.length > 0 && (
           <ListSection
