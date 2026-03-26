@@ -410,6 +410,26 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
   const userId = c.get('userId');
   const isCreate = c.get('isProjectCreate') ?? false;
 
+  if (isCreate) {
+    const { resolveEntitlement } = await import('@inkeep/agents-core');
+    const limit = await resolveEntitlement(runDbClient, tenantId, QUOTA_RESOURCE_TYPES.PROJECT);
+    if (limit !== null) {
+      const current = await countProjectsInRuntime(runDbClient)({ tenantId });
+      if (current >= limit) {
+        throw createApiError({
+          code: 'payment_required',
+          message: `Project limit reached (${current}/${limit})`,
+          instance: c.req.path,
+          extensions: {
+            resourceType: QUOTA_RESOURCE_TYPES.PROJECT,
+            current,
+            limit,
+          },
+        });
+      }
+    }
+  }
+
   try {
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
 

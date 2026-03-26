@@ -1,3 +1,4 @@
+import { APIError } from 'better-auth/api';
 import {
   dalCountMembersByRoleBucket,
   dalCountPendingInvitationsByRoleBucket,
@@ -57,7 +58,13 @@ export async function enforcePerRoleSeatLimit(
       { orgId, role, bucket, currentCount: current, maxValue: limit, action: 'enforce' },
       `${bucket} seat limit reached (${current}/${limit})`
     );
-    throw new Error(`${bucket} seat limit reached (${current}/${limit})`);
+    throw new APIError('PAYMENT_REQUIRED', {
+      message: `${bucket} seat limit reached (${current}/${limit})`,
+      code: 'ENTITLEMENT_LIMIT_REACHED',
+      resourceType,
+      current,
+      limit,
+    });
   }
 }
 

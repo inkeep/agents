@@ -177,6 +177,24 @@ describe('enforcePerRoleSeatLimit', () => {
     );
   });
 
+  it('throws APIError with structured body when at capacity', async () => {
+    await seedOrg();
+    await seedUser('inviter-user');
+    await seedEntitlement(SEAT_RESOURCE_TYPES.ADMIN, 1);
+    await seedMember('admin-1', 'admin');
+
+    try {
+      await enforcePerRoleSeatLimit(testRunDbClient, ORG_ID, 'admin');
+      expect.unreachable('should have thrown');
+    } catch (error: any) {
+      expect(error.status).toBe('PAYMENT_REQUIRED');
+      expect(error.body.code).toBe('ENTITLEMENT_LIMIT_REACHED');
+      expect(error.body.resourceType).toBe('seat:admin');
+      expect(error.body.current).toBe(1);
+      expect(error.body.limit).toBe(1);
+    }
+  });
+
   it('allows when no entitlement row exists (uncapped)', async () => {
     await seedOrg();
     await seedUser('inviter-user');
