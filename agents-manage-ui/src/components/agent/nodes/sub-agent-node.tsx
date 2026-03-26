@@ -76,9 +76,6 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     artifactComponents: artifactComponentIds = [],
   } = subAgent;
   const isDefault = id === defaultSubAgentNodeId;
-  const projectModel = project?.models;
-  const modelName =
-    subAgent.models.base.model ?? agentModel.base.model ?? projectModel?.base.model ?? '';
 
   const dataComponentsById = createLookup(dataComponents);
   const artifactComponentsById = createLookup(artifactComponents);
@@ -91,6 +88,13 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';
 
+  const ModelName = {
+    subAgent: subAgent.models?.base.model,
+    agent: agentModel.base.model,
+    project: project?.models?.base.model ?? '',
+  };
+
+  const modelName = ModelName.subAgent ?? ModelName.agent ?? ModelName.project;
   const [modelSlug] = modelName.split('/', 1);
 
   const ModelIcon = {
@@ -99,11 +103,11 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
     google: GoogleIcon,
   }[modelSlug];
 
-  const inheritance = getModelInheritanceStatus(
+  const { inheritedFrom } = getModelInheritanceStatus(
     'subagent',
-    subAgent.models.base.model,
-    agentModel.base.model,
-    projectModel?.base.model
+    ModelName.subAgent,
+    ModelName.agent,
+    ModelName.project
   );
 
   return (
@@ -136,7 +140,7 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
         </div>
         <Badge className="text-xs max-w-full" variant="code">
           {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
-          <span className="truncate">{modelName}</span> {inheritance.inheritedFrom && '(inherited)'}
+          <span className="truncate">{modelName}</span> {inheritedFrom && '(inherited)'}
         </Badge>
         {dataComponentNames?.length > 0 && (
           <ListSection

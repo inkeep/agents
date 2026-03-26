@@ -81,10 +81,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
       const toolText = orphanedTools.length > 1 ? 'tools are' : 'tool is';
       toast.warning(
         `${orphanedTools.length} selected ${toolText} no longer available: ${orphanedTools.join(', ')}. Uncheck to remove.`,
-        {
-          closeButton: true,
-          duration: 6000,
-        }
+        { closeButton: true, duration: 6000 }
       );
     }
   }, [liveToolData, orphanedTools, nodeId]);
