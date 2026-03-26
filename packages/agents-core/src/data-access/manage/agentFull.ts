@@ -1968,7 +1968,7 @@ export const updateFullAgentServerSide =
                       { subAgentId, targetSubAgentId: targetItem },
                       'Sub-agent delegation relation created'
                     );
-                  } catch (error) {
+                  } catch (error: any) {
                     logger.error(
                       { subAgentId, targetSubAgentId: targetItem, error },
                       'Failed to create sub-agent delegation relation'
