@@ -121,7 +121,7 @@ export function MergeApp({ conflicts }: MergeAppProps) {
     if (state.phase === 'confirmed') {
       exit(buildResolutions(conflicts, state.resolutions, allChangedColumns));
     } else if (state.phase === 'cancelled') {
-      exit(new Error('Conflict resolution cancelled'));
+      exit(null);
     }
   }, [isEmpty, state.phase, conflicts, state.resolutions, allChangedColumns, exit]);
 

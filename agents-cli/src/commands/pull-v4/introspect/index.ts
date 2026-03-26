@@ -171,8 +171,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     console.log(styleText('gray', '  Smart comparison • Detect all changes • Targeted updates'));
   }
 
-  const s = p.spinner();
-
   try {
     // Step 1: Load configuration (same as push command)
     const { config, isCI } = await initializeCommand({
@@ -184,9 +182,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       logConfig: true,
       quiet: options.quiet,
     });
-
-    // Step 2: Determine project directory and ID
-    s.start('Detecting project...');
     let projectDir: string;
     let projectId: string;
     let localProjectForId: any = null;
@@ -198,7 +193,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       // We're in a project directory
       projectDir = currentDir;
 
-      s.start('Loading local project...');
       try {
         localProjectForId = await loadProject(projectDir);
         const localProjectId = localProjectForId.getId();
@@ -206,7 +200,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         if (options.project) {
           // Validate that --project matches local project ID
           if (localProjectId !== options.project) {
-            s.stop('Project ID mismatch');
             console.error(
               styleText(
                 'red',
@@ -227,9 +220,8 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         }
 
         projectId = localProjectId;
-        s.stop(`Using local project: ${projectId}`);
+        console.log(styleText('green', `◆ Using local project: ${projectId}`));
       } catch (error) {
-        s.stop('Failed to load local project');
         throw new Error(
           `Could not load local project: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -237,7 +229,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     } else {
       // No index.ts in current directory
       if (!options.project) {
-        s.stop('No index.ts found in current directory');
         console.error(
           styleText(
             'yellow',
@@ -257,13 +248,11 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       if (hasIndexInPath) {
         // --project is a valid directory path
         projectDir = projectPath;
-        s.start('Loading project from specified path...');
         try {
           localProjectForId = await loadProject(projectDir);
           projectId = localProjectForId.getId();
-          s.stop(`Using project from path: ${projectId}`);
+          console.log(styleText('green', `◆ Using project from path: ${projectId}`));
         } catch (error) {
-          s.stop('Failed to load project from path');
           throw new Error(
             `Could not load project from ${projectPath}: ${error instanceof Error ? error.message : String(error)}`
           );
@@ -272,19 +261,16 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         // Treat --project as project ID, create subdirectory
         projectId = options.project;
         projectDir = join(currentDir, projectId);
-        s.stop(`Creating new project directory: ${projectDir}`);
+        console.log(styleText('green', `◆ Creating new project directory: ${projectDir}`));
       }
     }
 
-    const existingState = readProjectState(projectDir, projectId);
+    const existingState = readProjectState(projectId);
     const lastPulledHash = existingState?.lastPulledHash;
 
     if (options.debug && lastPulledHash) {
       console.log(styleText('gray', `   Last pulled hash: ${lastPulledHash}`));
     }
-
-    // Step 4: Fetch project data from API
-    s.start(`Fetching project: ${projectId}`);
 
     const apiClient = await ManagementApiClient.create(
       config.agentsApiUrl,
@@ -318,8 +304,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     let remoteProject: Awaited<ReturnType<typeof apiClient.getFullProject>> | undefined;
 
     if (localProjectForId && lastPulledHash) {
-      s.message('Checking for conflicts...');
-
       const tempBranchName = getTempBranchSuffix('cli-pull');
 
       try {
@@ -340,12 +324,15 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         });
 
         if (preview.hasConflicts) {
-          s.stop('Conflicts detected');
           const { resolveConflictsInteractive } = await import('../merge-conflicts');
           const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
 
-          s.start('Executing merge with resolutions...');
-          const mergeResult = await apiClient.mergeExecute(projectId, {
+          if (resolutions === null) {
+            console.log(styleText('yellow', 'Pull cancelled'));
+            return;
+          }
+
+          await apiClient.mergeExecute(projectId, {
             sourceBranch: 'main',
             targetBranch: tempBranchName,
             sourceHash: preview.sourceHash,
@@ -353,10 +340,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
             resolutions,
             message: 'CLI pull: merge main into local state',
           });
-          if (mergeResult) s.stop('Merge completed');
         } else {
-          s.message('Clean merge — no conflicts');
-
           await apiClient.mergeExecute(projectId, {
             sourceBranch: 'main',
             targetBranch: tempBranchName,
@@ -366,7 +350,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
           });
         }
         // Fetch the reconciled project from the temp branch before cleanup
-        s.start('Fetching merged project state...');
         remoteProject = await apiClient.getFullProject(projectId, tempBranchName);
       } finally {
         try {
@@ -464,7 +447,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     // @ts-expect-error -- fixme Types of property `models` are incompatible.
     enrichCanDelegateToWithTypes(remoteProject);
 
-    s.message('Project data fetched');
+    console.log(styleText('green', '◆ Project data fetched'));
 
     if (options.json) {
       console.log(JSON.stringify(remoteProject, null, 2));
@@ -477,18 +460,18 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
 
     await generateProjectSkillsIfPresent(remoteProject, paths.skillsDir);
 
-    s.start('Starting generating files...');
+    console.log(styleText('gray', 'Generating files...'));
     await introspectGenerate({
       // @ts-expect-error -- ignore Types of property 'models' are incompatible.
       project: remoteProject,
       paths,
       debug: options.debug,
     });
-    s.stop('All files generated');
+    console.log(styleText('green', '◆ All files generated'));
 
     try {
       const mainBranch = await apiClient.getBranch(projectId, 'main');
-      writeProjectState(paths.projectRoot, projectId, mainBranch.hash);
+      writeProjectState(projectId, mainBranch.hash);
     } catch (error) {
       console.warn(
         styleText(
@@ -516,7 +499,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     process.exit(0);
   } catch (error) {
     const message = error instanceof Error ? error.stack : String(error);
-    s.stop();
     console.error(styleText('red', `\nError: ${message}`));
     if (options.debug && error instanceof Error) {
       console.error(styleText('red', error.stack || ''));

@@ -12,7 +12,7 @@ export interface ResolveConflictsOptions {
 export async function resolveConflictsInteractive(
   conflicts: ConflictItem[],
   options: ResolveConflictsOptions
-): Promise<ConflictResolution[]> {
+): Promise<ConflictResolution[] | null> {
   if (options.conflictStrategy) {
     const pick = options.conflictStrategy;
     console.log(
@@ -28,8 +28,9 @@ export async function resolveConflictsInteractive(
   const instance = render(createElement(MergeApp, { conflicts }));
   const result = await instance.waitUntilExit();
 
-  if (result instanceof Error) {
-    throw result;
+  if (result === null) {
+    console.log(styleText('yellow', '\nMerge cancelled.'));
+    return null;
   }
 
   const resolutions = result as ConflictResolution[];

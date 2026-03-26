@@ -18,29 +18,25 @@ describe('state', () => {
 
   describe('readProjectState', () => {
     it('returns undefined when no state file exists', () => {
-      const result = readProjectState(testDir, 'project-1');
+      const result = readProjectState('project-1', { stateDir: testDir });
       expect(result).toBeUndefined();
     });
 
     it('returns undefined when project is not in state file', () => {
-      const stateDir = join(testDir, '.inkeep');
-      mkdirSync(stateDir, { recursive: true });
       writeFileSync(
-        join(stateDir, 'state.json'),
+        join(testDir, 'state.json'),
         JSON.stringify({
           projects: { 'other-project': { lastPulledHash: 'abc', lastPulledAt: '2026-01-01' } },
         })
       );
 
-      const result = readProjectState(testDir, 'project-1');
+      const result = readProjectState('project-1', { stateDir: testDir });
       expect(result).toBeUndefined();
     });
 
     it('reads stored state for a project', () => {
-      const stateDir = join(testDir, '.inkeep');
-      mkdirSync(stateDir, { recursive: true });
       writeFileSync(
-        join(stateDir, 'state.json'),
+        join(testDir, 'state.json'),
         JSON.stringify({
           projects: {
             'project-1': { lastPulledHash: 'hash123', lastPulledAt: '2026-01-01T00:00:00.000Z' },
@@ -48,7 +44,7 @@ describe('state', () => {
         })
       );
 
-      const result = readProjectState(testDir, 'project-1');
+      const result = readProjectState('project-1', { stateDir: testDir });
       expect(result).toEqual({
         lastPulledHash: 'hash123',
         lastPulledAt: '2026-01-01T00:00:00.000Z',
@@ -56,20 +52,19 @@ describe('state', () => {
     });
 
     it('returns undefined for malformed JSON', () => {
-      const stateDir = join(testDir, '.inkeep');
-      mkdirSync(stateDir, { recursive: true });
-      writeFileSync(join(stateDir, 'state.json'), 'not json');
+      writeFileSync(join(testDir, 'state.json'), 'not json');
 
-      const result = readProjectState(testDir, 'project-1');
+      const result = readProjectState('project-1', { stateDir: testDir });
       expect(result).toBeUndefined();
     });
   });
 
   describe('writeProjectState', () => {
-    it('creates .inkeep directory and state file when they do not exist', () => {
-      writeProjectState(testDir, 'project-1', 'hash123');
+    it('creates state directory and file when they do not exist', () => {
+      const nestedDir = join(testDir, 'nested');
+      writeProjectState('project-1', 'hash123', { stateDir: nestedDir });
 
-      const statePath = join(testDir, '.inkeep', 'state.json');
+      const statePath = join(nestedDir, 'state.json');
       expect(existsSync(statePath)).toBe(true);
 
       const state = JSON.parse(readFileSync(statePath, 'utf-8'));
@@ -78,20 +73,20 @@ describe('state', () => {
     });
 
     it('preserves other projects when writing', () => {
-      writeProjectState(testDir, 'project-1', 'hash-a');
-      writeProjectState(testDir, 'project-2', 'hash-b');
+      writeProjectState('project-1', 'hash-a', { stateDir: testDir });
+      writeProjectState('project-2', 'hash-b', { stateDir: testDir });
 
-      const statePath = join(testDir, '.inkeep', 'state.json');
+      const statePath = join(testDir, 'state.json');
       const state = JSON.parse(readFileSync(statePath, 'utf-8'));
       expect(state.projects['project-1'].lastPulledHash).toBe('hash-a');
       expect(state.projects['project-2'].lastPulledHash).toBe('hash-b');
     });
 
     it('updates existing project hash', () => {
-      writeProjectState(testDir, 'project-1', 'old-hash');
-      writeProjectState(testDir, 'project-1', 'new-hash');
+      writeProjectState('project-1', 'old-hash', { stateDir: testDir });
+      writeProjectState('project-1', 'new-hash', { stateDir: testDir });
 
-      const statePath = join(testDir, '.inkeep', 'state.json');
+      const statePath = join(testDir, 'state.json');
       const state = JSON.parse(readFileSync(statePath, 'utf-8'));
       expect(state.projects['project-1'].lastPulledHash).toBe('new-hash');
     });

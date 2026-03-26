@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 interface ProjectState {
   lastPulledHash: string;
@@ -10,15 +11,26 @@ interface StateFile {
   projects: Record<string, ProjectState>;
 }
 
-const STATE_DIR = '.inkeep';
 const STATE_FILE = 'state.json';
 
-function getStatePath(projectDir: string): string {
-  return join(projectDir, STATE_DIR, STATE_FILE);
+function getDefaultStateDir(): string {
+  return join(homedir(), '.inkeep');
 }
 
-export function readProjectState(projectDir: string, projectId: string): ProjectState | undefined {
-  const statePath = getStatePath(projectDir);
+function getStatePath(stateDir: string): string {
+  return join(stateDir, STATE_FILE);
+}
+
+export interface StateOptions {
+  stateDir?: string;
+}
+
+export function readProjectState(
+  projectId: string,
+  options?: StateOptions
+): ProjectState | undefined {
+  const stateDir = options?.stateDir ?? getDefaultStateDir();
+  const statePath = getStatePath(stateDir);
   if (!existsSync(statePath)) {
     return undefined;
   }
@@ -28,19 +40,17 @@ export function readProjectState(projectDir: string, projectId: string): Project
     const state: StateFile = JSON.parse(content);
     return state.projects?.[projectId];
   } catch (error: any) {
-    // File doesn't exist yet - that's fine
     if (error?.code === 'ENOENT') {
       return undefined;
     }
-    // Log but don't throw for other errors (corrupted state, etc.)
     console.warn(`Warning: Could not read state file: ${error.message}`);
     return undefined;
   }
 }
 
-export function writeProjectState(projectDir: string, projectId: string, hash: string): void {
-  const statePath = getStatePath(projectDir);
-  const stateDir = dirname(statePath);
+export function writeProjectState(projectId: string, hash: string, options?: StateOptions): void {
+  const stateDir = options?.stateDir ?? getDefaultStateDir();
+  const statePath = getStatePath(stateDir);
 
   let state: StateFile = { projects: {} };
 
