@@ -476,12 +476,6 @@
                 "maxLength": 5000,
                 "type": "string"
               },
-              "scheduledTriggers": {
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/ScheduledTriggerInsertBase"
-                },
-                "type": "object"
-              },
               "statusUpdates": {
                 "$ref": "#/components/schemas/StatusUpdate"
               },
@@ -579,13 +573,6 @@
                   }
                 ]
               },
-              "scheduledTriggers": {
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/ScheduledTrigger"
-                },
-                "nullable": true,
-                "type": "object"
-              },
               "statusUpdates": {
                 "allOf": [
                   {
@@ -634,7 +621,6 @@
               "teamAgents",
               "functionTools",
               "functions",
-              "scheduledTriggers",
               "contextConfig"
             ],
             "type": "object"
@@ -6921,97 +6907,6 @@
         "type": "object"
       },
       "ScheduledTriggerCreate": {
-        "properties": {
-          "createdBy": {
-            "description": "User ID of the user who created this trigger",
-            "example": "user_123",
-            "nullable": true,
-            "type": "string"
-          },
-          "cronExpression": {
-            "$ref": "#/components/schemas/CronExpression"
-          },
-          "cronTimezone": {
-            "default": "UTC",
-            "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
-            "maxLength": 64,
-            "nullable": true,
-            "type": "string"
-          },
-          "description": {
-            "description": "Scheduled trigger description",
-            "nullable": true,
-            "type": "string"
-          },
-          "enabled": {
-            "default": true,
-            "description": "Whether the trigger is enabled",
-            "type": "boolean"
-          },
-          "id": {
-            "$ref": "#/components/schemas/ResourceId"
-          },
-          "maxRetries": {
-            "default": 1,
-            "maximum": 10,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "messageTemplate": {
-            "description": "Message template with {{placeholder}} syntax",
-            "minLength": 1,
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "description": "Scheduled trigger name",
-            "minLength": 1,
-            "type": "string"
-          },
-          "payload": {
-            "additionalProperties": {
-              "nullable": true
-            },
-            "description": "Static payload for agent execution",
-            "nullable": true,
-            "type": "object"
-          },
-          "ref": {
-            "default": "main",
-            "description": "Branch ref to run the agent from",
-            "maxLength": 256,
-            "type": "string"
-          },
-          "retryDelaySeconds": {
-            "default": 60,
-            "maximum": 3600,
-            "minimum": 10,
-            "type": "integer"
-          },
-          "runAsUserId": {
-            "maxLength": 256,
-            "nullable": true,
-            "type": "string"
-          },
-          "runAt": {
-            "description": "One-time execution timestamp",
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "timeoutSeconds": {
-            "default": 780,
-            "maximum": 780,
-            "minimum": 30,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "type": "object"
-      },
-      "ScheduledTriggerInsertBase": {
         "properties": {
           "createdBy": {
             "description": "User ID of the user who created this trigger",
