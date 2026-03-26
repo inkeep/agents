@@ -47,7 +47,6 @@ export function SidePane({
   const selectedNode = useNodesData(selectedNodeId || '');
   const { updateNode } = useReactFlow();
   const edges = useEdges();
-  const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
   let selectedEdge: Edge | null = null;
   let heading = '';
   let HeadingIcon: LucideIcon | undefined;
