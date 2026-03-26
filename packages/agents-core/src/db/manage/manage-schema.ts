@@ -1066,7 +1066,7 @@ export const agentRelations = relations(agents, ({ one, many }) => ({
   scheduledTriggers: many(scheduledTriggers),
 }));
 
-const scheduledTriggersRelations = relations(scheduledTriggers, ({ one }) => ({
+const _scheduledTriggersRelations = relations(scheduledTriggers, ({ one }) => ({
   agent: one(agents, {
     fields: [scheduledTriggers.tenantId, scheduledTriggers.projectId, scheduledTriggers.agentId],
     references: [agents.tenantId, agents.projectId, agents.id],
