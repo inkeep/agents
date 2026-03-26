@@ -35,6 +35,7 @@ interface ModelSelectorProps {
   canClear?: boolean;
   disabled?: boolean;
   gatewayOnly?: boolean;
+  defaultOpen?: boolean;
 }
 
 export const ModelSelector: FC<ModelSelectorProps> = ({
@@ -49,10 +50,18 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   canClear = true,
   disabled = false,
   gatewayOnly = false,
+  defaultOpen = false,
 }) => {
   'use memo';
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (defaultOpen) {
+      setOpen(true);
+    }
+  }, [defaultOpen]);
+
   const [showCustomInput, setShowCustomInput] = useState<
     'openrouter' | 'gateway' | 'nim' | 'custom' | 'azure' | null
   >(null);

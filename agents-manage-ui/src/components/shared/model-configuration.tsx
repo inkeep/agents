@@ -1,7 +1,7 @@
 'use client';
 
 import { Plus, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { type FC, useEffect, useRef, useState } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,112 @@ import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { azureModelProviderOptionsTemplate, providerOptionsTemplate } from '@/lib/templates';
 import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
+
+const FallbackModelsSection: FC<{
+  editorNamePrefix: string;
+  fallbackModels?: string[];
+  inheritedFallbackModels?: string[];
+  onFallbackModelsChange: (models: string[]) => void;
+  disabled: boolean;
+}> = ({
+  editorNamePrefix,
+  fallbackModels,
+  inheritedFallbackModels,
+  onFallbackModelsChange,
+  disabled,
+}) => {
+  const [showPendingSelector, setShowPendingSelector] = useState(false);
+  const savedModels = fallbackModels ?? inheritedFallbackModels ?? [];
+  const isInherited = !fallbackModels && !!inheritedFallbackModels;
+
+  return (
+    <div className="space-y-2">
+      <FieldLabel
+        id={`${editorNamePrefix}-fallback-models`}
+        label="Fallback models"
+        tooltip="Ordered list of models to try if the primary model fails. Requires AI Gateway."
+      />
+      {savedModels.map((model, index) => (
+        <div key={`${editorNamePrefix}-fallback-${index}`} className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground w-4 shrink-0">{index + 1}.</span>
+          <div className="flex-1">
+            <ModelSelector
+              value={model}
+              gatewayOnly
+              onValueChange={(newValue) => {
+                const models = [...(fallbackModels ?? [])];
+                if (newValue) {
+                  models[index] = newValue;
+                } else {
+                  models.splice(index, 1);
+                }
+                onFallbackModelsChange(models);
+              }}
+              placeholder="Select fallback model..."
+              canClear={false}
+              disabled={disabled || isInherited}
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => {
+              const models = [...(fallbackModels ?? [])];
+              models.splice(index, 1);
+              onFallbackModelsChange(models);
+            }}
+            disabled={disabled || isInherited}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+      {showPendingSelector && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground w-4 shrink-0">
+            {savedModels.length + 1}.
+          </span>
+          <div className="flex-1">
+            <ModelSelector
+              value=""
+              gatewayOnly
+              defaultOpen
+              onValueChange={(newValue) => {
+                setShowPendingSelector(false);
+                if (newValue) {
+                  onFallbackModelsChange([...(fallbackModels ?? []), newValue]);
+                }
+              }}
+              placeholder="Select fallback model..."
+              canClear={false}
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setShowPendingSelector(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      {!showPendingSelector && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => setShowPendingSelector(true)}
+          disabled={disabled}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Add fallback model
+        </Button>
+      )}
+    </div>
+  );
+};
 
 interface ModelConfigurationProps {
   /** Current model value */
@@ -205,61 +311,13 @@ export function ModelConfiguration({
 
       {/* Fallback Models */}
       {capabilities?.modelFallback?.enabled && effectiveModel && onFallbackModelsChange && (
-        <div className="space-y-2">
-          <FieldLabel
-            id={`${editorNamePrefix}-fallback-models`}
-            label="Fallback models"
-            tooltip="Ordered list of models to try if the primary model fails. Requires AI Gateway."
-          />
-          {(fallbackModels ?? inheritedFallbackModels ?? []).map((model, index) => (
-            <div key={`${editorNamePrefix}-fallback-${index}`} className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-4 shrink-0">{index + 1}.</span>
-              <div className="flex-1">
-                <ModelSelector
-                  value={model}
-                  gatewayOnly
-                  onValueChange={(newValue) => {
-                    const models = [...(fallbackModels ?? [])];
-                    if (newValue) {
-                      models[index] = newValue;
-                    } else {
-                      models.splice(index, 1);
-                    }
-                    onFallbackModelsChange(models);
-                  }}
-                  placeholder="Select fallback model..."
-                  canClear={false}
-                  disabled={disabled || (!fallbackModels && !!inheritedFallbackModels)}
-                />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={() => {
-                  const models = [...(fallbackModels ?? [])];
-                  models.splice(index, 1);
-                  onFallbackModelsChange(models);
-                }}
-                disabled={disabled || (!fallbackModels && !!inheritedFallbackModels)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={() => {
-              onFallbackModelsChange([...(fallbackModels ?? []), '']);
-            }}
-            disabled={disabled}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add fallback model
-          </Button>
-        </div>
+        <FallbackModelsSection
+          editorNamePrefix={editorNamePrefix}
+          fallbackModels={fallbackModels}
+          inheritedFallbackModels={inheritedFallbackModels}
+          onFallbackModelsChange={onFallbackModelsChange}
+          disabled={disabled}
+        />
       )}
     </div>
   );
