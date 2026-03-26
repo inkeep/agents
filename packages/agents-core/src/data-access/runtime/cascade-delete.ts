@@ -59,8 +59,9 @@ export const cascadeDeleteByBranch =
   async (params: {
     scopes: ProjectScopeConfig;
     fullBranchName: string;
+    ref: string;
   }): Promise<CascadeDeleteResult> => {
-    const { scopes, fullBranchName } = params;
+    const { scopes, fullBranchName, ref } = params;
 
     // Delete contextCache entries for this branch
     // (also cascades when conversations are deleted, but some may be orphaned)
@@ -146,7 +147,7 @@ export const cascadeDeleteByBranch =
         and(
           eq(scheduledTriggers.tenantId, scopes.tenantId),
           eq(scheduledTriggers.projectId, scopes.projectId),
-          eq(scheduledTriggers.ref, fullBranchName)
+          eq(scheduledTriggers.ref, ref)
         )
       )
       .returning();

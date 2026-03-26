@@ -212,6 +212,7 @@ describe('Cascade Delete Utilities', () => {
       const result = await cascadeDeleteByBranch(db)({
         scopes: { tenantId, projectId },
         fullBranchName: branch1Ref.name,
+        ref: 'branch1',
       });
 
       // Verify branch1 entities are deleted
