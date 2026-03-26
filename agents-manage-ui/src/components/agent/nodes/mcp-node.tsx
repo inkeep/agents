@@ -1,16 +1,22 @@
+'use client';
 import { type NodeProps, Position } from '@xyflow/react';
 import { Shield } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import type { FC, ReactNode } from 'react';
+import { useWatch } from 'react-hook-form';
+import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getMcpRelationFormKey } from '@/features/agent/domain';
+import { useProcessedErrors } from '@/hooks/use-processed-errors';
 import { useMcpToolStatusQuery, useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { cn, createLookup } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { findOrphanedTools } from '@/lib/utils/orphaned-tools-detector';
 import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';
-import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
+import { getNodeStatus, type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
@@ -54,36 +60,53 @@ const TruncateToolBadge: FC<{
   );
 };
 
-export function MCPNode({ data, selected }: NodeProps & { data: MCPNodeData }) {
+export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNodeData }) {
   'use memo';
 
+  const { control } = useFullAgentFormContext();
+  const relationKey = getMcpRelationFormKey({ nodeId: props.id });
+  const mcpRelation = useWatch({
+    control,
+    name: `mcpRelations.${relationKey}`,
+  });
+  const id = data.toolId;
+  const tool = useWatch({ control, name: `tools.${id}` });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const skeletonToolLookup = createLookup(mcpTools);
 
   // Get skeleton data from initial page load (status: 'unknown', availableTools: [])
-  const skeletonToolData = skeletonToolLookup[data.toolId];
+  const skeletonToolData = skeletonToolLookup[id];
 
   // Lazy-load actual status for this specific tool
   const { data: liveToolData, isLoading: isConnecting } = useMcpToolStatusQuery({
     tenantId,
     projectId,
-    toolId: data.toolId,
-    enabled: !!data.toolId && !!tenantId && !!projectId,
+    toolId: id,
+    enabled: !!id,
   });
 
   // Use live data if available, fall back to skeleton
   const toolData = liveToolData ?? skeletonToolData;
-  const name = toolData?.name || `Tool: ${data.toolId}`;
-  const imageUrl = toolData?.imageUrl;
+  const processedErrors = [
+    ...useProcessedErrors('tools', id),
+    ...useProcessedErrors('mcpRelations', relationKey),
+  ];
+  if (!tool) {
+    return (
+      <BaseNode>
+        <BaseNodeContent className="text-sm text-destructive">{`MCP tool "${id}" not found.`}</BaseNodeContent>
+      </BaseNode>
+    );
+  }
 
   const activeTools = getActiveTools({
     availableTools: toolData?.availableTools,
-    activeTools: toolData?.config?.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
+    activeTools: tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
   });
 
-  const selectedTools = data.tempSelectedTools ?? null;
-  const toolPolicies = data.tempToolPolicies ?? {};
+  const selectedTools = mcpRelation?.selectedTools ?? null;
+  const toolPolicies = mcpRelation?.toolPolicies ?? {};
 
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
   const hasOrphanedTools = orphanedTools.length > 0;
@@ -139,10 +162,12 @@ export function MCPNode({ data, selected }: NodeProps & { data: MCPNodeData }) {
       needsApproval: isSynthetic ? false : toolPolicyNeedsApprovalForTool(toolPolicies, label),
     };
   });
-  const isDelegating = data.status === 'delegating';
-  const isInvertedDelegating = data.status === 'inverted-delegating';
-  const isExecuting = data.status === 'executing';
-  const hasErrors = data.status === 'error';
+  const status = getNodeStatus(data);
+  const isDelegating = status === 'delegating';
+  const isInvertedDelegating = status === 'inverted-delegating';
+  const isExecuting = status === 'executing';
+  const hasErrors = processedErrors.length > 0;
+  const hasStatusErrors = status === 'error';
   const needsAuth = toolData?.status === 'needs_auth';
   const isTimeout = toolData?.status === 'unavailable';
 
@@ -152,16 +177,17 @@ export function MCPNode({ data, selected }: NodeProps & { data: MCPNodeData }) {
       className={cn(
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
         isConnecting && 'animate-pulse opacity-80',
-        hasErrors && 'ring-2 ring-red-300 border-red-300',
+        (hasErrors || hasStatusErrors) && 'ring-2 ring-red-300 border-red-300',
         (needsAuth || hasOrphanedTools) &&
           'ring-2 ring-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/30',
         isExecuting && 'node-executing',
         isInvertedDelegating && 'node-delegating-inverted'
       )}
     >
+      {hasErrors && <ErrorIndicator errors={processedErrors} />}
       <BaseNodeHeader className="flex items-center justify-between gap-2">
-        <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="shrink-0" />
-        <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
+        <MCPToolImage imageUrl={tool.imageUrl} name={tool.name} size={24} className="shrink-0" />
+        <BaseNodeHeaderTitle>{tool.name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>
       <BaseNodeContent className="flex-row gap-2 flex-wrap">
         {isConnecting ? (

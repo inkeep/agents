@@ -1,218 +1,412 @@
 import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import { isContextConfigParseError, serializeAgentData } from '../serialize';
+import type { SerializeAgentFormState } from '../serialize';
+import { editorToPayload as editorToPayloadInternal } from '../serialize';
+import { syncSavedAgentGraph } from '../sync-saved-agent-graph';
 
-describe('serializeAgentData', () => {
+type TestMcpRelations = Record<
+  string,
+  {
+    relationshipId?: string | null;
+    selectedTools?: string[] | null;
+    headers?: Record<string, string> | null;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
+  }
+>;
+
+type TestFunctionToolRelations = Record<
+  string,
+  {
+    relationshipId?: string | null;
+  }
+>;
+
+type SubAgentFormOverride = Omit<
+  Partial<SerializeAgentFormState['subAgents'][string]>,
+  'models'
+> & {
+  models?: Partial<NonNullable<SerializeAgentFormState['subAgents'][string]['models']>>;
+};
+
+function createSubAgentFormValue(
+  id: string,
+  overrides: SubAgentFormOverride = {}
+): SerializeAgentFormState['subAgents'][string] {
+  const { models, ...rest } = overrides;
+
+  return {
+    id,
+    name: '',
+    description: '',
+    prompt: '',
+    type: 'internal',
+    models: {
+      base: {},
+      structuredOutput: {},
+      summarizer: {},
+    },
+    canUse: [],
+    dataComponents: [],
+    artifactComponents: [],
+    stopWhen: {},
+    skills: [],
+    ...rest,
+    ...(models && { models: models as SerializeAgentFormState['subAgents'][string]['models'] }),
+  };
+}
+
+function createFunctionToolFormValue(
+  toolId: string,
+  overrides: Partial<SerializeAgentFormState['functionTools'][string]> = {}
+): SerializeAgentFormState['functionTools'][string] {
+  return {
+    functionId: toolId,
+    name: '',
+    description: '',
+    tempToolPolicies: {},
+    ...overrides,
+  };
+}
+
+function createExternalAgentFormValue(
+  id: string,
+  overrides: Partial<SerializeAgentFormState['externalAgents'][string]> = {}
+): SerializeAgentFormState['externalAgents'][string] {
+  return {
+    id,
+    name: '',
+    description: '',
+    baseUrl: 'https://example.com/agent',
+    headers: undefined,
+    ...overrides,
+  };
+}
+
+function createTeamAgentFormValue(
+  id: string,
+  overrides: Partial<SerializeAgentFormState['teamAgents'][string]> = {}
+): SerializeAgentFormState['teamAgents'][string] {
+  return {
+    id,
+    name: '',
+    description: '',
+    headers: undefined,
+    ...overrides,
+  };
+}
+
+function createSerializeAgentFormState(
+  nodes: Node[],
+  overrides: Partial<SerializeAgentFormState> = {}
+): SerializeAgentFormState {
+  const subAgents = Object.fromEntries(
+    nodes
+      .filter((node) => node.type === NodeType.SubAgent)
+      .map((node) => [node.id, createSubAgentFormValue(node.id)])
+  ) as SerializeAgentFormState['subAgents'];
+
+  const functionTools = Object.fromEntries(
+    nodes
+      .filter((node) => node.type === NodeType.FunctionTool)
+      .map((node) => {
+        const toolId =
+          typeof node.data.toolId === 'string' && node.data.toolId ? node.data.toolId : node.id;
+
+        return [toolId, createFunctionToolFormValue(toolId)];
+      })
+  ) as SerializeAgentFormState['functionTools'];
+
+  const functions = Object.fromEntries(
+    Object.values(functionTools).map((tool) => [
+      tool.functionId,
+      {
+        executeCode: '',
+        inputSchema: {},
+        dependencies: {},
+      },
+    ])
+  );
+
+  const externalAgents = Object.fromEntries(
+    nodes
+      .filter((node) => node.type === NodeType.ExternalAgent)
+      .map((node) => {
+        const externalAgentId =
+          typeof node.data.externalAgentId === 'string' && node.data.externalAgentId
+            ? node.data.externalAgentId
+            : node.id;
+
+        return [externalAgentId, createExternalAgentFormValue(externalAgentId)];
+      })
+  ) as SerializeAgentFormState['externalAgents'];
+
+  const teamAgents = Object.fromEntries(
+    nodes
+      .filter((node) => node.type === NodeType.TeamAgent)
+      .map((node) => {
+        const teamAgentId =
+          typeof node.data.teamAgentId === 'string' && node.data.teamAgentId
+            ? node.data.teamAgentId
+            : node.id;
+
+        return [teamAgentId, createTeamAgentFormValue(teamAgentId)];
+      })
+  ) as SerializeAgentFormState['teamAgents'];
+
+  return {
+    mcpRelations: {
+      ...Object.fromEntries(
+        nodes
+          .filter((node) => node.type === NodeType.MCP)
+          .map((node) => {
+            return [
+              node.id,
+              {
+                relationshipId: undefined,
+                selectedTools: null,
+                headers: undefined,
+                toolPolicies: undefined,
+              },
+            ];
+          })
+      ),
+      ...overrides.mcpRelations,
+    },
+    functionToolRelations: {
+      ...Object.fromEntries(
+        nodes
+          .filter((node) => node.type === NodeType.FunctionTool)
+          .flatMap((node) =>
+            typeof node.data.nodeKey === 'string'
+              ? [[node.data.nodeKey, { relationshipId: undefined }]]
+              : []
+          )
+      ),
+      ...overrides.functionToolRelations,
+    },
+    functionTools: {
+      ...functionTools,
+      ...overrides.functionTools,
+    },
+    externalAgents: {
+      ...externalAgents,
+      ...overrides.externalAgents,
+    },
+    teamAgents: {
+      ...teamAgents,
+      ...overrides.teamAgents,
+    },
+    subAgents: {
+      ...subAgents,
+      ...overrides.subAgents,
+    },
+    functions: {
+      ...functions,
+      ...overrides.functions,
+    },
+    defaultSubAgentNodeId: overrides.defaultSubAgentNodeId,
+  };
+}
+
+function editorToPayload(
+  nodes: Node[],
+  edges: Edge[],
+  mcpRelations: TestMcpRelations = {},
+  functionTools: SerializeAgentFormState['functionTools'] = {},
+  externalAgents: SerializeAgentFormState['externalAgents'] = {},
+  teamAgents: SerializeAgentFormState['teamAgents'] = {},
+  subAgents?: SerializeAgentFormState['subAgents'],
+  functions: SerializeAgentFormState['functions'] = {},
+  defaultSubAgentNodeId?: SerializeAgentFormState['defaultSubAgentNodeId'],
+  functionToolRelations: TestFunctionToolRelations = {}
+) {
+  return editorToPayloadInternal(
+    nodes,
+    edges,
+    createSerializeAgentFormState(nodes, {
+      mcpRelations: Object.fromEntries(
+        Object.entries(mcpRelations).map(([key, value]) => [
+          key,
+          {
+            relationshipId: value.relationshipId ?? undefined,
+            selectedTools: value.selectedTools,
+            headers: value.headers ?? undefined,
+            toolPolicies: value.toolPolicies ?? undefined,
+          },
+        ])
+      ),
+      functionToolRelations: Object.fromEntries(
+        Object.entries(functionToolRelations).map(([key, value]) => [
+          key,
+          {
+            relationshipId: value.relationshipId ?? undefined,
+          },
+        ])
+      ),
+      functionTools,
+      externalAgents,
+      teamAgents,
+      subAgents,
+      functions,
+      defaultSubAgentNodeId,
+    })
+  );
+}
+
+describe('editorToPayload', () => {
   describe('models object processing', () => {
     it('should set models to undefined when models object has only empty values', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: undefined,
-              structuredOutput: undefined,
-              summarizer: undefined,
-            },
-            skills: [],
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges);
 
       expect(result.subAgents.agent1.models).toBeUndefined();
     });
 
     it('should set models to undefined when models object has only whitespace values', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: undefined,
-              structuredOutput: undefined,
-              summarizer: undefined,
-            },
-            skills: [],
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges);
 
       expect(result.subAgents.agent1.models).toBeUndefined();
     });
 
     it('should include models object when model field has a value', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: { model: 'gpt-4' },
-              structuredOutput: undefined,
-              summarizer: undefined,
-            },
-            skills: [],
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
-
-      const result = serializeAgentData(nodes, edges);
-
-      expect(result.subAgents.agent1.models).toEqual({
+      const models = {
         base: { model: 'gpt-4' },
-        structuredOutput: undefined,
-        summarizer: undefined,
+      };
+      const result = editorToPayload(nodes, edges, undefined, undefined, undefined, undefined, {
+        agent1: createSubAgentFormValue('agent1', {
+          models,
+        }),
       });
+
+      expect(result.subAgents.agent1.models).toEqual(models);
     });
 
     it('should include models object when structuredOutput has a value', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: undefined,
-              structuredOutput: { model: 'gpt-4o-2024-08-06' },
-              summarizer: undefined,
-            },
-            skills: [],
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
-
-      const result = serializeAgentData(nodes, edges);
-
-      expect(result.subAgents.agent1.models).toEqual({
-        base: undefined,
+      const models = {
         structuredOutput: { model: 'gpt-4o-2024-08-06' },
-        summarizer: undefined,
+      };
+      const result = editorToPayload(nodes, edges, undefined, undefined, undefined, undefined, {
+        agent1: createSubAgentFormValue('agent1', {
+          name: 'Test Agent',
+          prompt: 'Test instructions',
+          models,
+        }),
       });
+
+      expect(result.subAgents.agent1.models).toEqual(models);
     });
 
     it('should include models object when summarizer has a value', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: undefined,
-              structuredOutput: undefined,
-              summarizer: { model: 'gpt-3.5-turbo' },
-            },
-            skills: [],
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
-
-      const result = serializeAgentData(nodes, edges);
-
-      expect(result.subAgents.agent1.models).toEqual({
-        base: undefined,
-        structuredOutput: undefined,
+      const models = {
         summarizer: { model: 'gpt-3.5-turbo' },
+      };
+      const result = editorToPayload(nodes, edges, undefined, undefined, undefined, undefined, {
+        agent1: createSubAgentFormValue('agent1', {
+          models,
+        }),
       });
+
+      expect(result.subAgents.agent1.models).toEqual(models);
     });
 
     it('should include all fields when they have values', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: { model: 'gpt-4' },
-              structuredOutput: { model: 'gpt-4o-2024-08-06' },
-              summarizer: { model: 'gpt-3.5-turbo' },
-            },
-            skills: [],
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges);
-
-      expect(result.subAgents.agent1.models).toEqual({
+      const models = {
         base: { model: 'gpt-4' },
         structuredOutput: { model: 'gpt-4o-2024-08-06' },
         summarizer: { model: 'gpt-3.5-turbo' },
+      };
+
+      const result = editorToPayload(nodes, edges, undefined, undefined, undefined, undefined, {
+        agent1: createSubAgentFormValue('agent1', {
+          models,
+        }),
       });
+
+      expect(result.subAgents.agent1.models).toEqual(models);
     });
 
     it('should set models to undefined when no models data is provided', () => {
-      const nodes: Node<AgentNodeData>[] = [
+      const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            skills: [],
-            // no models property
-          },
+          data: {},
         },
       ];
       const edges: Edge[] = [];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges);
 
       expect(result.subAgents.agent1.models).toBeUndefined();
     });
   });
 
   describe('selectedTools processing', () => {
-    it('should transfer tempSelectedTools from MCP nodes to agent selectedTools', () => {
+    it('should transfer selectedTools from mcpRelations using node id key', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -220,8 +414,6 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
-            tempSelectedTools: ['tool1', 'tool2'],
           },
         },
       ];
@@ -235,7 +427,11 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges, {
+        mcp1: {
+          selectedTools: ['tool1', 'tool2'],
+        },
+      });
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -247,18 +443,13 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should handle null tempSelectedTools (all tools selected) by removing from selectedTools', () => {
+    it('should handle null selectedTools (all tools selected)', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            selectedTools: { mcp1: ['existing'] }, // existing selection
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -266,8 +457,6 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
-            tempSelectedTools: null, // null means all tools selected
           },
         },
       ];
@@ -281,9 +470,13 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges, {
+        mcp1: {
+          selectedTools: null,
+        },
+      });
 
-      // When tempSelectedTools is null, all tools should be selected (toolSelection: null)
+      // When selectedTools is null, all tools should be selected (toolSelection: null)
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
       expect(result.subAgents.agent1.canUse[0]).toEqual({
@@ -294,17 +487,13 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should handle empty array tempSelectedTools (no tools selected)', () => {
+    it('should handle empty selectedTools array (no tools selected)', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -312,8 +501,6 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
-            tempSelectedTools: [], // empty array means no tools selected
           },
         },
       ];
@@ -327,7 +514,11 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges, {
+        mcp1: {
+          selectedTools: [],
+        },
+      });
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -339,17 +530,13 @@ describe('serializeAgentData', () => {
       });
     });
 
-    it('should not modify selectedTools when tempSelectedTools is undefined', () => {
+    it('should default to all tools selected when selectedTools is missing', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -357,8 +544,6 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
-            // no tempSelectedTools property
           },
         },
       ];
@@ -372,72 +557,23 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges);
 
-      // selectedTools should not be created if tempSelectedTools is undefined
-      expect((result.subAgents.agent1 as any).selectedTools).toBeUndefined();
-    });
-
-    it('should preserve existing selectedTools when tempSelectedTools is undefined', () => {
-      const nodes: Node[] = [
-        {
-          id: 'agent1',
-          type: NodeType.SubAgent,
-          position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            // Existing selectedTools from database (added by deserializer)
-            selectedTools: { mcp1: ['existing-tool1'] },
-          },
-        },
-        {
-          id: 'mcp1',
-          type: NodeType.MCP,
-          position: { x: 200, y: 0 },
-          data: {
-            toolId: 'mcp1',
-            name: 'Test MCP Server',
-            // tempSelectedTools is undefined (user didn't interact with UI)
-          },
-        },
-      ];
-
-      const edges: Edge[] = [
-        {
-          id: 'edge1',
-          type: EdgeType.Default,
-          source: 'agent1',
-          target: 'mcp1',
-        },
-      ];
-
-      const result = serializeAgentData(nodes, edges);
-
-      // When tempSelectedTools is undefined and there's an edge to MCP tool,
-      // the toolSelection will be null (all tools selected by default)
-      expect(result.subAgents.agent1.canUse).toBeDefined();
-      expect(result.subAgents.agent1.canUse).toHaveLength(1);
       expect(result.subAgents.agent1.canUse[0]).toEqual({
         toolId: 'mcp1',
-        toolSelection: null, // null means all tools are selected
+        toolSelection: null,
         headers: null,
         toolPolicies: null,
       });
     });
 
-    it('should transfer tempToolPolicies from MCP nodes to agent toolPolicies', () => {
+    it('should serialize explicit null MCP relation data from RHF', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
           type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-          },
+          data: {},
         },
         {
           id: 'mcp1',
@@ -445,12 +581,6 @@ describe('serializeAgentData', () => {
           position: { x: 200, y: 0 },
           data: {
             toolId: 'mcp1',
-            name: 'Test MCP Server',
-            tempSelectedTools: ['tool1', 'tool2'],
-            tempToolPolicies: {
-              tool1: { needsApproval: true },
-              tool2: { needsApproval: false },
-            },
           },
         },
       ];
@@ -464,7 +594,120 @@ describe('serializeAgentData', () => {
         },
       ];
 
-      const result = serializeAgentData(nodes, edges);
+      const result = editorToPayload(nodes, edges, {
+        mcp1: {
+          relationshipId: 'rel-1',
+          selectedTools: null,
+          headers: null,
+          toolPolicies: null,
+        },
+      });
+
+      expect(result.subAgents.agent1.canUse).toBeDefined();
+      expect(result.subAgents.agent1.canUse).toHaveLength(1);
+      expect(result.subAgents.agent1.canUse[0]).toEqual({
+        toolId: 'mcp1',
+        toolSelection: null,
+        headers: null,
+        toolPolicies: null,
+        agentToolRelationId: 'rel-1',
+      });
+    });
+
+    it('should require explicit RHF relation state for connected MCP nodes', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'mcp1',
+          type: NodeType.MCP,
+          position: { x: 200, y: 0 },
+          data: {
+            toolId: 'mcp1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge1',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'mcp1',
+        },
+      ];
+
+      expect(() =>
+        editorToPayloadInternal(nodes, edges, {
+          mcpRelations: {},
+          functionToolRelations: {},
+          functionTools: {},
+          externalAgents: {},
+          teamAgents: {},
+          subAgents: {
+            agent1: {
+              id: 'agent1',
+              name: 'Test Agent',
+              description: '',
+              prompt: 'Test instructions',
+              type: 'internal',
+              models: {
+                base: {},
+                structuredOutput: {},
+                summarizer: {},
+              },
+              canUse: [],
+              dataComponents: [],
+              artifactComponents: [],
+              stopWhen: {},
+              skills: [],
+            },
+          },
+          functions: {},
+        })
+      ).toThrow('Missing RHF MCP relation data for node "mcp1".');
+    });
+
+    it('should transfer toolPolicies from mcpRelations', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'mcp1',
+          type: NodeType.MCP,
+          position: { x: 200, y: 0 },
+          data: {
+            toolId: 'mcp1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge1',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'mcp1',
+        },
+      ];
+
+      const result = editorToPayload(nodes, edges, {
+        mcp1: {
+          selectedTools: ['tool1', 'tool2'],
+          toolPolicies: {
+            tool1: { needsApproval: true },
+            tool2: { needsApproval: false },
+          },
+        },
+      });
 
       expect(result.subAgents.agent1.canUse).toBeDefined();
       expect(result.subAgents.agent1.canUse).toHaveLength(1);
@@ -480,143 +723,820 @@ describe('serializeAgentData', () => {
     });
   });
 
-  describe('`contextConfig` parsing', () => {
-    const baseNodes: Node<AgentNodeData>[] = [];
-    const edges: Edge[] = [];
-
-    it('throws when `contextVariables` contains invalid JSON', () => {
-      try {
-        serializeAgentData(baseNodes, edges, {
-          // @ts-expect-error -- ignore
-          contextConfig: { contextVariables: '{' },
-        });
-        throw new Error('Expected `serializeAgentData` to throw');
-      } catch (error) {
-        expect(isContextConfigParseError(error)).toBe(true);
-        if (isContextConfigParseError(error)) {
-          expect(error.field).toBe('contextVariables');
-        }
-      }
-    });
-
-    it('throws when `headersSchema` contains invalid JSON', () => {
-      try {
-        serializeAgentData(baseNodes, edges, {
-          // @ts-expect-error -- ignore
-          contextConfig: { headersSchema: '{' },
-        });
-        throw new Error('Expected `serializeAgentData` to throw');
-      } catch (error) {
-        expect(isContextConfigParseError(error)).toBe(true);
-        if (isContextConfigParseError(error)) {
-          expect(error.field).toBe('headersSchema');
-        }
-      }
-    });
-
-    it('allows valid JSON payloads', () => {
-      const result = serializeAgentData(
-        baseNodes,
-        edges,
-        // @ts-expect-error -- ignore
+  describe('non-MCP relation form state', () => {
+    it('should use RHF function tool policies when serializing canUse', () => {
+      const nodes: Node[] = [
         {
-          contextConfig: {
-            contextVariables: '{"foo":"bar"}',
-            headersSchema: '{"type":"object"}',
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            nodeKey: 'function-tool:function-tool-1',
+            toolId: 'function-tool-1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const result = editorToPayload(nodes, edges, undefined, {
+        'function-tool-1': {
+          id: 'function-tool-1',
+          name: 'Lookup customer',
+          tempToolPolicies: {
+            '*': { needsApproval: true },
+          },
+        },
+      } as any);
+
+      expect(result.subAgents.agent1.canUse).toEqual([
+        {
+          toolId: 'function-tool-1',
+          toolSelection: null,
+          headers: null,
+          toolPolicies: {
+            '*': { needsApproval: true },
+          },
+        },
+      ]);
+    });
+
+    it('should use RHF function tool relation ids when serializing canUse', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            nodeKey: 'function-tool:function-tool-1',
+            toolId: 'function-tool-1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const result = editorToPayload(
+        nodes,
+        edges,
+        undefined,
+        {
+          'function-tool-1': createFunctionToolFormValue('function-tool-1'),
+        },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          'function-tool:function-tool-1': {
+            relationshipId: 'function-relation-1',
           },
         }
       );
-      expect(result).toBeTruthy();
+
+      expect(result.subAgents.agent1.canUse).toEqual([
+        {
+          toolId: 'function-tool-1',
+          toolSelection: null,
+          headers: null,
+          agentToolRelationId: 'function-relation-1',
+        },
+      ]);
     });
 
-    it('preserves contextConfigId with null values when clearing existing contextConfig fields', () => {
-      const existingContextConfigId = 'existing-context-config-id';
-      const result = serializeAgentData(
-        baseNodes,
-        edges,
-        // @ts-expect-error -- ignore
+    it('should omit function tool policies when form state is missing', () => {
+      const nodes: Node[] = [
         {
-          contextConfig: {
-            id: existingContextConfigId,
-            contextVariables: '', // cleared
-            headersSchema: '', // cleared
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            nodeKey: 'function-tool:function-tool-1',
+            toolId: 'function-tool-1',
           },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const result = editorToPayload(nodes, edges);
+
+      expect(result.subAgents.agent1.canUse).toEqual([
+        {
+          toolId: 'function-tool-1',
+          toolSelection: null,
+          headers: null,
+        },
+      ]);
+    });
+
+    it('should use shared external and team agent headers for delegation relationships', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'external-node-1',
+          type: NodeType.ExternalAgent,
+          position: { x: 300, y: -100 },
+          data: {
+            externalAgentId: 'external-1',
+            relationshipId: 'ext-rel-1',
+          },
+        },
+        {
+          id: 'team-node-1',
+          type: NodeType.TeamAgent,
+          position: { x: 300, y: 100 },
+          data: {
+            teamAgentId: 'team-1',
+            relationshipId: 'team-rel-1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-ext',
+          type: EdgeType.A2AExternal,
+          source: 'agent1',
+          target: 'external-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-team',
+          type: EdgeType.A2ATeam,
+          source: 'agent1',
+          target: 'team-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+      ];
+
+      const result = editorToPayload(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        {
+          'external-1': createExternalAgentFormValue('external-1', {
+            headers: { authorization: 'Bearer external-token' },
+          }),
+        },
+        {
+          'team-1': createTeamAgentFormValue('team-1', {
+            headers: { authorization: 'Bearer team-token' },
+          }),
         }
       );
 
-      // When there's an existing contextConfigId but fields are cleared,
-      // contextConfig should still be included with null values so backend can clear it
-      expect((result as any).contextConfigId).toBe(existingContextConfigId);
-      expect(result.contextConfig).toEqual({
-        id: existingContextConfigId,
-        headersSchema: null,
-        contextVariables: null,
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        externalAgentId: 'external-1',
+        headers: { authorization: 'Bearer external-token' },
+        subAgentExternalAgentRelationId: 'ext-rel-1',
+      });
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        agentId: 'team-1',
+        headers: { authorization: 'Bearer team-token' },
+        subAgentTeamAgentRelationId: 'team-rel-1',
       });
     });
 
-    it('does not include contextConfig when no existing id and all fields are empty', () => {
-      const result = serializeAgentData(
-        baseNodes,
-        edges,
-        // @ts-expect-error -- ignore
+    it('serializes delegations using external and team agent ids from node data', () => {
+      const nodes: Node[] = [
         {
-          contextConfig: {
-            contextVariables: '',
-            headersSchema: '',
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: '7ubfdp65rn5qvh7l788ae',
+          type: NodeType.ExternalAgent,
+          position: { x: 300, y: -100 },
+          data: {
+            externalAgentId: 'external-1',
+            relationshipId: 'ext-rel-1',
           },
+        },
+        {
+          id: 'sxi5bgmobt6kl3i8cnxn7',
+          type: NodeType.TeamAgent,
+          position: { x: 300, y: 100 },
+          data: {
+            teamAgentId: 'team-1',
+            relationshipId: 'team-rel-1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-ext',
+          type: EdgeType.A2AExternal,
+          source: 'agent1',
+          target: '7ubfdp65rn5qvh7l788ae',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-team',
+          type: EdgeType.A2ATeam,
+          source: 'agent1',
+          target: 'sxi5bgmobt6kl3i8cnxn7',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+      ];
+
+      const result = editorToPayload(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        {
+          'external-1': createExternalAgentFormValue('external-1', {
+            headers: { authorization: 'Bearer external-token' },
+          }),
+        },
+        {
+          'team-1': createTeamAgentFormValue('team-1', {
+            headers: { authorization: 'Bearer team-token' },
+          }),
         }
       );
 
-      // When there's no existing contextConfigId and fields are empty,
-      // contextConfig should not be included
-      expect((result as any).contextConfigId).toBeUndefined();
-      expect(result.contextConfig).toBeUndefined();
-    });
-
-    it('preserves existing contextConfigId when only headersSchema is cleared', () => {
-      const existingContextConfigId = 'existing-context-config-id';
-      const result = serializeAgentData(
-        baseNodes,
-        edges,
-        // @ts-expect-error -- ignore
-        {
-          contextConfig: {
-            id: existingContextConfigId,
-            contextVariables: '{"foo":"bar"}',
-            headersSchema: '', // cleared
-          },
-        }
-      );
-
-      expect((result as any).contextConfigId).toBe(existingContextConfigId);
-      expect(result.contextConfig).toEqual({
-        id: existingContextConfigId,
-        headersSchema: null,
-        contextVariables: { foo: 'bar' },
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        externalAgentId: 'external-1',
+        headers: { authorization: 'Bearer external-token' },
+        subAgentExternalAgentRelationId: 'ext-rel-1',
+      });
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        agentId: 'team-1',
+        headers: { authorization: 'Bearer team-token' },
+        subAgentTeamAgentRelationId: 'team-rel-1',
       });
     });
 
-    it('preserves existing contextConfigId when only contextVariables is cleared', () => {
-      const existingContextConfigId = 'existing-context-config-id';
-      const result = serializeAgentData(
-        baseNodes,
-        edges,
-        // @ts-expect-error -- ignore
+    it('shares external and team agent headers across connected subagents', () => {
+      const nodes: Node[] = [
         {
-          contextConfig: {
-            id: existingContextConfigId,
-            contextVariables: '', // cleared
-            headersSchema: '{"type":"object"}',
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'agent2',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 200 },
+          data: {},
+        },
+        {
+          id: 'external-node-1',
+          type: NodeType.ExternalAgent,
+          position: { x: 300, y: -100 },
+          data: {
+            externalAgentId: 'external-1',
+            relationshipId: null,
           },
-        }
+        },
+        {
+          id: 'team-node-1',
+          type: NodeType.TeamAgent,
+          position: { x: 300, y: 100 },
+          data: {
+            teamAgentId: 'team-1',
+            relationshipId: null,
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-ext-1',
+          type: EdgeType.A2AExternal,
+          source: 'agent1',
+          target: 'external-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-ext-2',
+          type: EdgeType.A2AExternal,
+          source: 'agent2',
+          target: 'external-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-team-1',
+          type: EdgeType.A2ATeam,
+          source: 'agent1',
+          target: 'team-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+        {
+          id: 'edge-team-2',
+          type: EdgeType.A2ATeam,
+          source: 'agent2',
+          target: 'team-node-1',
+          data: {
+            relationships: {
+              transferTargetToSource: false,
+              transferSourceToTarget: false,
+              delegateTargetToSource: false,
+              delegateSourceToTarget: true,
+            },
+          },
+        },
+      ];
+
+      const result = editorToPayload(
+        nodes,
+        edges,
+        undefined,
+        undefined,
+        {
+          'external-1': createExternalAgentFormValue('external-1', {
+            headers: { authorization: 'Bearer shared-external' },
+          }),
+        },
+        {
+          'team-1': createTeamAgentFormValue('team-1', {
+            headers: { authorization: 'Bearer shared-team' },
+          }),
+        },
+        undefined,
+        undefined
       );
 
-      expect((result as any).contextConfigId).toBe(existingContextConfigId);
-      expect(result.contextConfig).toEqual({
-        id: existingContextConfigId,
-        headersSchema: { type: 'object' },
-        contextVariables: null,
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        externalAgentId: 'external-1',
+        headers: { authorization: 'Bearer shared-external' },
       });
+      expect(result.subAgents.agent2.canDelegateTo).toContainEqual({
+        externalAgentId: 'external-1',
+        headers: { authorization: 'Bearer shared-external' },
+      });
+      expect(result.subAgents.agent1.canDelegateTo).toContainEqual({
+        agentId: 'team-1',
+        headers: { authorization: 'Bearer shared-team' },
+      });
+      expect(result.subAgents.agent2.canDelegateTo).toContainEqual({
+        agentId: 'team-1',
+        headers: { authorization: 'Bearer shared-team' },
+      });
+    });
+  });
+
+  describe('function tool serialization', () => {
+    it('should include empty functionTools and functions records when no function tool nodes exist', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+      ];
+
+      const result = editorToPayload(nodes, []);
+
+      expect(result.functionTools).toEqual({});
+      expect(result.functions).toEqual({});
+    });
+
+    it('should preserve live function tool nodes from form data during serialization', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            nodeKey: 'function-tool:function-tool-1',
+            toolId: 'function-tool-1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const formData = {
+        subAgents: {
+          agent1: {
+            id: 'agent1',
+            name: 'Current agent name',
+            description: 'Current description',
+            prompt: 'Current prompt',
+            dataComponents: [],
+            artifactComponents: [],
+            skills: [],
+            type: 'internal',
+          },
+        },
+        functionTools: {
+          'function-tool-1': {
+            functionId: 'function-1',
+            name: 'Lookup customer',
+            description: 'Looks up customer information',
+          },
+        },
+        functions: {
+          'function-1': {
+            executeCode: 'async function execute() { return { ok: true }; }',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                customerId: { type: 'string' },
+              },
+              required: ['customerId'],
+            },
+            dependencies: {
+              axios: '^1.7.0',
+            },
+          },
+        },
+        externalAgents: {},
+        teamAgents: {},
+      } as any;
+
+      const result = editorToPayload(
+        nodes,
+        edges,
+        undefined,
+        formData.functionTools,
+        formData.externalAgents,
+        formData.teamAgents,
+        formData.subAgents,
+        formData.functions
+      );
+
+      expect(result.subAgents.agent1.name).toBe('Current agent name');
+      expect(result.functionTools).toEqual({
+        'function-tool-1': {
+          id: 'function-tool-1',
+          name: 'Lookup customer',
+          description: 'Looks up customer information',
+          functionId: 'function-1',
+        },
+      });
+      expect(result.functions).toEqual({
+        'function-1': {
+          id: 'function-1',
+          executeCode: 'async function execute() { return { ok: true }; }',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              customerId: { type: 'string' },
+            },
+            required: ['customerId'],
+          },
+          dependencies: {
+            axios: '^1.7.0',
+          },
+        },
+      });
+    });
+
+    it('should hydrate sub-agent ids before reconciling the saved graph', () => {
+      const tempNodeId = '1uod8ks26jpu729czv0z4';
+      const nodes: Node[] = [
+        {
+          id: tempNodeId,
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'weather-node',
+          type: NodeType.MCP,
+          position: { x: 300, y: 0 },
+          data: {
+            toolId: 'weather',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-weather',
+          type: EdgeType.Default,
+          source: tempNodeId,
+          target: 'weather-node',
+        },
+      ];
+
+      const formData = {
+        subAgents: {
+          [tempNodeId]: {
+            id: 'sub-agent1',
+            name: 'Sub Agent 1',
+            description: '',
+            prompt: 'Current prompt',
+            dataComponents: [],
+            artifactComponents: [],
+            skills: [],
+            type: 'internal',
+          },
+        },
+        functionTools: {},
+        functions: {},
+        externalAgents: {},
+        teamAgents: {},
+      } as any;
+
+      const result = syncSavedAgentGraph({
+        nodes,
+        edges,
+        nodeId: null,
+        edgeId: 'edge-weather',
+        subAgentFormData: formData.subAgents,
+        savedAgent: {
+          id: 'agent-1',
+          name: 'Agent',
+          description: '',
+          prompt: '',
+          contextConfig: null,
+          statusUpdates: null,
+          stopWhen: null,
+          models: {},
+          defaultSubAgentId: 'sub-agent1',
+          subAgents: {
+            'sub-agent1': {
+              id: 'sub-agent1',
+              name: 'Sub Agent 1',
+              description: '',
+              prompt: 'Current prompt',
+              type: 'internal',
+              dataComponents: [],
+              artifactComponents: [],
+              canUse: [
+                {
+                  toolId: 'weather',
+                  agentToolRelationId: 'relation-1',
+                },
+              ],
+              canTransferTo: [],
+              canDelegateTo: [],
+            },
+          },
+          functions: {},
+          functionTools: {},
+          externalAgents: {},
+          teamAgents: {},
+          tools: {
+            weather: {
+              id: 'weather',
+              name: 'Weather',
+              description: 'Weather tool',
+            },
+          },
+        } as any,
+      });
+
+      expect(result.nodes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'sub-agent1',
+          }),
+        ])
+      );
+      expect(result.edges).toEqual([
+        expect.objectContaining({
+          id: 'edge-weather',
+          source: 'sub-agent1',
+          target: 'mcp:relation-1',
+          selected: true,
+        }),
+      ]);
+    });
+
+    it('should serialize connected function tool nodes into functionTools and functions', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: 'function-node-1',
+          type: NodeType.FunctionTool,
+          position: { x: 300, y: 0 },
+          data: {
+            nodeKey: 'function-tool:function-tool-1',
+            toolId: 'function-tool-1',
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge-agent-function',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'function-node-1',
+        },
+      ];
+
+      const result = editorToPayload(
+        nodes,
+        edges,
+        undefined,
+        {
+          'function-tool-1': {
+            functionId: 'function-1',
+            name: 'Lookup customer',
+            description: 'Looks up customer information',
+          },
+        } as any,
+        undefined,
+        undefined,
+        undefined,
+        {
+          'function-1': {
+            executeCode: 'async function execute() { return { ok: true }; }',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                customerId: { type: 'string' },
+              },
+              required: ['customerId'],
+            },
+            dependencies: {
+              axios: '^1.7.0',
+            },
+          },
+        } as any
+      );
+
+      expect(result.subAgents.agent1.canUse).toEqual([
+        {
+          toolId: 'function-tool-1',
+          toolSelection: null,
+          headers: null,
+        },
+      ]);
+      expect(result.functionTools).toEqual({
+        'function-tool-1': {
+          id: 'function-tool-1',
+          name: 'Lookup customer',
+          description: 'Looks up customer information',
+          functionId: 'function-1',
+        },
+      });
+      expect(result.functions).toEqual({
+        'function-1': {
+          id: 'function-1',
+          executeCode: 'async function execute() { return { ok: true }; }',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              customerId: { type: 'string' },
+            },
+            required: ['customerId'],
+          },
+          dependencies: {
+            axios: '^1.7.0',
+          },
+        },
+      });
+    });
+
+    it('should serialize defaultSubAgentNodeId to the persisted defaultSubAgentId', () => {
+      const tempNodeId = 'temp-node-id';
+      const result = editorToPayload(
+        [
+          {
+            id: tempNodeId,
+            type: NodeType.SubAgent,
+            position: { x: 0, y: 0 },
+            data: {},
+          },
+        ],
+        [],
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          [tempNodeId]: {
+            id: 'persisted-agent-id',
+            name: 'Sub Agent',
+            description: '',
+            prompt: 'Hi',
+            dataComponents: [],
+            artifactComponents: [],
+            skills: [],
+            type: 'internal',
+          },
+        } as any,
+        undefined,
+        tempNodeId
+      );
+
+      expect(result.defaultSubAgentId).toBe('persisted-agent-id');
     });
   });
 });
