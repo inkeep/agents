@@ -474,8 +474,9 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     try {
       const mainBranch = await apiClient.getBranch(projectId, 'main');
       writeProjectState(paths.projectRoot, projectId, mainBranch.hash);
-    } catch {
-      // Non-fatal: hash tracking is best-effort
+    } catch (error) {
+      console.warn(styleText('yellow', `Warning: Could not save pull state: ${error instanceof Error ? error.message : String(error)}`));
+      console.warn(styleText('yellow', 'Future pulls may re-prompt for conflict resolution.'));
     }
 
     console.log(styleText('green', '\nProject synced successfully!'));
