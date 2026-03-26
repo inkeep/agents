@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { ModelSettings } from '@inkeep/agents-core';
+import type { ModelSettings, Part } from '@inkeep/agents-core';
 import {
   estimateTokens as estimateTokensUtil,
   GENERATION_TYPES,
@@ -676,18 +676,19 @@ export abstract class BaseCompressor {
         }
 
         const dbArtifact = existing[0];
-        const parts = structuredClone(dbArtifact.parts ?? []) as any[];
-        if (parts.length === 0 || !parts[0]?.data?.summary) {
+        const parts = structuredClone(dbArtifact.parts ?? []) as Part[];
+        const firstPart = parts[0];
+        if (!firstPart || firstPart.kind !== 'data' || !firstPart.data?.summary) {
           logger.debug(
             { artifactId: artifact.id, hasParts: parts.length > 0 },
-            'Artifact has no summary structure, skipping key_findings persistence'
+            'Artifact has no data part with summary structure, skipping key_findings persistence'
           );
           result.skipped++;
           continue;
         }
 
-        parts[0].data.summary = {
-          ...parts[0].data.summary,
+        firstPart.data.summary = {
+          ...firstPart.data.summary,
           key_findings: artifact.key_findings,
         };
 
