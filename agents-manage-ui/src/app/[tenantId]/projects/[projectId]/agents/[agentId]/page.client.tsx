@@ -13,8 +13,8 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
-import { useParams, useRouter } from 'next/navigation';
-import { type ComponentProps, type FC, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { Activity, type ComponentProps, type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { EdgeType, edgeTypes } from '@/components/agent/configuration/edge-types';
 import {
@@ -113,8 +113,11 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     data: { canEdit },
   } = useProjectPermissionsQuery();
   const queryClient = useQueryClient();
-  const router = useRouter();
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
+  const { tenantId, projectId, agentId } = useParams<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+  }>();
   const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
@@ -238,10 +241,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   // Callback function to fetch and update agent graph from copilot
   const refreshAgentGraph = async (options?: { fetchTools?: boolean }) => {
-    if (!agent.id) {
-      return;
-    }
-
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doRequest(): Promise<void> {
@@ -255,9 +254,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         return;
       }
       const fullProject = fullProjectResult.data;
-      const updatedAgent = fullProject?.agents?.[
-        agent.id as keyof typeof fullProject.agents
-      ] as ExtendedFullAgentDefinition;
+      const updatedAgent = fullProject?.agents?.[agentId] as ExtendedFullAgentDefinition;
 
       // Deserialize agent data to nodes and edges
       const { nodes, edges } = deserializeAgentData(updatedAgent);
@@ -569,7 +566,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       tenantId,
       projectId,
       serializedData,
-      agent.id // agentid is required and added to the serialized data if it does not exist so we need to pass is separately to know whether to create or update
+      agentId
     );
 
     if (res.success) {
@@ -625,11 +622,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           })
         );
       }
-
-      if (!agent.id && res.data?.id) {
-        setMetadata('id', res.data.id);
-        router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
-      }
       return true;
     }
 
@@ -682,6 +674,18 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   const showEmptyState = !nodes.length && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
 
+  const showSidePane =
+    isOpen &&
+    /**
+     * Prevents layout shift of pane when it's opened by default (when nodeId/edgeId are in query params).
+     *
+     * The panel width depends on values stored in `localStorage`, which are only
+     * accessible after the component has mounted. This component delays rendering
+     * until then to avoid visual layout jumps.
+     */
+    isMounted &&
+    !showEmptyState;
+
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
@@ -691,7 +695,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       className="relative bg-muted/20 dark:bg-background flex overflow-hidden no-parent-container"
     >
       <CopilotChat
-        agentId={agent.id}
+        agentId={agentId}
         projectId={projectId}
         tenantId={tenantId}
         refreshAgentGraph={refreshAgentGraph}
@@ -791,57 +795,43 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         </ReactFlow>
       </ResizablePanel>
 
-      {isOpen &&
-        /**
-         * Prevents layout shift of pane when it's opened by default (when nodeId/edgeId are in query params).
-         *
-         * The panel width depends on values stored in `localStorage`, which are only
-         * accessible after the component has mounted. This component delays rendering
-         * until then to avoid visual layout jumps.
-         */
-        isMounted &&
-        !showEmptyState && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel
-              minSize={30}
-              // Panel id and order props recommended when panels are dynamically rendered
-              id="side-pane"
-              order={2}
-            >
-              <SidePane
-                selectedNodeId={nodeId}
-                selectedEdgeId={edgeId}
-                onClose={closeSidePane}
-                backToAgent={backToAgent}
-                disabled={isCopilotStreaming || !canEdit}
-              />
-            </ResizablePanel>
-          </>
-        )}
-
-      {showPlayground && agent.id && (
-        <>
-          {!showTraces && <ResizableHandle withHandle />}
-          <ResizablePanel
-            minSize={25}
-            // Panel id and order props recommended when panels are dynamically rendered
-            id="playground-pane"
-            order={3}
-            className={showTraces ? 'w-full flex-none!' : ''}
-          >
-            <Playground
-              agentId={agent.id}
-              projectId={projectId}
-              tenantId={tenantId}
-              setShowPlayground={setShowPlayground}
-              closeSidePane={closeSidePane}
-              showTraces={showTraces}
-              setShowTraces={setShowTraces}
-            />
-          </ResizablePanel>
-        </>
-      )}
+      <Activity mode={showSidePane ? 'visible' : 'hidden'}>
+        <ResizableHandle withHandle />
+        <ResizablePanel
+          minSize={30}
+          // Panel id and order props recommended when panels are dynamically rendered
+          id="side-pane"
+          order={2}
+        >
+          <SidePane
+            selectedNodeId={nodeId}
+            selectedEdgeId={edgeId}
+            onClose={closeSidePane}
+            backToAgent={backToAgent}
+            disabled={isCopilotStreaming || !canEdit}
+          />
+        </ResizablePanel>
+      </Activity>
+      <Activity mode={showPlayground ? 'visible' : 'hidden'}>
+        {!showTraces && <ResizableHandle withHandle />}
+        <ResizablePanel
+          minSize={25}
+          // Panel id and order props recommended when panels are dynamically rendered
+          id="playground-pane"
+          order={3}
+          className={showTraces ? 'w-full flex-none!' : ''}
+        >
+          <Playground
+            agentId={agentId}
+            projectId={projectId}
+            tenantId={tenantId}
+            setShowPlayground={setShowPlayground}
+            closeSidePane={closeSidePane}
+            showTraces={showTraces}
+            setShowTraces={setShowTraces}
+          />
+        </ResizablePanel>
+      </Activity>
       <UnsavedChangesDialog onSubmit={onSubmit} />
     </ResizablePanelGroup>
   );
