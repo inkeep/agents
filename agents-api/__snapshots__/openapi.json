@@ -40430,7 +40430,7 @@
                                                 "type": "string"
                                               },
                                               {
-                                                "pattern": "^data:text\\/(plain|markdown|html|csv|x-log);base64,",
+                                                "pattern": "^data:(text\\/(plain|markdown|html|csv|x-log)|application\\/json);base64,",
                                                 "type": "string"
                                               }
                                             ]

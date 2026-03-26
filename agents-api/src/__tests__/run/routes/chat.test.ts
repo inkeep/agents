@@ -357,6 +357,34 @@ describe('Chat Routes', () => {
       expect(response.headers.get('content-type')).toBe('text/event-stream');
     });
 
+    it('should accept inline JSON content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this JSON file' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'data:application/json;base64,eyJoZWxsbyI6IndvcmxkIn0=',
+                    filename: 'payload.json',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
     it('should return 400 when PDF URL ingestion fails', async () => {
       const { inlineExternalPdfUrlParts } = await import(
         '../../../domains/run/services/blob-storage/file-upload-helpers'

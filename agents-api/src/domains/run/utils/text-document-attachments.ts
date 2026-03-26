@@ -42,6 +42,8 @@ export function getDefaultTextDocumentFilename(mimeType: string): string {
       return 'unnamed.csv';
     case 'text/x-log':
       return 'unnamed.log';
+    case 'application/json':
+      return 'unnamed.json';
     default:
       return 'unnamed.txt';
   }

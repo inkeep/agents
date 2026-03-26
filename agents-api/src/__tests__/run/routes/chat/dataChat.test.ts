@@ -367,6 +367,34 @@ describe('Chat Data Stream Route', () => {
     expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
   });
 
+  it('should accept inline JSON file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this JSON file',
+          parts: [
+            { type: 'text', text: 'Summarize this JSON file' },
+            {
+              type: 'file',
+              url: 'data:application/json;base64,eyJuYW1lIjoiYWxwaGEiLCJjb3VudCI6MX0=',
+              mediaType: 'application/json',
+              filename: 'data.json',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
   it('should reject remote URLs for text document file parts in Vercel messages format', async () => {
     const body = {
       messages: [

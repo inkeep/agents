@@ -60,6 +60,7 @@ The chat endpoint supports files in message content parts with different rules b
   - `text/html`
   - `text/csv`
   - `text/x-log`
+  - `application/json`
 - **PDF file inputs**: support either remote URLs (`https://...`) or base64 `data:` payloads
 - **Text document file inputs**: support inline base64 `data:` payloads only. Remote URLs are not accepted for these text document MIME types.
 
@@ -122,6 +123,12 @@ The chat endpoint supports files in message content parts with different rules b
         },
         {
           "type": "file",
+          "url": "data:application/json;base64,eyJuYW1lIjoiYWxwaGEiLCJjb3VudCI6MX0=",
+          "mediaType": "application/json",
+          "filename": "data.json"
+        },
+        {
+          "type": "file",
           "url": "https://example.com/document.pdf",
           "mediaType": "application/pdf",
           "filename": "document.pdf"
@@ -137,7 +144,7 @@ The chat endpoint supports files in message content parts with different rules b
 - **Encoding**: data URIs must include a valid base64 payload
 - **Maximum size**:
   - Images and PDFs: each inline file payload is limited to **10 MB**
-  - Text documents (`text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`): each inline file payload is limited to **256 KB**
+  - Text documents (`text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`, `application/json`): each inline file payload is limited to **256 KB**
 - **Vercel `parts` file typing**: for `/run/api/chat`, file parts use Vercel-compatible shape
   with `url` (data URI or `https://` for PDFs) and required `mediaType`
 - **Content validation**:
@@ -147,7 +154,7 @@ The chat endpoint supports files in message content parts with different rules b
 - **Model input handling for text documents**: text attachments are injected into the prompt only on the turn where the user sends them; persisted text attachments are not re-injected from later conversation history
 - **HTML semantics**: `text/html` files are treated as raw source text. The API does not render, sanitize, or convert HTML to visible page text before injection.
 - **Remote PDF URLs**: must be reachable over `http` or `https` from the Run API. Unreachable hosts, non-PDF responses, or oversized bodies result in **HTTP 400** with an error message (query strings and fragments on the URL are not preserved in stored metadata).
-- **Remote text document URLs**: are not supported. Use inline base64 `data:text/...;base64,...` payloads instead.
+- **Remote text document URLs**: are not supported. Use inline base64 `data:text/...;base64,...` or `data:application/json;base64,...` payloads instead.
 
 ### Optional Headers
 

@@ -29,7 +29,7 @@ const TextDocumentDataUriSchema = z
   .string()
   .regex(
     DATA_URI_TEXT_BASE64_REGEX,
-    'File must be a text/plain, text/markdown, text/html, text/csv, or text/x-log data URI'
+    'File must be a text/plain, text/markdown, text/html, text/csv, text/x-log, or application/json data URI'
   )
   .refine(hasValidBase64Payload, 'Invalid base64 data in text document data URI');
 

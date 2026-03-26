@@ -186,6 +186,48 @@ describe('uploadPartsFiles', () => {
     });
   });
 
+  it('uploads inline JSON file parts and rewrites to blob URI', async () => {
+    vi.mocked(normalizeInlineFileBytes).mockResolvedValueOnce({
+      data: Uint8Array.from(Buffer.from('{"hello":"world"}\n', 'utf8')),
+      mimeType: 'application/json',
+    });
+    const parts: Part[] = [
+      {
+        kind: 'file',
+        file: {
+          bytes: Buffer.from('{"hello":"world"}\n', 'utf8').toString('base64'),
+          mimeType: 'application/json',
+        },
+        metadata: { filename: 'payload.json' },
+      },
+    ];
+
+    const uploaded = await uploadPartsFiles(parts, uploadContext);
+
+    expect(normalizeInlineFileBytes).toHaveBeenCalledWith({
+      bytes: Buffer.from('{"hello":"world"}\n', 'utf8').toString('base64'),
+      mimeType: 'application/json',
+    });
+    expect(mockUpload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: expect.stringContaining(
+          'v1/t_tenant/media/p_project/conv/c_conversation/m_message/sha256-'
+        ),
+        contentType: 'application/json',
+      })
+    );
+    expect(uploaded[0]).toMatchObject({
+      kind: 'file',
+      file: {
+        uri: expect.stringContaining('blob://v1/t_tenant/media/p_project/conv/c_conversation'),
+        mimeType: 'application/json',
+      },
+      metadata: {
+        filename: 'payload.json',
+      },
+    });
+  });
+
   it('preserves non-file parts and metadata while uploading files', async () => {
     const textPart: TextPart = { kind: 'text', text: 'hello' };
     const filePart: FilePart = {

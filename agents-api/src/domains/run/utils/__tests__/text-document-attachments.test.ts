@@ -51,6 +51,7 @@ describe('text-document-attachments', () => {
       ['text/html', 'unnamed.html'],
       ['text/csv', 'unnamed.csv'],
       ['text/x-log', 'unnamed.log'],
+      ['application/json', 'unnamed.json'],
     ])('returns correct default filename for %s', (mimeType, expected) => {
       expect(getDefaultTextDocumentFilename(mimeType)).toBe(expected);
     });

@@ -181,6 +181,18 @@ describe('file-content-security', () => {
       expect(Buffer.from(result.data).toString('utf8')).toContain('[warn] retrying');
     });
 
+    it('accepts inline application/json bytes when they are valid UTF-8 text', async () => {
+      const jsonBytes = Buffer.from('{"name":"alpha","count":1}\n', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: jsonBytes.toString('base64'),
+        mimeType: 'application/json',
+      });
+
+      expect(result.mimeType).toBe('application/json');
+      expect(Buffer.from(result.data).toString('utf8')).toContain('"count":1');
+    });
+
     it('rejects binary bytes masquerading as text/plain', async () => {
       const binaryBytes = Buffer.from([0x00, 0x9f, 0x92, 0x96, 0xff, 0x00]);
 

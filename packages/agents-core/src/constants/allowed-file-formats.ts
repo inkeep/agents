@@ -5,6 +5,7 @@ export const ALLOWED_TEXT_DOCUMENT_MIME_TYPES = new Set([
   'text/html',
   'text/csv',
   'text/x-log',
+  'application/json',
 ]);
 
 const FILE_MIME_TYPE_TO_EXTENSION: Record<string, string> = {
@@ -18,6 +19,7 @@ const FILE_MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   'text/html': 'html',
   'text/csv': 'csv',
   'text/x-log': 'log',
+  'application/json': 'json',
 };
 
 const FILE_EXTENSION_TO_MIME_TYPE: Record<string, string> = {
@@ -34,6 +36,7 @@ const FILE_EXTENSION_TO_MIME_TYPE: Record<string, string> = {
   htm: 'text/html',
   csv: 'text/csv',
   log: 'text/x-log',
+  json: 'application/json',
 };
 
 const dataUriSubtypes = Array.from(ALLOWED_IMAGE_MIME_TYPES).flatMap((mime) => {
@@ -45,7 +48,8 @@ export const DATA_URI_IMAGE_BASE64_REGEX = new RegExp(
   `^data:image/(${dataUriSubtypes.join('|')});base64,`
 );
 export const DATA_URI_PDF_BASE64_REGEX = /^data:application\/pdf;base64,/;
-export const DATA_URI_TEXT_BASE64_REGEX = /^data:text\/(plain|markdown|html|csv|x-log);base64,/;
+export const DATA_URI_TEXT_BASE64_REGEX =
+  /^data:(text\/(plain|markdown|html|csv|x-log)|application\/json);base64,/;
 
 export function normalizeMimeType(mimeType: string): string {
   return mimeType.split(';')[0]?.trim().toLowerCase() || '';

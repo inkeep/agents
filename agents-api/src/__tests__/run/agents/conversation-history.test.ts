@@ -79,6 +79,34 @@ describe('buildUserMessageContent', () => {
     ]);
   });
 
+  it('injects inline JSON attachments as XML attachment blocks', async () => {
+    const content = await buildUserMessageContent('Summarize this payload', [
+      {
+        kind: 'file',
+        file: {
+          bytes: Buffer.from('{"items":[1,2,3]}\n', 'utf8').toString('base64'),
+          mimeType: 'application/json',
+        },
+        metadata: {
+          filename: 'payload.json',
+        },
+      },
+    ]);
+
+    expect(content).toEqual([
+      { type: 'text', text: 'Summarize this payload' },
+      {
+        type: 'text',
+        text: [
+          '<attached_file filename="payload.json" media_type="application/json">',
+          '{"items":[1,2,3]}',
+          '',
+          '</attached_file>',
+        ].join('\n'),
+      },
+    ]);
+  });
+
   it('returns unavailable block when blob download fails', async () => {
     downloadMock.mockRejectedValue(new Error('Blob not found'));
 
