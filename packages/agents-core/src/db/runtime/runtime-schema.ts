@@ -171,6 +171,7 @@ export const apps = pgTable(
     type: varchar('type', { length: 64 }).$type<AppType>().notNull(),
     defaultProjectId: varchar('default_project_id', { length: 256 }),
     defaultAgentId: varchar('default_agent_id', { length: 256 }),
+    prompt: text('prompt'),
     enabled: boolean('enabled').notNull().default(true),
     config: jsonb('config').$type<AppConfig>().notNull(),
     lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
@@ -647,6 +648,15 @@ export const userProfileRelations = relations(userProfile, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// ============================================================================
+// USAGE GENERATION TYPES (table removed — usage now tracked via OTel/SigNoz)
+// ============================================================================
+
+import { USAGE_GENERATION_TYPES } from '../../constants/otel-attributes';
+
+export { USAGE_GENERATION_TYPES };
+export type GenerationType = (typeof USAGE_GENERATION_TYPES)[number];
 
 // ============================================================================
 // RUNTIME RELATIONS

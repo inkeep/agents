@@ -3,7 +3,7 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { functionTools, subAgentFunctionToolRelations } from '../../db/manage/manage-schema';
 import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
-import { generateId } from '../../utils/conversations';
+import { deriveRelationId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 import { agentScopedWhere } from './scope-helpers';
 
@@ -305,7 +305,13 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
     const { scopes, subAgentId, functionToolId, toolPolicies } = params;
 
     try {
-      const relationId = generateId();
+      const relationId = deriveRelationId(
+        scopes.tenantId,
+        scopes.projectId,
+        scopes.agentId,
+        subAgentId,
+        functionToolId
+      );
 
       const [result] = await db
         .insert(subAgentFunctionToolRelations)

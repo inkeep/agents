@@ -1,5 +1,34 @@
 # @inkeep/agents-cli
 
+## 0.60.0
+
+### Patch Changes
+
+- Updated dependencies [2eaebb3]
+- Updated dependencies [c0018a6]
+- Updated dependencies [ed10886]
+- Updated dependencies [b1199eb]
+  - @inkeep/agents-core@0.60.0
+  - @inkeep/agents-manage-ui@0.60.0
+  - @inkeep/agents-sdk@0.60.0
+
+## 0.59.4
+
+### Patch Changes
+
+- 9dec3ff: Refactor `inkeep pull` introspect-generator into modular architecture with per-generator `task.collect` functions
+- 99b5edf: Update TypeScript to 6.0.2
+- Updated dependencies [be7f056]
+- Updated dependencies [82bd424]
+- Updated dependencies [296c79a]
+- Updated dependencies [ef7987f]
+- Updated dependencies [1b37b29]
+- Updated dependencies [99b5edf]
+- Updated dependencies [6f1c5da]
+  - @inkeep/agents-core@0.59.4
+  - @inkeep/agents-manage-ui@0.59.4
+  - @inkeep/agents-sdk@0.59.4
+
 ## 0.59.3
 
 ### Patch Changes

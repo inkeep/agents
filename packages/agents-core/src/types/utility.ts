@@ -116,6 +116,7 @@ export type MessageMetadata = {
     completion_tokens?: number;
     total_tokens?: number;
   };
+  compressionType?: string;
   a2a_metadata?: Record<string, unknown>;
   processing_time_ms?: number;
   error_details?: Record<string, unknown>;
@@ -318,6 +319,7 @@ export interface BaseExecutionContext {
     };
     endUserId?: string;
     authMethod?: 'app_credential_web_client' | 'app_credential_api';
+    appPrompt?: string;
   };
 }
 
