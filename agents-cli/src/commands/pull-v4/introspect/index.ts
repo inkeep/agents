@@ -365,9 +365,12 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       } finally {
         try {
           await apiClient.deleteBranch(projectId, tempBranchName, true);
-        } catch {
-          // best-effort cleanup
+        } catch (cleanupError) {
+          if (options.debug) {
+            console.log(styleText('gray', `   Warning: Could not delete temp branch ${tempBranchName}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`));
+          }
         }
+      }
       }
     } else {
       // Todo: we can probably just exit here because there is nothing new to pull
