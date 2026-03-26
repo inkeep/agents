@@ -562,12 +562,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
       return false;
     }
 
-    const res = await saveAgent(
-      tenantId,
-      projectId,
-      serializedData,
-      agentId
-    );
+    const res = await saveAgent(tenantId, projectId, serializedData, agentId);
 
     if (res.success) {
       // Clear any existing errors on successful save
