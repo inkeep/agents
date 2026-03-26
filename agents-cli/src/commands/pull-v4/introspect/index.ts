@@ -315,7 +315,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       console.log(styleText('gray', `   Current main hash: ${currentMainHash}`));
     }
 
-    let remoteProject: any;
+    let remoteProject: Awaited<ReturnType<typeof apiClient.getFullProject>> | undefined;
 
     if (localProjectForId && lastPulledHash) {
       s.message('Checking for conflicts...');

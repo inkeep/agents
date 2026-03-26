@@ -335,7 +335,7 @@ export class ManagementApiClient extends BaseApiClient {
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
       throw new Error(
-        `Merge preview failed (${response.status}): ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+        `Failed to preview merge: ${response.statusText}${errorText ? `\n${errorText}` : ''}`
       );
     }
 
@@ -379,7 +379,7 @@ export class ManagementApiClient extends BaseApiClient {
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
       throw new Error(
-        `Merge execute failed (${response.status}): ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+        `Failed to execute merge: ${response.statusText}${errorText ? `\n${errorText}` : ''}`
       );
     }
 
