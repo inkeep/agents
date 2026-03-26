@@ -3,6 +3,7 @@ import { type Tool, type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
 import { formatOversizedRetrievalReason } from '../../artifacts/artifact-utils';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
+import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import { agentSessionManager } from '../../session/AgentSession';
 import type { AgentRunContext } from '../agent-types';
 import { wrapToolWithStreaming } from './tool-wrapper';
@@ -19,6 +20,21 @@ export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {
     }),
     execute: async ({ artifactId, toolCallId }) => {
       logger.info({ artifactId, toolCallId }, 'get_artifact_full executed');
+
+      const compressor = ctx.currentCompressor;
+      if (compressor?.hasSummarizedArtifact(artifactId)) {
+        const summarized = compressor.getSummarizedArtifact(artifactId);
+        logger.info(
+          { artifactId, toolCallId },
+          'Blocked retrieval of artifact already summarized in compression'
+        );
+        return {
+          artifactId,
+          status: 'already_summarized',
+          key_findings: summarized?.key_findings ?? [],
+          hint: `This artifact's key findings are already in your compressed context. Use them directly to answer. To pass this artifact to a tool, use { "${SENTINEL_KEY.ARTIFACT}": "${artifactId}", "${SENTINEL_KEY.TOOL}": "${summarized?.tool_call_id ?? toolCallId}" } sentinel instead of retrieving it.`,
+        };
+      }
 
       const streamRequestId = ctx.streamRequestId ?? '';
       const artifactService = agentSessionManager.getArtifactService(streamRequestId);

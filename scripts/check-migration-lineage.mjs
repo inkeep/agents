@@ -44,6 +44,15 @@ function runGit(args, options = {}) {
   }).trim();
 }
 
+function runGitRaw(args, options = {}) {
+  return execFileSync('git', args, {
+    cwd: ROOT_DIR,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    ...options,
+  });
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
   let baseRef = 'origin/main';
@@ -105,6 +114,10 @@ function collectSqlTags(dir) {
     .map(toSqlTag);
 }
 
+function readSqlFile(dir, fileName) {
+  return fs.readFileSync(path.join(ROOT_DIR, dir, fileName), 'utf8');
+}
+
 function collectJournalEntries(journalPath) {
   const fullPath = path.join(ROOT_DIR, journalPath);
   const journal = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
@@ -132,6 +145,14 @@ function collectSqlTagsAtRef(baseRef, dir) {
     .map((filePath) => path.basename(filePath))
     .sort()
     .map(toSqlTag);
+}
+
+function readSqlFileAtRef(baseRef, dir, fileName) {
+  return runGitRaw(['show', `${baseRef}:${path.posix.join(dir, fileName)}`]);
+}
+
+function entriesEqual(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function validateTarget(target) {
@@ -203,6 +224,9 @@ function validateTargetAgainstBase(target, baseRef) {
   const currentSqlTagSet = new Set(
     current.sqlTags.filter((entry) => entry.tag !== null).map((entry) => entry.tag)
   );
+  const currentSqlTagMap = new Map(
+    current.sqlTags.filter((entry) => entry.tag !== null).map((entry) => [entry.tag, entry])
+  );
   const baseSqlTagSet = new Set(
     baseSqlTags.filter((entry) => entry.tag !== null).map((entry) => entry.tag)
   );
@@ -229,6 +253,45 @@ function validateTargetAgainstBase(target, baseRef) {
       );
       return errors;
     }
+
+    if (!entriesEqual(current.journalEntries[index], baseJournalEntries[index])) {
+      errors.push(
+        `${target.label}: journal entry '${baseJournalTags[index]}' was modified from ${baseRef}; rebase and regenerate the migration`
+      );
+      return errors;
+    }
+  }
+
+  for (const baseSqlTag of baseSqlTags) {
+    if (baseSqlTag.tag === null) {
+      continue;
+    }
+
+    const currentSqlTag = currentSqlTagMap.get(baseSqlTag.tag);
+    if (!currentSqlTag) {
+      errors.push(
+        `${target.label}: existing migration '${baseSqlTag.tag}.sql' from ${baseRef} is missing; migrations must append, not rewrite history`
+      );
+      continue;
+    }
+
+    try {
+      const currentSql = readSqlFile(target.dir, currentSqlTag.file);
+      const baseSql = readSqlFileAtRef(baseRef, target.dir, baseSqlTag.file);
+      if (currentSql !== baseSql) {
+        errors.push(
+          `${target.label}: existing migration '${baseSqlTag.tag}.sql' was modified from ${baseRef}; rebase and regenerate the migration`
+        );
+      }
+    } catch (error) {
+      errors.push(
+        `${target.label}: failed to compare existing migration '${baseSqlTag.tag}.sql' against ${baseRef} (${error instanceof Error ? error.message : String(error)})`
+      );
+    }
+  }
+
+  if (errors.length > 0) {
+    return errors;
   }
 
   const appendedJournalTags = currentJournalTags.slice(baseJournalTags.length);
