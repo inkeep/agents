@@ -9,6 +9,7 @@ import {
   getActiveAgentForConversation,
   getConversation,
   getConversationId,
+  getWorkflowExecutionByConversation,
   loggerFactory,
   type Part,
   PartSchema,
@@ -19,6 +20,7 @@ import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { HTTPException } from 'hono/http-exception';
 import { stream } from 'hono/streaming';
+import { getRun, start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
@@ -35,6 +37,7 @@ import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream
 import { VercelMessageSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
+import { agentExecutionWorkflow, toolApprovalHook } from '../workflow/functions/agentExecution';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -131,16 +134,73 @@ app.openapi(chatDataStreamRoute, async (c) => {
         return c.json({ success: false, error: 'Conversation not found' }, 404);
       }
 
+      // Check if there is a suspended durable execution for this conversation.
+      const durableExecution = await getWorkflowExecutionByConversation(runDbClient)({
+        tenantId,
+        projectId,
+        conversationId,
+      });
+
+      const isDurable = durableExecution?.status === 'suspended';
+
+      if (isDurable && durableExecution) {
+        await Promise.allSettled(
+          approvalParts.map(async (approvalPart: any) => {
+            const toolCallId = approvalPart.toolCallId as string;
+            const approved = !!approvalPart.approval?.approved;
+            const reason = approvalPart.approval?.reason as string | undefined;
+            const token = `tool-approval:${conversationId}:${durableExecution.id}:${toolCallId}`;
+            try {
+              await toolApprovalHook.resume(token, {
+                approved,
+                reason: approved ? undefined : reason,
+              });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              if (!message.includes('not found') && !message.includes('already')) {
+                throw error;
+              }
+            }
+          })
+        );
+
+        const namespace = (durableExecution.metadata as any)?.continuationStreamNamespace as
+          | string
+          | undefined;
+        const run = getRun(durableExecution.id);
+
+        c.header('Content-Type', 'text/event-stream');
+        c.header('Cache-Control', 'no-cache');
+        c.header('Connection', 'keep-alive');
+
+        return stream(c, async (s) => {
+          try {
+            const readable = run.getReadable({ namespace });
+            const reader = readable.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              await s.write(value);
+            }
+          } catch (error) {
+            logger.error(
+              { error, executionId: durableExecution.id },
+              'Error streaming approval continuation'
+            );
+            await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+          }
+        });
+      }
+
       const results = approvalParts.map((approvalPart: any) => {
         const toolCallId = approvalPart.toolCallId as string;
         const approved = !!approvalPart.approval?.approved;
         const reason = approvalPart.approval?.reason as string | undefined;
 
-        // Resolve the pending approval (in-memory). Idempotent: if already processed, returns false.
+        // Classic in-memory approval path.
         const ok = approved
           ? pendingToolApprovalManager.approveToolCall(toolCallId)
           : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
-
         return { toolCallId, approved, alreadyProcessed: !ok };
       });
 
@@ -342,6 +402,51 @@ app.openapi(chatDataStreamRoute, async (c) => {
         messageSpan.addEvent('user.message.stored', {
           'message.id': conversationId,
           'database.operation': 'insert',
+        });
+      }
+
+      if (agent.executionMode === 'durable') {
+        const requestId = `chatds-${Date.now()}`;
+        const run = await start(agentExecutionWorkflow, [
+          {
+            tenantId,
+            projectId,
+            agentId,
+            conversationId,
+            userMessage: userText,
+            messageParts: messageParts.length > 0 ? messageParts : undefined,
+            requestId,
+            resolvedRef: executionContext.resolvedRef,
+            forwardedHeaders:
+              Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
+            outputFormat: 'vercel',
+          },
+        ]);
+        logger.info(
+          { runId: run.runId, conversationId, agentId },
+          'Durable execution started via /chat'
+        );
+        c.header('x-workflow-run-id', run.runId);
+        c.header('content-type', 'text/event-stream');
+        c.header('cache-control', 'no-cache');
+        c.header('connection', 'keep-alive');
+        c.header('x-vercel-ai-data-stream', 'v2');
+        c.header('x-accel-buffering', 'no');
+        return stream(c, async (s) => {
+          try {
+            const reader = run.readable.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              await s.write(value);
+            }
+          } catch (error) {
+            logger.error(
+              { error, runId: run.runId },
+              'Error streaming durable execution via /chat'
+            );
+            await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+          }
         });
       }
 

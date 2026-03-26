@@ -135,6 +135,18 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       // Mock implementation
     }
 
+    setDurableWorkflowRunId(_runId: string | undefined) {
+      // Mock implementation
+    }
+
+    setApprovedToolCalls(_approvedToolCalls: Record<string, any> | undefined) {
+      // Mock implementation
+    }
+
+    getPendingDurableApproval() {
+      return undefined;
+    }
+
     async generate(userParts: Part[], _options: unknown) {
       const message = extractTextFromParts(userParts);
       // Mock different response types based on message content

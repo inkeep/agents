@@ -158,6 +158,7 @@ export const createAgent = (db: AgentsManageDatabaseClient) => async (data: Agen
     ...data,
     createdAt: now,
     updatedAt: now,
+    executionMode: (data.executionMode ?? 'classic') as 'classic' | 'durable',
     ...(data.description !== undefined && { description: data.description }),
     ...(data.contextConfigId !== undefined && { contextConfigId: data.contextConfigId }),
     ...(data.models !== undefined && { models: data.models }),
@@ -750,6 +751,10 @@ const getFullAgentDefinitionInternal =
 
     if (agent.stopWhen) {
       result.stopWhen = agent.stopWhen;
+    }
+
+    if (agent.executionMode) {
+      result.executionMode = agent.executionMode;
     }
 
     if (contextConfig) {
