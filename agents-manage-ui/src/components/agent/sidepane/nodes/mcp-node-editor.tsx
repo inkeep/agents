@@ -52,11 +52,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
     data: { canEdit },
   } = useProjectPermissionsQuery();
   const { deleteNode } = useDeleteNode(nodeId);
-
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const skeletonToolLookup = createLookup(mcpTools);
 
@@ -92,6 +88,10 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
       );
     }
   }, [liveToolData, orphanedTools, nodeId]);
+  // MCP was removed, fix race condition when mcpRelation.headers will be set as ''
+  if (!mcpRelation) {
+    return;
+  }
   // Handle missing tool data
   if (!toolData || !tool) {
     return (

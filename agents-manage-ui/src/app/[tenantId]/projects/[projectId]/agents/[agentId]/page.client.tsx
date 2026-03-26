@@ -379,12 +379,8 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     onEdgesChangeAction(changes);
 
     const ids = [
-      ...removedMcpRelationKeys.flatMap(
-        (relationKey) =>
-          [
-            `mcpRelations.${relationKey}.relationshipId`,
-            `mcpRelations.${relationKey}.headers`,
-          ] as const
+      ...removedMcpRelationKeys.map(
+        (relationKey) => `mcpRelations.${relationKey}.relationshipId` as const
       ),
       ...removedFunctionToolRelationKeys.map(
         (relationKey) => `functionToolRelations.${relationKey}.relationshipId` as const
