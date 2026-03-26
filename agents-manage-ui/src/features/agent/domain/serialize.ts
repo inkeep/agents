@@ -576,18 +576,27 @@ export function serializeAgentData(
         ? {
             model: metadata.models.base.model,
             providerOptions: safeJsonParse(metadata.models.base.providerOptions),
+            ...(metadata.models.base.fallbackModels?.length && {
+              fallbackModels: metadata.models.base.fallbackModels.filter(Boolean),
+            }),
           }
         : undefined,
       structuredOutput: metadata.models.structuredOutput
         ? {
             model: metadata.models.structuredOutput.model,
             providerOptions: safeJsonParse(metadata.models.structuredOutput.providerOptions),
+            ...(metadata.models.structuredOutput.fallbackModels?.length && {
+              fallbackModels: metadata.models.structuredOutput.fallbackModels.filter(Boolean),
+            }),
           }
         : undefined,
       summarizer: metadata.models.summarizer
         ? {
             model: metadata.models.summarizer.model,
             providerOptions: safeJsonParse(metadata.models.summarizer.providerOptions),
+            ...(metadata.models.summarizer.fallbackModels?.length && {
+              fallbackModels: metadata.models.summarizer.fallbackModels.filter(Boolean),
+            }),
           }
         : undefined,
     };

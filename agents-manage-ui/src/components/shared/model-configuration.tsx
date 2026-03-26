@@ -68,6 +68,7 @@ const FallbackModelsSection: FC<{
               onFallbackModelsChange(models);
             }}
             disabled={disabled || isInherited}
+            aria-label="Remove fallback model"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -98,6 +99,7 @@ const FallbackModelsSection: FC<{
             size="icon"
             className="h-8 w-8 shrink-0"
             onClick={() => setShowPendingSelector(false)}
+            aria-label="Cancel adding fallback model"
           >
             <X className="h-4 w-4" />
           </Button>
