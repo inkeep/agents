@@ -43221,6 +43221,10 @@
       "name": "Evaluations"
     },
     {
+      "description": "Durable agent execution endpoints",
+      "name": "Executions"
+    },
+    {
       "description": "Operations for managing external agents",
       "name": "External Agents"
     },
