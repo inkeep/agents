@@ -49,6 +49,10 @@ echo "::group::Run preview runtime migrations"
 pnpm db:run:migrate
 echo "::endgroup::"
 
+echo "::group::Wait for SpiceDB readiness"
+pnpm --filter @inkeep/agents-core exec tsx src/auth/wait-for-spicedb.ts
+echo "::endgroup::"
+
 echo "::group::Initialize preview auth"
 pnpm db:auth:init
 echo "::endgroup::"
@@ -59,6 +63,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     echo "- Tenant: \`${TENANT_ID}\`"
     echo "- Admin email: \`${INKEEP_AGENTS_MANAGE_UI_USERNAME}\`"
     echo "- Runtime migrations: \`pnpm db:run:migrate\`"
+    echo "- SpiceDB readiness probe: \`tsx src/auth/wait-for-spicedb.ts\`"
     echo "- Auth seed: \`pnpm db:auth:init\`"
   } >> "${GITHUB_STEP_SUMMARY}"
 fi

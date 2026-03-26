@@ -1,5 +1,14 @@
 # @inkeep/agents-core
 
+## 0.60.0
+
+### Patch Changes
+
+- 2eaebb3: Fix deterministic ID generation for sub-agent relation/junction tables to prevent Dolt merge conflicts
+- c0018a6: Use actual AI SDK token usage for compression decisions and fix pricing service model ID lookup
+- ed10886: Add optional prompt field to app deployments for surface-specific behavioral tuning
+- b1199eb: Compute sorted merge resolution order based on fk relations
+
 ## 0.59.4
 
 ### Patch Changes

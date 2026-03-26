@@ -264,6 +264,20 @@ Our CI pipeline runs on all pull requests and includes:
 
 These checks must pass before a PR can be merged. Pre-commit uses lint-staged, pre-push runs `pnpm format`, and CI is the source of truth.
 
+### Migration Lineage Check
+
+PRs that touch migration files in `packages/agents-core/drizzle/manage/` or `packages/agents-core/drizzle/runtime/` are automatically validated by a CI guard (`scripts/check-migration-lineage.mjs`). The check is skipped for PRs that don't modify these directories.
+
+The script verifies that migrations are **append-only** and follow the lineage from `main`:
+
+- The current journal must start with the exact journal from `main` (no rewriting history)
+- New journal entries must be appended at the end
+- The first new migration number must be the immediate next after `main`
+- Every new SQL file must belong to the newly appended journal tail
+- No new SQL file may reuse a migration number already present on `main`
+
+If the check fails with a **"rebase and regenerate"** error, your branch has stale migrations that conflict with newer ones on `main`. To fix this, rebase your branch on `main` and regenerate your migrations with the appropriate `pnpm db:generate` command.
+
 ## AI coding assistants and coding practices
 
 Many of our best coding practices for AI assistants live in `AGENTS.md`. We render it below for reference.

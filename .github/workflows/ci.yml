@@ -158,7 +158,18 @@ jobs:
 
       - name: Fetch main for migration lineage
         if: steps.changeset-check.outputs.is_changeset != 'true'
-        run: git fetch --no-tags origin main
+        run: |
+          if git rev-parse --is-shallow-repository | grep -q true; then
+            git fetch --no-tags --prune --unshallow origin
+          fi
+
+          git fetch --no-tags --prune origin +refs/heads/main:refs/remotes/origin/main
+
+          if ! git merge-base origin/main HEAD >/dev/null; then
+            echo "Unable to compute merge base between origin/main and HEAD after fetching history."
+            git log --oneline --decorate --graph --max-count=20 --all
+            exit 1
+          fi
 
       - name: Check migration lineage
         if: steps.changeset-check.outputs.is_changeset != 'true'
