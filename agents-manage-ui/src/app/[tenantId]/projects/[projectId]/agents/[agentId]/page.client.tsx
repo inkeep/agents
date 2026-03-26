@@ -42,7 +42,6 @@ import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog'
 import { useAgentSelectionSync } from '@/components/agent/use-agent-selection-sync';
 import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
 import { useAnimateGraph } from '@/components/agent/use-animate-graph';
-import { useDefaultSubAgentNodeIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -588,7 +587,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     isMounted &&
     !showEmptyState;
 
-  const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
@@ -648,7 +646,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             setNodes(resolveCollisions);
           }}
           onBeforeDelete={async (state) => {
-            const defaultSubAgentNodeId = defaultSubAgentNodeIdRef.current;
+            const defaultSubAgentNodeId = form.getValues('defaultSubAgentNodeId')
             const hasDefaultNode = state.nodes.some((node) => node.id === defaultSubAgentNodeId);
             if (hasDefaultNode) {
               toast.error(`Cannot delete default subagent "${defaultSubAgentNodeId}"`);
