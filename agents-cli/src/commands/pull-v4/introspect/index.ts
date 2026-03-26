@@ -295,11 +295,13 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       config.agentsApiKey
     );
 
-    let currentMainHash: string | undefined;
     try {
       const mainBranch = await apiClient.getBranch(projectId, 'main');
       currentMainHash = mainBranch.hash;
-    } catch {
+    } catch (error) {
+      if (options.debug) {
+        console.log(styleText('gray', `   Could not fetch main branch hash: ${error instanceof Error ? error.message : String(error)}`));
+      }
       // Non-fatal: if we can't get the hash, fall through to direct pull
     }
 
