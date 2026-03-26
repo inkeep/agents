@@ -444,7 +444,7 @@ app.openapi(resumeConversationStreamRoute, async (c) => {
     return new Response(null, { status: 204 });
   }
 
-  if (endUserId && conversation.userId !== endUserId) {
+  if (conversation.userId && conversation.userId !== endUserId) {
     return new Response(null, { status: 204 });
   }
 
@@ -467,12 +467,16 @@ app.openapi(resumeConversationStreamRoute, async (c) => {
     const run = getRun(durableExecution.id);
     setStreamHeaders();
     return stream(c, async (s) => {
-      const readable = run.getReadable({ startIndex });
-      const reader = readable.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        await s.write(value);
+      try {
+        const readable = run.getReadable({ startIndex });
+        const reader = readable.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          await s.write(value);
+        }
+      } catch (error) {
+        logger.error({ error, conversationId }, 'Error resuming durable stream');
       }
     });
   }
@@ -491,6 +495,8 @@ app.openapi(resumeConversationStreamRoute, async (c) => {
           if (done) break;
           await s.write(value);
         }
+      } catch (error) {
+        logger.error({ error, conversationId }, 'Error resuming classic stream');
       } finally {
         reader.releaseLock();
       }
