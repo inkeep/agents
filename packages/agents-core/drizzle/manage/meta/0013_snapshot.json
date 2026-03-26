@@ -1,5 +1,5 @@
 {
-  "id": "ed34d40b-0c26-44db-b58a-34454a9f6f1d",
+  "id": "b555284f-8ae7-4f48-820c-83ceed35c7b2",
   "prevId": "abc7a103-dd2c-4112-987f-c0e6750fb068",
   "version": "7",
   "dialect": "postgresql",
@@ -73,6 +73,13 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
+        },
+        "execution_mode": {
+          "name": "execution_mode",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'classic'"
         },
         "created_at": {
           "name": "created_at",
@@ -2230,123 +2237,6 @@
         }
       },
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.skill_files": {
-      "name": "skill_files",
-      "schema": "",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "file_path": {
-          "name": "file_path",
-          "type": "varchar(1024)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "content": {
-          "name": "content",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "skill_files_skill_idx": {
-          "name": "skill_files_skill_idx",
-          "columns": [
-            {
-              "expression": "skill_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "skill_files_skill_fk": {
-          "name": "skill_files_skill_fk",
-          "tableFrom": "skill_files",
-          "tableTo": "skills",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "skill_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "skill_files_tenant_id_project_id_id_pk": {
-          "name": "skill_files_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {
-        "skill_files_skill_path_unique": {
-          "name": "skill_files_skill_path_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "skill_id",
-            "file_path"
-          ]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

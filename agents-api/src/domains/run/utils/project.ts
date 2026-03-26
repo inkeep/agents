@@ -93,7 +93,7 @@ export type TeamRelation = {
   targetAgent: {
     id: string;
     name: string;
-    description: string | null;
+    description?: string | null;
   };
   targetAgentId: string;
   headers?: Record<string, string> | null;
@@ -130,7 +130,7 @@ export function extractTransferRelations(params: {
       }
       return null;
     })
-    .filter((r): r is NonNullable<typeof r> => r !== null);
+    .filter((r) => !!r);
 }
 
 /**
@@ -277,7 +277,7 @@ export function getToolsForSubAgent(params: {
         relationshipId: canUseItem.agentToolRelationId,
       };
     })
-    .filter((item): item is ToolForAgent => item !== null);
+    .filter((item) => !!item);
 }
 
 // Types for data/artifact components - using types from @inkeep/agents-core
@@ -362,7 +362,7 @@ export function getTransferRelationsForTargetSubAgent(params: {
           }
         : null;
     })
-    .filter((r): r is TargetTransferRelation => r !== null);
+    .filter((r) => !!r);
 }
 
 /**
@@ -397,7 +397,7 @@ export function getExternalAgentRelationsForTargetSubAgent(params: {
           }
         : null;
     })
-    .filter((r): r is NonNullable<typeof r> => r !== null);
+    .filter((r) => !!r);
 }
 
 // Types for description enhancement
@@ -415,7 +415,7 @@ export type ExternalRelationForDescription = {
 };
 
 export type TeamRelationForDescription = {
-  targetAgent: { id: string; name: string; description: string | null };
+  targetAgent: { id: string; name: string; description?: string | null };
   targetAgentId: string;
   relationId: string;
 };
@@ -454,7 +454,7 @@ export function buildRelationsForDescription(params: {
           }
         : null;
     })
-    .filter((r): r is NonNullable<typeof r> => r !== null);
+    .filter((r) => !!r);
 
   // Build external and team relations from canDelegateTo
   const externalRelations: ExternalRelationForDescription[] = [];

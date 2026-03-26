@@ -16,6 +16,7 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../../types/utility';
+import { deriveRelationId } from '../../utils/conversations';
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 import { parseSkillFromMarkdown, SKILL_ENTRY_FILE_PATH } from '../../utils/skill-files';
@@ -639,7 +640,13 @@ export const upsertSubAgentSkill =
 
     const insertData: SubAgentSkillInsert = {
       ...params.scopes,
-      id: generateId(),
+      id: deriveRelationId(
+        params.scopes.tenantId,
+        params.scopes.projectId,
+        params.scopes.agentId,
+        params.scopes.subAgentId,
+        params.skillId
+      ),
       skillId: params.skillId,
       index: params.index,
       alwaysLoaded: params.alwaysLoaded ?? false,

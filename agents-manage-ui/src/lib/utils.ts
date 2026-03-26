@@ -23,39 +23,6 @@ export function formatJson(jsonString: string) {
 }
 
 /**
- * Creates a standardized handler for provider options changes that parses JSON strings to objects
- * @param updateFn Function to call with the parsed provider options
- * @returns A handler function that can be used as onProviderOptionsChange
- */
-export function createProviderOptionsHandler(updateFn: (options: any) => void) {
-  return (value: string | undefined) => {
-    if (!value?.trim()) {
-      updateFn(undefined);
-      return;
-    }
-    try {
-      const parsed = JSON.parse(value);
-      updateFn(parsed);
-    } catch (error) {
-      console.error('Failed to parse provider options JSON:', error);
-    }
-  };
-}
-
-export function formatJsonField(value: unknown): string {
-  if (value === undefined || value === null) {
-    return '';
-  }
-
-  const stringifiedValue = JSON.stringify(value);
-  if (stringifiedValue.trim()) {
-    return formatJson(stringifiedValue);
-  }
-
-  return '';
-}
-
-/**
  * Transform an array of components into a lookup map by ID
  * Works with any component type that has an 'id' property
  */

@@ -7,6 +7,7 @@ import type {
   ConversationSelect,
   ConversationUpdate,
   MessageContent,
+  MessageSelect,
   PaginationConfig,
   ProjectScopeConfig,
 } from '../../types/index';
@@ -218,7 +219,10 @@ function extractMessageText(content: MessageContent): string {
 /**
  * Apply context window management by truncating or summarizing old messages
  */
-function applyContextWindowManagement(messageHistory: any[], maxTokens: number): any[] {
+function applyContextWindowManagement(
+  messageHistory: MessageSelect[],
+  maxTokens: number
+): MessageSelect[] {
   // Simple token estimation: ~4 characters per token
   const estimateTokens = (text: string) => Math.ceil(text.length / 4);
 
@@ -237,15 +241,31 @@ function applyContextWindowManagement(messageHistory: any[], maxTokens: number):
     } else {
       // Add a summary message for truncated history if there are more messages
       if (i > 0) {
-        const summaryMessage = {
+        const referenceMessage = messageHistory[0];
+        const summaryMessage: MessageSelect = {
           id: `summary-${getConversationId()}`,
+          tenantId: referenceMessage.tenantId,
+          projectId: referenceMessage.projectId,
+          conversationId: referenceMessage.conversationId,
           role: 'system',
+          fromSubAgentId: null,
+          toSubAgentId: null,
+          fromExternalAgentId: null,
+          toExternalAgentId: null,
+          fromTeamAgentId: null,
+          toTeamAgentId: null,
           content: {
             text: `[Previous conversation history truncated - ${i + 1} earlier messages]`,
           },
           visibility: 'system',
           messageType: 'chat',
-          createdAt: messageHistory[0].createdAt,
+          taskId: null,
+          parentMessageId: null,
+          a2aTaskId: null,
+          a2aSessionId: null,
+          metadata: null,
+          createdAt: referenceMessage.createdAt,
+          updatedAt: referenceMessage.updatedAt,
         };
         managedHistory.unshift(summaryMessage);
       }
@@ -265,7 +285,7 @@ export const getConversationHistory =
     scopes: ProjectScopeConfig;
     conversationId: string;
     options?: ConversationHistoryConfig;
-  }) => {
+  }): Promise<MessageSelect[]> => {
     const { scopes, conversationId, options = {} } = params;
 
     const {
@@ -290,7 +310,7 @@ export const getConversationHistory =
       whereConditions.push(inArray(messages.messageType, messageTypes));
     }
 
-    const messageHistory = await db
+    const messageHistory: MessageSelect[] = await db
       .select()
       .from(messages)
       .where(and(...whereConditions))

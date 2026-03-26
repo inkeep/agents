@@ -1,11 +1,10 @@
-import type { ModelSettings } from '@inkeep/agents-core';
-import { ModelFactory } from '@inkeep/agents-core';
+import type { GenerationType, ModelSettings } from '@inkeep/agents-core';
+import { estimateTokens, ModelFactory } from '@inkeep/agents-core';
 import { generateText, Output } from 'ai';
 import type { z } from 'zod';
 import { getLogger } from '../../../logger';
 import { LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS } from '../constants/execution-limits';
 import { getModelContextWindow } from '../utils/model-context-utils';
-import { estimateTokens } from '../utils/token-estimator';
 
 const logger = getLogger('distill-utils');
 
@@ -15,8 +14,15 @@ export async function distillWithTruncation<TSchema extends z.ZodType>(opts: {
   schema: TSchema;
   buildPrompt: (formattedMessages: string) => string;
   messageFormatter: (maxChars?: number) => string;
+  usageContext?: {
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+    generationType: GenerationType;
+  };
 }): Promise<z.infer<TSchema>> {
-  const { conversationId, summarizerModel, schema, buildPrompt, messageFormatter } = opts;
+  const { conversationId, summarizerModel, schema, buildPrompt, messageFormatter, usageContext } =
+    opts;
 
   if (!summarizerModel?.model?.trim()) {
     throw new Error('Summarizer model is required');
@@ -62,12 +68,29 @@ export async function distillWithTruncation<TSchema extends z.ZodType>(opts: {
       controller.abort();
     }, LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS);
     try {
-      const result = await generateText({
+      const genConfig = {
         ...generationConfig,
         prompt,
         output: Output.object({ schema }),
         abortSignal: controller.signal,
-      });
+        ...(usageContext && {
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: `distill_${conversationId}`,
+            recordInputs: true,
+            recordOutputs: true,
+            metadata: {
+              generationType: usageContext.generationType,
+              tenantId: usageContext.tenantId,
+              projectId: usageContext.projectId,
+              agentId: usageContext.agentId,
+              conversationId,
+            },
+          },
+        }),
+      };
+
+      const result = await generateText(genConfig as Parameters<typeof generateText>[0]);
       return result.output as unknown as z.infer<TSchema>;
     } catch (llmError) {
       const message = llmError instanceof Error ? llmError.message : String(llmError);

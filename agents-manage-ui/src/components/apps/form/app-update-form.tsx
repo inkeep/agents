@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { GenericComboBox } from '@/components/form/generic-combo-box';
 import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
@@ -43,6 +44,7 @@ export function AppUpdateForm({
       name: app.name,
       description: app.description ?? '',
       defaultAgentId: app.defaultAgentId ?? '',
+      prompt: app.prompt ?? '',
       enabled: app.enabled,
       ...(app.type === 'web_client' && webConfig
         ? {
@@ -62,6 +64,7 @@ export function AppUpdateForm({
         description: data.description || undefined,
         defaultAgentId: data.defaultAgentId || undefined,
         defaultProjectId: data.defaultAgentId ? projectId : null,
+        prompt: data.prompt || null,
         enabled: data.enabled,
       };
 
@@ -139,6 +142,14 @@ export function AppUpdateForm({
             description="Comma-separated list of allowed domains."
           />
         )}
+        <GenericTextarea
+          control={form.control}
+          name="prompt"
+          label="Prompt"
+          placeholder="Add supplemental instructions for this app deployment..."
+          description="Optional instructions that customize the agent's behavior when accessed through this app. These are added to the agent's existing instructions."
+          rows={4}
+        />
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>

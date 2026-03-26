@@ -14,19 +14,25 @@ import {
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { HTTPException } from 'hono/http-exception';
-import { streamSSE } from 'hono/streaming';
+import { stream, streamSSE } from 'hono/streaming';
+import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
+import { PdfUrlIngestionError } from '../services/blob-storage/file-security-errors';
+import {
+  buildPersistedMessageContent,
+  inlineExternalPdfUrlParts,
+} from '../services/blob-storage/file-upload-helpers';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
 import { FileContentItemSchema, ImageContentItemSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
+import { agentExecutionWorkflow } from '../workflow/functions/agentExecution';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -314,9 +320,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
         .slice(-1)[0];
 
       // Build Part[] for execution (text + image parts), validated against core PartSchema
-      const messageParts = z
+      const parsedMessageParts = z
         .array(PartSchema)
         .parse(lastUserMessage ? getMessagePartsFromOpenAIContent(lastUserMessage.content) : []);
+      const messageParts = await inlineExternalPdfUrlParts(parsedMessageParts);
 
       // Extract text content from parts
       const userMessage = extractTextFromParts(messageParts);
@@ -368,6 +375,90 @@ app.openapi(chatCompletionsRoute, async (c) => {
         messageSpan.addEvent('user.message.stored', {
           'message.id': conversationId,
           'database.operation': 'insert',
+        });
+      }
+
+      const forwardedHeaders: Record<string, string> = {};
+      const xForwardedCookie = c.req.header('x-forwarded-cookie');
+      const cookie = c.req.header('cookie');
+      const clientTimezone = c.req.header('x-inkeep-client-timezone');
+      const clientTimestamp = c.req.header('x-inkeep-client-timestamp');
+
+      if (xForwardedCookie) {
+        forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+      } else if (cookie) {
+        forwardedHeaders['x-forwarded-cookie'] = cookie;
+      }
+
+      if (clientTimezone && clientTimestamp) {
+        const isValidTimezone =
+          clientTimezone.length < 100 && /^[A-Za-z0-9_/\-+]+$/.test(clientTimezone);
+        const isValidTimestamp =
+          clientTimestamp.length < 50 &&
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(clientTimestamp);
+
+        if (isValidTimezone && isValidTimestamp) {
+          forwardedHeaders['x-inkeep-client-timezone'] = clientTimezone;
+          forwardedHeaders['x-inkeep-client-timestamp'] = clientTimestamp;
+        } else {
+          logger.warn(
+            {
+              clientTimezone: isValidTimezone ? clientTimezone : clientTimezone.substring(0, 100),
+              clientTimestamp: isValidTimestamp
+                ? clientTimestamp
+                : clientTimestamp.substring(0, 50),
+              isValidTimezone,
+              isValidTimestamp,
+            },
+            'Invalid client timezone or timestamp format, ignoring both'
+          );
+        }
+      } else if (clientTimezone || clientTimestamp) {
+        logger.warn(
+          { hasTimezone: !!clientTimezone, hasTimestamp: !!clientTimestamp },
+          'Client timezone and timestamp must both be present, ignoring'
+        );
+      }
+
+      if (agent.executionMode === 'durable') {
+        const emitOperationsHeader = c.req.header('x-emit-operations');
+        const emitOperations = emitOperationsHeader === 'true';
+
+        const run = await start(agentExecutionWorkflow, [
+          {
+            tenantId,
+            projectId,
+            agentId,
+            conversationId,
+            userMessage,
+            messageParts: messageParts.length > 0 ? messageParts : undefined,
+            requestId,
+            resolvedRef: executionContext.resolvedRef,
+            forwardedHeaders:
+              Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
+            emitOperations: emitOperations || undefined,
+          },
+        ]);
+
+        logger.info({ runId: run.runId, conversationId, agentId }, 'Durable execution started');
+
+        c.header('Content-Type', 'text/event-stream');
+        c.header('Cache-Control', 'no-cache');
+        c.header('Connection', 'keep-alive');
+        c.header('x-workflow-run-id', run.runId);
+
+        return stream(c, async (s) => {
+          try {
+            const reader = run.readable.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              await s.write(value);
+            }
+          } catch (error) {
+            logger.error({ error, runId: run.runId }, 'Error streaming durable execution');
+            await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+          }
         });
       }
 
@@ -436,59 +527,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
           const emitOperationsHeader = c.req.header('x-emit-operations');
           const emitOperations = emitOperationsHeader === 'true';
 
-          // Extract headers to forward to MCP servers (for user session auth)
-          // Transform cookie -> x-forwarded-cookie since downstream services expect it
-          // Note: Do NOT forward the authorization header - it causes issues with internal A2A requests
-          // because the user's JWT token is not valid for those internal service-to-service calls
-          const forwardedHeaders: Record<string, string> = {};
-          const xForwardedCookie = c.req.header('x-forwarded-cookie');
-          const cookie = c.req.header('cookie');
-          const clientTimezone = c.req.header('x-inkeep-client-timezone');
-          const clientTimestamp = c.req.header('x-inkeep-client-timestamp');
-
-          // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
-          // Transform cookie to x-forwarded-cookie for downstream forwarding
-          if (xForwardedCookie) {
-            forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
-          } else if (cookie) {
-            forwardedHeaders['x-forwarded-cookie'] = cookie;
-          }
-
-          // Forward client timezone and timestamp together (both required, with validation)
-          if (clientTimezone && clientTimestamp) {
-            // Validate timezone format
-            const isValidTimezone =
-              clientTimezone.length < 100 && /^[A-Za-z0-9_/\-+]+$/.test(clientTimezone);
-            // Validate ISO 8601 timestamp format: "2026-01-16T19:45:30.123Z"
-            const isValidTimestamp =
-              clientTimestamp.length < 50 &&
-              /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(clientTimestamp);
-
-            if (isValidTimezone && isValidTimestamp) {
-              forwardedHeaders['x-inkeep-client-timezone'] = clientTimezone;
-              forwardedHeaders['x-inkeep-client-timestamp'] = clientTimestamp;
-            } else {
-              logger.warn(
-                {
-                  clientTimezone: isValidTimezone
-                    ? clientTimezone
-                    : clientTimezone.substring(0, 100),
-                  clientTimestamp: isValidTimestamp
-                    ? clientTimestamp
-                    : clientTimestamp.substring(0, 50),
-                  isValidTimezone,
-                  isValidTimestamp,
-                },
-                'Invalid client timezone or timestamp format, ignoring both'
-              );
-            }
-          } else if (clientTimezone || clientTimestamp) {
-            logger.warn(
-              { hasTimezone: !!clientTimezone, hasTimestamp: !!clientTimestamp },
-              'Client timezone and timestamp must both be present, ignoring'
-            );
-          }
-
           const executionHandler = new ExecutionHandler();
           const result = await executionHandler.execute({
             executionContext,
@@ -547,6 +585,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
       });
     });
   } catch (error) {
+    if (error instanceof PdfUrlIngestionError) {
+      throw createApiError({
+        code: 'bad_request',
+        message: error.message,
+      });
+    }
     if (error instanceof HTTPException) {
       throw error;
     }

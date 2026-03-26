@@ -61,6 +61,7 @@ import {
   workAppSlackChannelAgentConfigs,
   workAppSlackMcpToolAccessConfig,
   workAppSlackWorkspaces,
+  workflowExecutions,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -167,13 +168,13 @@ export type PartSchemaType = z.infer<typeof PartSchema>;
 export const StopWhenSchema = z
   .object({
     transferCountIs: z
-      .number()
+      .int()
       .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
       .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
       .optional()
       .describe('The maximum number of transfers to trigger the stop condition.'),
     stepCountIs: z
-      .number()
+      .int()
       .min(SUB_AGENT_TURN_GENERATION_STEPS_MIN)
       .max(SUB_AGENT_TURN_GENERATION_STEPS_MAX)
       .optional()
@@ -200,11 +201,12 @@ export const UserIdSchema = z.string().openapi('UserId', {
 
 export const ModelSettingsSchema = z
   .object({
-    model: z.string().optional().describe('The model to use for the project.'),
-    providerOptions: z
-      .record(z.string(), z.any())
-      .optional()
-      .describe('The provider options to use for the project.'),
+    model: z.string().trim().optional().openapi({
+      description: 'The model to use for the project.',
+    }),
+    providerOptions: z.record(z.string(), z.unknown()).optional().openapi({
+      description: 'The provider options to use for the project.',
+    }),
   })
   .openapi('ModelSettings');
 
@@ -252,6 +254,8 @@ export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
 export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
   id: ResourceIdSchema,
+  name: NameSchema,
+  description: DescriptionSchema,
   models: ModelSchema.optional(),
 });
 
@@ -352,16 +356,14 @@ export const AgentInsertSchema = createInsertSchema(agents, {
   name: () => NameSchema,
   description: () => DescriptionSchema,
   defaultSubAgentId: () =>
-    ResourceIdSchema.clone()
-      .nullable()
-      .optional()
-      .openapi({
-        description:
-          'ID of the default sub-agent that handles initial user messages. ' +
-          'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
-          'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
-        example: 'my-default-subagent',
-      }),
+    ResourceIdSchema.clone().openapi({
+      description:
+        'ID of the default sub-agent that handles initial user messages. ' +
+        'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
+        'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
+      example: 'my-default-subagent',
+    }),
+  executionMode: () => z.enum(['classic', 'durable']).optional(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -1124,7 +1126,10 @@ export const ToolSelectSchema = createSelectSchema(tools);
 export const ToolInsertSchema = createInsertSchema(tools)
   .extend({
     id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
     imageUrl: imageUrlSchema,
+    headers: StringRecordSchema.nullish(),
     config: z.object({
       type: z.literal('mcp'),
       mcp: z.object({
@@ -1625,7 +1630,6 @@ export const ArtifactComponentApiInsertSchema = ArtifactComponentInsertSchema.om
 export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema
 ).openapi('ArtifactComponentUpdate');
-
 export const SubAgentArtifactComponentSelectSchema = createSelectSchema(subAgentArtifactComponents);
 export const SubAgentArtifactComponentInsertSchema = createInsertSchema(
   subAgentArtifactComponents
@@ -1968,6 +1972,8 @@ export const FunctionToolSelectSchema = createSelectSchema(functionTools);
 export const FunctionToolInsertSchema = createInsertSchema(functionTools)
   .extend({
     id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
   })
   .omit({
     createdAt: true,
@@ -2013,12 +2019,15 @@ export const SubAgentFunctionToolRelationApiInsertSchema =
 export const FunctionSelectSchema = createSelectSchema(functions);
 export const FunctionInsertSchema = createInsertSchema(functions).extend({
   id: ResourceIdSchema,
+  dependencies: StringRecordSchema.nullish(),
+  executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
+  inputSchema: z.record(z.string(), z.unknown()).nullish(),
 });
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
 export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).openapi('Function');
 
-const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
+function validateExecuteCode(val: string, ctx: z.RefinementCtx) {
   try {
     // Workaround for anonymous function because it’s not valid JavaScript grammar.
     // Babel (and every JS parser) rejects it.
@@ -2078,12 +2087,9 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
       input: val,
     });
   }
-};
+}
 
 export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
-  .extend({
-    executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
-  })
   .omit({
     createdAt: true,
     updatedAt: true,
@@ -2133,6 +2139,7 @@ export const FetchDefinitionSchema = z
   .openapi('FetchDefinition');
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
+  // TODO use HeadersSchema
   headersSchema: z.any().optional().openapi({
     type: 'object',
     description: 'JSON Schema for validating request headers',
@@ -2141,14 +2148,21 @@ export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).exte
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
     id: ResourceIdSchema.optional(),
-    headersSchema: z.any().nullable().optional().openapi({
-      type: 'object',
-      description: 'JSON Schema for validating request headers',
-    }),
-    contextVariables: z.any().nullable().optional().openapi({
-      type: 'object',
-      description: 'Context variables configuration with fetch definitions',
-    }),
+    // TODO use HeadersSchema
+    headersSchema: z
+      .record(z.string(), z.unknown(), 'Must be valid JSON object')
+      .nullish()
+      .openapi({
+        type: 'object',
+        description: 'JSON Schema for validating request headers',
+      }),
+    contextVariables: z
+      .record(z.string(), z.unknown(), 'Must be valid JSON object')
+      .nullish()
+      .openapi({
+        type: 'object',
+        description: 'Context variables configuration with fetch definitions',
+      }),
   })
   .omit({
     createdAt: true,
@@ -2271,12 +2285,17 @@ export const StatusComponentSchema = z
   .openapi('StatusComponent');
 
 export const StatusUpdateSchema = z
-  .object({
+  .strictObject({
     enabled: z.boolean().optional(),
-    numEvents: z.number().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional(),
-    timeInSeconds: z.number().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional(),
+    numEvents: z.int().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional().openapi({
+      description: 'Trigger after N events',
+    }),
+    timeInSeconds: z.int().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional().openapi({
+      description: 'Trigger after N seconds',
+    }),
     prompt: z
       .string()
+      .trim()
       .max(
         VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
         `Custom prompt cannot exceed ${VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS} characters`
@@ -2341,9 +2360,9 @@ export const canDelegateToTeamAgentSchema = z
 
 export const TeamAgentSchema = z
   .object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string(),
+    id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
   })
   .openapi('TeamAgent');
 
@@ -2375,27 +2394,41 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   stopWhen: SubAgentStopWhenSchema.optional(),
 }).openapi('FullAgentAgentInsert');
 
-export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
-  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
-  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
-  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
-  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
-  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
-  contextConfig: z.optional(ContextConfigApiInsertSchema),
-  statusUpdates: z.optional(StatusUpdateSchema),
+export const AgentWithinContextOfProjectSchemaBase = AgentApiInsertSchema.extend({
+  contextConfig: ContextConfigApiInsertSchema.optional(),
+  statusUpdates: StatusUpdateSchema.optional(),
   models: ModelSchema.optional(),
   stopWhen: AgentStopWhenSchema.optional(),
   prompt: z
     .string()
+    .trim()
     .max(
       VALIDATION_AGENT_PROMPT_MAX_CHARS,
       `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
     )
     .optional(),
-}).openapi('AgentWithinContextOfProject');
+  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
+  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
+  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
+  //
+  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
+  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
+});
+
+export const AgentWithinContextOfProjectSchema = AgentWithinContextOfProjectSchemaBase.superRefine(
+  ({ defaultSubAgentId, subAgents }, ctx) => {
+    if (defaultSubAgentId && !subAgents[defaultSubAgentId]) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['defaultSubAgentId'],
+        message: `Default agent '${defaultSubAgentId}' does not exist in agents`,
+      });
+    }
+  }
+).openapi('AgentWithinContextOfProject');
 
 export const ListResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
   z.object({
@@ -3161,3 +3194,21 @@ export const AnonymousSessionResponseSchema = z
     expiresAt: z.string().describe('Token expiration time (ISO 8601)'),
   })
   .openapi('AnonymousSessionResponse');
+
+// Workflow Execution Schemas (Runtime DB - unversioned)
+export const WorkflowExecutionStatusEnum = z.enum(['running', 'suspended', 'completed', 'failed']);
+
+export const WorkflowExecutionSelectSchema = createSelectSchema(workflowExecutions).extend({
+  status: WorkflowExecutionStatusEnum,
+});
+
+export const WorkflowExecutionInsertSchema = createInsertSchema(workflowExecutions)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    status: WorkflowExecutionStatusEnum.default('running'),
+  });
+
+export const WorkflowExecutionUpdateSchema = WorkflowExecutionInsertSchema.partial();
