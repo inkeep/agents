@@ -154,7 +154,8 @@ export async function runGenerate(
       streamRequestId: string;
       apiKey?: string;
     };
-  }
+  },
+  options?: { schemaOnlyTools?: boolean }
 ): Promise<ResolvedGenerationResponse> {
   const textParts = extractTextFromParts(userParts);
   const dataParts = userParts.filter(
@@ -229,6 +230,12 @@ export async function runGenerate(
         let response: ResolvedGenerationResponse;
         let textResponse: string;
 
+        const toolsForLlm = options?.schemaOnlyTools
+          ? Object.fromEntries(
+              Object.entries(sanitizedTools).map(([k, v]) => [k, { ...v, execute: undefined }])
+            )
+          : sanitizedTools;
+
         const messages = buildInitialMessages(
           systemPrompt,
           conversationHistory,
@@ -267,7 +274,7 @@ export async function runGenerate(
           ctx,
           streamConfig,
           messages,
-          sanitizedTools,
+          toolsForLlm,
           compressor,
           originalMessageCount,
           timeoutMs,
@@ -299,9 +306,10 @@ export async function runGenerate(
 
         let rawResponse: Record<string, unknown> | ResolvedGenerationResponse;
         if (shouldStream) {
+          const streamResult = streamText(generationConfig as Parameters<typeof streamText>[0]);
           rawResponse = await handleStreamGeneration(
             ctx,
-            streamText(generationConfig as Parameters<typeof streamText>[0]),
+            streamResult,
             sessionId,
             contextId,
             !!dataComponentsSchema

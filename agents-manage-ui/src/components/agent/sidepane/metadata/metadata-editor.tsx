@@ -16,6 +16,13 @@ import {
 } from '@/components/ui/inheritance-indicator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -64,8 +71,17 @@ const ExecutionLimitInheritanceInfo = () => {
 export function MetadataEditor() {
   const { agentId, tenantId, projectId } = useParams();
   const metadata = useAgentStore((state) => state.metadata);
-  const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
-    metadata;
+  const {
+    id,
+    name,
+    description,
+    contextConfig,
+    models,
+    stopWhen,
+    prompt,
+    statusUpdates,
+    executionMode,
+  } = metadata;
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
   const {
@@ -431,6 +447,33 @@ export function MetadataEditor() {
           <p className="text-xs text-muted-foreground">
             Maximum number of agent transfers per conversation (defaults to 10 if not set)
           </p>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Execution Mode */}
+      <div className="space-y-8">
+        <SectionHeader
+          title="Execution mode"
+          description="Choose how agent execution is managed. Durable mode persists execution state, enabling tool approvals and crash recovery."
+        />
+        <div className="space-y-2">
+          <Label htmlFor="execution-mode">Mode</Label>
+          <Select
+            value={executionMode ?? 'classic'}
+            onValueChange={(value) =>
+              updateMetadata('executionMode', value as 'classic' | 'durable')
+            }
+          >
+            <SelectTrigger id="execution-mode">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="classic">Classic</SelectItem>
+              <SelectItem value="durable">Durable</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
