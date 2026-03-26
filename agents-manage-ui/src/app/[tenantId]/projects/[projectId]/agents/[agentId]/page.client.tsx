@@ -150,7 +150,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   }));
   const {
     setNodes,
-    setEdges,
     onNodesChange,
     onEdgesChange: onEdgesChangeAction,
     setInitial,
