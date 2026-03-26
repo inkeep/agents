@@ -2,6 +2,7 @@
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import { Loader2, RefreshCw } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -19,9 +20,6 @@ import { IkpTool } from './message-parts/message';
 const ANALYTICS_EXCLUDED_EVENTS = ['sidebar_chat_opened', 'sidebar_chat_closed'];
 
 interface CopilotChatProps {
-  agentId?: string;
-  projectId: string;
-  tenantId: string;
   refreshAgentGraph: (options?: { fetchTools?: boolean }) => Promise<void>;
 }
 
@@ -37,7 +35,7 @@ const styleOverrides = css`
 }
 `;
 
-export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }: CopilotChatProps) {
+export function CopilotChat({ refreshAgentGraph }: CopilotChatProps) {
   const {
     chatFunctionsRef,
     isOpen,
@@ -49,7 +47,11 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
   } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
   const posthog = usePostHog();
-
+  const { tenantId, projectId, agentId } = useParams<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+  }>();
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
@@ -249,37 +251,18 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               // Target is the agent that the copilot is building or editing.
               'x-target-tenant-id': tenantId,
               'x-target-project-id': projectId,
-              ...(agentId ? { 'x-target-agent-id': agentId } : {}),
+              'x-target-agent-id': agentId,
               // conversationId and messageId from the 'try now' improve with AI button.
-              ...(dynamicHeaders?.conversationId
-                ? { 'x-inkeep-from-conversation-id': dynamicHeaders.conversationId }
-                : {}),
-              ...(dynamicHeaders?.messageId
-                ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
-                : {}),
+              ...(dynamicHeaders?.conversationId && {
+                'x-inkeep-from-conversation-id': dynamicHeaders.conversationId,
+              }),
+              ...(dynamicHeaders?.messageId && {
+                'x-inkeep-from-message-id': dynamicHeaders.messageId,
+              }),
               // Forward cookies from the server action using custom header (Cookie is a forbidden header in browsers)
-              ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
+              ...(cookieHeader && { 'x-forwarded-cookie': cookieHeader }),
             },
-            exampleQuestionsLabel: agentId ? undefined : 'Try one of these examples:',
-            exampleQuestions: agentId
-              ? undefined
-              : [
-                  {
-                    label: 'Build a weather agent',
-                    value: 'Help me build an agent that can tell me the weather in any city.',
-                  },
-                  {
-                    label: 'Build a recipe agent',
-                    value: 'Help me build an agent that can help me find recipes.',
-                  },
-                  {
-                    label: 'Build a travel agent',
-                    value: 'Help me build an agent that can help me plan my travel.',
-                  },
-                ],
-            introMessage: agentId
-              ? `Hi! What would you like to change about \`${agentId}\`?`
-              : 'Hi! What would you like to build?',
+            introMessage: `Hi! What would you like to change about \`${agentId}\`?`,
           }}
         />
       </div>
