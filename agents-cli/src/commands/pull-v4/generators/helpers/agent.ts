@@ -55,28 +55,6 @@ export function addTriggerImports(
   applyImportPlan(sourceFile, importPlan);
 }
 
-export function addScheduledTriggerImports(
-  sourceFile: SourceFile,
-  referenceNames: ReferenceNameMap,
-  importRefs: TriggerImportMap
-): void {
-  const importPlan = createImportPlan();
-  for (const [scheduledTriggerId, referenceName] of referenceNames) {
-    const importRef = importRefs.get(scheduledTriggerId);
-    if (!importRef) {
-      continue;
-    }
-
-    const { importName, modulePath } = importRef;
-    addNamedImports(
-      importPlan,
-      `./scheduled-triggers/${modulePath}`,
-      toNamedImport(importName, referenceName)
-    );
-  }
-  applyImportPlan(sourceFile, importPlan);
-}
-
 export function addStatusComponentImports(
   sourceFile: SourceFile,
   referenceNames: ReferenceNameMap
@@ -106,51 +84,6 @@ export function createReferenceNameMap(
     map.set(id, createUniqueReferenceName(toCamelCase(id), reservedNames, conflictSuffix));
   }
   return map;
-}
-
-export function createScheduledTriggerReferenceMaps(
-  scheduledTriggers: unknown,
-  reservedNames: Set<string>
-): {
-  referenceNames: ReferenceNameMap;
-  importRefs: TriggerImportMap;
-} {
-  const referenceNames: ReferenceNameMap = new Map();
-  const importRefs: TriggerImportMap = new Map();
-
-  if (!scheduledTriggers || !isPlainObject(scheduledTriggers)) {
-    return { referenceNames, importRefs };
-  }
-
-  const moduleNameCounts = new Map<string, number>();
-
-  for (const [scheduledTriggerId, scheduledTriggerData] of Object.entries(scheduledTriggers)) {
-    if (referenceNames.has(scheduledTriggerId)) {
-      continue;
-    }
-
-    const scheduledTriggerRecord = isPlainObject(scheduledTriggerData)
-      ? scheduledTriggerData
-      : undefined;
-    const scheduledTriggerName =
-      typeof scheduledTriggerRecord?.name === 'string' && scheduledTriggerRecord.name.length > 0
-        ? scheduledTriggerRecord.name
-        : scheduledTriggerId;
-
-    const importName = toTriggerReferenceName(scheduledTriggerName);
-    const referenceName = createNumericReferenceName(importName, reservedNames);
-
-    const baseModuleName =
-      toKebabCase(scheduledTriggerName) || toKebabCase(scheduledTriggerId) || scheduledTriggerId;
-    const moduleCount = moduleNameCounts.get(baseModuleName) ?? 0;
-    moduleNameCounts.set(baseModuleName, moduleCount + 1);
-    const modulePath = moduleCount === 0 ? baseModuleName : `${baseModuleName}-${moduleCount}`;
-
-    referenceNames.set(scheduledTriggerId, referenceName);
-    importRefs.set(scheduledTriggerId, { importName, modulePath });
-  }
-
-  return { referenceNames, importRefs };
 }
 
 export function createTriggerReferenceMaps(

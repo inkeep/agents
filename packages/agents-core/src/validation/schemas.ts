@@ -1056,13 +1056,6 @@ export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
   ScheduledTriggerUpdateSchema
 ).openapi('ScheduledTriggerUpdate');
 
-export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
-export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
-export type ScheduledTriggerUpdate = z.infer<typeof ScheduledTriggerUpdateSchema>;
-export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
-export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
-export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
-
 export const ScheduledTriggerInvocationStatusEnum = z.enum([
   'pending',
   'running',
@@ -1118,17 +1111,9 @@ export const ScheduledTriggerInvocationApiUpdateSchema = createAgentScopedApiUpd
   ScheduledTriggerInvocationUpdateSchema
 ).openapi('ScheduledTriggerInvocationUpdate');
 
-export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationSelectSchema>;
-export type ScheduledTriggerInvocationInsert = z.infer<
-  typeof ScheduledTriggerInvocationInsertSchema
->;
-export type ScheduledTriggerInvocationUpdate = z.infer<
-  typeof ScheduledTriggerInvocationUpdateSchema
->;
 export type ScheduledTriggerInvocationStatus = z.infer<typeof ScheduledTriggerInvocationStatusEnum>;
 
 export const SchedulerStateSelectSchema = createSelectSchema(schedulerState);
-export type SchedulerState = z.infer<typeof SchedulerStateSelectSchema>;
 
 export const TaskSelectSchema = createSelectSchema(tasks).extend({
   ref: ResolvedRefSchema.nullable().optional(),
@@ -2598,9 +2583,16 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   stopWhen: SubAgentStopWhenSchema.optional(),
 }).openapi('FullAgentAgentInsert');
 
-export const AgentWithinContextOfProjectSchemaBase = AgentApiInsertSchema.extend({
-  contextConfig: ContextConfigApiInsertSchema.optional(),
-  statusUpdates: StatusUpdateSchema.optional(),
+export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
+  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
+  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
+  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
+  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
+  contextConfig: z.optional(ContextConfigApiInsertSchema),
+  statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
   stopWhen: AgentStopWhenSchema.optional(),
   prompt: z
@@ -2767,7 +2759,6 @@ export const AgentWithinContextOfProjectSelectSchema = AgentApiSelectSchema.exte
   teamAgents: z.record(z.string(), TeamAgentSchema).nullable(),
   functionTools: z.record(z.string(), FunctionToolApiSelectSchema).nullable(),
   functions: z.record(z.string(), FunctionApiSelectSchema).nullable(),
-  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiSelectSchema).nullable(),
   contextConfig: ContextConfigApiSelectSchema.nullable(),
   statusUpdates: StatusUpdateSchema.nullable(),
   models: ModelSchema.nullable(),

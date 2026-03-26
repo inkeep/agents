@@ -5,9 +5,9 @@ import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import type {
   ScheduledTriggerInvocation,
   ScheduledTriggerInvocationInsert,
-  ScheduledTriggerInvocationStatus,
   ScheduledTriggerInvocationUpdate,
-} from '../../validation/schemas';
+} from '../../types/entities';
+import type { ScheduledTriggerInvocationStatus } from '../../validation/schemas';
 import { agentScopedWhere, projectScopedWhere } from '../manage/scope-helpers';
 
 /**

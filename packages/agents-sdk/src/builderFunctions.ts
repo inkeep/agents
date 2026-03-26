@@ -3,7 +3,6 @@ import {
   CredentialReferenceApiInsertSchema,
   type MCPToolConfig,
   MCPToolConfigSchema,
-  type ScheduledTriggerApiInsert,
   type SignatureVerificationConfig,
   SignatureVerificationConfigSchema,
   type TriggerApiInsert,
@@ -22,7 +21,6 @@ import { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
 import type { ProjectConfig } from './project';
 import { Project } from './project';
-import { ScheduledTrigger, type ScheduledTriggerConfig } from './scheduled-trigger';
 import { StatusComponent } from './status-component';
 import { SubAgent } from './subAgent';
 import { Tool } from './tool';
@@ -545,47 +543,3 @@ export function trigger(config: Omit<TriggerApiInsert, 'id'> & { id?: string }):
   return new Trigger(config as TriggerConfig);
 }
 
-/**
- * Creates a scheduled trigger for time-based agent execution.
- *
- * Scheduled triggers allow agents to be invoked on a schedule using cron expressions
- * or at a specific one-time date/time.
- *
- * @param config - Scheduled trigger configuration
- * @returns A ScheduledTrigger instance
- *
- * @example
- * ```typescript
- * // Daily report at 9 AM
- * const dailyReport = scheduledTrigger({
- *   name: 'Daily Report',
- *   cronExpression: '0 9 * * *',
- *   messageTemplate: 'Generate the daily report for {{date}}',
- *   payload: { date: '{{now}}' },
- * });
- *
- * // One-time migration task
- * const migrationTask = scheduledTrigger({
- *   name: 'Migration Task',
- *   runAt: '2024-12-31T23:59:59Z',
- *   messageTemplate: 'Run the end-of-year migration',
- *   maxRetries: 5,
- *   timeoutSeconds: 600,
- * });
- *
- * // Hourly health check with retry configuration
- * const healthCheck = scheduledTrigger({
- *   name: 'Hourly Health Check',
- *   cronExpression: '0 * * * *',
- *   messageTemplate: 'Check system health',
- *   maxRetries: 3,
- *   retryDelaySeconds: 30,
- *   timeoutSeconds: 120,
- * });
- * ```
- */
-export function scheduledTrigger(
-  config: Omit<ScheduledTriggerApiInsert, 'id'> & { id?: string }
-): ScheduledTrigger {
-  return new ScheduledTrigger(config as ScheduledTriggerConfig);
-}
