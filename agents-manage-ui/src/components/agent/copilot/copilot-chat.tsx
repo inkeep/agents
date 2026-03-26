@@ -42,7 +42,7 @@ const styleOverrides = css`
 `;
 
 export function CopilotChat() {
-  'use memo'
+  'use memo';
 
   const {
     chatFunctionsRef,
@@ -154,7 +154,11 @@ export function CopilotChat() {
     return () => {
       document.removeEventListener('ikp-data-operation', updateAgentGraph);
     };
-  }, [conversationId, refreshAgentGraph]);
+  }, [
+    conversationId,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    refreshAgentGraph,
+  ]);
 
   const {
     PUBLIC_INKEEP_AGENTS_API_URL,
