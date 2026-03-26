@@ -55,6 +55,28 @@ import { computeNextRunAt } from '../src/utils/compute-next-run-at';
 const MANAGE_DB_URL = process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
 const RUNTIME_DB_URL = process.env.INKEEP_AGENTS_RUN_DATABASE_URL;
 
+type ManageScheduledTriggerRow = {
+  tenant_id: string;
+  id: string;
+  project_id: string;
+  agent_id: string;
+  name: string;
+  description: string | null;
+  enabled: boolean;
+  cron_expression: string | null;
+  cron_timezone: string | null;
+  run_at: string | null;
+  payload: Record<string, unknown> | null;
+  message_template: string | null;
+  max_retries: string;
+  retry_delay_seconds: string;
+  timeout_seconds: string;
+  run_as_user_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 const DRY_RUN = !process.argv.includes('--apply');
 
 async function main() {
@@ -81,38 +103,21 @@ async function main() {
     for (const branch of branches.rows) {
       const branchName = branch.name;
 
-      let triggers: {
-        rows: Array<{
-          tenant_id: string;
-          id: string;
-          project_id: string;
-          agent_id: string;
-          name: string;
-          description: string | null;
-          enabled: boolean;
-          cron_expression: string | null;
-          cron_timezone: string | null;
-          run_at: string | null;
-          payload: Record<string, unknown> | null;
-          message_template: string | null;
-          max_retries: string;
-          retry_delay_seconds: string;
-          timeout_seconds: string;
-          run_as_user_id: string | null;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-        }>;
-      };
+      let triggers: { rows: ManageScheduledTriggerRow[] };
 
       try {
-        triggers = await manageDb.execute(
+        triggers = await manageDb.execute<ManageScheduledTriggerRow>(
           sql.raw(`SELECT * FROM scheduled_triggers AS OF '${branchName}'`)
         );
-      } catch {
-        console.log(`Branch "${branchName}": skipped (no scheduled_triggers table)`);
-        totalSkipped++;
-        continue;
+      } catch (err) {
+        const errMsg = (err as Error).message || '';
+        if (errMsg.includes('does not exist') || errMsg.includes('relation')) {
+          console.log(`Branch "${branchName}": skipped (no scheduled_triggers table)`);
+          totalSkipped++;
+          continue;
+        }
+        console.error(`Branch "${branchName}": UNEXPECTED ERROR — ${errMsg}`);
+        throw err;
       }
 
       if (triggers.rows.length === 0) {
@@ -139,6 +144,25 @@ async function main() {
 
         if (!DRY_RUN) {
           const now = new Date().toISOString();
+          const mutableFields = {
+            name: t.name,
+            description: t.description,
+            enabled: t.enabled,
+            cronExpression: t.cron_expression,
+            cronTimezone: t.cron_timezone,
+            runAt: t.run_at,
+            payload: t.payload ?? null,
+            messageTemplate: t.message_template,
+            maxRetries: Number(t.max_retries),
+            retryDelaySeconds: Number(t.retry_delay_seconds),
+            timeoutSeconds: Number(t.timeout_seconds),
+            runAsUserId: t.run_as_user_id,
+            createdBy: t.created_by,
+            nextRunAt,
+            ref: refName,
+            updatedAt: now,
+          };
+
           await runtimeDb
             .insert(runtimeSchema.scheduledTriggers)
             .values({
@@ -146,52 +170,19 @@ async function main() {
               id: t.id,
               projectId: t.project_id,
               agentId: t.agent_id,
-              name: t.name,
-              description: t.description,
-              enabled: t.enabled,
-              cronExpression: t.cron_expression,
-              cronTimezone: t.cron_timezone,
-              runAt: t.run_at,
-              payload: t.payload ?? null,
-              messageTemplate: t.message_template,
-              maxRetries: Number(t.max_retries),
-              retryDelaySeconds: Number(t.retry_delay_seconds),
-              timeoutSeconds: Number(t.timeout_seconds),
-              runAsUserId: t.run_as_user_id,
-              createdBy: t.created_by,
-              nextRunAt,
-              ref: refName,
               createdAt: t.created_at,
-              updatedAt: now,
+              ...mutableFields,
             })
             .onConflictDoUpdate({
               target: [
                 runtimeSchema.scheduledTriggers.tenantId,
                 runtimeSchema.scheduledTriggers.id,
               ],
-              set: {
-                name: t.name,
-                description: t.description,
-                enabled: t.enabled,
-                cronExpression: t.cron_expression,
-                cronTimezone: t.cron_timezone,
-                runAt: t.run_at,
-                payload: t.payload ?? null,
-                messageTemplate: t.message_template,
-                maxRetries: Number(t.max_retries),
-                retryDelaySeconds: Number(t.retry_delay_seconds),
-                timeoutSeconds: Number(t.timeout_seconds),
-                runAsUserId: t.run_as_user_id,
-                createdBy: t.created_by,
-                nextRunAt,
-                ref: refName,
-                updatedAt: now,
-              },
+              set: mutableFields,
             });
-          totalMigrated++;
-        } else {
-          totalMigrated++;
         }
+
+        totalMigrated++;
       }
     }
 

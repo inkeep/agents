@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { schedulerState } from '../../db/runtime/runtime-schema';
-import type { SchedulerState } from '../../validation/schemas';
+import type { SchedulerState } from '../../types/entities';
 
 const SINGLETON_ID = 'singleton';
 

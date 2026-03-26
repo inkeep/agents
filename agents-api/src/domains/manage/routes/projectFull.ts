@@ -33,7 +33,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute, registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { HTTPException } from 'hono/http-exception';
-import type { ManageAppVariables } from 'src/types/app';
+import type { ManageAppVariables } from '../../../types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';

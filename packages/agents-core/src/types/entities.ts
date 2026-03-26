@@ -252,6 +252,16 @@ import type {
   TriggerInvocationUpdateSchema,
   TriggerSelectSchema,
   TriggerUpdateSchema,
+  ScheduledTriggerSelectSchema,
+  ScheduledTriggerInsertSchema,
+  ScheduledTriggerUpdateSchema,
+  ScheduledTriggerApiInsertSchema,
+  ScheduledTriggerApiSelectSchema,
+  ScheduledTriggerApiUpdateSchema,
+  ScheduledTriggerInvocationSelectSchema,
+  ScheduledTriggerInvocationInsertSchema,
+  ScheduledTriggerInvocationUpdateSchema,
+  SchedulerStateSelectSchema,
   UserProfileApiInsertSchema,
   UserProfileApiUpdateSchema,
   UserProfileInsertSchema,
@@ -420,6 +430,20 @@ export type TriggerInvocationUpdate = z.infer<typeof TriggerInvocationUpdateSche
 export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
 export type TriggerInvocationApiInsert = z.infer<typeof TriggerInvocationApiInsertSchema>;
 export type TriggerInvocationApiUpdate = z.infer<typeof TriggerInvocationApiUpdateSchema>;
+
+export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
+export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
+export type ScheduledTriggerUpdate = z.infer<typeof ScheduledTriggerUpdateSchema>;
+export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
+export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
+export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
+
+export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationSelectSchema>;
+export type ScheduledTriggerInvocationInsert = z.infer<typeof ScheduledTriggerInvocationInsertSchema>;
+export type ScheduledTriggerInvocationUpdate = z.infer<typeof ScheduledTriggerInvocationUpdateSchema>;
+
+export type SchedulerState = z.infer<typeof SchedulerStateSelectSchema>;
+
 export type McpTool = z.infer<typeof McpToolSchema>;
 export type MCPToolConfig = z.infer<typeof MCPToolConfigSchema>;
 

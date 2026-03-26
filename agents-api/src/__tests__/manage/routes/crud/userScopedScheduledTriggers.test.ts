@@ -63,9 +63,7 @@ describe('User-Scoped Scheduled Triggers', () => {
     const agentId = `test-agent-${generateId(6)}`;
     const agentData = createFullAgentData(agentId);
     await createFullAgentServerSide(
-      manageDbClient,
-      undefined,
-      runDbClient
+      manageDbClient
     )({ tenantId, projectId }, agentData);
     return { agentId, projectId };
   };
@@ -955,9 +953,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       const agent2Id = `test-agent-${generateId(6)}`;
       const agent2Data = createFullAgentData(agent2Id);
       await createFullAgentServerSide(
-        manageDbClient,
-        undefined,
-        runDbClient
+        manageDbClient
       )({ tenantId, projectId }, agent2Data);
 
       await createTriggerWithUserId({ tenantId, projectId, agentId: agent1, runAsUserId: userId });

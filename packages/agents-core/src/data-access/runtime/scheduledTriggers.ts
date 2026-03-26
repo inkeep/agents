@@ -4,7 +4,7 @@ import { scheduledTriggers } from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import { computeNextRunAt } from '../../utils/compute-next-run-at';
 import { getLogger } from '../../utils/logger';
-import type { ScheduledTrigger, ScheduledTriggerInsert } from '../../validation/schemas';
+import type { ScheduledTrigger, ScheduledTriggerInsert } from '../../types/entities';
 
 const logger = getLogger('runtime-scheduledTriggers');
 
@@ -61,7 +61,7 @@ export const listScheduledTriggersPaginated =
 
 export const createScheduledTrigger =
   (db: AgentsRunDatabaseClient) =>
-  async (params: ScheduledTriggerInsert): Promise<ScheduledTrigger> => {
+  async (params: ScheduledTriggerInsert & { nextRunAt?: string | null }): Promise<ScheduledTrigger> => {
     const result = await db.insert(scheduledTriggers).values(params).returning();
     const created = result[0];
     if (!created) {
