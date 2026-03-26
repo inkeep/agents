@@ -23,7 +23,7 @@ Classic mode runs the entire agent request in a single in-process loop. The LLM 
 
 Durable mode wraps agent execution in a workflow with persistent checkpoints. Each phase of execution (initialize, call LLM, execute tools, complete) is a separate step that persists its result before proceeding.
 
-- Execution state is persisted to the workflow backend (pg-boss in production)
+- Execution state is persisted to the workflow backend
 - If the server crashes, the workflow can resume from the last completed step
 - Tool approval suspends the workflow until the user responds, then resumes
 - Stream data is persisted by the workflow runtime for client reconnection

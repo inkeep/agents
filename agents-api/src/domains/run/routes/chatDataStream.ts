@@ -75,7 +75,9 @@ const chatDataStreamRoute = createProtectedRoute({
             executionMode: z
               .enum(['classic', 'durable'])
               .optional()
-              .describe('Override the agent default execution mode for this request'),
+              .describe(
+                'Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.'
+              ),
           }),
         },
       },

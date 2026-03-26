@@ -39484,7 +39484,7 @@
                     "type": "string"
                   },
                   "executionMode": {
-                    "description": "Override the agent default execution mode for this request",
+                    "description": "Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.",
                     "enum": [
                       "classic",
                       "durable"
@@ -40598,7 +40598,7 @@
                     "type": "string"
                   },
                   "executionMode": {
-                    "description": "Override the agent default execution mode for this request",
+                    "description": "Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.",
                     "enum": [
                       "classic",
                       "durable"
