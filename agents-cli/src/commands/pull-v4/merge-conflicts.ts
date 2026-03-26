@@ -3,24 +3,10 @@ import type { ConflictItem, ConflictResolution } from '@inkeep/agents-core';
 import { render } from 'ink';
 import { createElement } from 'react';
 import { MergeApp } from './merge-ui/merge-app';
-import { diffTypeColor, formatDiffType, formatEntityId } from './merge-ui/utils';
+import { formatEntityId } from './merge-ui/utils';
 
 export interface ResolveConflictsOptions {
   conflictStrategy?: 'ours' | 'theirs';
-}
-
-function styledDiffType(diffType: string): string {
-  return styleText(
-    diffTypeColor(diffType) as Parameters<typeof styleText>[0],
-    formatDiffType(diffType)
-  );
-}
-
-function formatConflictDescription(conflict: ConflictItem): string {
-  const entity = formatEntityId(conflict.primaryKey);
-  const ours = styledDiffType(conflict.ourDiffType);
-  const theirs = styledDiffType(conflict.theirDiffType);
-  return `${styleText('cyan', conflict.table)} ${styleText('bold', entity)}  local: ${ours} | remote: ${theirs}`;
 }
 
 export async function resolveConflictsInteractive(
@@ -39,15 +25,6 @@ export async function resolveConflictsInteractive(
     }));
   }
 
-  console.log(styleText('yellow', `\n${conflicts.length} conflict(s) found:\n`));
-
-  for (let i = 0; i < conflicts.length; i++) {
-    const conflict = conflicts[i];
-    console.log(`  ${i + 1}. ${formatConflictDescription(conflict)}`);
-  }
-
-  console.log();
-
   const instance = render(createElement(MergeApp, { conflicts }));
   const result = await instance.waitUntilExit();
 
@@ -55,5 +32,20 @@ export async function resolveConflictsInteractive(
     throw result;
   }
 
-  return result as ConflictResolution[];
+  const resolutions = result as ConflictResolution[];
+
+  console.log(styleText('green', `\n✓ Resolved ${resolutions.length} conflict(s):`));
+  for (const res of resolutions) {
+    const entity = formatEntityId(res.primaryKey);
+    const overrides = Object.entries(res.columns ?? {}).filter(
+      ([, pick]) => pick !== res.rowDefaultPick
+    );
+    const overrideNote = overrides.length > 0 ? ` (${overrides.length} column override(s))` : '';
+    console.log(
+      `  ${styleText('cyan', res.table)} ${styleText('bold', entity)} → ${res.rowDefaultPick}${overrideNote}`
+    );
+  }
+  console.log();
+
+  return resolutions;
 }

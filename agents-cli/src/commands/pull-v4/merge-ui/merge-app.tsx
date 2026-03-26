@@ -1,11 +1,11 @@
 import type { ConflictItem, ConflictResolution } from '@inkeep/agents-core';
-import { Box, useApp, useInput } from 'ink';
+import { Box, Text, useApp, useInput } from 'ink';
 import { useEffect, useMemo, useReducer } from 'react';
 import { ConflictView } from './conflict-view';
 import { HelpBar } from './help-bar';
 import { ResolutionSummary } from './resolution-summary';
 import type { ConflictResolutionState, MergeAction, MergeState, Side } from './types';
-import { getChangedColumns } from './utils';
+import { diffTypeColor, formatDiffType, formatEntityId, getChangedColumns } from './utils';
 
 function createInitialState(conflicts: ConflictItem[]): MergeState {
   return {
@@ -191,9 +191,29 @@ export function MergeApp({ conflicts }: MergeAppProps) {
 
   if (isEmpty) return null;
 
+  const conflictListHeader = (
+    <Box flexDirection="column" marginBottom={1}>
+      <Text color="yellow">{conflicts.length} conflict(s) found:</Text>
+      {conflicts.map((c, i) => {
+        const entity = formatEntityId(c.primaryKey);
+        return (
+          <Text key={`${c.table}-${entity}`}>
+            {'  '}
+            {i + 1}. <Text color="cyan">{c.table}</Text> <Text bold>{entity}</Text>
+            {'  local: '}
+            <Text color={diffTypeColor(c.ourDiffType)}>{formatDiffType(c.ourDiffType)}</Text>
+            {' | remote: '}
+            <Text color={diffTypeColor(c.theirDiffType)}>{formatDiffType(c.theirDiffType)}</Text>
+          </Text>
+        );
+      })}
+    </Box>
+  );
+
   if (state.phase === 'summary') {
     return (
       <Box flexDirection="column">
+        {conflictListHeader}
         <ResolutionSummary
           conflicts={conflicts}
           resolutions={state.resolutions}
@@ -205,6 +225,7 @@ export function MergeApp({ conflicts }: MergeAppProps) {
 
   return (
     <Box flexDirection="column">
+      {conflictListHeader}
       <ConflictView
         conflict={conflicts[state.currentConflictIndex]}
         resolution={state.resolutions[state.currentConflictIndex]}
