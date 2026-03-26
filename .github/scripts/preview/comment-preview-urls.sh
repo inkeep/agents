@@ -17,6 +17,7 @@ COMMENT_MARKER="<!-- preview-environments:stable-urls -->"
 COMMENTS_ENDPOINT="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments"
 API_HEALTH_URL="${API_URL%/}/health"
 COMMENT_BODY_FILE="$(mktemp)"
+trap 'rm -f "${COMMENT_BODY_FILE}"' EXIT
 
 cat > "${COMMENT_BODY_FILE}" <<EOF
 ${COMMENT_MARKER}
@@ -47,19 +48,34 @@ if [ -n "${UI_DEPLOYMENT_URL:-}" ] || [ -n "${API_DEPLOYMENT_URL:-}" ]; then
   } >> "${COMMENT_BODY_FILE}"
 fi
 
-COMMENTS_JSON="$(
-  curl --connect-timeout 10 --max-time 30 -fsS \
-    -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-    -H "Accept: application/vnd.github+json" \
-    "${COMMENTS_ENDPOINT}?per_page=100"
-)"
+EXISTING_COMMENT_ID=""
+PAGE=1
+while :; do
+  PAGE_JSON="$(
+    curl --connect-timeout 10 --max-time 30 -fsS \
+      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+      -H "Accept: application/vnd.github+json" \
+      "${COMMENTS_ENDPOINT}?per_page=100&page=${PAGE}"
+  )"
 
-EXISTING_COMMENT_ID="$(
-  jq -r \
-    --arg marker "${COMMENT_MARKER}" \
-    '[.[] | select(.user.login == "github-actions[bot]" and (.body | contains($marker)))] | last | .id // empty' \
-    <<< "${COMMENTS_JSON}"
-)"
+  PAGE_MATCH="$(
+    jq -r \
+      --arg marker "${COMMENT_MARKER}" \
+      '[.[] | select(.user.login == "github-actions[bot]" and (.body | contains($marker)))] | last | .id // empty' \
+      <<< "${PAGE_JSON}"
+  )"
+
+  if [ -n "${PAGE_MATCH}" ]; then
+    EXISTING_COMMENT_ID="${PAGE_MATCH}"
+  fi
+
+  PAGE_COUNT="$(jq 'length' <<< "${PAGE_JSON}")"
+  if [ "${PAGE_COUNT}" -lt 100 ]; then
+    break
+  fi
+
+  PAGE=$((PAGE + 1))
+done
 
 COMMENT_PAYLOAD="$(jq -Rs '{body: .}' < "${COMMENT_BODY_FILE}")"
 
