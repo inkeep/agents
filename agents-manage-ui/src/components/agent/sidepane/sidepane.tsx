@@ -1,8 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData, useReactFlow } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
-import { useMemo } from 'react';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
@@ -46,41 +44,32 @@ export function SidePane({
   backToAgent,
   disabled = false,
 }: SidePaneProps) {
+  'use memo';
   const selectedNode = useNodesData(selectedNodeId || '');
   const { updateNode } = useReactFlow();
   const edges = useEdges();
   const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
-  const errors = useAgentStore((state) => state.errors);
+  let selectedEdge: Edge | null = null;
+  let heading = '';
+  let HeadingIcon: LucideIcon | undefined;
 
-  const selectedEdge = useMemo(
-    () => (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null),
-    [selectedEdgeId, edges]
-  );
-
-  const { heading, HeadingIcon } = useMemo(() => {
-    let heading = '';
-    let HeadingIcon: LucideIcon | undefined;
-
-    if (selectedNodeId) {
-      const nodeType = (selectedNode?.type as keyof typeof nodeTypeMap) || NodeType.SubAgent;
-      const nodeConfig = nodeTypeMap[nodeType];
-      heading = nodeConfig?.name || 'Node';
-      HeadingIcon = nodeConfig?.Icon;
-    } else if (selectedEdgeId) {
-      const edgeType = (selectedEdge?.type as keyof typeof edgeTypeMap) || 'default';
-      const edgeConfig = edgeTypeMap[edgeType];
-      heading = edgeConfig?.name || 'Connection';
-      HeadingIcon = edgeConfig?.Icon;
-    } else {
-      heading = 'Agent';
-      HeadingIcon = Workflow;
-    }
-
-    return { heading, HeadingIcon };
-  }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes
-  const editorContent = useMemo(() => {
+  if (selectedNodeId) {
+    const nodeType = (selectedNode?.type as keyof typeof nodeTypeMap) || NodeType.SubAgent;
+    const nodeConfig = nodeTypeMap[nodeType];
+    heading = nodeConfig?.name || 'Node';
+    HeadingIcon = nodeConfig?.Icon;
+  } else if (selectedEdgeId) {
+    const edge = edges.find((edge) => edge.id === selectedEdgeId);
+    if (edge) selectedEdge = edge;
+    const edgeType = (selectedEdge?.type as keyof typeof edgeTypeMap) || 'default';
+    const edgeConfig = edgeTypeMap[edgeType];
+    heading = edgeConfig?.name || 'Connection';
+    HeadingIcon = edgeConfig?.Icon;
+  } else {
+    heading = 'Agent';
+    HeadingIcon = Workflow;
+  }
+  function renderContent() {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
     }
@@ -149,17 +138,7 @@ export function SidePane({
       return <EdgeEditor selectedEdge={selectedEdge as Edge} />;
     }
     return <MetadataEditor />;
-  }, [
-    selectedNodeId,
-    selectedEdgeId,
-    selectedNode,
-    selectedEdge,
-    hasFieldError,
-    getFieldErrorMessage,
-    getFirstErrorField,
-    errors,
-  ]);
-
+  }
   const nodeType = selectedNode?.type as keyof typeof nodeTypeMap | undefined;
   const nodeConfig = nodeType ? nodeTypeMap[nodeType] : undefined;
   const parentPlaceholder =
@@ -194,7 +173,7 @@ export function SidePane({
       </SidePaneLayout.Header>
       <SidePaneLayout.Content>
         <fieldset disabled={disabled} className="contents">
-          {editorContent}
+          {renderContent()}
         </fieldset>
       </SidePaneLayout.Content>
     </SidePaneLayout.Root>
