@@ -1,5 +1,5 @@
 {
-  "id": "1dd0ec2f-14e5-4915-8243-c6c20decf6d0",
+  "id": "4eab03b5-4858-4499-a52c-f870a4525998",
   "prevId": "6a27f3f4-dfe7-4a3d-b705-bf04124d8b45",
   "version": "7",
   "dialect": "postgresql",
@@ -336,6 +336,12 @@
         "default_agent_id": {
           "name": "default_agent_id",
           "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt": {
+          "name": "prompt",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

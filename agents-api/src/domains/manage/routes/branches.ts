@@ -9,7 +9,6 @@ import {
   createApiError,
   createBranch,
   deleteBranch,
-  deleteScheduledTriggersByRef,
   ErrorResponseSchema,
   getBranch,
   invalidBranchParamsError,
@@ -251,17 +250,11 @@ app.openapi(
     try {
       const fullBranchName = `${tenantId}_${projectId}_${branchName}`;
 
-      await Promise.all([
-        cascadeDeleteByBranch(runDbClient)({
-          scopes: { tenantId, projectId },
-          fullBranchName,
-        }),
-        deleteScheduledTriggersByRef(runDbClient)({
-          tenantId,
-          projectId,
-          ref: branchName,
-        }),
-      ]);
+      await cascadeDeleteByBranch(runDbClient)({
+        scopes: { tenantId, projectId },
+        fullBranchName,
+        ref: branchName,
+      });
 
       await deleteBranch(db)({ tenantId, projectId, branchName, force });
       return c.body(null, 204);

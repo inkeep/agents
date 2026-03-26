@@ -128,7 +128,15 @@ async function main() {
 
       for (const t of triggers.rows) {
         const prefix = `${t.tenant_id}_${t.project_id}_`;
-        const refName = branchName.startsWith(prefix) ? branchName.slice(prefix.length) : 'main';
+        if (!branchName.startsWith(prefix)) {
+          console.warn(
+            `  [SKIP] Branch "${branchName}" does not match expected prefix "${prefix}" ` +
+              `for trigger ${t.tenant_id}/${t.project_id}/${t.id} — skipping`,
+          );
+          totalSkipped++;
+          continue;
+        }
+        const refName = branchName.slice(prefix.length);
         const nextRunAt = t.enabled
           ? computeNextRunAt({
               cronExpression: t.cron_expression,

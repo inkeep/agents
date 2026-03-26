@@ -4,9 +4,6 @@ import { scheduledTriggers } from '../../db/runtime/runtime-schema';
 import type { ScheduledTrigger, ScheduledTriggerInsert } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import { computeNextRunAt } from '../../utils/compute-next-run-at';
-import { getLogger } from '../../utils/logger';
-
-const logger = getLogger('runtime-scheduledTriggers');
 
 export const getScheduledTriggerById =
   (db: AgentsRunDatabaseClient) =>
@@ -237,37 +234,4 @@ export const advanceScheduledTriggerNextRunAt =
           eq(scheduledTriggers.id, params.scheduledTriggerId)
         )
       );
-  };
-
-/**
- * Delete all scheduled triggers targeting a specific branch ref.
- * Called when a branch is deleted.
- */
-export const deleteScheduledTriggersByRef =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: { tenantId: string; projectId: string; ref: string }): Promise<number> => {
-    const result = await db
-      .delete(scheduledTriggers)
-      .where(
-        and(
-          eq(scheduledTriggers.tenantId, params.tenantId),
-          eq(scheduledTriggers.projectId, params.projectId),
-          eq(scheduledTriggers.ref, params.ref)
-        )
-      )
-      .returning();
-
-    if (result.length > 0) {
-      logger.info(
-        {
-          tenantId: params.tenantId,
-          projectId: params.projectId,
-          ref: params.ref,
-          count: result.length,
-        },
-        'Deleted scheduled triggers for deleted branch'
-      );
-    }
-
-    return result.length;
   };
