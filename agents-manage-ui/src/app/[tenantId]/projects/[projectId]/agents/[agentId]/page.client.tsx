@@ -757,7 +757,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           )}
 
           {showEmptyState && canEdit && (
-            <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
+            <Panel position="top-center" className="top-1/2! -translate-y-1/2">
               <EmptyState onAddInitialNode={onAddInitialNode} />
             </Panel>
           )}
