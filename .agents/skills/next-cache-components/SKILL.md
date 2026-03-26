@@ -335,6 +335,56 @@ async function Notifications() {
 | `revalidate = N` | `cacheLife({ revalidate: N })` |
 | `unstable_cache()` | `'use cache'` directive |
 
+### Migrating `unstable_cache` to `use cache`
+
+`unstable_cache` has been replaced by the `use cache` directive in Next.js 16. When `cacheComponents` is enabled, convert `unstable_cache` calls to `use cache` functions:
+
+**Before (`unstable_cache`):**
+
+```tsx
+import { unstable_cache } from 'next/cache'
+
+const getCachedUser = unstable_cache(
+  async (id) => getUser(id),
+  ['my-app-user'],
+  {
+    tags: ['users'],
+    revalidate: 60,
+  }
+)
+
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const user = await getCachedUser(id)
+  return <div>{user.name}</div>
+}
+```
+
+**After (`use cache`):**
+
+```tsx
+import { cacheLife, cacheTag } from 'next/cache'
+
+async function getCachedUser(id: string) {
+  'use cache'
+  cacheTag('users')
+  cacheLife({ revalidate: 60 })
+  return getUser(id)
+}
+
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const user = await getCachedUser(id)
+  return <div>{user.name}</div>
+}
+```
+
+Key differences:
+- **No manual cache keys** - `use cache` generates keys automatically from function arguments and closures. The `keyParts` array from `unstable_cache` is no longer needed.
+- **Tags** - Replace `options.tags` with `cacheTag()` calls inside the function.
+- **Revalidation** - Replace `options.revalidate` with `cacheLife({ revalidate: N })` or a built-in profile like `cacheLife('minutes')`.
+- **Dynamic data** - `unstable_cache` did not support `cookies()` or `headers()` inside the callback. The same restriction applies to `use cache`, but you can use `'use cache: private'` if needed.
+
 ---
 
 ## Limitations
@@ -358,3 +408,4 @@ async function DynamicContent() {
 Sources:
 - [Cache Components Guide](https://nextjs.org/docs/app/getting-started/cache-components)
 - [use cache Directive](https://nextjs.org/docs/app/api-reference/directives/use-cache)
+- [unstable_cache (legacy)](https://nextjs.org/docs/app/api-reference/functions/unstable_cache)

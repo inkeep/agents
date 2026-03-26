@@ -34,7 +34,7 @@ import {
   TRUSTED_WORK_APP_MCP_PATHS,
   toISODateString,
 } from '../../utils';
-import { generateId } from '../../utils/conversations';
+import { deriveRelationId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
 import { cascadeDeleteByTool } from '../runtime/cascade-delete';
@@ -652,7 +652,13 @@ export const addToolToAgent =
     headers?: Record<string, string> | null;
     toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
   }) => {
-    const id = generateId();
+    const id = deriveRelationId(
+      params.scopes.tenantId,
+      params.scopes.projectId,
+      params.scopes.agentId,
+      params.subAgentId,
+      params.toolId
+    );
     const now = new Date().toISOString();
 
     const [created] = await db

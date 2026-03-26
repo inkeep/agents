@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadExternalFile } from '../blob-storage/external-file-downloader';
+import {
+  downloadExternalFile,
+  forwardLookupResult,
+} from '../blob-storage/external-file-downloader';
 import { MAX_EXTERNAL_REDIRECTS, MAX_FILE_BYTES } from '../blob-storage/file-security-constants';
+import { BlockedConnectionToPrivateIpError } from '../blob-storage/file-security-errors';
 
 const VALID_PNG_BYTES = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+2wAAAABJRU5ErkJggg==',
   'base64'
 );
+const VALID_PDF_BYTES = Buffer.from('%PDF-1.7\n1 0 obj\n<<>>\nendobj\n', 'utf8');
 
 vi.mock('node:dns/promises', () => ({
   lookup: vi.fn(),
@@ -46,6 +51,43 @@ describe('external-file-downloader', () => {
     expect(result.mimeType).toBe('image/png');
     expect(result.data).toBeInstanceOf(Uint8Array);
     expect(result.data.length).toBe(VALID_PNG_BYTES.length);
+  });
+
+  it('returns data and mime for valid external PDF when expected mime type is PDF', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(
+      new Response(VALID_PDF_BYTES, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-length': String(VALID_PDF_BYTES.length),
+        },
+      })
+    );
+
+    const result = await downloadExternalFile('https://example.com/report.pdf', {
+      expectedMimeType: 'application/pdf',
+    });
+    expect(result.mimeType).toBe('application/pdf');
+    expect(result.data).toBeInstanceOf(Uint8Array);
+    expect(result.data.length).toBe(VALID_PDF_BYTES.length);
+  });
+
+  it('rejects non-PDF bytes when expected mime type is PDF', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(
+      new Response(VALID_PNG_BYTES, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-length': String(VALID_PNG_BYTES.length),
+        },
+      })
+    );
+
+    await expect(
+      downloadExternalFile('https://example.com/not-a-pdf.pdf', {
+        expectedMimeType: 'application/pdf',
+      })
+    ).rejects.toThrow(/Blocked external file with unsupported bytes signature/);
   });
 
   it('blocks URLs that resolve to private IPs', async () => {
@@ -299,5 +341,34 @@ describe('external-file-downloader', () => {
       /Failed to download file/
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the full address list to the lookup callback when all records are requested', () => {
+    const callback = vi.fn();
+    const addresses = [
+      { address: '93.184.216.34', family: 4 as const },
+      { address: '2606:2800:220:1:248:1893:25c8:1946', family: 6 as const },
+    ];
+
+    forwardLookupResult('example.com', addresses, undefined, callback);
+
+    expect(callback).toHaveBeenCalledWith(null, addresses);
+  });
+
+  it('blocks private addresses from lookup callback address lists', () => {
+    const callback = vi.fn();
+
+    forwardLookupResult(
+      'example.com',
+      [
+        { address: '93.184.216.34', family: 4 as const },
+        { address: '127.0.0.1', family: 4 as const },
+      ],
+      undefined,
+      callback
+    );
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback.mock.calls[0]?.[0]).toBeInstanceOf(BlockedConnectionToPrivateIpError);
   });
 });

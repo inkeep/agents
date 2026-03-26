@@ -95,8 +95,8 @@ vi.mock('../../../logger.js', () => ({
 }));
 
 vi.mock('ai', () => ({
-  generateObject: vi.fn(),
   generateText: vi.fn(),
+  Output: { object: vi.fn((opts: any) => opts) },
 }));
 
 import { EvaluationService } from '../../../domains/evals/services/EvaluationService';

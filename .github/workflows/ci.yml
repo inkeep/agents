@@ -50,6 +50,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.head_ref || github.ref }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         if: steps.changeset-check.outputs.is_changeset != 'true'
@@ -154,6 +155,14 @@ jobs:
         run: |
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
+
+      - name: Fetch main for migration lineage
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: git fetch --no-tags origin main
+
+      - name: Check migration lineage
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: pnpm check:migration-lineage
 
       # Run all CI checks in parallel with Turborepo
       # agents-docs build is excluded (causes OOM) — Vercel preview handles the Next.js build
@@ -387,6 +396,14 @@ jobs:
       - name: Run agents-api integration tests
         if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm --filter @inkeep/agents-api test:integration
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+          SPICEDB_PRESHARED_KEY: dev-secret-key
+
+      - name: run agents-core integration tests
+        if: steps.changeset-check.outputs.is_changeset != 'true'
+        run: pnpm --filter @inkeep/agents-core test:integration
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents

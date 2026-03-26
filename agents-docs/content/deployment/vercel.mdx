@@ -84,6 +84,7 @@ ENVIRONMENT=production
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 GOOGLE_GENERATIVE_AI_API_KEY=
+AI_GATEWAY_API_KEY=
 
 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
 
@@ -106,6 +107,7 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=
 | `OPENAI_API_KEY`                      | Your OpenAI API key                                                                                                                                                                                                                        |
 | `GOOGLE_GENERATIVE_AI_API_KEY`        | Your Google Gemini API key                                                                                                                                                                                                                 |
 | `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` in Step 7.                                                                                                   |
+| `AI_GATEWAY_API_KEY`                  | (Optional) Your Vercel AI Gateway API key. When set, Anthropic, OpenAI, and Google models are automatically routed through the gateway for per-request cost tracking. See [Model Configuration](/typescript-sdk/models) for details. |
 | `INKEEP_AGENTS_RUN_DATABASE_URL`      | Postgres connection string from Step 3 (e.g., `postgresql://user:password@host:5432/database`)                                                                                                                                            |
 | `NANGO_SECRET_KEY`                    | Nango secret key from your [Nango Cloud account](/typescript-sdk/credentials/nango). Note: Local Nango setup won't work with Vercel deployments.                                                                         |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`  | `https://ingest.us.signoz.cloud:443/v1/traces`                                                                                                                                                                                             |

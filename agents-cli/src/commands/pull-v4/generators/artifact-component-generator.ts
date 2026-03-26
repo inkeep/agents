@@ -1,10 +1,14 @@
+import { join } from 'node:path';
 import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
+import type { GenerationTask } from '../generation-types';
+import { generateFactorySourceFile } from '../simple-factory-generator';
 import {
   addValueToObject,
+  buildComponentFileName,
+  codeExpression,
   convertJsonSchemaToZodSafe,
-  createFactoryDefinition,
   formatPropertyName,
   formatStringLiteral,
   isPlainObject,
@@ -34,43 +38,38 @@ export function generateArtifactComponentDefinition({
   updatedAt,
   ...data
 }: ArtifactComponentInput & Record<string, unknown>): SourceFile {
-  const result = ArtifactComponentSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for artifact component:\n${z.prettifyError(result.error)}`);
-  }
+  return generateFactorySourceFile(data, {
+    schema: ArtifactComponentSchema,
+    factory: {
+      importName: 'artifactComponent',
+      variableName: (parsed) => toCamelCase(parsed.artifactComponentId),
+    },
+    render({ parsed, sourceFile, configObject }) {
+      const schema = parsed.props;
 
-  const parsed = result.data;
-  const schema = parsed.props;
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'artifactComponent',
-    variableName: toCamelCase(parsed.artifactComponentId),
+      if (hasInPreviewFields(schema)) {
+        sourceFile.addImportDeclaration({
+          namedImports: ['preview'],
+          moduleSpecifier: '@inkeep/agents-core',
+        });
+      }
+      if (schema) {
+        sourceFile.addImportDeclaration({ namedImports: ['z'], moduleSpecifier: 'zod' });
+      }
+
+      const { artifactComponentId, props: _, ...rest } = parsed;
+
+      for (const [key, value] of Object.entries({
+        id: artifactComponentId,
+        ...rest,
+      })) {
+        addValueToObject(configObject, key, value);
+      }
+      if (schema) {
+        addValueToObject(configObject, 'props', codeExpression(formatArtifactSchema(schema)));
+      }
+    },
   });
-
-  if (hasInPreviewFields(schema)) {
-    sourceFile.addImportDeclaration({
-      namedImports: ['preview'],
-      moduleSpecifier: '@inkeep/agents-core',
-    });
-  }
-  if (schema) {
-    sourceFile.addImportDeclaration({ namedImports: ['z'], moduleSpecifier: 'zod' });
-  }
-
-  const { artifactComponentId, props: _, ...rest } = parsed;
-
-  for (const [key, value] of Object.entries({
-    id: artifactComponentId,
-    ...rest,
-  })) {
-    addValueToObject(configObject, key, value);
-  }
-  if (schema) {
-    configObject.addPropertyAssignment({
-      name: 'props',
-      initializer: formatArtifactSchema(schema),
-    });
-  }
-  return sourceFile;
 }
 
 function hasInPreviewFields(schema: unknown): boolean {
@@ -120,3 +119,31 @@ function formatArtifactSchema(schema: unknown): string {
 
   return convertJsonSchemaToZodSafe(schema);
 }
+
+export const task = {
+  type: 'artifact-component',
+  collect(context) {
+    if (!context.project.artifactComponents) {
+      return [];
+    }
+
+    return Object.entries(context.project.artifactComponents).map(
+      ([artifactComponentId, artifactComponentData]) => ({
+        id: artifactComponentId,
+        filePath: context.resolver.resolveOutputFilePath(
+          'artifactComponents',
+          artifactComponentId,
+          join(
+            context.paths.artifactComponentsDir,
+            buildComponentFileName(artifactComponentId, artifactComponentData.name ?? undefined)
+          )
+        ),
+        payload: {
+          artifactComponentId,
+          ...artifactComponentData,
+        } as Parameters<typeof generateArtifactComponentDefinition>[0],
+      })
+    );
+  },
+  generate: generateArtifactComponentDefinition,
+} satisfies GenerationTask<Parameters<typeof generateArtifactComponentDefinition>[0]>;

@@ -552,4 +552,141 @@ describe('App CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(404);
     });
   });
+
+  describe('App prompt field', () => {
+    it('should create an app with a prompt', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-prompt-create');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Docs Widget',
+          type: 'web_client',
+          defaultAgentId: 'agent-1',
+          prompt: 'Be concise and link to documentation pages when possible.',
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: ['docs.example.com'] },
+          },
+        }),
+      });
+      expect(res.status).toBe(201);
+
+      const body = await res.json();
+      expect(body.data.app.prompt).toBe(
+        'Be concise and link to documentation pages when possible.'
+      );
+    });
+
+    it('should update an app prompt via PATCH', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-prompt-update');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { app } = await createTestApp({ tenantId, projectId });
+      expect(app.prompt).toBeNull();
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ prompt: 'Return structured JSON responses.' }),
+        }
+      );
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.data.prompt).toBe('Return structured JSON responses.');
+    });
+
+    it('should clear an app prompt by setting to null', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-prompt-clear');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            name: 'Prompt App',
+            type: 'api',
+            prompt: 'Be verbose.',
+            config: { type: 'api', api: {} },
+          }),
+        }
+      );
+      expect(createRes.status).toBe(201);
+      const { app } = (await createRes.json()).data;
+      expect(app.prompt).toBe('Be verbose.');
+
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ prompt: null }),
+        }
+      );
+      expect(updateRes.status).toBe(200);
+
+      const updated = (await updateRes.json()).data;
+      expect(updated.prompt).toBeNull();
+    });
+
+    it('should return prompt in GET response', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-prompt-get');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            name: 'Prompt App',
+            type: 'web_client',
+            defaultAgentId: 'agent-1',
+            prompt: 'Custom prompt text.',
+            config: {
+              type: 'web_client',
+              webClient: { allowedDomains: ['example.com'] },
+            },
+          }),
+        }
+      );
+      const { app } = (await createRes.json()).data;
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`
+      );
+      expect(getRes.status).toBe(200);
+
+      const getBody = await getRes.json();
+      expect(getBody.data.prompt).toBe('Custom prompt text.');
+    });
+
+    it('should return prompt in list response', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-prompt-list');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Listed App',
+          type: 'api',
+          prompt: 'List prompt.',
+          config: { type: 'api', api: {} },
+        }),
+      });
+
+      const listRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`);
+      expect(listRes.status).toBe(200);
+
+      const listBody = await listRes.json();
+      expect(listBody.data[0].prompt).toBe('List prompt.');
+    });
+  });
 });

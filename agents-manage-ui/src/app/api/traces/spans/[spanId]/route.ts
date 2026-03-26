@@ -11,7 +11,9 @@ axiosRetry(axios, {
 
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_LOOKBACK_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
+type RouteContext<_T> = {
+  params: Promise<Record<string, string>>;
+};
 
 export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
   const { spanId } = await context.params;
@@ -30,64 +32,37 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
   const cookieHeader = req.headers.get('cookie');
 
   try {
-    const now = Date.now();
-    const tableName = 'distributed_signoz_index_v3';
-
-    const payload = {
-      start: now - DEFAULT_LOOKBACK_MS,
-      end: now,
-      step: 60,
-      variables: {
-        conversation_id: conversationId,
-        span_id: spanId,
-      },
-      compositeQuery: {
-        queryType: 'clickhouse_sql',
-        panelType: 'table',
-        chQueries: {
-          A: {
-            query: `
-              SELECT
-                trace_id, span_id, parent_span_id,
-                timestamp,
-                name,
-                toJSONString(attributes_string) AS attributes_string_json,
-                toJSONString(attributes_number) AS attributes_number_json,
-                toJSONString(attributes_bool)   AS attributes_bool_json,
-                toJSONString(resources_string)  AS resources_string_json
-              FROM signoz_traces.${tableName}
-              WHERE attributes_string['conversation.id'] = {{.conversation_id}}
-                AND span_id = {{.span_id}}
-                AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
-                AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
-              LIMIT 1
-            `,
-          },
-        },
-      },
-    };
-
     const agentsApiUrl = getAgentsApiUrl();
-    const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
-    const response: AxiosResponse = await axios.post(endpoint, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: cookieHeader,
-      },
-      timeout: 15000,
-      withCredentials: true,
-    });
+    const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/span-lookup`;
+    const response: AxiosResponse = await axios.post(
+      endpoint,
+      { conversationId, spanId },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: cookieHeader,
+        },
+        timeout: 15000,
+        withCredentials: true,
+      }
+    );
 
     const json = response.data;
-    const result = json?.data?.result?.[0];
-    const series = result?.series;
+    const results = json?.data?.data?.results ?? [];
+    const result = results?.[0];
+    const columns: Array<{ name: string }> = result?.columns ?? [];
+    const dataRows: unknown[][] = result?.data ?? [];
 
-    if (!series || series.length === 0) {
+    if (!dataRows.length) {
       return NextResponse.json({ error: 'Span not found' }, { status: 404 });
     }
 
-    const row = series[0]?.labels;
-    if (!row?.trace_id || !row?.span_id) {
+    const rawRow = dataRows[0];
+    const row: Record<string, string> = {};
+    columns.forEach((col, i) => {
+      row[col.name] = rawRow[i] == null ? '' : String(rawRow[i]);
+    });
+    if (!row.trace_id || !row.span_id) {
       return NextResponse.json({ error: 'Span not found' }, { status: 404 });
     }
 
