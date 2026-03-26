@@ -326,7 +326,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         // Merge main INTO temp branch so the temp branch gets a reconciled result
         // (main's changes + user's local changes). We then pull from the temp branch.
         // We must NOT merge temp into main — that would push local edits to main.
-        s.message('Detecting conflicts...');
         const preview = await apiClient.mergePreview(projectId, {
           sourceBranch: 'main',
           targetBranch: tempBranchName,
@@ -335,7 +334,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         if (preview.hasConflicts) {
           s.stop('Conflicts detected');
           const { resolveConflictsInteractive } = await import('../merge-conflicts');
-          console.log(preview.conflicts);
           const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
 
           s.start('Executing merge with resolutions...');
