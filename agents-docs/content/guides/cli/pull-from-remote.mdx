@@ -120,6 +120,39 @@ Once pulled, your project is a standard TypeScript project using `@inkeep/agents
 - Push changes back with `inkeep push`
 - Run the Visual Builder locally with `inkeep dev`
 
+
+## Resolving merge conflicts
+
+When you pull into an existing project, the CLI compares your local state against the remote. If both sides have changed the same entity (for example, an agent was edited locally and also updated in the remote instance), the pull detects a merge conflict.
+
+Behind the scenes, the CLI creates a temporary branch, pushes your local state to it, and attempts to merge the remote `main` branch in. If the merge produces conflicts, you're prompted to resolve them before the pull completes.
+
+### Interactive resolution (default)
+
+By default, the CLI launches an interactive terminal UI when conflicts are detected. The UI lets you:
+
+- **View conflicts side-by-side** — see "ours" (local) and "theirs" (remote) values for each conflicting entity
+- **Choose per row** — pick `ours` or `theirs` as the default for an entire row
+- **Override per column** — drill into individual columns and pick a different side for specific fields
+- **Navigate between conflicts** — step through multiple conflicts with keyboard shortcuts
+- **Review before confirming** — see a summary of all resolutions before applying them
+
+Press `q` or `Esc` at any time to cancel the merge and abort the pull.
+
+### Auto-resolution with `--conflict-strategy`
+
+To skip the interactive UI and resolve all conflicts automatically, pass the `--conflict-strategy` flag:
+
+```bash
+# Auto-resolve all conflicts keeping local changes
+inkeep pull --conflict-strategy ours
+
+# Auto-resolve all conflicts keeping remote changes
+inkeep pull --conflict-strategy theirs
+```
+
+This is useful in CI/CD pipelines or when you know which side should always win.
+
 ## Additional options
 
 ### Pull all projects

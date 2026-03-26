@@ -327,6 +327,7 @@ inkeep pull
 - `--introspect` - Completely regenerate all files from scratch (no comparison needed)
 - `--profile <name>` - Use a specific CLI profile (overrides the active profile)
 - `--quiet` - Suppress interactive prompts and extra logs
+- `--conflict-strategy <ours|theirs>` - Auto-resolve merge conflicts without interactive prompts. `ours` keeps local values, `theirs` accepts remote values
 
 #### Single Project Pull
 
@@ -443,6 +444,12 @@ inkeep pull --profile staging
 
 # Quiet non-essential output for CI
 inkeep pull --quiet
+
+# Auto-resolve merge conflicts keeping local changes
+inkeep pull --conflict-strategy ours
+
+# Auto-resolve merge conflicts keeping remote changes
+inkeep pull --conflict-strategy theirs
 ```
 
 #### Batch Pull with `--all`
