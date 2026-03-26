@@ -106,6 +106,10 @@ When a tool with approval enabled is invoked:
 4. If approved, the tool executes and the agent continues
 5. If denied, the agent receives a human-readable denial reason string (or a default message if no reason was provided), allowing it to understand why the request was denied and adapt its behavior (for example, trying a different approach or asking a clarifying question)
 
+<Tip>
+  When an agent's **Execution mode** is set to **Durable**, the workflow suspends instead of holding the HTTP connection open. This means approvals can take as long as needed without timing out. In durable mode, approvals can also be submitted via the REST executions API. See [Tool Approvals (TypeScript SDK)](/typescript-sdk/tools/tool-approvals) for implementation details.
+</Tip>
+
 ## Best practices
 
 - **Enable approval for destructive operations**: Tools that delete data, modify configurations, or make irreversible changes should require approval
