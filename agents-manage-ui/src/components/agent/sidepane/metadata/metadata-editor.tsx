@@ -288,7 +288,8 @@ export const MetadataEditor: FC = () => {
       <div className="space-y-8">
         <SectionHeader
           title="Execution mode"
-          description="Choose how agent execution is managed. Durable mode persists execution state, enabling tool approvals and crash recovery."
+          description="Choose how agent execution is managed. Classic streams with low latency. Durable persists execution state across workflow steps, enabling crash recovery at the cost of higher time-to-first-byte."
+          learnMoreHref="https://docs.inkeep.com/visual-builder/execution-modes"
         />
         <GenericSelect
           control={form.control}
