@@ -104,23 +104,30 @@ interface MergeAppProps {
 export function MergeApp({ conflicts }: MergeAppProps) {
   const { exit } = useApp();
   const [state, dispatch] = useReducer(mergeReducer, conflicts, createInitialState);
+  const isEmpty = conflicts.length === 0;
 
   const allChangedColumns = useMemo(() => conflicts.map(getChangedColumns), [conflicts]);
 
-  const currentConflict = conflicts[state.currentConflictIndex];
-  const isRowLevelOnly = currentConflict.ours === null || currentConflict.theirs === null;
+  const currentConflict = isEmpty ? undefined : conflicts[state.currentConflictIndex];
+  const isRowLevelOnly = currentConflict?.ours === null || currentConflict?.theirs === null;
   const currentChangedColumns = allChangedColumns[state.currentConflictIndex] ?? [];
   const maxColumnIndex = currentChangedColumns.length - 1;
 
   useEffect(() => {
+    if (isEmpty) {
+      exit([]);
+      return;
+    }
     if (state.phase === 'confirmed') {
       exit(buildResolutions(conflicts, state.resolutions, allChangedColumns));
     } else if (state.phase === 'cancelled') {
       exit(new Error('Conflict resolution cancelled'));
     }
-  }, [state.phase, conflicts, state.resolutions, allChangedColumns, exit]);
+  }, [isEmpty, state.phase, conflicts, state.resolutions, allChangedColumns, exit]);
 
   useInput((input, key) => {
+    if (isEmpty) return;
+
     if (key.escape || input === 'q') {
       dispatch({ type: 'CANCEL' });
       return;
@@ -181,6 +188,8 @@ export function MergeApp({ conflicts }: MergeAppProps) {
       dispatch({ type: 'PREV_CONFLICT' });
     }
   });
+
+  if (isEmpty) return null;
 
   if (state.phase === 'summary') {
     return (

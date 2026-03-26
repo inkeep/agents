@@ -3,33 +3,23 @@ import type { ConflictItem, ConflictResolution } from '@inkeep/agents-core';
 import { render } from 'ink';
 import { createElement } from 'react';
 import { MergeApp } from './merge-ui/merge-app';
+import { diffTypeColor, formatDiffType, formatEntityId } from './merge-ui/utils';
 
 export interface ResolveConflictsOptions {
   conflictStrategy?: 'ours' | 'theirs';
 }
 
-function formatEntityId(primaryKey: Record<string, string>): string {
-  const values = Object.values(primaryKey);
-  return values.length === 1 ? values[0] : values.join('/');
-}
-
-function formatDiffType(diffType: string): string {
-  switch (diffType) {
-    case 'added':
-      return styleText('green', 'added');
-    case 'removed':
-      return styleText('red', 'deleted');
-    case 'modified':
-      return styleText('yellow', 'modified');
-    default:
-      return diffType;
-  }
+function styledDiffType(diffType: string): string {
+  return styleText(
+    diffTypeColor(diffType) as Parameters<typeof styleText>[0],
+    formatDiffType(diffType)
+  );
 }
 
 function formatConflictDescription(conflict: ConflictItem): string {
   const entity = formatEntityId(conflict.primaryKey);
-  const ours = formatDiffType(conflict.ourDiffType);
-  const theirs = formatDiffType(conflict.theirDiffType);
+  const ours = styledDiffType(conflict.ourDiffType);
+  const theirs = styledDiffType(conflict.theirDiffType);
   return `${styleText('cyan', conflict.table)} ${styleText('bold', entity)}  local: ${ours} | remote: ${theirs}`;
 }
 

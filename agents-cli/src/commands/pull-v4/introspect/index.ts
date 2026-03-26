@@ -295,12 +295,18 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       config.agentsApiKey
     );
 
+    let currentMainHash: string | undefined;
     try {
       const mainBranch = await apiClient.getBranch(projectId, 'main');
       currentMainHash = mainBranch.hash;
     } catch (error) {
       if (options.debug) {
-        console.log(styleText('gray', `   Could not fetch main branch hash: ${error instanceof Error ? error.message : String(error)}`));
+        console.log(
+          styleText(
+            'gray',
+            `   Could not fetch main branch hash: ${error instanceof Error ? error.message : String(error)}`
+          )
+        );
       }
       // Non-fatal: if we can't get the hash, fall through to direct pull
     }
@@ -367,10 +373,14 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
           await apiClient.deleteBranch(projectId, tempBranchName, true);
         } catch (cleanupError) {
           if (options.debug) {
-            console.log(styleText('gray', `   Warning: Could not delete temp branch ${tempBranchName}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`));
+            console.log(
+              styleText(
+                'gray',
+                `   Warning: Could not delete temp branch ${tempBranchName}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
+              )
+            );
           }
         }
-      }
       }
     } else {
       // Todo: we can probably just exit here because there is nothing new to pull
@@ -480,7 +490,12 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       const mainBranch = await apiClient.getBranch(projectId, 'main');
       writeProjectState(paths.projectRoot, projectId, mainBranch.hash);
     } catch (error) {
-      console.warn(styleText('yellow', `Warning: Could not save pull state: ${error instanceof Error ? error.message : String(error)}`));
+      console.warn(
+        styleText(
+          'yellow',
+          `Warning: Could not save pull state: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
       console.warn(styleText('yellow', 'Future pulls may re-prompt for conflict resolution.'));
     }
 
