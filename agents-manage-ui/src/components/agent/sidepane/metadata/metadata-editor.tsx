@@ -7,6 +7,7 @@ import { FullAgentFormSchema as schema } from '@/components/agent/form/validatio
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
@@ -296,23 +297,15 @@ export const MetadataEditor: FC = () => {
           title="Execution mode"
           description="Choose how agent execution is managed. Durable mode persists execution state, enabling tool approvals and crash recovery."
         />
-        <div className="space-y-2">
-          <Label htmlFor="execution-mode">Mode</Label>
-          <Select
-            value={executionMode ?? 'classic'}
-            onValueChange={(value) =>
-              updateMetadata('executionMode', value as 'classic' | 'durable')
-            }
-          >
-            <SelectTrigger id="execution-mode">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="classic">Classic</SelectItem>
-              <SelectItem value="durable">Durable</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <GenericSelect
+          control={form.control}
+          name="executionMode"
+          label="Mode"
+          options={[
+            { value: 'classic', label: 'Classic' },
+            { value: 'durable', label: 'Durable' },
+          ]}
+        />
       </div>
 
       <Separator />

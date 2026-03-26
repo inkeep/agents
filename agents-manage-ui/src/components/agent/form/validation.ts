@@ -157,6 +157,7 @@ const FullAgentSchema = AgentWithinContextOfProjectSchema.pick({
   name: true,
   description: true,
   prompt: true,
+  executionMode: true,
 });
 
 export const FullAgentFormSchema = z.strictObject({
@@ -251,6 +252,7 @@ export function apiToFormValues(data: FullAgentResponse) {
     teamAgents = {},
     tools = {},
     defaultSubAgentId,
+    executionMode,
   } = data;
   const statusUpdates = data.statusUpdates ?? {};
 
@@ -342,6 +344,7 @@ export function apiToFormValues(data: FullAgentResponse) {
     },
     models: serializeModels(models),
     defaultSubAgentNodeId: defaultSubAgentId,
+    executionMode,
     subAgents: Object.fromEntries(
       Object.entries(subAgents).map(([key, value]) => [
         key,
