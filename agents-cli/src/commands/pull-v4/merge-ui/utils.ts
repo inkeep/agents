@@ -5,8 +5,8 @@ const SKIP_COLUMNS = new Set(['created_at', 'updated_at']);
 export function getChangedColumns(conflict: ConflictItem): string[] {
   const ours = conflict.ours ?? {};
   const theirs = conflict.theirs ?? {};
-  const allKeys = new Set([...Object.keys(ours), ...Object.keys(theirs)]);
-  return [...allKeys].filter((key) => {
+  const allKeys = Object.keys({ ...ours, ...theirs });
+  return allKeys.filter((key) => {
     if (key in conflict.primaryKey) return false;
     if (SKIP_COLUMNS.has(key)) return false;
     return JSON.stringify(ours[key]) !== JSON.stringify(theirs[key]);
@@ -22,7 +22,7 @@ export function formatValue(value: unknown): string {
 
 export function formatEntityId(primaryKey: Record<string, string>): string {
   const values = Object.values(primaryKey);
-  return values.length === 1 ? values[0] : values.join('/');
+  return values.join('/');
 }
 
 export function formatDiffType(diffType: string): string {

@@ -38,8 +38,8 @@ export async function resolveConflictsInteractive(
   console.log(styleText('green', `\n✓ Resolved ${resolutions.length} conflict(s):`));
   for (const res of resolutions) {
     const entity = formatEntityId(res.primaryKey);
-    const overrides = Object.entries(res.columns ?? {}).filter(
-      ([, pick]) => pick !== res.rowDefaultPick
+    const overrides = Object.values(res.columns ?? {}).filter(
+      (pick) => pick !== res.rowDefaultPick
     );
     const overrideNote = overrides.length > 0 ? ` (${overrides.length} column override(s))` : '';
     console.log(

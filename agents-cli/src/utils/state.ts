@@ -58,9 +58,7 @@ export function writeProjectState(projectId: string, hash: string, options?: Sta
     try {
       const content = readFileSync(statePath, 'utf-8');
       state = JSON.parse(content);
-      if (!state.projects) {
-        state.projects = {};
-      }
+      state.projects ||= {};
     } catch {
       state = { projects: {} };
     }
