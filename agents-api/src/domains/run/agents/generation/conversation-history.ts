@@ -11,7 +11,12 @@ import {
   formatMessagesAsConversationHistory,
   getConversationHistoryWithCompression,
 } from '../../data/conversations';
-import { fromBlobUri, getBlobStorageProvider, isBlobUri } from '../../services/blob-storage';
+import {
+  type BlobStorageDownloadResult,
+  fromBlobUri,
+  getBlobStorageProvider,
+  isBlobUri,
+} from '../../services/blob-storage';
 import { normalizeInlineFileBytes } from '../../services/blob-storage/file-content-security';
 import { UnsupportedTextAttachmentSourceError } from '../../services/blob-storage/file-security-errors';
 import {
@@ -132,13 +137,25 @@ async function buildTextAttachmentPart(
     const normalized = await normalizeInlineFileBytes(file);
     content = decodeTextDocumentBytes(normalized.data);
   } else if ('uri' in file && file.uri && isBlobUri(file.uri)) {
+    let downloaded: BlobStorageDownloadResult;
     try {
-      const downloaded = await getBlobStorageProvider().download(fromBlobUri(file.uri));
+      downloaded = await getBlobStorageProvider().download(fromBlobUri(file.uri));
+    } catch (err) {
+      logger.warn(
+        { err, uri: file.uri, mimeType, failureKind: 'download' },
+        'Failed to download text attachment from blob storage'
+      );
+      return {
+        type: 'text',
+        text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
+      };
+    }
+    try {
       content = decodeTextDocumentBytes(downloaded.data);
     } catch (err) {
       logger.warn(
-        { err, uri: file.uri, mimeType },
-        'Failed to download text attachment from blob storage'
+        { err, uri: file.uri, mimeType, failureKind: 'decode' },
+        'Failed to decode text attachment from blob storage'
       );
       return {
         type: 'text',
