@@ -140,7 +140,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     setEdges,
     onNodesChange,
     onEdgesChange,
-    setMetadata,
     setInitial,
     markSaved,
     clearSelection,
