@@ -102,6 +102,19 @@ With Inkeep, there are a few ways to do this:
 - **Artifacts**: A Sub Agent can save information from a **tool call result** as an artifact. Artifact schemas define **preview fields** (immediately available in the agent's context and streamed to clients) and non-preview fields (persisted in storage but kept out of context by default). Agents can reference artifacts in their responses, pass them to tools for full data access, or retrieve the complete artifact on demand when they need the non-preview fields. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) for details.
 - **Status Updates**: Real-time progress updates that can be plain text or Structured Outputs that can be used to keep users informed about what the Sub Agent is doing during longer operations.
 
+## Execution modes
+
+Each Agent has an **execution mode** that controls how its runs are managed:
+
+- **Classic** (default) — The HTTP connection stays open for the entire request. Ideal for standard chat interactions and short-lived requests.
+- **Durable** — Execution state is persisted in a workflow-backed system. The run can survive disconnections and long pauses (e.g. tool approvals that take minutes or hours). Clients receive an `x-workflow-run-id` header they can use to reconnect to the stream or check execution status via the Executions API.
+
+Use **durable** mode when your agent relies on tool approvals that may not be answered immediately, or when you need the ability to reconnect to an in-progress execution.
+
+<Note>
+Execution mode is configured per agent in the [Visual Builder](/visual-builder/sub-agents) or [TypeScript SDK](/typescript-sdk/agent-settings). See the [Chat API](/talk-to-your-agents/chat-api) for streaming behavior details.
+</Note>
+
 ## Passing context to Sub Agents
 
 Beyond using Tools to fetch information, Sub Agents also receive information via:
