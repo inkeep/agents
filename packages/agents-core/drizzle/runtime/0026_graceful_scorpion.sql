@@ -12,5 +12,4 @@ CREATE TABLE "workflow_executions" (
 	CONSTRAINT "workflow_executions_tenant_id_project_id_id_pk" PRIMARY KEY("tenant_id","project_id","id")
 );
 --> statement-breakpoint
-ALTER TABLE "apps" ADD COLUMN "prompt" text;--> statement-breakpoint
 CREATE INDEX "workflow_executions_conversation_idx" ON "workflow_executions" USING btree ("tenant_id","project_id","conversation_id");
