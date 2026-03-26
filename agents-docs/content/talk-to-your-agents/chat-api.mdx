@@ -24,6 +24,11 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 - **Protocol:** Server-Sent Events (SSE) encoded JSON, using Vercel AI SDK data-stream v2
 - **Content-Type (response):** `text/event-stream`
 - **Response Header:** `x-vercel-ai-data-stream: v2`
+- **Response Header (durable mode):** `x-workflow-run-id` — Returned when the agent uses durable execution mode. Use this ID to reconnect to the stream or check execution status.
+
+<Tip>
+  If your agent is configured with **durable execution mode**, the `/run/api/chat` endpoint automatically uses workflow-backed execution. The response includes an `x-workflow-run-id` header you can use to reconnect to the stream via `GET /run/api/executions/:executionId/stream` if the connection drops. You can also start durable executions explicitly via `POST /run/api/executions`. See [Durable Executions](#durable-executions) below.
+</Tip>
 
 <Snippet file="auth/RunApiAuthModes.mdx" />
 
@@ -168,6 +173,31 @@ If a tool is configured with `needsApproval: true`, the run pauses and the strea
 
 To continue the run, your client must approve/deny the pending tool call. See [Tool approvals](/typescript-sdk/tools/tool-approvals).
 
+#### Durable execution mode
+
+When an agent is configured with durable execution mode (`executionMode: 'durable'`), tool approvals work differently. Instead of holding the connection open, the workflow **suspends** its state and frees server resources until the approval is received.
+
+Approve or deny a pending tool call via a dedicated REST endpoint:
+
+```bash
+curl -X POST "http://localhost:3002/run/api/executions/$EXECUTION_ID/approvals/$TOOL_CALL_ID" \
+  -H "Authorization: Bearer $INKEEP_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "approved": true,
+    "reason": "User confirmed"
+  }'
+```
+
+After submitting the approval, reconnect to the execution stream to receive the remaining events:
+
+```bash
+curl -N "http://localhost:3002/run/api/executions/$EXECUTION_ID/stream" \
+  -H "Authorization: Bearer $INKEEP_API_KEY"
+```
+
+You can also submit tool approvals through the existing `/run/api/chat` endpoint by sending an approval response message part with the same `conversationId`. The server detects the suspended durable execution and resumes it automatically.
+
 ### Tool input & output events
 
 Depending on UI needs, the stream may include tool input and tool output events.
@@ -308,6 +338,66 @@ Structured UI data for rich interface components:
 - The server avoids splitting content word-by-word; a segment is usually a coherent chunk
 - Operational events are queued during active text emission and flushed shortly after to preserve ordering and readability
 
+## Durable Executions
+
+Agents configured with `executionMode: 'durable'` use workflow-backed execution that persists state across connection drops and long-running tool approvals. Durable executions are available through both the standard `/run/api/chat` endpoint (automatically when the agent is in durable mode) and the dedicated `/run/api/executions` endpoint.
+
+### Executions endpoint
+
+- **Create execution:** `POST /run/api/executions`
+- **Get execution status:** `GET /run/api/executions/:executionId`
+- **Reconnect to stream:** `GET /run/api/executions/:executionId/stream`
+- **Approve/deny tool call:** `POST /run/api/executions/:executionId/approvals/:toolCallId`
+
+### Creating a durable execution
+
+```bash
+curl -N \
+  -X POST "http://localhost:3002/run/api/executions" \
+  -H "Authorization: Bearer $INKEEP_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      { "role": "user", "content": "What can you do?" }
+    ],
+    "conversationId": "chat-1234"
+  }'
+```
+
+The response streams SSE events identical to `/run/api/chat`. The `x-workflow-run-id` response header contains the execution ID for reconnection and status checks.
+
+### Execution status
+
+`GET /run/api/executions/:executionId` returns the current state of the execution:
+
+```json
+{
+  "id": "exec_abc123",
+  "status": "running",
+  "conversationId": "chat-1234",
+  "agentId": "my-agent",
+  "createdAt": "2026-03-10T21:28:26Z",
+  "updatedAt": "2026-03-10T21:28:30Z"
+}
+```
+
+| Status | Description |
+|--------|-------------|
+| `running` | Execution is actively processing |
+| `suspended` | Execution is paused, typically waiting for a tool approval |
+| `completed` | Execution finished successfully |
+| `failed` | Execution encountered an error |
+
+### Stream reconnection
+
+If the client disconnects, reconnect to an in-progress or suspended execution:
+
+```bash
+curl -N "http://localhost:3002/run/api/executions/$EXECUTION_ID/stream" \
+  -H "Authorization: Bearer $INKEEP_API_KEY"
+```
+
+
 ## Error Responses
 
 ### Streamed Errors
@@ -345,6 +435,7 @@ Validation failures and other errors return JSON with an appropriate HTTP status
 - **Default local base URL:** `http://localhost:3002`
 - **Endpoint mounting in the server:**
   - `/run/api/chat` → Vercel data stream (this page)
+  - `/run/api/executions` → Durable execution endpoints
   - `/run/v1/mcp` → MCP JSON-RPC endpoint
 
 <Note>
