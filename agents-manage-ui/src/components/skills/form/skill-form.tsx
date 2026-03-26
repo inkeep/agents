@@ -12,7 +12,6 @@ import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';

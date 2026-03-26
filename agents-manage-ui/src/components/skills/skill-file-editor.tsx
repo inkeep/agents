@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { File, Folder, Plus } from 'lucide-react';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FC, type FormEvent, useState } from 'react';
+import { type FC, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
@@ -234,48 +234,40 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   const breadcrumbSegments = [skillId, ...breadcrumbPath.split('/').filter(Boolean)];
   const isEntryFile = !isCreateMode && isSkillEntryFile(filePath);
 
-  async function handleSubmit(event?: FormEvent) {
-    let didSave = false;
-    const handler = form.handleSubmit(
-      async ({ filePath, extension, content }) => {
-        const nextFilePath = isCreateMode
-          ? buildCreateFilePath(createDirectoryPath, `${filePath}${extension}`)
-          : filePath;
+  const handleSubmit = form.handleSubmit(
+    async ({ filePath, extension, content }) => {
+      const nextFilePath = isCreateMode
+        ? buildCreateFilePath(createDirectoryPath, `${filePath}${extension}`)
+        : filePath;
 
-        try {
-          const result = isCreateMode
-            ? await createSkillFileAction(tenantId, projectId, skillId, nextFilePath, content)
-            : await updateSkillFileAction(tenantId, projectId, skillId, fileId, filePath, content);
+      try {
+        const result = isCreateMode
+          ? await createSkillFileAction(tenantId, projectId, skillId, nextFilePath, content)
+          : await updateSkillFileAction(tenantId, projectId, skillId, fileId, filePath, content);
 
-          if (!result.success) {
-            const error =
-              result.error ?? `Failed to ${isCreateMode ? 'create' : 'update'} skill file`;
+        if (!result.success) {
+          const error =
+            result.error ?? `Failed to ${isCreateMode ? 'create' : 'update'} skill file`;
 
-            toast.error(error);
-            return;
-          }
+          toast.error(error);
+          return;
+        }
 
-          const savedFilePath = result.data?.filePath ?? nextFilePath;
-          toast.success(isCreateMode ? `Created ${savedFilePath}` : `Saved ${filePath}`);
+        const savedFilePath = result.data?.filePath ?? nextFilePath;
+        toast.success(isCreateMode ? `Created ${savedFilePath}` : `Saved ${filePath}`);
 
-          if (isCreateMode) {
-            router.push(buildSkillFileViewHref(tenantId, projectId, skillId, savedFilePath));
-            router.refresh();
-            didSave = true;
-            return;
-          }
-
-          form.reset({ filePath, content, extension });
-          didSave = true;
-        } catch {}
-      },
-      (error) => {
-        toast.error(flatNestedFieldMessage(error));
-      }
-    );
-    await handler(event);
-    return didSave;
-  }
+        if (isCreateMode) {
+          router.push(buildSkillFileViewHref(tenantId, projectId, skillId, savedFilePath));
+          router.refresh();
+          return;
+        }
+        form.reset({ filePath, content, extension });
+      } catch {}
+    },
+    (error) => {
+      toast.error(flatNestedFieldMessage(error));
+    }
+  );
 
   return (
     <Form {...form}>
@@ -376,7 +368,7 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
               <Button type="submit" disabled={isSubmitting || !isDirty} size="sm">
                 Save
               </Button>
-              <UnsavedChangesDialog dirty={canEdit && isDirty} onSubmit={handleSubmit} />
+              <UnsavedChangesDialog onSubmit={handleSubmit} control={form.control} />
             </div>
           )}
         </div>

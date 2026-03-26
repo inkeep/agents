@@ -16,8 +16,7 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../../types/utility';
-import { deriveRelationId } from '../../utils/conversations';
-import { generateId } from '../../utils/conversations';
+import { deriveRelationId, generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 import { parseSkillFromMarkdown, SKILL_ENTRY_FILE_PATH } from '../../utils/skill-files';
 import { SkillFrontmatterSchema } from '../../validation/schemas/skills';

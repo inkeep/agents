@@ -930,7 +930,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           />
         </ResizablePanel>
       </Activity>
-      <UnsavedChangesDialog onSubmit={onSubmit} dirty={dirty || form.formState.isDirty} />
+      <UnsavedChangesDialog dirty={dirty} onSubmit={onSubmit} control={form.control} />
     </ResizablePanelGroup>
   );
 };

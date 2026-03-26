@@ -965,12 +965,18 @@ importers:
       postgres:
         specifier: ^3.4.8
         version: 3.4.8
+      simplematter:
+        specifier: ^1.0.1
+        version: 1.0.1
       traverse:
         specifier: ^0.6.10
         version: 0.6.11
       ts-pattern:
         specifier: ^5.7.1
         version: 5.9.0
+      yaml:
+        specifier: ^2.8.2
+        version: 2.8.2
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -1122,9 +1128,6 @@ importers:
       js-yaml:
         specifier: ^4.1.0
         version: 4.1.1
-      simplematter:
-        specifier: ^1.0.0
-        version: 1.0.0
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -14941,8 +14944,8 @@ packages:
   simple-get@4.0.1:
     resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
 
-  simplematter@1.0.0:
-    resolution: {integrity: sha512-z0M4aZuAq973AzUhV5sydCaVlBP3pXAskPtWVpFjwy7ubeDyrGxh+qqyixZCudyhfHvQTqJlU0dDbd9MEUyldw==}
+  simplematter@1.0.1:
+    resolution: {integrity: sha512-xPJEVH4sR4IS46Q/TkUBesFWrRPVg6XjUpzD71wpbFuBu/Viqs5dtp7MOxmUQdCQtMdRAS9serkHleE1AU6eeg==}
 
   sirv@3.0.2:
     resolution: {integrity: sha512-2wcC/oGxHis/BoHkkPwldgiPSYcpZK3JU28WoMVv55yHJgcZ8rlXvuG9iZggz+sU1d4bRgIGASwyWqjxu3FM0g==}
@@ -35433,7 +35436,7 @@ snapshots:
       simple-concat: 1.0.1
     optional: true
 
-  simplematter@1.0.0:
+  simplematter@1.0.1:
     dependencies:
       smol-toml: 1.6.0
       yaml: 2.8.2

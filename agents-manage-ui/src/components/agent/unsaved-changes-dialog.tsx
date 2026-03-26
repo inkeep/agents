@@ -1,6 +1,6 @@
 import { useRouter } from 'next/navigation';
-import { type FC, useEffect, useRef, useState, useTransition } from 'react';
-import { useFormState } from 'react-hook-form';
+import { type FC, useEffect, useRef, useState } from 'react';
+import { type Control, useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,20 +10,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 type PendingNavigation = () => void;
 
 interface UnsavedChangesDialogProps {
-  dirty: boolean;
-  onSubmit: () => Promise<boolean>;
+  dirty?: boolean;
+  onSubmit: () => Promise<void>;
+  control: Control<any>;
 }
 
-export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ dirty, onSubmit }) => {
+export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({
+  dirty,
+  onSubmit,
+  control,
+}) => {
   'use memo';
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const [isSavingPendingNavigation, startSavingPendingNavigation] = useTransition();
+  const { isDirty: rhfDirtyState, isSubmitting, isValid } = useFormState({ control });
+  const isDirty = dirty || rhfDirtyState;
 
   const pendingNavigationRef = useRef<PendingNavigation>(null);
   const isNavigatingRef = useRef(false);
@@ -46,21 +50,18 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ dirty, onS
   }
 
   async function handleSaveAndLeave() {
-   if (isSavingPendingNavigation) {
-     return;
-   }
-   startSavingPendingNavigation(async () => {
-     const saved = await onSubmit();
-     if (saved) {
-       proceedWithNavigation();
-     }
-     setShowUnsavedDialog(false);
-   });
+    if (isSubmitting) {
+      return;
+    }
+    await onSubmit();
+    if (isValid) {
+      proceedWithNavigation();
+    }
     setShowUnsavedDialog(false);
   }
 
   useEffect(() => {
-    if (!dirty) {
+    if (!isDirty) {
       return;
     }
     function requestNavigationConfirmation(navigate: PendingNavigation) {
@@ -68,7 +69,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ dirty, onS
       setShowUnsavedDialog(true);
     }
     function handleDocumentClick(event: MouseEvent) {
-      if (!dirty || isNavigatingRef.current) {
+      if (!isDirty || isNavigatingRef.current) {
         return;
       }
       const target = event.target;
@@ -108,10 +109,10 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ dirty, onS
     return () => {
       document.removeEventListener('click', handleDocumentClick, true);
     };
-  }, [dirty, router]);
+  }, [isDirty, router]);
 
   useEffect(() => {
-    if (!dirty) {
+    if (!isDirty) {
       requestAnimationFrame(handleGoBack);
       return;
     }
@@ -128,7 +129,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ dirty, onS
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [
-    dirty,
+    isDirty,
     // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
     handleGoBack,
   ]);
@@ -154,8 +155,8 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ dirty, onS
           <Button variant="secondary" onClick={proceedWithNavigation} className="max-sm:order-1">
             Discard
           </Button>
-          <Button onClick={handleSaveAndLeave} disabled={isSavingPendingNavigation}>
-            {isSavingPendingNavigation ? 'Saving...' : 'Save'}
+          <Button onClick={handleSaveAndLeave} disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -96,6 +96,7 @@ import {
   PaginationQueryParamsSchema,
   PaginationSchema,
   ResourceIdSchema,
+  StringRecordSchema,
 } from './schemas/shared';
 import { SkillApiInsertSchema, SkillIndexSchema } from './schemas/skills';
 
