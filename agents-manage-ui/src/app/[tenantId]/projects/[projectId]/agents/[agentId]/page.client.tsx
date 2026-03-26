@@ -16,7 +16,7 @@ import {
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { Activity, type ComponentProps, type FC, useEffect, useState } from 'react';
+import { Activity, type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { EdgeType, edgeTypes } from '@/components/agent/configuration/edge-types';

@@ -1,7 +1,6 @@
 import { join } from 'node:path';
-import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { AgentWithinContextOfProjectSchemaBase } from '@inkeep/agents-core';
-import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
+import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { asRecord, collectTemplateVariablesFromValues } from '../collector-common';
 import {
   collectContextTemplateReferences,
