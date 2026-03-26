@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BarChart3,
   Blocks,
+  Coins,
   Component,
   Globe,
   Key,
@@ -61,6 +62,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.stats,
           url: `/${tenantId}/stats`,
           icon: BarChart3,
+        },
+        {
+          title: 'Cost',
+          url: `/${tenantId}/cost`,
+          icon: Coins,
         },
         ...(isWorkAppsEnabled
           ? [
@@ -178,6 +184,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.evaluations,
           url: `/${tenantId}/projects/${projectId}/evaluations`,
           icon: BarChart3,
+        },
+        {
+          title: 'Cost',
+          url: `/${tenantId}/projects/${projectId}/cost`,
+          icon: Coins,
         },
       ]
     : [];

@@ -1,4 +1,4 @@
-import type { ModelSettings } from '@inkeep/agents-core';
+import type { GenerationType, ModelSettings } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { distillWithTruncation } from './distill-utils';
 
@@ -51,6 +51,12 @@ export async function distillConversation(params: {
   summarizerModel?: ModelSettings;
   messageFormatter: (maxChars?: number) => string;
   compressionCycle?: number;
+  usageContext?: {
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+    generationType: GenerationType;
+  };
 }): Promise<ConversationSummary> {
   const {
     conversationId,
@@ -58,6 +64,7 @@ export async function distillConversation(params: {
     summarizerModel,
     messageFormatter,
     compressionCycle = 0,
+    usageContext,
   } = params;
 
   const cycleNote =
@@ -81,6 +88,7 @@ export async function distillConversation(params: {
     conversationId,
     summarizerModel,
     schema: ConversationSummarySchema,
+    usageContext,
     buildPrompt: (
       formattedMessages
     ) => `You are a conversation summarization assistant. Your job is to create or update a compact, structured summary that captures VALUABLE CONTENT and FINDINGS, not just operational details.

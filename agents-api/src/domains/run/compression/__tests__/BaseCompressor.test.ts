@@ -76,6 +76,7 @@ describe('BaseCompressor', () => {
       'conv-456',
       'tenant-789',
       'project-abc',
+      'agent-def',
       { hardLimit: 1000, safetyBuffer: 200, enabled: true },
       { model: 'gpt-4' }
     );
@@ -410,6 +411,7 @@ describe('BaseCompressor', () => {
         'conv-456',
         'tenant-789',
         'project-abc',
+        'agent-def',
         { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
         { model: 'gpt-4' },
         { model: 'claude-sonnet-4-5' } // baseModel with 200K context
@@ -457,6 +459,7 @@ describe('BaseCompressor', () => {
         'conv-456',
         'tenant-789',
         'project-abc',
+        'agent-def',
         { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
         { model: 'gpt-4' },
         { model: 'claude-sonnet-4-5' }
@@ -496,6 +499,7 @@ describe('BaseCompressor', () => {
         'conv-456',
         'tenant-789',
         'project-abc',
+        'agent-def',
         { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
         { model: 'gpt-4' },
         { model: 'claude-sonnet-4-5' }
@@ -535,6 +539,7 @@ describe('BaseCompressor', () => {
         'conv-456',
         'tenant-789',
         'project-abc',
+        'agent-def',
         { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
         { model: 'gpt-4' },
         { model: 'claude-sonnet-4-5' }
@@ -592,6 +597,7 @@ describe('BaseCompressor', () => {
         'conv-456',
         'tenant-789',
         'project-abc',
+        'agent-def',
         { hardLimit: 100000, safetyBuffer: 20000, enabled: true },
         { model: 'gpt-4' },
         { model: 'claude-sonnet-4-5' }

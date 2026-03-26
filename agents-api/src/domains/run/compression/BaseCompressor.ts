@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
-import { getLedgerArtifacts, SPAN_KEYS } from '@inkeep/agents-core';
+import {
+  estimateTokens as estimateTokensUtil,
+  GENERATION_TYPES,
+  getLedgerArtifacts,
+  SPAN_KEYS,
+} from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -9,7 +14,6 @@ import { type CompressedArtifactInfo, detectOversizedArtifact } from '../artifac
 import { agentSessionManager } from '../session/AgentSession';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
 import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
-import { estimateTokens as estimateTokensUtil } from '../utils/token-estimator';
 import { tracer } from '../utils/tracer';
 
 const logger = getLogger('BaseCompressor');
@@ -61,6 +65,7 @@ export abstract class BaseCompressor {
     protected conversationId: string,
     protected tenantId: string,
     protected projectId: string,
+    protected agentId: string,
     protected config: CompressionConfig,
     protected summarizerModel?: ModelSettings,
     protected baseModel?: ModelSettings
@@ -511,6 +516,12 @@ export abstract class BaseCompressor {
       messageFormatter: (maxChars) =>
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
       compressionCycle,
+      usageContext: {
+        tenantId: this.tenantId,
+        projectId: this.projectId,
+        agentId: this.agentId,
+        generationType: GENERATION_TYPES.MID_GENERATION_COMPRESSION,
+      },
     });
 
     logger.info(

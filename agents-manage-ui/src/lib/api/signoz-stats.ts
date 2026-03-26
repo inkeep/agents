@@ -17,6 +17,7 @@ import {
   SPAN_KEYS,
   SPAN_NAMES,
   UNKNOWN_VALUE,
+  USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
 
 // ---------- String Constants for Type Safety
@@ -79,6 +80,73 @@ export interface SpanFilterOptions {
       | 'nexists';
   }[];
 }
+
+export interface TokenUsageResult {
+  byModel: Array<{
+    modelId: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+  byAgent: Array<{
+    agentId: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+  byProject: Array<{
+    projectId: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+  totals: { inputTokens: number; outputTokens: number; totalTokens: number };
+}
+
+type ProjectStatsResult = Array<{
+  projectId: string;
+  totalConversations: number;
+  totalAICalls: number;
+  totalMCPCalls: number;
+}>;
+
+const EMPTY_TOKEN_USAGE: TokenUsageResult = {
+  byModel: [],
+  byAgent: [],
+  byProject: [],
+  totals: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+};
+
+// ---------- Reusable scope filters
+
+type FilterItem = { key: string; op: string; value: unknown };
+
+const AI_OPERATION_FILTER: FilterItem = {
+  key: SPAN_KEYS.AI_OPERATION_ID,
+  op: OPERATORS.IN,
+  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+};
+
+const CONVERSATION_SCOPE_FILTER: FilterItem = {
+  key: SPAN_KEYS.CONVERSATION_ID,
+  op: OPERATORS.EXISTS,
+  value: '',
+};
+
+const GENERATION_TYPE_SCOPE_FILTER: FilterItem = {
+  key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+  op: OPERATORS.IN,
+  value: [...USAGE_GENERATION_TYPES],
+};
+
+const buildScopedFilterItems = (
+  scope: 'conversation' | 'all-usage',
+  projectId?: string
+): FilterItem[] => [
+  AI_OPERATION_FILTER,
+  scope === 'conversation' ? CONVERSATION_SCOPE_FILTER : GENERATION_TYPE_SCOPE_FILTER,
+  ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
+];
 
 // ---------- Small utilities
 
@@ -709,160 +777,158 @@ class SigNozStatsAPI {
   ) {
     try {
       const resp = await this.makeRequest(
-        this.buildModelBreakdownPayload(startTime, endTime, projectId)
+        this.buildModelBreakdownPayload(
+          startTime,
+          endTime,
+          buildScopedFilterItems('conversation', projectId),
+          projectId
+        )
       );
-      const series = this.extractSeries(resp, 'modelCalls');
-      const totals = new Map<string, number>();
-
-      for (const s of series) {
-        const mId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
-        const gId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
-        const count = countFromSeries(s);
-        if (!count) continue;
-        if (agentId && agentId !== 'all' && gId !== agentId) continue;
-        totals.set(mId, (totals.get(mId) || 0) + count);
-      }
-
-      return [...totals]
-        .map(([modelId, totalCalls]) => ({ modelId, totalCalls }))
-        .sort((a, b) => b.totalCalls - a.totalCalls);
+      return this.parseModelCallsResponse(resp, agentId);
     } catch (e) {
       console.error('getAICallsByModel error:', e);
       return [];
     }
   }
 
+  async getUsageCallsByModel(startTime: number, endTime: number, projectId?: string) {
+    try {
+      const resp = await this.makeRequest(
+        this.buildModelBreakdownPayload(
+          startTime,
+          endTime,
+          buildScopedFilterItems('all-usage', projectId),
+          projectId
+        )
+      );
+      return this.parseModelCallsResponse(resp);
+    } catch (e) {
+      console.error('getUsageCallsByModel error:', e);
+      return [];
+    }
+  }
+
+  private parseModelCallsResponse(
+    resp: any,
+    agentId?: string
+  ): Array<{ modelId: string; totalCalls: number }> {
+    const series = this.extractSeries(resp, 'modelCalls');
+    const totals = new Map<string, number>();
+
+    for (const s of series) {
+      const mId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
+      const count = countFromSeries(s);
+      if (!count) continue;
+      if (agentId && agentId !== 'all') {
+        const gId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
+        if (gId !== agentId) continue;
+      }
+      totals.set(mId, (totals.get(mId) || 0) + count);
+    }
+
+    return [...totals]
+      .map(([modelId, totalCalls]) => ({ modelId, totalCalls }))
+      .sort((a, b) => b.totalCalls - a.totalCalls);
+  }
+
+  private parseTokenUsageResponse(resp: any): TokenUsageResult {
+    const inputByModelSeries = this.extractSeries(resp, 'inputTokensByModel');
+    const outputByModelSeries = this.extractSeries(resp, 'outputTokensByModel');
+    const inputByAgentSeries = this.extractSeries(resp, 'inputTokensByAgent');
+    const outputByAgentSeries = this.extractSeries(resp, 'outputTokensByAgent');
+    const inputByProjectSeries = this.extractSeries(resp, 'inputTokensByProject');
+    const outputByProjectSeries = this.extractSeries(resp, 'outputTokensByProject');
+
+    const aggregate = (
+      inputSeries: Series[],
+      outputSeries: Series[],
+      labelKey: string
+    ): Map<string, { inputTokens: number; outputTokens: number }> => {
+      const stats = new Map<string, { inputTokens: number; outputTokens: number }>();
+      for (const s of inputSeries) {
+        const key = s.labels?.[labelKey] || UNKNOWN_VALUE;
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0 };
+        existing.inputTokens += numberFromSeries(s);
+        stats.set(key, existing);
+      }
+      for (const s of outputSeries) {
+        const key = s.labels?.[labelKey] || UNKNOWN_VALUE;
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0 };
+        existing.outputTokens += numberFromSeries(s);
+        stats.set(key, existing);
+      }
+      return stats;
+    };
+
+    const toSorted = <T extends { totalTokens: number }>(
+      stats: Map<string, { inputTokens: number; outputTokens: number }>,
+      mapEntry: (key: string, v: { inputTokens: number; outputTokens: number }) => T
+    ): T[] =>
+      [...stats.entries()]
+        .map(([key, v]) => mapEntry(key, v))
+        .sort((a, b) => b.totalTokens - a.totalTokens);
+
+    const byModel = toSorted(
+      aggregate(inputByModelSeries, outputByModelSeries, SPAN_KEYS.AI_MODEL_ID),
+      (modelId, s) => ({ modelId, ...s, totalTokens: s.inputTokens + s.outputTokens })
+    );
+    const byAgent = toSorted(
+      aggregate(inputByAgentSeries, outputByAgentSeries, SPAN_KEYS.AGENT_ID),
+      (agentId, s) => ({ agentId, ...s, totalTokens: s.inputTokens + s.outputTokens })
+    );
+    const byProject = toSorted(
+      aggregate(inputByProjectSeries, outputByProjectSeries, SPAN_KEYS.PROJECT_ID),
+      (projectId, s) => ({ projectId, ...s, totalTokens: s.inputTokens + s.outputTokens })
+    );
+
+    const totals = {
+      inputTokens: byModel.reduce((sum, m) => sum + m.inputTokens, 0),
+      outputTokens: byModel.reduce((sum, m) => sum + m.outputTokens, 0),
+      totalTokens: byModel.reduce((sum, m) => sum + m.totalTokens, 0),
+    };
+
+    return { byModel, byAgent, byProject, totals };
+  }
+
   async getTokenUsageStats(
     startTime: number,
     endTime: number,
     projectId?: string
-  ): Promise<{
-    byModel: Array<{
-      modelId: string;
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-    }>;
-    byAgent: Array<{
-      agentId: string;
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-    }>;
-    byProject: Array<{
-      projectId: string;
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-    }>;
-    totals: { inputTokens: number; outputTokens: number; totalTokens: number };
-  }> {
+  ): Promise<TokenUsageResult> {
     try {
       const resp = await this.makeRequest(
-        this.buildTokenUsagePayload(startTime, endTime, projectId)
+        this.buildTokenUsagePayload(
+          startTime,
+          endTime,
+          buildScopedFilterItems('conversation', projectId),
+          projectId
+        )
       );
-
-      const inputByModelSeries = this.extractSeries(resp, 'inputTokensByModel');
-      const outputByModelSeries = this.extractSeries(resp, 'outputTokensByModel');
-      const inputByAgentSeries = this.extractSeries(resp, 'inputTokensByAgent');
-      const outputByAgentSeries = this.extractSeries(resp, 'outputTokensByAgent');
-      const inputByProjectSeries = this.extractSeries(resp, 'inputTokensByProject');
-      const outputByProjectSeries = this.extractSeries(resp, 'outputTokensByProject');
-
-      // Aggregate by model
-      const modelStats = new Map<string, { inputTokens: number; outputTokens: number }>();
-      for (const s of inputByModelSeries) {
-        const modelId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = modelStats.get(modelId) || { inputTokens: 0, outputTokens: 0 };
-        existing.inputTokens += tokens;
-        modelStats.set(modelId, existing);
-      }
-      for (const s of outputByModelSeries) {
-        const modelId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = modelStats.get(modelId) || { inputTokens: 0, outputTokens: 0 };
-        existing.outputTokens += tokens;
-        modelStats.set(modelId, existing);
-      }
-
-      // Aggregate by agent
-      const agentStats = new Map<string, { inputTokens: number; outputTokens: number }>();
-      for (const s of inputByAgentSeries) {
-        const agentId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = agentStats.get(agentId) || { inputTokens: 0, outputTokens: 0 };
-        existing.inputTokens += tokens;
-        agentStats.set(agentId, existing);
-      }
-      for (const s of outputByAgentSeries) {
-        const agentId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = agentStats.get(agentId) || { inputTokens: 0, outputTokens: 0 };
-        existing.outputTokens += tokens;
-        agentStats.set(agentId, existing);
-      }
-
-      // Aggregate by project
-      const projectStats = new Map<string, { inputTokens: number; outputTokens: number }>();
-      for (const s of inputByProjectSeries) {
-        const pId = s.labels?.[SPAN_KEYS.PROJECT_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = projectStats.get(pId) || { inputTokens: 0, outputTokens: 0 };
-        existing.inputTokens += tokens;
-        projectStats.set(pId, existing);
-      }
-      for (const s of outputByProjectSeries) {
-        const pId = s.labels?.[SPAN_KEYS.PROJECT_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = projectStats.get(pId) || { inputTokens: 0, outputTokens: 0 };
-        existing.outputTokens += tokens;
-        projectStats.set(pId, existing);
-      }
-
-      // Convert to arrays and calculate totals
-      const byModel = [...modelStats.entries()]
-        .map(([modelId, stats]) => ({
-          modelId,
-          inputTokens: stats.inputTokens,
-          outputTokens: stats.outputTokens,
-          totalTokens: stats.inputTokens + stats.outputTokens,
-        }))
-        .sort((a, b) => b.totalTokens - a.totalTokens);
-
-      const byAgent = [...agentStats.entries()]
-        .map(([agentId, stats]) => ({
-          agentId,
-          inputTokens: stats.inputTokens,
-          outputTokens: stats.outputTokens,
-          totalTokens: stats.inputTokens + stats.outputTokens,
-        }))
-        .sort((a, b) => b.totalTokens - a.totalTokens);
-
-      const byProject = [...projectStats.entries()]
-        .map(([pId, stats]) => ({
-          projectId: pId,
-          inputTokens: stats.inputTokens,
-          outputTokens: stats.outputTokens,
-          totalTokens: stats.inputTokens + stats.outputTokens,
-        }))
-        .sort((a, b) => b.totalTokens - a.totalTokens);
-
-      const totals = {
-        inputTokens: byModel.reduce((sum, m) => sum + m.inputTokens, 0),
-        outputTokens: byModel.reduce((sum, m) => sum + m.outputTokens, 0),
-        totalTokens: byModel.reduce((sum, m) => sum + m.totalTokens, 0),
-      };
-
-      return { byModel, byAgent, byProject, totals };
+      return this.parseTokenUsageResponse(resp);
     } catch (e) {
       console.error('getTokenUsageStats error:', e);
-      return {
-        byModel: [],
-        byAgent: [],
-        byProject: [],
-        totals: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-      };
+      return EMPTY_TOKEN_USAGE;
+    }
+  }
+
+  async getUsageTokenBreakdown(
+    startTime: number,
+    endTime: number,
+    projectId?: string
+  ): Promise<TokenUsageResult> {
+    try {
+      const resp = await this.makeRequest(
+        this.buildTokenUsagePayload(
+          startTime,
+          endTime,
+          buildScopedFilterItems('all-usage', projectId),
+          projectId
+        )
+      );
+      return this.parseTokenUsageResponse(resp);
+    } catch (e) {
+      console.error('getUsageTokenBreakdown error:', e);
+      return EMPTY_TOKEN_USAGE;
     }
   }
 
@@ -1235,16 +1301,12 @@ class SigNozStatsAPI {
     };
   }
 
-  private buildModelBreakdownPayload(start: number, end: number, projectId?: string) {
-    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
-      {
-        key: SPAN_KEYS.AI_OPERATION_ID,
-        op: OPERATORS.IN,
-        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
-      },
-      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
-      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
-    ];
+  private buildModelBreakdownPayload(
+    start: number,
+    end: number,
+    filterItems: Array<{ key: string; op: string; value: unknown }>,
+    projectId?: string
+  ) {
     return {
       start,
       end,
@@ -2171,77 +2233,71 @@ class SigNozStatsAPI {
   /**
    * Get stats broken down by project
    */
+  private parseStatsByProjectResponse(resp: any): ProjectStatsResult {
+    const conversationsSeries = this.extractSeries(resp, 'conversationsByProject');
+    const aiCallsSeries = this.extractSeries(resp, 'aiCallsByProject');
+    const mcpCallsSeries = this.extractSeries(resp, 'mcpCallsByProject');
+
+    const projectStats = new Map<
+      string,
+      { totalConversations: number; totalAICalls: number; totalMCPCalls: number }
+    >();
+    const ensure = (id: string) => {
+      const cur = projectStats.get(id);
+      if (cur) return cur;
+      const init = { totalConversations: 0, totalAICalls: 0, totalMCPCalls: 0 };
+      projectStats.set(id, init);
+      return init;
+    };
+
+    for (const s of conversationsSeries) {
+      const id = s.labels?.[SPAN_KEYS.PROJECT_ID];
+      if (id) ensure(id).totalConversations = countFromSeries(s);
+    }
+    for (const s of aiCallsSeries) {
+      const id = s.labels?.[SPAN_KEYS.PROJECT_ID];
+      if (id) ensure(id).totalAICalls = countFromSeries(s);
+    }
+    for (const s of mcpCallsSeries) {
+      const id = s.labels?.[SPAN_KEYS.PROJECT_ID];
+      if (id) ensure(id).totalMCPCalls = countFromSeries(s);
+    }
+
+    return Array.from(projectStats.entries())
+      .map(([projectId, stats]) => ({ projectId, ...stats }))
+      .sort((a, b) => b.totalConversations - a.totalConversations);
+  }
+
   async getStatsByProject(
     startTime: number,
     endTime: number,
     projectIds?: string[]
-  ): Promise<
-    Array<{
-      projectId: string;
-      totalConversations: number;
-      totalAICalls: number;
-      totalMCPCalls: number;
-    }>
-  > {
+  ): Promise<ProjectStatsResult> {
     try {
-      // When filtering by a single project, pass it to makeRequest for server-side filtering
       const singleProjectId = projectIds?.length === 1 ? projectIds[0] : undefined;
       const payload = this.buildStatsByProjectPayload(startTime, endTime, projectIds);
       const resp = await this.makeRequest(payload, singleProjectId);
-
-      const conversationsSeries = this.extractSeries(resp, 'conversationsByProject');
-      const aiCallsSeries = this.extractSeries(resp, 'aiCallsByProject');
-      const mcpCallsSeries = this.extractSeries(resp, 'mcpCallsByProject');
-
-      const projectStats = new Map<
-        string,
-        { totalConversations: number; totalAICalls: number; totalMCPCalls: number }
-      >();
-
-      for (const s of conversationsSeries) {
-        const projectId = s.labels?.[SPAN_KEYS.PROJECT_ID];
-        if (!projectId) continue;
-        const count = countFromSeries(s);
-        const existing = projectStats.get(projectId) || {
-          totalConversations: 0,
-          totalAICalls: 0,
-          totalMCPCalls: 0,
-        };
-        existing.totalConversations = count;
-        projectStats.set(projectId, existing);
-      }
-
-      for (const s of aiCallsSeries) {
-        const projectId = s.labels?.[SPAN_KEYS.PROJECT_ID];
-        if (!projectId) continue;
-        const count = countFromSeries(s);
-        const existing = projectStats.get(projectId) || {
-          totalConversations: 0,
-          totalAICalls: 0,
-          totalMCPCalls: 0,
-        };
-        existing.totalAICalls = count;
-        projectStats.set(projectId, existing);
-      }
-
-      for (const s of mcpCallsSeries) {
-        const projectId = s.labels?.[SPAN_KEYS.PROJECT_ID];
-        if (!projectId) continue;
-        const count = countFromSeries(s);
-        const existing = projectStats.get(projectId) || {
-          totalConversations: 0,
-          totalAICalls: 0,
-          totalMCPCalls: 0,
-        };
-        existing.totalMCPCalls = count;
-        projectStats.set(projectId, existing);
-      }
-
-      return Array.from(projectStats.entries())
-        .map(([projectId, stats]) => ({ projectId, ...stats }))
-        .sort((a, b) => b.totalConversations - a.totalConversations);
+      return this.parseStatsByProjectResponse(resp);
     } catch (e) {
       console.error('getStatsByProject error:', e);
+      return [];
+    }
+  }
+
+  async getUsageStatsByProject(
+    startTime: number,
+    endTime: number,
+    projectIds?: string[]
+  ): Promise<ProjectStatsResult> {
+    try {
+      const singleProjectId = projectIds?.length === 1 ? projectIds[0] : undefined;
+      const payload = this.buildStatsByProjectPayload(startTime, endTime, projectIds, [
+        GENERATION_TYPE_SCOPE_FILTER,
+      ]);
+      const resp = await this.makeRequest(payload, singleProjectId);
+      return this.parseStatsByProjectResponse(resp);
+    } catch (e) {
+      console.error('getUsageStatsByProject error:', e);
       return [];
     }
   }
@@ -2434,7 +2490,12 @@ class SigNozStatsAPI {
     };
   }
 
-  private buildStatsByProjectPayload(start: number, end: number, projectIds?: string[]) {
+  private buildStatsByProjectPayload(
+    start: number,
+    end: number,
+    projectIds?: string[],
+    aiCallsFilterItems?: Array<{ key: string; op: string; value: unknown }>
+  ) {
     const tenantItem = { key: SPAN_KEYS.TENANT_ID, op: OPERATORS.EQUALS, value: this.tenantId };
     const projectItem: { key: string; op: string; value: unknown } =
       projectIds && projectIds.length > 0
@@ -2442,6 +2503,9 @@ class SigNozStatsAPI {
         : { key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EXISTS, value: '' };
     const convExistsItem = { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' };
     const base = [tenantItem, projectItem, convExistsItem];
+    const aiCallsBase = aiCallsFilterItems
+      ? [tenantItem, projectItem, ...aiCallsFilterItems]
+      : base;
 
     return {
       start,
@@ -2477,7 +2541,7 @@ class SigNozStatsAPI {
               aggregations: [{ expression: 'count()' }],
               filter: {
                 expression: buildFilterExpression([
-                  ...base,
+                  ...aiCallsBase,
                   {
                     key: SPAN_KEYS.AI_OPERATION_ID,
                     op: OPERATORS.IN,
@@ -2530,24 +2594,330 @@ class SigNozStatsAPI {
     };
   }
 
-  private buildTokenUsagePayload(start: number, end: number, projectId?: string) {
+  async getUsageCostSummary(
+    startTime: number,
+    endTime: number,
+    groupBy: 'model' | 'agent' | 'generation_type' | 'conversation',
+    projectId?: string
+  ): Promise<
+    Array<{
+      groupKey: string;
+      totalInputTokens: number;
+      totalOutputTokens: number;
+      totalTokens: number;
+      totalEstimatedCostUsd: number;
+      eventCount: number;
+    }>
+  > {
+    try {
+      const resp = await this.makeRequest(
+        this.buildUsageCostPayload(startTime, endTime, groupBy, projectId),
+        projectId
+      );
+
+      const inputSeries = this.extractSeries(resp, 'inputTokens');
+      const outputSeries = this.extractSeries(resp, 'outputTokens');
+      const costSeries = this.extractSeries(resp, 'cost');
+      const countSeries = this.extractSeries(resp, 'eventCount');
+
+      const groupByKey =
+        groupBy === 'model'
+          ? SPAN_KEYS.AI_MODEL_ID
+          : groupBy === 'agent'
+            ? SPAN_KEYS.AGENT_ID
+            : groupBy === 'generation_type'
+              ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
+              : groupBy === 'conversation'
+                ? SPAN_KEYS.CONVERSATION_ID
+                : 'timestamp';
+
+      const stats = new Map<
+        string,
+        { inputTokens: number; outputTokens: number; cost: number; count: number }
+      >();
+
+      for (const s of inputSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.inputTokens += val;
+        stats.set(key, existing);
+      }
+      for (const s of outputSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.outputTokens += val;
+        stats.set(key, existing);
+      }
+      for (const s of costSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.cost += val;
+        stats.set(key, existing);
+      }
+      for (const s of countSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = countFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.count += val;
+        stats.set(key, existing);
+      }
+
+      return [...stats.entries()]
+        .map(([groupKey, data]) => ({
+          groupKey,
+          totalInputTokens: data.inputTokens,
+          totalOutputTokens: data.outputTokens,
+          totalTokens: data.inputTokens + data.outputTokens,
+          totalEstimatedCostUsd: data.cost,
+          eventCount: data.count,
+        }))
+        .sort((a, b) => b.totalTokens - a.totalTokens);
+    } catch (e) {
+      console.error('getUsageCostSummary error:', e);
+      return [];
+    }
+  }
+
+  async getUsageEventsList(
+    startTime: number,
+    endTime: number,
+    projectId?: string,
+    conversationId?: string,
+    limit = 25
+  ): Promise<
+    Array<{
+      spanId: string;
+      parentSpanId: string;
+      traceId: string;
+      timestamp: string;
+      generationType: string;
+      model: string;
+      provider: string;
+      agentId: string;
+      subAgentId: string;
+      conversationId: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      estimatedCostUsd: number;
+      finishReason: string;
+      status: string;
+    }>
+  > {
+    try {
+      const sf = (name: string, fieldDataType: string, fieldContext: string) => ({
+        name,
+        fieldDataType,
+        fieldContext,
+      });
+      const str = FIELD_DATA_TYPES.STRING;
+      const float64 = FIELD_DATA_TYPES.FLOAT64;
+      const spanCtx = FIELD_CONTEXTS.SPAN;
+      const attrCtx = FIELD_CONTEXTS.ATTRIBUTE;
+
+      const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+        {
+          key: SPAN_KEYS.AI_OPERATION_ID,
+          op: OPERATORS.IN,
+          value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+        },
+        {
+          key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+          op: OPERATORS.IN,
+          value: [...USAGE_GENERATION_TYPES],
+        },
+        ...(projectId
+          ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }]
+          : []),
+        ...(conversationId
+          ? [{ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EQUALS, value: conversationId }]
+          : []),
+      ];
+
+      const payload = {
+        start: startTime,
+        end: endTime,
+        requestType: REQUEST_TYPES.RAW,
+        ...(projectId && { projectId }),
+        compositeQuery: {
+          queries: [
+            {
+              type: QUERY_TYPES.BUILDER_QUERY,
+              spec: {
+                name: 'usageEvents',
+                signal: SIGNALS.TRACES,
+                filter: { expression: buildFilterExpression(filterItems) },
+                selectFields: [
+                  sf(SPAN_KEYS.SPAN_ID, str, spanCtx),
+                  sf(SPAN_KEYS.PARENT_SPAN_ID, str, spanCtx),
+                  sf(SPAN_KEYS.TRACE_ID, str, spanCtx),
+                  sf(SPAN_KEYS.HAS_ERROR, FIELD_DATA_TYPES.BOOL, spanCtx),
+                  sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attrCtx),
+                  sf(SPAN_KEYS.AI_MODEL_ID, str, attrCtx),
+                  sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attrCtx),
+                  sf(SPAN_KEYS.AGENT_ID, str, attrCtx),
+                  sf(SPAN_KEYS.SUB_AGENT_ID, str, attrCtx),
+                  sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attrCtx),
+                  sf(SPAN_KEYS.CONVERSATION_ID, str, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attrCtx),
+                  sf(SPAN_KEYS.AI_RESPONSE_FINISH_REASON, str, attrCtx),
+                ],
+                order: [{ key: { name: SPAN_KEYS.TIMESTAMP }, direction: ORDER_DIRECTIONS.DESC }],
+                limit,
+                stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+                disabled: QUERY_DEFAULTS.DISABLED,
+              },
+            },
+          ],
+        },
+      };
+
+      const resp = await this.makeRequest(payload, projectId);
+      const rows =
+        resp?.data?.data?.results?.find((r: any) => r?.queryName === 'usageEvents')?.rows ?? [];
+
+      return rows.map((row: any) => {
+        const d = row?.data ?? row;
+        const ts = row.timestamp || d.timestamp || '';
+
+        const inputTokens =
+          Number(d[SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_PROMPT_TOKENS]) ||
+          0;
+        const outputTokens =
+          Number(
+            d[SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_COMPLETION_TOKENS]
+          ) || 0;
+        const cost = Number(d[SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD]) || 0;
+
+        return {
+          spanId: d.spanID || '',
+          parentSpanId: d.parentSpanID || '',
+          traceId: d.traceID || '',
+          timestamp: ts,
+          generationType: d[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE] || 'unknown',
+          model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
+          provider: d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
+          agentId: d[SPAN_KEYS.AGENT_ID] || '',
+          subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
+          conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
+          inputTokens,
+          outputTokens,
+          totalTokens: inputTokens + outputTokens,
+          estimatedCostUsd: cost,
+          finishReason: d[SPAN_KEYS.AI_RESPONSE_FINISH_REASON] || '',
+          status: d.hasError === true || d.hasError === 'true' ? 'failed' : 'succeeded',
+        };
+      });
+    } catch (e) {
+      console.error('getUsageEventsList error:', e);
+      return [];
+    }
+  }
+
+  private buildUsageCostPayload(start: number, end: number, groupBy: string, projectId?: string) {
     const baseItems: Array<{ key: string; op: string; value: unknown }> = [
       {
         key: SPAN_KEYS.AI_OPERATION_ID,
         op: OPERATORS.IN,
         value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
       },
-      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
+      {
+        key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+        op: OPERATORS.IN,
+        value: [...USAGE_GENERATION_TYPES],
+      },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
 
-    const makeTokenQuery = (queryName: string, aggregateKey: string, groupByKey: string) => ({
+    const groupByKey =
+      groupBy === 'model'
+        ? SPAN_KEYS.AI_MODEL_ID
+        : groupBy === 'agent'
+          ? SPAN_KEYS.AGENT_ID
+          : groupBy === 'generation_type'
+            ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
+            : groupBy === 'conversation'
+              ? SPAN_KEYS.CONVERSATION_ID
+              : SPAN_KEYS.TIMESTAMP;
+
+    const groupByFieldContext = FIELD_CONTEXTS.ATTRIBUTE;
+
+    const makeAggQuery = (queryName: string, aggregateKey: string) => ({
       type: QUERY_TYPES.BUILDER_QUERY,
       spec: {
         name: queryName,
         signal: SIGNALS.TRACES,
         aggregations: [{ expression: `sum(${aggregateKey})` }],
         filter: { expression: buildFilterExpression(baseItems) },
+        groupBy: [
+          {
+            name: groupByKey,
+            fieldDataType: FIELD_DATA_TYPES.STRING,
+            fieldContext: groupByFieldContext,
+          },
+        ],
+        order: [],
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+        disabled: QUERY_DEFAULTS.DISABLED,
+      },
+    });
+
+    const makeCountQuery = (queryName: string) => ({
+      type: QUERY_TYPES.BUILDER_QUERY,
+      spec: {
+        name: queryName,
+        signal: SIGNALS.TRACES,
+        aggregations: [{ expression: 'count()' }],
+        filter: { expression: buildFilterExpression(baseItems) },
+        groupBy: [
+          {
+            name: groupByKey,
+            fieldDataType: FIELD_DATA_TYPES.STRING,
+            fieldContext: groupByFieldContext,
+          },
+        ],
+        order: [],
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+        disabled: QUERY_DEFAULTS.DISABLED,
+      },
+    });
+
+    return {
+      start,
+      end,
+      requestType: REQUEST_TYPES.SCALAR,
+      ...(projectId && { projectId }),
+      compositeQuery: {
+        queries: [
+          makeAggQuery('inputTokens', SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS),
+          makeAggQuery('outputTokens', SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS),
+          makeAggQuery('cost', SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD),
+          makeCountQuery('eventCount'),
+        ],
+      },
+    };
+  }
+
+  private buildTokenUsagePayload(
+    start: number,
+    end: number,
+    filterItems: Array<{ key: string; op: string; value: unknown }>,
+    projectId?: string
+  ) {
+    const makeTokenQuery = (queryName: string, aggregateKey: string, groupByKey: string) => ({
+      type: QUERY_TYPES.BUILDER_QUERY,
+      spec: {
+        name: queryName,
+        signal: SIGNALS.TRACES,
+        aggregations: [{ expression: `sum(${aggregateKey})` }],
+        filter: { expression: buildFilterExpression(filterItems) },
         groupBy: [
           {
             name: groupByKey,
