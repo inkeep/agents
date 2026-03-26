@@ -35,6 +35,8 @@ Before recommending a repo, verify:
 
 If browsing is available, verify using the live GitHub repo page or equivalent primary source. Do not guess on recency or stars.
 
+If you cannot verify live repo health, do not present the repo as a confident default recommendation. Either mark it as unverified or prefer a repo you can verify.
+
 ## Decision rule
 
 Treat **recent activity** as the primary signal and **stars** as a secondary sanity check.
@@ -73,13 +75,19 @@ Use judgment by category, but default to these heuristics:
 - **Yellow:** last activity roughly 6 to 18 months ago
 - **Red:** last activity older than roughly 18 months
 
-Stars are contextual, but these are useful defaults:
+Adjust those expectations by category:
 
-- **Strong signal:** 500+ stars for broad developer tools, libraries, or templates
-- **Moderate signal:** 100+ stars
-- **Weak signal:** under 100 stars unless the repo is clearly niche or internal-facing
+- **Fast-moving tools:** AI SDKs, starters, templates, and agent frameworks should usually show recent activity
+- **Stable infrastructure:** Mature libraries, protocol implementations, and low-churn utilities may still be healthy with slower commit cadence
+- **Reference repos:** Example apps and demos should not be treated as strong defaults unless they also show recent maintenance
 
-Do not reject a niche repo only because it has few stars. Low stars matter most when the repo is being proposed as a broadly trustworthy default.
+Stars are relative to the ecosystem and use case. Use these only as rough anchors:
+
+- **Strong signal:** clearly well adopted relative to similar repos in the same ecosystem
+- **Moderate signal:** enough adoption to show real usage, but not necessarily category-leading
+- **Weak signal:** low adoption relative to peers, especially when combined with stale activity
+
+Do not reject a niche repo only because it has few stars. Low stars matter most when the repo is being proposed as a broadly trustworthy default and better-maintained alternatives exist.
 
 ## Response requirements
 
@@ -94,7 +102,7 @@ Use concrete dates, not vague phrases like "recent" or "old."
 
 ## Important nuance
 
-- If the user explicitly wants older or historically important repos, you may include them, but say they are historical references rather than current recommendations.
-- If a repo is widely starred but clearly stale, say so. Popularity does not override maintenance risk.
-- If a repo is new but fast-moving and already has decent adoption, it can still be a valid recommendation.
-- If you cannot verify live repo health, say that the recommendation is unverified instead of presenting it confidently.
+- **Historical context:** If the user explicitly wants older or historically important repos, you may include them, but say they are historical references rather than current recommendations.
+- **Popularity is not maintenance:** If a repo is widely starred but clearly stale, say so. Popularity does not override maintenance risk.
+- **New but promising:** If a repo is new but fast-moving and already has credible adoption, it can still be a valid recommendation.
+- **Unverified is not endorsed:** If you cannot verify live repo health, say that the recommendation is unverified instead of presenting it confidently.
