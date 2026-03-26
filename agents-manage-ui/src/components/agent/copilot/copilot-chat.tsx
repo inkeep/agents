@@ -2,6 +2,7 @@
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import { Loader2, RefreshCw } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,6 @@ import { sentry } from '@/lib/sentry';
 import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { IkpTool } from './message-parts/message';
-import { useParams } from 'next/navigation';
 
 const ANALYTICS_EXCLUDED_EVENTS = ['sidebar_chat_opened', 'sidebar_chat_closed'];
 

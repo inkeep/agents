@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bug, X } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { type Dispatch, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -9,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import {
   copyFullTraceToClipboard,
@@ -18,7 +18,6 @@ import {
 import { createCustomHeadersSchema } from '@/lib/validation';
 import { ChatWidget } from './chat-widget';
 import { CustomHeadersDialog } from './custom-headers-dialog';
-import { useParams } from 'next/navigation';
 
 interface PlaygroundProps {
   setShowPlayground: (show: boolean) => void;
