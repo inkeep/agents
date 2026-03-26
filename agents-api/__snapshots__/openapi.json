@@ -39483,6 +39483,14 @@
                   "conversationId": {
                     "type": "string"
                   },
+                  "executionMode": {
+                    "description": "Override the agent default execution mode for this request",
+                    "enum": [
+                      "classic",
+                      "durable"
+                    ],
+                    "type": "string"
+                  },
                   "headers": {
                     "additionalProperties": {
                       "nullable": true
@@ -40587,6 +40595,14 @@
                 "properties": {
                   "conversationId": {
                     "description": "Conversation ID for multi-turn chat",
+                    "type": "string"
+                  },
+                  "executionMode": {
+                    "description": "Override the agent default execution mode for this request",
+                    "enum": [
+                      "classic",
+                      "durable"
+                    ],
                     "type": "string"
                   },
                   "frequency_penalty": {

@@ -72,6 +72,10 @@ const chatDataStreamRoute = createProtectedRoute({
               .optional()
               .describe('Headers data for template processing'),
             runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
+            executionMode: z
+              .enum(['classic', 'durable'])
+              .optional()
+              .describe('Override the agent default execution mode for this request'),
           }),
         },
       },
@@ -405,7 +409,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
-      if (agent.executionMode === 'durable') {
+      const effectiveExecutionMode = body.executionMode ?? agent.executionMode ?? 'classic';
+
+      if (effectiveExecutionMode === 'durable') {
         const requestId = `chatds-${Date.now()}`;
         const run = await start(agentExecutionWorkflow, [
           {

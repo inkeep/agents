@@ -95,6 +95,10 @@ const chatCompletionsRoute = createProtectedRoute({
             conversationId: z.string().optional().describe('Conversation ID for multi-turn chat'),
             tools: z.array(z.string()).optional().describe('Available tools'),
             runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
+            executionMode: z
+              .enum(['classic', 'durable'])
+              .optional()
+              .describe('Override the agent default execution mode for this request'),
             headers: z
               .record(z.string(), z.unknown())
               .optional()
@@ -420,7 +424,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
         );
       }
 
-      if (agent.executionMode === 'durable') {
+      const effectiveExecutionMode = body.executionMode ?? agent.executionMode ?? 'classic';
+
+      if (effectiveExecutionMode === 'durable') {
         const emitOperationsHeader = c.req.header('x-emit-operations');
         const emitOperations = emitOperationsHeader === 'true';
 
