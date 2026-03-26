@@ -33,7 +33,7 @@ export function useAgentSelectionSync({
   setEdges,
   setQueryState,
 }: UseAgentSelectionSyncParams) {
-  'use memo'
+  'use memo';
 
   useOnSelectionChange({
     onChange({ nodes: selectedNodes, edges: selectedEdges }) {
@@ -93,7 +93,7 @@ export function useAgentSelectionSync({
         );
       }
     }
-  }, [edgeId, nodeId, nodes, edges]);
+  }, [edgeId, nodeId, nodes, edges, setQueryState]);
 
   function clearCanvasSelection() {
     setEdges((prevEdges) => prevEdges.map((edge) => ({ ...edge, selected: false })));
