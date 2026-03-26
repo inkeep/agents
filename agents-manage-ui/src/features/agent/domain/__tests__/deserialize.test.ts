@@ -185,6 +185,85 @@ describe('apiToGraph', () => {
     });
   });
 
+  it('hydrates function tool approval policies back into form state', () => {
+    const fullAgent = {
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: '',
+      defaultSubAgentId: 'sub-agent-1',
+      subAgents: {
+        'sub-agent-1': {
+          id: 'sub-agent-1',
+          name: 'Sub agent 1',
+          description: '',
+          prompt: 'Handle requests',
+          type: 'internal',
+          dataComponents: [],
+          artifactComponents: [],
+          canUse: [
+            {
+              toolId: 'function-tool-1',
+              toolPolicies: {
+                '*': {
+                  needsApproval: true,
+                },
+              },
+              agentToolRelationId: 'function-relation-1',
+            },
+          ],
+          canTransferTo: [],
+          canDelegateTo: [],
+        },
+      },
+      functionTools: {
+        'function-tool-1': {
+          id: 'function-tool-1',
+          name: 'Lookup customer',
+          description: 'Looks up customer information',
+          functionId: 'function-1',
+        },
+      },
+      functions: {
+        'function-1': {
+          id: 'function-1',
+          executeCode: 'async function execute() { return { ok: true }; }',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              customerId: { type: 'string' },
+            },
+            required: ['customerId'],
+          },
+          dependencies: {},
+        },
+      },
+    } as any;
+
+    const formData = apiToFormValues(fullAgent);
+    const { serialized } = serializeWithFormData(fullAgent);
+
+    expect(formData.functionTools?.['function-tool-1']).toMatchObject({
+      tempToolPolicies: {
+        '*': {
+          needsApproval: true,
+        },
+      },
+    });
+    expect(serialized.subAgents['sub-agent-1'].canUse).toEqual([
+      {
+        toolId: 'function-tool-1',
+        toolSelection: null,
+        headers: null,
+        toolPolicies: {
+          '*': {
+            needsApproval: true,
+          },
+        },
+        agentToolRelationId: 'function-relation-1',
+      },
+    ]);
+  });
+
   it('lays out rich sub-agent nodes without hydrating business payload into node.data', () => {
     const fullAgent = {
       id: 'agent-1',

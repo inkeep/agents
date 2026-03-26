@@ -256,6 +256,7 @@ export function apiToFormValues(data: FullAgentResponse) {
 
   const sharedExternalAgentHeaders = new Map<string, string>();
   const sharedTeamAgentHeaders = new Map<string, string>();
+  const sharedFunctionToolPolicies = new Map<string, Record<string, { needsApproval?: boolean }>>();
 
   for (const subAgent of Object.values(subAgents)) {
     for (const delegate of subAgent.canDelegateTo ?? []) {
@@ -273,6 +274,32 @@ export function apiToFormValues(data: FullAgentResponse) {
       if ('agentId' in delegate && !sharedTeamAgentHeaders.has(delegate.agentId)) {
         sharedTeamAgentHeaders.set(delegate.agentId, serializeJson(delegate.headers));
       }
+    }
+
+    for (const canUseItem of subAgent.canUse ?? []) {
+      if (!functionTools[canUseItem.toolId] || !canUseItem.toolPolicies) {
+        continue;
+      }
+
+      const mergedPolicies = sharedFunctionToolPolicies.get(canUseItem.toolId) ?? {};
+
+      for (const [toolName, policy] of Object.entries(canUseItem.toolPolicies)) {
+        const currentPolicy = mergedPolicies[toolName];
+        const needsApproval =
+          currentPolicy?.needsApproval === true || policy.needsApproval === true
+            ? true
+            : currentPolicy?.needsApproval === false || policy.needsApproval === false
+              ? false
+              : undefined;
+
+        mergedPolicies[toolName] = {
+          ...currentPolicy,
+          ...policy,
+          ...(needsApproval !== undefined ? { needsApproval } : {}),
+        };
+      }
+
+      sharedFunctionToolPolicies.set(canUseItem.toolId, mergedPolicies);
     }
   }
   function serializeModels(models: NonNullable<typeof data.models>) {
@@ -333,7 +360,15 @@ export function apiToFormValues(data: FullAgentResponse) {
         },
       ])
     ),
-    functionTools: Object.fromEntries(Object.values(functionTools).map((tool) => [tool.id, tool])),
+    functionTools: Object.fromEntries(
+      Object.values(functionTools).map((tool) => [
+        tool.id,
+        {
+          ...tool,
+          tempToolPolicies: sharedFunctionToolPolicies.get(tool.id) ?? {},
+        },
+      ])
+    ),
     functionToolRelations: Object.fromEntries(
       Object.entries(subAgents).flatMap(([_subAgentId, subAgent]) =>
         (subAgent.canUse ?? []).flatMap((canUseItem) => {
