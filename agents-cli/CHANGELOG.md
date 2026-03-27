@@ -1,5 +1,14 @@
 # @inkeep/agents-cli
 
+## 0.62.1
+
+### Patch Changes
+
+- 0ab1cf8: Abort push when merge conflicts are detected.
+  - @inkeep/agents-manage-ui@0.62.1
+  - @inkeep/agents-core@0.62.1
+  - @inkeep/agents-sdk@0.62.1
+
 ## 0.62.0
 
 ### Patch Changes
