@@ -79,13 +79,19 @@ jobs:
           # Check if PR only contains .changeset/ file changes
           if [ "$IS_CHANGESET" = "false" ] && [ "$GITHUB_EVENT_NAME" != "push" ]; then
             if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -n "$PR_NUMBER" ]; then
-              CHANGED_FILES=$(gh pr diff "$PR_NUMBER" --name-only --repo "$GITHUB_REPOSITORY" 2>/dev/null || echo "")
+              if ! CHANGED_FILES=$(gh pr diff "$PR_NUMBER" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
+                echo "::warning::Failed to fetch PR diff for #$PR_NUMBER: $CHANGED_FILES"
+                CHANGED_FILES=""
+              fi
             elif [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ -n "$PR_NUM" ]; then
-              CHANGED_FILES=$(gh pr diff "$PR_NUM" --name-only --repo "$GITHUB_REPOSITORY" 2>/dev/null || echo "")
+              if ! CHANGED_FILES=$(gh pr diff "$PR_NUM" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
+                echo "::warning::Failed to fetch PR diff for #$PR_NUM: $CHANGED_FILES"
+                CHANGED_FILES=""
+              fi
             fi
 
             if [ -n "$CHANGED_FILES" ]; then
-              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/' || true)
+              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/.*\.md$' || true)
               if [ -z "$NON_CHANGESET" ]; then
                 IS_CHANGESET=true
                 echo "Only .changeset/ files changed — skipping Cypress tests"

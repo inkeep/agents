@@ -134,6 +134,8 @@ jobs:
           # The default GITHUB_TOKEN's commits are ignored by GitHub to prevent loops.
           if [ -n "$APP_TOKEN" ]; then
             git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          else
+            echo "::warning::GitHub App token not available — push will use default GITHUB_TOKEN and may not trigger downstream CI."
           fi
 
           # Verify remote branch still exists before pushing
