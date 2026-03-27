@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.62.0
+
+### Patch Changes
+
+- b1507d1: Fix evaluation scoring returning null and display evaluation results in local time
+- ce9c516: Update @inkeep/agents-ui to support getAuthToken, remove max keys limit, add public key hover/copy
+- Updated dependencies [ce9c516]
+  - @inkeep/agents-core@0.62.0
+
 ## 0.61.0
 
 ### Patch Changes

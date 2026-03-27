@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.62.0
+
+### Patch Changes
+
+- ce9c516: Add startup auto-registration of playground public key and derived kid for key rotation
+- b1507d1: Fix evaluation scoring returning null and display evaluation results in local time
+- Updated dependencies [ce9c516]
+  - @inkeep/agents-core@0.62.0
+  - @inkeep/agents-work-apps@0.62.0
+  - @inkeep/agents-email@0.62.0
+  - @inkeep/agents-mcp@0.62.0
+
 ## 0.61.0
 
 ### Patch Changes
