@@ -79,6 +79,17 @@ export const errorResponseSchema = z
 
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
+function sanitizeErrorMessage(message: string): string {
+  return message
+    .replace(
+      /(?:postgresql|postgres|mysql|mongodb(?:\+srv)?|redis|rediss|amqp):\/\/[^\s,)]+/gi,
+      '[REDACTED_CONNECTION]'
+    )
+    .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?\b/g, '[REDACTED_HOST]')
+    .replace(/\/(?:var|tmp|home|usr|etc|opt)\/\S+/g, '[REDACTED_PATH]')
+    .replace(/\b(password|token|key|secret|auth|credential)\b/gi, '[REDACTED]');
+}
+
 export function createApiError({
   code,
   message,
@@ -96,16 +107,19 @@ export function createApiError({
   const title = getTitleFromCode(code);
   const _type = `${ERROR_DOCS_BASE_URL}#${code}`;
 
+  const sanitizedMessage = status >= 500 ? sanitizeErrorMessage(message) : message;
+
   const problemDetails: ProblemDetails = {
     title,
     status,
-    detail: message,
+    detail: sanitizedMessage,
     code,
     ...(instance && { instance }),
     ...(requestId && { requestId }),
   };
 
-  const errorMessage = message.length > 100 ? `${message.substring(0, 97)}...` : message;
+  const errorMessage =
+    sanitizedMessage.length > 100 ? `${sanitizedMessage.substring(0, 97)}...` : sanitizedMessage;
 
   const responseBody = {
     ...problemDetails,
@@ -124,7 +138,7 @@ export function createApiError({
 
   // @ts-expect-error - The HTTPException constructor expects a ContentfulStatusCode, but we're using a number
   // This is safe because we're only using valid HTTP status codes
-  return new HTTPException(status, { message, res });
+  return new HTTPException(status, { message: sanitizedMessage, res });
 }
 
 export async function handleApiError(
@@ -197,9 +211,7 @@ export async function handleApiError(
   );
 
   const sanitizedErrorMessage =
-    error instanceof Error
-      ? error.message.replace(/\b(password|token|key|secret|auth)\b/gi, '[REDACTED]')
-      : 'Unknown error';
+    error instanceof Error ? sanitizeErrorMessage(error.message) : 'Unknown error';
 
   const problemDetails: ProblemDetails & { error: { code: ErrorCodes; message: string } } = {
     // type: `${ERROR_DOCS_BASE_URL}#internal_server_error`,

@@ -284,7 +284,7 @@ describe('Credential Stores - CRUD Operations', () => {
       expect(response.status).toBe(500);
       const data = await response.json();
       expect(data.error.message).toContain(
-        "Credential store 'unavailable-store' is not available: Store is offline"
+        "[REDACTED] store 'unavailable-store' is not available: Store is offline"
       );
     });
 
@@ -310,7 +310,7 @@ describe('Credential Stores - CRUD Operations', () => {
       // Assert
       expect(response.status).toBe(500);
       const data = await response.json();
-      expect(data.error.message).toBe('Failed to store credential: Storage failed');
+      expect(data.error.message).toBe('Failed to store [REDACTED]: Storage failed');
     });
 
     it('should validate request body schema', async () => {
