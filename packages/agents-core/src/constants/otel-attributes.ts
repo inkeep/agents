@@ -12,6 +12,7 @@ export const SPAN_NAMES = {
   AGENT_GENERATION: 'agent.generate',
   CONTEXT_FETCHER: 'context-fetcher.http-request',
   ARTIFACT_PROCESSING: 'agent_session.process_artifact',
+  ARTIFACT_BINARY_CHILDREN: 'artifact.create_binary_children',
   TOOL_APPROVAL_REQUESTED: 'tool.approval_requested',
   TOOL_APPROVAL_APPROVED: 'tool.approval_approved',
   TOOL_APPROVAL_DENIED: 'tool.approval_denied',
@@ -125,6 +126,9 @@ export const SPAN_KEYS = {
   ARTIFACT_RETRIEVAL_BLOCKED: 'artifact.retrieval_blocked',
   ARTIFACT_ORIGINAL_TOKEN_SIZE: 'artifact.original_token_size',
   ARTIFACT_CONTEXT_WINDOW_SIZE: 'artifact.context_window_size',
+  ARTIFACT_BINARY_CHILD_COUNT: 'artifact.binary_child_count',
+  ARTIFACT_BINARY_CHILD_IDS: 'artifact.binary_child_ids',
+  ARTIFACT_BINARY_CHILD_HASHES: 'artifact.binary_child_hashes',
 
   // Context breakdown attributes (estimated token counts)
   CONTEXT_BREAKDOWN_SYSTEM_TEMPLATE: 'context.breakdown.system_template_tokens',

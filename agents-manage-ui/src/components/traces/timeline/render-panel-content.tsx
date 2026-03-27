@@ -668,6 +668,23 @@ export function renderPanelContent({
                 value={<Badge variant="code">{a.artifactToolCallId}</Badge>}
               />
             )}
+            {a.artifactBinaryChildCount !== undefined && (
+              <Info label="Binary child artifacts" value={String(a.artifactBinaryChildCount)} />
+            )}
+            {a.artifactBinaryChildIds && a.artifactBinaryChildIds.length > 0 && (
+              <Info
+                label="Binary child IDs"
+                value={
+                  <div className="flex flex-wrap gap-1">
+                    {a.artifactBinaryChildIds.map((id) => (
+                      <Badge key={id} variant="code">
+                        {id}
+                      </Badge>
+                    ))}
+                  </div>
+                }
+              />
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />
