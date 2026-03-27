@@ -49,6 +49,7 @@ function buildCsp() {
     `form-action 'self'`,
     `base-uri 'self'`,
     `object-src 'none'`,
+    `worker-src 'self' blob:`,
   ].join('; ');
 }
 
@@ -94,6 +95,15 @@ function redirectToLogin(request: NextRequest): NextResponse {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Redirect /:tenantId/projects/:projectId → /:tenantId/projects/:projectId/agents
+  // Handled here instead of next.config.ts redirects() so security headers are applied.
+  const projectRedirectMatch = pathname.match(/^\/([^/]+)\/projects\/([^/]+)$/);
+  if (projectRedirectMatch && !pathname.endsWith('/agents')) {
+    return applySecurityHeaders(
+      NextResponse.redirect(new URL(`${pathname}/agents`, request.url), 307)
+    );
+  }
 
   if (isPublicPath(pathname)) {
     return applySecurityHeaders(NextResponse.next());
