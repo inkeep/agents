@@ -23,9 +23,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuthClient } from '@/contexts/auth-client';
-import type { OrgEntitlement } from '@/hooks/use-org-entitlements';
 import { createPasswordResetLink } from '@/lib/actions/password-reset';
 import type { UserProvider } from '@/lib/actions/user-accounts';
+import type { OrgEntitlement } from '@/lib/api/entitlements';
 import { InvitationActionsMenu } from './components/invitation-actions-menu';
 import { MemberActionsMenu } from './components/member-actions-menu';
 import { MemberConfirmationModals } from './components/member-confirmation-modals';
