@@ -1,0 +1,57 @@
+name: "Check Changeset PR"
+description: "Detects whether the current run is for a Version Packages (changeset-release/main) PR, including in merge queue context."
+
+inputs:
+  head_ref:
+    description: "github.head_ref (set for pull_request events)"
+    required: false
+    default: ""
+  event_name:
+    description: "github.event_name"
+    required: true
+  merge_group_head_ref:
+    description: "github.event.merge_group.head_ref"
+    required: false
+    default: ""
+  token:
+    description: "GitHub token for API calls"
+    required: true
+
+outputs:
+  is_changeset:
+    description: "'true' if this is a changeset/version-packages PR"
+    value: ${{ steps.check.outputs.is_changeset }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect changeset PR
+      id: check
+      shell: bash
+      run: |
+        IS_CHANGESET=false
+
+        # Pull request: check branch name directly
+        if [ "$HEAD_REF" = "changeset-release/main" ]; then
+          IS_CHANGESET=true
+          echo "Changeset PR detected via branch name"
+        fi
+
+        # Merge group: extract PR number from ref and check branch via API
+        if [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ "$IS_CHANGESET" = "false" ]; then
+          PR_NUM=$(echo "$MERGE_GROUP_HEAD_REF" | sed -n 's|.*/pr-\([0-9]*\)-.*|\1|p')
+          if [ -n "$PR_NUM" ]; then
+            BRANCH=$(gh pr view "$PR_NUM" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName 2>/dev/null || echo "")
+            if [ "$BRANCH" = "changeset-release/main" ]; then
+              IS_CHANGESET=true
+              echo "Changeset PR detected via merge group (PR #$PR_NUM)"
+            fi
+          fi
+        fi
+
+        echo "is_changeset=$IS_CHANGESET" >> $GITHUB_OUTPUT
+      env:
+        HEAD_REF: ${{ inputs.head_ref }}
+        GITHUB_EVENT_NAME: ${{ inputs.event_name }}
+        MERGE_GROUP_HEAD_REF: ${{ inputs.merge_group_head_ref }}
+        GH_TOKEN: ${{ inputs.token }}
