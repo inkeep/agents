@@ -114,6 +114,7 @@ inkeep push
 - `--json` - Generate project data as JSON file instead of pushing to server
 - `--profile <name>` - Use a specific CLI profile (overrides the active profile)
 - `--quiet` - Suppress interactive prompts and extra logs
+- `--force` - Skip conflict detection and push directly to remote
 
 #### Single Project Push
 
@@ -165,6 +166,9 @@ inkeep push --profile staging
 
 # Quiet non-essential output for CI
 inkeep push --quiet
+
+# Force push, skipping conflict detection
+inkeep push --force
 ```
 
 #### Batch Push with `--all`
