@@ -1,5 +1,7 @@
 import {
+  type Artifact,
   type ArtifactComponentApiInsert,
+  bulkInsertLedgerArtifacts,
   type FullExecutionContext,
   getLedgerArtifacts,
   getTask,
@@ -18,6 +20,7 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
+import { setSpanWithError, tracer } from '../utils/tracer';
 import { detectOversizedArtifact } from './artifact-utils';
 
 const logger = getLogger('ArtifactService');
@@ -69,6 +72,11 @@ export interface ArtifactServiceContext {
   artifactComponents?: ArtifactComponentApiInsert[];
   streamRequestId?: string;
   subAgentId?: string;
+}
+
+interface BinaryChildArtifactResult {
+  refs: Map<string, { artifactId: string; toolCallId: string }>;
+  childArtifactIds: string[];
 }
 
 /**
@@ -887,7 +895,7 @@ export class ArtifactService {
     summaryData?: Record<string, any>;
     metadata?: Record<string, any>;
     toolCallId?: string;
-  }): Promise<void> {
+  }): Promise<{ binaryChildArtifactCount: number; binaryChildArtifactIds: string[] }> {
     const { tenantId, projectId } = this.context.executionContext;
 
     const sanitizedData = (await sanitizeArtifactBinaryData(artifact.data, {
@@ -903,20 +911,20 @@ export class ArtifactService {
         })) as Record<string, any>)
       : undefined;
 
-    const binaryReferences = await this.createBinaryChildArtifacts({
+    const binaryChildArtifacts = await this.createBinaryChildArtifacts({
       parentArtifactId: artifact.artifactId,
       parentArtifactType: artifact.type,
       toolCallId: artifact.toolCallId,
       value: sanitizedData,
     });
 
-    let fullData = this.attachBinaryArtifactRefs(sanitizedData, binaryReferences) as Record<
-      string,
-      any
-    >;
+    let fullData = this.attachBinaryArtifactRefs(
+      sanitizedData,
+      binaryChildArtifacts.refs
+    ) as Record<string, any>;
     let summaryData = this.attachBinaryArtifactRefs(
       sanitizedSummaryData || fullData,
-      binaryReferences
+      binaryChildArtifacts.refs
     ) as Record<string, any>;
 
     if (this.context.artifactComponents) {
@@ -984,6 +992,11 @@ export class ArtifactService {
         'Artifact already exists, skipping duplicate creation'
       );
     }
+
+    return {
+      binaryChildArtifactCount: binaryChildArtifacts.childArtifactIds.length,
+      binaryChildArtifactIds: binaryChildArtifacts.childArtifactIds,
+    };
   }
 
   private async createBinaryChildArtifacts(params: {
@@ -991,74 +1004,117 @@ export class ArtifactService {
     parentArtifactType: string;
     toolCallId?: string;
     value: unknown;
-  }): Promise<Map<string, { artifactId: string; toolCallId: string }>> {
-    if (!this.context.taskId || !this.context.contextId) {
-      return new Map();
-    }
-
-    const binaryParts = this.collectBlobBackedBinaryParts(params.value);
-    if (binaryParts.length === 0) {
-      return new Map();
-    }
-
-    const refs = new Map<string, { artifactId: string; toolCallId: string }>();
-    const dedupeByHash = new Map<string, { artifactId: string; toolCallId: string }>();
-
-    for (const part of binaryParts) {
-      const hash = this.extractContentHashFromBlobUri(part.data) || this.fallbackHash(part.data);
-      const dedupeKey = `${params.toolCallId || params.parentArtifactId}:${hash}`;
-      const existing = dedupeByHash.get(dedupeKey);
-      if (existing) {
-        refs.set(part.data, existing);
-        continue;
-      }
-
-      const childArtifactId = this.buildBinaryChildArtifactId(
-        params.toolCallId,
-        params.parentArtifactId,
-        hash
-      );
-      const childToolCallId = params.toolCallId || `${params.parentArtifactId}:binary`;
-
-      await upsertLedgerArtifact(runDbClient)({
-        scopes: this.context.executionContext,
-        contextId: this.context.contextId,
-        taskId: this.context.taskId,
-        toolCallId: params.toolCallId || null,
-        artifact: {
-          artifactId: childArtifactId,
-          type: `${params.parentArtifactType}-binary-child`,
-          name: `${params.parentArtifactType} binary ${hash.slice(0, 12)}`,
-          description: 'Binary payload extracted from parent artifact',
-          parts: [
-            {
-              kind: 'data',
-              data: {
-                blobUri: part.data,
-                mimeType: part.mimeType,
-                contentHash: hash,
-                binaryType: part.type,
-              },
-            },
-          ],
-          metadata: {
-            parentArtifactId: params.parentArtifactId,
-            parentArtifactType: params.parentArtifactType,
-            toolCallId: params.toolCallId,
-            contentHash: hash,
-            mimeType: part.mimeType,
-            visibility: 'internal',
-          },
-          createdAt: new Date().toISOString(),
+  }): Promise<BinaryChildArtifactResult> {
+    return tracer.startActiveSpan(
+      'artifact.create_binary_children',
+      {
+        attributes: {
+          'artifact.id': params.parentArtifactId,
+          'artifact.type': params.parentArtifactType,
+          'artifact.tool_call_id': params.toolCallId || 'unknown',
+          'tenant.id': this.context.executionContext.tenantId,
+          'project.id': this.context.executionContext.projectId,
+          'context.id': this.context.contextId || 'unknown',
         },
-      });
+      },
+      async (span) => {
+        try {
+          if (!this.context.taskId || !this.context.contextId) {
+            span.setAttributes({
+              'artifact.binary_child_count': 0,
+              'artifact.binary_child_ids': JSON.stringify([]),
+              'artifact.binary_child_hashes': JSON.stringify([]),
+            });
+            return { refs: new Map(), childArtifactIds: [] };
+          }
 
-      const reference = { artifactId: childArtifactId, toolCallId: childToolCallId };
-      dedupeByHash.set(dedupeKey, reference);
-      refs.set(part.data, reference);
-    }
+          const binaryParts = this.collectBlobBackedBinaryParts(params.value);
+          if (binaryParts.length === 0) {
+            span.setAttributes({
+              'artifact.binary_child_count': 0,
+              'artifact.binary_child_ids': JSON.stringify([]),
+              'artifact.binary_child_hashes': JSON.stringify([]),
+            });
+            return { refs: new Map(), childArtifactIds: [] };
+          }
 
-    return refs;
+          const refs = new Map<string, { artifactId: string; toolCallId: string }>();
+          const dedupeByHash = new Map<string, { artifactId: string; toolCallId: string }>();
+          const childArtifacts: Artifact[] = [];
+          const childHashes: string[] = [];
+
+          for (const part of binaryParts) {
+            const hash =
+              this.extractContentHashFromBlobUri(part.data) || this.fallbackHash(part.data);
+            const dedupeKey = `${params.toolCallId || params.parentArtifactId}:${hash}`;
+            const existing = dedupeByHash.get(dedupeKey);
+            if (existing) {
+              refs.set(part.data, existing);
+              continue;
+            }
+
+            const childArtifactId = this.buildBinaryChildArtifactId(
+              params.toolCallId,
+              params.parentArtifactId,
+              hash
+            );
+            const childToolCallId = params.toolCallId || `${params.parentArtifactId}:binary`;
+
+            childArtifacts.push({
+              artifactId: childArtifactId,
+              type: `${params.parentArtifactType}-binary-child`,
+              name: `${params.parentArtifactType} binary ${hash.slice(0, 12)}`,
+              description: 'Binary payload extracted from parent artifact',
+              parts: [
+                {
+                  kind: 'data',
+                  data: {
+                    blobUri: part.data,
+                    mimeType: part.mimeType,
+                    contentHash: hash,
+                    binaryType: part.type,
+                  },
+                },
+              ],
+              metadata: {
+                derivedFrom: params.parentArtifactId,
+                parentArtifactType: params.parentArtifactType,
+                toolCallId: params.toolCallId,
+                contentHash: hash,
+                mimeType: part.mimeType,
+                visibility: 'internal',
+              },
+              createdAt: new Date().toISOString(),
+            });
+
+            const reference = { artifactId: childArtifactId, toolCallId: childToolCallId };
+            dedupeByHash.set(dedupeKey, reference);
+            refs.set(part.data, reference);
+            childHashes.push(hash);
+          }
+
+          await bulkInsertLedgerArtifacts(runDbClient)({
+            scopes: this.context.executionContext,
+            contextId: this.context.contextId,
+            taskId: this.context.taskId,
+            toolCallId: params.toolCallId || null,
+            artifacts: childArtifacts,
+          });
+
+          const childArtifactIds = childArtifacts.map((artifact) => artifact.artifactId);
+          span.setAttributes({
+            'artifact.binary_child_count': childArtifactIds.length,
+            'artifact.binary_child_ids': JSON.stringify(childArtifactIds),
+            'artifact.binary_child_hashes': JSON.stringify(childHashes),
+          });
+
+          return { refs, childArtifactIds };
+        } catch (error) {
+          setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
+          throw error;
+        }
+      }
+    );
   }
 
   private collectBlobBackedBinaryParts(

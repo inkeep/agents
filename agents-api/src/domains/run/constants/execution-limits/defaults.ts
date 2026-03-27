@@ -105,6 +105,11 @@ export const executionLimitsDefaults = {
   // ARTIFACT_GENERATION_BACKOFF_INITIAL_MS: Starting delay for retry backoff when generation fails
   // ARTIFACT_GENERATION_BACKOFF_MAX_MS: Maximum delay between retries (formula: min(INITIAL * 2^attempt, MAX))
   ARTIFACT_GENERATION_MAX_RETRIES: 3,
+  // ARTIFACT_SAVE_MAX_RETRIES: Retry attempts for infrastructure failures (blob upload, DB write) in artifact persistence.
+  // Distinct from ARTIFACT_GENERATION_MAX_RETRIES which covers LLM name/description generation retries.
+  ARTIFACT_SAVE_MAX_RETRIES: 1,
+  // ARTIFACT_SAVE_RETRY_DELAY_MS: Delay before retrying artifact persistence after an infrastructure failure.
+  ARTIFACT_SAVE_RETRY_DELAY_MS: 3_000,
   ARTIFACT_SESSION_MAX_PENDING: 100,
   ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES: 3,
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS: 1_000, // 1 second

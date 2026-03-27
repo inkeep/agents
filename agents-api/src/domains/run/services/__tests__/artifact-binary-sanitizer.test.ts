@@ -205,11 +205,9 @@ describe('sanitizeArtifactBinaryData', () => {
     expect(result.data).toMatch(/^blob:\/\//);
   });
 
-  it('returns original inline data when upload fails', async () => {
+  it('throws when upload fails', async () => {
     mockUpload.mockRejectedValueOnce(new Error('storage unavailable'));
     const input = { type: 'image', data: SAMPLE_BASE64, mimeType: 'image/png' };
-    const result = (await sanitizeArtifactBinaryData(input, CTX)) as any;
-    expect(result.data).toBe(SAMPLE_BASE64);
-    expect(result.type).toBe('image');
+    await expect(sanitizeArtifactBinaryData(input, CTX)).rejects.toThrow('storage unavailable');
   });
 });

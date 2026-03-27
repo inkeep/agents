@@ -12,30 +12,48 @@ const {
   getTaskMock,
   getLedgerArtifactsMock,
   upsertLedgerArtifactMock,
+  bulkInsertLedgerArtifactsMock,
   toolSessionManagerMock,
   agentSessionManagerMock,
   sanitizeArtifactBinaryDataMock,
-} = vi.hoisted(() => ({
-  listTaskIdsByContextIdMock: vi.fn(),
-  getTaskMock: vi.fn(),
-  getLedgerArtifactsMock: vi.fn(),
-  upsertLedgerArtifactMock: vi.fn(),
-  toolSessionManagerMock: {
-    getSession: vi.fn(),
-    createSession: vi.fn(),
-    updateSession: vi.fn(),
-    getToolResult: vi.fn(),
-  },
-  agentSessionManagerMock: {
-    getAgentSession: vi.fn(),
-    ensureAgentSession: vi.fn(),
-    updateArtifactComponents: vi.fn(),
-    recordEvent: vi.fn(),
-    setArtifactCache: vi.fn(),
-    getArtifactCache: vi.fn(),
-  },
-  sanitizeArtifactBinaryDataMock: vi.fn(async (value: unknown) => value),
-}));
+  tracerStartActiveSpanMock,
+  tracerSetAttributesMock,
+  setSpanWithErrorMock,
+} = vi.hoisted(() => {
+  const tracerSetAttributesMock = vi.fn();
+  const tracerStartActiveSpanMock = vi.fn(async (_name: string, _options: unknown, fn: any) =>
+    fn({
+      setAttributes: tracerSetAttributesMock,
+      setStatus: vi.fn(),
+    })
+  );
+
+  return {
+    listTaskIdsByContextIdMock: vi.fn(),
+    getTaskMock: vi.fn(),
+    getLedgerArtifactsMock: vi.fn(),
+    upsertLedgerArtifactMock: vi.fn(),
+    bulkInsertLedgerArtifactsMock: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
+    toolSessionManagerMock: {
+      getSession: vi.fn(),
+      createSession: vi.fn(),
+      updateSession: vi.fn(),
+      getToolResult: vi.fn(),
+    },
+    agentSessionManagerMock: {
+      getAgentSession: vi.fn(),
+      ensureAgentSession: vi.fn(),
+      updateArtifactComponents: vi.fn(),
+      recordEvent: vi.fn(),
+      setArtifactCache: vi.fn(),
+      getArtifactCache: vi.fn(),
+    },
+    sanitizeArtifactBinaryDataMock: vi.fn(async (value: unknown) => value),
+    tracerSetAttributesMock,
+    tracerStartActiveSpanMock,
+    setSpanWithErrorMock: vi.fn(),
+  };
+});
 
 // Mock @inkeep/agents-core WITHOUT importOriginal to avoid loading the heavy module
 vi.mock('@inkeep/agents-core', () => ({
@@ -43,6 +61,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getTask: getTaskMock,
   getLedgerArtifacts: getLedgerArtifactsMock,
   upsertLedgerArtifact: upsertLedgerArtifactMock,
+  bulkInsertLedgerArtifacts: bulkInsertLedgerArtifactsMock,
   // Add stubs for exports needed by transitive dependencies
   createAgentsRunDatabaseClient: vi.fn(() => 'mock-run-db-client'),
   createAgentsManageDatabaseClient: vi.fn(() => 'mock-manage-db-client'),
@@ -67,6 +86,13 @@ vi.mock('../../session/AgentSession', () => ({
 vi.mock('../../services/blob-storage/artifact-binary-sanitizer', () => ({
   sanitizeArtifactBinaryData: sanitizeArtifactBinaryDataMock,
   stripBinaryDataForObservability: vi.fn((value: unknown) => value),
+}));
+
+vi.mock('../../utils/tracer', () => ({
+  tracer: {
+    startActiveSpan: tracerStartActiveSpanMock,
+  },
+  setSpanWithError: setSpanWithErrorMock,
 }));
 
 // Mock runDbClient to prevent it from loading @inkeep/agents-core (path from test file to src/data/db)
@@ -112,6 +138,9 @@ describe('ArtifactService', () => {
     agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
     agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
     agentSessionManagerMock.setArtifactCache.mockResolvedValue(undefined);
+    tracerSetAttributesMock.mockReset();
+    tracerStartActiveSpanMock.mockClear();
+    setSpanWithErrorMock.mockReset();
 
     mockContext = {
       executionContext: {
@@ -1006,16 +1035,34 @@ describe('ArtifactService', () => {
         data: { original: 'value' },
       });
 
-      const upsertFn = upsertLedgerArtifactMock.mock.results[0]?.value;
-      expect(upsertFn).toHaveBeenCalledTimes(2);
-      const childInsert = upsertFn.mock.calls[0][0];
-      const parentInsert = upsertFn.mock.calls[1][0];
+      const bulkInsertFn = bulkInsertLedgerArtifactsMock.mock.results[0]?.value;
+      expect(bulkInsertFn).toHaveBeenCalledTimes(1);
+      const { artifacts } = bulkInsertFn.mock.calls[0][0];
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].artifactId).toContain('bin_tool-call-1');
+      expect(artifacts[0].metadata).toMatchObject({
+        derivedFrom: 'parent-artifact',
+      });
 
-      expect(childInsert.artifact.artifactId).toContain('bin_tool-call-1');
+      const upsertFn = upsertLedgerArtifactMock.mock.results[0]?.value;
+      expect(upsertFn).toHaveBeenCalledTimes(1);
+      const parentInsert = upsertFn.mock.calls[0][0];
       expect(parentInsert.artifact.parts[0].data.full.sections[0].artifactRef).toEqual({
         artifactId: expect.any(String),
         toolCallId: 'tool-call-1',
       });
+      expect(tracerStartActiveSpanMock).toHaveBeenCalledWith(
+        'artifact.create_binary_children',
+        expect.any(Object),
+        expect.any(Function)
+      );
+      expect(tracerSetAttributesMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'artifact.binary_child_count': 1,
+          'artifact.binary_child_ids': expect.any(String),
+          'artifact.binary_child_hashes': expect.any(String),
+        })
+      );
     });
 
     it('dedupes repeated hashes within the same tool call', async () => {
@@ -1045,8 +1092,10 @@ describe('ArtifactService', () => {
         data: { original: 'value' },
       });
 
-      const upsertFn = upsertLedgerArtifactMock.mock.results[0]?.value;
-      expect(upsertFn).toHaveBeenCalledTimes(2);
+      const bulkInsertFn = bulkInsertLedgerArtifactsMock.mock.results[0]?.value;
+      expect(bulkInsertFn).toHaveBeenCalledTimes(1);
+      const { artifacts } = bulkInsertFn.mock.calls[0][0];
+      expect(artifacts).toHaveLength(1);
     });
   });
 });
