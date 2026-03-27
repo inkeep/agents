@@ -55,7 +55,7 @@ fi
 - **Push to main:** Skip this check entirely — pushes to main should always run CI
 - **Empty diff:** If `gh pr diff` returns nothing, do NOT skip CI (fail-safe)
 - **Mixed changes:** If any file outside `.changeset/` is changed, run full CI
-- **Only `.changeset/*.md` files skip CI:** Non-markdown files like `config.json` should still trigger CI
+- **All `.changeset/` files skip CI:** Both `.md` changeset entries and `config.json` are changeset-only changes
 
 ### Environment Variables Needed
 
