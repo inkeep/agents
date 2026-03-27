@@ -90,14 +90,14 @@ const app = createAgentsHono({
   sandboxConfig,
 });
 
-// Register playground app public key on startup (idempotent)
-import { ensurePlaygroundAppKey } from './startup/playground-app';
+// Ensure playground app configuration on startup (domains + public keys, idempotent)
+import { ensurePlaygroundAppConfig } from './startup/playground-app';
 
 setTimeout(async () => {
   try {
-    await ensurePlaygroundAppKey();
+    await ensurePlaygroundAppConfig();
   } catch (err) {
-    logger.error({ error: err }, 'Failed to register playground app key');
+    logger.error({ error: err }, 'Failed to configure playground app');
   }
 }, 3000);
 
