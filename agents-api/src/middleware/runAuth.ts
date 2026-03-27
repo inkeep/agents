@@ -638,13 +638,24 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       authMethod = 'app_credential_web_client_authenticated';
       endUserId = asymResult.endUserId;
 
+      // Extract verified claims (non-standard JWT fields) for runtime context
+      const { sub: _sub, iat: _iat, exp: _exp, aud: _aud, iss: _iss, jti: _jti, nbf: _nbf,
+        tid: _tid, pid: _pid, agentId: _agentIdClaim, ...verifiedClaims } = asymResult.claims;
+
+      // Enforce 1KB size limit on verified claims
+      const claimsJson = JSON.stringify(verifiedClaims);
+      if (claimsJson.length > 1024) {
+        throw new HTTPException(401, {
+          message: `Token custom claims exceed 1KB limit (${claimsJson.length} bytes)`,
+        });
+      }
+
       const span = trace.getActiveSpan();
       span?.setAttribute('app.auth.kid', asymResult.kid);
       span?.setAttribute('app.auth.endUserId', asymResult.endUserId);
       span?.setAttribute('app.auth.method', authMethod);
 
       // Resolve scope: global apps get scope from token claims, tenant-scoped apps from the app record.
-      // Authorization is the token issuer's responsibility — agents-api trusts verified tokens.
       let resolvedTenantId: string;
       let resolvedProjectId: string;
       let resolvedAgentId: string;
@@ -660,6 +671,28 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
           throw new HTTPException(401, {
             message: 'Global app requires tid and pid claims in token',
           });
+        }
+
+        // Opt-in SpiceDB validation for global apps
+        if (config.webClient.auth?.validateScopeClaims) {
+          try {
+            const canUse = await canUseProjectStrict({
+              userId: asymResult.endUserId,
+              tenantId: tid,
+              projectId: pid,
+            });
+            if (!canUse) {
+              throw new HTTPException(403, {
+                message: 'Access denied: insufficient permissions',
+              });
+            }
+          } catch (error) {
+            if (error instanceof HTTPException) throw error;
+            logger.error({ error }, 'SpiceDB permission check failed for global app auth');
+            throw new HTTPException(503, {
+              message: 'Authorization service temporarily unavailable',
+            });
+          }
         }
 
         resolvedTenantId = tid;
@@ -698,7 +731,11 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
           projectId: resolvedProjectId,
           agentId: resolvedAgentId,
           apiKeyId: `app:${app.id}`,
-          metadata: { endUserId, authMethod },
+          metadata: {
+            endUserId,
+            authMethod,
+            ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
+          },
         },
       };
     }

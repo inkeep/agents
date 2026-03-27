@@ -78,6 +78,7 @@ export interface AgentConversationHistoryConfig extends ConversationHistoryConfi
 
 export type ConversationMetadata = {
   userContext?: Record<string, unknown>;
+  verifiedClaims?: Record<string, unknown>;
   preferences?: Record<string, unknown>;
   sessionData?: Record<string, unknown>;
   apiKeyId?: string;
@@ -322,6 +323,7 @@ export interface BaseExecutionContext {
       teamId: string;
     };
     endUserId?: string;
+    verifiedClaims?: Record<string, unknown>;
     authMethod?:
       | 'app_credential_web_client'
       | 'app_credential_api'
