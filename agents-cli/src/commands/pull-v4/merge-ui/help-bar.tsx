@@ -27,7 +27,7 @@ export function HelpBar({ phase }: HelpBarProps) {
         paddingX={1}
       >
         <Key label="Enter" action="confirm" />
-        <Key label="b" action="back" />
+        <Key label="p" action="back" />
         <Key label="Esc/q" action="cancel" />
       </Box>
     );
