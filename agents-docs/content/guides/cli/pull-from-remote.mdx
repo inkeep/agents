@@ -112,6 +112,16 @@ If validation passes, you'll see:
 
 Review the generated files to confirm they look correct. If validation fails, the CLI reports specific differences so you can investigate.
 
+## Resolving merge conflicts
+
+When pulling into an existing project, conflicts can occur if both you and a teammate modified the same agent, tool, or configuration. Instead of silently overwriting your local changes, the CLI presents an interactive merge conflict resolution UI.
+
+For each conflict, you can choose to keep your local version, accept the remote version, or manually merge the two. The CLI highlights the differences side by side so you can make an informed decision before any files are written.
+
+<Tip>
+If you want to skip conflict resolution and always accept the remote version, use `inkeep pull --introspect` to do a full regeneration from the remote configuration.
+</Tip>
+
 ## Step 4: Use the pulled project
 
 Once pulled, your project is a standard TypeScript project using `@inkeep/agents-sdk` builder APIs. You can:
