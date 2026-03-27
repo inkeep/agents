@@ -76,29 +76,6 @@ describe('App Auth Keys Routes', () => {
       expect(res.status).toBe(409);
     });
 
-    it('should enforce max 5 keys', async () => {
-      const tenantId = await createTestTenantWithOrg('auth-keys-max');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-      const app = await createTestApp(tenantId, projectId);
-
-      for (let i = 0; i < 5; i++) {
-        const pem = await rsaPem();
-        const res = await makeRequest(keysUrl(tenantId, projectId, app.id), {
-          method: 'POST',
-          body: JSON.stringify({ kid: `key-${i}`, publicKey: pem, algorithm: 'RS256' }),
-        });
-        expect(res.status).toBe(201);
-      }
-
-      const pem = await rsaPem();
-      const res = await makeRequest(keysUrl(tenantId, projectId, app.id), {
-        method: 'POST',
-        body: JSON.stringify({ kid: 'key-6', publicKey: pem, algorithm: 'RS256' }),
-      });
-      expect(res.status).toBe(400);
-    });
-
     it('should reject a private key', async () => {
       const tenantId = await createTestTenantWithOrg('auth-keys-privkey');
       const projectId = 'default-project';

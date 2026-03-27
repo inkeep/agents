@@ -126,13 +126,7 @@ app.openapi(
 
     const existingKeys = appRecord.config.webClient.auth?.publicKeys ?? [];
 
-    if (existingKeys.length >= 5) {
-      throw createApiError({
-        code: 'bad_request',
-        message:
-          'Maximum of 5 public keys per app. Remove an existing key before adding a new one.',
-      });
-    }
+
 
     if (existingKeys.some((k) => k.kid === kid)) {
       throw createApiError({

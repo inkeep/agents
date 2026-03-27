@@ -112,7 +112,7 @@ export function AuthKeysSection({ tenantId, projectId, appId }: AuthKeysSectionP
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium">Authentication Keys</Label>
-        {!showAddForm && keys.length < 5 && (
+        {!showAddForm && (
           <Button type="button" variant="outline" size="sm" onClick={() => setShowAddForm(true)}>
             <Plus className="mr-1 size-3" />
             Add Key
