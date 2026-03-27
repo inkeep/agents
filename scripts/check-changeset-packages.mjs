@@ -26,9 +26,7 @@ function getWorkspacePackageNames() {
 
 function getChangesetFiles() {
   if (!fs.existsSync(CHANGESET_DIR)) return [];
-  return fs
-    .readdirSync(CHANGESET_DIR)
-    .filter((f) => f.endsWith('.md') && f !== 'README.md');
+  return fs.readdirSync(CHANGESET_DIR).filter((f) => f.endsWith('.md') && f !== 'README.md');
 }
 
 function parseFrontmatter(content) {
