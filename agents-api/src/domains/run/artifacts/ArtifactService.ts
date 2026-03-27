@@ -1,8 +1,8 @@
 import {
   type Artifact,
   type ArtifactComponentApiInsert,
-  type FullExecutionContext,
   bulkInsertLedgerArtifacts,
+  type FullExecutionContext,
   getLedgerArtifacts,
   getTask,
   listTaskIdsByContextId,
@@ -15,12 +15,12 @@ import { toolSessionManager } from '../agents/services/ToolSessionManager';
 import { isBlobUri } from '../services/blob-storage';
 import { sanitizeArtifactBinaryData } from '../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager } from '../session/AgentSession';
-import { setSpanWithError, tracer } from '../utils/tracer';
 import {
   type ExtendedJsonSchema,
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
+import { setSpanWithError, tracer } from '../utils/tracer';
 import { detectOversizedArtifact } from './artifact-utils';
 
 const logger = getLogger('ArtifactService');
@@ -918,10 +918,10 @@ export class ArtifactService {
       value: sanitizedData,
     });
 
-    let fullData = this.attachBinaryArtifactRefs(sanitizedData, binaryChildArtifacts.refs) as Record<
-      string,
-      any
-    >;
+    let fullData = this.attachBinaryArtifactRefs(
+      sanitizedData,
+      binaryChildArtifacts.refs
+    ) as Record<string, any>;
     let summaryData = this.attachBinaryArtifactRefs(
       sanitizedSummaryData || fullData,
       binaryChildArtifacts.refs
@@ -1044,7 +1044,8 @@ export class ArtifactService {
           const childHashes: string[] = [];
 
           for (const part of binaryParts) {
-            const hash = this.extractContentHashFromBlobUri(part.data) || this.fallbackHash(part.data);
+            const hash =
+              this.extractContentHashFromBlobUri(part.data) || this.fallbackHash(part.data);
             const dedupeKey = `${params.toolCallId || params.parentArtifactId}:${hash}`;
             const existing = dedupeByHash.get(dedupeKey);
             if (existing) {
