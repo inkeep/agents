@@ -1,12 +1,13 @@
 'use client';
 
-import { KeyRound, Plus, Trash2 } from 'lucide-react';
+import { Copy, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -126,34 +127,53 @@ export function AuthKeysSection({ tenantId, projectId, appId }: AuthKeysSectionP
       )}
 
       {keys.length > 0 && (
-        <div className="space-y-2">
-          {keys.map((key) => (
-            <div
-              key={key.kid}
-              className="flex items-center justify-between rounded-md border p-2 text-sm"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />
-                <span className="font-mono truncate">{key.kid}</span>
-                <Badge variant="code">{key.algorithm}</Badge>
-                <span className="text-muted-foreground text-xs shrink-0">
-                  {new Date(key.addedAt).toLocaleDateString()}
-                </span>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-destructive"
-                disabled={deletingKid === key.kid}
-                onClick={() => handleDelete(key.kid)}
-                aria-label={`Remove key ${key.kid}`}
+        <TooltipProvider delayDuration={300}>
+          <div className="space-y-2">
+            {keys.map((key) => (
+              <div
+                key={key.kid}
+                className="flex items-center justify-between rounded-md border p-2 text-sm"
               >
-                <Trash2 className="size-3.5" aria-hidden="true" />
-              </Button>
-            </div>
-          ))}
-        </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        navigator.clipboard.writeText(key.publicKey);
+                        toast.success('Public key copied to clipboard');
+                      }}
+                    >
+                      <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="font-mono truncate">{key.kid}</span>
+                      <Badge variant="code">{key.algorithm}</Badge>
+                      <span className="text-muted-foreground text-xs shrink-0">
+                        {new Date(key.addedAt).toLocaleDateString()}
+                      </span>
+                      <Copy className="size-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="start" className="max-w-md">
+                    <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+                      {key.publicKey}
+                    </pre>
+                  </TooltipContent>
+                </Tooltip>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-destructive"
+                  disabled={deletingKid === key.kid}
+                  onClick={() => handleDelete(key.kid)}
+                  aria-label={`Remove key ${key.kid}`}
+                >
+                  <Trash2 className="size-3.5" aria-hidden="true" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </TooltipProvider>
       )}
 
       {showAddForm && (
