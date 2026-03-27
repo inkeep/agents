@@ -1061,7 +1061,7 @@ Return your evaluation as a JSON object matching the schema above.`;
       );
 
       return {
-        result: (result as any).object as Record<string, unknown>,
+        result: (result as any).output as Record<string, unknown>,
         metadata: {
           usage: result.usage,
         },
