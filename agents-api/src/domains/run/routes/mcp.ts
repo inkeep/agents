@@ -211,7 +211,7 @@ const processUserMessage = async (
   if (messageSpan) {
     messageSpan.setAttributes({
       'message.content': query,
-      'message.timestamp': Date.now(),
+      'message.timestamp': new Date().toISOString(),
     });
   }
   await createMessage(runDbClient)({

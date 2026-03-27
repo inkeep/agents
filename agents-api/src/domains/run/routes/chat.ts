@@ -331,7 +331,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       if (messageSpan) {
         messageSpan.setAttributes({
           'message.content': userMessage,
-          'message.timestamp': Date.now(),
+          'message.timestamp': new Date().toISOString(),
           'agent.name': agentName,
         });
         const invocationType = c.req.header('x-inkeep-invocation-type');
