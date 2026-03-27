@@ -10559,6 +10559,9 @@
       },
       "WebClientAuthConfig": {
         "properties": {
+          "allowAnonymous": {
+            "type": "boolean"
+          },
           "audience": {
             "type": "string"
           },
@@ -10569,6 +10572,9 @@
             },
             "maxItems": 5,
             "type": "array"
+          },
+          "validateScopeClaims": {
+            "type": "boolean"
           }
         },
         "type": "object"
