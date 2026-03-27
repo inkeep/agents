@@ -67,18 +67,8 @@ describe('WebClientAuthConfigSchema', () => {
     expect(result.audience).toBe('my-app');
   });
 
-  it('enforces max 5 keys', () => {
-    const keys = Array.from({ length: 6 }, (_, i) => ({
-      kid: `key-${i}`,
-      publicKey: 'pem-data',
-      algorithm: 'RS256',
-      addedAt: '2026-03-24T00:00:00Z',
-    }));
-    expect(() => WebClientAuthConfigSchema.parse({ publicKeys: keys })).toThrow();
-  });
-
-  it('accepts up to 5 keys', () => {
-    const keys = Array.from({ length: 5 }, (_, i) => ({
+  it('accepts many keys (no limit)', () => {
+    const keys = Array.from({ length: 10 }, (_, i) => ({
       kid: `key-${i}`,
       publicKey: 'pem-data',
       algorithm: 'RS256',
