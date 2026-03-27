@@ -691,4 +691,140 @@ describe('BaseCompressor', () => {
       expect(compressor['processedToolCalls'].size).toBeGreaterThan(0);
     });
   });
+
+  describe('hasSummarizedArtifact', () => {
+    it('should return false when cumulativeSummary is null', () => {
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      compressor['cumulativeSummary'] = null;
+      expect(compressor.hasSummarizedArtifact('artifact-1')).toBe(false);
+    });
+
+    it('should return false when related_artifacts is null', () => {
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      compressor['cumulativeSummary'] = {
+        type: 'conversation_summary_v1',
+        session_id: null,
+        _fallback: null,
+        high_level: 'summary',
+        user_intent: 'test',
+        decisions: [],
+        open_questions: [],
+        next_steps: { for_agent: [], for_user: [] },
+        related_artifacts: null,
+      };
+      expect(compressor.hasSummarizedArtifact('artifact-1')).toBe(false);
+    });
+
+    it('should return false when artifact is not in related_artifacts', () => {
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      compressor['cumulativeSummary'] = {
+        type: 'conversation_summary_v1',
+        session_id: null,
+        _fallback: null,
+        high_level: 'summary',
+        user_intent: 'test',
+        decisions: [],
+        open_questions: [],
+        next_steps: { for_agent: [], for_user: [] },
+        related_artifacts: [
+          {
+            id: 'other-artifact',
+            name: 'Other',
+            tool_name: 'tool',
+            tool_call_id: 'tc-1',
+            content_type: 'text',
+            key_findings: ['finding'],
+          },
+        ],
+      };
+      expect(compressor.hasSummarizedArtifact('artifact-1')).toBe(false);
+    });
+
+    it('should return true when artifact exists in related_artifacts', () => {
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      compressor['cumulativeSummary'] = {
+        type: 'conversation_summary_v1',
+        session_id: null,
+        _fallback: null,
+        high_level: 'summary',
+        user_intent: 'test',
+        decisions: [],
+        open_questions: [],
+        next_steps: { for_agent: [], for_user: [] },
+        related_artifacts: [
+          {
+            id: 'artifact-1',
+            name: 'Test Artifact',
+            tool_name: 'tool',
+            tool_call_id: 'tc-1',
+            content_type: 'text',
+            key_findings: ['finding'],
+          },
+        ],
+      };
+      expect(compressor.hasSummarizedArtifact('artifact-1')).toBe(true);
+    });
+  });
+
+  describe('getSummarizedArtifact', () => {
+    it('should return null when cumulativeSummary is null', () => {
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      compressor['cumulativeSummary'] = null;
+      expect(compressor.getSummarizedArtifact('artifact-1')).toBeNull();
+    });
+
+    it('should return null when artifact is not found', () => {
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      compressor['cumulativeSummary'] = {
+        type: 'conversation_summary_v1',
+        session_id: null,
+        _fallback: null,
+        high_level: 'summary',
+        user_intent: 'test',
+        decisions: [],
+        open_questions: [],
+        next_steps: { for_agent: [], for_user: [] },
+        related_artifacts: [],
+      };
+      expect(compressor.getSummarizedArtifact('artifact-1')).toBeNull();
+    });
+
+    it('should return key_findings and tool_call_id for matching artifact', () => {
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      compressor['cumulativeSummary'] = {
+        type: 'conversation_summary_v1',
+        session_id: null,
+        _fallback: null,
+        high_level: 'summary',
+        user_intent: 'test',
+        decisions: [],
+        open_questions: [],
+        next_steps: { for_agent: [], for_user: [] },
+        related_artifacts: [
+          {
+            id: 'artifact-1',
+            name: 'Test Artifact',
+            tool_name: 'tool',
+            tool_call_id: 'tc-42',
+            content_type: 'text',
+            key_findings: ['finding-a', 'finding-b'],
+          },
+          {
+            id: 'artifact-2',
+            name: 'Other Artifact',
+            tool_name: 'tool',
+            tool_call_id: 'tc-99',
+            content_type: 'text',
+            key_findings: ['other-finding'],
+          },
+        ],
+      };
+
+      const result = compressor.getSummarizedArtifact('artifact-1');
+      expect(result).toEqual({
+        key_findings: ['finding-a', 'finding-b'],
+        tool_call_id: 'tc-42',
+      });
+    });
+  });
 });

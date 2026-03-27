@@ -30,15 +30,11 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
   const [dynamicHeaders, setDynamicHeaders] = useState<CopilotContextHeaders>({});
 
   const {
-    PUBLIC_INKEEP_COPILOT_AGENT_ID,
-    PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-    PUBLIC_INKEEP_COPILOT_TENANT_ID,
+    PUBLIC_INKEEP_COPILOT_AGENT_ID: copilotAgentId,
+    PUBLIC_INKEEP_COPILOT_PROJECT_ID: copilotProjectId,
+    PUBLIC_INKEEP_COPILOT_TENANT_ID: copilotTenantId,
   } = useRuntimeConfig();
-  const isCopilotConfigured = !!(
-    PUBLIC_INKEEP_COPILOT_AGENT_ID &&
-    PUBLIC_INKEEP_COPILOT_PROJECT_ID &&
-    PUBLIC_INKEEP_COPILOT_TENANT_ID
-  );
+  const isCopilotConfigured = !!(copilotAgentId && copilotProjectId && copilotTenantId);
 
   if (!isCopilotConfigured) {
     console.warn('Copilot is not configured.');

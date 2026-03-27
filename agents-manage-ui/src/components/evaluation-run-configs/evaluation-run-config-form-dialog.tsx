@@ -339,7 +339,6 @@ export function EvaluationRunConfigFormDialog({
                       </Link>
                     </div>
                     <ComponentSelector
-                      label=""
                       componentLookup={evaluatorLookup}
                       selectedComponents={field.value}
                       onSelectionChange={field.onChange}

@@ -1,9 +1,12 @@
 import { type Node, useReactFlow } from '@xyflow/react';
+import type { MouseEvent } from 'react';
 import {
   NodeType,
   newNodeDefaults,
   nodeTypeMap,
 } from '@/components/agent/configuration/node-types';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { createSubAgentFormInput } from '@/features/agent/domain';
 import { SelectorItem, SelectorItemIcon } from '../selector-item';
 
 const subAgentNodeTypes = [
@@ -13,41 +16,56 @@ const subAgentNodeTypes = [
 ] as const;
 
 export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
+  const form = useFullAgentFormContext();
   const { updateNode } = useReactFlow();
 
-  const handleSelect = (nodeType: (typeof subAgentNodeTypes)[number]) => {
-    const defaults = newNodeDefaults[nodeType];
-    updateNode(selectedNode.id, {
-      type: nodeType,
-      data: {
-        ...defaults,
-      },
-    });
-  };
+  function handleSelect(event: MouseEvent<HTMLButtonElement>) {
+    const nodeType = event.currentTarget.id as (typeof subAgentNodeTypes)[number];
+    const nodeId = selectedNode.id;
+
+    if (nodeType === NodeType.SubAgent) {
+      const all = new Set(Object.values(form.getValues('subAgents') ?? {}).map((v) => v.id));
+
+      function findName(name: string, index = 0) {
+        const myName = `${name}${index || ''}`;
+        if (all.has(myName)) {
+          return findName(name, index + 1);
+        }
+        return myName;
+      }
+
+      form.setValue(
+        `subAgents.${nodeId}`,
+        createSubAgentFormInput({ name: findName('sub-agent') })
+      );
+      updateNode(nodeId, { type: nodeType, data: newNodeDefaults[nodeType](nodeId) });
+      return;
+    }
+
+    updateNode(nodeId, { type: nodeType, data: newNodeDefaults[nodeType](nodeId) });
+  }
 
   return (
-    <div>
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium mb-2">Select agent type</h3>
-        <div className="flex flex-col gap-2 min-w-0 min-h-0">
-          {subAgentNodeTypes.map((nodeType) => {
-            const { name, Icon, description } = nodeTypeMap[nodeType];
-            return (
-              <SelectorItem
-                key={nodeType}
-                id={nodeType}
-                name={name}
-                description={description}
-                icon={
-                  <SelectorItemIcon>
-                    <Icon className="size-4 text-muted-foreground" />
-                  </SelectorItemIcon>
-                }
-                onClick={() => handleSelect(nodeType)}
-              />
-            );
-          })}
-        </div>
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium mb-2">Select agent type</h3>
+      <div className="flex flex-col gap-2 min-w-0 min-h-0">
+        {subAgentNodeTypes.map((nodeType) => {
+          const { name, Icon, description } = nodeTypeMap[nodeType];
+          return (
+            <SelectorItem
+              key={nodeType}
+              id={nodeType}
+              name={name}
+              description={description}
+              icon={
+                <SelectorItemIcon>
+                  <Icon className="size-4 text-muted-foreground" />
+                </SelectorItemIcon>
+              }
+              onClick={handleSelect}
+            />
+          );
+        })}
       </div>
     </div>
   );
