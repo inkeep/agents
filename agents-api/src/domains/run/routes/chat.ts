@@ -22,7 +22,10 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { PdfUrlIngestionError } from '../services/blob-storage/file-security-errors';
+import {
+  FileSecurityError,
+  PdfUrlIngestionError,
+} from '../services/blob-storage/file-security-errors';
 import {
   buildPersistedMessageContent,
   inlineExternalPdfUrlParts,
@@ -592,6 +595,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
       });
     });
   } catch (error) {
+    if (error instanceof FileSecurityError) {
+      throw createApiError({
+        code: 'bad_request',
+        message: error.message,
+      });
+    }
     if (error instanceof PdfUrlIngestionError) {
       throw createApiError({
         code: 'bad_request',

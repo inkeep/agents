@@ -2,6 +2,7 @@ import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadExternalFile } from '../blob-storage/external-file-downloader';
 import { normalizeInlineFileBytes } from '../blob-storage/file-content-security';
+import { BlockedInlineFileExceedingError } from '../blob-storage/file-security-errors';
 import { makeMessageContentParts, uploadPartsFiles } from '../blob-storage/file-upload';
 
 const logger = vi.hoisted(() => ({
@@ -307,6 +308,21 @@ describe('uploadPartsFiles', () => {
     expect(downloadExternalFile).not.toHaveBeenCalled();
     expect(mockUpload).not.toHaveBeenCalled();
     expect(uploaded).toEqual([]);
+  });
+
+  it('rethrows inline file validation errors from normalizeInlineFileBytes', async () => {
+    vi.mocked(normalizeInlineFileBytes).mockRejectedValueOnce(
+      new BlockedInlineFileExceedingError(256 * 1024)
+    );
+
+    const parts: Part[] = [
+      { kind: 'file', file: { bytes: PNG_BYTES.toString('base64'), mimeType: 'text/plain' } },
+    ];
+
+    await expect(uploadPartsFiles(parts, uploadContext)).rejects.toBeInstanceOf(
+      BlockedInlineFileExceedingError
+    );
+    expect(mockUpload).not.toHaveBeenCalled();
   });
 
   it('drops file part when storage.upload throws', async () => {
