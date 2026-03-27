@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.62.1
+
+### Patch Changes
+
+- 9728814: Perserve Part Ordering in Conversations API
+- 6e88d12: Improve playground app startup logging for production observability
+- 8b74409: Add inline text document attachments to the run chat APIs for `text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`, and `application/json` while keeping remote URLs limited to PDFs. Persist text attachments as blob-backed file parts and replay them into model input as XML-tagged text blocks.
+  - @inkeep/agents-core@0.62.1
+  - @inkeep/agents-email@0.62.1
+  - @inkeep/agents-mcp@0.62.1
+  - @inkeep/agents-work-apps@0.62.1
+
 ## 0.62.0
 
 ### Patch Changes
