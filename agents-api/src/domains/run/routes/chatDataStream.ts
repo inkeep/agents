@@ -8,6 +8,7 @@ import {
   generateId,
   getActiveAgentForConversation,
   getConversation,
+  buildConversationMetadata,
   getConversationId,
   getWorkflowExecutionByConversation,
   loggerFactory,
@@ -313,6 +314,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
         conversationId,
       });
       if (!activeAgent) {
+        const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
         await setActiveAgentForConversation(runDbClient)({
           scopes: { tenantId, projectId },
           conversationId,
@@ -320,23 +322,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           ref: executionContext.resolvedRef,
           agentId: agentId,
           userId: executionContext.metadata?.endUserId,
-          ...(body.userProperties ||
-          executionContext.metadata?.endUserId ||
-          executionContext.metadata?.verifiedClaims
-            ? {
-                metadata: {
-                  ...(body.userProperties ? { userContext: body.userProperties } : {}),
-                  ...(executionContext.metadata?.verifiedClaims
-                    ? { verifiedClaims: executionContext.metadata.verifiedClaims }
-                    : {}),
-                  ...(executionContext.metadata?.authMethod ===
-                    'app_credential_web_client_authenticated' &&
-                  executionContext.metadata?.endUserId
-                    ? { externalUserId: executionContext.metadata.endUserId }
-                    : {}),
-                },
-              }
-            : {}),
+          ...(conversationMeta ? { metadata: conversationMeta } : {}),
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;

@@ -1,6 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
+  buildConversationMetadata,
   createApiError,
   createMessage,
   createOrGetConversation,
@@ -255,6 +256,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
+      const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
       await createOrGetConversation(runDbClient)({
         tenantId,
         projectId,
@@ -263,22 +265,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         activeSubAgentId: defaultSubAgentId,
         ref: executionContext.resolvedRef,
         userId: executionContext.metadata?.endUserId,
-        ...(body.userProperties ||
-        executionContext.metadata?.endUserId ||
-        executionContext.metadata?.verifiedClaims
-          ? {
-              metadata: {
-                ...(body.userProperties ? { userContext: body.userProperties } : {}),
-                ...(executionContext.metadata?.verifiedClaims
-                  ? { verifiedClaims: executionContext.metadata.verifiedClaims }
-                  : {}),
-                ...(executionContext.metadata?.authMethod ===
-                  'app_credential_web_client_authenticated' && executionContext.metadata?.endUserId
-                  ? { externalUserId: executionContext.metadata.endUserId }
-                  : {}),
-              },
-            }
-          : {}),
+        ...(conversationMeta ? { metadata: conversationMeta } : {}),
       });
 
       const activeAgent = await getActiveAgentForConversation(runDbClient)({
