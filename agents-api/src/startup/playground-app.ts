@@ -1,15 +1,9 @@
-import { createHash } from 'node:crypto';
-import { getAppById, updateApp } from '@inkeep/agents-core';
+import { derivePlaygroundKid, getAppById, updateApp } from '@inkeep/agents-core';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 
 const logger = getLogger('playground-app');
-
-function deriveKid(publicKeyPem: string): string {
-  const hash = createHash('sha256').update(publicKeyPem).digest('hex');
-  return `pg-${hash.substring(0, 12)}`;
-}
 
 export async function ensurePlaygroundAppKey(): Promise<void> {
   const publicKeyB64 = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY;
@@ -34,7 +28,7 @@ export async function ensurePlaygroundAppKey(): Promise<void> {
   }
 
   const publicKeyPem = Buffer.from(publicKeyB64, 'base64').toString('utf-8');
-  const kid = deriveKid(publicKeyPem);
+  const kid = derivePlaygroundKid(publicKeyPem);
   const webClient = app.config.webClient as Record<string, unknown>;
   const auth = (webClient.auth ?? {}) as Record<string, unknown>;
   const existingKeys = (auth.publicKeys ?? []) as Array<{

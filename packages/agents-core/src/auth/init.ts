@@ -172,9 +172,9 @@ async function init() {
     const publicKeys: PublicKeyConfig[] = [];
 
     if (tempJwtPublicKeyB64) {
-      const { createHash } = await import('node:crypto');
+      const { derivePlaygroundKid } = await import('../utils/jwt-helpers');
       const publicKeyPem = Buffer.from(tempJwtPublicKeyB64, 'base64').toString('utf-8');
-      const kid = `pg-${createHash('sha256').update(publicKeyPem).digest('hex').substring(0, 12)}`;
+      const kid = derivePlaygroundKid(publicKeyPem);
       publicKeys.push({
         kid,
         publicKey: publicKeyPem,

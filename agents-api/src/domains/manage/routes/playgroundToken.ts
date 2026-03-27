@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   canUseProject,
   createApiError,
+  derivePlaygroundKid,
   ErrorResponseSchema,
   getAgentById,
   type OrgRole,
@@ -159,7 +159,7 @@ app.openapi(
     const publicKeyPem = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
       ? Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString('utf-8')
       : await exportSPKI(privateKey);
-    const kid = `pg-${createHash('sha256').update(publicKeyPem).digest('hex').substring(0, 12)}`;
+    const kid = derivePlaygroundKid(publicKeyPem);
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
