@@ -6,10 +6,10 @@ import {
   getAgentById,
   type OrgRole,
   projectExists,
-  signTempToken,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
+import { importPKCS8, SignJWT } from 'jose';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
@@ -152,22 +152,28 @@ app.openapi(
     const privateKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY, 'base64').toString(
       'utf-8'
     );
+    const privateKey = await importPKCS8(privateKeyPem, 'RS256');
 
-    const result = await signTempToken(privateKeyPem, {
-      tenantId,
-      projectId,
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    const token = await new SignJWT({
+      tid: tenantId,
+      pid: projectId,
       agentId,
-      type: 'temporary',
-      initiatedBy: { type: 'user', id: userId },
-      sub: userId,
-    });
+    })
+      .setProtectedHeader({ alg: 'RS256', kid: 'playground-rsa' })
+      .setSubject(userId)
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(privateKey);
 
-    logger.info({ userId, expiresAt: result.expiresAt }, 'Temporary JWT token generated');
+    logger.info({ userId, expiresAt }, 'Playground JWT token generated (app-credential format)');
 
     return c.json(
       {
-        apiKey: result.token,
-        expiresAt: result.expiresAt,
+        apiKey: token,
+        expiresAt,
+        appId: env.INKEEP_PLAYGROUND_APP_ID || 'app_playground',
       },
       200
     );

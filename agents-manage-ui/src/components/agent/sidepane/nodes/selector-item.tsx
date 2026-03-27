@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface SelectorItemProps {
@@ -8,7 +8,7 @@ interface SelectorItemProps {
   icon: ReactNode;
   badges?: ReactNode;
   subtitle?: string;
-  onClick: () => void;
+  onClick: ComponentProps<typeof Button>['onClick'];
 }
 
 export function SelectorItem({
