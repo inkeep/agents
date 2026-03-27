@@ -17,8 +17,8 @@ import { SectionHeader } from '../section';
 interface ModelSectionProps {
   models: AgentModels;
   updatePath: (
-    path: `models.${'base' | 'structuredOutput' | 'summarizer'}.${'model' | 'providerOptions'}`,
-    value: string
+    path: `models.${'base' | 'structuredOutput' | 'summarizer'}.${'model' | 'providerOptions' | 'fallbackModels'}`,
+    value: string | string[] | undefined
   ) => void;
   projectModels?: any;
   agentModels?: any;
@@ -33,13 +33,13 @@ export function ModelSection({
   'use memo';
   const hasAdvancedOptions = models.structuredOutput?.model || models.summarizer?.model;
 
-  // Helper to get inherited model and provider options from the same source
   function getInheritance(key: 'structuredOutput' | 'summarizer') {
     const agentModel = agentModels?.[key];
     if (agentModel?.model) {
       return {
         model: agentModel.model,
         options: agentModel.providerOptions,
+        fallbackModels: agentModel.fallbackModels,
       };
     }
     const projectModel = projectModels?.[key];
@@ -47,18 +47,31 @@ export function ModelSection({
       return {
         model: projectModel.model,
         options: projectModel.providerOptions,
+        fallbackModels: projectModel.fallbackModels,
       };
     }
     if (models?.base?.model) {
-      return { model: models.base.model, options: undefined };
+      return {
+        model: models.base.model,
+        options: models.base.providerOptions,
+        fallbackModels: models.base.fallbackModels,
+      };
     }
     if (agentModels?.base?.model) {
-      return { model: agentModels.base.model, options: undefined };
+      return {
+        model: agentModels.base.model,
+        options: agentModels.base.providerOptions,
+        fallbackModels: agentModels.base.fallbackModels,
+      };
     }
     if (projectModels?.base?.model) {
-      return { model: projectModels.base.model, options: undefined };
+      return {
+        model: projectModels.base.model,
+        options: projectModels.base.providerOptions,
+        fallbackModels: projectModels.base.fallbackModels,
+      };
     }
-    return { model: undefined, options: undefined };
+    return { model: undefined, options: undefined, fallbackModels: undefined };
   }
 
   const structuredOutputInheritance = getInheritance('structuredOutput');
@@ -106,6 +119,13 @@ export function ModelSection({
           updatePath('models.base.providerOptions', options);
         }}
         editorNamePrefix="base"
+        fallbackModels={models?.base?.fallbackModels}
+        inheritedFallbackModels={
+          agentModels?.base?.fallbackModels || projectModels?.base?.fallbackModels
+        }
+        onFallbackModelsChange={(models) =>
+          updatePath('models.base.fallbackModels', models.length ? models : undefined)
+        }
       />
 
       <CollapsibleSettings defaultOpen={!!hasAdvancedOptions} title="Advanced Model Options">
@@ -142,6 +162,11 @@ export function ModelSection({
             }
             return structuredOutputModelProviderOptionsTemplate;
           }}
+          fallbackModels={models?.structuredOutput?.fallbackModels}
+          inheritedFallbackModels={structuredOutputInheritance.fallbackModels}
+          onFallbackModelsChange={(models) =>
+            updatePath('models.structuredOutput.fallbackModels', models.length ? models : undefined)
+          }
         />
 
         <ModelConfiguration
@@ -177,6 +202,11 @@ export function ModelSection({
             }
             return summarizerModelProviderOptionsTemplate;
           }}
+          fallbackModels={models?.summarizer?.fallbackModels}
+          inheritedFallbackModels={summarizerInheritance.fallbackModels}
+          onFallbackModelsChange={(models) =>
+            updatePath('models.summarizer.fallbackModels', models.length ? models : undefined)
+          }
         />
       </CollapsibleSettings>
     </div>

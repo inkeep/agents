@@ -1,6 +1,7 @@
 type ModelSettings = {
   model?: string;
   providerOptions?: string; // JSON string representation for form compatibility
+  fallbackModels?: string[];
 };
 
 export type AgentModels = {

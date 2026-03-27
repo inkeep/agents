@@ -34,6 +34,10 @@ function BaseModelSection({
     control,
     name: 'models.base.providerOptions',
   });
+  const { field: fallbackModelsField } = useController({
+    control,
+    name: 'models.base.fallbackModels',
+  });
 
   return (
     <div className="space-y-4">
@@ -69,6 +73,10 @@ function BaseModelSection({
             }}
             editorNamePrefix="project-base"
             disabled={disabled}
+            fallbackModels={fallbackModelsField.value ?? undefined}
+            onFallbackModelsChange={(models) => {
+              fallbackModelsField.onChange(models.length ? models : undefined);
+            }}
           />
         )}
       </FormFieldWrapper>
@@ -87,9 +95,14 @@ function StructuredOutputModelSection({
     control,
     name: 'models.structuredOutput.providerOptions',
   });
+  const { field: fallbackModelsField } = useController({
+    control,
+    name: 'models.structuredOutput.fallbackModels',
+  });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
+  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
 
   return (
     <div className="space-y-4">
@@ -133,6 +146,11 @@ function StructuredOutputModelSection({
               return structuredOutputModelProviderOptionsTemplate;
             }}
             disabled={disabled}
+            fallbackModels={fallbackModelsField.value ?? undefined}
+            inheritedFallbackModels={baseFallbackModels ?? undefined}
+            onFallbackModelsChange={(models) => {
+              fallbackModelsField.onChange(models.length ? models : undefined);
+            }}
           />
         )}
       </FormFieldWrapper>
@@ -151,9 +169,14 @@ function SummarizerModelSection({
     control,
     name: 'models.summarizer.providerOptions',
   });
+  const { field: fallbackModelsField } = useController({
+    control,
+    name: 'models.summarizer.fallbackModels',
+  });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
+  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
 
   return (
     <div className="space-y-4">
@@ -197,6 +220,11 @@ function SummarizerModelSection({
               return summarizerModelProviderOptionsTemplate;
             }}
             disabled={disabled}
+            fallbackModels={fallbackModelsField.value ?? undefined}
+            inheritedFallbackModels={baseFallbackModels ?? undefined}
+            onFallbackModelsChange={(models) => {
+              fallbackModelsField.onChange(models.length ? models : undefined);
+            }}
           />
         )}
       </FormFieldWrapper>

@@ -1659,6 +1659,32 @@
       "CapabilitiesResponseSchema": {
         "description": "Optional server capabilities and configuration.",
         "properties": {
+          "costTracking": {
+            "description": "Cost tracking capabilities (requires AI Gateway).",
+            "properties": {
+              "enabled": {
+                "description": "Whether per-request cost tracking is available.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "type": "object"
+          },
+          "modelFallback": {
+            "description": "Fallback model capabilities (requires AI Gateway).",
+            "properties": {
+              "enabled": {
+                "description": "Whether fallback model support is available.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "type": "object"
+          },
           "sandbox": {
             "description": "Sandbox execution capabilities (used by Function Tools).",
             "properties": {
@@ -1690,7 +1716,9 @@
           }
         },
         "required": [
-          "sandbox"
+          "sandbox",
+          "modelFallback",
+          "costTracking"
         ],
         "type": "object"
       },
@@ -6199,6 +6227,14 @@
       },
       "ModelSettings": {
         "properties": {
+          "fallbackModels": {
+            "description": "Ordered list of fallback models if the primary fails. Requires AI Gateway. Format: provider/model (e.g. \"openai/gpt-5.2\").",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
           "model": {
             "description": "The model to use for the project.",
             "type": "string"

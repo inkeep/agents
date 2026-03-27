@@ -16,7 +16,7 @@ import { gatewayCostMiddleware } from './usage-cost-middleware';
 
 const logger = getLogger('ModelFactory');
 
-const GATEWAY_ROUTABLE_PROVIDERS = ['anthropic', 'openai', 'google'] as const;
+import { GATEWAY_ROUTABLE_PROVIDERS } from '../constants/models.js';
 
 // NVIDIA NIM default provider instance
 const nimDefault = createOpenAICompatible({
@@ -351,10 +351,21 @@ export class ModelFactory {
     });
 
     const generationParams = ModelFactory.getGenerationParams(modelSettings?.providerOptions);
-    const streamProviderOptions = ModelFactory.extractStreamProviderOptions(
+    let streamProviderOptions = ModelFactory.extractStreamProviderOptions(
       modelSettings?.providerOptions
     );
     const maxDuration = modelSettings?.providerOptions?.maxDuration as number | undefined;
+
+    if (modelSettings?.fallbackModels?.length && process.env.AI_GATEWAY_API_KEY) {
+      const existingGateway = (streamProviderOptions?.gateway ?? {}) as Record<string, unknown>;
+      streamProviderOptions = {
+        ...streamProviderOptions,
+        gateway: {
+          ...existingGateway,
+          models: modelSettings.fallbackModels,
+        } as JSONObject,
+      };
+    }
 
     return {
       model,
