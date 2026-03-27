@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   actions: read
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,6 +25,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
+      pull-requests: read
     env:
       TURBO_TELEMETRY_DISABLED: 1
       TURBO_CACHE_DIR: .turbo
@@ -36,14 +38,35 @@ jobs:
       - name: Check if changeset PR
         id: changeset-check
         run: |
+          IS_CHANGESET=false
+
+          # Pull request: check branch name directly
           if [ "$HEAD_REF" = "changeset-release/main" ]; then
-            echo "is_changeset=true" >> $GITHUB_OUTPUT
-            echo "Changeset PR detected — skipping CI checks"
-          else
-            echo "is_changeset=false" >> $GITHUB_OUTPUT
+            IS_CHANGESET=true
+            echo "Changeset PR detected via branch name"
+          fi
+
+          # Merge group: extract PR number from ref and check branch via API
+          if [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ "$IS_CHANGESET" = "false" ]; then
+            PR_NUM=$(echo "$MERGE_GROUP_HEAD_REF" | sed -n 's|.*/pr-\([0-9]*\)-.*|\1|p')
+            if [ -n "$PR_NUM" ]; then
+              BRANCH=$(gh pr view "$PR_NUM" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName 2>/dev/null || echo "")
+              if [ "$BRANCH" = "changeset-release/main" ]; then
+                IS_CHANGESET=true
+                echo "Changeset PR detected via merge group (PR #$PR_NUM)"
+              fi
+            fi
+          fi
+
+          echo "is_changeset=$IS_CHANGESET" >> $GITHUB_OUTPUT
+          if [ "$IS_CHANGESET" = "true" ]; then
+            echo "Changeset PR — skipping CI checks"
           fi
         env:
           HEAD_REF: ${{ github.head_ref }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          MERGE_GROUP_HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          GH_TOKEN: ${{ github.token }}
 
       - name: Checkout code
         if: steps.changeset-check.outputs.is_changeset != 'true'
@@ -279,14 +302,33 @@ jobs:
       - name: Check if changeset PR
         id: changeset-check
         run: |
+          IS_CHANGESET=false
+
           if [ "$HEAD_REF" = "changeset-release/main" ]; then
-            echo "is_changeset=true" >> $GITHUB_OUTPUT
-            echo "Changeset PR detected — skipping E2E tests"
-          else
-            echo "is_changeset=false" >> $GITHUB_OUTPUT
+            IS_CHANGESET=true
+            echo "Changeset PR detected via branch name"
+          fi
+
+          if [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ "$IS_CHANGESET" = "false" ]; then
+            PR_NUM=$(echo "$MERGE_GROUP_HEAD_REF" | sed -n 's|.*/pr-\([0-9]*\)-.*|\1|p')
+            if [ -n "$PR_NUM" ]; then
+              BRANCH=$(gh pr view "$PR_NUM" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName 2>/dev/null || echo "")
+              if [ "$BRANCH" = "changeset-release/main" ]; then
+                IS_CHANGESET=true
+                echo "Changeset PR detected via merge group (PR #$PR_NUM)"
+              fi
+            fi
+          fi
+
+          echo "is_changeset=$IS_CHANGESET" >> $GITHUB_OUTPUT
+          if [ "$IS_CHANGESET" = "true" ]; then
+            echo "Changeset PR — skipping E2E tests"
           fi
         env:
           HEAD_REF: ${{ github.head_ref }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          MERGE_GROUP_HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          GH_TOKEN: ${{ github.token }}
 
       - name: Checkout code
         if: steps.changeset-check.outputs.is_changeset != 'true'
