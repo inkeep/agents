@@ -126,8 +126,6 @@ app.openapi(
 
     const existingKeys = appRecord.config.webClient.auth?.publicKeys ?? [];
 
-
-
     if (existingKeys.some((k) => k.kid === kid)) {
       throw createApiError({
         code: 'conflict',
