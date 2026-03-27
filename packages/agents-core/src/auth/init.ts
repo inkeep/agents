@@ -172,9 +172,11 @@ async function init() {
     const publicKeys: PublicKeyConfig[] = [];
 
     if (tempJwtPublicKeyB64) {
+      const { createHash } = await import('node:crypto');
       const publicKeyPem = Buffer.from(tempJwtPublicKeyB64, 'base64').toString('utf-8');
+      const kid = `pg-${createHash('sha256').update(publicKeyPem).digest('hex').substring(0, 12)}`;
       publicKeys.push({
-        kid: 'playground-rsa',
+        kid,
         publicKey: publicKeyPem,
         algorithm: 'RS256',
         addedAt: new Date().toISOString(),
