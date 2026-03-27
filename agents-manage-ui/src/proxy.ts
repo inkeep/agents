@@ -3,6 +3,66 @@ import { isDevelopment } from '@inkeep/agents-core/utils/env-detection';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+function buildCsp() {
+  const connectSrcDomains = [
+    "'self'",
+    process.env.PUBLIC_INKEEP_AGENTS_API_URL || process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL,
+    process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    process.env.PUBLIC_SIGNOZ_URL || process.env.NEXT_PUBLIC_SIGNOZ_URL,
+    process.env.PUBLIC_NANGO_SERVER_URL || process.env.NEXT_PUBLIC_NANGO_SERVER_URL,
+    process.env.PUBLIC_NANGO_CONNECT_BASE_URL || process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL,
+    process.env.NEXT_PUBLIC_SENTRY_DSN
+      ? (() => {
+          try {
+            return new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).origin;
+          } catch {
+            return null;
+          }
+        })()
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const frameSrcDomains = [
+    "'self'",
+    process.env.PUBLIC_NANGO_CONNECT_BASE_URL || process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL,
+    'https://accounts.google.com',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const scriptSrc =
+    process.env.NODE_ENV === 'production'
+      ? "'self' 'unsafe-inline'"
+      : "'self' 'unsafe-inline' 'unsafe-eval'";
+
+  return [
+    `default-src 'self'`,
+    `script-src ${scriptSrc}`,
+    `style-src 'self' 'unsafe-inline'`,
+    `font-src 'self'`,
+    `img-src 'self' https: data:`,
+    `connect-src ${connectSrcDomains}`,
+    `frame-src ${frameSrcDomains}`,
+    `frame-ancestors 'none'`,
+    `form-action 'self'`,
+    `base-uri 'self'`,
+    `object-src 'none'`,
+  ].join('; ');
+}
+
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('Content-Security-Policy', buildCsp());
+  response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('X-XSS-Protection', '0');
+  return response;
+}
+
 const LOGGED_OUT_COOKIE = 'dev-logged-out';
 
 const PUBLIC_PATH_PREFIXES = [
@@ -36,7 +96,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const hasSession = request.cookies.getAll().some((c) => isSessionCookie(c.name));
@@ -45,25 +105,25 @@ export async function proxy(request: NextRequest) {
     if (request.cookies.has(LOGGED_OUT_COOKIE)) {
       const response = NextResponse.next();
       response.cookies.delete(LOGGED_OUT_COOKIE);
-      return response;
+      return applySecurityHeaders(response);
     }
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   if (isDevelopment()) {
     if (request.cookies.has(LOGGED_OUT_COOKIE)) {
-      return redirectToLogin(request);
+      return applySecurityHeaders(redirectToLogin(request));
     }
 
     const session = await tryDevAutoLogin();
     if (session) {
       const response = NextResponse.next();
       response.headers.set('set-cookie', session);
-      return response;
+      return applySecurityHeaders(response);
     }
   }
 
-  return redirectToLogin(request);
+  return applySecurityHeaders(redirectToLogin(request));
 }
 
 async function tryDevAutoLogin(): Promise<string | null> {
