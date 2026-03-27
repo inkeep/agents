@@ -268,9 +268,11 @@ These checks must pass before a PR can be merged. Pre-commit uses lint-staged, p
 
 PRs that touch migration files in `packages/agents-core/drizzle/manage/` or `packages/agents-core/drizzle/runtime/` are automatically validated by a CI guard (`scripts/check-migration-lineage.mjs`). The check is skipped for PRs that don't modify these directories.
 
-The script verifies that migrations are **append-only** and follow the lineage from `main`:
+The script verifies that migrations are **append-only** and **immutable**, following the lineage from `main`:
 
 - The current journal must start with the exact journal from `main` (no rewriting history)
+- Each historical journal entry must match the full content from `main` (not just the tag)
+- Every existing migration SQL file on `main` must still exist and have identical content
 - New journal entries must be appended at the end
 - The first new migration number must be the immediate next after `main`
 - Every new SQL file must belong to the newly appended journal tail
