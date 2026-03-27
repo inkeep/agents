@@ -100,9 +100,9 @@ export async function proxy(request: NextRequest) {
   // Handled here instead of next.config.ts redirects() so security headers are applied.
   const projectRedirectMatch = pathname.match(/^\/([^/]+)\/projects\/([^/]+)$/);
   if (projectRedirectMatch && !pathname.endsWith('/agents')) {
-    return applySecurityHeaders(
-      NextResponse.redirect(new URL(`${pathname}/agents`, request.url), 307)
-    );
+    const redirectUrl = new URL(`${pathname}/agents`, request.url);
+    redirectUrl.search = request.nextUrl.search;
+    return applySecurityHeaders(NextResponse.redirect(redirectUrl, 307));
   }
 
   if (isPublicPath(pathname)) {
