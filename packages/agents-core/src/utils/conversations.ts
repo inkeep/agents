@@ -34,11 +34,10 @@ export function getConversationId(): string {
 
 export function buildConversationMetadata(
   executionContext: BaseExecutionContext,
-  userProperties?: Record<string, unknown>,
+  userProperties?: Record<string, unknown>
 ): ConversationMetadata | undefined {
   const meta = executionContext.metadata;
-  const isAuthenticated =
-    meta?.authMethod === 'app_credential_web_client_authenticated';
+  const isAuthenticated = meta?.authMethod === 'app_credential_web_client_authenticated';
 
   const result: ConversationMetadata = {};
 

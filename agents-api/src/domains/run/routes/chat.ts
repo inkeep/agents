@@ -1,7 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
-  type CredentialStoreRegistry,
   buildConversationMetadata,
+  type CredentialStoreRegistry,
   createApiError,
   createMessage,
   createOrGetConversation,

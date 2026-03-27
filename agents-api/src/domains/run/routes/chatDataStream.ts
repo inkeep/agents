@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  buildConversationMetadata,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
   createApiError,
@@ -8,7 +9,6 @@ import {
   generateId,
   getActiveAgentForConversation,
   getConversation,
-  buildConversationMetadata,
   getConversationId,
   getWorkflowExecutionByConversation,
   loggerFactory,
