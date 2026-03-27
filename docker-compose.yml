@@ -1,6 +1,6 @@
 services:
   inkeep-agents-manage-ui:
-    image: inkeep/agents-manage-ui:0.56.2
+    image: inkeep/agents-manage-ui:0.59.4
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
@@ -25,7 +25,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
   inkeep-agents-api:
-    image: inkeep/agents-api:0.56.2
+    image: inkeep/agents-api:0.59.4
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
@@ -73,7 +73,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
   inkeep-agents-migrate:
-    image: inkeep/agents-migrate:0.56.2
+    image: inkeep/agents-migrate:0.59.4
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
@@ -94,7 +94,7 @@ services:
         condition: service_healthy
     restart: "no"
   inkeep-agents-doltgres-db:
-    image: dolthub/doltgresql:0.55.5
+    image: dolthub/doltgresql:0.55.6
     restart: unless-stopped
     environment:
       DOLTGRES_USER: appuser
@@ -124,7 +124,7 @@ services:
       retries: 30
   # SpiceDB for authorization
   inkeep-agents-spicedb:
-    image: authzed/spicedb:v1.49.2
+    image: authzed/spicedb:v1.51.0
     command: serve
     restart: unless-stopped
     environment:
@@ -143,7 +143,7 @@ services:
       inkeep-agents-spicedb-migrate:
         condition: service_completed_successfully
   inkeep-agents-spicedb-migrate:
-    image: authzed/spicedb:v1.49.2
+    image: authzed/spicedb:v1.51.0
     command: migrate head
     restart: "no"
     environment:
