@@ -36,6 +36,7 @@ interface ModelSelectorProps {
   disabled?: boolean;
   gatewayOnly?: boolean;
   defaultOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const ModelSelector: FC<ModelSelectorProps> = ({
@@ -51,6 +52,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   disabled = false,
   gatewayOnly = false,
   defaultOpen = false,
+  onClose,
 }) => {
   'use memo';
 
@@ -119,7 +121,19 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {label && <FieldLabel label={label} tooltip={tooltip} isRequired={isRequired} />}
-      <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
+      <Popover
+        open={open}
+        onOpenChange={
+          disabled
+            ? undefined
+            : (nextOpen) => {
+                setOpen(nextOpen);
+                if (!nextOpen && !value && onClose) {
+                  onClose();
+                }
+              }
+        }
+      >
         <ButtonGroup className="w-full">
           <PopoverTrigger asChild>
             <Button

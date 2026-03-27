@@ -90,6 +90,7 @@ const FallbackModelsSection: FC<{
                   onFallbackModelsChange([...(fallbackModels ?? []), newValue]);
                 }
               }}
+              onClose={() => setShowPendingSelector(false)}
               placeholder="Select fallback model..."
               canClear={false}
             />
@@ -111,7 +112,7 @@ const FallbackModelsSection: FC<{
           size="sm"
           className="w-full"
           onClick={() => setShowPendingSelector(true)}
-          disabled={disabled}
+          disabled={disabled || isInherited}
         >
           <Plus className="h-4 w-4 mr-1" />
           Add fallback model
