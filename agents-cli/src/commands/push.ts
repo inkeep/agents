@@ -595,12 +595,54 @@ async function pushSingleProject(
       project.setCredentials(credentials);
     }
 
-    // Initialize the project (this will push to the backend)
+    const projectId = project.getId();
+
+    if (!options.force) {
+      const existingState = readProjectState(projectId);
+      const lastPulledHash = existingState?.lastPulledHash;
+
+      if (lastPulledHash) {
+        const apiClient = await ManagementApiClient.create(
+          config.agentsApiUrl,
+          configFile || undefined,
+          config.tenantId,
+          projectId,
+          undefined,
+          config.agentsApiKey
+        );
+
+        const projectDefinition = await project.getFullDefinition();
+
+        const preview = await withLocalStateBranch({
+          apiClient,
+          projectId,
+          fromCommit: lastPulledHash,
+          localDefinition: projectDefinition,
+          branchPrefix: 'cli-push-check',
+          fn: (tempBranchName) =>
+            apiClient.mergePreview(projectId, {
+              sourceBranch: tempBranchName,
+              targetBranch: 'main',
+            }),
+        });
+
+        if (preview.hasConflicts) {
+          return {
+            projectDir,
+            projectId,
+            projectName: project.getName(),
+            success: false,
+            error: `${preview.conflicts.length} conflict(s) detected — run \`inkeep pull\` to resolve or use \`--force\``,
+          };
+        }
+      }
+    }
+
     await project.init();
 
     return {
       projectDir,
-      projectId: project.getId(),
+      projectId,
       projectName: project.getName(),
       success: true,
     };
