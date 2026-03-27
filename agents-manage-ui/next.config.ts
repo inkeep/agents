@@ -15,6 +15,65 @@ if (process.env.NODE_ENV !== 'production') {
 
 const isSentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
 
+function buildSecurityHeaders() {
+  const connectSrcDomains = [
+    "'self'",
+    process.env.PUBLIC_INKEEP_AGENTS_API_URL || process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL,
+    process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    process.env.PUBLIC_SIGNOZ_URL || process.env.NEXT_PUBLIC_SIGNOZ_URL,
+    process.env.PUBLIC_NANGO_SERVER_URL || process.env.NEXT_PUBLIC_NANGO_SERVER_URL,
+    process.env.PUBLIC_NANGO_CONNECT_BASE_URL || process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL,
+    process.env.NEXT_PUBLIC_SENTRY_DSN
+      ? (() => {
+          try {
+            return new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).origin;
+          } catch {
+            return null;
+          }
+        })()
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const frameSrcDomains = [
+    "'self'",
+    process.env.PUBLIC_NANGO_CONNECT_BASE_URL || process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL,
+    'https://accounts.google.com',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const scriptSrc =
+    process.env.NODE_ENV === 'production'
+      ? "'self' 'unsafe-inline'"
+      : "'self' 'unsafe-inline' 'unsafe-eval'";
+
+  const csp = [
+    `default-src 'self'`,
+    `script-src ${scriptSrc}`,
+    `style-src 'self' 'unsafe-inline'`,
+    `font-src 'self'`,
+    `img-src 'self' https: data:`,
+    `connect-src ${connectSrcDomains}`,
+    `frame-src ${frameSrcDomains}`,
+    `frame-ancestors 'none'`,
+    `form-action 'self'`,
+    `base-uri 'self'`,
+    `object-src 'none'`,
+  ].join('; ');
+
+  return [
+    { key: 'Content-Security-Policy', value: csp },
+    { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
+    { key: 'X-Frame-Options', value: 'DENY' },
+    { key: 'X-Content-Type-Options', value: 'nosniff' },
+    { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+    { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+    { key: 'X-XSS-Protection', value: '0' },
+  ];
+}
+
 const nextConfig: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForBuild: true,
@@ -73,6 +132,14 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '**' },
       { protocol: 'http', hostname: '**' },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: buildSecurityHeaders(),
+      },
+    ];
   },
 };
 
