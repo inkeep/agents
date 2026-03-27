@@ -94,7 +94,8 @@ function makeAppRecord(overrides: Record<string, unknown> = {}) {
 function makeAppWithAuth(
   publicKeys: Array<{ kid: string; publicKey: string; algorithm: string; addedAt: string }>,
   audience?: string,
-  overrides: Record<string, unknown> = {}
+  overrides: Record<string, unknown> = {},
+  authOverrides: Record<string, unknown> = {}
 ) {
   return makeAppRecord({
     config: {
@@ -104,6 +105,7 @@ function makeAppWithAuth(
         auth: {
           publicKeys,
           ...(audience !== undefined ? { audience } : {}),
+          ...authOverrides,
         },
       },
     },
@@ -704,6 +706,119 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
 
       expect(res.status).toBe(200);
       expect(getContext()?.metadata?.endUserId).toBe('user_skew');
+    });
+  });
+
+  describe('dual mode: anonymous and authenticated on same app', () => {
+    it('should fall back to anonymous when auth keys configured but token is anonymous JWT (allowAnonymous default)', async () => {
+      const anonSecret = new TextEncoder().encode('test-anon-secret-for-jwt-signing-1234');
+      const anonToken = await new SignJWT({ app: 'app_test123', type: 'anonymous' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setSubject('anon_test_user')
+        .setIssuer('inkeep')
+        .setIssuedAt()
+        .setExpirationTime(Math.floor(Date.now() / 1000) + 3600)
+        .sign(anonSecret);
+
+      const appRecord = makeAppWithAuth([
+        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+      ]);
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${anonToken}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(getContext()?.metadata?.authMethod).toBe('app_credential_web_client');
+      expect(getContext()?.metadata?.endUserId).toBe('anon_test_user');
+    });
+
+    it('should reject anonymous token when allowAnonymous is false', async () => {
+      const anonSecret = new TextEncoder().encode('test-anon-secret-for-jwt-signing-1234');
+      const anonToken = await new SignJWT({ app: 'app_test123', type: 'anonymous' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setSubject('anon_test_user')
+        .setIssuer('inkeep')
+        .setIssuedAt()
+        .setExpirationTime(Math.floor(Date.now() / 1000) + 3600)
+        .sign(anonSecret);
+
+      const appRecord = makeAppWithAuth(
+        [{ kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() }],
+        undefined,
+        {},
+        { allowAnonymous: false }
+      );
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${anonToken}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should accept authenticated token on app with allowAnonymous true', async () => {
+      const token = await signJwt(rsaPrivateKey, 'RS256', { email: 'user@example.com' }, {
+        kid: 'key-1',
+        sub: 'user_authenticated',
+      });
+
+      const appRecord = makeAppWithAuth([
+        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+      ]);
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(getContext()?.metadata?.authMethod).toBe('app_credential_web_client_authenticated');
+      expect(getContext()?.metadata?.endUserId).toBe('user_authenticated');
+    });
+  });
+
+  describe('error response formatting', () => {
+    it('should return unauthorized code (not internal_server_error) for auth failures', async () => {
+      const token = await signJwt(rsaPrivateKey, 'RS256', {}, { kid: 'wrong-kid', sub: 'user_1' });
+
+      const appRecord = makeAppWithAuth(
+        [{ kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() }],
+        undefined,
+        {},
+        { allowAnonymous: false }
+      );
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.error?.code).toBe('unauthorized');
     });
   });
 });

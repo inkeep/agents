@@ -645,122 +645,125 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       }
 
       if (asymResult.ok) {
-      authMethod = 'app_credential_web_client_authenticated';
-      endUserId = asymResult.endUserId;
+        authMethod = 'app_credential_web_client_authenticated';
+        endUserId = asymResult.endUserId;
 
-      // Extract verified claims (non-standard JWT fields) for runtime context
-      const {
-        sub: _sub,
-        iat: _iat,
-        exp: _exp,
-        aud: _aud,
-        iss: _iss,
-        jti: _jti,
-        nbf: _nbf,
-        tid: _tid,
-        pid: _pid,
-        agentId: _agentIdClaim,
-        ...verifiedClaims
-      } = asymResult.claims;
+        // Extract verified claims (non-standard JWT fields) for runtime context
+        const {
+          sub: _sub,
+          iat: _iat,
+          exp: _exp,
+          aud: _aud,
+          iss: _iss,
+          jti: _jti,
+          nbf: _nbf,
+          tid: _tid,
+          pid: _pid,
+          agentId: _agentIdClaim,
+          ...verifiedClaims
+        } = asymResult.claims;
 
-      // Enforce 1KB size limit on verified claims
-      const claimsJson = JSON.stringify(verifiedClaims);
-      if (claimsJson.length > 1024) {
-        throw createApiError({
-          code: 'unauthorized',
-          message: `Token custom claims exceed 1KB limit (${claimsJson.length} bytes)`,
-        });
-      }
-
-      const span = trace.getActiveSpan();
-      span?.setAttribute('app.auth.kid', asymResult.kid);
-      span?.setAttribute('app.auth.endUserId', asymResult.endUserId);
-      span?.setAttribute('app.auth.method', authMethod);
-
-      // Resolve scope: global apps get scope from token claims, tenant-scoped apps from the app record.
-      let resolvedTenantId: string;
-      let resolvedProjectId: string;
-      let resolvedAgentId: string;
-
-      if (!app.tenantId) {
-        // Global app — scope comes from token claims
-        const claims = asymResult.claims;
-        const tid = typeof claims.tid === 'string' ? claims.tid : undefined;
-        const pid = typeof claims.pid === 'string' ? claims.pid : undefined;
-        const claimAgentId = typeof claims.agentId === 'string' ? claims.agentId : undefined;
-
-        if (!tid || !pid) {
+        // Enforce 1KB size limit on verified claims
+        const claimsJson = JSON.stringify(verifiedClaims);
+        if (claimsJson.length > 1024) {
           throw createApiError({
             code: 'unauthorized',
-            message: 'Global app requires tid and pid claims in token',
+            message: `Token custom claims exceed 1KB limit (${claimsJson.length} bytes)`,
           });
         }
 
-        // Opt-in SpiceDB validation for global apps
-        if (config.webClient.auth?.validateScopeClaims) {
-          try {
-            const canUse = await canUseProjectStrict({
-              userId: asymResult.endUserId,
-              tenantId: tid,
-              projectId: pid,
-            });
-            if (!canUse) {
-              throw new HTTPException(403, {
-                message: 'Access denied: insufficient permissions',
-              });
-            }
-          } catch (error) {
-            if (error instanceof HTTPException) throw error;
-            logger.error({ error }, 'SpiceDB permission check failed for global app auth');
-            throw new HTTPException(503, {
-              message: 'Authorization service temporarily unavailable',
+        const span = trace.getActiveSpan();
+        span?.setAttribute('app.auth.kid', asymResult.kid);
+        span?.setAttribute('app.auth.endUserId', asymResult.endUserId);
+        span?.setAttribute('app.auth.method', authMethod);
+
+        // Resolve scope: global apps get scope from token claims, tenant-scoped apps from the app record.
+        let resolvedTenantId: string;
+        let resolvedProjectId: string;
+        let resolvedAgentId: string;
+
+        if (!app.tenantId) {
+          // Global app — scope comes from token claims
+          const claims = asymResult.claims;
+          const tid = typeof claims.tid === 'string' ? claims.tid : undefined;
+          const pid = typeof claims.pid === 'string' ? claims.pid : undefined;
+          const claimAgentId = typeof claims.agentId === 'string' ? claims.agentId : undefined;
+
+          if (!tid || !pid) {
+            throw createApiError({
+              code: 'unauthorized',
+              message: 'Global app requires tid and pid claims in token',
             });
           }
+
+          // Opt-in SpiceDB validation for global apps
+          if (config.webClient.auth?.validateScopeClaims) {
+            try {
+              const canUse = await canUseProjectStrict({
+                userId: asymResult.endUserId,
+                tenantId: tid,
+                projectId: pid,
+              });
+              if (!canUse) {
+                throw createApiError({
+                  code: 'forbidden',
+                  message: 'Access denied: insufficient permissions',
+                });
+              }
+            } catch (error) {
+              if (error instanceof HTTPException) throw error;
+              if ((error as { status?: number })?.status === 403) throw error;
+              logger.error({ error }, 'SpiceDB permission check failed for global app auth');
+              throw createApiError({
+                code: 'internal_server_error',
+                message: 'Authorization service temporarily unavailable',
+              });
+            }
+          }
+
+          resolvedTenantId = tid;
+          resolvedProjectId = pid;
+          resolvedAgentId = claimAgentId || requestedAgentId || app.defaultAgentId || '';
+        } else {
+          // Tenant-scoped app — scope comes from app record
+          if (!app.projectId) {
+            logger.error(
+              { appId: app.id },
+              'App credential auth: tenant-scoped app missing projectId'
+            );
+            throw createApiError({ code: 'internal_server_error', message: 'App configuration error' });
+          }
+
+          resolvedTenantId = app.tenantId;
+          resolvedProjectId = app.projectId;
+          resolvedAgentId = requestedAgentId || app.defaultAgentId || '';
         }
 
-        resolvedTenantId = tid;
-        resolvedProjectId = pid;
-        resolvedAgentId = claimAgentId || requestedAgentId || app.defaultAgentId || '';
-      } else {
-        // Tenant-scoped app — scope comes from app record
-        if (!app.projectId) {
-          logger.error(
-            { appId: app.id },
-            'App credential auth: tenant-scoped app missing projectId'
-          );
-          throw new HTTPException(500, { message: 'App configuration error' });
+        if (Math.random() < 0.1) {
+          updateAppLastUsed(runDbClient)(app.id).catch((err) => {
+            logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
+          });
         }
 
-        resolvedTenantId = app.tenantId;
-        resolvedProjectId = app.projectId;
-        resolvedAgentId = requestedAgentId || app.defaultAgentId || '';
-      }
+        logger.info(
+          { appId: app.id, kid: asymResult.kid, endUserId, authMethod, global: !app.tenantId },
+          'App credential authenticated (asymmetric)'
+        );
 
-      if (Math.random() < 0.1) {
-        updateAppLastUsed(runDbClient)(app.id).catch((err) => {
-          logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
-        });
-      }
-
-      logger.info(
-        { appId: app.id, kid: asymResult.kid, endUserId, authMethod, global: !app.tenantId },
-        'App credential authenticated (asymmetric)'
-      );
-
-      return {
-        authResult: {
-          apiKey: bearerToken,
-          tenantId: resolvedTenantId,
-          projectId: resolvedProjectId,
-          agentId: resolvedAgentId,
-          apiKeyId: `app:${app.id}`,
-          metadata: {
-            endUserId,
-            authMethod,
-            ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
+        return {
+          authResult: {
+            apiKey: bearerToken,
+            tenantId: resolvedTenantId,
+            projectId: resolvedProjectId,
+            agentId: resolvedAgentId,
+            apiKeyId: `app:${app.id}`,
+            metadata: {
+              endUserId,
+              authMethod,
+              ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
+            },
           },
-        },
-      };
+        };
       } // end if (asymResult.ok)
     } // end if (hasAuthConfigured)
 
