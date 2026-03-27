@@ -33,9 +33,7 @@ vi.mock('@inkeep/agents-core', () => ({
   })),
   getTracer: vi.fn(() => ({
     startSpan: vi.fn(),
-    startActiveSpan: vi.fn((_name: string, fn: (span: any) => any) =>
-      fn({ end: vi.fn(), setStatus: vi.fn(), setAttribute: vi.fn() })
-    ),
+    startActiveSpan: vi.fn((_name: string, fn: (span: any) => any) => fn({ end: vi.fn(), setStatus: vi.fn(), setAttribute: vi.fn() })),
   })),
   setSpanWithError: vi.fn(),
   upsertLedgerArtifact: vi.fn(() => vi.fn()),
