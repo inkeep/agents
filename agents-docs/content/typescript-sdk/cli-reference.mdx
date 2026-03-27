@@ -391,6 +391,17 @@ By default, the pull command updates your existing TypeScript files using LLM ge
 2. **Selective Updates**: Only updates relevant parts based on server configuration changes
 3. **File-Specific Context**: Each file type receives appropriate context (Agents get Agent data, Sub Agents get Sub Agent data, etc.)
 
+
+#### Merge Conflict Resolution
+
+When local and remote changes conflict, the CLI presents an interactive merge conflict resolution UI. For each conflicting file, you can:
+
+- **Keep local** — preserve your local version of the file
+- **Accept remote** — overwrite with the server version
+- **Manually merge** — review a side-by-side diff and choose which changes to keep
+
+This ensures your local customizations aren't silently overwritten when pulling updates from the server.
+
 **Examples:**
 
 ```bash
