@@ -721,7 +721,12 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
         .sign(anonSecret);
 
       const appRecord = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
 
@@ -750,7 +755,14 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
         .sign(anonSecret);
 
       const appRecord = makeAppWithAuth(
-        [{ kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() }],
+        [
+          {
+            kid: 'key-1',
+            publicKey: rsaPublicKeyPem,
+            algorithm: 'RS256',
+            addedAt: new Date().toISOString(),
+          },
+        ],
         undefined,
         {},
         { allowAnonymous: false }
@@ -770,13 +782,23 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
     });
 
     it('should accept authenticated token on app with allowAnonymous true', async () => {
-      const token = await signJwt(rsaPrivateKey, 'RS256', { email: 'user@example.com' }, {
-        kid: 'key-1',
-        sub: 'user_authenticated',
-      });
+      const token = await signJwt(
+        rsaPrivateKey,
+        'RS256',
+        { email: 'user@example.com' },
+        {
+          kid: 'key-1',
+          sub: 'user_authenticated',
+        }
+      );
 
       const appRecord = makeAppWithAuth([
-        { kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() },
+        {
+          kid: 'key-1',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
       ]);
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
 
@@ -800,7 +822,14 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       const token = await signJwt(rsaPrivateKey, 'RS256', {}, { kid: 'wrong-kid', sub: 'user_1' });
 
       const appRecord = makeAppWithAuth(
-        [{ kid: 'key-1', publicKey: rsaPublicKeyPem, algorithm: 'RS256', addedAt: new Date().toISOString() }],
+        [
+          {
+            kid: 'key-1',
+            publicKey: rsaPublicKeyPem,
+            algorithm: 'RS256',
+            addedAt: new Date().toISOString(),
+          },
+        ],
         undefined,
         {},
         { allowAnonymous: false }

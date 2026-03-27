@@ -731,7 +731,10 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
               { appId: app.id },
               'App credential auth: tenant-scoped app missing projectId'
             );
-            throw createApiError({ code: 'internal_server_error', message: 'App configuration error' });
+            throw createApiError({
+              code: 'internal_server_error',
+              message: 'App configuration error',
+            });
           }
 
           resolvedTenantId = app.tenantId;
