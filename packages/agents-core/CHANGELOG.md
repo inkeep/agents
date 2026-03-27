@@ -1,5 +1,18 @@
 # @inkeep/agents-core
 
+## 0.62.0
+
+### Minor Changes
+
+- ce9c516: Add migration to seed global playground app for authenticated chat sessions
+
+## 0.61.0
+
+### Patch Changes
+
+- 12722d9: Add interactive merge conflict resolution UI for inkeep pull command
+- f4a9c69: Fix key_findings persistence in compressor by using proper update instead of insert-only upsert
+
 ## 0.60.0
 
 ### Patch Changes

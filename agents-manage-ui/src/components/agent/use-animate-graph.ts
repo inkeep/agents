@@ -10,7 +10,6 @@ import {
   NodeType,
   setNodeStatus,
 } from '@/components/agent/configuration/node-types';
-import { useDefaultSubAgentNodeIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import {
   findSubAgentNodeId,
@@ -24,7 +23,6 @@ import { sentry } from '@/lib/sentry';
 
 export function useAnimateGraph(): void {
   const form = useFullAgentFormContext();
-  const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: subscribe once and read latest form values imperatively
   useEffect(() => {
@@ -36,6 +34,8 @@ export function useAnimateGraph(): void {
       if (data.conversationId !== playgroundConversationId) {
         return;
       }
+
+      const defaultSubAgentNodeId = form.getValues('defaultSubAgentNodeId');
 
       agentStore.setState((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
@@ -103,7 +103,7 @@ export function useAnimateGraph(): void {
                 if (data?.details?.agentId !== /* agentId */ location.pathname.split('/')[5]) {
                   return null;
                 }
-                if (node.id === defaultSubAgentNodeIdRef.current) {
+                if (node.id === defaultSubAgentNodeId) {
                   return 'delegating';
                 }
                 return getCurrentStatus(node);

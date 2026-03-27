@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  buildConversationMetadata,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
   createApiError,
@@ -78,6 +79,10 @@ const chatDataStreamRoute = createProtectedRoute({
               .describe(
                 'Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.'
               ),
+            userProperties: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe('User properties to associate with the conversation'),
           }),
         },
       },
@@ -315,6 +320,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
         conversationId,
       });
       if (!activeAgent) {
+        const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
         await setActiveAgentForConversation(runDbClient)({
           scopes: { tenantId, projectId },
           conversationId,
@@ -322,6 +328,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           ref: executionContext.resolvedRef,
           agentId: agentId,
           userId: executionContext.metadata?.endUserId,
+          ...(conversationMeta ? { metadata: conversationMeta } : {}),
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
