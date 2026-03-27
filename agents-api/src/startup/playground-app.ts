@@ -53,12 +53,25 @@ export async function ensurePlaygroundAppConfig(): Promise<void> {
   const auth = { ...((webClient.auth ?? {}) as Record<string, unknown>) };
   let configChanged = false;
 
-  // --- Domain verification (additive — new domains are merged, existing ones preserved) ---
+  // --- Domain verification (additive, but replaces wildcard) ---
+  // Domains are merged so that domain changes don't break pre-existing usages.
+  // However, the wildcard ("*") was the insecure seed default — once we can derive
+  // concrete domains, the wildcard is stripped to enforce actual domain verification.
   const derivedDomains = derivePlaygroundDomains();
   const currentDomains = (webClient.allowedDomains ?? []) as string[];
-  const newDomains = derivedDomains.filter((d) => !currentDomains.includes(d));
+  const hasWildcard = currentDomains.includes('*');
+  const specificDomains = currentDomains.filter((d) => d !== '*');
+  const newDomains = derivedDomains.filter((d) => !specificDomains.includes(d));
 
-  if (newDomains.length > 0) {
+  if (hasWildcard && derivedDomains.length > 0) {
+    const mergedDomains = [...specificDomains, ...newDomains];
+    logger.info(
+      { appId, previousDomains: currentDomains, removedWildcard: true, mergedDomains },
+      'Replacing wildcard with explicit domains on playground app'
+    );
+    webClient.allowedDomains = mergedDomains;
+    configChanged = true;
+  } else if (newDomains.length > 0) {
     const mergedDomains = [...currentDomains, ...newDomains];
     logger.info(
       { appId, currentDomains, addedDomains: newDomains, mergedDomains },
