@@ -1,6 +1,7 @@
 import {
   type BaseExecutionContext,
   canUseProjectStrict,
+  createApiError,
   getAppById,
   getPoWErrorMessage,
   isSlackUserToken,
@@ -628,13 +629,22 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       );
 
       if (!asymResult.ok) {
+        const allowAnonymous = config.webClient.auth?.allowAnonymous !== false;
+        if (!allowAnonymous) {
+          logger.debug(
+            { appId: app.id, reason: asymResult.failureMessage },
+            'Asymmetric JWT verification failed, anonymous not allowed'
+          );
+          throw createApiError({ code: 'unauthorized', message: asymResult.failureMessage });
+        }
         logger.debug(
           { appId: app.id, reason: asymResult.failureMessage },
-          'Asymmetric JWT verification failed'
+          'Asymmetric JWT verification failed, falling back to anonymous'
         );
-        throw new HTTPException(401, { message: asymResult.failureMessage });
+        // Don't return — fall through to anonymous path below
       }
 
+      if (asymResult.ok) {
       authMethod = 'app_credential_web_client_authenticated';
       endUserId = asymResult.endUserId;
 
@@ -656,7 +666,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       // Enforce 1KB size limit on verified claims
       const claimsJson = JSON.stringify(verifiedClaims);
       if (claimsJson.length > 1024) {
-        throw new HTTPException(401, {
+        throw createApiError({
+          code: 'unauthorized',
           message: `Token custom claims exceed 1KB limit (${claimsJson.length} bytes)`,
         });
       }
@@ -679,7 +690,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         const claimAgentId = typeof claims.agentId === 'string' ? claims.agentId : undefined;
 
         if (!tid || !pid) {
-          throw new HTTPException(401, {
+          throw createApiError({
+            code: 'unauthorized',
             message: 'Global app requires tid and pid claims in token',
           });
         }
@@ -749,7 +761,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
           },
         },
       };
-    }
+      } // end if (asymResult.ok)
+    } // end if (hasAuthConfigured)
 
     const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
     if (!pow.ok) {

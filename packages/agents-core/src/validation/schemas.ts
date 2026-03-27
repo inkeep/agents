@@ -1941,6 +1941,7 @@ export const WebClientAuthConfigSchema = z
     publicKeys: z.array(PublicKeyConfigSchema).max(5).default([]),
     audience: z.string().optional(),
     validateScopeClaims: z.boolean().optional(),
+    allowAnonymous: z.boolean().optional(),
   })
   .openapi('WebClientAuthConfig');
 
