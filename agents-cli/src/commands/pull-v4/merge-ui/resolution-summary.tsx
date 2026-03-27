@@ -69,7 +69,7 @@ export function ResolutionSummary({
           </Text>
           <Text> to apply, </Text>
           <Text bold color="yellow">
-            b
+            p
           </Text>
           <Text> to go back, </Text>
           <Text bold color="yellow">
