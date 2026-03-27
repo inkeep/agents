@@ -143,7 +143,7 @@ interface ModelConfigurationProps {
   /** Called when the model value changes */
   onModelChange?: (value: string) => void;
   /** Called when provider options change */
-  onProviderOptionsChange?: (value: string | undefined) => void;
+  onProviderOptionsChange?: (value: string) => void;
   /** Unique name prefix for the JSON editor */
   editorNamePrefix?: string;
   /** Custom placeholder for the JSON editor based on model type */
@@ -212,7 +212,7 @@ export function ModelConfiguration({
     // 2. Switching from inherited to explicit (even if same model)
     if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
       setInternalProviderOptions(undefined);
-      onProviderOptionsChange?.(undefined);
+      onProviderOptionsChange?.('');
     }
 
     onModelChange?.(newModel || '');
@@ -221,7 +221,7 @@ export function ModelConfiguration({
   const handleProviderOptionsChange = (options: Record<string, any>) => {
     if (!options || Object.keys(options).length === 0) {
       setInternalProviderOptions(undefined);
-      onProviderOptionsChange?.(undefined);
+      onProviderOptionsChange?.('');
       return;
     }
     const jsonString = JSON.stringify(options, null, 2);
@@ -230,12 +230,7 @@ export function ModelConfiguration({
   };
 
   // Handle both string (from JSON editors) and object (from ModelSelector) inputs
-  const handleProviderOptionsStringChange = (value: string | undefined) => {
-    // Don't update with empty string if we have valid internal state
-    if (value === '' && internalProviderOptions && internalProviderOptions !== '') {
-      return;
-    }
-
+  const handleProviderOptionsStringChange = (value = '') => {
     setInternalProviderOptions(value);
     onProviderOptionsChange?.(value);
   };
