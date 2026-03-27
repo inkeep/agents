@@ -1,7 +1,7 @@
 -- Custom SQL migration file, put your code below! --
 INSERT INTO "apps" ("id", "name", "description", "type", "enabled", "config", "created_at", "updated_at")
 VALUES (
-  COALESCE(current_setting('app.playground_app_id', true), 'app_playground'),
+  'app_playground',
   'Playground',
   'Global playground app for the manage UI',
   'web_client',

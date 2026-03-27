@@ -156,8 +156,8 @@ export function ChatWidget({
             ...(playgroundAppId && tempApiKey
               ? {
                   getAuthToken: async () => {
-                    await refreshToken();
-                    return tempApiKey;
+                    const token = await refreshToken();
+                    return token ?? tempApiKey;
                   },
                 }
               : {}),
