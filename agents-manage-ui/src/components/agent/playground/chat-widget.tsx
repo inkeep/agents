@@ -83,7 +83,11 @@ export function ChatWidget({
   const { data: dataComponents } = useDataComponentsQuery();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
-  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
+  const {
+    apiKey: tempApiKey,
+    appId: playgroundAppId,
+    isLoading: isLoadingKey,
+  } = useTempApiKey({
     tenantId,
     projectId,
     agentId: agentId || '',
@@ -231,11 +235,18 @@ export function ChatWidget({
             conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
             headers: {
-              'x-inkeep-tenant-id': tenantId,
-              'x-inkeep-project-id': projectId,
-              'x-inkeep-agent-id': agentId || '',
+              ...(playgroundAppId
+                ? {
+                    'x-inkeep-app-id': playgroundAppId,
+                    Authorization: `Bearer ${tempApiKey}`,
+                  }
+                : {
+                    'x-inkeep-tenant-id': tenantId,
+                    'x-inkeep-project-id': projectId,
+                    'x-inkeep-agent-id': agentId || '',
+                    Authorization: `Bearer ${tempApiKey}`,
+                  }),
               'x-emit-operations': 'true',
-              Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
             messageActions: isCopilotConfigured

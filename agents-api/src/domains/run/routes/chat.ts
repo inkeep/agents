@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  buildConversationMetadata,
   type CredentialStoreRegistry,
   createApiError,
   createMessage,
@@ -101,6 +102,10 @@ const chatCompletionsRoute = createProtectedRoute({
               .describe(
                 'Headers data for template processing (validated against context config schema)'
               ),
+            userProperties: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe('User properties to associate with the conversation'),
           }),
         },
       },
@@ -251,6 +256,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
+      const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
       await createOrGetConversation(runDbClient)({
         tenantId,
         projectId,
@@ -259,6 +265,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         activeSubAgentId: defaultSubAgentId,
         ref: executionContext.resolvedRef,
         userId: executionContext.metadata?.endUserId,
+        ...(conversationMeta ? { metadata: conversationMeta } : {}),
       });
 
       const activeAgent = await getActiveAgentForConversation(runDbClient)({
