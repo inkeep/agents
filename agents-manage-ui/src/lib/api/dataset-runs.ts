@@ -37,11 +37,6 @@ interface DatasetRunItemWithConversations {
     headers?: Record<string, string>;
   } | null;
   expectedOutput?: Array<{ role: string; content: unknown }> | null;
-  simulationAgent?: {
-    stopWhen?: unknown;
-    prompt: string;
-    model: unknown;
-  } | null;
   createdAt: string;
   updatedAt: string;
   conversations: DatasetRunConversation[];

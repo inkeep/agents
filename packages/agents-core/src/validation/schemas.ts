@@ -230,16 +230,6 @@ export const ModelSettingsSchema = z
 
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 
-export const SimulationAgentSchema = z
-  .object({
-    stopWhen: StopWhenSchema.optional(),
-    prompt: z.string(),
-    model: ModelSettingsSchema,
-  })
-  .openapi('SimulationAgent');
-
-export type SimulationAgent = z.infer<typeof SimulationAgentSchema>;
-
 export const ModelSchema = z
   .object({
     base: ModelSettingsSchema.optional(),
@@ -1593,20 +1583,10 @@ export const DatasetRunItemSchema = DatasetItemApiSelectSchema.pick({
   id: true,
   input: true,
   expectedOutput: true,
-  simulationAgent: true,
 })
   .partial()
   .extend({ agentId: z.string() })
   .openapi('DatasetRunItem');
-
-export const TriggerDatasetRunSchema = z
-  .object({
-    datasetRunId: z.string(),
-    items: z.array(DatasetRunItemSchema),
-    evaluatorIds: z.array(z.string()).optional(),
-    evaluationRunId: z.string().optional(),
-  })
-  .openapi('TriggerDatasetRun');
 
 export const TriggerConversationEvaluationSchema = z
   .object({

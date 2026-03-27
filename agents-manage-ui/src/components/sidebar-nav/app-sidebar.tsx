@@ -8,6 +8,7 @@ import {
   Blocks,
   Coins,
   Component,
+  Database,
   Globe,
   Key,
   Layers,
@@ -174,12 +175,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
         },
-        // Disabling test suites
-        // {
-        //   title: 'Test Suites',
-        //   url: `/${tenantId}/projects/${projectId}/datasets`,
-        //   icon: Database,
-        // },
+        {
+          title: 'Test Suites',
+          url: `/${tenantId}/projects/${projectId}/datasets`,
+          icon: Database,
+        },
         {
           title: STATIC_LABELS.evaluations,
           url: `/${tenantId}/projects/${projectId}/evaluations`,
