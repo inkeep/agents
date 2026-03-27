@@ -75,7 +75,7 @@ describe('WebClientAuthConfigSchema', () => {
       addedAt: '2026-03-24T00:00:00Z',
     }));
     const result = WebClientAuthConfigSchema.parse({ publicKeys: keys });
-    expect(result.publicKeys).toHaveLength(5);
+    expect(result.publicKeys).toHaveLength(10);
   });
 });
 
