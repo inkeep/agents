@@ -1,11 +1,8 @@
 import { createHash } from 'node:crypto';
 import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
-import { getLogger } from '../../../../logger';
 import { parseDataUri } from '../../utils/message-parts';
 import { getBlobStorageProvider, isBlobUri, toBlobUri } from './index';
 import { buildStorageKey } from './storage-keys';
-
-const logger = getLogger('artifact-binary-sanitizer');
 
 export interface ArtifactBinaryContext {
   tenantId: string;
@@ -54,22 +51,7 @@ async function uploadInlinePart(
     ext,
   });
 
-  try {
-    await storage.upload({ key, data: buffer, contentType: mimeType });
-  } catch (error) {
-    logger.error(
-      {
-        error: error instanceof Error ? error.message : String(error),
-        tenantId: ctx.tenantId,
-        projectId: ctx.projectId,
-        artifactId: ctx.artifactId,
-        mimeType,
-        size: buffer.length,
-      },
-      'Failed to upload artifact binary data to blob storage, returning original inline data'
-    );
-    return part;
-  }
+  await storage.upload({ key, data: buffer, contentType: mimeType });
 
   return { ...part, data: toBlobUri(key) };
 }

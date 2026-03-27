@@ -126,6 +126,8 @@ export interface ActivityItem {
   artifactRetrievalBlocked?: boolean;
   artifactOriginalTokenSize?: number;
   artifactContextWindowSize?: number;
+  artifactBinaryChildCount?: number;
+  artifactBinaryChildIds?: string[];
   // Tool approval fields
   approvalToolName?: string;
   approvalToolCallId?: string;

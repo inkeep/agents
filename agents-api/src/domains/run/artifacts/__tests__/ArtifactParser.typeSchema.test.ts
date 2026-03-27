@@ -31,6 +31,16 @@ vi.mock('@inkeep/agents-core', () => ({
     debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
   })),
+  getTracer: vi.fn(() => ({
+    startSpan: vi.fn(),
+    startActiveSpan: vi.fn((_name: string, fn: (span: any) => any) =>
+      fn({ end: vi.fn(), setStatus: vi.fn(), setAttribute: vi.fn() })
+    ),
+  })),
+  setSpanWithError: vi.fn(),
+  upsertLedgerArtifact: vi.fn(() => vi.fn()),
+  bulkInsertLedgerArtifacts: vi.fn(() => vi.fn()),
+  generateId: vi.fn(() => 'mock-id'),
 }));
 
 vi.mock('../../../../data/db/runDbClient', () => ({ default: 'mock-run-db-client' }));

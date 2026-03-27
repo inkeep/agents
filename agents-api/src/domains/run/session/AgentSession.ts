@@ -25,7 +25,8 @@ import { ArtifactService } from '../artifacts/ArtifactService';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
   ARTIFACT_GENERATION_BACKOFF_MAX_MS,
-  ARTIFACT_GENERATION_MAX_RETRIES,
+  ARTIFACT_SAVE_MAX_RETRIES,
+  ARTIFACT_SAVE_RETRY_DELAY_MS,
   ARTIFACT_SESSION_MAX_PENDING,
   ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES,
   STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
@@ -156,6 +157,8 @@ export interface ArtifactSavedData {
     };
     schemaFound: boolean;
   };
+  binaryChildArtifactCount?: number;
+  binaryChildArtifactIds?: string[];
 }
 
 export interface ToolCallData {
@@ -220,7 +223,7 @@ export class AgentSession {
   private isGeneratingUpdate: boolean = false;
   private pendingArtifacts = new Set<string>(); // Track pending artifact processing
   private artifactProcessingErrors = new Map<string, number>(); // Track errors per artifact
-  private readonly MAX_ARTIFACT_RETRIES = ARTIFACT_GENERATION_MAX_RETRIES;
+  private readonly MAX_SAVE_RETRIES = ARTIFACT_SAVE_MAX_RETRIES;
   private readonly MAX_PENDING_ARTIFACTS = ARTIFACT_SESSION_MAX_PENDING; // Prevent unbounded growth
   private scheduledTimeouts?: Set<ReturnType<typeof setTimeout>>; // Track scheduled timeouts for cleanup
   private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
@@ -458,18 +461,18 @@ export class AgentSession {
               const errorCount = (this.artifactProcessingErrors.get(artifactId) || 0) + 1;
               this.artifactProcessingErrors.set(artifactId, errorCount);
 
-              if (errorCount >= this.MAX_ARTIFACT_RETRIES) {
+              if (errorCount > this.MAX_SAVE_RETRIES) {
                 this.pendingArtifacts.delete(artifactId);
                 logger.error(
                   {
                     sessionId: this.sessionId,
                     artifactId,
                     errorCount,
-                    maxRetries: this.MAX_ARTIFACT_RETRIES,
+                    maxRetries: this.MAX_SAVE_RETRIES,
                     error: error instanceof Error ? error.message : 'Unknown error',
                     stack: error instanceof Error ? error.stack : undefined,
                   },
-                  'Artifact processing failed after max retries, giving up'
+                  'Artifact processing failed after retry, giving up'
                 );
               } else {
                 logger.warn(
@@ -479,8 +482,29 @@ export class AgentSession {
                     errorCount,
                     error: error instanceof Error ? error.message : 'Unknown error',
                   },
-                  'Artifact processing failed, may retry'
+                  'Artifact processing failed, retrying'
                 );
+                setTimeout(() => {
+                  this.processArtifact(artifactDataWithAgent)
+                    .then(() => {
+                      this.pendingArtifacts.delete(artifactId);
+                      this.artifactProcessingErrors.delete(artifactId);
+                    })
+                    .catch((retryError) => {
+                      this.pendingArtifacts.delete(artifactId);
+                      logger.error(
+                        {
+                          sessionId: this.sessionId,
+                          artifactId,
+                          errorCount: errorCount + 1,
+                          maxRetries: this.MAX_SAVE_RETRIES,
+                          error: retryError instanceof Error ? retryError.message : 'Unknown error',
+                          stack: retryError instanceof Error ? retryError.stack : undefined,
+                        },
+                        'Artifact processing failed after retry, giving up'
+                      );
+                    });
+                }, ARTIFACT_SAVE_RETRY_DELAY_MS);
               }
             });
         });
@@ -1434,6 +1458,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'artifact.retrieval_blocked': artifactData.metadata?.retrievalBlocked || false,
           'artifact.original_token_size': artifactData.metadata?.originalTokenSize || 0,
           'artifact.context_window_size': artifactData.metadata?.contextWindowSize || 0,
+          'artifact.binary_child_count': artifactData.binaryChildArtifactCount || 0,
+          'artifact.binary_child_ids': JSON.stringify(artifactData.binaryChildArtifactIds || []),
         },
       },
       async (span) => {
@@ -1773,7 +1799,7 @@ Make the name extremely specific to what this tool call actually returned, not g
               throw new Error('ArtifactService is not initialized');
             }
 
-            await this.artifactService.saveArtifact({
+            const saveResult = await this.artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
               description: result.description,
@@ -1789,6 +1815,8 @@ Make the name extremely specific to what this tool call actually returned, not g
             span.setAttributes({
               'artifact.name': result.name,
               'artifact.description': result.description,
+              'artifact.binary_child_count': saveResult.binaryChildArtifactCount,
+              'artifact.binary_child_ids': JSON.stringify(saveResult.binaryChildArtifactIds),
               'processing.success': true,
             });
             span.setStatus({ code: SpanStatusCode.OK });
@@ -1819,7 +1847,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                   sessionId: this.sessionId,
                 });
 
-                await artifactService.saveArtifact({
+                const saveResult = await artifactService.saveArtifact({
                   artifactId: artifactData.artifactId,
                   name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
                   description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool results'}`,
@@ -1828,6 +1856,11 @@ Make the name extremely specific to what this tool call actually returned, not g
                   summaryData: artifactData.summaryData,
                   metadata: artifactData.metadata || {},
                   toolCallId: artifactData.toolCallId,
+                });
+
+                span.setAttributes({
+                  'artifact.binary_child_count': saveResult.binaryChildArtifactCount,
+                  'artifact.binary_child_ids': JSON.stringify(saveResult.binaryChildArtifactIds),
                 });
 
                 logger.info(
