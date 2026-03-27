@@ -197,7 +197,7 @@ export function AuthKeysSection({ tenantId, projectId, appId }: AuthKeysSectionP
               value={publicKey}
               onChange={(e) => setPublicKey(e.target.value)}
               placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
-              className="font-mono text-xs min-h-24"
+              className="font-mono text-xs min-h-24 break-all whitespace-pre-wrap"
             />
           </div>
 

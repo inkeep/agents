@@ -20,7 +20,7 @@ export function UpdateAppDialog({ app, agentOptions, setIsOpen }: UpdateAppDialo
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && setIsOpen(false)}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Edit App</DialogTitle>
           <DialogDescription className="sr-only">Update your app configuration.</DialogDescription>
