@@ -36,6 +36,7 @@ export type CreateScheduledTriggerInput = {
   retryDelaySeconds?: number;
   timeoutSeconds?: number;
   runAsUserId?: string | null;
+  ref?: string | null;
 };
 
 export type UpdateScheduledTriggerInput = Partial<CreateScheduledTriggerInput>;

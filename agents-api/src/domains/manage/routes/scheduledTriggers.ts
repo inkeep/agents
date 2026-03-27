@@ -4,6 +4,7 @@ import {
   cancelPendingInvocationsForTrigger,
   canUseProjectStrict,
   commonGetErrorResponses,
+  computeNextRunAt,
   createApiError,
   createScheduledTrigger,
   createScheduledTriggerInvocation,
@@ -44,11 +45,7 @@ import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
-import {
-  onTriggerCreated,
-  onTriggerDeleted,
-  onTriggerUpdated,
-} from '../../run/services/ScheduledTriggerService';
+import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { buildTimezoneHeaders, executeAgentAsync } from '../../run/services/TriggerService';
 
 export { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
@@ -109,11 +106,10 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
-    const { data, pagination } = await listScheduledTriggersPaginated(db)({
+    const { data, pagination } = await listScheduledTriggersPaginated(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -149,7 +145,7 @@ app.openapi(
         } else if (trigger.cronExpression) {
           // Cron trigger - calculate next execution time
           try {
-            const baseDate = runInfo.lastRunAt ? new Date(runInfo.lastRunAt) : new Date();
+            const baseDate = new Date();
             const interval = CronExpressionParser.parse(trigger.cronExpression, {
               currentDate: baseDate,
               tz: trigger.cronTimezone || 'UTC',
@@ -275,10 +271,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
-    const trigger = await getScheduledTriggerById(db)({
+    const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -332,7 +327,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
@@ -370,14 +364,23 @@ app.openapi(
       'Creating scheduled trigger'
     );
 
-    const trigger = await createScheduledTrigger(db)({
+    const enabled = body.enabled ?? true;
+    const nextRunAt = enabled
+      ? computeNextRunAt({
+          cronExpression: body.cronExpression,
+          cronTimezone: body.cronTimezone,
+          runAt: body.runAt,
+        })
+      : null;
+
+    const trigger = await createScheduledTrigger(runDbClient)({
       ...body,
       id,
       tenantId,
       projectId,
       agentId,
       description: body.description ?? null,
-      enabled: body.enabled ?? true,
+      enabled,
       cronExpression: body.cronExpression ?? null,
       cronTimezone: body.cronTimezone ?? 'UTC',
       runAt: body.runAt ?? null,
@@ -385,17 +388,8 @@ app.openapi(
       messageTemplate: body.messageTemplate ?? null,
       runAsUserId,
       createdBy: callerId || null,
+      nextRunAt,
     });
-
-    // Start workflow for enabled triggers
-    try {
-      await onTriggerCreated(trigger);
-    } catch (err) {
-      logger.error(
-        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
-        'Failed to start workflow for new scheduled trigger'
-      );
-    }
 
     const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
 
@@ -442,7 +436,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
@@ -462,6 +455,7 @@ app.openapi(
       body.cronExpression !== undefined ||
       body.cronTimezone !== undefined ||
       body.runAt !== undefined ||
+      body.ref !== undefined ||
       body.payload !== undefined ||
       body.messageTemplate !== undefined ||
       body.maxRetries !== undefined ||
@@ -499,8 +493,7 @@ app.openapi(
       'Updating scheduled trigger'
     );
 
-    // Get existing trigger to check if it exists
-    const existing = await getScheduledTriggerById(db)({
+    const existing = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -562,7 +555,26 @@ app.openapi(
       return defaultValue;
     };
 
-    const updatedTrigger = await updateScheduledTrigger(db)({
+    const mergedEnabled = body.enabled !== undefined ? body.enabled : existing.enabled;
+    const enabledChanged = body.enabled !== undefined && body.enabled !== existing.enabled;
+
+    let nextRunAt: string | null | undefined;
+    if (!mergedEnabled) {
+      nextRunAt = null;
+    } else if (scheduleChanged || enabledChanged) {
+      const mergedCron =
+        body.cronExpression !== undefined ? body.cronExpression : existing.cronExpression;
+      const mergedTimezone =
+        body.cronTimezone !== undefined ? body.cronTimezone : existing.cronTimezone;
+      const mergedRunAt = body.runAt !== undefined ? body.runAt : existing.runAt;
+      nextRunAt = computeNextRunAt({
+        cronExpression: mergedCron,
+        cronTimezone: mergedTimezone,
+        runAt: mergedRunAt,
+      });
+    }
+
+    const updatedTrigger = await updateScheduledTrigger(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
       data: {
@@ -575,6 +587,7 @@ app.openapi(
         ),
         timeoutSeconds: resolveRetryValue(body.timeoutSeconds, existing.timeoutSeconds, 300),
         runAsUserId,
+        ...(nextRunAt !== undefined ? { nextRunAt } : {}),
       },
     });
 
@@ -628,7 +641,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
     const tenantRole = c.get('tenantRole') as OrgRole;
@@ -644,8 +656,7 @@ app.openapi(
       'Deleting scheduled trigger'
     );
 
-    // First check if the trigger exists
-    const existing = await getScheduledTriggerById(db)({
+    const existing = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -672,18 +683,7 @@ app.openapi(
       );
     }
 
-    // Cancel active workflow
-    try {
-      await onTriggerDeleted(existing);
-    } catch (err) {
-      logger.error(
-        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
-        'Failed to cancel workflow for deleted scheduled trigger'
-      );
-      // Continue with deletion - workflow will stop on its own eventually
-    }
-
-    await deleteScheduledTrigger(db)({
+    await deleteScheduledTrigger(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -961,7 +961,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const {
       tenantId,
       projectId,
@@ -1005,8 +1004,7 @@ app.openapi(
       });
     }
 
-    // Get the trigger configuration for execution parameters
-    const trigger = await getScheduledTriggerById(db)({
+    const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId,
     });
@@ -1301,7 +1299,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id: scheduledTriggerId } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
     const tenantRole = c.get('tenantRole') as OrgRole;
@@ -1317,8 +1314,7 @@ app.openapi(
       'Running scheduled trigger now'
     );
 
-    // Get the trigger configuration
-    const trigger = await getScheduledTriggerById(db)({
+    const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId,
     });

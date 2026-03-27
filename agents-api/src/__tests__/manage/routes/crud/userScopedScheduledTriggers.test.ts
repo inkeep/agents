@@ -664,6 +664,8 @@ describe('User-Scoped Scheduled Triggers', () => {
       timeoutSeconds: 780,
       runAsUserId: 'user-a',
       createdBy: 'user-a',
+      ref: 'main',
+      nextRunAt: '2025-01-01T09:00:00Z',
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-01-01T00:00:00Z',
     };
@@ -895,18 +897,18 @@ describe('User-Scoped Scheduled Triggers', () => {
       });
       expect(resB.status).toBe(201);
 
-      const beforeList = await listScheduledTriggers(manageDbClient)({
+      const beforeList = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       expect(beforeList.length).toBe(2);
 
-      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+      await deleteScheduledTriggersByRunAsUserId(runDbClient)({
         tenantId,
         projectId,
         runAsUserId: userA,
       });
 
-      const afterList = await listScheduledTriggers(manageDbClient)({
+      const afterList = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       expect(afterList.length).toBe(1);
@@ -926,13 +928,13 @@ describe('User-Scoped Scheduled Triggers', () => {
       });
       expect(res.status).toBe(201);
 
-      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+      await deleteScheduledTriggersByRunAsUserId(runDbClient)({
         tenantId,
         projectId,
         runAsUserId: 'nonexistent-user',
       });
 
-      const afterList = await listScheduledTriggers(manageDbClient)({
+      const afterList = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       expect(afterList.length).toBe(1);
@@ -958,16 +960,16 @@ describe('User-Scoped Scheduled Triggers', () => {
         runAsUserId: userId,
       });
 
-      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+      await deleteScheduledTriggersByRunAsUserId(runDbClient)({
         tenantId,
         projectId,
         runAsUserId: userId,
       });
 
-      const list1 = await listScheduledTriggers(manageDbClient)({
+      const list1 = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId: agent1 },
       });
-      const list2 = await listScheduledTriggers(manageDbClient)({
+      const list2 = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId: agent2Id },
       });
       expect(list1.length).toBe(0);

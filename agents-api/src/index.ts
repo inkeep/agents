@@ -16,6 +16,7 @@ const logger = getLogger('agents-api-init');
 import { createEmailService } from '@inkeep/agents-email';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
+import { startSchedulerWorkflow } from './domains/run/services/SchedulerService';
 import { createAgentsAuth } from './factory';
 import type { SandboxConfig } from './types';
 import { recoverOrphanedWorkflows, world } from './workflow/world';
@@ -114,6 +115,8 @@ if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
       if (recoveredCount > 0) {
         logger.info({ recoveredCount }, 'Recovered orphaned workflow(s)');
       }
+      await startSchedulerWorkflow();
+      logger.info({}, 'Scheduler workflow started');
     } catch (err) {
       logger.error({ error: err }, 'Failed to start workflow world');
     }
