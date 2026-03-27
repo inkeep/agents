@@ -123,11 +123,14 @@
               { "name": "useAgentActions", "stableResult": true },
               { "name": "useMonacoActions", "stableResult": true },
               { "name": "useProjectActions", "stableResult": true },
-              { "name": "useDefaultSubAgentNodeIdRef", "stableResult": true },
               { "name": "useTheme", "stableResult": ["setTheme"] },
               {
                 "name": "useCopilotContext",
                 "stableResult": ["setIsOpen", "setIsStreaming", "openCopilot", "setDynamicHeaders"]
+              },
+              {
+                "name": "useSidePane",
+                "stableResult": ["setQueryState", "openAgentPane"]
               }
             ]
           }

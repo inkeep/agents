@@ -6,11 +6,9 @@ import {
   Controls,
   type Edge,
   type Node,
-  type OnSelectionChangeFunc,
   Panel,
   ReactFlow,
   type ReactFlowProps,
-  useOnSelectionChange,
   useReactFlow,
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
@@ -41,9 +39,9 @@ import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loadin
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
+import { useAgentSelectionSync } from '@/components/agent/use-agent-selection-sync';
 import { useAgentShortcuts } from '@/components/agent/use-agent-shortcuts';
 import { useAnimateGraph } from '@/components/agent/use-animate-graph';
-import { useDefaultSubAgentNodeIdRef } from '@/components/agent/use-default-sub-agent-id-ref';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -57,9 +55,6 @@ import {
   createMcpRelationFormInput,
   createSubAgentFormInput,
   editorToPayload,
-  findEdgeByGraphKey,
-  findNodeByGraphKey,
-  getEdgeGraphKey,
   getFunctionToolRelationFormKey,
   getMcpRelationFormKey,
   getNodeGraphKey,
@@ -155,7 +150,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
   }));
   const {
     setNodes,
-    setEdges,
     onNodesChange,
     onEdgesChange: onEdgesChangeAction,
     setInitial,
@@ -164,6 +158,13 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     markUnsaved,
     reset,
   } = useAgentActions();
+  const { backToAgent, closeSidePane, selectedEdge, selectedNode } = useAgentSelectionSync({
+    nodes,
+    edges,
+    isOpen,
+    nodeId,
+    edgeId,
+  });
 
   function onAddInitialNode(): void {
     const newNode = {
@@ -479,47 +480,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     commandManager.execute(new AddNodeCommand(newNode));
   };
 
-  const onSelectionChange: OnSelectionChangeFunc = ({ nodes, edges }) => {
-    const node = nodes.length === 1 ? nodes[0] : null;
-    const edge =
-      edges.length === 1 &&
-      (edges[0]?.type === EdgeType.A2A || edges[0]?.type === EdgeType.SelfLoop)
-        ? edges[0]
-        : null;
-    const defaultPane = isOpen ? 'agent' : null;
-    setQueryState(
-      {
-        pane: node ? 'node' : edge ? 'edge' : defaultPane,
-        nodeId: node ? getNodeGraphKey(node) : null,
-        edgeId: edge ? getEdgeGraphKey(edge, nodes) : null,
-      },
-      { history: 'replace' }
-    );
-  };
-
-  useOnSelectionChange({ onChange: onSelectionChange });
-
   useAgentShortcuts();
-
-  const closeSidePane = () => {
-    setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
-    setNodes((nodes) => nodes.map((node) => ({ ...node, selected: false })));
-    setQueryState({
-      pane: null,
-      nodeId: null,
-      edgeId: null,
-    });
-  };
-
-  const backToAgent = () => {
-    setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
-    setNodes((nodes) => nodes.map((node) => ({ ...node, selected: false })));
-    setQueryState({
-      pane: 'agent',
-      nodeId: null,
-      edgeId: null,
-    });
-  };
 
   const onSubmit = form.handleSubmit(
     async ({ mcpRelations, defaultSubAgentNodeId, ...data }): Promise<void> => {
@@ -590,47 +551,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     console.error
   );
 
-  // React Flow selection can stay the same while a selected node/edge gets a new graph key,
-  // so mirror the current canvas selection back into query state here.
-  useEffect(() => {
-    const selectedCanvasNode = nodes.filter((node) => node.selected);
-    const selectedCanvasEdge = edges.filter((edge) => edge.selected);
-    const singleSelectedNode = selectedCanvasNode.length === 1 ? selectedCanvasNode[0] : null;
-    const singleSelectedEdge = selectedCanvasEdge.length === 1 ? selectedCanvasEdge[0] : null;
-
-    if (singleSelectedNode) {
-      const nextNodeId = getNodeGraphKey(singleSelectedNode);
-      if (nextNodeId && nextNodeId !== nodeId) {
-        setQueryState(
-          {
-            pane: 'node',
-            nodeId: nextNodeId,
-            edgeId: null,
-          },
-          { history: 'replace' }
-        );
-      }
-      return;
-    }
-
-    if (
-      singleSelectedEdge &&
-      (singleSelectedEdge.type === EdgeType.A2A || singleSelectedEdge.type === EdgeType.SelfLoop)
-    ) {
-      const nextEdgeId = getEdgeGraphKey(singleSelectedEdge, nodes);
-      if (nextEdgeId && nextEdgeId !== edgeId) {
-        setQueryState(
-          {
-            pane: 'edge',
-            nodeId: null,
-            edgeId: nextEdgeId,
-          },
-          { history: 'replace' }
-        );
-      }
-    }
-  }, [edgeId, nodeId, nodes, edges, setQueryState]);
-
   useAnimateGraph();
 
   const onNodeClick: ReactFlowProps['onNodeClick'] = (_, node) => {
@@ -663,9 +583,6 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     isMounted &&
     !showEmptyState;
 
-  const defaultSubAgentNodeIdRef = useDefaultSubAgentNodeIdRef();
-  const selectedNode = findNodeByGraphKey(nodes, nodeId);
-  const selectedEdge = findEdgeByGraphKey(edges, nodes, edgeId);
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
@@ -725,7 +642,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
             setNodes(resolveCollisions);
           }}
           onBeforeDelete={async (state) => {
-            const defaultSubAgentNodeId = defaultSubAgentNodeIdRef.current;
+            const defaultSubAgentNodeId = form.getValues('defaultSubAgentNodeId');
             const hasDefaultNode = state.nodes.some((node) => node.id === defaultSubAgentNodeId);
             if (hasDefaultNode) {
               toast.error(`Cannot delete default subagent "${defaultSubAgentNodeId}"`);
