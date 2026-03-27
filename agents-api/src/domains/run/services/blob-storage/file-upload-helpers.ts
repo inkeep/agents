@@ -1,7 +1,7 @@
 import type { MessageContent, Part } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
 import { downloadExternalFile } from './external-file-downloader';
-import { PdfUrlIngestionError } from './file-security-errors';
+import { FileSecurityError, PdfUrlIngestionError } from './file-security-errors';
 import {
   hasFileParts,
   makeMessageContentParts,
@@ -93,6 +93,9 @@ export async function buildPersistedMessageContent(
 
     return { text, parts: contentParts };
   } catch (error) {
+    if (error instanceof FileSecurityError) {
+      throw error;
+    }
     logger.error(
       {
         error: error instanceof Error ? error.message : String(error),
