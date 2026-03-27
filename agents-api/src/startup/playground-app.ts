@@ -8,7 +8,7 @@ const logger = getLogger('playground-app');
 export async function ensurePlaygroundAppKey(): Promise<void> {
   const publicKeyB64 = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY;
   if (!publicKeyB64) {
-    logger.debug(
+    logger.info(
       {},
       'INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY not set, skipping playground key registration'
     );
@@ -16,9 +16,11 @@ export async function ensurePlaygroundAppKey(): Promise<void> {
   }
 
   const appId = env.INKEEP_PLAYGROUND_APP_ID || 'app_playground';
+  logger.info({ appId }, 'Registering playground app public key');
+
   const app = await getAppById(runDbClient)(appId);
   if (!app) {
-    logger.debug({ appId }, 'Playground app not found, skipping key registration');
+    logger.info({ appId }, 'Playground app not found, skipping key registration');
     return;
   }
 
@@ -39,7 +41,7 @@ export async function ensurePlaygroundAppKey(): Promise<void> {
   }>;
 
   if (existingKeys.some((k) => k.kid === kid)) {
-    logger.debug({ appId, kid }, 'Playground key already registered');
+    logger.info({ appId, kid }, 'Playground key already registered');
     return;
   }
 
