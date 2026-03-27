@@ -781,6 +781,9 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       const { payload } = await jwtVerify(bearerToken, secret, { issuer: 'inkeep' });
 
       if (payload.app !== appIdHeader) {
+        if (hasAuthConfigured) {
+          throw createApiError({ code: 'unauthorized', message: 'Invalid or expired token' });
+        }
         return {
           authResult: null,
           failureMessage: 'JWT app claim does not match request app ID',
@@ -796,6 +799,9 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             ? 'signature_invalid'
             : 'unknown';
       logger.debug({ errorType, appId: appIdHeader }, 'Anonymous JWT verification failed');
+      if (hasAuthConfigured) {
+        throw createApiError({ code: 'unauthorized', message: 'Invalid or expired token' });
+      }
       return { authResult: null, failureMessage: 'Invalid end-user JWT' };
     }
   } else {
