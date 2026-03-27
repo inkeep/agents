@@ -603,11 +603,7 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(ctx?.projectId).toBe('project-g');
       expect(ctx?.agentId).toBe('agent-g');
       expect(ctx?.metadata?.endUserId).toBe('user_global');
-      expect(mockCanUseProjectStrict).toHaveBeenCalledWith({
-        userId: 'user_global',
-        tenantId: 'tenant-g',
-        projectId: 'project-g',
-      });
+      expect(mockCanUseProjectStrict).not.toHaveBeenCalled();
     });
 
     it('should return 401 when global app token is missing tid/pid claims', async () => {
@@ -639,7 +635,7 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(res.status).toBe(401);
     });
 
-    it('should return 403 when canUseProjectStrict denies access for global app', async () => {
+    it('should return 403 when canUseProjectStrict denies access for global app with validateScopeClaims', async () => {
       const app = makeAppWithAuth(
         [
           {
@@ -650,7 +646,8 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
           },
         ],
         undefined,
-        { tenantId: null, projectId: null }
+        { tenantId: null, projectId: null },
+        { validateScopeClaims: true }
       );
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
       mockCanUseProjectStrict.mockResolvedValue(false);
