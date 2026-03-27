@@ -174,7 +174,7 @@ async function init() {
     if (tempJwtPublicKeyB64) {
       const { derivePlaygroundKid } = await import('../utils/jwt-helpers');
       const publicKeyPem = Buffer.from(tempJwtPublicKeyB64, 'base64').toString('utf-8');
-      const kid = derivePlaygroundKid(publicKeyPem);
+      const kid = await derivePlaygroundKid(publicKeyPem);
       publicKeys.push({
         kid,
         publicKey: publicKeyPem,

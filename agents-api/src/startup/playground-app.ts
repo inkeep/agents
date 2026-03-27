@@ -28,7 +28,7 @@ export async function ensurePlaygroundAppKey(): Promise<void> {
   }
 
   const publicKeyPem = Buffer.from(publicKeyB64, 'base64').toString('utf-8');
-  const kid = derivePlaygroundKid(publicKeyPem);
+  const kid = await derivePlaygroundKid(publicKeyPem);
   const webClient = app.config.webClient as Record<string, unknown>;
   const auth = (webClient.auth ?? {}) as Record<string, unknown>;
   const existingKeys = (auth.publicKeys ?? []) as Array<{
