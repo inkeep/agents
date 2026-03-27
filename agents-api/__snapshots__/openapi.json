@@ -10570,7 +10570,6 @@
             "items": {
               "$ref": "#/components/schemas/PublicKeyConfig"
             },
-            "maxItems": 5,
             "type": "array"
           },
           "validateScopeClaims": {
