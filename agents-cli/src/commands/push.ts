@@ -257,15 +257,13 @@ export async function pushCommand(options: PushOptions): Promise<void> {
           }
 
           s.stop('No conflicts detected');
-        } catch (error) {
+        } catch {
           s.stop('Could not check for conflicts, proceeding with push');
-          if (env.DEBUG) {
-            console.log(
-              chalk.gray(
-                `   Conflict check failed: ${error instanceof Error ? error.message : String(error)}`
-              )
-            );
-          }
+          console.log(
+            chalk.yellow(
+              `\n⚠ Conflict detection failed. Run \`inkeep pull\` first if you want to ensure no conflicts exist.`
+            )
+          );
         }
       }
     }
