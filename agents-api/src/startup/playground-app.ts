@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { getAppById, updateApp } from '@inkeep/agents-core';
-import { getLogger } from '../logger';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
+import { getLogger } from '../logger';
 
 const logger = getLogger('playground-app');
 
@@ -14,7 +14,10 @@ function deriveKid(publicKeyPem: string): string {
 export async function ensurePlaygroundAppKey(): Promise<void> {
   const publicKeyB64 = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY;
   if (!publicKeyB64) {
-    logger.debug({}, 'INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY not set, skipping playground key registration');
+    logger.debug(
+      {},
+      'INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY not set, skipping playground key registration'
+    );
     return;
   }
 
@@ -34,7 +37,12 @@ export async function ensurePlaygroundAppKey(): Promise<void> {
   const kid = deriveKid(publicKeyPem);
   const webClient = app.config.webClient as Record<string, unknown>;
   const auth = (webClient.auth ?? {}) as Record<string, unknown>;
-  const existingKeys = (auth.publicKeys ?? []) as Array<{ kid: string; publicKey: string; algorithm: string; addedAt: string }>;
+  const existingKeys = (auth.publicKeys ?? []) as Array<{
+    kid: string;
+    publicKey: string;
+    algorithm: string;
+    addedAt: string;
+  }>;
 
   if (existingKeys.some((k) => k.kid === kid)) {
     logger.debug({ appId, kid }, 'Playground key already registered');

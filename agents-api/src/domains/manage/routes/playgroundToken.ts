@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   canUseProject,
@@ -9,7 +10,6 @@ import {
   TenantParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
-import { createHash } from 'node:crypto';
 import { exportSPKI, importPKCS8, SignJWT } from 'jose';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
