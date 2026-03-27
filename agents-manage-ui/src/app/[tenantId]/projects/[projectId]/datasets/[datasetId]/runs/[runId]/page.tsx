@@ -249,7 +249,7 @@ export default function Page({
           <CardTitle>{run.runConfigName || `Run ${run.id.slice(0, 8)}`}</CardTitle>
           <CardDescription className="flex items-center gap-2 mt-1">
             <Clock className="h-3 w-3" />
-            Created {formatDateAgo(run.createdAt)}
+            Created {formatDateAgo(run.createdAt, { local: true })}
           </CardDescription>
           {isRunInProgress && (
             <div className="mt-4 flex flex-col gap-3 p-3 rounded-lg bg-muted/50 border">
@@ -419,7 +419,9 @@ export default function Page({
                           )}
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">{formatDateTime(run.createdAt)}</span>
+                          <span className="text-sm">
+                            {formatDateTime(run.createdAt, { local: true })}
+                          </span>
                         </TableCell>
                         <TableCell>
                           {conversationProgress.isRunning ? (
@@ -459,7 +461,9 @@ export default function Page({
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">{formatDateTime(conversation.createdAt)}</span>
+                        <span className="text-sm">
+                          {formatDateTime(conversation.createdAt, { local: true })}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Link

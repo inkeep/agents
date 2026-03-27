@@ -505,6 +505,7 @@ export async function dispatchExecution(params: {
   messageParts: Part[];
   userMessageText: string;
   runAsUserId?: string;
+  forwardedHeaders?: Record<string, string>;
 }): Promise<{ invocationId: string; conversationId: string }> {
   const {
     tenantId,
@@ -557,6 +558,7 @@ export async function dispatchExecution(params: {
     resolvedRef,
     dispatchedAt,
     runAsUserId,
+    forwardedHeaders: params.forwardedHeaders,
   });
 
   // Attach error handling so failures are always logged and invocation status is updated to failed
@@ -620,14 +622,20 @@ export async function executeAgentAsync(params: {
   triggerId: string;
   invocationId: string;
   conversationId: string;
-  userMessage: string;
-  messageParts: Part[];
   resolvedRef: ResolvedRef;
   dispatchedAt?: number;
   runAsUserId?: string;
   forwardedHeaders?: Record<string, string>;
   invocationType?: 'trigger' | 'scheduled_trigger';
-}): Promise<void> {
+  datasetRunId?: string;
+} & (
+  | { userMessage: string; messageParts: Part[]; messages?: undefined }
+  | {
+      messages: Array<{ role: string; content: unknown }>;
+      userMessage?: undefined;
+      messageParts?: undefined;
+    }
+)): Promise<void> {
   const {
     tenantId,
     projectId,
@@ -635,14 +643,30 @@ export async function executeAgentAsync(params: {
     triggerId,
     invocationId,
     conversationId,
-    userMessage,
-    messageParts,
     resolvedRef,
     dispatchedAt,
     runAsUserId,
+    messages,
+    datasetRunId,
     forwardedHeaders,
     invocationType = 'trigger',
   } = params;
+
+  let userMessage: string;
+  let messageParts: Part[];
+
+  if (messages && messages.length > 0) {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    userMessage = lastUser
+      ? typeof lastUser.content === 'string'
+        ? lastUser.content
+        : JSON.stringify(lastUser.content)
+      : '';
+    messageParts = [{ kind: 'text', text: userMessage }];
+  } else {
+    userMessage = params.userMessage ?? '';
+    messageParts = params.messageParts ?? [];
+  }
 
   const execStartedAt = Date.now();
   const dispatchDelayMs = dispatchedAt ? execStartedAt - dispatchedAt : undefined;
@@ -875,24 +899,43 @@ export async function executeAgentAsync(params: {
           ref: resolvedRef,
         });
 
-        await createMessage(runDbClient)({
-          scopes: { tenantId, projectId },
-          data: {
-            id: generateId(),
-            conversationId,
-            role: 'user',
-            content: {
-              text: userMessage,
-              parts: messageParts,
-            },
-            metadata: {
-              a2a_metadata: {
-                triggerId,
-                invocationId,
+        if (messages && messages.length > 0) {
+          for (const msg of messages) {
+            const text =
+              typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+            await createMessage(runDbClient)({
+              scopes: { tenantId, projectId },
+              data: {
+                id: generateId(),
+                conversationId,
+                role: msg.role as 'user' | 'assistant' | 'system',
+                content: {
+                  text,
+                  parts: [{ kind: 'text' as const, text }],
+                },
+                metadata: {
+                  a2a_metadata: { triggerId, invocationId },
+                },
+              },
+            });
+          }
+        } else {
+          await createMessage(runDbClient)({
+            scopes: { tenantId, projectId },
+            data: {
+              id: generateId(),
+              conversationId,
+              role: 'user',
+              content: {
+                text: userMessage,
+                parts: messageParts,
+              },
+              metadata: {
+                a2a_metadata: { triggerId, invocationId },
               },
             },
-          },
-        });
+          });
+        }
 
         // Build execution context
         const executionContext: FullExecutionContext = {
@@ -935,6 +978,7 @@ export async function executeAgentAsync(params: {
           requestId,
           sseHelper: noOpStreamHelper,
           emitOperations: false,
+          ...(datasetRunId && { datasetRunId }),
           forwardedHeaders: resolvedForwardedHeaders,
         });
 

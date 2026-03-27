@@ -1,0 +1,1 @@
+ALTER TABLE "dataset_item" DROP COLUMN "simulation_agent";
