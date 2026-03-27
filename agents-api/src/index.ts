@@ -90,6 +90,17 @@ const app = createAgentsHono({
   sandboxConfig,
 });
 
+// Register playground app public key on startup (idempotent)
+import { ensurePlaygroundAppKey } from './startup/playground-app';
+
+setTimeout(async () => {
+  try {
+    await ensurePlaygroundAppKey();
+  } catch (err) {
+    logger.error({ error: err }, 'Failed to register playground app key');
+  }
+}, 3000);
+
 // Start the workflow world worker and recover orphaned workflows.
 const workflowWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';
 if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
