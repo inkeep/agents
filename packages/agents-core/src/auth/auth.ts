@@ -246,17 +246,11 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         creatorRole: OrgRoles.ADMIN,
         membershipLimit: async (_user, org) => {
           const { resolveTotalMembershipLimit } = await import('./entitlements');
-          const { eq } = await import('drizzle-orm');
-          const { organization: orgTable } = await import('./auth-schema');
-          const [orgRow] = await config.dbClient
-            .select({ serviceAccountUserId: orgTable.serviceAccountUserId })
-            .from(orgTable)
-            .where(eq(orgTable.id, org.id));
-          return resolveTotalMembershipLimit(
-            config.dbClient,
-            org.id,
-            !!orgRow?.serviceAccountUserId
+          const { dalGetServiceAccountUserId } = await import(
+            '../data-access/runtime/entitlements'
           );
+          const serviceAccountUserId = await dalGetServiceAccountUserId(config.dbClient, org.id);
+          return resolveTotalMembershipLimit(config.dbClient, org.id, !!serviceAccountUserId);
         },
         invitationLimit: 300,
         invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)

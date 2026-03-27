@@ -7,6 +7,7 @@ import {
   BarChart3,
   Blocks,
   Component,
+  CreditCard,
   Globe,
   Key,
   Layers,
@@ -78,6 +79,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       title: STATIC_LABELS.members,
       url: `/${tenantId}/members`,
       icon: Users,
+    },
+    {
+      title: STATIC_LABELS.billing,
+      url: `/${tenantId}/billing`,
+      icon: CreditCard,
     },
     {
       title: STATIC_LABELS.settings,
