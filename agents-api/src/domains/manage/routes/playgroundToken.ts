@@ -2,6 +2,7 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   canUseProject,
   createApiError,
+  derivePlaygroundKid,
   ErrorResponseSchema,
   getAgentById,
   type OrgRole,
@@ -9,7 +10,7 @@ import {
   TenantParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
-import { importPKCS8, SignJWT } from 'jose';
+import { exportSPKI, importPKCS8, SignJWT } from 'jose';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
@@ -154,6 +155,12 @@ app.openapi(
     );
     const privateKey = await importPKCS8(privateKeyPem, 'RS256');
 
+    // Derive kid from the corresponding public key (same logic as startup/playground-app.ts)
+    const publicKeyPem = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
+      ? Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString('utf-8')
+      : await exportSPKI(privateKey);
+    const kid = await derivePlaygroundKid(publicKeyPem);
+
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
     const token = await new SignJWT({
@@ -161,7 +168,7 @@ app.openapi(
       pid: projectId,
       agentId,
     })
-      .setProtectedHeader({ alg: 'RS256', kid: 'playground-rsa' })
+      .setProtectedHeader({ alg: 'RS256', kid })
       .setSubject(userId)
       .setIssuedAt()
       .setExpirationTime('1h')

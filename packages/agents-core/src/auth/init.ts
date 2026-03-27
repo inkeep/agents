@@ -172,9 +172,11 @@ async function init() {
     const publicKeys: PublicKeyConfig[] = [];
 
     if (tempJwtPublicKeyB64) {
+      const { derivePlaygroundKid } = await import('../utils/jwt-helpers');
       const publicKeyPem = Buffer.from(tempJwtPublicKeyB64, 'base64').toString('utf-8');
+      const kid = await derivePlaygroundKid(publicKeyPem);
       publicKeys.push({
-        kid: 'playground-rsa',
+        kid,
         publicKey: publicKeyPem,
         algorithm: 'RS256',
         addedAt: new Date().toISOString(),
