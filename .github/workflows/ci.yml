@@ -73,7 +73,7 @@ jobs:
             fi
 
             if [ -n "$CHANGED_FILES" ]; then
-              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/.*\.md$' || true)
+              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/' || true)
               if [ -z "$NON_CHANGESET" ]; then
                 IS_CHANGESET=true
                 echo "Only .changeset/ files changed — skipping CI checks"
@@ -382,7 +382,7 @@ jobs:
             fi
 
             if [ -n "$CHANGED_FILES" ]; then
-              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/.*\.md$' || true)
+              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/' || true)
               if [ -z "$NON_CHANGESET" ]; then
                 IS_CHANGESET=true
                 echo "Only .changeset/ files changed — skipping E2E tests"
