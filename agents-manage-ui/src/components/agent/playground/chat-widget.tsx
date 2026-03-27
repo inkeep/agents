@@ -83,7 +83,11 @@ export function ChatWidget({
   const { data: dataComponents } = useDataComponentsQuery();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
-  const { apiKey: tempApiKey, appId: playgroundAppId, isLoading: isLoadingKey } = useTempApiKey({
+  const {
+    apiKey: tempApiKey,
+    appId: playgroundAppId,
+    isLoading: isLoadingKey,
+  } = useTempApiKey({
     tenantId,
     projectId,
     agentId: agentId || '',

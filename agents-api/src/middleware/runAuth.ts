@@ -639,8 +639,19 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       endUserId = asymResult.endUserId;
 
       // Extract verified claims (non-standard JWT fields) for runtime context
-      const { sub: _sub, iat: _iat, exp: _exp, aud: _aud, iss: _iss, jti: _jti, nbf: _nbf,
-        tid: _tid, pid: _pid, agentId: _agentIdClaim, ...verifiedClaims } = asymResult.claims;
+      const {
+        sub: _sub,
+        iat: _iat,
+        exp: _exp,
+        aud: _aud,
+        iss: _iss,
+        jti: _jti,
+        nbf: _nbf,
+        tid: _tid,
+        pid: _pid,
+        agentId: _agentIdClaim,
+        ...verifiedClaims
+      } = asymResult.claims;
 
       // Enforce 1KB size limit on verified claims
       const claimsJson = JSON.stringify(verifiedClaims);

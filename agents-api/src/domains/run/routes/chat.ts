@@ -263,7 +263,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
         activeSubAgentId: defaultSubAgentId,
         ref: executionContext.resolvedRef,
         userId: executionContext.metadata?.endUserId,
-        ...(body.userProperties || executionContext.metadata?.endUserId || executionContext.metadata?.verifiedClaims
+        ...(body.userProperties ||
+        executionContext.metadata?.endUserId ||
+        executionContext.metadata?.verifiedClaims
           ? {
               metadata: {
                 ...(body.userProperties ? { userContext: body.userProperties } : {}),
