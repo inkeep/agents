@@ -23,7 +23,7 @@ Classic mode runs the entire agent request in a single in-process loop. The LLM 
 
 Durable mode wraps agent execution in a workflow with persistent checkpoints. Each phase of execution (initialize, call LLM, execute tools, complete) is a separate step that persists its result before proceeding.
 
-- Execution state is persisted to the workflow backend (pg-boss in production)
+- Execution state is persisted to the workflow backend
 - If the server crashes, the workflow can resume from the last completed step
 - Tool approval suspends the workflow until the user responds, then resumes
 - Stream data is persisted by the workflow runtime for client reconnection
@@ -45,6 +45,19 @@ For most interactive chat use cases, **Classic** mode provides the best user exp
 
 ## Setting the execution mode
 
-In the Visual Builder, open your agent's settings panel and find the **Execution mode** section. Select either **Classic** or **Durable** from the dropdown.
+### In the Visual Builder
 
-The execution mode is set per-agent. Different agents in the same project can use different modes.
+Open your agent's settings panel and find the **Execution mode** section. Select either **Classic** or **Durable** from the dropdown. This sets the default for all requests to this agent.
+
+### Per-request override
+
+Clients can override the agent's default execution mode by passing `executionMode` in the request body:
+
+```json
+{
+  "messages": [{ "role": "user", "content": "Hello" }],
+  "executionMode": "durable"
+}
+```
+
+When provided, `executionMode` in the request takes precedence over the agent's configured default. This allows the same agent to handle both low-latency interactive chat (classic) and crash-recoverable workflows (durable) depending on the client's needs.
