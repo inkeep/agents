@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import type { FC } from 'react';
+import { type FC, useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
 import { FullAgentFormSchema as schema } from '@/components/agent/form/validation';
 import { GenericCheckbox } from '@/components/form/generic-checkbox';
@@ -15,11 +15,26 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { ExternalLink } from '@/components/ui/external-link';
 import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
   getExecutionLimitInheritanceStatus,
   getModelInheritanceStatus,
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
@@ -72,6 +87,15 @@ export const MetadataEditor: FC = () => {
   const timeInSeconds = useWatch({ control: form.control, name: 'statusUpdates.timeInSeconds' });
   const transferCountIs = useWatch({ control: form.control, name: 'stopWhen.transferCountIs' });
   const models = useWatch({ control: form.control, name: 'models' });
+  const subAgents = useWatch({ control: form.control, name: 'subAgents' });
+
+  const subAgentOptions = useMemo(() => {
+    if (!subAgents) return [];
+    return Object.entries(subAgents).map(([nodeId, subAgent]) => ({
+      value: nodeId,
+      label: subAgent.name || subAgent.id || nodeId,
+    }));
+  }, [subAgents]);
 
   return (
     <div className="space-y-8">
@@ -100,6 +124,45 @@ export const MetadataEditor: FC = () => {
         placeholder="This agent is used to..."
         isRequired={isRequired(schema, 'description')}
       />
+      {subAgentOptions.length > 0 && (
+        <FormField
+          control={form.control}
+          name="defaultSubAgentNodeId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Default sub agent <span className="text-red-500">*</span>
+              </FormLabel>
+              <Select
+                value={field.value ?? undefined}
+                onValueChange={(value) => {
+                  form.setValue('defaultSubAgentNodeId', value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a default sub agent..." />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {subAgentOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                The default sub agent is the initial entry point for conversations.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
       <GenericPromptEditor
         control={form.control}
         name="prompt"

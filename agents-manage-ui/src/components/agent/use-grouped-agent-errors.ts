@@ -25,7 +25,6 @@ export function useGroupedAgentErrors() {
     teamAgents = EMPTY_GROUP,
     tools,
     mcpRelations = EMPTY_GROUP,
-    defaultSubAgentNodeId,
     ...agentSettings
   } = errors;
   const functionToolFormData = form.getValues('functionTools');
@@ -88,6 +87,6 @@ export function useGroupedAgentErrors() {
       ...remapErrorGroup(mcpRelations, (nodeId) => nodeGraphKeysByNodeId.get(nodeId)),
     },
     agentSettings,
-    other: defaultSubAgentNodeId ? { defaultSubAgentNodeId } : EMPTY_GROUP,
+    other: EMPTY_GROUP,
   };
 }
