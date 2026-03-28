@@ -3,11 +3,79 @@ import { type Tool, type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
 import { formatOversizedRetrievalReason } from '../../artifacts/artifact-utils';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
+import { fromBlobUri, getBlobStorageProvider, isBlobUri } from '../../services/blob-storage';
 import { agentSessionManager } from '../../session/AgentSession';
 import type { AgentRunContext } from '../agent-types';
 import { wrapToolWithStreaming } from './tool-wrapper';
 
 const logger = getLogger('Agent');
+
+type BlobBackedArtifactData = {
+  blobUri: string;
+  mimeType?: string;
+  binaryType?: string;
+};
+
+type ArtifactToolResult = {
+  artifactId: string;
+  name: string;
+  description: string;
+  type?: string;
+  data: unknown;
+};
+
+function isBlobBackedArtifactData(value: unknown): value is BlobBackedArtifactData {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return typeof record.blobUri === 'string' && isBlobUri(record.blobUri);
+}
+
+async function buildHydratedReferenceArtifactResult(artifactData: ArtifactToolResult) {
+  if (!isBlobBackedArtifactData(artifactData.data)) {
+    return {
+      artifactId: artifactData.artifactId,
+      name: artifactData.name,
+      description: artifactData.description,
+      type: artifactData.type,
+      data: artifactData.data,
+    };
+  }
+
+  const storage = getBlobStorageProvider();
+  const blob = await storage.download(fromBlobUri(artifactData.data.blobUri));
+  const mimeType = artifactData.data.mimeType || blob.contentType || 'application/octet-stream';
+  const filename = artifactData.data.blobUri.split('/').at(-1);
+
+  return {
+    artifactId: artifactData.artifactId,
+    name: artifactData.name,
+    description: artifactData.description,
+    type: artifactData.type,
+    data: artifactData.data,
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify({
+          artifactId: artifactData.artifactId,
+          name: artifactData.name,
+          description: artifactData.description,
+          type: artifactData.type,
+          mimeType,
+          binaryType: artifactData.data.binaryType,
+        }),
+      },
+      {
+        type: 'file',
+        data: Buffer.from(blob.data).toString('base64'),
+        mimeType,
+        ...(filename ? { filename } : {}),
+      },
+    ],
+  };
+}
 
 export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {
   return tool({
@@ -66,13 +134,7 @@ export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {
         };
       }
 
-      return {
-        artifactId: artifactData.artifactId,
-        name: artifactData.name,
-        description: artifactData.description,
-        type: artifactData.type,
-        data: artifactData.data,
-      };
+      return buildHydratedReferenceArtifactResult(artifactData);
     },
   });
 }
@@ -117,7 +179,13 @@ export async function getDefaultTools(
 
   const compressionConfig = getModelAwareCompressionConfig();
   if ((await agentHasArtifactComponents(ctx)) || compressionConfig.enabled) {
-    defaultTools.get_reference_artifact = getArtifactTools(ctx);
+    defaultTools.get_reference_artifact = wrapToolWithStreaming(
+      ctx,
+      'get_reference_artifact',
+      getArtifactTools(ctx),
+      streamRequestId,
+      'tool'
+    );
   }
 
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);

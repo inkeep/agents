@@ -118,6 +118,34 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
     };
   }
 
+  if (item.type === 'file' && typeof item.data === 'string') {
+    return {
+      kind: 'file',
+      file: {
+        bytes: item.data,
+        ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+      },
+      metadata: {
+        type: 'file',
+        ...(typeof item.filename === 'string' ? { filename: item.filename } : {}),
+      },
+    };
+  }
+
+  if (item.type === 'file' && typeof item.url === 'string') {
+    return {
+      kind: 'file',
+      file: {
+        uri: item.url,
+        ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+      },
+      metadata: {
+        type: 'file',
+        ...(typeof item.filename === 'string' ? { filename: item.filename } : {}),
+      },
+    };
+  }
+
   return {
     kind: 'data',
     data: item as Record<string, unknown>,
