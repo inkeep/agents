@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createContext, type FC, type ReactNode, use } from 'react';
+import { createContext, type FC, type ReactNode, use, useEffect } from 'react';
 import { type UseFormReturn, useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { FullAgentFormSchema } from '@/components/agent/form/validation';
@@ -24,6 +24,11 @@ export const FullAgentFormProvider: FC<{
     resolver,
     mode: 'onChange',
   });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: validate initial data on mount to surface pre-existing issues (e.g. missing default sub agent)
+  useEffect(() => {
+    form.trigger();
+  }, []);
 
   return (
     <Form {...form}>
