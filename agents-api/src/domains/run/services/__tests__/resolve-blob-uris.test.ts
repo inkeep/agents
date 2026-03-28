@@ -1,5 +1,5 @@
 import type { MessageContent } from '@inkeep/agents-core';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   resolveMessageBlobUris,
   resolveMessagesListBlobUris,
@@ -11,8 +11,24 @@ vi.mock('../../../../env', () => ({
   },
 }));
 
+const mockGetPresignedUrl = vi.fn();
+
+vi.mock('../blob-storage/index', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../blob-storage/index')>();
+  return {
+    ...actual,
+    getBlobStorageProvider: vi.fn(() => ({
+      getPresignedUrl: undefined,
+    })),
+  };
+});
+
 describe('resolveMessageBlobUris', () => {
-  it('resolves blob file parts to media proxy URLs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('resolves blob file parts to media proxy URLs when presigned URLs are not available', async () => {
     const content: MessageContent = {
       text: 'Hello',
       parts: [
@@ -25,7 +41,7 @@ describe('resolveMessageBlobUris', () => {
       ],
     };
 
-    const resolved = resolveMessageBlobUris(content);
+    const resolved = await resolveMessageBlobUris(content);
 
     expect(resolved.parts).toHaveLength(2);
     expect(resolved.parts?.[0]).toEqual({ kind: 'text', text: 'Hello' });
@@ -36,7 +52,18 @@ describe('resolveMessageBlobUris', () => {
     });
   });
 
-  it('uses provided base URL override when specified', () => {
+  it('generates presigned URLs when provider supports getPresignedUrl', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    mockGetPresignedUrl.mockResolvedValue(
+      'https://bucket.s3.amazonaws.com/key?X-Amz-Signature=abc'
+    );
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+      getPresignedUrl: mockGetPresignedUrl,
+    });
+
     const content: MessageContent = {
       text: 'Hello',
       parts: [
@@ -48,7 +75,38 @@ describe('resolveMessageBlobUris', () => {
       ],
     };
 
-    const resolved = resolveMessageBlobUris(content, 'https://api.example.com');
+    const resolved = await resolveMessageBlobUris(content);
+
+    expect(mockGetPresignedUrl).toHaveBeenCalledWith(
+      'v1/t_tenant/media/p_project/conv/c_conversation/m_msg/sha256-hash.png'
+    );
+    expect(resolved.parts?.[0]).toEqual({
+      kind: 'file',
+      data: 'https://bucket.s3.amazonaws.com/key?X-Amz-Signature=abc',
+      metadata: { mimeType: 'image/png' },
+    });
+  });
+
+  it('uses provided base URL override when specified', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+    });
+
+    const content: MessageContent = {
+      text: 'Hello',
+      parts: [
+        {
+          kind: 'file',
+          data: 'blob://v1/t_tenant/media/p_project/conv/c_conversation/m_msg/sha256-hash.png',
+          metadata: { mimeType: 'image/png' },
+        },
+      ],
+    };
+
+    const resolved = await resolveMessageBlobUris(content, 'https://api.example.com');
 
     expect(resolved.parts?.[0]).toEqual({
       kind: 'file',
@@ -57,12 +115,19 @@ describe('resolveMessageBlobUris', () => {
     });
   });
 
-  it('returns content unchanged when there are no parts', () => {
+  it('returns content unchanged when there are no parts', async () => {
     const content: MessageContent = { text: 'Hello' };
-    expect(resolveMessageBlobUris(content)).toEqual(content);
+    expect(await resolveMessageBlobUris(content)).toEqual(content);
   });
 
-  it('returns non-blob file URIs unchanged', () => {
+  it('returns non-blob file URIs unchanged', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+    });
+
     const content: MessageContent = {
       text: 'Hello',
       parts: [
@@ -74,10 +139,17 @@ describe('resolveMessageBlobUris', () => {
       ],
     };
 
-    expect(resolveMessageBlobUris(content)).toEqual(content);
+    expect(await resolveMessageBlobUris(content)).toEqual(content);
   });
 
-  it('filters malformed blob keys that do not include tenant/project/conversation', () => {
+  it('filters malformed blob keys that do not include tenant/project/conversation', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+    });
+
     const content: MessageContent = {
       text: 'Hello',
       parts: [
@@ -90,13 +162,24 @@ describe('resolveMessageBlobUris', () => {
       ],
     };
 
-    const resolved = resolveMessageBlobUris(content);
+    const resolved = await resolveMessageBlobUris(content);
     expect(resolved.parts).toEqual([{ kind: 'text', text: 'keep-me' }]);
   });
 });
 
 describe('resolveMessagesListBlobUris', () => {
-  it('resolves blob URIs for each message in the list', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('resolves blob URIs for each message in the list', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+    });
+
     const messages = [
       {
         id: 'msg-1',
@@ -117,7 +200,7 @@ describe('resolveMessagesListBlobUris', () => {
       },
     ];
 
-    const resolved = resolveMessagesListBlobUris(messages);
+    const resolved = await resolveMessagesListBlobUris(messages);
 
     expect(resolved[0].content.parts?.[0]).toEqual({
       kind: 'file',

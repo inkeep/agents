@@ -181,7 +181,7 @@ app.openapi(
 
     const llmContext = formatMessagesForLLMContext(messages);
 
-    const resolvedMessages = resolveMessagesListBlobUris(messages);
+    const resolvedMessages = await resolveMessagesListBlobUris(messages);
 
     return c.json({
       data: {
