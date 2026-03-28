@@ -23,8 +23,15 @@ export async function resolveMessageBlobUris(
         const key = fromBlobUri(part.data);
 
         if (provider.getPresignedUrl) {
-          const presignedUrl = await provider.getPresignedUrl(key);
-          return { ...part, data: presignedUrl };
+          try {
+            const presignedUrl = await provider.getPresignedUrl(key);
+            return { ...part, data: presignedUrl };
+          } catch (error) {
+            logger.warn(
+              { key, error },
+              'Presigned URL generation failed, falling back to proxy URL'
+            );
+          }
         }
 
         const parsed = parseMediaStorageKey(key);
