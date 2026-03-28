@@ -87,6 +87,71 @@ describe('resolveMessageBlobUris', () => {
     });
   });
 
+  it('falls back to proxy URL when presigned URL generation fails', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    mockGetPresignedUrl.mockRejectedValue(new Error('S3 credential expired'));
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+      getPresignedUrl: mockGetPresignedUrl,
+    });
+
+    const content: MessageContent = {
+      text: 'Hello',
+      parts: [
+        {
+          kind: 'file',
+          data: 'blob://v1/t_tenant/media/p_project/conv/c_conversation/m_msg/sha256-hash.png',
+          metadata: { mimeType: 'image/png' },
+        },
+      ],
+    };
+
+    const resolved = await resolveMessageBlobUris(content);
+
+    expect(resolved.parts?.[0]).toEqual({
+      kind: 'file',
+      data: 'http://localhost:3002/manage/tenants/tenant/projects/project/conversations/conversation/media/m_msg%2Fsha256-hash.png',
+      metadata: { mimeType: 'image/png' },
+    });
+  });
+
+  it('handles mixed content with presigned URLs active', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    mockGetPresignedUrl.mockResolvedValue('https://bucket.s3.amazonaws.com/signed');
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+      getPresignedUrl: mockGetPresignedUrl,
+    });
+
+    const content: MessageContent = {
+      text: 'Mixed',
+      parts: [
+        { kind: 'text', text: 'Hello' },
+        {
+          kind: 'file',
+          data: 'blob://v1/t_tenant/media/p_project/conv/c_conversation/m_msg/sha256-hash.png',
+          metadata: { mimeType: 'image/png' },
+        },
+        {
+          kind: 'file',
+          data: 'https://example.com/external.png',
+          metadata: { mimeType: 'image/png' },
+        },
+      ],
+    };
+
+    const resolved = await resolveMessageBlobUris(content);
+
+    expect(resolved.parts).toHaveLength(3);
+    expect(resolved.parts?.[0]).toEqual({ kind: 'text', text: 'Hello' });
+    expect(resolved.parts?.[1]?.data).toBe('https://bucket.s3.amazonaws.com/signed');
+    expect(resolved.parts?.[2]?.data).toBe('https://example.com/external.png');
+  });
+
   it('uses provided base URL override when specified', async () => {
     const { getBlobStorageProvider } = await import('../blob-storage/index');
     vi.mocked(getBlobStorageProvider).mockReturnValue({
