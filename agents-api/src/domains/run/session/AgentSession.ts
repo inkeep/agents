@@ -657,6 +657,26 @@ export class AgentSession {
     return this.isTextStreaming;
   }
 
+  async waitForPendingArtifacts(maxWaitTime = 10000): Promise<void> {
+    if (this.pendingArtifacts.size === 0) return;
+
+    const startTime = Date.now();
+    while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    if (this.pendingArtifacts.size > 0) {
+      logger.warn(
+        {
+          sessionId: this.sessionId,
+          pendingCount: this.pendingArtifacts.size,
+          pendingIds: Array.from(this.pendingArtifacts),
+        },
+        'Proceeding with pending artifacts still processing'
+      );
+    }
+  }
+
   /**
    * Clean up status update resources when session ends
    */
@@ -671,25 +691,7 @@ export class AgentSession {
     this.statusUpdateState = undefined;
 
     // Wait for pending artifacts to complete before cleaning up artifactService
-    if (this.pendingArtifacts.size > 0) {
-      const maxWaitTime = 10000; // 10 seconds max wait
-      const startTime = Date.now();
-
-      while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
-        await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
-      }
-
-      if (this.pendingArtifacts.size > 0) {
-        logger.warn(
-          {
-            sessionId: this.sessionId,
-            pendingCount: this.pendingArtifacts.size,
-            pendingIds: Array.from(this.pendingArtifacts),
-          },
-          'Cleanup proceeding with pending artifacts still processing'
-        );
-      }
-    }
+    await this.waitForPendingArtifacts();
 
     // Clean up artifact tracking maps to prevent memory leaks
     this.pendingArtifacts.clear();

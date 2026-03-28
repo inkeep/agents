@@ -137,6 +137,7 @@ export abstract class BaseCompressor {
     const toolCallIds = this.extractToolCallIds(messagesToProcess);
     const existingArtifacts = await this.findExistingArtifacts([...new Set(toolCallIds)]);
     const toolCallToArtifactMap: Record<string, CompressedArtifactInfo> = {};
+    let createdArtifacts = false;
 
     for (const message of messagesToProcess) {
       this.convertDatabaseFormatMessage(message);
@@ -146,9 +147,29 @@ export abstract class BaseCompressor {
             const artifactInfo = await this.processToolResult(block, session, existingArtifacts);
             if (artifactInfo) {
               toolCallToArtifactMap[block.toolCallId] = artifactInfo;
+              if (!existingArtifacts.has(block.toolCallId)) {
+                createdArtifacts = true;
+              }
             }
           }
         }
+      }
+    }
+
+    if (
+      createdArtifacts &&
+      typeof (session as { waitForPendingArtifacts?: (maxWaitTime?: number) => Promise<void> })
+        .waitForPendingArtifacts === 'function'
+    ) {
+      await (
+        session as { waitForPendingArtifacts: (maxWaitTime?: number) => Promise<void> }
+      ).waitForPendingArtifacts();
+
+      const refreshedArtifacts = await this.findExistingArtifacts(
+        Object.keys(toolCallToArtifactMap)
+      );
+      for (const [toolCallId, artifactInfo] of refreshedArtifacts.entries()) {
+        toolCallToArtifactMap[toolCallId] = artifactInfo;
       }
     }
 
@@ -161,11 +182,12 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: unknown;
+        toolArgs?: Record<string, unknown>;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
+        childArtifacts?: CompressedArtifactInfo['childArtifacts'];
       }
     >
   > {
@@ -174,11 +196,12 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: unknown;
+        toolArgs?: Record<string, unknown>;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
+        childArtifacts?: CompressedArtifactInfo['childArtifacts'];
       }
     >();
 
@@ -190,22 +213,57 @@ export abstract class BaseCompressor {
         toolCallIds,
       });
 
+      const artifactsByToolCallId = new Map<string, typeof artifacts>();
       for (const artifact of artifacts) {
-        if (artifact.toolCallId) {
-          const dataPart = artifact.parts?.find(
-            (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
-              p.kind === 'data'
-          );
-          result.set(artifact.toolCallId, {
-            artifactId: artifact.artifactId,
-            isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
-            toolArgs: artifact.metadata?.toolArgs,
-            toolName: artifact.metadata?.toolName as string | undefined,
-            summaryData: dataPart?.data?.summary ?? dataPart?.data,
-            name: artifact.name,
-            description: artifact.description,
+        if (!artifact.toolCallId) continue;
+        const group = artifactsByToolCallId.get(artifact.toolCallId) ?? [];
+        group.push(artifact);
+        artifactsByToolCallId.set(artifact.toolCallId, group);
+      }
+
+      for (const [toolCallId, group] of artifactsByToolCallId.entries()) {
+        const primaryArtifact =
+          group.find((artifact) => !this.isBinaryPeerArtifact(artifact)) ?? group[0];
+        if (!primaryArtifact) continue;
+
+        const dataPart = primaryArtifact.parts?.find(
+          (p): p is Extract<(typeof primaryArtifact.parts)[number], { kind: 'data' }> =>
+            p.kind === 'data'
+        );
+        const childArtifacts = group
+          .filter(
+            (artifact) =>
+              artifact.artifactId !== primaryArtifact.artifactId &&
+              this.isBinaryPeerArtifact(artifact)
+          )
+          .map((artifact) => {
+            const childDataPart = artifact.parts?.find(
+              (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
+                p.kind === 'data'
+            );
+            const childData = childDataPart?.data as Record<string, unknown> | undefined;
+            return {
+              artifactId: artifact.artifactId,
+              toolCallId: artifact.toolCallId,
+              name: artifact.name,
+              description: artifact.description,
+              mimeType: (artifact.metadata?.mimeType as string | undefined) ?? undefined,
+              contentHash:
+                (artifact.metadata?.contentHash as string | undefined) ??
+                (childData?.contentHash as string | undefined),
+            };
           });
-        }
+
+        result.set(toolCallId, {
+          artifactId: primaryArtifact.artifactId,
+          isOversized: (primaryArtifact.metadata?.isOversized as boolean) ?? false,
+          toolArgs: primaryArtifact.metadata?.toolArgs,
+          toolName: primaryArtifact.metadata?.toolName as string | undefined,
+          summaryData: dataPart?.data?.summary ?? dataPart?.data,
+          name: primaryArtifact.name,
+          description: primaryArtifact.description,
+          childArtifacts,
+        });
       }
     } catch (error) {
       logger.warn(
@@ -219,6 +277,34 @@ export abstract class BaseCompressor {
     }
 
     return result;
+  }
+
+  private isBinaryPeerArtifact(artifact: {
+    type?: string;
+    metadata?: Record<string, unknown> | null;
+    parts?: Array<{ kind: string; data?: unknown }>;
+  }): boolean {
+    if (artifact.type?.endsWith('-binary-child')) {
+      return true;
+    }
+
+    if (
+      typeof artifact.metadata?.mimeType === 'string' ||
+      typeof artifact.metadata?.contentHash === 'string'
+    ) {
+      return true;
+    }
+
+    const dataPart = artifact.parts?.find((part) => part.kind === 'data') as
+      | { kind: 'data'; data?: unknown }
+      | undefined;
+    const data = dataPart?.data;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return false;
+    }
+
+    const record = data as Record<string, unknown>;
+    return typeof record.blobUri === 'string' || typeof record.binaryType === 'string';
   }
 
   private convertDatabaseFormatMessage(message: any): void {
@@ -253,11 +339,12 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: unknown;
+        toolArgs?: Record<string, unknown>;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
+        childArtifacts?: CompressedArtifactInfo['childArtifacts'];
       }
     >
   ): Promise<CompressedArtifactInfo | null> {
@@ -275,9 +362,11 @@ export abstract class BaseCompressor {
         artifactId: existing.artifactId,
         isOversized: existing.isOversized,
         toolArgs: existing.toolArgs as Record<string, unknown> | undefined,
+        toolName: existing.toolName,
         summaryData: existing.summaryData,
         name: existing.name,
         description: existing.description,
+        childArtifacts: existing.childArtifacts,
       };
     }
 
@@ -393,6 +482,7 @@ export abstract class BaseCompressor {
     return {
       artifactId,
       isOversized: artifactData.metadata.isOversized,
+      toolName: block.toolName,
       toolArgs: artifactData.metadata.toolArgs ?? undefined,
       structureInfo: artifactData.summaryData._structureInfo,
       oversizedWarning: artifactData.summaryData._oversizedWarning,
@@ -483,6 +573,40 @@ export abstract class BaseCompressor {
       .join('\n\n');
   }
 
+  private buildChildArtifactSummaries(
+    toolCallToArtifactMap: Record<string, CompressedArtifactInfo>
+  ): NonNullable<ConversationSummary['related_artifacts']> {
+    const relatedArtifacts: NonNullable<ConversationSummary['related_artifacts']> = [];
+    const seen = new Set<string>();
+
+    for (const parent of Object.values(toolCallToArtifactMap)) {
+      for (const child of parent.childArtifacts ?? []) {
+        if (!child.artifactId || seen.has(child.artifactId)) continue;
+        seen.add(child.artifactId);
+
+        const contentType = child.mimeType?.startsWith('image/')
+          ? 'image_attachment'
+          : 'binary_attachment';
+        const keyFindings = [
+          'Binary child artifact extracted from an attachment-bearing tool result',
+        ];
+        if (child.mimeType) keyFindings.push(`MIME type: ${child.mimeType}`);
+        if (child.contentHash) keyFindings.push(`Content hash: ${child.contentHash}`);
+
+        relatedArtifacts.push({
+          id: child.artifactId,
+          name: child.name || `${parent.name || parent.artifactId} attachment`,
+          tool_name: parent.toolName || 'unknown_tool',
+          tool_call_id: child.toolCallId || parent.summaryData?.toolCallId || '',
+          content_type: contentType,
+          key_findings: keyFindings,
+        });
+      }
+    }
+
+    return relatedArtifacts;
+  }
+
   protected async createConversationSummary(
     messages: any[],
     toolCallToArtifactMap: Record<string, CompressedArtifactInfo>,
@@ -512,6 +636,16 @@ export abstract class BaseCompressor {
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
       compressionCycle,
     });
+
+    const childArtifactSummaries = this.buildChildArtifactSummaries(toolCallToArtifactMap);
+    if (childArtifactSummaries.length > 0) {
+      const existingRelated = summary.related_artifacts ?? [];
+      const seen = new Set(existingRelated.map((artifact) => artifact.id));
+      summary.related_artifacts = [
+        ...existingRelated,
+        ...childArtifactSummaries.filter((artifact) => !seen.has(artifact.id)),
+      ];
+    }
 
     logger.info(
       {
@@ -548,16 +682,16 @@ export abstract class BaseCompressor {
 
       if (!artifacts.length) return this.cumulativeSummary;
 
-      const nameMap = new Map<string, { name?: string; description?: string }>(
+      const artifactIdMap = new Map<string, { name?: string; description?: string }>(
         artifacts
-          .filter((a) => a.toolCallId && (a.name || a.description))
-          .map((a) => [a.toolCallId as string, { name: a.name, description: a.description }])
+          .filter((a) => a.artifactId && (a.name || a.description))
+          .map((a) => [a.artifactId, { name: a.name, description: a.description }])
       );
 
       const refreshed = {
         ...this.cumulativeSummary,
         related_artifacts: this.cumulativeSummary.related_artifacts.map((a) => {
-          const db = nameMap.get(a.tool_call_id);
+          const db = artifactIdMap.get(a.id);
           return db
             ? {
                 ...a,

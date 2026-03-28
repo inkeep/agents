@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentSessionManager } from '../../session/AgentSession';
+import { distillConversation } from '../../tools/distill-conversation-tool';
 import { BaseCompressor } from '../BaseCompressor';
 
 // Mock dependencies
@@ -67,6 +68,7 @@ describe('BaseCompressor', () => {
     // Setup mock session
     mockSession = {
       recordEvent: vi.fn(),
+      waitForPendingArtifacts: vi.fn().mockResolvedValue(undefined),
     };
     vi.mocked(agentSessionManager.getSession).mockReturnValue(mockSession);
 
@@ -175,10 +177,15 @@ describe('BaseCompressor', () => {
 
       await compressor.saveToolResultsAsArtifacts(messages);
 
-      // Should call getLedgerArtifacts with batch toolCallIds
-      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(1);
-      const mockFn = mockGetLedgerArtifacts.mock.results[0].value;
-      expect(mockFn).toHaveBeenCalledWith({
+      // Should use batched lookups before and after async artifact processing
+      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(2);
+      const firstMockFn = mockGetLedgerArtifacts.mock.results[0].value;
+      expect(firstMockFn).toHaveBeenCalledWith({
+        scopes: { tenantId: 'tenant-789', projectId: 'project-abc' },
+        toolCallIds: ['call-1', 'call-2', 'call-3'],
+      });
+      const secondMockFn = mockGetLedgerArtifacts.mock.results[1].value;
+      expect(secondMockFn).toHaveBeenCalledWith({
         scopes: { tenantId: 'tenant-789', projectId: 'project-abc' },
         toolCallIds: ['call-1', 'call-2', 'call-3'],
       });
@@ -630,6 +637,131 @@ describe('BaseCompressor', () => {
   });
 
   describe('Integration Scenarios', () => {
+    it('refreshes saved artifacts after async processing and captures child artifacts', async () => {
+      const messages = [
+        {
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-with-children',
+              toolName: 'read_ticket',
+              input: { ticket_id: 6662 },
+              output: { content: [{ type: 'image', data: 'base64', mimeType: 'image/png' }] },
+            },
+          ],
+        },
+      ];
+
+      const { getLedgerArtifacts } = await import('@inkeep/agents-core');
+      const mockGetLedgerArtifacts = vi.mocked(getLedgerArtifacts);
+      mockGetLedgerArtifacts.mockReturnValueOnce(vi.fn().mockResolvedValue([])).mockReturnValueOnce(
+        vi.fn().mockResolvedValue([
+          {
+            artifactId: 'parent-artifact',
+            toolCallId: 'call-with-children',
+            name: 'Parent artifact',
+            description: 'Parent',
+            metadata: { toolName: 'read_ticket', isOversized: true, toolArgs: { ticket_id: 6662 } },
+            parts: [{ kind: 'data', data: { summary: { toolCallId: 'call-with-children' } } }],
+          },
+          {
+            artifactId: 'child-artifact',
+            toolCallId: 'call-with-children',
+            name: 'Attachment 1',
+            description: 'Binary payload extracted from tool result',
+            metadata: {
+              mimeType: 'image/png',
+              contentHash: 'sha256-abc',
+            },
+            parts: [
+              {
+                kind: 'data',
+                data: {
+                  blobUri: 'blob://v1/t_test/artifact-data/p_test/a_parent/sha256-abc.png',
+                  mimeType: 'image/png',
+                  contentHash: 'sha256-abc',
+                  binaryType: 'image',
+                },
+              },
+            ],
+          },
+        ])
+      );
+
+      const result = await compressor.saveToolResultsAsArtifacts(messages);
+
+      expect(mockSession.waitForPendingArtifacts).toHaveBeenCalled();
+      expect(result['call-with-children']?.artifactId).toBe('parent-artifact');
+      expect(result['call-with-children']?.childArtifacts).toEqual([
+        expect.objectContaining({
+          artifactId: 'child-artifact',
+          mimeType: 'image/png',
+          contentHash: 'sha256-abc',
+        }),
+      ]);
+    });
+
+    it('appends child artifacts to the compression summary', async () => {
+      vi.mocked(distillConversation).mockResolvedValueOnce({
+        type: 'conversation_summary_v1',
+        session_id: 'conv-456',
+        _fallback: null,
+        high_level: 'summary',
+        user_intent: 'intent',
+        decisions: [],
+        open_questions: [],
+        next_steps: { for_agent: [], for_user: [] },
+        related_artifacts: [
+          {
+            id: 'parent-artifact',
+            name: 'Parent artifact',
+            tool_name: 'read_ticket',
+            tool_call_id: 'call-with-children',
+            content_type: 'api_response',
+            key_findings: ['parent'],
+          },
+        ],
+      });
+
+      const summary = await (
+        compressor as unknown as {
+          createConversationSummary: (
+            messages: any[],
+            toolCallToArtifactMap: Record<string, any>,
+            compressionCycle?: number
+          ) => Promise<any>;
+        }
+      ).createConversationSummary([], {
+        'call-with-children': {
+          artifactId: 'parent-artifact',
+          isOversized: true,
+          toolName: 'read_ticket',
+          summaryData: { toolCallId: 'call-with-children' },
+          childArtifacts: [
+            {
+              artifactId: 'child-artifact',
+              toolCallId: 'call-with-children',
+              name: 'Attachment 1',
+              mimeType: 'image/png',
+              contentHash: 'sha256-abc',
+            },
+          ],
+        },
+      });
+
+      expect(summary.related_artifacts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'parent-artifact' }),
+          expect.objectContaining({
+            id: 'child-artifact',
+            tool_call_id: 'call-with-children',
+            tool_name: 'read_ticket',
+            content_type: 'image_attachment',
+          }),
+        ])
+      );
+    });
+
     it('should handle large conversations with many tool calls efficiently', async () => {
       // Simulate a large conversation
       const messages = [];
@@ -659,8 +791,8 @@ describe('BaseCompressor', () => {
       expect(duration).toBeLessThan(1000); // Less than 1 second
       expect(Object.keys(result)).toHaveLength(100);
 
-      // Should still only make one batch query
-      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(1);
+      // Should still avoid N+1 queries by using batched lookups only
+      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(2);
     });
 
     it('should maintain state consistency during cleanup cycles', () => {

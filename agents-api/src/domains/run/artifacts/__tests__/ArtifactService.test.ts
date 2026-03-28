@@ -1040,9 +1040,7 @@ describe('ArtifactService', () => {
       const { artifacts } = bulkInsertFn.mock.calls[0][0];
       expect(artifacts).toHaveLength(1);
       expect(artifacts[0].artifactId).toContain('bin_tool-call-1');
-      expect(artifacts[0].metadata).toMatchObject({
-        derivedFrom: 'parent-artifact',
-      });
+      expect(artifacts[0].metadata).not.toHaveProperty('derivedFrom');
 
       const upsertFn = upsertLedgerArtifactMock.mock.results[0]?.value;
       expect(upsertFn).toHaveBeenCalledTimes(1);

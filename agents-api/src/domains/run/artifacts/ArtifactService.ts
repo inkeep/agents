@@ -1064,7 +1064,7 @@ export class ArtifactService {
               artifactId: childArtifactId,
               type: `${params.parentArtifactType}-binary-child`,
               name: `${params.parentArtifactType} binary ${hash.slice(0, 12)}`,
-              description: 'Binary payload extracted from parent artifact',
+              description: 'Binary payload extracted from tool result',
               parts: [
                 {
                   kind: 'data',
@@ -1077,7 +1077,6 @@ export class ArtifactService {
                 },
               ],
               metadata: {
-                derivedFrom: params.parentArtifactId,
                 parentArtifactType: params.parentArtifactType,
                 toolCallId: params.toolCallId,
                 contentHash: hash,
