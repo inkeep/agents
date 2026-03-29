@@ -122,10 +122,14 @@ export class S3BlobStorageProvider implements BlobStorageProvider {
     const expiry = expiresInSeconds ?? env.BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS;
     logger.debug({ key, expiry }, 'Generating presigned URL');
     try {
-      return await getSignedUrl(
+      // Type cast needed: @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner may resolve
+      // to different internal type versions in the monorepo; runtime-compatible regardless
+      return await (getSignedUrl as any)(
         this.client,
         new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-        { expiresIn: expiry }
+        {
+          expiresIn: expiry,
+        }
       );
     } catch (error) {
       logger.error({ key, bucket: this.bucket, error }, 'S3 presigned URL generation failed');
