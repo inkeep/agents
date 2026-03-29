@@ -246,7 +246,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [showPlayground, isCopilotChatOpen, fitView]);
+  }, [showPlayground, isCopilotChatOpen, isOpen]);
 
   const onEdgesChangeWrapped: ReactFlowProps['onEdgesChange'] = (changes) => {
     const removedMcpRelationKeys = changes.flatMap((change) => {
@@ -616,7 +616,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         );
       }
     }
-  }, [edgeId, nodeId, nodes, edges, setQueryState]);
+  }, [edgeId, nodeId, nodes, edges]);
 
   useAnimateGraph();
 
