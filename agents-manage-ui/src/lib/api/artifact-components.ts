@@ -26,9 +26,6 @@ async function $fetchArtifactComponents(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<ArtifactComponent>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<ListResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components?limit=100`
   );
@@ -45,9 +42,6 @@ async function $fetchArtifactComponent(
   projectId: string,
   artifactComponentId: string
 ): Promise<ArtifactComponent> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
   );
@@ -64,9 +58,6 @@ export async function createArtifactComponent(
   projectId: string,
   artifactComponent: ArtifactComponentOutput
 ): Promise<ArtifactComponent> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components`,
     {
@@ -86,9 +77,6 @@ export async function updateArtifactComponent(
   projectId: string,
   artifactComponent: ArtifactComponentApiUpdate & { id: string }
 ): Promise<ArtifactComponent> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponent.id}`,
     {
@@ -108,9 +96,6 @@ export async function deleteArtifactComponent(
   projectId: string,
   artifactComponentId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
     {

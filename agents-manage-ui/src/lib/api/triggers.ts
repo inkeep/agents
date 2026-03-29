@@ -116,9 +116,6 @@ export async function deleteTrigger(
   agentId: string,
   triggerId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`,
     {
@@ -140,9 +137,6 @@ export async function rerunTrigger(
     messageParts?: Part[];
   }
 ): Promise<{ success: boolean; invocationId: string; conversationId: string }> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
     {

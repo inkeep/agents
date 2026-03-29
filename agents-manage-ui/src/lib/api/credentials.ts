@@ -27,9 +27,6 @@ export async function fetchCredentials(
   page = 1,
   pageSize = 100
 ): Promise<Credential[]> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const params = new URLSearchParams({
     page: page.toString(),
     limit: pageSize.toString(),
@@ -51,9 +48,6 @@ async function $fetchCredential(
   projectId: string,
   id: string
 ): Promise<Credential> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/credentials/${id}`
   );
@@ -72,9 +66,6 @@ export async function createCredential(
   projectId: string,
   data: CredentialReferenceApiInsert
 ): Promise<Credential> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/credentials`,
     {
@@ -96,9 +87,6 @@ export async function updateCredential(
   id: string,
   data: Partial<CredentialReferenceApiInsert>
 ): Promise<Credential> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/credentials/${id}`,
     {
@@ -119,9 +107,6 @@ export async function deleteCredential(
   projectId: string,
   id: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest<void>(
     `tenants/${tenantId}/projects/${projectId}/credentials/${id}`,
     {
