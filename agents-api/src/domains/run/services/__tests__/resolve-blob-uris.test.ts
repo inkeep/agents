@@ -29,6 +29,13 @@ describe('resolveMessageBlobUris', () => {
   });
 
   it('resolves blob file parts to media proxy URLs when presigned URLs are not available', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+    });
+
     const content: MessageContent = {
       text: 'Hello',
       parts: [

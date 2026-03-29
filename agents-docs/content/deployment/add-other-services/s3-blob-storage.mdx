@@ -15,7 +15,7 @@ When S3 is configured, media URLs in conversation responses are **presigned S3 U
 - **Domain isolation** — media is served from `*.s3.amazonaws.com`, separate from your API domain
 - **Time-limited access** — presigned URLs expire after 2 hours (configurable via `BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS`)
 
-When S3 is not configured, the framework falls back to the local filesystem with a server-side media proxy.
+When S3 is not configured, the framework falls back to Vercel Blob (if `BLOB_READ_WRITE_TOKEN` is set) or the local filesystem. Both Vercel Blob and local storage serve files through a server-side media proxy rather than presigned URLs.
 
 ## Step 1: Create an S3 Bucket
 
@@ -61,12 +61,13 @@ All four variables are required when S3 is enabled.
 
 ### S3-Compatible Services
 
-For S3-compatible services (Cloudflare R2, DigitalOcean Spaces, Backblaze B2), add:
+For S3-compatible services, set `BLOB_STORAGE_S3_ENDPOINT` and enable path-style access where required:
 
-```bash
-BLOB_STORAGE_S3_ENDPOINT=https://your-custom-endpoint
-BLOB_STORAGE_S3_FORCE_PATH_STYLE=true
-```
+| Service | `BLOB_STORAGE_S3_ENDPOINT` | `BLOB_STORAGE_S3_FORCE_PATH_STYLE` |
+|---|---|---|
+| **Cloudflare R2** | `https://<account-id>.r2.cloudflarestorage.com` | Not needed (virtual-hosted style) |
+| **DigitalOcean Spaces** | `https://<region>.digitaloceanspaces.com` | Not needed |
+| **Backblaze B2** | `https://s3.<region>.backblazeb2.com` | `true` |
 
 ### Optional: Presigned URL Expiry
 
@@ -86,7 +87,7 @@ The framework selects a storage backend based on which environment variables are
 |---|---|---|
 | 1 | **S3** | `BLOB_STORAGE_S3_BUCKET` is set |
 | 2 | **Vercel Blob** | `BLOB_READ_WRITE_TOKEN` is set |
-| 3 | **Local filesystem** | Neither is set (default) |
+| 3 | **Local filesystem** | Neither is set (default, local dev only) |
 
 <Callout type="warning">
 Changing the storage backend after files have been uploaded will make previously stored files inaccessible. Plan your storage backend before going to production.
