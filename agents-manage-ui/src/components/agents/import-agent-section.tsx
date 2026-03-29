@@ -26,7 +26,7 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
   const { data: sourceAgents, isFetching: sourceAgentsLoading } = useAgentsListQuery({
     tenantId,
     projectId: sourceProjectId,
-    enabled: isOpen && Boolean(sourceProjectId),
+    enabled: isOpen && !!sourceProjectId,
   });
 
   const selectedProject = projects.find((project) => project.projectId === sourceProjectId);
@@ -117,7 +117,7 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
               notFoundMessage="No agents found."
               triggerClassName="w-full"
               className="w-(--radix-popover-trigger-width)"
-              disabled={!sourceProjectId || sourceAgentsLoading || sourceAgents.length === 0}
+              disabled={!sourceProjectId || sourceAgentsLoading}
             />
           </div>
           {selectedAgent && (
