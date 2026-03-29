@@ -1243,14 +1243,6 @@ export const listDatasetsForAgent =
           projectScopedWhere(dataset, scopes),
           or(isNull(agentDatasetRelations.agentId), eq(agentDatasetRelations.agentId, agentId))
         )
-      )
-      .groupBy(
-        dataset.tenantId,
-        dataset.projectId,
-        dataset.id,
-        dataset.name,
-        dataset.createdAt,
-        dataset.updatedAt
       );
     return rows.map((r) => r.dataset);
   };
@@ -1275,19 +1267,6 @@ export const listEvaluatorsForAgent =
           projectScopedWhere(evaluator, scopes),
           or(isNull(agentEvaluatorRelations.agentId), eq(agentEvaluatorRelations.agentId, agentId))
         )
-      )
-      .groupBy(
-        evaluator.tenantId,
-        evaluator.projectId,
-        evaluator.id,
-        evaluator.name,
-        evaluator.description,
-        evaluator.prompt,
-        evaluator.schema,
-        evaluator.model,
-        evaluator.passCriteria,
-        evaluator.createdAt,
-        evaluator.updatedAt
       );
     return rows.map((r) => r.evaluator);
   };

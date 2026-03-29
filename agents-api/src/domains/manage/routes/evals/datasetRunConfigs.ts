@@ -67,7 +67,7 @@ app.openapi(
     try {
       const configs = await listDatasetRunConfigs(db)({ scopes: { tenantId, projectId } });
       const filteredConfigs = configs.filter(
-        (config) => (config as any).datasetId === c.req.valid('param').datasetId
+        (config) => config.datasetId === c.req.valid('param').datasetId
       );
       return c.json({
         data: filteredConfigs as any,
@@ -282,7 +282,7 @@ app.openapi(
         ) as any;
       }
 
-      const datasetId = (config as any).datasetId;
+      const datasetId = config.datasetId;
       const [datasetItems, allAgentRelations, datasetAgentRelations] = await Promise.all([
         listDatasetItems(db)({
           scopes: { tenantId, projectId, datasetId },
@@ -328,7 +328,7 @@ app.openapi(
         id: datasetRunId,
         tenantId,
         projectId,
-        datasetId: (config as any).datasetId,
+        datasetId: config.datasetId,
         datasetRunConfigId: runConfigId,
         evaluationJobConfigId: undefined,
       });
@@ -394,19 +394,26 @@ app.openapi(
         )
       );
 
+      const invocationMap = new Map<string, (typeof invocations)[number]>();
+      for (let idx = 0; idx < invocationPairs.length; idx++) {
+        const pair = invocationPairs[idx];
+        invocationMap.set(`${pair.agentId}:${pair.datasetItem.id}`, invocations[idx]);
+      }
+
       const items: DatasetRunQueueItem[] = agentRelations.flatMap((agentRelation) =>
         datasetItems.map((datasetItem) => {
-          const inv = invocations.find(
-            (i) =>
-              i.agentId === agentRelation.agentId &&
-              (i.resolvedPayload as Record<string, unknown>)?.datasetItemId === datasetItem.id
-          );
+          const inv = invocationMap.get(`${agentRelation.agentId}:${datasetItem.id}`);
+          if (!inv) {
+            throw new Error(
+              `Missing invocation for agent ${agentRelation.agentId} and dataset item ${datasetItem.id}`
+            );
+          }
           return {
             agentId: agentRelation.agentId,
             id: datasetItem.id,
             input: datasetItem.input,
             expectedOutput: datasetItem.expectedOutput,
-            scheduledTriggerInvocationId: inv?.id ?? generateId(),
+            scheduledTriggerInvocationId: inv.id,
           };
         })
       );

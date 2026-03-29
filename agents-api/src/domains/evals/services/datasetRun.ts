@@ -62,7 +62,9 @@ export async function queueDatasetRunItems(params: {
         scopes: { tenantId, projectId, agentId: item.agentId },
         scheduledTriggerId: datasetRunId,
         invocationId: item.scheduledTriggerInvocationId,
-      }).catch(() => {});
+      }).catch((err) =>
+        logger.warn({ err, invocationId: item.scheduledTriggerInvocationId }, 'Failed to mark trigger invocation as failed')
+      );
     })
   );
 

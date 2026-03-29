@@ -134,7 +134,8 @@ export const triggerConversationEvaluation = async (params: {
 
         if (evaluatorIds.length === 0) continue;
 
-        if (conversation.agentId) {
+        const { agentId: conversationAgentId } = conversation;
+        if (conversationAgentId) {
           const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
             getAgentIdsForEvaluators(db)({
               scopes: { tenantId, projectId },
@@ -144,12 +145,12 @@ export const triggerConversationEvaluation = async (params: {
           evaluatorIds = evaluatorIds.filter((evalId) => {
             const scopedAgents = agentIdsMap.get(evalId);
             if (!scopedAgents || scopedAgents.length === 0) return true;
-            return scopedAgents.includes(conversation.agentId!);
+            return scopedAgents.includes(conversationAgentId);
           });
 
           if (evaluatorIds.length === 0) {
             logger.info(
-              { suiteConfigId, conversationAgentId: conversation.agentId, conversationId },
+              { suiteConfigId, conversationAgentId, conversationId },
               'All evaluators filtered out by agent scoping'
             );
             continue;
