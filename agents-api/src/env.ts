@@ -294,6 +294,16 @@ const envSchema = z
       .describe(
         'Force path-style S3 URLs: false for AWS S3 (default), true for path-style/self-hosted S3-compatible.'
       ),
+    BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(604800)
+      .optional()
+      .default(7200)
+      .describe(
+        'Expiry in seconds for S3 presigned media URLs. Must be between 60 and 604800 (7 days). Default 7200 (2 hours).'
+      ),
   })
   .superRefine((data, ctx) => {
     const hasS3Bucket =

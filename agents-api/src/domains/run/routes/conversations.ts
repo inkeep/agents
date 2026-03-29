@@ -347,7 +347,7 @@ app.openapi(
       }),
     ]);
 
-    const resolvedMessages = resolveMessagesListBlobUris(
+    const resolvedMessages = await resolveMessagesListBlobUris(
       messageList.map((msg) => ({ ...msg, content: msg.content as MessageContent }))
     );
 
