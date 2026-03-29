@@ -250,7 +250,9 @@ export const ModelSchema = z
 
 export const ProjectModelSchema = z
   .object({
-    base: ModelSettingsSchema,
+    base: ModelSettingsSchema.required({
+      model: true,
+    }),
     structuredOutput: ModelSettingsSchema.optional(),
     summarizer: ModelSettingsSchema.optional(),
   })
@@ -2708,6 +2710,9 @@ export const ProjectSelectSchema = registerFieldSchemas(
 );
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
+    id: ResourceIdSchema,
+    name: NameSchema,
+    description: DescriptionSchema,
     models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
   })
