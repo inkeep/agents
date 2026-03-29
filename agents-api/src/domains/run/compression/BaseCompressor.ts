@@ -30,6 +30,33 @@ function stripStructureHints(value: unknown): unknown {
   return value;
 }
 
+function sanitizeBinaryPayloadsForTokenEstimation(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeBinaryPayloadsForTokenEstimation(item));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, nestedValue] of Object.entries(record)) {
+    sanitized[key] = sanitizeBinaryPayloadsForTokenEstimation(nestedValue);
+  }
+
+  const type = record.type;
+  if (
+    (type === 'image-data' || type === 'image' || type === 'file') &&
+    typeof record.data === 'string'
+  ) {
+    sanitized.data = '[binary payload omitted for compression token estimation]';
+  }
+
+  return sanitized;
+}
+
 export interface CompressionConfig {
   hardLimit: number;
   safetyBuffer: number;
@@ -87,26 +114,32 @@ export abstract class BaseCompressor {
             total += this.estimateTokens(block.text || '');
           } else if (block.type === 'tool-call') {
             total += this.estimateTokens(
-              JSON.stringify({
-                toolCallId: block.toolCallId,
-                toolName: block.toolName,
-                input: block.input,
-              })
+              JSON.stringify(
+                sanitizeBinaryPayloadsForTokenEstimation({
+                  toolCallId: block.toolCallId,
+                  toolName: block.toolName,
+                  input: block.input,
+                })
+              )
             );
           } else if (block.type === 'tool-result') {
             total += this.estimateTokens(
-              JSON.stringify({
-                toolCallId: block.toolCallId,
-                toolName: block.toolName,
-                output: block.output,
-              })
+              JSON.stringify(
+                sanitizeBinaryPayloadsForTokenEstimation({
+                  toolCallId: block.toolCallId,
+                  toolName: block.toolName,
+                  output: block.output,
+                })
+              )
             );
           }
         }
       } else if (typeof msg.content === 'string') {
         total += this.estimateTokens(msg.content);
       } else if (msg.content) {
-        total += this.estimateTokens(JSON.stringify(msg.content));
+        total += this.estimateTokens(
+          JSON.stringify(sanitizeBinaryPayloadsForTokenEstimation(msg.content))
+        );
       }
       return total;
     }, 0);
@@ -187,7 +220,6 @@ export abstract class BaseCompressor {
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
-        childArtifacts?: CompressedArtifactInfo['childArtifacts'];
       }
     >
   > {
@@ -201,7 +233,6 @@ export abstract class BaseCompressor {
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
-        childArtifacts?: CompressedArtifactInfo['childArtifacts'];
       }
     >();
 
@@ -230,30 +261,6 @@ export abstract class BaseCompressor {
           (p): p is Extract<(typeof primaryArtifact.parts)[number], { kind: 'data' }> =>
             p.kind === 'data'
         );
-        const childArtifacts = group
-          .filter(
-            (artifact) =>
-              artifact.artifactId !== primaryArtifact.artifactId &&
-              this.isBinaryPeerArtifact(artifact)
-          )
-          .map((artifact) => {
-            const childDataPart = artifact.parts?.find(
-              (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
-                p.kind === 'data'
-            );
-            const childData = childDataPart?.data as Record<string, unknown> | undefined;
-            return {
-              artifactId: artifact.artifactId,
-              toolCallId: artifact.toolCallId,
-              name: artifact.name,
-              description: artifact.description,
-              mimeType: (artifact.metadata?.mimeType as string | undefined) ?? undefined,
-              contentHash:
-                (artifact.metadata?.contentHash as string | undefined) ??
-                (childData?.contentHash as string | undefined),
-            };
-          });
-
         result.set(toolCallId, {
           artifactId: primaryArtifact.artifactId,
           isOversized: (primaryArtifact.metadata?.isOversized as boolean) ?? false,
@@ -262,7 +269,6 @@ export abstract class BaseCompressor {
           summaryData: dataPart?.data?.summary ?? dataPart?.data,
           name: primaryArtifact.name,
           description: primaryArtifact.description,
-          childArtifacts,
         });
       }
     } catch (error) {
@@ -284,7 +290,7 @@ export abstract class BaseCompressor {
     metadata?: Record<string, unknown> | null;
     parts?: Array<{ kind: string; data?: unknown }>;
   }): boolean {
-    if (artifact.type?.endsWith('-binary-child')) {
+    if (artifact.type?.endsWith('-binary-child') || artifact.type === 'binary_attachment') {
       return true;
     }
 
@@ -344,7 +350,6 @@ export abstract class BaseCompressor {
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
-        childArtifacts?: CompressedArtifactInfo['childArtifacts'];
       }
     >
   ): Promise<CompressedArtifactInfo | null> {
@@ -366,7 +371,6 @@ export abstract class BaseCompressor {
         summaryData: existing.summaryData,
         name: existing.name,
         description: existing.description,
-        childArtifacts: existing.childArtifacts,
       };
     }
 
@@ -573,40 +577,6 @@ export abstract class BaseCompressor {
       .join('\n\n');
   }
 
-  private buildChildArtifactSummaries(
-    toolCallToArtifactMap: Record<string, CompressedArtifactInfo>
-  ): NonNullable<ConversationSummary['related_artifacts']> {
-    const relatedArtifacts: NonNullable<ConversationSummary['related_artifacts']> = [];
-    const seen = new Set<string>();
-
-    for (const parent of Object.values(toolCallToArtifactMap)) {
-      for (const child of parent.childArtifacts ?? []) {
-        if (!child.artifactId || seen.has(child.artifactId)) continue;
-        seen.add(child.artifactId);
-
-        const contentType = child.mimeType?.startsWith('image/')
-          ? 'image_attachment'
-          : 'binary_attachment';
-        const keyFindings = [
-          'Binary child artifact extracted from an attachment-bearing tool result',
-        ];
-        if (child.mimeType) keyFindings.push(`MIME type: ${child.mimeType}`);
-        if (child.contentHash) keyFindings.push(`Content hash: ${child.contentHash}`);
-
-        relatedArtifacts.push({
-          id: child.artifactId,
-          name: child.name || `${parent.name || parent.artifactId} attachment`,
-          tool_name: parent.toolName || 'unknown_tool',
-          tool_call_id: child.toolCallId || parent.summaryData?.toolCallId || '',
-          content_type: contentType,
-          key_findings: keyFindings,
-        });
-      }
-    }
-
-    return relatedArtifacts;
-  }
-
   protected async createConversationSummary(
     messages: any[],
     toolCallToArtifactMap: Record<string, CompressedArtifactInfo>,
@@ -636,16 +606,6 @@ export abstract class BaseCompressor {
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
       compressionCycle,
     });
-
-    const childArtifactSummaries = this.buildChildArtifactSummaries(toolCallToArtifactMap);
-    if (childArtifactSummaries.length > 0) {
-      const existingRelated = summary.related_artifacts ?? [];
-      const seen = new Set(existingRelated.map((artifact) => artifact.id));
-      summary.related_artifacts = [
-        ...existingRelated,
-        ...childArtifactSummaries.filter((artifact) => !seen.has(artifact.id)),
-      ];
-    }
 
     logger.info(
       {

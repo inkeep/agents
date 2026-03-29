@@ -18,14 +18,6 @@ export interface CompressedArtifactInfo {
   summaryData?: Record<string, any>;
   name?: string;
   description?: string;
-  childArtifacts?: Array<{
-    artifactId: string;
-    toolCallId?: string;
-    name?: string;
-    description?: string;
-    mimeType?: string;
-    contentHash?: string;
-  }>;
 }
 
 /**

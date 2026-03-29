@@ -1641,7 +1641,8 @@ describe('Agent tool result persistence', () => {
       result,
       'toolu_123',
       'conv-123',
-      'msg-123'
+      'msg-123',
+      'task_conv-123-msg-123'
     );
 
     expect(buildPersistedMessageContentMock).toHaveBeenCalledWith(
@@ -1662,6 +1663,15 @@ describe('Agent tool result persistence', () => {
         projectId: 'test-project',
         conversationId: 'conv-123',
         messageId: 'msg-123',
+        attachmentArtifacts: {
+          tenantId: 'test-tenant',
+          projectId: 'test-project',
+          conversationId: 'conv-123',
+          messageId: 'msg-123',
+          taskId: 'task_conv-123-msg-123',
+          toolCallId: 'toolu_123',
+          source: 'tool-result',
+        },
       }
     );
     expect(content.parts).toEqual([

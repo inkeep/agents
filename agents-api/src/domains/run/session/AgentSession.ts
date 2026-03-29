@@ -157,8 +157,6 @@ export interface ArtifactSavedData {
     };
     schemaFound: boolean;
   };
-  binaryChildArtifactCount?: number;
-  binaryChildArtifactIds?: string[];
 }
 
 export interface ToolCallData {
@@ -1460,8 +1458,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'artifact.retrieval_blocked': artifactData.metadata?.retrievalBlocked || false,
           'artifact.original_token_size': artifactData.metadata?.originalTokenSize || 0,
           'artifact.context_window_size': artifactData.metadata?.contextWindowSize || 0,
-          'artifact.binary_child_count': artifactData.binaryChildArtifactCount || 0,
-          'artifact.binary_child_ids': JSON.stringify(artifactData.binaryChildArtifactIds || []),
         },
       },
       async (span) => {
@@ -1801,7 +1797,7 @@ Make the name extremely specific to what this tool call actually returned, not g
               throw new Error('ArtifactService is not initialized');
             }
 
-            const saveResult = await this.artifactService.saveArtifact({
+            await this.artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
               description: result.description,
@@ -1817,8 +1813,6 @@ Make the name extremely specific to what this tool call actually returned, not g
             span.setAttributes({
               'artifact.name': result.name,
               'artifact.description': result.description,
-              'artifact.binary_child_count': saveResult.binaryChildArtifactCount,
-              'artifact.binary_child_ids': JSON.stringify(saveResult.binaryChildArtifactIds),
               'processing.success': true,
             });
             span.setStatus({ code: SpanStatusCode.OK });
@@ -1849,7 +1843,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                   sessionId: this.sessionId,
                 });
 
-                const saveResult = await artifactService.saveArtifact({
+                await artifactService.saveArtifact({
                   artifactId: artifactData.artifactId,
                   name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
                   description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool results'}`,
@@ -1858,11 +1852,6 @@ Make the name extremely specific to what this tool call actually returned, not g
                   summaryData: artifactData.summaryData,
                   metadata: artifactData.metadata || {},
                   toolCallId: artifactData.toolCallId,
-                });
-
-                span.setAttributes({
-                  'artifact.binary_child_count': saveResult.binaryChildArtifactCount,
-                  'artifact.binary_child_ids': JSON.stringify(saveResult.binaryChildArtifactIds),
                 });
 
                 logger.info(

@@ -1,7 +1,5 @@
 import {
-  type Artifact,
   type ArtifactComponentApiInsert,
-  bulkInsertLedgerArtifacts,
   type FullExecutionContext,
   getLedgerArtifacts,
   getTask,
@@ -12,7 +10,6 @@ import jmespath from 'jmespath';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/services/ToolSessionManager';
-import { isBlobUri } from '../services/blob-storage';
 import { sanitizeArtifactBinaryData } from '../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager } from '../session/AgentSession';
 import {
@@ -20,7 +17,6 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { setSpanWithError, tracer } from '../utils/tracer';
 import { detectOversizedArtifact } from './artifact-utils';
 
 const logger = getLogger('ArtifactService');
@@ -72,11 +68,6 @@ export interface ArtifactServiceContext {
   artifactComponents?: ArtifactComponentApiInsert[];
   streamRequestId?: string;
   subAgentId?: string;
-}
-
-interface BinaryChildArtifactResult {
-  refs: Map<string, { artifactId: string; toolCallId: string }>;
-  childArtifactIds: string[];
 }
 
 /**
@@ -895,7 +886,7 @@ export class ArtifactService {
     summaryData?: Record<string, any>;
     metadata?: Record<string, any>;
     toolCallId?: string;
-  }): Promise<{ binaryChildArtifactCount: number; binaryChildArtifactIds: string[] }> {
+  }): Promise<void> {
     const { tenantId, projectId } = this.context.executionContext;
 
     const sanitizedData = (await sanitizeArtifactBinaryData(artifact.data, {
@@ -911,21 +902,8 @@ export class ArtifactService {
         })) as Record<string, any>)
       : undefined;
 
-    const binaryChildArtifacts = await this.createBinaryChildArtifacts({
-      parentArtifactId: artifact.artifactId,
-      parentArtifactType: artifact.type,
-      toolCallId: artifact.toolCallId,
-      value: sanitizedData,
-    });
-
-    let fullData = this.attachBinaryArtifactRefs(
-      sanitizedData,
-      binaryChildArtifacts.refs
-    ) as Record<string, any>;
-    let summaryData = this.attachBinaryArtifactRefs(
-      sanitizedSummaryData || fullData,
-      binaryChildArtifacts.refs
-    ) as Record<string, any>;
+    let fullData = sanitizedData as Record<string, any>;
+    let summaryData = (sanitizedSummaryData || fullData) as Record<string, any>;
 
     if (this.context.artifactComponents) {
       const artifactComponent = this.context.artifactComponents.find(
@@ -992,245 +970,6 @@ export class ArtifactService {
         'Artifact already exists, skipping duplicate creation'
       );
     }
-
-    return {
-      binaryChildArtifactCount: binaryChildArtifacts.childArtifactIds.length,
-      binaryChildArtifactIds: binaryChildArtifacts.childArtifactIds,
-    };
-  }
-
-  private async createBinaryChildArtifacts(params: {
-    parentArtifactId: string;
-    parentArtifactType: string;
-    toolCallId?: string;
-    value: unknown;
-  }): Promise<BinaryChildArtifactResult> {
-    return tracer.startActiveSpan(
-      'artifact.create_binary_children',
-      {
-        attributes: {
-          'artifact.id': params.parentArtifactId,
-          'artifact.type': params.parentArtifactType,
-          'artifact.tool_call_id': params.toolCallId || 'unknown',
-          'tenant.id': this.context.executionContext.tenantId,
-          'project.id': this.context.executionContext.projectId,
-          'context.id': this.context.contextId || 'unknown',
-        },
-      },
-      async (span) => {
-        try {
-          if (!this.context.taskId || !this.context.contextId) {
-            span.setAttributes({
-              'artifact.binary_child_count': 0,
-              'artifact.binary_child_ids': JSON.stringify([]),
-              'artifact.binary_child_hashes': JSON.stringify([]),
-            });
-            return { refs: new Map(), childArtifactIds: [] };
-          }
-
-          const binaryParts = this.collectBlobBackedBinaryParts(params.value);
-          if (binaryParts.length === 0) {
-            span.setAttributes({
-              'artifact.binary_child_count': 0,
-              'artifact.binary_child_ids': JSON.stringify([]),
-              'artifact.binary_child_hashes': JSON.stringify([]),
-            });
-            return { refs: new Map(), childArtifactIds: [] };
-          }
-
-          const refs = new Map<string, { artifactId: string; toolCallId: string }>();
-          const dedupeByHash = new Map<string, { artifactId: string; toolCallId: string }>();
-          const childArtifacts: Artifact[] = [];
-          const childHashes: string[] = [];
-
-          for (const part of binaryParts) {
-            const hash =
-              this.extractContentHashFromBlobUri(part.data) || this.fallbackHash(part.data);
-            const dedupeKey = `${params.toolCallId || params.parentArtifactId}:${hash}`;
-            const existing = dedupeByHash.get(dedupeKey);
-            if (existing) {
-              refs.set(part.data, existing);
-              continue;
-            }
-
-            const childArtifactId = this.buildBinaryChildArtifactId(
-              params.toolCallId,
-              params.parentArtifactId,
-              hash
-            );
-            const childToolCallId = params.toolCallId || `${params.parentArtifactId}:binary`;
-
-            childArtifacts.push({
-              artifactId: childArtifactId,
-              type: `${params.parentArtifactType}-binary-child`,
-              name: `${params.parentArtifactType} binary ${hash.slice(0, 12)}`,
-              description: 'Binary payload extracted from tool result',
-              parts: [
-                {
-                  kind: 'data',
-                  data: {
-                    blobUri: part.data,
-                    mimeType: part.mimeType,
-                    contentHash: hash,
-                    binaryType: part.type,
-                  },
-                },
-              ],
-              metadata: {
-                parentArtifactType: params.parentArtifactType,
-                toolCallId: params.toolCallId,
-                contentHash: hash,
-                mimeType: part.mimeType,
-                visibility: 'internal',
-              },
-              createdAt: new Date().toISOString(),
-            });
-
-            const reference = { artifactId: childArtifactId, toolCallId: childToolCallId };
-            dedupeByHash.set(dedupeKey, reference);
-            refs.set(part.data, reference);
-            childHashes.push(hash);
-          }
-
-          await bulkInsertLedgerArtifacts(runDbClient)({
-            scopes: this.context.executionContext,
-            contextId: this.context.contextId,
-            taskId: this.context.taskId,
-            toolCallId: params.toolCallId || null,
-            artifacts: childArtifacts,
-          });
-
-          const childArtifactIds = childArtifacts.map((artifact) => artifact.artifactId);
-          span.setAttributes({
-            'artifact.binary_child_count': childArtifactIds.length,
-            'artifact.binary_child_ids': JSON.stringify(childArtifactIds),
-            'artifact.binary_child_hashes': JSON.stringify(childHashes),
-          });
-
-          return { refs, childArtifactIds };
-        } catch (error) {
-          setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
-          throw error;
-        }
-      }
-    );
-  }
-
-  private collectBlobBackedBinaryParts(
-    value: unknown
-  ): Array<{ type: string; data: string; mimeType?: string }> {
-    const inStack = new WeakSet<object>();
-    const collected: Array<{ type: string; data: string; mimeType?: string }> = [];
-
-    const visit = (current: unknown) => {
-      if (this.isBlobBackedBinaryPart(current)) {
-        collected.push(current);
-        return;
-      }
-
-      if (Array.isArray(current)) {
-        if (inStack.has(current)) return;
-        inStack.add(current);
-        for (const item of current) visit(item);
-        inStack.delete(current);
-        return;
-      }
-
-      if (current && typeof current === 'object') {
-        if (inStack.has(current as object)) return;
-        inStack.add(current as object);
-        for (const next of Object.values(current as Record<string, unknown>)) {
-          visit(next);
-        }
-        inStack.delete(current as object);
-      }
-    };
-
-    visit(value);
-    return collected;
-  }
-
-  private attachBinaryArtifactRefs(
-    value: unknown,
-    refs: Map<string, { artifactId: string; toolCallId: string }>
-  ): unknown {
-    if (refs.size === 0) {
-      return value;
-    }
-
-    const inStack = new WeakSet<object>();
-
-    const visit = (current: unknown): unknown => {
-      if (this.isBlobBackedBinaryPart(current)) {
-        const ref = refs.get(current.data);
-        if (!ref) {
-          return current;
-        }
-        return {
-          ...current,
-          artifactRef: {
-            artifactId: ref.artifactId,
-            toolCallId: ref.toolCallId,
-          },
-        };
-      }
-
-      if (Array.isArray(current)) {
-        if (inStack.has(current)) return '[Circular Reference]';
-        inStack.add(current);
-        const next = current.map((item) => visit(item));
-        inStack.delete(current);
-        return next;
-      }
-
-      if (current && typeof current === 'object') {
-        if (inStack.has(current as object)) return '[Circular Reference]';
-        inStack.add(current as object);
-        const next: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(current as Record<string, unknown>)) {
-          next[key] = visit(value);
-        }
-        inStack.delete(current as object);
-        return next;
-      }
-
-      return current;
-    };
-
-    return visit(value);
-  }
-
-  private isBlobBackedBinaryPart(
-    value: unknown
-  ): value is { type: string; data: string; mimeType?: string } {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return false;
-    }
-
-    const maybePart = value as Record<string, unknown>;
-    return (
-      (maybePart.type === 'image' || maybePart.type === 'file') &&
-      typeof maybePart.data === 'string' &&
-      isBlobUri(maybePart.data)
-    );
-  }
-
-  private extractContentHashFromBlobUri(blobUri: string): string | null {
-    const match = blobUri.match(/sha256-([a-f0-9]{16,64})\./i);
-    return match?.[1] || null;
-  }
-
-  private fallbackHash(blobUri: string): string {
-    return Buffer.from(blobUri).toString('hex').slice(0, 24);
-  }
-
-  private buildBinaryChildArtifactId(
-    toolCallId: string | undefined,
-    parentArtifactId: string,
-    contentHash: string
-  ): string {
-    const scope = (toolCallId || parentArtifactId).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
-    return `bin_${scope}_${contentHash.slice(0, 24)}`;
   }
 
   /**

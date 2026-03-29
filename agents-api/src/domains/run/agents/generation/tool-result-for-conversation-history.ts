@@ -171,7 +171,8 @@ export async function buildToolResultForConversationHistory(
   result: any,
   toolCallId: string,
   conversationId: string,
-  messageId: string
+  messageId: string,
+  taskId: string
 ): Promise<MessageContent> {
   const text = formatToolResultForConversationHistory(toolName, args, result, toolCallId);
   const parts = getToolResultPartsForConversationHistory(result);
@@ -190,5 +191,14 @@ export async function buildToolResultForConversationHistory(
     projectId: ctx.config.projectId,
     conversationId,
     messageId,
+    attachmentArtifacts: {
+      tenantId: ctx.config.tenantId,
+      projectId: ctx.config.projectId,
+      conversationId,
+      messageId,
+      taskId,
+      toolCallId,
+      source: 'tool-result',
+    },
   });
 }

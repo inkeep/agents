@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentSessionManager } from '../../session/AgentSession';
-import { distillConversation } from '../../tools/distill-conversation-tool';
 import { BaseCompressor } from '../BaseCompressor';
 
 // Mock dependencies
@@ -343,6 +342,71 @@ describe('BaseCompressor', () => {
 
       expect(contextSize).toBeGreaterThan(0);
       expect(typeof contextSize).toBe('number');
+    });
+
+    it('should ignore inline binary base64 data when estimating compression size', () => {
+      const base64Data = 'A'.repeat(20_000);
+      const messagesWithBinary = [
+        {
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'binary-call',
+              toolName: 'read_ticket',
+              output: {
+                content: [
+                  { type: 'text', text: 'ticket attachment payload' },
+                  {
+                    type: 'file',
+                    mimeType: 'image/jpeg',
+                    data: base64Data,
+                    filename: 'attachment.jpg',
+                  },
+                  {
+                    type: 'image-data',
+                    data: base64Data,
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ];
+      const messagesWithPlaceholders = [
+        {
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'binary-call',
+              toolName: 'read_ticket',
+              output: {
+                content: [
+                  { type: 'text', text: 'ticket attachment payload' },
+                  {
+                    type: 'file',
+                    mimeType: 'image/jpeg',
+                    data: '[binary payload omitted for compression token estimation]',
+                    filename: 'attachment.jpg',
+                  },
+                  {
+                    type: 'image-data',
+                    data: '[binary payload omitted for compression token estimation]',
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ];
+
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      const binaryContextSize = compressor['calculateContextSize'](messagesWithBinary);
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      const placeholderContextSize = compressor['calculateContextSize'](messagesWithPlaceholders);
+
+      expect(binaryContextSize).toBe(placeholderContextSize);
     });
 
     it('should handle edge cases in context calculation', () => {
@@ -692,74 +756,6 @@ describe('BaseCompressor', () => {
 
       expect(mockSession.waitForPendingArtifacts).toHaveBeenCalled();
       expect(result['call-with-children']?.artifactId).toBe('parent-artifact');
-      expect(result['call-with-children']?.childArtifacts).toEqual([
-        expect.objectContaining({
-          artifactId: 'child-artifact',
-          mimeType: 'image/png',
-          contentHash: 'sha256-abc',
-        }),
-      ]);
-    });
-
-    it('appends child artifacts to the compression summary', async () => {
-      vi.mocked(distillConversation).mockResolvedValueOnce({
-        type: 'conversation_summary_v1',
-        session_id: 'conv-456',
-        _fallback: null,
-        high_level: 'summary',
-        user_intent: 'intent',
-        decisions: [],
-        open_questions: [],
-        next_steps: { for_agent: [], for_user: [] },
-        related_artifacts: [
-          {
-            id: 'parent-artifact',
-            name: 'Parent artifact',
-            tool_name: 'read_ticket',
-            tool_call_id: 'call-with-children',
-            content_type: 'api_response',
-            key_findings: ['parent'],
-          },
-        ],
-      });
-
-      const summary = await (
-        compressor as unknown as {
-          createConversationSummary: (
-            messages: any[],
-            toolCallToArtifactMap: Record<string, any>,
-            compressionCycle?: number
-          ) => Promise<any>;
-        }
-      ).createConversationSummary([], {
-        'call-with-children': {
-          artifactId: 'parent-artifact',
-          isOversized: true,
-          toolName: 'read_ticket',
-          summaryData: { toolCallId: 'call-with-children' },
-          childArtifacts: [
-            {
-              artifactId: 'child-artifact',
-              toolCallId: 'call-with-children',
-              name: 'Attachment 1',
-              mimeType: 'image/png',
-              contentHash: 'sha256-abc',
-            },
-          ],
-        },
-      });
-
-      expect(summary.related_artifacts).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ id: 'parent-artifact' }),
-          expect.objectContaining({
-            id: 'child-artifact',
-            tool_call_id: 'call-with-children',
-            tool_name: 'read_ticket',
-            content_type: 'image_attachment',
-          }),
-        ])
-      );
     });
 
     it('should handle large conversations with many tool calls efficiently', async () => {

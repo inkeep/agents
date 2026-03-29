@@ -178,7 +178,11 @@ export function wrapToolWithStreaming(
 
         if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
           try {
+            const session = agentSessionManager.getSession(streamRequestId);
             const messageId = generateId();
+            const taskId = session
+              ? `task_${toolResultConversationId}-${session.messageId}`
+              : `tool_result_${messageId}`;
             const messageContent = await buildToolResultForConversationHistory(
               ctx,
               toolName,
@@ -186,13 +190,15 @@ export function wrapToolWithStreaming(
               result,
               toolCallId,
               toolResultConversationId,
-              messageId
+              messageId,
+              taskId
             );
             await createMessage(runDbClient)({
               scopes: { tenantId: ctx.config.tenantId, projectId: ctx.config.projectId },
               data: {
                 id: messageId,
                 conversationId: toolResultConversationId,
+                taskId,
                 role: 'assistant',
                 content: messageContent,
                 visibility: 'internal',

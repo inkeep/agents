@@ -20,6 +20,7 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
+import { buildMessageAttachmentToolCallId } from '../services/blob-storage/attachment-artifacts';
 import { PdfUrlIngestionError } from '../services/blob-storage/file-security-errors';
 import {
   buildPersistedMessageContent,
@@ -349,12 +350,27 @@ app.openapi(chatCompletionsRoute, async (c) => {
         }
       }
       const userMessageId = generateId();
+      const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
+      const attachmentTaskId = hasAttachedFiles ? `message_${userMessageId}` : undefined;
 
       const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
         tenantId,
         projectId,
         conversationId,
         messageId: userMessageId,
+        ...(attachmentTaskId
+          ? {
+              attachmentArtifacts: {
+                tenantId,
+                projectId,
+                conversationId,
+                messageId: userMessageId,
+                taskId: attachmentTaskId,
+                toolCallId: buildMessageAttachmentToolCallId(userMessageId),
+                source: 'user-message' as const,
+              },
+            }
+          : {}),
       });
 
       await createMessage(runDbClient)({
@@ -366,6 +382,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           content: messageContent,
           visibility: 'user-facing',
           messageType: 'chat',
+          ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
         },
       });
 

@@ -365,8 +365,6 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED, bool, attr),
         sf(SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE, int64, attr),
         sf(SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE, int64, attr),
-        sf(SPAN_KEYS.ARTIFACT_BINARY_CHILD_COUNT, int64, attr),
-        sf(SPAN_KEYS.ARTIFACT_BINARY_CHILD_IDS, str, attr),
       ]
     ),
   ];
@@ -711,8 +709,6 @@ export async function GET(
       artifactRetrievalBlocked?: boolean;
       artifactOriginalTokenSize?: number;
       artifactContextWindowSize?: number;
-      artifactBinaryChildCount?: number;
-      artifactBinaryChildIds?: string[];
       hasError?: boolean;
       otelStatusCode?: string;
       otelStatusDescription?: string;
@@ -1067,17 +1063,6 @@ export async function GET(
       const retrievalBlocked = getField(span, SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED) === true;
       const originalTokenSize = getNumber(span, SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE, 0);
       const contextWindowSize = getNumber(span, SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE, 0);
-      const binaryChildCount = getNumber(span, SPAN_KEYS.ARTIFACT_BINARY_CHILD_COUNT, 0);
-      const rawBinaryChildIds = getField(span, SPAN_KEYS.ARTIFACT_BINARY_CHILD_IDS);
-      let artifactBinaryChildIds: string[] | undefined;
-      try {
-        if (typeof rawBinaryChildIds === 'string') {
-          artifactBinaryChildIds = JSON.parse(rawBinaryChildIds);
-        } else if (Array.isArray(rawBinaryChildIds)) {
-          artifactBinaryChildIds = rawBinaryChildIds.map(String);
-        }
-      } catch {}
-
       const artifactProcessing = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
         id: artifactProcessing,
@@ -1099,11 +1084,6 @@ export async function GET(
         artifactRetrievalBlocked: retrievalBlocked || undefined,
         artifactOriginalTokenSize: originalTokenSize > 0 ? originalTokenSize : undefined,
         artifactContextWindowSize: contextWindowSize > 0 ? contextWindowSize : undefined,
-        artifactBinaryChildCount: binaryChildCount > 0 ? binaryChildCount : undefined,
-        artifactBinaryChildIds:
-          artifactBinaryChildIds && artifactBinaryChildIds.length > 0
-            ? artifactBinaryChildIds
-            : undefined,
         otelStatusDescription: statusMessage || undefined,
       });
     }
