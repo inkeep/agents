@@ -66,9 +66,6 @@ export async function createTrigger(
   agentId: string,
   triggerData: Partial<Trigger>
 ): Promise<Trigger> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
     {
@@ -90,9 +87,6 @@ export async function updateTrigger(
   triggerId: string,
   triggerData: Partial<Trigger>
 ): Promise<Trigger> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`,
     {
@@ -157,9 +151,6 @@ export async function fetchTriggerInvocations(
     page?: number;
   }
 ): Promise<ListResponse<TriggerInvocation>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const params = new URLSearchParams();
   if (options?.status) params.append('status', options.status);
   if (options?.limit) params.append('limit', options.limit.toString());

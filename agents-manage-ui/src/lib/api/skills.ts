@@ -16,18 +16,12 @@ export async function fetchSkills(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<Skill>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<Skill>>(
     `tenants/${tenantId}/projects/${projectId}/skills?limit=100`
   );
 }
 
 async function $fetchSkill(tenantId: string, projectId: string, skillId: string): Promise<Skill> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Skill>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}`
   );
@@ -59,9 +53,6 @@ export async function updateSkill(
   skillId: string,
   skill: SkillApiUpdate
 ): Promise<Skill> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Skill>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}`,
     {
@@ -75,9 +66,6 @@ export async function updateSkill(
 }
 
 export async function deleteSkill(tenantId: string, projectId: string, skillId: string) {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(`tenants/${tenantId}/projects/${projectId}/skills/${skillId}`, {
     method: 'DELETE',
   });

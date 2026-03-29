@@ -48,9 +48,6 @@ export async function fetchEvaluationJobConfigs(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<EvaluationJobConfig>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<EvaluationJobConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs`
   );
@@ -64,9 +61,6 @@ async function $fetchEvaluationJobConfig(
   projectId: string,
   configId: string
 ): Promise<EvaluationJobConfig> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<EvaluationJobConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs/${configId}`
   );
@@ -84,9 +78,6 @@ export async function createEvaluationJobConfig(
   projectId: string,
   config: EvaluationJobConfigInsert
 ): Promise<EvaluationJobConfig> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<EvaluationJobConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs`,
     {
@@ -106,9 +97,6 @@ export async function deleteEvaluationJobConfig(
   projectId: string,
   configId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs/${configId}`,
     {
@@ -135,9 +123,6 @@ export async function fetchEvaluationJobConfigEvaluators(
   projectId: string,
   configId: string
 ): Promise<ListResponse<EvaluationJobConfigEvaluatorRelation>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<EvaluationJobConfigEvaluatorRelation>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs/${configId}/evaluators`
   );

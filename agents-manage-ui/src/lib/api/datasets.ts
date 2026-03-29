@@ -87,9 +87,6 @@ export async function updateDataset(
   datasetId: string,
   dataset: DatasetUpdate
 ): Promise<Dataset> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Dataset>>(
     `tenants/${tenantId}/projects/${projectId}/evals/datasets/${datasetId}`,
     {
@@ -109,9 +106,6 @@ export async function deleteDataset(
   projectId: string,
   datasetId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evals/datasets/${datasetId}`,
     {

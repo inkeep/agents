@@ -32,9 +32,6 @@ export async function fetchEvaluationSuiteConfigs(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<EvaluationSuiteConfig>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<EvaluationSuiteConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-suite-configs`
   );

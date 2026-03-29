@@ -32,9 +32,6 @@ export async function fetchMCPTools(
     skipDiscovery?: boolean;
   }
 ): Promise<McpTool[]> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const { page = 1, pageSize = 100, status, skipDiscovery } = options ?? {};
 
   const params = new URLSearchParams({
@@ -79,9 +76,6 @@ export async function createMCPTool(
   projectId: string,
   data: CreateMCPToolRequest
 ): Promise<McpTool> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
     `tenants/${tenantId}/projects/${projectId}/tools`,
     {
@@ -121,9 +115,6 @@ export async function deleteMCPTool(
   projectId: string,
   id: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest<void>(`tenants/${tenantId}/projects/${projectId}/tools/${id}`, {
     method: 'DELETE',
   });
