@@ -138,10 +138,18 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       set({ ...state, playgroundConversationId: generateId() });
     },
     setNodes(updater) {
-      set((state) => ({ nodes: updater(state.nodes) }));
+      set((state) => {
+        const newNodes = updater(state.nodes);
+        const isEqual = deepShallow(newNodes, state.nodes);
+        return isEqual ? state : { nodes: newNodes };
+      });
     },
     setEdges(updater) {
-      set((state) => ({ edges: updater(state.edges) }));
+      set((state) => {
+        const newEdges = updater(state.edges);
+        const isEqual = deepShallow(newEdges, state.edges);
+        return isEqual ? state : { edges: newEdges };
+      });
     },
     push(nodes, edges) {
       set((state) => ({

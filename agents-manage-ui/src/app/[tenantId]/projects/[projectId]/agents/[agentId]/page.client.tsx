@@ -237,20 +237,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
     };
   }, []);
 
-  // Auto-center agent when sidepane opens/closes
-  useEffect(() => {
-    // Delay to allow CSS transition to complete (300ms transition + 50ms buffer)
-    if (isOpen) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      fitView({ maxZoom: 1, duration: 200 });
-    }, 350);
-
-    return () => clearTimeout(timer);
-  }, [isOpen]);
-
-  // Auto-center agent when playground opens/closes
+  // Auto-center agent when sidepane/playground opens/closes
   // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on showPlayground changes
   useEffect(() => {
     // Delay to allow CSS transition to complete
