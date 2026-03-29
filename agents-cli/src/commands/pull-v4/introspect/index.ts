@@ -13,7 +13,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
 import * as p from '@clack/prompts';
-import { type FullProjectDefinition, getTempBranchSuffix } from '@inkeep/agents-core';
+import type { FullProjectDefinition } from '@inkeep/agents-core';
 
 // Increase max listeners to prevent warnings during complex CLI flows
 // This is needed because @clack/prompts + multiple interactive prompts + spinners all add listeners
@@ -24,6 +24,7 @@ import { performBackgroundVersionCheck } from '../../../utils/background-version
 import { initializeCommand } from '../../../utils/cli-pipeline';
 import { loadProject } from '../../../utils/project-loader';
 import { readProjectState, writeProjectState } from '../../../utils/state';
+import { withLocalStateBranch } from '../../../utils/temp-branch';
 import { introspectGenerate } from '../introspect-generator';
 
 export interface PullV3Options {
@@ -304,66 +305,56 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     let remoteProject: Awaited<ReturnType<typeof apiClient.getFullProject>> | undefined;
 
     if (localProjectForId && lastPulledHash) {
-      const tempBranchName = getTempBranchSuffix('cli-pull');
+      const localProjectDefinition = await localProjectForId.getFullDefinition();
 
-      try {
-        await apiClient.createBranch(projectId, {
-          name: tempBranchName,
-          fromCommit: lastPulledHash,
-        });
-
-        const localProjectDefinition = await localProjectForId.getFullDefinition();
-        await apiClient.pushFullProject(projectId, tempBranchName, localProjectDefinition);
-
-        // Merge main INTO temp branch so the temp branch gets a reconciled result
-        // (main's changes + user's local changes). We then pull from the temp branch.
-        // We must NOT merge temp into main — that would push local edits to main.
-        const preview = await apiClient.mergePreview(projectId, {
-          sourceBranch: 'main',
-          targetBranch: tempBranchName,
-        });
-
-        if (preview.hasConflicts) {
-          const { resolveConflictsInteractive } = await import('../merge-conflicts');
-          const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
-
-          if (resolutions === null) {
-            console.log(styleText('yellow', 'Pull cancelled'));
-            return;
-          }
-
-          await apiClient.mergeExecute(projectId, {
+      // Merge main INTO temp branch so the temp branch gets a reconciled result
+      // (main's changes + user's local changes). We then pull from the temp branch.
+      // We must NOT merge temp into main — that would push local edits to main.
+      remoteProject = await withLocalStateBranch({
+        apiClient,
+        projectId,
+        fromCommit: lastPulledHash,
+        localDefinition: localProjectDefinition,
+        branchPrefix: 'cli-pull',
+        fn: async (tempBranchName) => {
+          const preview = await apiClient.mergePreview(projectId, {
             sourceBranch: 'main',
             targetBranch: tempBranchName,
-            sourceHash: preview.sourceHash,
-            targetHash: preview.targetHash,
-            resolutions,
-            message: 'CLI pull: merge main into local state',
           });
-        } else {
-          await apiClient.mergeExecute(projectId, {
-            sourceBranch: 'main',
-            targetBranch: tempBranchName,
-            sourceHash: preview.sourceHash,
-            targetHash: preview.targetHash,
-            message: 'CLI pull: merge main into local state',
-          });
-        }
-        // Fetch the reconciled project from the temp branch before cleanup
-        remoteProject = await apiClient.getFullProject(projectId, tempBranchName);
-      } finally {
-        try {
-          await apiClient.deleteBranch(projectId, tempBranchName, true);
-        } catch (cleanupError) {
-          if (options.debug) {
-            console.log(
-              styleText(
-                'gray',
-                `   Warning: Could not delete temp branch ${tempBranchName}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
-              )
-            );
+
+          if (preview.hasConflicts) {
+            const { resolveConflictsInteractive } = await import('../merge-conflicts');
+            const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
+
+            if (resolutions === null) {
+              console.log(styleText('yellow', 'Pull cancelled'));
+              return undefined;
+            }
+
+            await apiClient.mergeExecute(projectId, {
+              sourceBranch: 'main',
+              targetBranch: tempBranchName,
+              sourceHash: preview.sourceHash,
+              targetHash: preview.targetHash,
+              resolutions,
+              message: 'CLI pull: merge main into local state',
+            });
+          } else {
+            await apiClient.mergeExecute(projectId, {
+              sourceBranch: 'main',
+              targetBranch: tempBranchName,
+              sourceHash: preview.sourceHash,
+              targetHash: preview.targetHash,
+              message: 'CLI pull: merge main into local state',
+            });
           }
-        }
+
+          return await apiClient.getFullProject(projectId, tempBranchName);
+        },
+      });
+
+      if (!remoteProject) {
+        return;
       }
     } else {
       // Todo: we can probably just exit here because there is nothing new to pull

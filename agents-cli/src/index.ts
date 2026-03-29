@@ -114,6 +114,7 @@ program
     'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
   )
   .option('--quiet', 'Suppress profile/config logging')
+  .option('--force', 'Skip conflict detection and push directly to remote')
   .action(pushCommand);
 
 program

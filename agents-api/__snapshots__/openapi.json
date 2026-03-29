@@ -2,6 +2,39 @@
   "components": {
     "parameters": {},
     "schemas": {
+      "AddPublicKeyRequest": {
+        "properties": {
+          "algorithm": {
+            "description": "Signing algorithm",
+            "enum": [
+              "RS256",
+              "RS384",
+              "RS512",
+              "ES256",
+              "ES384",
+              "ES512",
+              "EdDSA"
+            ],
+            "type": "string"
+          },
+          "kid": {
+            "description": "Key identifier",
+            "minLength": 1,
+            "type": "string"
+          },
+          "publicKey": {
+            "description": "PEM-encoded public key",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kid",
+          "publicKey",
+          "algorithm"
+        ],
+        "type": "object"
+      },
       "Agent": {
         "properties": {
           "contextConfigId": {
@@ -6535,6 +6568,66 @@
         },
         "type": "object"
       },
+      "PublicKeyConfig": {
+        "properties": {
+          "addedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "algorithm": {
+            "enum": [
+              "RS256",
+              "RS384",
+              "RS512",
+              "ES256",
+              "ES384",
+              "ES512",
+              "EdDSA"
+            ],
+            "type": "string"
+          },
+          "kid": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "publicKey": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kid",
+          "publicKey",
+          "algorithm",
+          "addedAt"
+        ],
+        "type": "object"
+      },
+      "PublicKeyListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PublicKeyConfig"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "PublicKeyResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicKeyConfig"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "ReadyErrorChecks": {
         "properties": {
           "manageDb": {
@@ -10464,6 +10557,27 @@
         "example": "user_123",
         "type": "string"
       },
+      "WebClientAuthConfig": {
+        "properties": {
+          "allowAnonymous": {
+            "type": "boolean"
+          },
+          "audience": {
+            "type": "string"
+          },
+          "publicKeys": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PublicKeyConfig"
+            },
+            "type": "array"
+          },
+          "validateScopeClaims": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "WebClientConfig": {
         "properties": {
           "type": {
@@ -10482,6 +10596,9 @@
                 },
                 "minItems": 1,
                 "type": "array"
+              },
+              "auth": {
+                "$ref": "#/components/schemas/WebClientAuthConfig"
               }
             },
             "required": [
@@ -10514,6 +10631,9 @@
                 },
                 "minItems": 1,
                 "type": "array"
+              },
+              "auth": {
+                "$ref": "#/components/schemas/WebClientAuthConfig"
               }
             },
             "required": [
@@ -25710,6 +25830,363 @@
         }
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/apps/{appId}/auth/keys": {
+      "get": {
+        "description": "List all public keys configured for app authentication",
+        "operationId": "list-app-auth-keys",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicKeyListResponse"
+                }
+              }
+            },
+            "description": "List of public keys"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Public Keys",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      },
+      "post": {
+        "description": "Add a public key for app authentication",
+        "operationId": "create-app-auth-key",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPublicKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicKeyResponse"
+                }
+              }
+            },
+            "description": "Public key added"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Add Public Key",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/apps/{appId}/auth/keys/{kid}": {
+      "delete": {
+        "description": "Remove a public key by kid",
+        "operationId": "delete-app-auth-key",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kid",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Public key deleted"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete Public Key",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/apps/{id}": {
       "delete": {
         "description": "Delete an app credential permanently",
@@ -39694,6 +40171,13 @@
                     "default": true,
                     "description": "Whether to stream the response",
                     "type": "boolean"
+                  },
+                  "userProperties": {
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "description": "User properties to associate with the conversation",
+                    "type": "object"
                   }
                 },
                 "required": [
@@ -40697,6 +41181,10 @@
                                               {
                                                 "format": "uri",
                                                 "type": "string"
+                                              },
+                                              {
+                                                "pattern": "^data:(text\\/(plain|markdown|html|csv|x-log)|application\\/json);base64,",
+                                                "type": "string"
                                               }
                                             ]
                                           },
@@ -40794,6 +41282,13 @@
                   "user": {
                     "description": "User identifier",
                     "type": "string"
+                  },
+                  "userProperties": {
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "description": "User properties to associate with the conversation",
+                    "type": "object"
                   }
                 },
                 "required": [
