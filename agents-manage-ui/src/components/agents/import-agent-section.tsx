@@ -90,7 +90,7 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
             notFoundMessage="No projects found."
             triggerClassName="w-full"
             className="w-(--radix-popover-trigger-width)"
-            disabled={projectsLoading || availableProjects.length === 0}
+            disabled={projectsLoading}
           />
         </div>
 
@@ -132,27 +132,6 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
           <AlertDescription>Fetching accessible projects for this workspace.</AlertDescription>
         </Alert>
       )}
-
-      {projectsError ? (
-        <Alert variant="warning">
-          <AlertCircle />
-          <AlertTitle>Could not load projects</AlertTitle>
-          <AlertDescription>
-            Try reopening the dialog and selecting a source project again.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      {!projectsLoading && !projectsError && availableProjects.length === 0 ? (
-        <Alert>
-          <Info />
-          <AlertTitle>No other projects available</AlertTitle>
-          <AlertDescription>
-            Import currently supports another project in the same workspace. Create or access an
-            additional project to use this flow.
-          </AlertDescription>
-        </Alert>
-      ) : null}
 
       {sourceProjectId && sourceAgentsLoading && (
         <Alert>

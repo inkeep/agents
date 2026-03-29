@@ -37,6 +37,7 @@ interface ComboboxProps {
   enableSearch?: boolean;
   className?: string;
   triggerClassName?: string;
+  disabled?: boolean;
 }
 
 export function Combobox({
@@ -53,6 +54,7 @@ export function Combobox({
   enableSearch = true,
   className,
   triggerClassName,
+  disabled = false,
 }: ComboboxProps) {
   const { isOpen, onClose, onToggle } = useDisclosure();
   const [value, setValue] = useState(defaultValue);
@@ -83,6 +85,7 @@ export function Combobox({
             className={cn('min-w-[250px] justify-between flex-nowrap', triggerClassName)}
             role="combobox"
             variant="outline"
+            disabled={disabled}
           >
             <span className="overflow-hidden overflow-ellipsis">{currentLabel || placeholder}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
