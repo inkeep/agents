@@ -93,6 +93,32 @@ const initialAgentState: AgentStateData = {
 
 const NODE_MODIFIED_CHANGE = new Set<NodeChange['type']>(['remove', 'add', 'replace']);
 
+function deepShallow(a: any, b: any) {
+  if (Object.is(a, b)) return true;
+
+  if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false;
+
+  // first level shallow check
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+
+  if (keysA.length !== keysB.length) return false;
+
+  for (const key of keysA) {
+    const valA = a[key];
+    const valB = b[key];
+
+    if (typeof valA === 'object' && typeof valB === 'object') {
+      // 👇 recursive shallow
+      if (!deepShallow(valA, valB)) return false;
+    } else {
+      if (!Object.is(valA, valB)) return false;
+    }
+  }
+
+  return true;
+}
+
 const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
   jsonSchemaMode: false,
