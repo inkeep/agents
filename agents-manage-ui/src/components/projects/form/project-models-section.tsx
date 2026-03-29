@@ -92,7 +92,11 @@ function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionPr
           inheritedProviderOptions={baseProviderOptions}
           canClear={!disabled}
           onModelChange={(value) => {
-            form.setValue('models.structuredOutput.model', value, { shouldDirty: true });
+            if (value) {
+              form.setValue('models.structuredOutput.model', value, { shouldDirty: true });
+            } else {
+              form.unregister('models.structuredOutput');
+            }
           }}
           onProviderOptionsChange={field.onChange}
           editorNamePrefix="project-structured"
@@ -137,7 +141,11 @@ function SummarizerModelSection({ form, disabled }: ProjectModelsSectionProps) {
           inheritedProviderOptions={baseProviderOptions}
           canClear
           onModelChange={(value) => {
-            form.setValue('models.summarizer.model', value, { shouldDirty: true });
+            if (value) {
+              form.setValue('models.summarizer.model', value, { shouldDirty: true });
+            } else {
+              form.unregister('models.summarizer');
+            }
           }}
           onProviderOptionsChange={field.onChange}
           editorNamePrefix="project-summarizer"
