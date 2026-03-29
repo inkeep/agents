@@ -41,10 +41,10 @@ const NewAgentDialogContent = ({
 }: NewAgentDialogContentProps) => {
   const newAgentId = useId();
   const importAgentId = useId();
-  const [value, setValue] = useState('new');
+  const [value, setValue] = useState('');
 
   return (
-    <DialogContent>
+    <DialogContent className="sm:max-w-2xl">
       <DialogHeader>
         <DialogTitle>New Agent</DialogTitle>
         <DialogDescription>Create a blank agent or copy an existing agent.</DialogDescription>
@@ -76,7 +76,7 @@ const NewAgentDialogContent = ({
       {value === 'new' ? (
         <AgentForm tenantId={tenantId} projectId={projectId} onSuccess={onSuccess} />
       ) : (
-        <ImportAgentSection tenantId={tenantId} isOpen={open} />
+        value === 'import' && <ImportAgentSection tenantId={tenantId} isOpen={open} />
       )}
     </DialogContent>
   );
