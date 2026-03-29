@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.62.2
+
+### Patch Changes
+
+- fe4b442: Prevent sidebar links rerenders on query param changes
+- Updated dependencies [f614c56]
+  - @inkeep/agents-core@0.62.2
+
 ## 0.62.1
 
 ### Patch Changes
