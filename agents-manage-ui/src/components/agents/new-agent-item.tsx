@@ -47,9 +47,7 @@ const NewAgentDialogContent = ({
     <DialogContent>
       <DialogHeader>
         <DialogTitle>New Agent</DialogTitle>
-        <DialogDescription>
-          Create a blank agent or copy an existing agent.
-        </DialogDescription>
+        <DialogDescription>Create a blank agent or copy an existing agent.</DialogDescription>
       </DialogHeader>
       <RadioGroup value={value} onValueChange={setValue}>
         <FieldLabel htmlFor={newAgentId}>
