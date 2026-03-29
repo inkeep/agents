@@ -23,7 +23,7 @@ import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import type { ComponentProps, Dispatch, FC } from 'react';
 import { MCPIcon } from '@/components/icons/mcp-icon';
-import { NavGroup, type NavGroupProps } from '@/components/sidebar-nav/nav-group';
+import { NavGroup, type NavItemProps } from '@/components/sidebar-nav/nav-group';
 import { ProjectSwitcher } from '@/components/sidebar-nav/project-switcher';
 import {
   Sidebar,
@@ -42,8 +42,6 @@ interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
   open: boolean;
   setOpen: Dispatch<boolean>;
 }
-
-type NavItemProps = NavGroupProps['items'][number];
 
 export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => {
   'use memo';

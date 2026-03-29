@@ -10,13 +10,14 @@ import {
 } from '@/components/ui/sidebar';
 import type { IconComponentProps } from '@/components/ui/svg-icon';
 
-export interface NavGroupProps {
-  items: {
-    title: string;
-    url: string;
-    icon: FC<IconComponentProps>;
-    currentPath: string;
-  }[];
+export interface NavItemProps {
+  title: string;
+  url: string;
+  icon: FC<IconComponentProps>;
+}
+
+interface NavGroupProps {
+  items: NavItemProps[];
   label?: string;
   currentPath: string;
 }
