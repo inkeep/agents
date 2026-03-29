@@ -200,9 +200,7 @@ export function EvaluatorFormDialog({
         const added = selectedAgentIds.filter((id) => !initialAgentIds.includes(id));
         const removed = initialAgentIds.filter((id) => !selectedAgentIds.includes(id));
         await Promise.all([
-          ...added.map((agentId) =>
-            addEvaluatorAgentAction(tenantId, projectId, savedId, agentId)
-          ),
+          ...added.map((agentId) => addEvaluatorAgentAction(tenantId, projectId, savedId, agentId)),
           ...removed.map((agentId) =>
             removeEvaluatorAgentAction(tenantId, projectId, savedId, agentId)
           ),

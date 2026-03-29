@@ -29442,7 +29442,7 @@ snapshots:
 
   bun-types@1.3.5:
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 22.19.3
 
   bun@1.3.5:
     optionalDependencies:
@@ -35598,7 +35598,7 @@ snapshots:
     dependencies:
       '@img/colour': 1.0.0
       detect-libc: 2.1.2
-      semver: 7.7.4
+      semver: 7.7.3
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.5
       '@img/sharp-darwin-x64': 0.34.5
