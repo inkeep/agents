@@ -63,7 +63,10 @@ export async function queueDatasetRunItems(params: {
         scheduledTriggerId: datasetRunId,
         invocationId: item.scheduledTriggerInvocationId,
       }).catch((err) =>
-        logger.warn({ err, invocationId: item.scheduledTriggerInvocationId }, 'Failed to mark trigger invocation as failed')
+        logger.warn(
+          { err, invocationId: item.scheduledTriggerInvocationId },
+          'Failed to mark trigger invocation as failed'
+        )
       );
     })
   );
