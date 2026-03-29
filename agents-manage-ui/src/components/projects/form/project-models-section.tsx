@@ -12,7 +12,6 @@ import {
 } from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { InfoCard } from '@/components/ui/info-card';
-import { Label } from '@/components/ui/label';
 import {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
@@ -21,6 +20,7 @@ import {
 } from '@/lib/templates';
 import { isRequired } from '@/lib/utils';
 import { ModelInheritanceInfo } from './model-inheritance-info';
+import { SectionHeader } from '@/components/agent/sidepane/section';
 
 interface ProjectModelsSectionProps {
   form: UseFormReturn<ProjectInput, unknown, ProjectOutput>;
@@ -177,12 +177,10 @@ export function ProjectModelsSection({ form, disabled }: ProjectModelsSectionPro
 
   return (
     <div className="space-y-4">
-      <div>
-        <Label className="text-sm font-medium">Default models</Label>
-        <p className="text-sm text-muted-foreground mt-1">
-          Set default models that will be inherited by agents and sub agents in this project.
-        </p>
-      </div>
+      <SectionHeader
+        title="Default models"
+        description="Set default models that will be inherited by agents and sub agents in this project."
+      />
       <CollapsibleSettings open={isOpen} onOpenChange={setIsOpen} title="Configure default models">
         {/* Base Model */}
         <BaseModelSection form={form} disabled={disabled} />
