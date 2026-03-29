@@ -1,13 +1,13 @@
 import { ChevronRight } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-interface CollapsibleSettingsProps extends ComponentProps<typeof Collapsible> {
+interface CollapsibleSettingsProps extends Omit<ComponentProps<typeof Collapsible>, 'title'> {
   defaultOpen?: boolean;
-  children: React.ReactNode;
-  title: string;
+  children: ReactNode;
+  title: ReactNode;
 }
 
 export function CollapsibleSettings({
@@ -25,7 +25,7 @@ export function CollapsibleSettings({
         <Button
           variant="ghost"
           size="sm"
-          className="flex items-center justify-start gap-1.5 p-0 h-auto font-normal text-xs text-foreground/80 dark:text-foreground/90 hover:text-foreground hover:!bg-transparent transition-colors group w-full py-2 px-4"
+          className="flex items-center justify-start gap-1.5 p-0 h-auto font-normal text-xs text-foreground/80 dark:text-foreground/90 hover:text-foreground hover:bg-transparent! transition-colors group w-full py-2 px-4"
         >
           <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-90" />
           {title}
