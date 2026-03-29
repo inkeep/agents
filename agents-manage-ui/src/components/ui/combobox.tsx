@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronsUpDown } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useDisclosure } from '@/hooks/use-disclosure';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
@@ -56,18 +56,16 @@ export function Combobox({
   triggerClassName,
   disabled = false,
 }: ComboboxProps) {
+  'use memo';
   const { isOpen, onClose, onToggle } = useDisclosure();
   const [value, setValue] = useState(defaultValue);
   const commandRef = useRef<HTMLDivElement>(null);
-  const currentLabel = useMemo(
-    () => options.find((option) => option.value === value)?.label,
-    [value, options]
-  );
+  const currentLabel = options.find((option) => option.value === value)?.label;
 
-  const handleChangeOnOpen = () => {
+  function handleChangeOnOpen() {
     onOpenChange?.();
     onToggle();
-  };
+  }
 
   useEffect(() => {
     if (!multipleCheckboxValues?.length) {
