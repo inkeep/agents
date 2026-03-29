@@ -1,15 +1,24 @@
 'use client';
 
+import Link from 'next/link';
+import type { FC } from 'react';
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { NavItem, type NavItemProps } from './nav-item';
+import type { IconComponentProps } from '@/components/ui/svg-icon';
 
 export interface NavGroupProps {
-  items: Omit<NavItemProps, 'currentPath'>[];
+  items: {
+    title: string;
+    url: string;
+    icon: FC<IconComponentProps>;
+    currentPath: string;
+  }[];
   label?: string;
   currentPath: string;
 }
@@ -28,7 +37,15 @@ export function NavGroup({ items, label, currentPath }: NavGroupProps) {
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           {items.map((item) => (
-            <NavItem key={item.title} currentPath={currentPath} {...item} />
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton asChild isActive={currentPath.startsWith(item.url)}>
+                <Link href={item.url}>
+                  <item.icon />
+                  {/* Keep this span to prevent layout issues with long titles when sidebar collapsing */}
+                  <span>{item.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarGroupContent>
