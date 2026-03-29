@@ -67,9 +67,6 @@ export async function fetchEvaluators(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<Evaluator>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluators`
   );
@@ -83,9 +80,6 @@ export async function createEvaluator(
   projectId: string,
   evaluator: EvaluatorInsert
 ): Promise<Evaluator> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluators`,
     {
@@ -106,9 +100,6 @@ export async function updateEvaluator(
   evaluatorId: string,
   evaluator: EvaluatorUpdate
 ): Promise<Evaluator> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}`,
     {
@@ -128,9 +119,6 @@ export async function deleteEvaluator(
   projectId: string,
   evaluatorId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}`,
     {

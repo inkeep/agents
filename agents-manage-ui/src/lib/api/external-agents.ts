@@ -23,9 +23,6 @@ export async function fetchExternalAgents(
   page = 1,
   pageSize = 100
 ): Promise<ExternalAgent[]> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const params = new URLSearchParams({
     page: page.toString(),
     limit: pageSize.toString(),
@@ -46,9 +43,6 @@ async function $fetchExternalAgent(
   projectId: string,
   id: string
 ): Promise<ExternalAgent> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ExternalAgent>>(
     `tenants/${tenantId}/projects/${projectId}/external-agents/${id}`
   );
@@ -66,9 +60,6 @@ export async function createExternalAgent(
   projectId: string,
   data: CreateExternalAgentRequest
 ): Promise<ExternalAgent> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ExternalAgent>>(
     `tenants/${tenantId}/projects/${projectId}/external-agents`,
     {
@@ -89,9 +80,6 @@ export async function updateExternalAgent(
   id: string,
   data: Partial<CreateExternalAgentRequest>
 ): Promise<ExternalAgent> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ExternalAgent>>(
     `tenants/${tenantId}/projects/${projectId}/external-agents/${id}`,
     {
@@ -111,9 +99,6 @@ export async function deleteExternalAgent(
   projectId: string,
   id: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest<void>(
     `tenants/${tenantId}/projects/${projectId}/external-agents/${id}`,
     {

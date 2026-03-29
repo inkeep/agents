@@ -115,9 +115,6 @@ export async function deleteEvaluationRunConfig(
   projectId: string,
   configId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs/${configId}`,
     {

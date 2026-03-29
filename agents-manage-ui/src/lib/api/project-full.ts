@@ -18,9 +18,6 @@ export async function getFullProject(
   tenantId: string,
   projectId: string
 ): Promise<SingleResponse<FullProjectDefinition>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<SingleResponse<FullProjectDefinition>>(
     `tenants/${tenantId}/project-full/${projectId}`
   );

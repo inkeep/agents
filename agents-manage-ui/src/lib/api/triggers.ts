@@ -29,9 +29,6 @@ export async function fetchTriggers(
   projectId: string,
   agentId: string
 ): Promise<ListResponse<Trigger>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<ListResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers?limit=100`
   );
