@@ -4,6 +4,7 @@ import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type UseFormReturn, useFormState, useWatch } from 'react-hook-form';
 import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
+import { SectionHeader } from '@/components/agent/sidepane/section';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import {
   type ProjectInput,
@@ -20,7 +21,6 @@ import {
 } from '@/lib/templates';
 import { isRequired } from '@/lib/utils';
 import { ModelInheritanceInfo } from './model-inheritance-info';
-import { SectionHeader } from '@/components/agent/sidepane/section';
 
 interface ProjectModelsSectionProps {
   form: UseFormReturn<ProjectInput, unknown, ProjectOutput>;

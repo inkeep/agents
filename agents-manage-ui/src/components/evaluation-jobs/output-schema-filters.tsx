@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus, X } from 'lucide-react';
+import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,6 @@ import type {
   OutputFilter,
   OutputFilterOperator,
 } from '@/lib/evaluation/filter-evaluation-results';
-import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 
 interface OutputSchemaFiltersProps {
   filters: OutputFilter[];
