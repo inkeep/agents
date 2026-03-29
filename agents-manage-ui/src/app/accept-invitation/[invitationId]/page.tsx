@@ -1,9 +1,10 @@
 'use client';
 
-import { AlertCircleIcon, CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { AlertCircleIcon, CheckCircle2, Globe, Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
+import { GoogleColorIcon } from '@/components/icons/google';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -11,9 +12,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { type InvitationVerification, verifyInvitation } from '@/lib/actions/invitations';
-import { getSafeReturnUrl } from '@/lib/utils/auth-redirect';
+import { updateUserProfileTimezone } from '@/lib/actions/user-profile';
+import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
 
 export default function AcceptInvitationPage({
   params,
@@ -25,6 +28,7 @@ export default function AcceptInvitationPage({
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const { invitationId } = use(params);
   const authClient = useAuthClient();
+  const { PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
 
   const [invitationVerification, setInvitationVerification] =
     useState<InvitationVerification | null>(null);
@@ -40,6 +44,18 @@ export default function AcceptInvitationPage({
     name: '',
     password: '',
   });
+
+  // For OAuth, build a callback URL that redirects back to this page after auth
+  const getFullCallbackURL = useCallback(() => {
+    if (typeof window === 'undefined') return '/';
+    const baseURL = window.location.origin;
+    const params = new URLSearchParams();
+    params.set('invitation', invitationId);
+    if (returnUrl && isValidReturnUrl(returnUrl)) {
+      params.set('returnUrl', returnUrl);
+    }
+    return `${baseURL}/?${params.toString()}`;
+  }, [invitationId, returnUrl]);
 
   // Fetch invitation verification (unauthenticated) when email is provided in URL
   useEffect(() => {
@@ -113,6 +129,8 @@ export default function AcceptInvitationPage({
     setIsSubmitting(true);
     setError(null);
 
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     try {
       // Step 1: Sign up with email/password
       const signupResult = await authClient.signUp.email({
@@ -125,6 +143,16 @@ export default function AcceptInvitationPage({
         setError(signupResult.error.message || 'Failed to create account');
         setIsSubmitting(false);
         return;
+      }
+
+      // Step 1b: Set timezone on the new user's profile
+      const newUserId = signupResult.data?.user?.id;
+      if (newUserId) {
+        try {
+          await updateUserProfileTimezone(newUserId, timezone);
+        } catch {
+          // Silently ignore — timezone update is best-effort
+        }
       }
 
       // Step 2: Accept the invitation (user is now signed in due to autoSignIn: true)
@@ -262,9 +290,49 @@ export default function AcceptInvitationPage({
     );
   }
 
-  // Unauthenticated: Show signup form
+  // Handle external sign-in (Google / SSO) for unauthenticated invitation flow
+  const handleExternalSignIn = async (
+    method: 'social' | 'sso',
+    identifier: string,
+    fallbackError: string
+  ) => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const result =
+        method === 'social'
+          ? await authClient.signIn.social({
+              provider: identifier as 'google',
+              callbackURL: getFullCallbackURL(),
+              ...(emailFromUrl && { loginHint: emailFromUrl }),
+            })
+          : await authClient.signIn.sso({
+              providerId: identifier,
+              callbackURL: getFullCallbackURL(),
+              ...(emailFromUrl && { loginHint: emailFromUrl }),
+            });
+
+      if (result?.error) {
+        setError(result.error.message || fallbackError);
+        setIsSubmitting(false);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : fallbackError;
+      setError(errorMessage);
+      setIsSubmitting(false);
+    }
+  };
+
+  // Unauthenticated: Show all org-allowed sign-in methods
   if (!user && invitationVerification) {
     const orgName = invitationVerification.organizationName;
+    const allowedMethods = invitationVerification.allowedAuthMethods ?? [];
+    const hasGoogle = allowedMethods.some((m) => m.method === 'google');
+    const ssoMethods = allowedMethods.filter((m) => m.method === 'sso');
+    const hasEmailPassword = allowedMethods.some((m) => m.method === 'email-password');
+    const hasExternalMethods = hasGoogle || ssoMethods.length > 0;
+    const hasNoMethods = !hasGoogle && ssoMethods.length === 0 && !hasEmailPassword;
 
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -274,83 +342,148 @@ export default function AcceptInvitationPage({
           </div>
           <CardHeader>
             <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-              {orgName ? `Join ${orgName}` : 'Create your account'}
+              {orgName ? `Join ${orgName}` : 'Accept invitation'}
             </CardTitle>
             <CardDescription>
-              {orgName ? (
+              {hasNoMethods ? (
                 <>
-                  You've been invited to join <span className="font-medium">{orgName}</span>. Create
-                  your account to get started.
+                  No sign-in methods are available for your email domain. Contact the administrator
+                  of <span className="font-medium">{orgName ?? 'the organization'}</span> for help.
+                </>
+              ) : orgName ? (
+                <>
+                  You've been invited to join <span className="font-medium">{orgName}</span>. Choose
+                  how you'd like to sign in.
                 </>
               ) : (
-                'Set up your account to accept this invitation.'
+                <>You've been invited to join an organization. Choose how you'd like to sign in.</>
               )}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignupAndAccept} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={emailFromUrl || ''}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
+          <CardContent className="space-y-5">
+            {error && (
+              <Alert variant="destructive" className="border-destructive/10 dark:border-border">
+                <AlertCircleIcon aria-hidden className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="name">Full name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Your name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  disabled={isSubmitting}
-                  autoFocus
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Create a password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  disabled={isSubmitting}
-                  minLength={8}
-                />
-                <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
-              </div>
-
-              {error && (
-                <Alert variant="destructive" className="border-destructive/10 dark:border-border">
-                  <AlertCircleIcon className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
+            {hasGoogle && PUBLIC_GOOGLE_CLIENT_ID && (
               <Button
-                type="submit"
+                variant="gray-outline"
+                onClick={() => handleExternalSignIn('social', 'google', 'Google sign in failed')}
+                disabled={isSubmitting}
                 className="w-full"
-                disabled={isSubmitting || !formData.name || !formData.password}
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
+                    <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
+                    Redirecting...
                   </>
                 ) : (
-                  'Create Account & Join'
+                  <>
+                    <GoogleColorIcon aria-hidden />
+                    Continue with Google
+                  </>
                 )}
               </Button>
-            </form>
+            )}
+
+            {ssoMethods.map((sso) => (
+              <Button
+                key={sso.providerId}
+                variant="gray-outline"
+                onClick={() =>
+                  sso.providerId
+                    ? handleExternalSignIn('sso', sso.providerId, 'SSO sign in failed')
+                    : undefined
+                }
+                disabled={isSubmitting || !sso.providerId}
+                className="w-full"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
+                    Redirecting...
+                  </>
+                ) : (
+                  <>
+                    <Globe aria-hidden />
+                    {sso.displayName ? `Continue with ${sso.displayName}` : 'Continue with SSO'}
+                  </>
+                )}
+              </Button>
+            ))}
+
+            {hasExternalMethods && hasEmailPassword && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
+            )}
+
+            {hasEmailPassword && (
+              <form onSubmit={handleSignupAndAccept} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={emailFromUrl || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    disabled={isSubmitting}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Create a password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    disabled={isSubmitting}
+                    minLength={8}
+                  />
+                  <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting || !formData.name || !formData.password}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    'Create Account & Join'
+                  )}
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -400,7 +533,7 @@ export default function AcceptInvitationPage({
         <CardContent className="space-y-4">
           {error && (
             <Alert variant="destructive" className="border-destructive/10 dark:border-border">
-              <AlertCircleIcon className="h-4 w-4" />
+              <AlertCircleIcon aria-hidden className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}

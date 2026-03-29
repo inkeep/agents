@@ -41,11 +41,24 @@ inkeep push
 The CLI will:
 1. Detect the project from your `index.ts` file
 2. Resolve configuration — your active [CLI profile](/guides/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
-3. Push all agents, tools, and configurations to remote Inkeep instance
+3. Check for conflicts between your local state and remote
+4. Push all agents, tools, and configurations to remote Inkeep instance
+
+### Handling conflicts
+
+If the remote instance has changed since your last pull, the CLI detects conflicts and aborts the push.
+
+To resolve conflicts, run `inkeep pull` first — the [interactive merge UI](/guides/cli/pull-from-remote#step-3-resolve-merge-conflicts) walks you through each conflict. Then push again.
+
+To skip conflict detection and overwrite the remote state:
+
+```bash
+inkeep push --force
+```
 
 ## Step 3: Verify the push
 
-After a successful push, the CLI prints a deployment summary with resource counts. You can also verify by opening the [Visual Builder](/visual-builder) to see your updated configurations.
+After a successful push, the CLI prints a deployment summary with resource counts. You can also verify by opening the [Visual Builder](/visual-builder/sub-agents) to see your updated configurations.
 
 ## Push all projects at once
 

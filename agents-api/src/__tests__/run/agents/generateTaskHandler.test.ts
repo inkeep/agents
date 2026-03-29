@@ -1,7 +1,7 @@
 import { type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
-import { extractTextFromParts } from 'src/domains/run/utils/message-parts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
+import { Agent } from '../../../domains/run/agents/Agent';
 import {
   createTaskHandler,
   createTaskHandlerConfig,
@@ -9,6 +9,7 @@ import {
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
 } from '../../../domains/run/agents/generateTaskHandler';
+import { extractTextFromParts } from '../../../domains/run/utils/message-parts';
 
 vi.hoisted(() => {
   const getMcpToolMock = vi.fn().mockResolvedValue({
@@ -111,8 +112,9 @@ vi.mock('../../data/db/dbClient.js', () => ({
 
 // These functions are now mocked via @inkeep/agents-core above
 
-// Store the last Agent constructor arguments for verification
+// Store the last Agent constructor arguments and instance for verification
 let lastAgentConstructorArgs: any = null;
+let lastAgentInstance: any = null;
 
 vi.mock('../../../domains/run/agents/Agent.js', () => ({
   Agent: class MockAgent {
@@ -122,6 +124,7 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       this.config = config;
       // Capture constructor arguments for testing
       lastAgentConstructorArgs = config;
+      lastAgentInstance = this;
     }
 
     setDelegationStatus(_isDelegated: boolean) {
@@ -130,6 +133,18 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
 
     setDelegationId(_delegationId: string | undefined) {
       // Mock implementation
+    }
+
+    setDurableWorkflowRunId(_runId: string | undefined) {
+      // Mock implementation
+    }
+
+    setApprovedToolCalls(_approvedToolCalls: Record<string, any> | undefined) {
+      // Mock implementation
+    }
+
+    getPendingDurableApproval() {
+      return undefined;
     }
 
     async generate(userParts: Part[], _options: unknown) {
@@ -197,13 +212,21 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       };
     }
 
+    getTaskDenialRedirects() {
+      return [];
+    }
+
     cleanupCompression() {
       // Mock implementation for compression cleanup
+    }
+
+    async cleanup() {
+      // Mock implementation for full cleanup
     }
   },
 }));
 
-vi.mock('../../../domains/run/utils/stream-registry.js', () => ({
+vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn().mockReturnValue(undefined),
 }));
 
@@ -539,8 +562,9 @@ describe('generateTaskHandler', () => {
 
   describe('createTaskHandler', () => {
     beforeEach(() => {
-      // Reset captured constructor args before each test
+      // Reset captured constructor args and instance before each test
       lastAgentConstructorArgs = null;
+      lastAgentInstance = null;
     });
 
     it('should handle basic task execution', async () => {
@@ -566,6 +590,36 @@ describe('generateTaskHandler', () => {
           text: 'Response to: Hello, how can you help?',
         },
       ]);
+    });
+
+    it('prepends denial redirect note when task had denied tool calls', async () => {
+      vi.mocked(Agent).prototype.getTaskDenialRedirects = vi.fn().mockReturnValue([
+        {
+          toolName: 'get_coordinates',
+          toolCallId: 'call-abc',
+          reason: 'I want the coordinates for tokyo instead',
+        },
+      ]);
+
+      const taskHandler = createTaskHandler(mockConfig);
+      const task: A2ATask = {
+        id: 'task-123',
+        input: { parts: [{ kind: 'text', text: 'Get coordinates for San Francisco' }] },
+        context: { conversationId: 'conv-123' },
+      };
+
+      const result = await taskHandler(task);
+
+      expect(result.status.state).toBe(TaskState.Completed);
+      expect(result.artifacts?.[0].parts).toHaveLength(2);
+      const notePart = result.artifacts?.[0].parts[0];
+      expect(notePart?.kind).toBe('text');
+      expect((notePart as any)?.text).toContain('[NOTE: Some tool calls were denied');
+      expect((notePart as any)?.text).toContain(
+        'get_coordinates (call-abc): I want the coordinates for tokyo instead'
+      );
+
+      vi.mocked(Agent).prototype.getTaskDenialRedirects = vi.fn().mockReturnValue([]);
     });
 
     it('should pass models to Agent constructor', async () => {
@@ -842,6 +896,53 @@ describe('generateTaskHandler', () => {
       // The description should be enhanced with related agents information
       expect(teamDelegateRelation.config.description).toContain('A team agent for delegation');
       expect(teamDelegateRelation.config.description).toContain('Can delegate to:');
+    });
+
+    it('should call cleanup on successful task completion', async () => {
+      const taskHandler = createTaskHandler(mockConfig);
+
+      const task: A2ATask = {
+        id: 'task-cleanup-success',
+        input: {
+          parts: [{ kind: 'text', text: 'Hello' }],
+        },
+      };
+
+      await taskHandler(task);
+
+      expect(lastAgentInstance).toBeDefined();
+      expect(lastAgentInstance.cleanup).toBeDefined();
+    });
+
+    it('should call cleanup even when task fails', async () => {
+      const { Agent } = await import('../../../domains/run/agents/Agent.js');
+      const origGenerate = vi.mocked(Agent).prototype.generate;
+      const origCleanup = vi.mocked(Agent).prototype.cleanup;
+
+      const cleanupCalls: boolean[] = [];
+      vi.mocked(Agent).prototype.cleanup = vi.fn().mockImplementation(async () => {
+        cleanupCalls.push(true);
+      });
+      vi.mocked(Agent).prototype.generate = vi
+        .fn()
+        .mockRejectedValue(new Error('Generation failed'));
+
+      const taskHandler = createTaskHandler(mockConfig);
+
+      const task: A2ATask = {
+        id: 'task-cleanup-error',
+        input: {
+          parts: [{ kind: 'text', text: 'This will fail' }],
+        },
+      };
+
+      try {
+        await taskHandler(task);
+        expect(cleanupCalls).toHaveLength(1);
+      } finally {
+        vi.mocked(Agent).prototype.generate = origGenerate;
+        vi.mocked(Agent).prototype.cleanup = origCleanup;
+      }
     });
   });
 

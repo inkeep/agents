@@ -1,13 +1,18 @@
 import type { SlackLinkIntent } from '@inkeep/agents-core';
-import { signSlackUserToken } from '@inkeep/agents-core';
+import { getInProcessFetch, signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
 import { type ResolvedAgentConfig, resolveEffectiveAgent } from './agent-resolution';
 import { createContextBlock } from './blocks';
-import { getSlackClient } from './client';
+import { getSlackChannelInfo, getSlackClient, getSlackUserInfo } from './client';
 import { executeAgentPublicly } from './events/execution';
 import { streamAgentResponse } from './events/streaming';
-import { generateSlackConversationId, sendResponseUrlMessage } from './events/utils';
+import {
+  formatChannelContext,
+  formatSlackQuery,
+  generateSlackConversationId,
+  sendResponseUrlMessage,
+} from './events/utils';
 import { findWorkspaceConnectionByTeamId } from './nango';
 
 const logger = getLogger('slack-resume-intent');
@@ -150,10 +155,20 @@ async function resumeMention(
     return;
   }
 
-  const agentConfig = await resolveEffectiveAgent({
-    tenantId,
-    teamId,
-    channelId: intent.channelId,
+  const [agentConfig, channelInfo, userInfo] = await Promise.all([
+    resolveEffectiveAgent({ tenantId, teamId, channelId: intent.channelId }),
+    getSlackChannelInfo(slackClient, intent.channelId),
+    getSlackUserInfo(slackClient, slackUserId),
+  ]);
+
+  const channelContext = formatChannelContext(channelInfo);
+  const userName = userInfo?.displayName || 'User';
+  const formattedQuestion = formatSlackQuery({
+    text: intent.question,
+    channelContext,
+    userName,
+    messageTs: intent.messageTs || replyThreadTs,
+    senderTimezone: userInfo?.tz ?? undefined,
   });
 
   const slackUserToken = await signSlackUserToken({
@@ -183,9 +198,11 @@ async function resumeMention(
     jwtToken: slackUserToken,
     projectId: intent.projectId,
     agentId: intent.agentId,
-    question: intent.question,
+    question: formattedQuestion,
+    rawMessageText: intent.question,
     agentName: intent.agentId,
     conversationId,
+    entryPoint: 'smart_link_resume',
   });
 }
 
@@ -211,6 +228,16 @@ async function resumeDirectMessage(
     return;
   }
 
+  const userInfo = await getSlackUserInfo(slackClient, slackUserId);
+  const userName = userInfo?.displayName || 'User';
+  const formattedQuestion = formatSlackQuery({
+    text: intent.question,
+    channelContext: 'a Slack direct message',
+    userName,
+    messageTs: intent.messageTs || undefined,
+    senderTimezone: userInfo?.tz ?? undefined,
+  });
+
   const slackUserToken = await signSlackUserToken({
     ...tokenCtx,
     slackAuthorized: false,
@@ -233,8 +260,10 @@ async function resumeDirectMessage(
     projectId: intent.projectId,
     agentId: intent.agentId,
     agentName: intent.agentId,
-    question: intent.question,
+    question: formattedQuestion,
+    rawMessageText: intent.question,
     conversationId,
+    entryPoint: 'smart_link_resume',
   });
 }
 
@@ -247,12 +276,16 @@ async function resumeCommand(
 ): Promise<void> {
   const { slackUserId } = tokenCtx;
 
-  const resolvedAgent = await resolveEffectiveAgent({
-    tenantId,
-    teamId,
-    channelId: intent.channelId,
-    userId: slackUserId,
-  });
+  const [resolvedAgent, channelInfo, userInfo] = await Promise.all([
+    resolveEffectiveAgent({
+      tenantId,
+      teamId,
+      channelId: intent.channelId,
+      userId: slackUserId,
+    }),
+    getSlackChannelInfo(slackClient, intent.channelId),
+    getSlackUserInfo(slackClient, slackUserId),
+  ]);
 
   if (!resolvedAgent) {
     await postErrorToChannel(
@@ -264,6 +297,16 @@ async function resumeCommand(
     );
     return;
   }
+
+  const channelContext = formatChannelContext(channelInfo);
+  const userName = userInfo?.displayName || 'User';
+  const formattedQuestion = formatSlackQuery({
+    text: intent.question,
+    channelContext,
+    userName,
+    messageTs: intent.messageTs || undefined,
+    senderTimezone: userInfo?.tz ?? undefined,
+  });
 
   const slackUserToken = await signSlackUserToken({
     ...tokenCtx,
@@ -279,6 +322,7 @@ async function resumeCommand(
     agentId: resolvedAgent.agentId,
     agentName: resolvedAgent.agentName || resolvedAgent.agentId,
     projectId: resolvedAgent.projectId,
+    formattedQuestion,
   });
 }
 
@@ -300,11 +344,11 @@ async function resumeRunCommand(
     return;
   }
 
-  const agentConfig = await resolveEffectiveAgent({
-    tenantId,
-    teamId,
-    channelId: intent.channelId,
-  });
+  const [agentConfig, channelInfo, userInfo] = await Promise.all([
+    resolveEffectiveAgent({ tenantId, teamId, channelId: intent.channelId }),
+    getSlackChannelInfo(slackClient, intent.channelId),
+    getSlackUserInfo(slackClient, slackUserId),
+  ]);
 
   const slackUserToken = await signSlackUserToken({
     ...tokenCtx,
@@ -328,6 +372,16 @@ async function resumeRunCommand(
     return;
   }
 
+  const channelContext = formatChannelContext(channelInfo);
+  const userName = userInfo?.displayName || 'User';
+  const formattedQuestion = formatSlackQuery({
+    text: intent.question,
+    channelContext,
+    userName,
+    messageTs: intent.messageTs || undefined,
+    senderTimezone: userInfo?.tz ?? undefined,
+  });
+
   await executeAndDeliver({
     intent,
     slackClient,
@@ -337,6 +391,7 @@ async function resumeRunCommand(
     agentId: agentInfo.id,
     agentName: agentInfo.name || agentInfo.id,
     projectId: agentInfo.projectId,
+    formattedQuestion,
   });
 }
 
@@ -434,6 +489,7 @@ interface ExecuteAndDeliverParams {
   agentId: string;
   agentName: string;
   projectId: string;
+  formattedQuestion: string;
 }
 
 async function executeAndDeliver(params: ExecuteAndDeliverParams): Promise<void> {
@@ -446,6 +502,7 @@ async function executeAndDeliver(params: ExecuteAndDeliverParams): Promise<void>
     agentId,
     agentName,
     projectId,
+    formattedQuestion,
   } = params;
   const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
@@ -454,16 +511,18 @@ async function executeAndDeliver(params: ExecuteAndDeliverParams): Promise<void>
 
   let response: Response;
   try {
-    response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+    response = await getInProcessFetch()(`${apiBaseUrl}/run/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${slackUserToken}`,
         'x-inkeep-project-id': projectId,
         'x-inkeep-agent-id': agentId,
+        'x-inkeep-invocation-type': 'slack',
+        'x-inkeep-invocation-entry-point': 'smart_link_resume',
       },
       body: JSON.stringify({
-        messages: [{ role: 'user', content: intent.question }],
+        messages: [{ role: 'user', content: formattedQuestion }],
         stream: false,
       }),
       signal: controller.signal,

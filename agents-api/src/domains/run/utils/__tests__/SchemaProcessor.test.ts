@@ -3,7 +3,24 @@ import { SchemaProcessor } from '../SchemaProcessor';
 
 describe('SchemaProcessor.makeAllPropertiesRequired', () => {
   describe('basic object normalization', () => {
-    it('should make all properties required in a flat schema', () => {
+    it('should make all properties required in a flat schema, wrapping optional ones as nullable', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' },
+        },
+        required: ['name'],
+      };
+
+      const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
+
+      expect(result.required).toEqual(['name', 'age']);
+      expect(result.properties.name).toEqual({ type: 'string' });
+      expect(result.properties.age).toEqual({ anyOf: [{ type: 'number' }, { type: 'null' }] });
+    });
+
+    it('should wrap all properties as nullable when none are originally required', () => {
       const schema = {
         type: 'object',
         properties: {
@@ -15,11 +32,11 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
       const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
 
       expect(result.required).toEqual(['name', 'age']);
-      expect(result.properties.name).toEqual({ type: 'string' });
-      expect(result.properties.age).toEqual({ type: 'number' });
+      expect(result.properties.name).toEqual({ anyOf: [{ type: 'string' }, { type: 'null' }] });
+      expect(result.properties.age).toEqual({ anyOf: [{ type: 'number' }, { type: 'null' }] });
     });
 
-    it('should preserve existing required array while making all properties required', () => {
+    it('should expand required to include all properties', () => {
       const schema = {
         type: 'object',
         properties: {
@@ -32,11 +49,13 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
       const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
 
       expect(result.required).toEqual(['required', 'optional']);
+      expect(result.properties.required).toEqual({ type: 'string' });
+      expect(result.properties.optional).toEqual({ anyOf: [{ type: 'string' }, { type: 'null' }] });
     });
   });
 
   describe('nested object properties', () => {
-    it('should recursively normalize nested object properties', () => {
+    it('should recursively normalize nested object properties, keeping required strict and wrapping optional', () => {
       const schema = {
         type: 'object',
         properties: {
@@ -46,6 +65,31 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
               email: { type: 'string' },
               name: { type: 'string' },
             },
+            required: ['email'],
+          },
+        },
+        required: ['user'],
+      };
+
+      const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
+
+      expect(result.required).toEqual(['user']);
+      expect(result.properties.user.required).toEqual(['email', 'name']);
+      expect(result.properties.user.properties.email).toEqual({ type: 'string' });
+      expect(result.properties.user.properties.name).toEqual({
+        anyOf: [{ type: 'string' }, { type: 'null' }],
+      });
+    });
+
+    it('should wrap optional nested objects in anyOf', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          user: {
+            type: 'object',
+            properties: {
+              email: { type: 'string' },
+            },
           },
         },
       };
@@ -53,7 +97,8 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
       const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
 
       expect(result.required).toEqual(['user']);
-      expect(result.properties.user.required).toEqual(['email', 'name']);
+      expect(result.properties.user.anyOf[0].required).toEqual(['email']);
+      expect(result.properties.user.anyOf[1]).toEqual({ type: 'null' });
     });
 
     it('should handle deeply nested schemas', () => {
@@ -68,10 +113,13 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
                 properties: {
                   level3: { type: 'string' },
                 },
+                required: ['level3'],
               },
             },
+            required: ['level2'],
           },
         },
+        required: ['level1'],
       };
 
       const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
@@ -79,11 +127,14 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
       expect(result.required).toEqual(['level1']);
       expect(result.properties.level1.required).toEqual(['level2']);
       expect(result.properties.level1.properties.level2.required).toEqual(['level3']);
+      expect(result.properties.level1.properties.level2.properties.level3).toEqual({
+        type: 'string',
+      });
     });
   });
 
   describe('array items', () => {
-    it('should normalize object schemas in array items', () => {
+    it('should normalize object schemas in array items, wrapping optional array property in anyOf', () => {
       const schema = {
         type: 'object',
         properties: {
@@ -95,6 +146,33 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
                 id: { type: 'string' },
                 value: { type: 'number' },
               },
+              required: ['id'],
+            },
+          },
+        },
+        required: ['items'],
+      };
+
+      const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
+
+      expect(result.properties.items.items.required).toEqual(['id', 'value']);
+      expect(result.properties.items.items.properties.id).toEqual({ type: 'string' });
+      expect(result.properties.items.items.properties.value).toEqual({
+        anyOf: [{ type: 'number' }, { type: 'null' }],
+      });
+    });
+
+    it('should wrap optional array property in anyOf', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
             },
           },
         },
@@ -102,7 +180,8 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
 
       const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
 
-      expect(result.properties.items.items.required).toEqual(['id', 'value']);
+      expect(result.properties.items.anyOf[0].items.required).toEqual(['id']);
+      expect(result.properties.items.anyOf[1]).toEqual({ type: 'null' });
     });
 
     it('should handle nested arrays', () => {
@@ -122,6 +201,7 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
             },
           },
         },
+        required: ['matrix'],
       };
 
       const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
@@ -149,6 +229,25 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
 
       expect(result.anyOf[0].required).toEqual(['a']);
       expect(result.anyOf[1].required).toEqual(['b']);
+    });
+
+    it('should wrap optional properties as nullable within anyOf branches', () => {
+      const schema = {
+        anyOf: [
+          {
+            type: 'object',
+            properties: { a: { type: 'string' }, b: { type: 'number' } },
+            required: ['a'],
+          },
+        ],
+      };
+
+      const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
+
+      expect(result.anyOf[0].properties.a).toEqual({ type: 'string' });
+      expect(result.anyOf[0].properties.b).toEqual({
+        anyOf: [{ type: 'number' }, { type: 'null' }],
+      });
     });
 
     it('should normalize all schemas in oneOf', () => {
@@ -215,6 +314,21 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
       expect(result).toEqual({ type: 'string' });
     });
 
+    it('should not double-wrap properties that are already nullable', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          a: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+          b: { type: 'string', nullable: true },
+        },
+      };
+
+      const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
+
+      expect(result.properties.a).toEqual({ anyOf: [{ type: 'string' }, { type: 'null' }] });
+      expect(result.properties.b).toEqual({ type: 'string', nullable: true });
+    });
+
     it('should handle empty properties object', () => {
       const schema = {
         type: 'object',
@@ -240,7 +354,7 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
   });
 
   describe('real-world schemas', () => {
-    it('should normalize fact data component schema', () => {
+    it('should normalize fact data component schema, wrapping optional fact field as nullable', () => {
       const schema = {
         type: 'object',
         properties: {
@@ -255,8 +369,11 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
       const result = SchemaProcessor.makeAllPropertiesRequired(schema) as any;
 
       expect(result.required).toEqual(['fact']);
-      expect(result.properties.fact.nullable).toBe(true);
-      expect(result.properties.fact.description).toBe('a true fact that is supported by citations');
+      expect(result.properties.fact).toEqual({
+        type: 'string',
+        nullable: true,
+        description: 'a true fact that is supported by citations',
+      });
     });
 
     it('should normalize artifact component schema with nested selectors', () => {
@@ -294,11 +411,11 @@ describe('SchemaProcessor.makeAllPropertiesRequired', () => {
         'base_selector',
         'details_selector',
       ]);
-      expect(result.properties.details_selector.required).toEqual(['title', 'content', 'metadata']);
-      expect(result.properties.details_selector.properties.metadata.required).toEqual([
-        'author',
-        'date',
-      ]);
+      expect(result.properties.id).toEqual({ type: 'string' });
+      expect(result.properties.tool_call_id).toEqual({ type: 'string' });
+      const detailsSelector = result.properties.details_selector.anyOf[0];
+      expect(detailsSelector.required).toEqual(['title', 'content', 'metadata']);
+      expect(detailsSelector.properties.metadata.anyOf[0].required).toEqual(['author', 'date']);
     });
   });
 });

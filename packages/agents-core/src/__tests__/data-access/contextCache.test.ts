@@ -63,6 +63,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(mockQuery.contextCache.findFirst).toHaveBeenCalled();
@@ -85,6 +86,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).toBeNull();
@@ -124,6 +126,7 @@ describe('Context Cache Data Access', () => {
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
         requestHash: 'newHash',
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).toBeNull();
@@ -163,6 +166,7 @@ describe('Context Cache Data Access', () => {
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
         requestHash: 'matchingHash',
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).not.toBeNull();
@@ -185,6 +189,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).toBeNull();
@@ -224,6 +229,7 @@ describe('Context Cache Data Access', () => {
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
         requestHash: 'someHash',
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).not.toBeNull();

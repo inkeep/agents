@@ -11,7 +11,7 @@ import {
 } from '@/components/traces/timeline/types';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchConversationHistoryAction } from '@/lib/actions/conversations';
-import type { FullAgentDefinition } from '@/lib/types/agent-full';
+import type { FullAgentResponse } from '@/lib/types/agent-full';
 
 interface PrettifiedTrace {
   metadata: {
@@ -76,7 +76,7 @@ function orderObjectKeys<T extends Record<string, any>>(obj: T): T {
  */
 function formatConversationAsPrettifiedTrace(
   conversation: ConversationDetail,
-  agentDefinition?: FullAgentDefinition,
+  agentDefinition?: FullAgentResponse,
   conversationHistory?: string
 ): PrettifiedTrace {
   return {
@@ -184,6 +184,11 @@ const VISIBLE_FIELDS_BY_TYPE: Record<ActivityKind, (keyof ActivityItem)[]> = {
   [ACTIVITY_TYPES.TOOL_APPROVAL_DENIED]: ['approvalToolName'],
   [ACTIVITY_TYPES.COMPRESSION]: ['compressionType', 'compressionRatio'],
   [ACTIVITY_TYPES.MAX_STEPS_REACHED]: ['stepsCompleted', 'maxSteps'],
+  [ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED]: [
+    'streamCleanupReason',
+    'streamMaxLifetimeMs',
+    'streamBufferSizeBytes',
+  ],
 };
 
 /**

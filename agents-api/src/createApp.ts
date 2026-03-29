@@ -18,7 +18,7 @@ import {
   authCorsConfig,
   defaultCorsConfig,
   errorHandler,
-  manageApiKeyOrSessionAuth,
+  manageBearerOrSessionAuth,
   playgroundCorsConfig,
   requireTenantAccess,
   runApiKeyAuth,
@@ -35,7 +35,6 @@ import { sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
 import { healthChecksHandler } from './routes/healthChecks';
-import { workflowProcessHandler } from './routes/workflowProcess';
 import type { AppConfig, AppVariables } from './types';
 
 const logger = getLogger('agents-api');
@@ -209,11 +208,8 @@ function createAgentsHono(config: AppConfig) {
   // Mount health check routes at root level
   app.route('/', healthChecksHandler);
 
-  // Workflow process endpoint - called by Vercel cron to keep worker active
-  app.route('/', workflowProcessHandler);
-
   // Authentication middleware for protected manage routes
-  app.use('/manage/tenants/*', manageApiKeyOrSessionAuth());
+  app.use('/manage/tenants/*', manageBearerOrSessionAuth());
 
   // Tenant access check (test-mode bypass handled inside requireTenantAccess)
   app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
@@ -237,13 +233,18 @@ function createAgentsHono(config: AppConfig) {
   app.use('/manage/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
   app.use('/manage/tenants/*', async (c, next) => branchScopedDbMiddleware(c, next));
 
-  // Apply ref middleware to all execution routes
-  app.use('/run/*', async (c, next) => runRefMiddleware(c, next));
+  // Apply ref middleware to all execution routes (skip public auth endpoints)
+  app.use('/run/*', async (c, next) => {
+    if (c.req.path.startsWith('/run/auth/')) return next();
+    return runRefMiddleware(c, next);
+  });
 
   // Fetch project config upfront for authenticated execution routes
+  // Skip for lightweight endpoints that only need base execution context (tenant/project/user scoping)
+  const isLightweightRunRoute = (path: string) => path.startsWith('/run/v1/conversations');
   app.use('/run/tenants/*', projectConfigMiddlewareExcept(isWebhookRoute));
   app.use('/run/agents/*', projectConfigMiddleware);
-  app.use('/run/v1/*', projectConfigMiddleware);
+  app.use('/run/v1/*', projectConfigMiddlewareExcept(isLightweightRunRoute));
   app.use('/run/api/*', projectConfigMiddleware);
 
   // Baggage middleware for execution API - extracts context from API key authentication

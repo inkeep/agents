@@ -10,6 +10,8 @@ import type {
   ProjectScopeConfig,
   ToolSelect,
 } from '../../types/index';
+import { isUniqueConstraintError } from '../../utils/error';
+import { projectScopedWhere } from './scope-helpers';
 
 export type CredentialReferenceWithResources = CredentialReferenceSelect & {
   tools: ToolSelect[];
@@ -27,8 +29,7 @@ export const getCredentialReference =
   }): Promise<CredentialReferenceSelect | undefined> => {
     return await db.query.credentialReferences.findFirst({
       where: and(
-        eq(credentialReferences.tenantId, params.scopes.tenantId),
-        eq(credentialReferences.projectId, params.scopes.projectId),
+        projectScopedWhere(credentialReferences, params.scopes),
         eq(credentialReferences.id, params.id)
       ),
     });
@@ -46,8 +47,7 @@ export const getUserScopedCredentialReference =
   }): Promise<CredentialReferenceSelect | undefined> => {
     return await db.query.credentialReferences.findFirst({
       where: and(
-        eq(credentialReferences.tenantId, params.scopes.tenantId),
-        eq(credentialReferences.projectId, params.scopes.projectId),
+        projectScopedWhere(credentialReferences, params.scopes),
         eq(credentialReferences.toolId, params.toolId),
         eq(credentialReferences.userId, params.userId)
       ),
@@ -66,8 +66,7 @@ export const getCredentialReferenceWithResources =
     const [credential, relatedTools, relatedExternalAgents] = await Promise.all([
       db.query.credentialReferences.findFirst({
         where: and(
-          eq(credentialReferences.tenantId, params.scopes.tenantId),
-          eq(credentialReferences.projectId, params.scopes.projectId),
+          projectScopedWhere(credentialReferences, params.scopes),
           eq(credentialReferences.id, params.id)
         ),
       }),
@@ -75,19 +74,14 @@ export const getCredentialReferenceWithResources =
         .select()
         .from(tools)
         .where(
-          and(
-            eq(tools.tenantId, params.scopes.tenantId),
-            eq(tools.projectId, params.scopes.projectId),
-            eq(tools.credentialReferenceId, params.id)
-          )
+          and(projectScopedWhere(tools, params.scopes), eq(tools.credentialReferenceId, params.id))
         ),
       db
         .select()
         .from(externalAgents)
         .where(
           and(
-            eq(externalAgents.tenantId, params.scopes.tenantId),
-            eq(externalAgents.projectId, params.scopes.projectId),
+            projectScopedWhere(externalAgents, params.scopes),
             eq(externalAgents.credentialReferenceId, params.id)
           )
         ),
@@ -111,10 +105,7 @@ export const listCredentialReferences =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<CredentialReferenceSelect[]> => {
     return await db.query.credentialReferences.findMany({
-      where: and(
-        eq(credentialReferences.tenantId, params.scopes.tenantId),
-        eq(credentialReferences.projectId, params.scopes.projectId)
-      ),
+      where: projectScopedWhere(credentialReferences, params.scopes),
       orderBy: [desc(credentialReferences.createdAt)],
     });
   };
@@ -135,10 +126,7 @@ export const listCredentialReferencesPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(credentialReferences.tenantId, params.scopes.tenantId),
-      eq(credentialReferences.projectId, params.scopes.projectId)
-    );
+    const whereClause = projectScopedWhere(credentialReferences, params.scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -200,8 +188,7 @@ export const updateCredentialReference =
       })
       .where(
         and(
-          eq(credentialReferences.tenantId, params.scopes.tenantId),
-          eq(credentialReferences.projectId, params.scopes.projectId),
+          projectScopedWhere(credentialReferences, params.scopes),
           eq(credentialReferences.id, params.id)
         )
       );
@@ -232,8 +219,7 @@ export const deleteCredentialReference =
       .delete(credentialReferences)
       .where(
         and(
-          eq(credentialReferences.tenantId, params.scopes.tenantId),
-          eq(credentialReferences.projectId, params.scopes.projectId),
+          projectScopedWhere(credentialReferences, params.scopes),
           eq(credentialReferences.id, params.id)
         )
       );
@@ -268,8 +254,7 @@ export const getCredentialReferenceById =
   }): Promise<CredentialReferenceSelect | null> => {
     const result = await db.query.credentialReferences.findFirst({
       where: and(
-        eq(credentialReferences.tenantId, params.scopes.tenantId),
-        eq(credentialReferences.projectId, params.scopes.projectId),
+        projectScopedWhere(credentialReferences, params.scopes),
         eq(credentialReferences.id, params.id)
       ),
     });
@@ -286,34 +271,32 @@ export const countCredentialReferences =
     const result = await db
       .select({ count: count() })
       .from(credentialReferences)
-      .where(
-        and(
-          eq(credentialReferences.tenantId, params.scopes.tenantId),
-          eq(credentialReferences.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(credentialReferences, params.scopes));
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
   };
 
 /**
- * Upsert a credential reference (create if it doesn't exist, update if it does)
+ * Upsert a credential reference (create if it doesn't exist, update if it does).
+ * For user-scoped credentials (toolId + userId set), also checks the unique constraint pair.
+ * Uses application-level find-then-update since Doltgres does not support ON CONFLICT DO UPDATE.
  */
 export const upsertCredentialReference =
   (db: AgentsManageDatabaseClient) =>
   async (params: { data: CredentialReferenceInsert }): Promise<CredentialReferenceSelect> => {
     const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
 
-    const existing = await getCredentialReference(db)({
+    // Check by ID first
+    const existingById = await getCredentialReference(db)({
       scopes,
       id: params.data.id,
     });
 
-    if (existing) {
+    if (existingById) {
       const updated = await updateCredentialReference(db)({
         scopes,
-        id: params.data.id,
+        id: existingById.id,
         data: {
           name: params.data.name,
           type: params.data.type,
@@ -326,5 +309,59 @@ export const upsertCredentialReference =
       }
       return updated;
     }
-    return await createCredentialReference(db)(params.data);
+
+    // For user-scoped credentials, check by (toolId, userId) unique constraint
+    if (params.data.toolId && params.data.userId) {
+      const existingByToolUser = await getUserScopedCredentialReference(db)({
+        scopes,
+        toolId: params.data.toolId,
+        userId: params.data.userId,
+      });
+
+      if (existingByToolUser) {
+        const updated = await updateCredentialReference(db)({
+          scopes,
+          id: existingByToolUser.id,
+          data: {
+            name: params.data.name,
+            type: params.data.type,
+            credentialStoreId: params.data.credentialStoreId,
+            retrievalParams: params.data.retrievalParams,
+          },
+        });
+        if (!updated) {
+          throw new Error('Failed to update credential reference - no rows affected');
+        }
+        return updated;
+      }
+    }
+
+    try {
+      return await createCredentialReference(db)(params.data);
+    } catch (error) {
+      // TOCTOU race: a concurrent request inserted between our check and create.
+      // Retry as an update if this is a unique constraint violation on (toolId, userId).
+      if (isUniqueConstraintError(error) && params.data.toolId && params.data.userId) {
+        const raceWinner = await getUserScopedCredentialReference(db)({
+          scopes,
+          toolId: params.data.toolId,
+          userId: params.data.userId,
+        });
+
+        if (raceWinner) {
+          const updated = await updateCredentialReference(db)({
+            scopes,
+            id: raceWinner.id,
+            data: {
+              name: params.data.name,
+              type: params.data.type,
+              credentialStoreId: params.data.credentialStoreId,
+              retrievalParams: params.data.retrievalParams,
+            },
+          });
+          if (updated) return updated;
+        }
+      }
+      throw error;
+    }
   };

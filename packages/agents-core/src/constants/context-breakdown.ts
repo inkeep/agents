@@ -45,6 +45,11 @@ const V1_BREAKDOWN_SCHEMA_BASE = [
     spanAttribute: 'context.breakdown.agent_prompt_tokens',
   },
   {
+    key: 'appPrompt',
+    label: 'App Prompt',
+    spanAttribute: 'context.breakdown.app_prompt_tokens',
+  },
+  {
     key: 'toolsSection',
     label: 'Tools (MCP/Function/Relation)',
     spanAttribute: 'context.breakdown.tools_tokens',

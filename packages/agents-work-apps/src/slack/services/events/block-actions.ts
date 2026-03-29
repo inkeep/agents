@@ -99,6 +99,8 @@ export async function handleToolApproval(params: {
           Authorization: `Bearer ${slackUserToken}`,
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
+          'x-inkeep-invocation-type': 'slack',
+          'x-inkeep-invocation-entry-point': 'tool_approval',
         },
         body: JSON.stringify({
           conversationId,

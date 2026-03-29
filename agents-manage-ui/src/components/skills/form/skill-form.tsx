@@ -15,6 +15,7 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
 import type { Skill } from '@/lib/types/skills';
 import { isRequired, serializeJson } from '@/lib/utils';
@@ -45,6 +46,10 @@ function formatFormData(data: Skill | null): SkillInput {
 
 export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
   'use memo';
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+  const readOnly = !canEdit;
   const { tenantId, projectId, skillId } = useParams<{
     tenantId: string;
     projectId: string;
@@ -105,18 +110,19 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           control={form.control}
           name="name"
           label="Name"
-          placeholder="My skill"
+          placeholder="my-skill"
           description={
             initialData
               ? ''
               : 'Max 64 characters. Lowercase letters, numbers, and hyphens only. Must not start or end with a hyphen.'
           }
-          disabled={!!initialData}
+          disabled={!!initialData || readOnly}
           isRequired={isRequired(schema, 'name')}
         />
         <GenericTextarea
           control={form.control}
           name="description"
+          disabled={readOnly}
           label={
             <>
               Description
@@ -139,6 +145,7 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           isRequired={isRequired(schema, 'description')}
         />
         <GenericPromptEditor
+          readOnly={readOnly}
           control={form.control}
           label="Content"
           name="content"
@@ -167,31 +174,35 @@ Use this skill when the user needs to work with PDF files...
   "author": "example"
 }`}
           isRequired={isRequired(schema, 'metadata')}
+          readOnly={readOnly}
         />
 
-        <div className="flex w-full justify-between">
-          <Button type="submit" disabled={isDisabled}>
-            Save
-          </Button>
-          {initialData && (
-            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-              <DialogTrigger asChild>
-                <Button type="button" variant="destructive-outline">
-                  Delete Skill
-                </Button>
-              </DialogTrigger>
-              {isDeleteOpen && (
-                <DeleteSkillConfirmation
-                  tenantId={tenantId}
-                  projectId={projectId}
-                  skillId={initialData.id}
-                  skillName={initialData.name}
-                  setIsOpen={setIsDeleteOpen}
-                />
-              )}
-            </Dialog>
-          )}
-        </div>
+        {!readOnly && (
+          <div className="flex w-full justify-between">
+            <Button type="submit" disabled={isDisabled}>
+              Save
+            </Button>
+
+            {initialData && (
+              <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="destructive-outline">
+                    Delete Skill
+                  </Button>
+                </DialogTrigger>
+                {isDeleteOpen && (
+                  <DeleteSkillConfirmation
+                    tenantId={tenantId}
+                    projectId={projectId}
+                    skillId={initialData.id}
+                    skillName={initialData.name}
+                    setIsOpen={setIsDeleteOpen}
+                  />
+                )}
+              </Dialog>
+            )}
+          </div>
+        )}
       </form>
     </Form>
   );

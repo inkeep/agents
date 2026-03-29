@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
@@ -6,6 +8,7 @@ import {
   workAppSlackUserMappings,
   workAppSlackWorkspaces,
 } from '../../db/runtime/runtime-schema';
+import { projectScopedWhere, tenantScopedWhere } from '../manage/scope-helpers';
 
 export type WorkAppSlackWorkspaceInsert = typeof workAppSlackWorkspaces.$inferInsert;
 export type WorkAppSlackWorkspaceSelect = typeof workAppSlackWorkspaces.$inferSelect;
@@ -47,7 +50,7 @@ export const findWorkAppSlackWorkspaceByTeamId =
       .from(workAppSlackWorkspaces)
       .where(
         and(
-          eq(workAppSlackWorkspaces.tenantId, tenantId),
+          tenantScopedWhere(workAppSlackWorkspaces, { tenantId }),
           eq(workAppSlackWorkspaces.slackTeamId, slackTeamId)
         )
       )
@@ -97,7 +100,7 @@ export const listWorkAppSlackWorkspacesByTenant =
     return db
       .select()
       .from(workAppSlackWorkspaces)
-      .where(eq(workAppSlackWorkspaces.tenantId, tenantId));
+      .where(tenantScopedWhere(workAppSlackWorkspaces, { tenantId }));
   };
 
 export const updateWorkAppSlackWorkspace =
@@ -105,7 +108,15 @@ export const updateWorkAppSlackWorkspace =
   async (
     id: string,
     data: Partial<
-      Pick<WorkAppSlackWorkspaceInsert, 'status' | 'slackTeamName' | 'shouldAllowJoinFromWorkspace'>
+      Pick<
+        WorkAppSlackWorkspaceInsert,
+        | 'status'
+        | 'slackTeamName'
+        | 'shouldAllowJoinFromWorkspace'
+        | 'defaultAgentId'
+        | 'defaultProjectId'
+        | 'defaultGrantAccessToMembers'
+      >
     >
   ): Promise<WorkAppSlackWorkspaceSelect | null> => {
     const [result] = await db
@@ -155,7 +166,7 @@ export const findWorkAppSlackUserMapping =
       .from(workAppSlackUserMappings)
       .where(
         and(
-          eq(workAppSlackUserMappings.tenantId, tenantId),
+          tenantScopedWhere(workAppSlackUserMappings, { tenantId }),
           eq(workAppSlackUserMappings.clientId, clientId),
           eq(workAppSlackUserMappings.slackUserId, slackUserId),
           eq(workAppSlackUserMappings.slackTeamId, slackTeamId)
@@ -209,7 +220,7 @@ export const listWorkAppSlackUserMappingsByTeam =
       .from(workAppSlackUserMappings)
       .where(
         and(
-          eq(workAppSlackUserMappings.tenantId, tenantId),
+          tenantScopedWhere(workAppSlackUserMappings, { tenantId }),
           eq(workAppSlackUserMappings.slackTeamId, slackTeamId)
         )
       );
@@ -252,7 +263,7 @@ export const deleteWorkAppSlackUserMapping =
       .delete(workAppSlackUserMappings)
       .where(
         and(
-          eq(workAppSlackUserMappings.tenantId, tenantId),
+          tenantScopedWhere(workAppSlackUserMappings, { tenantId }),
           eq(workAppSlackUserMappings.clientId, clientId),
           eq(workAppSlackUserMappings.slackUserId, slackUserId),
           eq(workAppSlackUserMappings.slackTeamId, slackTeamId)
@@ -274,7 +285,7 @@ export const deleteAllWorkAppSlackUserMappingsByTeam =
       .delete(workAppSlackUserMappings)
       .where(
         and(
-          eq(workAppSlackUserMappings.tenantId, tenantId),
+          tenantScopedWhere(workAppSlackUserMappings, { tenantId }),
           eq(workAppSlackUserMappings.clientId, clientId),
           eq(workAppSlackUserMappings.slackTeamId, slackTeamId)
         )
@@ -317,7 +328,7 @@ export const findWorkAppSlackChannelAgentConfig =
       .from(workAppSlackChannelAgentConfigs)
       .where(
         and(
-          eq(workAppSlackChannelAgentConfigs.tenantId, tenantId),
+          tenantScopedWhere(workAppSlackChannelAgentConfigs, { tenantId }),
           eq(workAppSlackChannelAgentConfigs.slackTeamId, slackTeamId),
           eq(workAppSlackChannelAgentConfigs.slackChannelId, slackChannelId)
         )
@@ -338,7 +349,7 @@ export const listWorkAppSlackChannelAgentConfigsByTeam =
       .from(workAppSlackChannelAgentConfigs)
       .where(
         and(
-          eq(workAppSlackChannelAgentConfigs.tenantId, tenantId),
+          tenantScopedWhere(workAppSlackChannelAgentConfigs, { tenantId }),
           eq(workAppSlackChannelAgentConfigs.slackTeamId, slackTeamId)
         )
       );
@@ -373,7 +384,6 @@ export const upsertWorkAppSlackChannelAgentConfig =
         set: {
           projectId: data.projectId,
           agentId: data.agentId,
-          agentName: data.agentName,
           slackChannelName: data.slackChannelName,
           slackChannelType: data.slackChannelType,
           enabled: data.enabled,
@@ -394,7 +404,7 @@ export const deleteWorkAppSlackChannelAgentConfig =
       .delete(workAppSlackChannelAgentConfigs)
       .where(
         and(
-          eq(workAppSlackChannelAgentConfigs.tenantId, tenantId),
+          tenantScopedWhere(workAppSlackChannelAgentConfigs, { tenantId }),
           eq(workAppSlackChannelAgentConfigs.slackTeamId, slackTeamId),
           eq(workAppSlackChannelAgentConfigs.slackChannelId, slackChannelId)
         )
@@ -411,7 +421,7 @@ export const deleteAllWorkAppSlackChannelAgentConfigsByTeam =
       .delete(workAppSlackChannelAgentConfigs)
       .where(
         and(
-          eq(workAppSlackChannelAgentConfigs.tenantId, tenantId),
+          tenantScopedWhere(workAppSlackChannelAgentConfigs, { tenantId }),
           eq(workAppSlackChannelAgentConfigs.slackTeamId, slackTeamId)
         )
       )
@@ -419,3 +429,134 @@ export const deleteAllWorkAppSlackChannelAgentConfigsByTeam =
 
     return result.length;
   };
+
+export const deleteWorkAppSlackChannelAgentConfigsByAgent =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string, agentId: string): Promise<number> => {
+    const result = await db
+      .delete(workAppSlackChannelAgentConfigs)
+      .where(
+        and(
+          projectScopedWhere(workAppSlackChannelAgentConfigs, { tenantId, projectId }),
+          eq(workAppSlackChannelAgentConfigs.agentId, agentId)
+        )
+      )
+      .returning();
+
+    return result.length;
+  };
+
+export const deleteWorkAppSlackChannelAgentConfigsByProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string): Promise<number> => {
+    const result = await db
+      .delete(workAppSlackChannelAgentConfigs)
+      .where(projectScopedWhere(workAppSlackChannelAgentConfigs, { tenantId, projectId }))
+      .returning();
+
+    return result.length;
+  };
+
+export const clearWorkspaceDefaultsByAgent =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string, agentId: string): Promise<number> => {
+    const result = await db
+      .update(workAppSlackWorkspaces)
+      .set({
+        defaultAgentId: null,
+        defaultProjectId: null,
+        defaultGrantAccessToMembers: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          tenantScopedWhere(workAppSlackWorkspaces, { tenantId }),
+          eq(workAppSlackWorkspaces.defaultProjectId, projectId),
+          eq(workAppSlackWorkspaces.defaultAgentId, agentId)
+        )
+      )
+      .returning();
+
+    return result.length;
+  };
+
+export const clearWorkspaceDefaultsByProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (tenantId: string, projectId: string): Promise<number> => {
+    const result = await db
+      .update(workAppSlackWorkspaces)
+      .set({
+        defaultAgentId: null,
+        defaultProjectId: null,
+        defaultGrantAccessToMembers: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          tenantScopedWhere(workAppSlackWorkspaces, { tenantId }),
+          eq(workAppSlackWorkspaces.defaultProjectId, projectId)
+        )
+      )
+      .returning();
+
+    return result.length;
+  };
+
+// ============================================================================
+// Dev Mode (.slack-dev.json) Workspace Default Clearing
+// ============================================================================
+// In development, workspace config lives in .slack-dev.json instead of PostgreSQL.
+// These functions handle clearing stale default agents from the dev config file
+// during cascade deletes, so deleted agents don't persist as workspace defaults.
+
+const DEV_CONFIG_FILENAME = '.slack-dev.json';
+
+function findSlackDevConfigPath(): string | null {
+  if (process.env.ENVIRONMENT !== 'development') return null;
+
+  let dir = process.cwd();
+  while (true) {
+    const candidate = join(dir, DEV_CONFIG_FILENAME);
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+export function clearDevConfigWorkspaceDefaultsByAgent(projectId: string, agentId: string): void {
+  const configPath = findSlackDevConfigPath();
+  if (!configPath) return;
+
+  try {
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    if (!config?.metadata?.default_agent) return;
+
+    const defaultAgent = JSON.parse(config.metadata.default_agent);
+    if (defaultAgent.agentId === agentId && defaultAgent.projectId === projectId) {
+      config.metadata.default_agent = '';
+      writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
+    }
+  } catch {
+    // Invalid JSON or file read error — safe to ignore during cleanup
+  }
+}
+
+export function clearDevConfigWorkspaceDefaultsByProject(projectId: string): void {
+  const configPath = findSlackDevConfigPath();
+  if (!configPath) return;
+
+  try {
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    if (!config?.metadata?.default_agent) return;
+
+    const defaultAgent = JSON.parse(config.metadata.default_agent);
+    if (defaultAgent.projectId === projectId) {
+      config.metadata.default_agent = '';
+      writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
+    }
+  } catch {
+    // Invalid JSON or file read error — safe to ignore during cleanup
+  }
+}

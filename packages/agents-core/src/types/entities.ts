@@ -10,6 +10,7 @@ import type {
   AgentWithinContextOfProjectSelectSchema,
   AgentWithinContextOfProjectSelectSchemaWithRelationIds,
   AllAgentSchema,
+  AnonymousSessionResponseSchema,
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
   ApiKeyApiSelectSchema,
@@ -17,6 +18,13 @@ import type {
   ApiKeyInsertSchema,
   ApiKeySelectSchema,
   ApiKeyUpdateSchema,
+  AppApiCreationResponseSchema,
+  AppApiInsertSchema,
+  AppApiSelectSchema,
+  AppApiUpdateSchema,
+  AppInsertSchema,
+  AppSelectSchema,
+  AppUpdateSchema,
   ArtifactComponentApiInsertSchema,
   ArtifactComponentApiSelectSchema,
   ArtifactComponentApiUpdateSchema,
@@ -244,12 +252,20 @@ import type {
   TriggerInvocationUpdateSchema,
   TriggerSelectSchema,
   TriggerUpdateSchema,
+  UserProfileApiInsertSchema,
+  UserProfileApiUpdateSchema,
+  UserProfileInsertSchema,
+  UserProfileSelectSchema,
+  UserProfileUpdateSchema,
   WorkAppGitHubInstallationInsertSchema,
   WorkAppGitHubInstallationSelectSchema,
   WorkAppGitHubMcpToolRepositoryAccessSelectSchema,
   WorkAppGitHubProjectRepositoryAccessSelectSchema,
   WorkAppGitHubRepositoryInsertSchema,
   WorkAppGitHubRepositorySelectSchema,
+  WorkflowExecutionInsertSchema,
+  WorkflowExecutionSelectSchema,
+  WorkflowExecutionUpdateSchema,
 } from '../validation/schemas';
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
@@ -530,6 +546,16 @@ export type ApiKeyApiInsert = z.infer<typeof ApiKeyApiInsertSchema>;
 export type ApiKeyApiUpdate = z.infer<typeof ApiKeyApiUpdateSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 
+export type AppSelect = z.infer<typeof AppSelectSchema>;
+export type AppInsert = z.infer<typeof AppInsertSchema>;
+export type AppUpdate = z.infer<typeof AppUpdateSchema>;
+export type AppApiSelect = z.infer<typeof AppApiSelectSchema>;
+export type AppApiInsert = z.infer<typeof AppApiInsertSchema>;
+export type AppApiUpdate = z.infer<typeof AppApiUpdateSchema>;
+export type AppApiCreationResponse = z.infer<typeof AppApiCreationResponseSchema>;
+
+export type AnonymousSessionResponse = z.infer<typeof AnonymousSessionResponseSchema>;
+
 export type CredentialReferenceSelect = z.infer<typeof CredentialReferenceSelectSchema>;
 export type CredentialReferenceInsert = z.infer<typeof CredentialReferenceInsertSchema>;
 export type CredentialReferenceUpdate = z.infer<typeof CredentialReferenceUpdateSchema>;
@@ -650,3 +676,13 @@ export interface SummaryEvent {
     [key: string]: any; // Structured data from agent session
   };
 }
+
+export type UserProfileSelect = z.infer<typeof UserProfileSelectSchema>;
+export type UserProfileInsert = z.infer<typeof UserProfileInsertSchema>;
+export type UserProfileApiInsert = z.infer<typeof UserProfileApiInsertSchema>;
+export type UserProfileUpdate = z.infer<typeof UserProfileUpdateSchema>;
+export type UserProfileApiUpdate = z.infer<typeof UserProfileApiUpdateSchema>;
+
+export type WorkflowExecutionSelect = z.infer<typeof WorkflowExecutionSelectSchema>;
+export type WorkflowExecutionInsert = z.infer<typeof WorkflowExecutionInsertSchema>;
+export type WorkflowExecutionUpdate = z.infer<typeof WorkflowExecutionUpdateSchema>;

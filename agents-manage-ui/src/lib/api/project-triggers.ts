@@ -32,13 +32,22 @@ export type ScheduledTriggerInvocationWithContext = ScheduledTriggerInvocation &
   triggerName: string;
 };
 
-/**
- * Fetch all triggers across all agents in a project
- */
+export type AgentSummary = { id: string; name: string };
+
+export type ProjectTriggersResult = {
+  triggers: TriggerWithAgent[];
+  agents: AgentSummary[];
+};
+
+export type ProjectScheduledTriggersResult = {
+  triggers: ScheduledTriggerWithAgent[];
+  agents: AgentSummary[];
+};
+
 export async function fetchProjectTriggers(
   tenantId: string,
   projectId: string
-): Promise<TriggerWithAgent[]> {
+): Promise<ProjectTriggersResult> {
   const { data: agents } = await fetchAgents(tenantId, projectId);
 
   const allTriggers = await Promise.all(
@@ -56,24 +65,22 @@ export async function fetchProjectTriggers(
     })
   );
 
-  return allTriggers.flat();
+  return {
+    triggers: allTriggers.flat(),
+    agents: agents.map((a) => ({ id: a.id, name: a.name })),
+  };
 }
 
-/**
- * Fetch all scheduled triggers across all agents in a project
- */
 export async function fetchProjectScheduledTriggers(
   tenantId: string,
   projectId: string
-): Promise<ScheduledTriggerWithAgent[]> {
+): Promise<ProjectScheduledTriggersResult> {
   const { data: agents } = await fetchAgents(tenantId, projectId);
 
   const allTriggers = await Promise.all(
     agents.map(async (agent) => {
       try {
         const { data: triggers } = await fetchScheduledTriggers(tenantId, projectId, agent.id);
-
-        // Run info is now included in the trigger response from the API
         return triggers.map((trigger) => ({
           ...trigger,
           agentId: agent.id,
@@ -85,12 +92,12 @@ export async function fetchProjectScheduledTriggers(
     })
   );
 
-  return allTriggers.flat();
+  return {
+    triggers: allTriggers.flat(),
+    agents: agents.map((a) => ({ id: a.id, name: a.name })),
+  };
 }
 
-/**
- * Fetch all scheduled trigger invocations across all triggers in a project
- */
 export async function fetchProjectScheduledTriggerInvocations(
   tenantId: string,
   projectId: string,
@@ -99,10 +106,8 @@ export async function fetchProjectScheduledTriggerInvocations(
     limit?: number;
   }
 ): Promise<ScheduledTriggerInvocationWithContext[]> {
-  // First get all scheduled triggers with agent context
-  const scheduledTriggers = await fetchProjectScheduledTriggers(tenantId, projectId);
+  const { triggers: scheduledTriggers } = await fetchProjectScheduledTriggers(tenantId, projectId);
 
-  // Fetch invocations for each trigger
   const allInvocations = await Promise.all(
     scheduledTriggers.map(async (trigger) => {
       try {
@@ -125,7 +130,6 @@ export async function fetchProjectScheduledTriggerInvocations(
     })
   );
 
-  // Flatten and sort by createdAt descending
   return allInvocations.flat().sort((a, b) => {
     const dateA = new Date(a.createdAt).getTime();
     const dateB = new Date(b.createdAt).getTime();

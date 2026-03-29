@@ -43,17 +43,13 @@ export function ItemLabel({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={cn('text-sm font-medium leading-none', className)}>{children}</div>;
-}
-
-export function ItemValue({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return <div className={cn('flex w-full text-sm', className)}>{children}</div>;
+  return (
+    <div
+      className={cn('text-xs font-medium uppercase tracking-wide text-muted-foreground', className)}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function formatDate(dateString: string) {

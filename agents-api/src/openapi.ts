@@ -1,11 +1,14 @@
 import { swaggerUI } from '@hono/swagger-ui';
 import type { OpenAPIHono } from '@hono/zod-openapi';
+import { SESSION_COOKIE_NAME } from '@inkeep/agents-core';
 import type { Context, Env } from 'hono';
 
 export const TagToDescription = {
   A2A: 'Agent-to-Agent communication endpoints',
   'API Keys': 'Operations for managing API keys',
   Agents: 'Operations for managing agents',
+  Apps: 'Operations for managing app credentials',
+  Auth: 'Authentication endpoints for app credentials',
   'Artifact Components': 'Operations for managing artifact components',
   Branches: 'Operations for managing branches',
   Channels: 'Operations for managing Slack channels',
@@ -17,6 +20,7 @@ export const TagToDescription = {
   'Credential Stores': 'Operations for managing credential stores',
   'Data Components': 'Operations for managing data components',
   Evaluations: 'Operations for managing evaluations',
+  Executions: 'Durable agent execution endpoints',
   'External Agents': 'Operations for managing external agents',
   'Function Tools': 'Operations for managing function tools',
   Functions: 'Operations for managing functions',
@@ -37,6 +41,7 @@ export const TagToDescription = {
   Tools: 'Operations for managing MCP tools',
   Triggers: 'Operations for managing triggers',
   'User Project Memberships': 'Operations for managing user project memberships',
+  'User Profile': 'Operations for managing user profile',
   Users: 'Operations for managing users',
   Webhooks: 'Webhook endpoints',
   'Work Apps': 'Work app integrations (Slack, Teams, etc.)',
@@ -87,7 +92,7 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
           cookieAuth: {
             type: 'apiKey',
             in: 'cookie',
-            name: 'better-auth.session_token',
+            name: SESSION_COOKIE_NAME,
             description:
               'Session-based authentication using HTTP-only cookies. Cookies are automatically sent by browsers. For server-side requests, include cookies with names starting with "better-auth." in the Cookie header.',
           },

@@ -119,8 +119,12 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // HASHOF
         .mockResolvedValueOnce({ rows: [{ hash: 'before-merge' }] })
+        // START TRANSACTION
+        .mockResolvedValueOnce({ rows: [] })
         // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
+        // COMMIT
+        .mockResolvedValueOnce({ rows: [] })
         // dolt_log for commit hash
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'after-merge' }] })
         // pg_advisory_unlock
@@ -193,24 +197,28 @@ describe('Branches API Module', () => {
   });
 
   describe('createBranch', () => {
-    it('should create branch from tenant main without schema sync when source is schema source', async () => {
+    it('should create branch from project main without schema sync when source is schema source', async () => {
       const mockExecute = vi
         .fn()
         // dolt_branches - check if branch exists
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_schema_diff - check source branch (tenant_main vs main)
+        // dolt_schema_diff - check source branch (project_main vs main)
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches - for doltHashOf (to resolve tenant1_main)
+        // dolt_branches (doltHashOf inside doltBranch resolving startPoint tenant1_project1_main)
         .mockResolvedValueOnce({
           rows: [
-            { name: 'tenant1_main', hash: 'tenant-main-hash', latest_commit_date: new Date() },
+            {
+              name: 'tenant1_project1_main',
+              hash: 'project-main-hash',
+              latest_commit_date: new Date(),
+            },
           ],
         })
-        // dolt_log - get commit hash for tenant1_main
-        .mockResolvedValueOnce({ rows: [{ commit_hash: 'tenant-main-hash' }] })
+        // dolt_log (doltHashOf gets commit hash for tenant1_project1_main)
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'project-main-hash' }] })
         // DOLT_BRANCH - create new branch
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches - get new branch info
+        // dolt_branches (doltHashOf checks if new branch is a branch)
         .mockResolvedValueOnce({
           rows: [
             {
@@ -219,7 +227,9 @@ describe('Branches API Module', () => {
               latest_commit_date: new Date(),
             },
           ],
-        });
+        })
+        // dolt_log (doltHashOf gets HEAD commit for new branch)
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'new-branch-hash' }] });
 
       const mockDb = { ...db, execute: mockExecute } as any;
 
@@ -253,7 +263,7 @@ describe('Branches API Module', () => {
         // DOLT_CHECKOUT - checkout source branch for sync
         .mockResolvedValueOnce({ rows: [] })
         // active_branch() for syncSchemaFromMain
-        .mockResolvedValueOnce({ rows: [{ branch: 'tenant1_main' }] })
+        .mockResolvedValueOnce({ rows: [{ branch: 'tenant1_project1_main' }] })
         // pg_try_advisory_lock
         .mockResolvedValueOnce({ rows: [{ acquired: true }] })
         // dolt_schema_diff for syncSchemaFromMain (re-check after lock)
@@ -273,21 +283,27 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // HASHOF
         .mockResolvedValueOnce({ rows: [{ hash: 'pre-merge' }] })
+        // START TRANSACTION
+        .mockResolvedValueOnce({ rows: [] })
         // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
+        // COMMIT
+        .mockResolvedValueOnce({ rows: [] })
         // dolt_log for getLatestCommitHash
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'post-merge' }] })
         // pg_advisory_unlock
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches for doltHashOf (checking if tenant1_main is a branch)
+        // dolt_branches for doltHashOf (checking if tenant1_project1_main is a branch)
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_main', hash: 'post-merge', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_project1_main', hash: 'post-merge', latest_commit_date: new Date() },
+          ],
         })
         // dolt_log for doltHashOf (getting commit hash for branch)
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'post-merge' }] })
         // DOLT_BRANCH
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches - get new branch
+        // dolt_branches (doltHashOf checks if revision is a branch)
         .mockResolvedValueOnce({
           rows: [
             {
@@ -296,7 +312,9 @@ describe('Branches API Module', () => {
               latest_commit_date: new Date(),
             },
           ],
-        });
+        })
+        // dolt_log (doltHashOf gets HEAD commit)
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'new-hash' }] });
 
       const mockDb = { ...db, execute: mockExecute } as any;
 
@@ -315,17 +333,21 @@ describe('Branches API Module', () => {
         .fn()
         // dolt_branches - check if branch exists
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches for doltHashOf
+        // dolt_branches (doltHashOf inside doltBranch resolving startPoint tenant1_project1_main)
         .mockResolvedValueOnce({
           rows: [
-            { name: 'tenant1_main', hash: 'tenant-main-hash', latest_commit_date: new Date() },
+            {
+              name: 'tenant1_project1_main',
+              hash: 'project-main-hash',
+              latest_commit_date: new Date(),
+            },
           ],
         })
-        // dolt_log for doltHashOf
-        .mockResolvedValueOnce({ rows: [{ commit_hash: 'tenant-main-hash' }] })
+        // dolt_log (doltHashOf gets commit hash for tenant1_project1_main)
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'project-main-hash' }] })
         // DOLT_BRANCH
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches - get new branch
+        // dolt_branches (doltHashOf checks if new branch is a branch)
         .mockResolvedValueOnce({
           rows: [
             {
@@ -334,7 +356,9 @@ describe('Branches API Module', () => {
               latest_commit_date: new Date(),
             },
           ],
-        });
+        })
+        // dolt_log (doltHashOf gets HEAD commit for new branch)
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'new-hash' }] });
 
       const mockDb = { ...db, execute: mockExecute } as any;
 
@@ -398,7 +422,7 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_schema_diff for source branch
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches for doltHashOf
+        // dolt_branches (doltHashOf inside doltBranch resolving startPoint develop)
         .mockResolvedValueOnce({
           rows: [
             {
@@ -408,11 +432,11 @@ describe('Branches API Module', () => {
             },
           ],
         })
-        // dolt_log for doltHashOf
+        // dolt_log (doltHashOf gets commit hash for develop)
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'develop-hash' }] })
         // DOLT_BRANCH
         .mockResolvedValueOnce({ rows: [] })
-        // dolt_branches - get new branch
+        // dolt_branches (doltHashOf checks if new branch is a branch)
         .mockResolvedValueOnce({
           rows: [
             {
@@ -421,7 +445,9 @@ describe('Branches API Module', () => {
               latest_commit_date: new Date(),
             },
           ],
-        });
+        })
+        // dolt_log (doltHashOf gets HEAD commit for new branch)
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'new-hash' }] });
 
       const mockDb = { ...db, execute: mockExecute } as any;
 
@@ -429,7 +455,7 @@ describe('Branches API Module', () => {
         tenantId: 'tenant1',
         projectId: 'project1',
         name: 'feature-x',
-        from: 'develop',
+        fromBranch: 'develop',
       });
 
       expect(result.baseName).toBe('feature-x');
@@ -455,7 +481,8 @@ describe('Branches API Module', () => {
       await deleteBranch(mockDb)({
         tenantId: 'tenant1',
         projectId: 'project1',
-        name: 'feature-x',
+        branchName: 'feature-x',
+        force: false,
       });
 
       expect(mockExecute).toHaveBeenCalledTimes(2);
@@ -471,7 +498,8 @@ describe('Branches API Module', () => {
         deleteBranch(mockDb)({
           tenantId: 'tenant1',
           projectId: 'project1',
-          name: MAIN_BRANCH_SUFFIX,
+          branchName: MAIN_BRANCH_SUFFIX,
+          force: false,
         })
       ).rejects.toThrow("Cannot delete protected branch 'main'");
     });
@@ -485,7 +513,8 @@ describe('Branches API Module', () => {
         deleteBranch(mockDb)({
           tenantId: 'tenant1',
           projectId: 'project1',
-          name: 'non-existent',
+          branchName: 'non-existent',
+          force: false,
         })
       ).rejects.toThrow("Branch 'non-existent' not found");
     });
@@ -567,6 +596,63 @@ describe('Branches API Module', () => {
       });
 
       expect(result).toEqual([]);
+    });
+  });
+  describe('createBranch with fromCommit', () => {
+    it('creates branch from a commit hash', async () => {
+      const mockExecute = vi
+        .fn()
+        // dolt_branches - check if branch exists
+        .mockResolvedValueOnce({ rows: [] })
+        // doltHashOf for startPoint 'abc123def456':
+        //   dolt_branches (check if revision is a branch) - not a branch
+        .mockResolvedValueOnce({ rows: [] })
+        //   dolt_tags (check if revision is a tag) - not a tag
+        .mockResolvedValueOnce({ rows: [] })
+        //   DOLT_HASHOF fallback
+        .mockResolvedValueOnce({ rows: [{ hash: 'abc123def456' }] })
+        // DOLT_BRANCH (create from resolved hash)
+        .mockResolvedValueOnce({ rows: [] })
+        // syncSchemaOnBranch: getSchemaDiff - no differences, so sync is skipped
+        .mockResolvedValueOnce({ rows: [] })
+        // doltHashOf for new branch name:
+        //   dolt_branches (check if revision is a branch) - yes
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              name: 'tenant1_project1_feature-from-commit',
+              hash: 'new-hash',
+              latest_commit_date: new Date(),
+            },
+          ],
+        })
+        //   dolt_log (get HEAD commit for branch)
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'new-hash' }] });
+
+      const mockDb = { ...db, execute: mockExecute } as any;
+
+      const result = await createBranch(mockDb)({
+        tenantId: 'tenant1',
+        projectId: 'project1',
+        name: 'feature-from-commit',
+        fromCommit: 'abc123def456',
+      });
+
+      expect(result.baseName).toBe('feature-from-commit');
+      expect(result.fullName).toBe('tenant1_project1_feature-from-commit');
+      expect(result.hash).toBe('new-hash');
+    });
+
+    it('rejects when both fromBranch and fromCommit are provided', async () => {
+      await expect(
+        createBranch(db)({
+          tenantId: 'tenant1',
+          projectId: 'project1',
+          name: 'bad-branch',
+          fromBranch: 'develop',
+          fromCommit: 'abc123',
+        })
+      ).rejects.toThrow('Cannot specify both fromBranch and fromCommit');
     });
   });
 });

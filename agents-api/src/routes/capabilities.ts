@@ -1,6 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import { manageApiKeyOrSessionAuth } from '../middleware';
+import { manageBearerOrSessionAuth } from '../middleware';
 import type { AppVariables } from '../types';
 
 export const capabilitiesHandler = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -35,7 +35,7 @@ capabilitiesHandler.openapi(
     operationId: 'capabilities',
     summary: 'Get server capabilities',
     description: 'Get information about optional server-side capabilities and configuration.',
-    permission: manageApiKeyOrSessionAuth(),
+    permission: manageBearerOrSessionAuth(),
     responses: {
       200: {
         description: 'Server capabilities',

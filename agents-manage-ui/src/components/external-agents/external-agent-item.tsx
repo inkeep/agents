@@ -1,9 +1,7 @@
 'use client';
 
 import { MoreVertical, Trash2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
@@ -20,30 +18,13 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import { useProjectPermissions } from '@/contexts/project';
-import { deleteExternalAgentAction } from '@/lib/actions/external-agents';
+import { URLDisplay } from '@/components/url-display';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';
 import { Badge } from '../ui/badge';
-import { DeleteConfirmation } from '../ui/delete-confirmation';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-
-// URL Display Component with ellipsis and tooltip
-function URLDisplay({ url }: { url: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="rounded py-1 min-w-0">
-          <code className="text-sm text-muted-foreground block truncate">{url}</code>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="max-w-md">
-        <code className="text-xs break-all">{url}</code>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
+import { DeleteExternalAgentConfirmation } from './delete-external-agent-confirmation';
 
 interface ExternalAgentDialogMenuProps {
   externalAgentId: string;
@@ -54,31 +35,10 @@ function ExternalAgentDialogMenu({
   externalAgentId,
   externalAgentName,
 }: ExternalAgentDialogMenuProps) {
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-
   const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-  };
-
-  const handleDelete = async () => {
-    setIsSubmitting(true);
-    try {
-      const result = await deleteExternalAgentAction(tenantId, projectId, externalAgentId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('External agent deleted.');
-      } else {
-        toast.error('Failed to delete external agent.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -98,18 +58,18 @@ function ExternalAgentDialogMenu({
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
           <DialogTrigger asChild>
-            <DropdownMenuItem className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer">
-              <Trash2 className="size-4 text-destructive" />
+            <DropdownMenuItem variant="destructive">
+              <Trash2 />
               Delete
             </DropdownMenuItem>
           </DialogTrigger>
         </DropdownMenuContent>
       </DropdownMenu>
       {isOpen && (
-        <DeleteConfirmation
-          itemName={externalAgentName || 'this external agent'}
-          isSubmitting={isSubmitting}
-          onDelete={handleDelete}
+        <DeleteExternalAgentConfirmation
+          externalAgentId={externalAgentId}
+          externalAgentName={externalAgentName}
+          setIsOpen={setIsOpen}
         />
       )}
     </Dialog>
@@ -125,7 +85,9 @@ export function ExternalAgentItem({
   projectId: string;
   externalAgent: ExternalAgent;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}`;
 
   return (
@@ -134,9 +96,7 @@ export function ExternalAgentItem({
         <ItemCardLink href={linkPath} className="min-w-0">
           <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
             <ProviderIcon provider={externalAgent.name} size={24} className="flex-shrink-0" />
-            <span className="flex-1 min-w-0 text-base font-medium truncate">
-              {externalAgent.name}
-            </span>
+            <span className="font-medium break-all">{externalAgent.name}</span>
           </ItemCardTitle>
         </ItemCardLink>
         {canEdit && (
@@ -154,11 +114,15 @@ export function ExternalAgentItem({
             </p>
           )}
 
-          <URLDisplay url={externalAgent.baseUrl} />
+          <URLDisplay>{externalAgent.baseUrl}</URLDisplay>
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">
-            {externalAgent.credentialReferenceId && <Badge variant="code">Secured</Badge>}
+            {externalAgent.credentialReferenceId && (
+              <Badge className="uppercase" variant="primary">
+                Secured
+              </Badge>
+            )}
           </div>
         </div>
         <ItemCardFooter footerText={`Created ${formatDate(externalAgent.createdAt)}`} />

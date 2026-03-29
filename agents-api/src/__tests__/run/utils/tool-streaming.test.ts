@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createSSEStreamHelper,
   createVercelStreamHelper,
-} from '../../../domains/run/utils/stream-helpers';
+} from '../../../domains/run/stream/stream-helpers';
 
 describe('tool streaming', () => {
   describe('SSEStreamHelper (chat completions)', () => {

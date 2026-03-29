@@ -1,77 +1,107 @@
-import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
+import { join } from 'node:path';
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
+import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
+import { stripExtension } from '../collector-common';
+import { buildSequentialNameFileNames, collectFunctionToolEntries } from '../generation-resolver';
+import type { GenerationTask } from '../generation-types';
+import { generateSimpleFactoryDefinition } from '../simple-factory-generator';
+import { addValueToObject, codeExpression, toToolReferenceName } from '../utils';
 
-interface FunctionToolDefinitionData {
-  functionToolId: string;
-  name: string;
-  description?: string;
-  inputSchema?: unknown;
-  schema?: unknown;
-  executeCode?: string;
-  execute?: string;
+const MySchema = FullProjectDefinitionSchema.shape.functions.unwrap().valueType.omit({
+  id: true,
+});
+const MySchema2 = FullProjectDefinitionSchema.shape.functionTools.unwrap().valueType.omit({
+  id: true,
+  functionId: true,
+});
+
+const FunctionToolSchema = z.strictObject({
+  ...MySchema.shape,
+  ...MySchema2.shape,
+  name: z.preprocess((v) => v ?? '', MySchema2.shape.name),
+  // Even empty description should exist, otherwise agent-sdk show type error
+  // dependencies: z.preprocess(
+  //   (v) => (v && Object.keys(v).length && v) || undefined,
+  //   MySchema.shape.dependencies
+  // ),
+  description: z.preprocess((v) => v || undefined, MySchema2.shape.description),
+  functionToolId: z.string().nonempty(),
+});
+
+type FunctionToolInput = z.input<typeof FunctionToolSchema>;
+
+export function generateFunctionToolDefinition(data: FunctionToolInput): SourceFile {
+  return generateSimpleFactoryDefinition(data, {
+    schema: FunctionToolSchema,
+    factory: {
+      importName: 'functionTool',
+      variableName: (parsed) => toToolReferenceName(parsed.name || parsed.functionToolId),
+    },
+    buildConfig(parsed) {
+      const { functionToolId: _functionToolId, executeCode: _executeCode, ...rest } = parsed;
+      return rest;
+    },
+    finalize({ parsed, configObject }) {
+      if (!parsed.executeCode) {
+        return;
+      }
+
+      addValueToObject(configObject, 'execute', codeExpression(parsed.executeCode));
+    },
+  });
 }
 
-const FunctionToolSchema = z
-  .looseObject({
-    functionToolId: z.string().nonempty(),
-    name: z.string().nonempty(),
-    description: z.string().optional(),
-    inputSchema: z.unknown().optional(),
-    schema: z.unknown().optional(),
-    executeCode: z.string().optional(),
-    execute: z.string().optional(),
-  })
-  .superRefine((value, context) => {
-    if (value.inputSchema === undefined && value.schema === undefined) {
-      context.addIssue({
-        code: 'custom',
-        message: 'inputSchema is required',
-        path: ['inputSchema'],
-      });
+export const task = {
+  type: 'function-tool',
+  collect(context) {
+    const functionToolEntries = collectFunctionToolEntries(context.project);
+    if (!functionToolEntries.length) {
+      return [];
     }
 
-    if (value.executeCode === undefined && value.execute === undefined) {
-      context.addIssue({
-        code: 'custom',
-        message: 'executeCode is required',
-        path: ['executeCode'],
-      });
-    }
-  });
+    const fileNamesByFunctionToolId = buildSequentialNameFileNames(
+      functionToolEntries.map(({ functionToolId, fileName }) => [
+        functionToolId,
+        { name: fileName },
+      ])
+    );
 
-type ParsedFunctionToolDefinitionData = z.infer<typeof FunctionToolSchema>;
+    return functionToolEntries.map(({ functionToolId, functionToolData, functionData }) => {
+      const modulePath = stripExtension(fileNamesByFunctionToolId[functionToolId]);
+      const functionToolName =
+        typeof functionToolData.name === 'string' && functionToolData.name.length > 0
+          ? functionToolData.name
+          : typeof functionData.name === 'string' && functionData.name.length > 0
+            ? functionData.name
+            : undefined;
+      const functionToolDescription =
+        typeof functionToolData.description === 'string'
+          ? functionToolData.description
+          : typeof functionData.description === 'string'
+            ? functionData.description
+            : undefined;
 
-export function generateFunctionToolDefinition(data: FunctionToolDefinitionData): SourceFile {
-  const result = FunctionToolSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for function tool:\n${z.prettifyError(result.error)}`);
-  }
-
-  const parsed = result.data;
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'functionTool',
-    variableName: toCamelCase(parsed.functionToolId),
-  });
-
-  writeFunctionToolConfig(configObject, parsed);
-  return sourceFile;
-}
-
-function writeFunctionToolConfig(
-  configObject: ObjectLiteralExpression,
-  { functionToolId, executeCode, inputSchema, schema, ...rest }: ParsedFunctionToolDefinitionData
-): void {
-  for (const [k, v] of Object.entries({
-    ...rest,
-    inputSchema: inputSchema ?? schema,
-  })) {
-    addValueToObject(configObject, k, v);
-  }
-  if (executeCode) {
-    configObject.addPropertyAssignment({
-      name: 'execute',
-      initializer: executeCode,
+      return {
+        id: functionToolId,
+        filePath: context.resolver.resolveOutputFilePath(
+          'functionTools',
+          functionToolId,
+          join(context.paths.toolsDir, `${modulePath}.ts`)
+        ),
+        payload: {
+          functionToolId,
+          ...(functionToolName && { name: functionToolName }),
+          ...(functionToolDescription !== undefined && { description: functionToolDescription }),
+          ...(functionData.inputSchema !== undefined && { inputSchema: functionData.inputSchema }),
+          ...(functionData.schema !== undefined && { schema: functionData.schema }),
+          ...(functionData.executeCode !== undefined && { executeCode: functionData.executeCode }),
+          ...(functionData.dependencies !== undefined && {
+            dependencies: functionData.dependencies,
+          }),
+        } as Parameters<typeof generateFunctionToolDefinition>[0],
+      };
     });
-  }
-}
+  },
+  generate: generateFunctionToolDefinition,
+} satisfies GenerationTask<Parameters<typeof generateFunctionToolDefinition>[0]>;

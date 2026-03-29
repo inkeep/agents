@@ -1,3 +1,4 @@
+import { SESSION_COOKIE_NAME } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAgentsHono } from '../createApp';
 
@@ -43,7 +44,7 @@ function createMockAuth(overrides?: {
     });
 
   const secret = overrides?.secret ?? 'test-secret-key';
-  const sessionTokenName = overrides?.sessionTokenName ?? 'better-auth.session_token';
+  const sessionTokenName = overrides?.sessionTokenName ?? SESSION_COOKIE_NAME;
   const sessionTokenOptions = overrides?.sessionTokenOptions ?? {
     path: '/',
     httpOnly: true,
@@ -96,7 +97,7 @@ describe('POST /api/auth/dev-session', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ ok: true });
-    expect(res.headers.get('Set-Cookie')).toContain('better-auth.session_token');
+    expect(res.headers.get('Set-Cookie')).toContain(SESSION_COOKIE_NAME);
   });
 
   it('returns 401 when bypass secret is missing from request', async () => {

@@ -1,11 +1,11 @@
 ---
 title: Pull from remote Inkeep instance
 sidebarTitle: Pull from Remote
-description: Pull agent configurations from remote Inkeep instance to your local TypeScript project
+description: Pull agent configurations from a remote Inkeep instance, resolve merge conflicts interactively, and sync your local TypeScript project
 icon: LuCloudDownload
 ---
 
-This tutorial walks you through pulling agent configurations from an remote Inkeep instance to your local project. Use pull to bootstrap a local project from the [Visual Builder](/visual-builder), sync remote changes made by teammates, or set up a new development environment.
+This tutorial walks you through pulling agent configurations from a remote Inkeep instance to your local project. Use pull to bootstrap a local project from the [Visual Builder](/visual-builder/sub-agents), sync remote changes made by teammates, or set up a new development environment.
 
 ## Prerequisites
 
@@ -96,9 +96,65 @@ my-project-id/
     └── my-data-component.ts
 ```
 
-## Step 3: Review the generated files
+## Step 3: Resolve merge conflicts
 
-After pulling, the CLI runs a two-stage validation:
+When your local state has diverged from the remote instance, `inkeep pull` detects conflicts and launches an interactive terminal UI so that you can resolve them.
+
+### Interactive conflict resolution
+
+The resolver presents conflicts one at a time. Each conflict shows the **entity type**, **entity ID**, and what each side did (added, modified, or deleted).
+
+#### Row-level default
+
+You can set a row level default to either **ours** or **theirs**. **Ours** refers to your local state, and **theirs** refers to the remote state. This default will be applied to all columns on the entity.
+
+#### Column-level overrides
+
+When both sides modified the same entity, you can resolve at a **per-column** granularity. Set a row default, then optionally override individual columns using the arrow keys.
+
+<Image
+  src="/images/conflict-resolution-example.png"
+  alt="Interactive conflict resolution UI showing per-column picks for a sub_agents entity with name, description, and prompt fields"
+/>
+
+#### Keyboard controls
+
+| Key | Action |
+|-----|--------|
+| `↑` / `k` | Move focus up towards the row default|
+| `↓` / `j` | Move focus down through columns |
+| `←` / `1` | Pick **ours** for the focused row or column |
+| `→` / `2` | Pick **theirs** for the focused row or column |
+| `Enter` / `n` | Next conflict |
+| `p` | Previous conflict |
+| `Esc` / `q` | Cancel the pull |
+
+#### Review and confirm
+
+After resolving all conflicts, a summary screen shows your choices:
+
+<Image
+  src="/images/conflict-resolution-summary-example.png"
+  alt="Interactive conflict resolution summary UI showing the resolutions for a set of conflicts"
+/>
+
+Press **Enter** to apply the resolutions and continue the pull, **p** to go back and adjust, or **Esc**/**q** to cancel.
+
+### Auto-resolve conflicts
+
+To skip the interactive UI and resolve all conflicts automatically, use the `--conflict-strategy` flag:
+
+```bash
+# Keep all local changes
+inkeep pull --conflict-strategy ours
+
+# Accept all remote changes
+inkeep pull --conflict-strategy theirs
+```
+
+## Step 4: Review the generated files
+
+After pulling (and resolving any conflicts), the CLI runs a two-stage validation:
 
 1. **File verification** -- checks that all expected files exist with correct naming
 2. **Round-trip validation** -- loads the generated TypeScript, serializes it back to JSON, and compares with the original remote data to ensure no data loss
@@ -112,7 +168,7 @@ If validation passes, you'll see:
 
 Review the generated files to confirm they look correct. If validation fails, the CLI reports specific differences so you can investigate.
 
-## Step 4: Use the pulled project
+## Step 5: Use the pulled project
 
 Once pulled, your project is a standard TypeScript project using `@inkeep/agents-sdk` builder APIs. You can:
 

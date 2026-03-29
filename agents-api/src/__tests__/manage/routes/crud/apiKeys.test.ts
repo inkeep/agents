@@ -57,6 +57,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
   }) => {
     const createData = {
       agentId: agentId,
+      name: 'Test API Key',
       ...(expiresAt && { expiresAt }),
     };
 
@@ -240,6 +241,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       const createData = {
         agentId: agentId,
+        name: 'Test API Key',
       };
 
       const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/api-keys`, {
@@ -288,6 +290,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const expiresAt = '2025-12-31 23:59:59';
       const createData = {
         agentId: agentId,
+        name: 'Test API Key',
         expiresAt,
       };
 
@@ -323,7 +326,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     // });
   });
 
-  describe('PUT /{id}', () => {
+  describe('PATCH /{id}', () => {
     it('should update API key expiration date', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-update');
       await createTestProject(manageDbClient, tenantId, 'default-project');
@@ -341,7 +344,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -371,7 +374,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -395,7 +398,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/api-keys/${nonExistentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -420,12 +423,31 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId2}/projects/${projectId}/api-keys/${apiKey.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update API key expiration via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('api-keys-put-compat');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
+      const { apiKey } = await createTestApiKey({ tenantId, projectId, agentId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ expiresAt: '2025-12-31 23:59:59' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 
@@ -530,7 +552,10 @@ describe('API Key CRUD Routes - Integration Tests', () => {
         `/manage/tenants/${tenantId}/projects/${projectId}/api-keys`,
         {
           method: 'POST',
-          body: JSON.stringify({ agentId: agentId }),
+          body: JSON.stringify({
+            agentId: agentId,
+            name: 'Test API Key',
+          }),
         }
       );
 

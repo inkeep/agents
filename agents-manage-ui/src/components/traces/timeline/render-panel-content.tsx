@@ -180,7 +180,13 @@ export function renderPanelContent({
             <Info label="Model" value={<ModelBadge model={a.aiModel || 'Unknown'} />} />
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            <Info label="Sub agent" value={a.subAgentName || '-'} />
+            {a.costUsd != null && (
+              <Info
+                label="Estimated cost"
+                value={a.costUsd < 0.01 ? `$${a.costUsd.toFixed(6)}` : `$${a.costUsd.toFixed(4)}`}
+              />
+            )}
+            {a.subAgentName && <Info label="Sub agent" value={a.subAgentName} />}
             {a.aiResponseText && (
               <LabeledBlock label="Response text">
                 <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
@@ -259,10 +265,11 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info
-              label="Message content"
-              value={a.messageContent || 'Message content not available'}
-            />
+            <LabeledBlock label="Message content">
+              <Bubble className="break-words">
+                <Streamdown>{a.messageContent || 'Message content not available'}</Streamdown>
+              </Bubble>
+            </LabeledBlock>
             {targetTenantId && (
               <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
             )}
@@ -587,6 +594,12 @@ export function renderPanelContent({
             )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
+            {a.costUsd != null && (
+              <Info
+                label="Estimated cost"
+                value={a.costUsd < 0.01 ? `$${a.costUsd.toFixed(6)}` : `$${a.costUsd.toFixed(4)}`}
+              />
+            )}
             {structuredContent && (
               <JsonEditorWithCopy
                 value={structuredContent}
@@ -742,9 +755,17 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
             <Info
-              label="Output tokens"
+              label="Generated tokens"
+              value={a.compressionGeneratedTokens?.toLocaleString() || '0'}
+            />
+            <Info
+              label="Total tokens"
+              value={a.compressionTotalContextTokens?.toLocaleString() || '0'}
+            />
+            <Info label="Context limit" value={a.compressionTriggerAt?.toLocaleString() || '0'} />
+            <Info
+              label="Summary tokens"
               value={a.compressionOutputTokens?.toLocaleString() || '0'}
             />
             {a.compressionRatio !== undefined && (
@@ -793,6 +814,42 @@ export function renderPanelContent({
             <LabeledBlock label="Description">
               <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
                 The sub-agent reached the maximum number of generation steps and stopped.
+              </Bubble>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'stream_lifetime_exceeded':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Lifetime limit"
+              value={
+                <Badge variant="code" className="font-mono">
+                  {a.streamMaxLifetimeMs ? `${Math.round(a.streamMaxLifetimeMs / 1000)}s` : 'N/A'}
+                </Badge>
+              }
+            />
+            {a.streamBufferSizeBytes !== undefined && (
+              <Info
+                label="Buffer size at cleanup"
+                value={
+                  <Badge variant="code" className="font-mono">
+                    {(a.streamBufferSizeBytes / 1024).toFixed(1)} KB
+                  </Badge>
+                }
+              />
+            )}
+            {a.streamCleanupReason && <Info label="Reason" value={a.streamCleanupReason} />}
+            <LabeledBlock label="Description">
+              <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                The stream exceeded the maximum allowed lifetime and was forcibly closed.
               </Bubble>
             </LabeledBlock>
             <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />

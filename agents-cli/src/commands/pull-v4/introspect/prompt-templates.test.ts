@@ -60,6 +60,7 @@ describe('pull-v4 introspect generator', () => {
               id: 'activities-planner',
               name: 'Activities Planner',
               prompt: 'Use {{time}} in timezone {{headers.tz}}',
+              canUse: [],
             },
           },
         },
@@ -87,7 +88,7 @@ describe('pull-v4 introspect generator', () => {
     expect(subAgentFile).toContain('activitiesPlannerContext.toTemplate("time")');
     expect(subAgentFile).toContain('activitiesPlannerContextHeaders.toTemplate("tz")');
     expect(subAgentFile).toContain(
-      "import { activitiesPlannerContext, activitiesPlannerContextHeaders } from '../context-configs/activities-planner-context';"
+      "import { activitiesPlannerContext, activitiesPlannerContextHeaders } from '../../context-configs/activities-planner-context';"
     );
 
     expect(contextConfigFile).toContain('const activitiesPlannerContextHeaders = headers({');

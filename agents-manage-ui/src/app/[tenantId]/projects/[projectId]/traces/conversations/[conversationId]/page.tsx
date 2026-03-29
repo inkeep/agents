@@ -4,8 +4,8 @@ import type { Part } from '@inkeep/agents-core';
 import {
   Activity,
   ArrowLeft,
+  Coins,
   ExternalLink as ExternalLinkIcon,
-  MessageSquare,
   TriangleAlert,
 } from 'lucide-react';
 import NextLink from 'next/link';
@@ -16,17 +16,16 @@ import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
-import type {
-  ActivityItem,
-  ConversationDetail as ConversationDetailType,
-} from '@/components/traces/timeline/types';
+import type { ConversationDetail as ConversationDetailType } from '@/components/traces/timeline/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
+import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import {
@@ -42,6 +41,17 @@ export default function ConversationDetail({
 
   const router = useRouter();
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
+  const [usageEvents, setUsageEvents] = useState<
+    Array<{
+      generationType: string;
+      estimatedCostUsd: number;
+      inputTokens: number;
+      outputTokens: number;
+      resolvedModel?: string;
+      requestedModel?: string;
+      model: string;
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
@@ -101,6 +111,43 @@ export default function ConversationDetail({
 
   const handleRerunTrigger = async () => {
     if (!conversation?.triggerId || !conversation?.agentId) return;
+
+    const isScheduledTrigger = conversation.invocationType === 'scheduled_trigger';
+
+    if (isScheduledTrigger) {
+      if (!conversation.triggerInvocationId) {
+        toast.error('Missing invocation ID — cannot rerun scheduled trigger from this trace');
+        return;
+      }
+
+      setIsRerunning(true);
+      try {
+        const result = await rerunScheduledTriggerInvocationAction(
+          tenantId,
+          projectId,
+          conversation.agentId,
+          conversation.triggerId,
+          conversation.triggerInvocationId
+        );
+
+        if (result.success && result.data) {
+          toast.success('Scheduled trigger rerun dispatched', {
+            description: `New invocation: ${result.data.newInvocationId}`,
+          });
+        } else {
+          toast.error('Failed to rerun scheduled trigger', {
+            description: result.error || 'An unknown error occurred',
+          });
+        }
+      } catch (err) {
+        toast.error('Failed to rerun scheduled trigger', {
+          description: err instanceof Error ? err.message : 'An unknown error occurred',
+        });
+      } finally {
+        setIsRerunning(false);
+      }
+      return;
+    }
 
     const userMessageActivity = conversation.activities?.find(
       (a) => a.type === 'user_message' && a.messageContent
@@ -168,13 +215,24 @@ export default function ConversationDetail({
         setLoading(true);
         setError(null);
 
-        const response = await fetch(
-          `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
-        );
+        const client = getSigNozStatsClient(tenantId);
+        const start = new Date('2020-01-01T00:00:00Z').getTime();
+        const end = Date.now();
 
-        if (!response.ok) throw new Error('Failed to fetch conversation details');
-        const data = await response.json();
+        const [traceResponse, eventsResult] = await Promise.allSettled([
+          fetch(
+            `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
+          ),
+          client.getUsageEventsList(start, end, projectId, conversationId, 200),
+        ]);
+
+        if (traceResponse.status === 'rejected' || !traceResponse.value.ok) {
+          throw new Error('Failed to fetch conversation details');
+        }
+        const data = await traceResponse.value.json();
         setConversation(data);
+
+        setUsageEvents(eventsResult.status === 'fulfilled' ? eventsResult.value : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -309,57 +367,69 @@ export default function ConversationDetail({
           );
         })()}
 
-        {/* AI Calls summary grouped by model */}
+        {/* AI Usage & Cost */}
         <Card className="shadow-none bg-background max-h-[280px] flex flex-col">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
-            <CardTitle className="text-sm font-medium text-foreground">AI Calls</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-foreground">AI Usage & Cost</CardTitle>
+            <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="flex-1 min-h-0 overflow-y-auto">
+          <CardContent className="flex-1 min-h-0 overflow-y-auto -mt-2">
             {(() => {
-              const ai = conversation?.activities?.filter(
-                (a: ActivityItem) =>
-                  a.type === 'ai_generation' || a.type === 'ai_model_streamed_text'
-              ) as ActivityItem[];
-              const models: Record<
-                string,
-                { inputTokens: number; outputTokens: number; count: number }
-              > = {};
-              ai.forEach((a: ActivityItem) => {
-                const model = a.aiModel || a.aiStreamTextModel || 'Unknown Model';
-                models[model] ||= { inputTokens: 0, outputTokens: 0, count: 0 };
-                models[model].inputTokens += a.inputTokens || 0;
-                models[model].outputTokens += a.outputTokens || 0;
-                models[model].count += 1;
-              });
-              const entries = Object.entries(models);
+              const events = usageEvents.length > 0 ? usageEvents : [];
+              const totalCost = events.reduce((sum, e) => sum + (e.estimatedCostUsd || 0), 0);
+              const totalIn = events.reduce((sum, e) => sum + (e.inputTokens || 0), 0);
+              const totalOut = events.reduce((sum, e) => sum + (e.outputTokens || 0), 0);
+
+              if (events.length === 0) {
+                return (
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-muted-foreground mb-1">—</div>
+                    <p className="text-xs text-muted-foreground">No usage data available</p>
+                  </div>
+                );
+              }
+
               return (
                 <div className="space-y-3">
-                  {entries.length ? (
-                    entries.map(([model, data]) => (
-                      <div key={model} className="border border-border rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-foreground">{model}</span>
-                          <span className="text-xs text-muted-foreground">{data.count} calls</span>
-                        </div>
-                        <div className="space-y-1">
-                          <InfoRow
-                            label="Total Input Tokens"
-                            value={data.inputTokens.toLocaleString()}
-                          />
-                          <InfoRow
-                            label="Total Output Tokens"
-                            value={data.outputTokens.toLocaleString()}
-                          />
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-muted-foreground mb-1">0</div>
-                      <p className="text-xs text-muted-foreground">No AI calls found.</p>
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">
+                      {totalCost < 0.01 ? `$${totalCost.toFixed(6)}` : `$${totalCost.toFixed(2)}`}
                     </div>
-                  )}
+                    <div className="text-sm font-medium text-foreground mt-1">
+                      {totalIn.toLocaleString()} <span className="text-muted-foreground">in</span>
+                      {' / '}
+                      {totalOut.toLocaleString()} <span className="text-muted-foreground">out</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {events.length} calls
+                    </div>
+                  </div>
+                  {events.map((event, idx) => (
+                    <div
+                      key={`${event.generationType}-${idx}`}
+                      className="border border-border rounded-lg p-3"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-foreground">
+                          {event.generationType.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                          {event.estimatedCostUsd
+                            ? event.estimatedCostUsd < 0.01
+                              ? `$${event.estimatedCostUsd.toFixed(6)}`
+                              : `$${event.estimatedCostUsd.toFixed(4)}`
+                            : '—'}
+                        </span>
+                      </div>
+                      <div className="space-y-0.5">
+                        <InfoRow
+                          label="Tokens"
+                          value={`${event.inputTokens.toLocaleString()} in / ${event.outputTokens.toLocaleString()} out`}
+                        />
+                        <InfoRow label="Model" value={event.model} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               );
             })()}

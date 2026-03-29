@@ -447,6 +447,134 @@ describe('streamAgentResponse', () => {
       });
     });
 
+    describe('tool error classification', () => {
+      it('should show tool-output-error in stop blocks when tool has no successful calls', async () => {
+        const sseData =
+          'data: {"type":"tool-input-available","toolCallId":"tc-1","toolName":"search_web","input":{}}\n' +
+          'data: {"type":"tool-output-error","toolCallId":"tc-1","errorText":"Connection refused"}\n' +
+          'data: {"type":"text-delta","delta":"Sorry"}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        expect(localStop).toHaveBeenCalledWith(
+          expect.objectContaining({
+            blocks: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'context',
+                elements: expect.arrayContaining([
+                  expect.objectContaining({ text: expect.stringContaining('search_web') }),
+                ]),
+              }),
+            ]),
+          })
+        );
+      });
+
+      it('should suppress tool error when the same tool also had a successful call', async () => {
+        const sseData =
+          'data: {"type":"tool-input-available","toolCallId":"tc-1","toolName":"search_web","input":{}}\n' +
+          'data: {"type":"tool-output-error","toolCallId":"tc-1","errorText":"Timeout"}\n' +
+          'data: {"type":"tool-input-available","toolCallId":"tc-2","toolName":"search_web","input":{}}\n' +
+          'data: {"type":"tool-output-available","toolCallId":"tc-2","output":"results"}\n' +
+          'data: {"type":"text-delta","delta":"Here are results"}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const stopCall = localStop.mock.calls[0][0];
+        const errorBlocks = stopCall.blocks.filter(
+          (b: any) =>
+            b.type === 'context' &&
+            b.elements?.some(
+              (e: any) => e.text?.includes('search_web') && e.text?.includes('failed')
+            )
+        );
+        expect(errorBlocks).toHaveLength(0);
+      });
+
+      it('should still show error for tool A when only tool B had successful calls', async () => {
+        const sseData =
+          'data: {"type":"tool-input-available","toolCallId":"tc-1","toolName":"search_web","input":{}}\n' +
+          'data: {"type":"tool-output-error","toolCallId":"tc-1","errorText":"Timeout"}\n' +
+          'data: {"type":"tool-input-available","toolCallId":"tc-2","toolName":"get_file","input":{}}\n' +
+          'data: {"type":"tool-output-available","toolCallId":"tc-2","output":"content"}\n' +
+          'data: {"type":"text-delta","delta":"Here is the file"}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const stopCall = localStop.mock.calls[0][0];
+        const errorBlocks = stopCall.blocks.filter(
+          (b: any) =>
+            b.type === 'context' &&
+            b.elements?.some(
+              (e: any) => e.text?.includes('search_web') && e.text?.includes('failed')
+            )
+        );
+        expect(errorBlocks).toHaveLength(1);
+      });
+
+      it('should handle tool-output-available for unknown toolCallId gracefully', async () => {
+        const sseData =
+          'data: {"type":"tool-output-available","toolCallId":"unknown-id","output":"data"}\n' +
+          'data: {"type":"text-delta","delta":"Hello"}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        const result = await streamAgentResponse(baseParams);
+
+        expect(result.success).toBe(true);
+      });
+    });
+
     describe('contentAlreadyDelivered error suppression', () => {
       it('should return success and suppress error message when content was already streamed', async () => {
         // Simulate a stream that delivers content then throws on the next read
@@ -545,6 +673,86 @@ describe('streamAgentResponse', () => {
         expect(mockPostMessage).not.toHaveBeenCalled();
         // Should still clean up thinking message
         expect(mockChatDelete).toHaveBeenCalledWith(expect.objectContaining({ ts: '1234.9999' }));
+      });
+    });
+
+    describe('inline citation injection', () => {
+      it('should append [N] link to stream when citation arrives after text has started', async () => {
+        const sseData =
+          'data: {"type":"text-delta","delta":"Founded in 2020."}\n' +
+          'data: {"type":"data-artifact","data":{"type":"citation","artifactSummary":{"title":"Inkeep","url":"https://example.com/1"}}}\n' +
+          'data: {"type":"text-delta","delta":" They focus on AI."}\n' +
+          'data: {"type":"data-artifact","data":{"type":"citation","artifactSummary":{"title":"Blog","url":"https://example.com/2"}}}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const appendCalls: string[] = localAppend.mock.calls.map((c: any) => c[0].markdown_text);
+        expect(appendCalls).toContain('<https://example.com/1|[1]>');
+        expect(appendCalls).toContain('<https://example.com/2|[2]>');
+      });
+
+      it('should not inject inline citation when no text has been streamed yet', async () => {
+        const sseData =
+          'data: {"type":"data-artifact","data":{"type":"citation","artifactSummary":{"title":"Early","url":"https://example.com/early"}}}\n' +
+          'data: {"type":"text-delta","delta":"Hello world."}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const appendCalls: string[] = localAppend.mock.calls.map((c: any) => c[0].markdown_text);
+        expect(appendCalls.some((t) => t.includes('[1]'))).toBe(false);
+      });
+
+      it('should deduplicate citations by url and not re-inject the same source', async () => {
+        const sseData =
+          'data: {"type":"text-delta","delta":"First."}\n' +
+          'data: {"type":"data-artifact","data":{"type":"citation","artifactSummary":{"title":"Src","url":"https://example.com/1"}}}\n' +
+          'data: {"type":"data-artifact","data":{"type":"citation","artifactSummary":{"title":"Src","url":"https://example.com/1"}}}\n' +
+          'data: {"type":"data-operation","data":{"type":"completion"}}\n';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sseData));
+            controller.close();
+          },
+        });
+
+        const localAppend = vi.fn().mockResolvedValue(undefined);
+        const localStop = vi.fn().mockResolvedValue(undefined);
+        mockSlackClient.chatStream.mockReturnValue({ append: localAppend, stop: localStop });
+        mockFetch.mockResolvedValue(new Response(stream, { status: 200 }));
+
+        await streamAgentResponse(baseParams);
+
+        const citationAppends = localAppend.mock.calls.filter((c: any) =>
+          c[0].markdown_text.includes('example.com/1')
+        );
+        expect(citationAppends).toHaveLength(1);
       });
     });
   });

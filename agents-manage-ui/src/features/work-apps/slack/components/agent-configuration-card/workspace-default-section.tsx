@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { ChannelAccessPopover } from './channel-access-popover';
 import type { DefaultAgentConfig, SlackAgentOption } from './types';
+import { getAgentDisplayName, getProjectDisplayName } from './types';
 
 interface WorkspaceDefaultSectionProps {
   defaultAgent: DefaultAgentConfig | null;
@@ -67,10 +68,12 @@ export function WorkspaceDefaultSection({
                   </span>
                 ) : defaultAgent ? (
                   <span className="min-w-0 truncate">
-                    <span className="font-medium">{defaultAgent.agentName}</span>
+                    <span className="font-medium">
+                      {getAgentDisplayName(agents, defaultAgent.agentId, defaultAgent.projectId)}
+                    </span>
                     <span className="text-gray-400 font-normal dark:text-white/40"> / </span>
                     <span className="text-gray-400 font-normal dark:text-white/40">
-                      {defaultAgent.projectName}
+                      {getProjectDisplayName(agents, defaultAgent.projectId)}
                     </span>
                   </span>
                 ) : (
@@ -126,7 +129,7 @@ export function WorkspaceDefaultSection({
                         )}
                       />
                       <div className="flex flex-col">
-                        <span className="font-medium">{agent.name || agent.id}</span>
+                        <span className="font-medium">{agent.name}</span>
                         <span className="text-xs text-muted-foreground">{agent.projectName}</span>
                       </div>
                     </CommandItem>
@@ -140,10 +143,12 @@ export function WorkspaceDefaultSection({
         <div className="flex items-center h-11 px-3 rounded-md border bg-muted/50 text-sm">
           {defaultAgent ? (
             <span className="flex items-center gap-2">
-              <span className="font-medium">{defaultAgent.agentName}</span>
+              <span className="font-medium">
+                {getAgentDisplayName(agents, defaultAgent.agentId, defaultAgent.projectId)}
+              </span>
               <span className="text-gray-400 font-normal dark:text-white/40"> / </span>
               <span className="text-gray-400 font-normal dark:text-white/40">
-                {defaultAgent.projectName}
+                {getProjectDisplayName(agents, defaultAgent.projectId)}
               </span>
             </span>
           ) : (

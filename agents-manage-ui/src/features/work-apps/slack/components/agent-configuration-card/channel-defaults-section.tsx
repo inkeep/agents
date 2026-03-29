@@ -8,14 +8,14 @@ import {
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { Globe, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
+import { Building2, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import {
   Table,
   TableBody,
@@ -29,6 +29,7 @@ import { BulkSelectAgentBar } from './bulk-select-agent-bar';
 import { ChannelAccessCell } from './channel-access-cell';
 import { ChannelAgentCell } from './channel-agent-cell';
 import type { Channel, SlackAgentOption } from './types';
+import { getAgentDisplayName } from './types';
 
 interface ChannelFilterProps {
   isSelected: boolean;
@@ -75,6 +76,7 @@ interface ChannelDefaultsSectionProps {
   savingChannel: string | null;
   bulkSaving: boolean;
   isAdmin: boolean;
+  hasWorkspaceDefault: boolean;
   onChannelFilterChange: (filter: 'all' | 'private' | 'connect') => void;
   onSearchQueryChange: (query: string) => void;
   onToggleChannel: (channelId: string) => void;
@@ -100,6 +102,7 @@ export function ChannelDefaultsSection({
   savingChannel,
   bulkSaving,
   isAdmin,
+  hasWorkspaceDefault,
   onChannelFilterChange,
   onSearchQueryChange,
   onToggleChannel,
@@ -112,7 +115,7 @@ export function ChannelDefaultsSection({
   onBulkResetToDefault,
   onClearFilters,
 }: ChannelDefaultsSectionProps) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'memberCount', desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
 
   const columns = useMemo<ColumnDef<Channel>[]>(
     () => [
@@ -131,34 +134,16 @@ export function ChannelDefaultsSection({
           return (
             <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
               {channel.isShared ? (
-                <Globe aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <Building2
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                />
               ) : channel.isPrivate ? (
                 <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               ) : (
                 <Hash aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               )}
               <span className="min-w-0 truncate">{channel.name}</span>
-            </span>
-          );
-        },
-      },
-      {
-        accessorFn: (row) => row.memberCount ?? -1,
-        id: 'memberCount',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Members" align="right" />
-        ),
-        cell: ({ row }) => {
-          const channel = row.original;
-          return (
-            <span className="text-right">
-              {channel.memberCount !== undefined ? (
-                <span className="text-muted-foreground text-sm font-mono tabular-nums">
-                  {channel.memberCount}
-                </span>
-              ) : (
-                <span className="text-muted-foreground/50">—</span>
-              )}
             </span>
           );
         },
@@ -177,7 +162,10 @@ export function ChannelDefaultsSection({
         ),
       },
       {
-        accessorFn: (row) => row.agentConfig?.agentName ?? undefined,
+        accessorFn: (row) =>
+          row.agentConfig
+            ? getAgentDisplayName(agents, row.agentConfig.agentId, row.agentConfig.projectId)
+            : undefined,
         id: 'agent',
         sortUndefined: 'last',
         header: ({ column }) => (
@@ -189,6 +177,7 @@ export function ChannelDefaultsSection({
               channel={row.original}
               agents={agents}
               savingChannel={savingChannel}
+              hasWorkspaceDefault={hasWorkspaceDefault}
               onSetAgent={onSetChannelAgent}
               onResetToDefault={onResetChannelToDefault}
             />
@@ -196,7 +185,14 @@ export function ChannelDefaultsSection({
         ),
       },
     ],
-    [agents, savingChannel, onSetChannelAgent, onResetChannelToDefault, onToggleGrantAccess]
+    [
+      agents,
+      savingChannel,
+      hasWorkspaceDefault,
+      onSetChannelAgent,
+      onResetChannelToDefault,
+      onToggleGrantAccess,
+    ]
   );
 
   const table = useReactTable({
@@ -226,8 +222,8 @@ export function ChannelDefaultsSection({
       </CardHeader>
       <CardContent className="space-y-4">
         {channels.length > 0 && (
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+            <div className="flex gap-3">
               <ChannelFilter
                 isSelected={channelFilter === 'all'}
                 onClick={() => onChannelFilterChange('all')}
@@ -246,29 +242,31 @@ export function ChannelDefaultsSection({
                 onClick={() => onChannelFilterChange('connect')}
                 count={channels.filter((c) => c.isShared).length}
                 label="Slack Connect"
-                Icon={Globe}
+                Icon={Building2}
               />
             </div>
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/40" />
-              <Input
+            <InputGroup className="max-w-md">
+              <InputGroupInput
                 placeholder="Search channels..."
                 value={channelSearchQuery}
                 onChange={(e) => onSearchQueryChange(e.target.value)}
-                className="pl-8 pr-8"
               />
+              <InputGroupAddon>
+                <Search />
+              </InputGroupAddon>
               {channelSearchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onSearchQueryChange('')}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-accent"
-                  aria-label="Clear search"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                <InputGroupAddon align="inline-end">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => onSearchQueryChange('')}
+                    aria-label="Clear search"
+                  >
+                    <X />
+                  </Button>
+                </InputGroupAddon>
               )}
-            </div>
+            </InputGroup>
           </div>
         )}
 
@@ -304,7 +302,6 @@ export function ChannelDefaultsSection({
               <colgroup>
                 <col className="w-10" />
                 <col style={{ width: '40%' }} />
-                <col className="w-24" />
                 <col className="w-32" />
                 <col className="w-40" />
               </colgroup>
@@ -325,11 +322,12 @@ export function ChannelDefaultsSection({
                     />
                   </TableHead>
                   {selectedChannels.size > 0 ? (
-                    <TableHead colSpan={4} className="font-sans normal-case py-1.5">
+                    <TableHead colSpan={3} className="font-sans normal-case py-1.5">
                       <BulkSelectAgentBar
                         selectedCount={selectedChannels.size}
                         agents={agents}
                         bulkSaving={bulkSaving}
+                        hasWorkspaceDefault={hasWorkspaceDefault}
                         onBulkSetAgent={onBulkSetAgent}
                         onBulkResetToDefault={onBulkResetToDefault}
                         onClearSelection={onClearSelection}
@@ -344,9 +342,7 @@ export function ChannelDefaultsSection({
                           key={header.id}
                           className={cn(
                             header.column.id === 'name' && 'w-fit',
-                            (header.column.id === 'memberCount' ||
-                              header.column.id === 'memberAccess' ||
-                              header.column.id === 'agent') &&
+                            (header.column.id === 'memberAccess' || header.column.id === 'agent') &&
                               'text-right'
                           )}
                         >

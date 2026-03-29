@@ -192,27 +192,29 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   return (
     <div
       className={cn(
-        'max-h-screen', // set fixed max height, otherwise page freezes up / lags when clicking into it
+        'min-w-0',
+        'max-h-[90vh]', // set fixed max height, otherwise page freezes up / lags when clicking into it
         !hasDynamicHeight && 'h-full',
         'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
         disabled
           ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
-        'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
+        'inkeep-aria-invalid',
         className,
         !monaco && 'px-3 py-4'
       )}
       {...props}
       ref={containerRef}
     >
-      {!monaco && (
+      {monaco ? (
+        children
+      ) : (
         <>
           <Skeleton className="h-4 w-4/5" />
           <Skeleton className="h-4 w-3/5 mt-3 mb-full" />
         </>
       )}
-      {children}
     </div>
   );
 };

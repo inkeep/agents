@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import type { SkillOutput } from '@/components/skills/form/validation';
-import { createSkill, fetchSkill, updateSkill } from '@/lib/api/skills';
+import { createSkill, fetchSkill, fetchSkills, updateSkill } from '@/lib/api/skills';
 import type { Skill } from '@/lib/types/skills';
 
 const skillQueryKeys = {
@@ -16,6 +16,31 @@ const skillQueryKeys = {
 interface UpsertSkillInput {
   skillId?: string;
   data: SkillOutput;
+}
+
+export function useSkillsQuery({ enabled = true }: { enabled?: boolean } = {}) {
+  'use memo';
+  const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
+
+  if (!tenantId || !projectId) {
+    throw new Error('tenantId and projectId are required');
+  }
+
+  return useQuery({
+    queryKey: skillQueryKeys.list(tenantId, projectId),
+    async queryFn() {
+      const response = await fetchSkills(tenantId, projectId);
+      return response.data;
+    },
+    enabled,
+    initialData: [],
+    // force `queryFn` still runs on mount
+    initialDataUpdatedAt: 0,
+    staleTime: 30_000,
+    meta: {
+      defaultError: 'Failed to load agent skills',
+    },
+  });
 }
 
 export function useSkillQuery({

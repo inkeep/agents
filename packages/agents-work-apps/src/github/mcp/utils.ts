@@ -1,6 +1,7 @@
 import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/rest';
 import { minimatch } from 'minimatch';
+import { format as oxfmtFormat } from 'oxfmt';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
 import type {
@@ -974,21 +975,26 @@ export function visualizeUpdateOperations(
   }
 }
 
-async function commitContent({
+type TreeEntry = {
+  path: string;
+  mode: '100644';
+  type: 'blob';
+  sha: string | null;
+};
+
+async function commitTreeEntries({
   githubClient,
   owner,
   repo,
-  filePath,
   branchName,
-  content,
+  treeEntries,
   commitMessage,
 }: {
   githubClient: Octokit;
   owner: string;
   repo: string;
-  filePath: string;
   branchName: string;
-  content: string;
+  treeEntries: TreeEntry[];
   commitMessage: string;
 }): Promise<string> {
   const branchRef = await githubClient.rest.git.getRef({
@@ -1005,27 +1011,11 @@ async function commitContent({
     commit_sha: currentSha,
   });
 
-  const currentTreeSha = currentCommit.data.tree.sha;
-
-  const blob = await githubClient.rest.git.createBlob({
-    owner,
-    repo,
-    content: Buffer.from(content).toString('base64'),
-    encoding: 'base64',
-  });
-
   const newTree = await githubClient.rest.git.createTree({
     owner,
     repo,
-    base_tree: currentTreeSha,
-    tree: [
-      {
-        path: filePath,
-        mode: '100644' as const,
-        type: 'blob' as const,
-        sha: blob.data.sha,
-      },
-    ],
+    base_tree: currentCommit.data.tree.sha,
+    tree: treeEntries,
   });
 
   const newCommit = await githubClient.rest.git.createCommit({
@@ -1046,6 +1036,50 @@ async function commitContent({
   return newCommit.data.sha;
 }
 
+async function formatContent(filePath: string, content: string): Promise<string> {
+  try {
+    const { code } = await oxfmtFormat(filePath, content);
+    return code;
+  } catch (error) {
+    logger.warn({ filePath, error }, 'oxfmt formatting failed, using unformatted content');
+    return content;
+  }
+}
+
+async function commitContent({
+  githubClient,
+  owner,
+  repo,
+  filePath,
+  branchName,
+  content,
+  commitMessage,
+}: {
+  githubClient: Octokit;
+  owner: string;
+  repo: string;
+  filePath: string;
+  branchName: string;
+  content: string;
+  commitMessage: string;
+}): Promise<string> {
+  const blob = await githubClient.rest.git.createBlob({
+    owner,
+    repo,
+    content: Buffer.from(content).toString('base64'),
+    encoding: 'base64',
+  });
+
+  return commitTreeEntries({
+    githubClient,
+    owner,
+    repo,
+    branchName,
+    treeEntries: [{ path: filePath, mode: '100644', type: 'blob', sha: blob.data.sha }],
+    commitMessage,
+  });
+}
+
 export async function commitFileChanges({
   githubClient,
   owner,
@@ -1055,6 +1089,7 @@ export async function commitFileChanges({
   branchName,
   operations,
   commitMessage,
+  format = false,
 }: {
   githubClient: Octokit;
   owner: string;
@@ -1064,9 +1099,13 @@ export async function commitFileChanges({
   branchName: string;
   operations: LLMUpdateOperation[];
   commitMessage: string;
+  format?: boolean;
 }): Promise<string> {
   try {
-    const updatedContent = applyOperations(fileContent, operations);
+    let updatedContent = applyOperations(fileContent, operations);
+    if (format) {
+      updatedContent = await formatContent(filePath, updatedContent);
+    }
     return await commitContent({
       githubClient,
       owner,
@@ -1091,6 +1130,7 @@ export async function commitNewFile({
   branchName,
   content,
   commitMessage,
+  format = false,
 }: {
   githubClient: Octokit;
   owner: string;
@@ -1099,15 +1139,17 @@ export async function commitNewFile({
   branchName: string;
   content: string;
   commitMessage: string;
+  format?: boolean;
 }): Promise<string> {
   try {
+    const finalContent = format ? await formatContent(filePath, content) : content;
     return await commitContent({
       githubClient,
       owner,
       repo,
       filePath,
       branchName,
-      content,
+      content: finalContent,
       commitMessage,
     });
   } catch (error) {
@@ -1115,6 +1157,47 @@ export async function commitNewFile({
       `Failed to commit new file: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
+
+export async function moveFile({
+  githubClient,
+  owner,
+  repo,
+  sourcePath,
+  destinationPath,
+  branchName,
+  commitMessage,
+}: {
+  githubClient: Octokit;
+  owner: string;
+  repo: string;
+  sourcePath: string;
+  destinationPath: string;
+  branchName: string;
+  commitMessage: string;
+}): Promise<string> {
+  const fileResponse = await githubClient.rest.repos.getContent({
+    owner,
+    repo,
+    path: sourcePath,
+    ref: branchName,
+  });
+
+  if (!('sha' in fileResponse.data) || Array.isArray(fileResponse.data)) {
+    throw new Error(`Source path "${sourcePath}" is not a file`);
+  }
+
+  return commitTreeEntries({
+    githubClient,
+    owner,
+    repo,
+    branchName,
+    treeEntries: [
+      { path: destinationPath, mode: '100644', type: 'blob', sha: fileResponse.data.sha },
+      { path: sourcePath, mode: '100644', type: 'blob', sha: null },
+    ],
+    commitMessage,
+  });
 }
 
 export async function createIssueCommentReaction(

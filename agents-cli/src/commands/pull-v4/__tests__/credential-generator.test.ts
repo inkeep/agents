@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for credential generator
  */
@@ -16,9 +15,8 @@ describe('Credential Generator', () => {
   const testCredentialData = {
     id: 'inkeep-api-key',
     name: 'Inkeep API Key',
-    type: 'memory',
+    type: 'memory' as const,
     credentialStoreId: 'memory-default',
-    description: 'API key for Inkeep search and context services',
     retrievalParams: {
       key: 'INKEEP_API_KEY',
     },
@@ -27,9 +25,8 @@ describe('Credential Generator', () => {
   const envCredentialData = {
     id: 'database-url',
     name: 'Database URL',
-    type: 'env',
+    type: 'memory' as const,
     credentialStoreId: 'env-production',
-    description: 'Database connection URL for production environment',
     retrievalParams: {
       key: 'DATABASE_URL',
       fallback: 'postgresql://localhost:5432/app',
@@ -39,9 +36,8 @@ describe('Credential Generator', () => {
   const keychainCredentialData = {
     id: 'slack-token',
     name: 'Slack Token',
-    type: 'keychain',
+    type: 'keychain' as const,
     credentialStoreId: 'keychain-main',
-    description: 'Slack bot token stored in OS keychain',
     retrievalParams: {
       service: 'slack-bot',
       account: 'my-workspace',
@@ -53,13 +49,10 @@ describe('Credential Generator', () => {
       const credentialId = 'inkeep-api-key';
       const definition = generateCredentialDefinition({ credentialId, ...testCredentialData });
 
-      expect(definition).toContain('export const inkeepApiKey = credential({');
+      expect(definition).toContain('export const inkeepApiKeyCredential = credential({');
       expect(definition).toContain("id: 'inkeep-api-key',");
       expect(definition).toContain("type: 'memory',");
       expect(definition).toContain("credentialStoreId: 'memory-default',");
-      expect(definition).toContain(
-        "description: 'API key for Inkeep search and context services',"
-      );
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("key: 'INKEEP_API_KEY'");
       expect(definition).toContain('});');
@@ -70,11 +63,11 @@ describe('Credential Generator', () => {
       const credentialId = 'database-connection-url';
       const conversionData = {
         name: 'Database Connection URL',
-        type: 'env',
+        type: 'memory' as const,
         credentialStoreId: 'env-default',
       };
       const definition = generateCredentialDefinition({ credentialId, ...conversionData });
-      expect(definition).toContain('export const databaseConnectionUrl = credential({');
+      expect(definition).toContain('export const databaseConnectionUrlCredential = credential({');
       expect(definition).toContain("id: 'database-connection-url',");
       await expectSnapshots(definition);
     });
@@ -83,7 +76,7 @@ describe('Credential Generator', () => {
       const credentialId = 'my-credential';
       const requiredFieldsData = {
         name: 'My Credential',
-        type: 'memory',
+        type: 'memory' as const,
         credentialStoreId: 'memory-default',
       };
       const definition = generateCredentialDefinition({ credentialId, ...requiredFieldsData });
@@ -99,8 +92,8 @@ describe('Credential Generator', () => {
       const credentialId = 'database-url';
       const definition = generateCredentialDefinition({ credentialId, ...envCredentialData });
 
-      expect(definition).toContain('export const databaseUrl = credential({');
-      expect(definition).toContain("type: 'env',");
+      expect(definition).toContain('export const databaseUrlCredential = credential({');
+      expect(definition).toContain("type: 'memory',");
       expect(definition).toContain("credentialStoreId: 'env-production',");
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("key: 'DATABASE_URL',");
@@ -115,7 +108,7 @@ describe('Credential Generator', () => {
         ...keychainCredentialData,
       });
 
-      expect(definition).toContain('export const slackToken = credential({');
+      expect(definition).toContain('export const slackTokenCredential = credential({');
       expect(definition).toContain("type: 'keychain',");
       expect(definition).toContain("credentialStoreId: 'keychain-main',");
       expect(definition).toContain('retrievalParams: {');
@@ -132,34 +125,18 @@ describe('Credential Generator', () => {
         new Error(`Validation failed for credential:
 ✖ Invalid input: expected string, received undefined
   → at name
-✖ Invalid input: expected string, received undefined
+✖ Invalid option: expected one of "memory"|"keychain"|"nango"|"composio"
   → at type
 ✖ Invalid input: expected string, received undefined
   → at credentialStoreId`)
       );
     });
 
-    it('should handle multiline descriptions', async () => {
-      const credentialId = 'long-desc';
-      const longDescription =
-        'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the credential';
-      const dataWithLongDesc = {
-        name: 'Long Description Credential',
-        type: 'env',
-        credentialStoreId: 'env-production',
-        description: longDescription,
-      };
-
-      const definition = generateCredentialDefinition({ credentialId, ...dataWithLongDesc });
-      expect(definition).toContain(`description: '${longDescription}'`);
-      await expectSnapshots(definition);
-    });
-
     it('should handle nested retrieval params', async () => {
       const credentialId = 'complex';
       const complexCredential = {
         name: 'Complex Credential',
-        type: 'keychain',
+        type: 'keychain' as const,
         credentialStoreId: 'keychain-main',
         retrievalParams: {
           service: 'oauth-service',
@@ -187,7 +164,7 @@ describe('Credential Generator', () => {
       const credentialId = 'mixed';
       const mixedParamsCredential = {
         name: 'Mixed Params Credential',
-        type: 'env',
+        type: 'memory' as const,
         credentialStoreId: 'env-default',
         retrievalParams: {
           key: 'API_KEY',
@@ -216,9 +193,8 @@ describe('Credential Generator', () => {
       const credentialId = 'null-test';
       const credentialData = {
         name: 'Null Test Credential',
-        type: 'env',
+        type: 'memory' as const,
         credentialStoreId: 'env-default',
-        description: undefined,
         retrievalParams: {
           key: 'API_KEY',
           fallback: undefined,
@@ -227,8 +203,7 @@ describe('Credential Generator', () => {
 
       const definition = generateCredentialDefinition({ credentialId, ...credentialData });
 
-      expect(definition).toContain('export const nullTest = credential({');
-      expect(definition).not.toContain('description:');
+      expect(definition).toContain('export const nullTestCredential = credential({');
       expect(definition).toContain("key: 'API_KEY'");
       expect(definition).not.toContain('fallback');
 
@@ -239,7 +214,7 @@ describe('Credential Generator', () => {
       const credentialId = 'empty-params';
       const credentialData = {
         name: 'Empty Params Credential',
-        type: 'memory',
+        type: 'memory' as const,
         credentialStoreId: 'memory-default',
         retrievalParams: {},
       };

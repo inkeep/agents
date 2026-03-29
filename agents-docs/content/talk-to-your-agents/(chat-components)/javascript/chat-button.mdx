@@ -1,5 +1,6 @@
 ---
-title: Chat Button
+title: Chat Button for JavaScript
+sidebarTitle: Chat Button
 description: Learn how to use the chat button component in JavaScript
 icon: LuMessageCircle
 ---
@@ -14,7 +15,7 @@ The chat button component is a simple way to trigger the Inkeep chat bubble in y
     ```html
     <script
         type="module"
-        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
+        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js-cloud@0.15/dist/embed.js"
         defer
 ></script>
     ```
@@ -25,8 +26,8 @@ The chat button component is a simple way to trigger the Inkeep chat bubble in y
     ```ts
     const config: InkeepChatButtonProps = {
       aiChatSettings: {
-        agentUrl: "https://your-api.example.com/run/api/chat",
-        apiKey: process.env.INKEEP_API_KEY, // Your API key
+        baseUrl: "https://your-api.example.com",
+        appId: process.env.INKEEP_APP_ID, // Your app ID
       },
     };
 

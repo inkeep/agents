@@ -203,7 +203,7 @@
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-accent-foreground: var(--color-sky-blue);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
 
@@ -339,4 +339,8 @@ li[data-sonner-toast][data-type="error"] {
   to {
     --xy-edge-stroke: unset;
   }
+}
+
+.inkeep-aria-invalid {
+  @apply aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40;
 }

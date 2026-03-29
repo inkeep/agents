@@ -1,5 +1,7 @@
 'use client';
 
+import { SLACK_BRAND_COLOR } from '@/constants/theme';
+
 export type WorkAppId = 'slack' | 'github';
 
 export type WorkAppStatus = 'available' | 'installed' | 'connected';
@@ -24,7 +26,7 @@ export const WORK_APPS_CONFIG: Record<
     name: 'Slack',
     description: 'Connect your Slack workspace to interact with Inkeep agents via slash commands.',
     icon: 'slack',
-    color: '#4A154B',
+    color: SLACK_BRAND_COLOR,
   },
   github: {
     id: 'github',

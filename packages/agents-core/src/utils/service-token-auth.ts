@@ -19,6 +19,8 @@ export interface ServiceTokenPayload {
   tenantId: string;
   /** Project ID - must match for both origin and target agents */
   projectId: string;
+  /** Original initiator of the request (propagated through delegation chain) */
+  initiatedBy?: { type: 'user' | 'api_key'; id: string };
   /** Issued at timestamp */
   iat: number;
   /** Expiration timestamp (5 minutes from issue) */
@@ -33,6 +35,7 @@ export interface GenerateServiceTokenParams {
   projectId: string;
   originAgentId: string;
   targetAgentId: string;
+  initiatedBy?: { type: 'user' | 'api_key'; id: string };
 }
 
 /**
@@ -42,7 +45,7 @@ export type VerifyServiceTokenResult = JwtVerifyResult<ServiceTokenPayload>;
 
 /**
  * Generate a JWT token for agent-to-agent authentication.
- * Token expires in 5 minutes.
+ * Token expires in 1 hour.
  */
 export async function generateServiceToken(params: GenerateServiceTokenParams): Promise<string> {
   try {
@@ -50,10 +53,11 @@ export async function generateServiceToken(params: GenerateServiceTokenParams): 
       issuer: ISSUER,
       subject: params.originAgentId,
       audience: params.targetAgentId,
-      expiresIn: '5m',
+      expiresIn: '1h',
       claims: {
         tenantId: params.tenantId,
         projectId: params.projectId,
+        ...(params.initiatedBy ? { initiatedBy: params.initiatedBy } : {}),
       },
     });
 
@@ -103,12 +107,15 @@ export async function verifyServiceToken(token: string): Promise<VerifyServiceTo
     };
   }
 
+  const initiatedBy = payload.initiatedBy as { type: 'user' | 'api_key'; id: string } | undefined;
+
   const validPayload: ServiceTokenPayload = {
     iss: payload.iss as string,
     aud: payload.aud as string,
     sub: payload.sub,
     tenantId: payload.tenantId as string,
     projectId: payload.projectId as string,
+    ...(initiatedBy ? { initiatedBy } : {}),
     iat: payload.iat as number,
     exp: payload.exp as number,
   };

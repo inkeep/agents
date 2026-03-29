@@ -100,7 +100,9 @@ vi.mock('../../slack/services/client', () => ({
     chatStream: mockChatStream,
   })),
   getSlackChannelInfo: vi.fn().mockResolvedValue(null),
-  getSlackUserInfo: vi.fn().mockResolvedValue(null),
+  getSlackUserInfo: vi
+    .fn()
+    .mockResolvedValue({ displayName: 'Test User', tz: 'America/New_York', tzOffset: -18000 }),
   postMessageInThread: vi.fn(),
 }));
 
@@ -334,6 +336,9 @@ describe('handleAppMention', () => {
         question: expect.stringContaining('What is Inkeep?'),
       })
     );
+    const calledQuestion = vi.mocked(executeAgentPublicly).mock.calls[0]?.[0]?.question as string;
+    expect(calledQuestion).toContain('(sent ');
+    expect(calledQuestion).toMatch(/EST|ET/);
     expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.authorized', true);
     expect(mockSpan.setAttribute).toHaveBeenCalledWith('slack.auth_source', 'channel');
   });
@@ -458,6 +463,8 @@ describe('handleAppMention', () => {
         question: expect.stringContaining('slack_thread_context'),
       })
     );
+    const autoExecQuestion = vi.mocked(executeAgentPublicly).mock.calls[0]?.[0]?.question as string;
+    expect(autoExecQuestion).toContain('(sent ');
   });
 
   it('should call executeAgentPublicly with threadTs for in-thread mention with query', async () => {
@@ -510,6 +517,8 @@ describe('handleAppMention', () => {
         question: expect.stringContaining('explain this'),
       })
     );
+    const threadQuestion = vi.mocked(executeAgentPublicly).mock.calls[0]?.[0]?.question as string;
+    expect(threadQuestion).toContain('(sent ');
   });
 
   it('should set workspace auth source span attribute when agent resolved from workspace', async () => {

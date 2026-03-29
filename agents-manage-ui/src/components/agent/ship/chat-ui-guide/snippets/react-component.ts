@@ -2,7 +2,11 @@ export const reactComponentTemplate = `import { {{COMPONENT_NAME}}, type {{COMPO
 
 const props: {{COMPONENT_NAME}}Props = {
   baseSettings: {{BASE_SETTINGS}},
-  aiChatSettings: {{AI_CHAT_SETTINGS}},
+  aiChatSettings: {
+    appId: "{{APP_ID}}",
+    baseUrl: "{{BASE_URL}}",
+{{EXTRA_AI_CHAT_SETTINGS}}
+  },
 };
 
 export const InkeepWidget = () => {

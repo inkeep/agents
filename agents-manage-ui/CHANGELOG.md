@@ -1,5 +1,512 @@
 # @inkeep/agents-manage-ui
 
+## 0.62.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.62.1
+
+## 0.62.0
+
+### Patch Changes
+
+- b1507d1: Fix evaluation scoring returning null and display evaluation results in local time
+- ce9c516: Update @inkeep/agents-ui to support getAuthToken, remove max keys limit, add public key hover/copy
+- Updated dependencies [ce9c516]
+  - @inkeep/agents-core@0.62.0
+
+## 0.61.0
+
+### Patch Changes
+
+- 15c3f9d: Improve agent page sidepane performance using Activity component
+- ec1b2f7: Extract selection-sync logic into useAgentSelectionSync hook and remove useDefaultSubAgentNodeIdRef
+- 1e4f05d: Refactor agent graph editor to use deterministic graph keys and single source of truth for form state
+
+  ### Graph identity system
+
+  - Add deterministic graph key derivation for all node types (`getSubAgentGraphKey`, `getMcpGraphKey`, `getFunctionToolGraphKey`, `getExternalAgentGraphKey`, `getTeamAgentGraphKey`) via new `graph-keys.ts`, `graph-identity.ts`, `sub-agent-identity.ts`, and `function-tool-identity.ts` modules
+  - Replace unstable `generateId()` UUIDs with stable, domain-meaningful identifiers derived from persisted IDs (relation IDs, tool IDs, agent IDs)
+  - URL-based sidepane selection now uses graph keys instead of raw React Flow IDs, so deep-links survive re-renders and saves
+
+  ### RHF as single source of truth
+
+  - Strip `node.data` down to a thin identity envelope (`nodeKey` + minimal refs like `toolId`) — all business fields (name, description, prompt, models, code, etc.) are read exclusively from React Hook Form state
+  - Remove `hydrateNodesWithFormData()` entirely; `editorToPayload()` now reads all business data directly from a `SerializeAgentFormState` bundle with `requireFormValue()` fail-fast guards
+  - Rename `FullAgentUpdateSchema` → `FullAgentFormSchema`, remove `.transform()` from schema (resolution now happens at serialize-time), split types into `FullAgentFormValues` / `FullAgentFormInputValues`
+
+  ### Connection state consolidation
+
+  - Collapse scattered `tempSelectedTools`/`tempHeaders`/`tempToolPolicies` on node data into `mcpRelations` and `functionToolRelations` RHF record maps with factory helpers (`createMcpRelationFormInput`, `createFunctionToolRelationFormInput`)
+  - Edge removal triggers synchronous `form.unregister()` instead of deferred `requestAnimationFrame` — only `relationshipId` is unregistered for MCP relations to avoid a race condition where headers would be set to empty string on removal
+  - Remove `subAgentId` manipulation from Zustand store's `onEdgesChange`
+
+  ### Save-cycle reconciliation
+
+  - Expand `syncSavedAgentGraph` to reconcile three categories of server-assigned IDs: tool `canUse` relations, external agent delegate relations, and team agent delegate relations
+  - Rename MCP node IDs to deterministic graph keys post-save; preserve URL selection state via `findNodeByGraphKey`/`findEdgeByGraphKey`
+  - Collapse redundant double `isNodeType` patterns into single guards
+
+  ### Bug fixes
+
+  - Fix function tool "requires approval" flag not persisting across save/reload by hydrating `needsApproval` tool policies from `canUse` relations back into form state during `apiToFormValues()`
+  - Fix model inheritance display: use `getModelInheritanceStatus()` instead of bare `!subAgent.models` check to correctly show "(inherited)" label
+  - Fix MCP node editor crash on deep-link/reload: consolidate null guards for `toolData`, `tool`, and `mcpRelation` with proper JSX fallback UI
+  - Fix function tool node editor crash after node removal: add early return when `functionId` is undefined
+  - Fix race condition when MCP relation is removed but component is still mounted
+
+  ### Performance
+
+  - Replace `useWatch({ name: 'functionTools' })` with targeted `useWatch({ name: 'functionTools.${id}.functionId' })` to eliminate O(N²) re-renders across function tool nodes
+  - Remove `getFunctionIdForTool` helper that iterated the entire `functionTools` map
+
+  ### Schema changes
+
+  - Rename form field `defaultSubAgentId` → `defaultSubAgentNodeId` to clarify it holds a node key; translation to persisted ID happens at serialization time
+  - Add `FunctionToolRelationSchema` and `functionToolRelations` record field to form schema
+  - OpenAPI: `defaultSubAgentId` uses `$ref` to `ResourceId`, `maxTransferCount` type corrected to `integer`, function tool `dependencies` simplified to `StringRecord`
+
+  ### Test coverage
+
+  - Add 7 new test files covering graph identity, function tool identity, form-state defaults, and sync-saved-agent-graph scenarios
+  - Expand serialize and deserialize test suites with new architecture patterns
+  - Add roundtrip test for approval policy hydration
+
+- cad67b9: Move refreshAgentGraph and handleNavigateToNode to their consuming components for better co-location
+- Updated dependencies [12722d9]
+- Updated dependencies [f4a9c69]
+  - @inkeep/agents-core@0.61.0
+
+## 0.60.0
+
+### Patch Changes
+
+- ed10886: Add optional prompt field to app deployments for surface-specific behavioral tuning
+- Updated dependencies [2eaebb3]
+- Updated dependencies [c0018a6]
+- Updated dependencies [ed10886]
+- Updated dependencies [b1199eb]
+  - @inkeep/agents-core@0.60.0
+
+## 0.59.4
+
+### Patch Changes
+
+- 82bd424: Add InputGroup compound component and use it in ProjectSwitcher search input
+- 296c79a: Remove unused tooltip rendering from sidebar nav items to improve performance
+- ef7987f: Replace ad-hoc search input patterns with unified InputGroup compound component
+- 1b37b29: Migrate from individual @radix-ui/react-\* packages to unified radix-ui package
+- 99b5edf: Update TypeScript to 6.0.2
+- 6f1c5da: fix(dashboard): Ensures rounded bottom corners render correctly in dark mode
+- Updated dependencies [be7f056]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+
+## 0.59.3
+
+### Patch Changes
+
+- ed09910: Fix silent error swallowing in pending invitations and add tenant auth to Nango integration actions
+- e2c4c2d: Remove redundant TooltipProvider wrappers to reduce unnecessary React context overhead
+- 6ca8164: v4 to v5 signoz migration
+- b78771b: update Next.js to 16.2.1
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- 028a801: - Replace prop-drilled permission flags (`readOnly`, `canEdit`, `canUse`, `canManage`) with direct consumption via `useProjectPermissionsQuery()` hook in client components
+  - Fix empty breadcrumb on `/[tenantId]/profile` page
+- 6cc27ba: replace manual `useEffect` and `fetchProjectsAction` with `useProjectsQuery` hook and adopt `PageProps` types
+- 825690c: Add back link to sidebar and org settings link to user menu
+- 0b4669f: Fix user-scoped MCP credential card not updating after connect or disconnect without manual page refresh
+  - @inkeep/agents-core@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- eb3a4bb: Fix URL validation bypass and permission guard in credential provider setup
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+- 7ee7de1: Fix scopes field placeholder to show correct comma-separated format expected by Nango API
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+### Patch Changes
+
+- 3d54b6b: Remove `useProject`, `useProjectPermissions`, `useProjectActions`, `useProjectData` in favor of `useProjectPermissionsQuery` and `useProjectQuery` React Query hooks
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- 64b0d88: Improve custom header ux by deriving template json from the headers schema
+  - @inkeep/agents-core@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- 9c06353: Remove `enrichNodes` helper and fix MCP tool image not displaying in sidepane
+- 9e0dd71: fix unauthenticated access to span details
+- ac53c07: rename the api to remove references to signoz
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+  - @inkeep/agents-core@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- f8f16f4: Add GPT-5.4 Mini and GPT-5.4 Nano to model constants, UI picker, and CLI
+- 56a8a91: - Enable sorting for simple tables
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+
+## 0.58.18
+
+### Patch Changes
+
+- ad867c5: Fix Nango MCP integration reuse regression causing 'integration already exists' error on OAuth login
+  - @inkeep/agents-core@0.58.18
+
+## 0.58.17
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.17
+
+## 0.58.16
+
+### Patch Changes
+
+- Updated dependencies [5065552]
+  - @inkeep/agents-core@0.58.16
+
+## 0.58.15
+
+### Patch Changes
+
+- 2a50786: Bump agents-ui package to 0.15.18 and remove lingering references to the deprecated agentUrl prop
+- 36430ee: Reuse createLookup utility instead of inline reduce patterns
+- 5394245: Improve OAuth credentials CRUD with multi-app configuration support, integration visibility on credential detail pages, and accurate auth type labels
+- 0e1011b: Refactor evaluator selection to use idiomatic react-hook-form field render props and adopt createLookup utility
+- Updated dependencies [abaefda]
+  - @inkeep/agents-core@0.58.15
+
+## 0.58.14
+
+### Patch Changes
+
+- ed39b41: Improve app creation flow with searchable agent selection and streamlined type picker
+- 14e415c: Fix unable to clear agent settings description, show inherited model on sub-agent nodes, and extract shared URLDisplay component
+- 09e270a: Fix inconsistent timezone display on triggers page by showing all run times in browser local timezone with timezone labels in column headers
+- e10649a: Fix MCP server name and URL truncation in card view
+  - @inkeep/agents-core@0.58.14
+
+## 0.58.13
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.13
+
+## 0.58.12
+
+### Patch Changes
+
+- 19b1168: rerun scheduled triggers from traces
+- Updated dependencies [ad8a7cd]
+- Updated dependencies [ad8a7cd]
+  - @inkeep/agents-core@0.58.12
+
+## 0.58.11
+
+### Patch Changes
+
+- Updated dependencies [c87dc3e]
+  - @inkeep/agents-core@0.58.11
+
+## 0.58.10
+
+### Patch Changes
+
+- 41af59e: utc bug for renable/disable schedule triggers
+- Updated dependencies [fa64456]
+- Updated dependencies [02bcd0e]
+- Updated dependencies [f41500b]
+- Updated dependencies [41af59e]
+  - @inkeep/agents-core@0.58.10
+
+## 0.58.9
+
+### Patch Changes
+
+- 0645423: Fix ship it code examples
+- Updated dependencies [f150b28]
+- Updated dependencies [49909bf]
+- Updated dependencies [4816f02]
+  - @inkeep/agents-core@0.58.9
+
+## 0.58.8
+
+### Patch Changes
+
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+
+## 0.58.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- f0dd499: Move agent page data fetching to client-side React Query hooks, eliminating server-side waterfall fetches and enabling automatic request deduplication
+- 16e5e8d: Fix mid-generation context compression: accurate context slicing across multiple compression cycles, improved distillation quality, and richer compression telemetry
+- 7b811ec: Fix GenericKeyValueInput crash caused by FormLabel, FormDescription, and FormMessage used outside FormField context
+- 0e425da: Simplify agent editor state management by hydrating tool/agent config directly onto node data, eliminating server-side waterfalls and lookup indirection
+- Updated dependencies [a9c2857]
+- Updated dependencies [16e5e8d]
+  - @inkeep/agents-core@0.58.6
+
+## 0.58.5
+
+### Patch Changes
+
+- 5d3dba9: ui fix for webhooks and triggers
+  - @inkeep/agents-core@0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- 0451e1d: Add new models: anthropic/claude-opus-4, anthropic/claude-sonnet-4, anthropic/claude-3-7-sonnet, anthropic/claude-3-5-sonnet, anthropic/claude-3-5-sonnet-20240620, anthropic/claude-3-5-haiku, anthropic/claude-3-opus, anthropic/claude-3-haiku, google/gemini-3-flash, google/gemini-3.1-flash-lite-preview, google/gemini-2.5-flash-preview-09-2025, google/gemini-2.5-flash-lite-preview-09-2025, google/gemini-2.0-flash, google/gemini-2.0-flash-lite, openai/gpt-5.2-codex, openai/gpt-5.1-thinking, openai/gpt-5.1-codex, openai/gpt-5.1-codex-max, openai/gpt-5.1-codex-mini, openai/gpt-5-pro, openai/gpt-5-codex, openai/o3-pro, openai/o3, openai/o3-mini, openai/o4-mini, openai/o1, openai/gpt-4o, openai/gpt-4o-mini, openai/gpt-4-turbo, openai/gpt-3.5-turbo, openai/codex-mini. Remove from UI: Claude Haiku 3.5 (deprecated), Gemini 3 Flash Preview (replaced by stable Gemini 3 Flash), Claude Opus 4.1 (consolidated to Claude Opus 4).
+- d7c1001: Add GPT-5.2 Pro and GPT-5.3 Codex to model constants and UI picker
+- d7827b3: Add `FlowButton` component and fix SVG icon color for `Ship` and `Agent Settings` toolbar buttons
+- e5cd90f: rename `firstNestedMessage()` to `flatNestedFieldMessage()`
+- f95fd53: Make agent flow buttons on left panel normal case and on right panel upper case
+- b4fc0c0: fixing numbers for contains queries
+- fbe68b9: Extract `animateGraph` action from agent store into dedicated `useAnimateGraph` hook
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [f475d74]
+  - @inkeep/agents-core@0.58.4
+
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+- Updated dependencies [0714ac6]
+  - @inkeep/agents-core@0.58.3
+
+## 0.58.2
+
+### Patch Changes
+
+- 31c0f68: Add new models: openai/gpt-5.4, openai/gpt-5.4-pro
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+
+## 0.58.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.1
+
+## 0.58.0
+
+### Patch Changes
+
+- e7e09df: Make diffs collapsible if there are more than 3 fields in the copilot tool approval
+- b6c8fba: Remove console.log debug output from production builds
+- Updated dependencies [3d88636]
+  - @inkeep/agents-core@0.58.0
+
+## 0.57.0
+
+### Minor Changes
+
+- 5bc298e: Add user profile support with timezone storage and profile settings page
+
+### Patch Changes
+
+- 19e16cc: Improve trigger page performance by splitting tab content into separate RSC components with Suspense boundaries and using nuqs for client-side tab switching
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-core@0.57.0
+
+## 0.56.2
+
+### Patch Changes
+
+- 32e0d6e: fix for errors only in trace view
+  - @inkeep/agents-core@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- 76defa3: Add PostHog analytics tracking to playground and copilot chat widgets
+- a175379: Add hasErrors filter to traces page and fix agent.name span attribute
+- 0d4a6ce: fix new lines for triggers
+  - @inkeep/agents-core@0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+
+## 0.55.3
+
+### Patch Changes
+
+- e8f1549: Fix copilot chat token authentication for manage UI
+  - @inkeep/agents-core@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- 6dec75f: Add new stepper component, design polish on the "use in your app" modal
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- 55eb8cb: debug 500 signoz errors and reduce timerange query
+- cde371e: Fix playground conversationId not resetting when playground closes or when navigating between agents
+  - @inkeep/agents-core@0.55.1
+
+## 0.55.0
+
+### Patch Changes
+
+- 1093d69: Fix trace filtering when same conversation ID exists across projects
+- 9ee889e: Use credential name instead of id in external agent and MCP server credential selectors and detail pages
+- 08d678d: Show MCP server default instructions as placeholder in edit form and as fallback in detail views when no custom prompt is set
+- 1e0cfc5: Hide create / edit buttons for skills if user doesn't have edit permissions
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+
+## 0.54.0
+
+### Patch Changes
+
+- 781f15f: Add delete button to edit external agent page
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-core@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- Updated dependencies [e915ef8]
+  - @inkeep/agents-core@0.53.13
+
+## 0.53.12
+
+### Patch Changes
+
+- 0038a02: Update signout methods and remove logout route
+  - @inkeep/agents-core@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- 33780a8: Refactor agent form to use shared Zod schemas from `agents-core`
+- ff9e307: Fix broken logout on app.inkeep.com by using full page navigation for route handler and clearing cookies on all candidate domains
+- 901058e: extract aria-invalid classes into reused `inkeep-aria-invalid`, fixes form error state propagation for `Select` and `ComboBox` components
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+  - @inkeep/agents-core@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- 9a2d783: Fix stale session cookie blocking dev auto-login after setup re-run
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- 7e60710: Update @inkeep/agents-ui package to version 0.15.13
+- a879934: Fix Collapse All / Expand All on traces page to collapse and expand all tree hierarchy nodes in addition to AI message content
+  - @inkeep/agents-core@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- 946d729: Hide member column in slack channels list
+  - @inkeep/agents-core@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+- df4b020: fix breadcrumb `Error` on trigger invocations page
+- Updated dependencies [35ca5cb]
+  - @inkeep/agents-core@0.53.4
+
 ## 0.53.3
 
 ### Patch Changes

@@ -1,5 +1,6 @@
 ---
-title: Custom Trigger
+title: Custom Trigger for Next.js
+sidebarTitle: Custom Trigger
 description: Create custom UI elements to trigger Inkeep modals in Next.js with App Router and dynamic import.
 icon: LuMousePointerClick
 ---
@@ -15,15 +16,15 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/agents-ui
+npm install @inkeep/agents-ui-cloud
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/agents-ui
+yarn add @inkeep/agents-ui-cloud
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/agents-ui
+pnpm add @inkeep/agents-ui-cloud
 ```
 
 </CodeGroup>
@@ -40,10 +41,10 @@ pnpm add @inkeep/agents-ui
 
     import { useState } from 'react';
     import dynamic from 'next/dynamic';
-    import type { InkeepModalChatProps } from '@inkeep/agents-ui';
+    import type { InkeepModalChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepModalChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepModalChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepModalChat),
       { ssr: false },
     );
 
@@ -52,8 +53,8 @@ pnpm add @inkeep/agents-ui
 
       const modalProps: InkeepModalChatProps = {
         aiChatSettings: {
-          agentUrl: 'https://your-api.example.com/run/api/chat',
-          apiKey: process.env.NEXT_PUBLIC_INKEEP_API_KEY,
+          baseUrl: "https://your-api.example.com",
+          appId: process.env.NEXT_PUBLIC_INKEEP_APP_ID, // Your app ID
         },
         openSettings: {
           isOpen: isModalOpen,
@@ -89,10 +90,10 @@ pnpm add @inkeep/agents-ui
 
     import { useState } from 'react';
     import dynamic from 'next/dynamic';
-    import type { InkeepModalChatProps } from '@inkeep/agents-ui';
+    import type { InkeepModalChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepModalChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepModalChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepModalChat),
       { ssr: false },
     );
 
@@ -101,12 +102,8 @@ pnpm add @inkeep/agents-ui
 
       const modalProps: InkeepModalChatProps = {
         aiChatSettings: {
-          agentUrl: 'http://localhost:3003/api/chat',
-          headers: {
-            'x-inkeep-tenant-id': 'your-tenant-id',
-            'x-inkeep-project-id': 'your-project-id',
-            'x-inkeep-agent-id': 'your-agent-id',
-          },
+          baseUrl: "http://localhost:3003",
+          appId: process.env.NEXT_PUBLIC_INKEEP_APP_ID, // Your app ID
         },
         openSettings: {
           isOpen: isModalOpen,

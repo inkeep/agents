@@ -10,9 +10,10 @@ interface UseTempApiKeyParams {
 
 interface UseTempApiKeyResult {
   apiKey: string | null;
+  appId: string | null;
   isLoading: boolean;
   error: Error | null;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<string | null>;
 }
 
 export function useTempApiKey({
@@ -23,11 +24,12 @@ export function useTempApiKey({
 }: UseTempApiKeyParams): UseTempApiKeyResult {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [appId, setAppId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchToken = useCallback(async () => {
+  const fetchToken = useCallback(async (): Promise<string | null> => {
     try {
       const response = await fetch(
         `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/tenants/${tenantId}/playground/token`,
@@ -50,10 +52,13 @@ export function useTempApiKey({
 
       const data = await response.json();
       setApiKey(data.apiKey);
+      setAppId(data.appId ?? null);
       setExpiresAt(data.expiresAt);
       setError(null);
+      return data.apiKey;
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -81,12 +86,11 @@ export function useTempApiKey({
     const refreshTime = Math.max(0, timeUntilExpiry - 5 * 60 * 1000);
 
     const timer = setTimeout(() => {
-      console.log('Auto-refreshing temporary API key before expiry...');
       fetchToken();
     }, refreshTime);
 
     return () => clearTimeout(timer);
   }, [expiresAt, fetchToken]);
 
-  return { apiKey, isLoading, error, refresh: fetchToken };
+  return { apiKey, appId, isLoading, error, refresh: fetchToken };
 }

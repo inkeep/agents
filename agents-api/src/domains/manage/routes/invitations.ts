@@ -1,4 +1,9 @@
-import { createApiError, getPendingInvitationsByEmail } from '@inkeep/agents-core';
+import {
+  createApiError,
+  getEmailSendStatus,
+  getFilteredAuthMethodsForEmail,
+  getPendingInvitationsByEmail,
+} from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../../../data/db/runDbClient';
@@ -49,7 +54,7 @@ invitationsRoutes.get('/verify', async (c) => {
 
     // Find the specific invitation by ID
     const invitation = Array.isArray(invitations)
-      ? invitations.find((inv: { id: string }) => inv.id === invitationId)
+      ? invitations.find((inv) => inv.id === invitationId)
       : null;
 
     if (!invitation) {
@@ -78,7 +83,11 @@ invitationsRoutes.get('/verify', async (c) => {
       });
     }
 
-    // Return limited, safe information
+    const filteredMethods = await getFilteredAuthMethodsForEmail(runDbClient)(
+      invitation.organizationId,
+      email
+    );
+
     return c.json({
       valid: true,
       email: invitation.email,
@@ -86,6 +95,8 @@ invitationsRoutes.get('/verify', async (c) => {
       organizationId: invitation.organizationId,
       role: invitation.role,
       expiresAt: invitation.expiresAt,
+      authMethod: invitation.authMethod || null,
+      allowedAuthMethods: filteredMethods,
     });
   } catch (error) {
     // Re-throw API errors (HTTPExceptions from createApiError)
@@ -103,6 +114,43 @@ invitationsRoutes.get('/verify', async (c) => {
 
 // Require authentication for remaining routes
 invitationsRoutes.use('*', sessionAuth());
+
+// Internal route - not exposed in OpenAPI spec
+invitationsRoutes.get('/:id/email-status', async (c) => {
+  const invitationId = c.req.param('id');
+  const session = c.get('session');
+  const auth = c.get('auth');
+
+  if (!auth || !session) {
+    return c.json({ emailSent: false });
+  }
+
+  const activeMember = await auth.api.getActiveMember({
+    headers: c.req.raw.headers,
+  });
+
+  if (!activeMember || (activeMember.role !== 'admin' && activeMember.role !== 'owner')) {
+    throw createApiError({
+      code: 'forbidden',
+      message: 'Not authorized to view invitation email status',
+    });
+  }
+
+  const status = getEmailSendStatus(invitationId);
+
+  if (!status) {
+    return c.json({ emailSent: false });
+  }
+
+  if (status.organizationId && status.organizationId !== activeMember.organizationId) {
+    return c.json({ emailSent: false });
+  }
+
+  return c.json({
+    emailSent: status.emailSent,
+    error: status.error ? 'Email delivery failed' : undefined,
+  });
+});
 
 // GET /api/invitations/pending?email=user@example.com - Get pending invitations for an email
 // Internal route - not exposed in OpenAPI spec

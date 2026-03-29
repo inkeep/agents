@@ -1,5 +1,679 @@
 # @inkeep/agents-api
 
+## 0.62.1
+
+### Patch Changes
+
+- 9728814: Perserve Part Ordering in Conversations API
+- 6e88d12: Improve playground app startup logging for production observability
+- 8b74409: Add inline text document attachments to the run chat APIs for `text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`, and `application/json` while keeping remote URLs limited to PDFs. Persist text attachments as blob-backed file parts and replay them into model input as XML-tagged text blocks.
+  - @inkeep/agents-core@0.62.1
+  - @inkeep/agents-email@0.62.1
+  - @inkeep/agents-mcp@0.62.1
+  - @inkeep/agents-work-apps@0.62.1
+
+## 0.62.0
+
+### Patch Changes
+
+- ce9c516: Add startup auto-registration of playground public key and derived kid for key rotation
+- b1507d1: Fix evaluation scoring returning null and display evaluation results in local time
+- Updated dependencies [ce9c516]
+  - @inkeep/agents-core@0.62.0
+  - @inkeep/agents-work-apps@0.62.0
+  - @inkeep/agents-email@0.62.0
+  - @inkeep/agents-mcp@0.62.0
+
+## 0.61.0
+
+### Patch Changes
+
+- 1e4f05d: Refactor agent graph editor to use deterministic graph keys and single source of truth for form state
+
+  ### Graph identity system
+
+  - Add deterministic graph key derivation for all node types (`getSubAgentGraphKey`, `getMcpGraphKey`, `getFunctionToolGraphKey`, `getExternalAgentGraphKey`, `getTeamAgentGraphKey`) via new `graph-keys.ts`, `graph-identity.ts`, `sub-agent-identity.ts`, and `function-tool-identity.ts` modules
+  - Replace unstable `generateId()` UUIDs with stable, domain-meaningful identifiers derived from persisted IDs (relation IDs, tool IDs, agent IDs)
+  - URL-based sidepane selection now uses graph keys instead of raw React Flow IDs, so deep-links survive re-renders and saves
+
+  ### RHF as single source of truth
+
+  - Strip `node.data` down to a thin identity envelope (`nodeKey` + minimal refs like `toolId`) — all business fields (name, description, prompt, models, code, etc.) are read exclusively from React Hook Form state
+  - Remove `hydrateNodesWithFormData()` entirely; `editorToPayload()` now reads all business data directly from a `SerializeAgentFormState` bundle with `requireFormValue()` fail-fast guards
+  - Rename `FullAgentUpdateSchema` → `FullAgentFormSchema`, remove `.transform()` from schema (resolution now happens at serialize-time), split types into `FullAgentFormValues` / `FullAgentFormInputValues`
+
+  ### Connection state consolidation
+
+  - Collapse scattered `tempSelectedTools`/`tempHeaders`/`tempToolPolicies` on node data into `mcpRelations` and `functionToolRelations` RHF record maps with factory helpers (`createMcpRelationFormInput`, `createFunctionToolRelationFormInput`)
+  - Edge removal triggers synchronous `form.unregister()` instead of deferred `requestAnimationFrame` — only `relationshipId` is unregistered for MCP relations to avoid a race condition where headers would be set to empty string on removal
+  - Remove `subAgentId` manipulation from Zustand store's `onEdgesChange`
+
+  ### Save-cycle reconciliation
+
+  - Expand `syncSavedAgentGraph` to reconcile three categories of server-assigned IDs: tool `canUse` relations, external agent delegate relations, and team agent delegate relations
+  - Rename MCP node IDs to deterministic graph keys post-save; preserve URL selection state via `findNodeByGraphKey`/`findEdgeByGraphKey`
+  - Collapse redundant double `isNodeType` patterns into single guards
+
+  ### Bug fixes
+
+  - Fix function tool "requires approval" flag not persisting across save/reload by hydrating `needsApproval` tool policies from `canUse` relations back into form state during `apiToFormValues()`
+  - Fix model inheritance display: use `getModelInheritanceStatus()` instead of bare `!subAgent.models` check to correctly show "(inherited)" label
+  - Fix MCP node editor crash on deep-link/reload: consolidate null guards for `toolData`, `tool`, and `mcpRelation` with proper JSX fallback UI
+  - Fix function tool node editor crash after node removal: add early return when `functionId` is undefined
+  - Fix race condition when MCP relation is removed but component is still mounted
+
+  ### Performance
+
+  - Replace `useWatch({ name: 'functionTools' })` with targeted `useWatch({ name: 'functionTools.${id}.functionId' })` to eliminate O(N²) re-renders across function tool nodes
+  - Remove `getFunctionIdForTool` helper that iterated the entire `functionTools` map
+
+  ### Schema changes
+
+  - Rename form field `defaultSubAgentId` → `defaultSubAgentNodeId` to clarify it holds a node key; translation to persisted ID happens at serialization time
+  - Add `FunctionToolRelationSchema` and `functionToolRelations` record field to form schema
+  - OpenAPI: `defaultSubAgentId` uses `$ref` to `ResourceId`, `maxTransferCount` type corrected to `integer`, function tool `dependencies` simplified to `StringRecord`
+
+  ### Test coverage
+
+  - Add 7 new test files covering graph identity, function tool identity, form-state defaults, and sync-saved-agent-graph scenarios
+  - Expand serialize and deserialize test suites with new architecture patterns
+  - Add roundtrip test for approval policy hydration
+
+- ad874d0: Add durable execution mode for agent runs with tool approvals and crash recovery
+- f4a9c69: Fix key_findings persistence in compressor by using proper update instead of insert-only upsert
+- Updated dependencies [12722d9]
+- Updated dependencies [f4a9c69]
+  - @inkeep/agents-core@0.61.0
+  - @inkeep/agents-work-apps@0.61.0
+  - @inkeep/agents-email@0.61.0
+  - @inkeep/agents-mcp@0.61.0
+
+## 0.60.0
+
+### Minor Changes
+
+- 1199d45: BREAKING: File parts on `/run/api/chat` use a Vercel-compatible shape (`url` and required `mediaType`; no `text` or `mimeType`). Add PDF URL ingestion for chat attachments with explicit bad-request errors on PDF URL ingest failures.
+
+### Patch Changes
+
+- 2eaebb3: Fix deterministic ID generation for sub-agent relation/junction tables to prevent Dolt merge conflicts
+- c0018a6: Use actual AI SDK token usage for compression decisions and fix pricing service model ID lookup
+- ed10886: Add optional prompt field to app deployments for surface-specific behavioral tuning
+- Updated dependencies [2eaebb3]
+- Updated dependencies [c0018a6]
+- Updated dependencies [ed10886]
+- Updated dependencies [b1199eb]
+  - @inkeep/agents-core@0.60.0
+  - @inkeep/agents-work-apps@0.60.0
+  - @inkeep/agents-email@0.60.0
+  - @inkeep/agents-mcp@0.60.0
+
+## 0.59.4
+
+### Patch Changes
+
+- be7f056: Add two-phase Doltgres branch merge API with stateless conflict preview and per-row resolution
+- 99b5edf: Update TypeScript to 6.0.2
+- Updated dependencies [be7f056]
+- Updated dependencies [6a8a439]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+  - @inkeep/agents-work-apps@0.59.4
+  - @inkeep/agents-email@0.59.4
+  - @inkeep/agents-mcp@0.59.4
+
+## 0.59.3
+
+### Patch Changes
+
+- 6ca8164: v4 to v5 signoz migration
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+  - @inkeep/agents-work-apps@0.59.3
+  - @inkeep/agents-email@0.59.3
+  - @inkeep/agents-mcp@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- 5aad291: Fix conversation endpoint to return Vercel AI SDK FileUIPart-compliant file parts with resolved blob URIs
+- c6bcd18: Fix fetchTraceFromSigNoz method in the EvaluationService
+  - @inkeep/agents-core@0.59.2
+  - @inkeep/agents-email@0.59.2
+  - @inkeep/agents-mcp@0.59.2
+  - @inkeep/agents-work-apps@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- fddbd38: Fix OpenTelemetry SDK startup crash during Vite HMR by making initialization idempotent
+- b396a88: Fix scheduled trigger invocations being skipped when trigger is edited without changing the next execution time
+- 65c151d: adding app.id to span attributes
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+  - @inkeep/agents-work-apps@0.59.1
+  - @inkeep/agents-email@0.59.1
+  - @inkeep/agents-mcp@0.59.1
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+  - @inkeep/agents-work-apps@0.59.0
+  - @inkeep/agents-email@0.59.0
+  - @inkeep/agents-mcp@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.21
+- @inkeep/agents-email@0.58.21
+- @inkeep/agents-mcp@0.58.21
+- @inkeep/agents-work-apps@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- 7daab01: Remove unreachable ZodError catch blocks from agentFull and projectFull handlers
+- 15c6752: Add ref fields to runtime tables for branch tracking support
+- 62aad0e: Fix API key leakage vulnerability in Slack/GitHub MCP integrations by adding URL trust validation
+- 62a7aa2: Allow legacy API key authentication for GET conversation-by-ID manage endpoint
+- 9e0dd71: fix unauthenticated access to span details
+- ac53c07: rename the api to remove references to signoz
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+- Updated dependencies [b4baf66]
+  - @inkeep/agents-core@0.58.20
+  - @inkeep/agents-work-apps@0.58.20
+  - @inkeep/agents-email@0.58.20
+  - @inkeep/agents-mcp@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- 1571ef1: Fix project-level auth bypass in app CRUD endpoints — GET, UPDATE, and DELETE now filter by projectId in addition to tenantId, preventing cross-project access within a tenant
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+  - @inkeep/agents-work-apps@0.58.19
+  - @inkeep/agents-email@0.58.19
+  - @inkeep/agents-mcp@0.58.19
+
+## 0.58.18
+
+### Patch Changes
+
+- 128845e: Fix message ID mismatch between server and client for feedback records
+  - @inkeep/agents-core@0.58.18
+  - @inkeep/agents-email@0.58.18
+  - @inkeep/agents-mcp@0.58.18
+  - @inkeep/agents-work-apps@0.58.18
+
+## 0.58.17
+
+### Patch Changes
+
+- f94a089: service name filtering added to signoz queries
+  - @inkeep/agents-core@0.58.17
+  - @inkeep/agents-email@0.58.17
+  - @inkeep/agents-mcp@0.58.17
+  - @inkeep/agents-work-apps@0.58.17
+
+## 0.58.16
+
+### Patch Changes
+
+- 5065552: Fix GET /conversations to return all message part types matching the streaming protocol
+- Updated dependencies [5065552]
+  - @inkeep/agents-core@0.58.16
+  - @inkeep/agents-work-apps@0.58.16
+  - @inkeep/agents-email@0.58.16
+  - @inkeep/agents-mcp@0.58.16
+
+## 0.58.15
+
+### Patch Changes
+
+- 644afb3: Fix agent ID filtering for continuous evaluation tests
+- 6e8e655: Standardize CRUD HTTP method conventions: PATCH for partial updates, PUT for upsert/set-replace; hide legacy dual-method routes from OpenAPI spec and SDK generation
+- 4b46b9e: Updating Signoz service name from inkeep-agents-run-api to inkeep-agents-api
+- 3b02868: removes unused workflowProcessHandler
+- Updated dependencies [b10c96f]
+- Updated dependencies [1ca09cd]
+- Updated dependencies [abaefda]
+  - @inkeep/agents-work-apps@0.58.15
+  - @inkeep/agents-core@0.58.15
+  - @inkeep/agents-email@0.58.15
+  - @inkeep/agents-mcp@0.58.15
+
+## 0.58.14
+
+### Patch Changes
+
+- 36e80be: Add rolling token refresh for anonymous session endpoints
+- c9a4890: Fix route handlers to forward all validated body fields to the data access layer using spread pattern
+- d147f0e: Fix agent create/update handlers to forward all schema fields (models, statusUpdates, prompt, stopWhen)
+  - @inkeep/agents-core@0.58.14
+  - @inkeep/agents-email@0.58.14
+  - @inkeep/agents-mcp@0.58.14
+  - @inkeep/agents-work-apps@0.58.14
+
+## 0.58.13
+
+### Patch Changes
+
+- 9ed6710: Fix user ID forwarding during agent delegation
+  - @inkeep/agents-core@0.58.13
+  - @inkeep/agents-email@0.58.13
+  - @inkeep/agents-mcp@0.58.13
+  - @inkeep/agents-work-apps@0.58.13
+
+## 0.58.12
+
+### Patch Changes
+
+- 19b1168: rerun scheduled triggers from traces
+- Updated dependencies [ad8a7cd]
+- Updated dependencies [ad8a7cd]
+  - @inkeep/agents-core@0.58.12
+  - @inkeep/agents-work-apps@0.58.12
+  - @inkeep/agents-email@0.58.12
+  - @inkeep/agents-mcp@0.58.12
+
+## 0.58.11
+
+### Patch Changes
+
+- Updated dependencies [c87dc3e]
+  - @inkeep/agents-core@0.58.11
+  - @inkeep/agents-work-apps@0.58.11
+  - @inkeep/agents-email@0.58.11
+  - @inkeep/agents-mcp@0.58.11
+
+## 0.58.10
+
+### Patch Changes
+
+- fa64456: Security and bug fixes
+- 1e280e5: Security and bug fixes
+- 02bcd0e: Fix authorization bypass vulnerability in @hono/node-server (CVE-2026-29087)
+- b588ac4: Security and bug fixes
+- f41500b: Security and bug fixes
+- Updated dependencies [fa64456]
+- Updated dependencies [02bcd0e]
+- Updated dependencies [f41500b]
+- Updated dependencies [41af59e]
+  - @inkeep/agents-core@0.58.10
+  - @inkeep/agents-work-apps@0.58.10
+  - @inkeep/agents-email@0.58.10
+  - @inkeep/agents-mcp@0.58.10
+
+## 0.58.9
+
+### Patch Changes
+
+- f150b28: Fix user-scoped credential references to upsert instead of failing on duplicate unique constraint
+- 6144fc9: Fix app credential auth failing on internal A2A self-calls by always using service tokens
+- Updated dependencies [f150b28]
+- Updated dependencies [49909bf]
+- Updated dependencies [4816f02]
+  - @inkeep/agents-core@0.58.9
+  - @inkeep/agents-work-apps@0.58.9
+  - @inkeep/agents-email@0.58.9
+  - @inkeep/agents-mcp@0.58.9
+
+## 0.58.8
+
+### Patch Changes
+
+- e89948d: Add app credentials with anonymous JWT sessions, domain validation, and PoW challenge support
+- e89948d: Add anonymous user session conversation history endpoint
+- Updated dependencies [e89948d]
+  - @inkeep/agents-core@0.58.8
+  - @inkeep/agents-work-apps@0.58.8
+  - @inkeep/agents-email@0.58.8
+  - @inkeep/agents-mcp@0.58.8
+
+## 0.58.7
+
+### Patch Changes
+
+- b1b440a: daisy chain trigger
+  - @inkeep/agents-core@0.58.7
+  - @inkeep/agents-email@0.58.7
+  - @inkeep/agents-mcp@0.58.7
+  - @inkeep/agents-work-apps@0.58.7
+
+## 0.58.6
+
+### Patch Changes
+
+- a9c2857: bumping nango dependencies and adding posthog to mcpCatalog
+- 16e5e8d: Fix mid-generation context compression: accurate context slicing across multiple compression cycles, improved distillation quality, and richer compression telemetry
+- Updated dependencies [a9c2857]
+- Updated dependencies [16e5e8d]
+  - @inkeep/agents-work-apps@0.58.6
+  - @inkeep/agents-core@0.58.6
+  - @inkeep/agents-email@0.58.6
+  - @inkeep/agents-mcp@0.58.6
+
+## 0.58.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.5
+- @inkeep/agents-email@0.58.5
+- @inkeep/agents-mcp@0.58.5
+- @inkeep/agents-work-apps@0.58.5
+
+## 0.58.4
+
+### Patch Changes
+
+- f475d74: Fix GitHub MCP tool access to be project-scoped instead of globally scoped by toolId
+- Updated dependencies [0451e1d]
+- Updated dependencies [d7c1001]
+- Updated dependencies [87ac81f]
+- Updated dependencies [b6a126f]
+- Updated dependencies [f475d74]
+- Updated dependencies [2d6ec44]
+  - @inkeep/agents-core@0.58.4
+  - @inkeep/agents-work-apps@0.58.4
+  - @inkeep/agents-email@0.58.4
+  - @inkeep/agents-mcp@0.58.4
+
+## 0.58.3
+
+### Patch Changes
+
+- 0714ac6: Add Slack MCP server with post-message tool for agent-to-Slack messaging
+- 676d18b: Fix optional data component fields accepting null values in structured output validation
+- Updated dependencies [0714ac6]
+  - @inkeep/agents-work-apps@0.58.3
+  - @inkeep/agents-core@0.58.3
+  - @inkeep/agents-email@0.58.3
+  - @inkeep/agents-mcp@0.58.3
+
+## 0.58.2
+
+### Patch Changes
+
+- ee5b4c9: Add image persistence to conversation history
+- eb5b16f: timeout recorded in spans
+- 558e723: Refactor Agent.ts into focused domain modules (generation, streaming, tools, services) and reorganize run-domain utilities into artifacts, compression, session, and stream subdirectories
+- ee5b4c9: Image security for chat API: URL validation, byte sniffing, format allowlist
+- Updated dependencies [31c0f68]
+- Updated dependencies [ee5b4c9]
+- Updated dependencies [eb5b16f]
+  - @inkeep/agents-core@0.58.2
+  - @inkeep/agents-work-apps@0.58.2
+  - @inkeep/agents-email@0.58.2
+  - @inkeep/agents-mcp@0.58.2
+
+## 0.58.1
+
+### Patch Changes
+
+- 9876f88: Add Sentry capability configuration to agents-api and modify create-agents template
+  - @inkeep/agents-core@0.58.1
+  - @inkeep/agents-email@0.58.1
+  - @inkeep/agents-mcp@0.58.1
+  - @inkeep/agents-work-apps@0.58.1
+
+## 0.58.0
+
+### Minor Changes
+
+- 1abeeeb: Change tool approval response to support batch approvals (BREAKING: response shape changed from flat object to results array)
+
+### Patch Changes
+
+- 93f1265: Resolve user profile timezone for webhook and scheduled trigger executions
+- Updated dependencies [3d88636]
+  - @inkeep/agents-core@0.58.0
+  - @inkeep/agents-work-apps@0.58.0
+  - @inkeep/agents-email@0.58.0
+  - @inkeep/agents-mcp@0.58.0
+
+## 0.57.0
+
+### Minor Changes
+
+- 5bc298e: Add user profile support with timezone storage and profile settings page
+
+### Patch Changes
+
+- 31b5e8b: Fix tool approval denial reason not propagating to LLM or parent agent
+- 95e2477: Fix provider-specific per-call options not being forwarded to AI SDK streamText calls
+- Updated dependencies [5bc298e]
+- Updated dependencies [95e2477]
+  - @inkeep/agents-core@0.57.0
+  - @inkeep/agents-work-apps@0.57.0
+  - @inkeep/agents-email@0.57.0
+  - @inkeep/agents-mcp@0.57.0
+
+## 0.56.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.56.2
+- @inkeep/agents-email@0.56.2
+- @inkeep/agents-mcp@0.56.2
+- @inkeep/agents-work-apps@0.56.2
+
+## 0.56.1
+
+### Patch Changes
+
+- c620c02: Add copilot bypass for tenant/project access checks when INKEEP*COPILOT*\* env vars are configured
+- a175379: Add hasErrors filter to traces page and fix agent.name span attribute
+  - @inkeep/agents-core@0.56.1
+  - @inkeep/agents-email@0.56.1
+  - @inkeep/agents-mcp@0.56.1
+  - @inkeep/agents-work-apps@0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- 06e8c12: Add user-scoped execution identity (runAsUserId) to webhook triggers
+
+### Patch Changes
+
+- Updated dependencies [06e8c12]
+  - @inkeep/agents-core@0.56.0
+  - @inkeep/agents-work-apps@0.56.0
+  - @inkeep/agents-email@0.56.0
+  - @inkeep/agents-mcp@0.56.0
+
+## 0.55.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.55.3
+- @inkeep/agents-email@0.55.3
+- @inkeep/agents-mcp@0.55.3
+- @inkeep/agents-work-apps@0.55.3
+
+## 0.55.2
+
+### Patch Changes
+
+- add0b4b: Pass cron timezone to agent in scheduled trigger execution.
+- 4414e25: Add email integration for BetterAuth callbacks (invitation and password reset emails via SMTP)
+- Updated dependencies [4414e25]
+  - @inkeep/agents-core@0.55.2
+  - @inkeep/agents-work-apps@0.55.2
+  - @inkeep/agents-email@0.55.2
+  - @inkeep/agents-mcp@0.55.2
+
+## 0.55.1
+
+### Patch Changes
+
+- 55eb8cb: debug 500 signoz errors and reduce timerange query
+  - @inkeep/agents-core@0.55.1
+  - @inkeep/agents-mcp@0.55.1
+  - @inkeep/agents-work-apps@0.55.1
+
+## 0.55.0
+
+### Minor Changes
+
+- 08d678d: Group MCP tools by server in system prompt using mcp_server blocks with server-level instructions; extract MCP connection management into AgentMcpManager
+
+### Patch Changes
+
+- Updated dependencies [08d678d]
+  - @inkeep/agents-core@0.55.0
+  - @inkeep/agents-work-apps@0.55.0
+  - @inkeep/agents-mcp@0.55.0
+
+## 0.54.0
+
+### Minor Changes
+
+- addc4a0: Move workspace default agent config from Nango metadata to PostgreSQL
+- addc4a0: Remove denormalized agent names from Slack channel configs — resolve names at read time from manage DB, clean up orphaned configs on agent/project deletion, validate agent existence on write
+
+### Patch Changes
+
+- 00c21ec: Add artifact and tool result passing as tool arguments
+
+  Agents can now pass saved artifacts directly to tools as arguments without reconstructing data manually. The system automatically resolves full artifact data — including non-preview fields — before the tool executes.
+
+  Agents can also chain tool calls by passing the raw output of one tool directly into the next, with no artifact creation required for intermediate results. Primitive return types (strings, numbers, booleans) are fully supported for chaining.
+
+- Updated dependencies [addc4a0]
+- Updated dependencies [addc4a0]
+  - @inkeep/agents-core@0.54.0
+  - @inkeep/agents-work-apps@0.54.0
+  - @inkeep/agents-mcp@0.54.0
+
+## 0.53.13
+
+### Patch Changes
+
+- e915ef8: Fix MCP client TCP connection leak causing ephemeral port exhaustion
+- 03629e8: Fix premature conversation compression when tool results are persisted as artifacts
+- d62c5b0: Add support for passing artifacts as tool arguments
+- Updated dependencies [e915ef8]
+- Updated dependencies [23b6b48]
+  - @inkeep/agents-core@0.53.13
+  - @inkeep/agents-work-apps@0.53.13
+  - @inkeep/agents-mcp@0.53.13
+
+## 0.53.12
+
+### Patch Changes
+
+- 6762a28: Fix Agent Card 400 error caused by system identifiers in x-inkeep-run-as-user-id header (PRD-6187)
+  - @inkeep/agents-core@0.53.12
+  - @inkeep/agents-mcp@0.53.12
+  - @inkeep/agents-work-apps@0.53.12
+
+## 0.53.11
+
+### Patch Changes
+
+- e094c16: Improve Agent Card fetch error diagnostics by logging response body on failure
+- 5061d64: Add blob storage abstraction (S3 and Vercel Blob providers)
+  - @inkeep/agents-core@0.53.11
+  - @inkeep/agents-mcp@0.53.11
+  - @inkeep/agents-work-apps@0.53.11
+
+## 0.53.10
+
+### Patch Changes
+
+- eacb0dc: adding stream timeout to trace timeline
+- Updated dependencies [eacb0dc]
+- Updated dependencies [33780a8]
+- Updated dependencies [7299f4a]
+  - @inkeep/agents-core@0.53.10
+  - @inkeep/agents-work-apps@0.53.10
+  - @inkeep/agents-mcp@0.53.10
+
+## 0.53.9
+
+### Patch Changes
+
+- 27cd96b: update composio mcp servers with api key header
+- 603d7a8: Add user-scoped scheduled trigger execution with runAsUserId field for user identity and credential resolution
+- Updated dependencies [9a2d783]
+- Updated dependencies [27cd96b]
+- Updated dependencies [8a0c90c]
+- Updated dependencies [603d7a8]
+  - @inkeep/agents-core@0.53.9
+  - @inkeep/agents-work-apps@0.53.9
+  - @inkeep/agents-mcp@0.53.9
+
+## 0.53.8
+
+### Patch Changes
+
+- 50b63a3: Add Slack source indicator with entry point tracking to conversation traces and stats. Distinguishes between app mention, DM, slash command, message shortcut, modal submission, and smart link resume entry points. Fix resume-intent to use getInProcessFetch for multi-instance safety.
+- Updated dependencies [50b63a3]
+- Updated dependencies [4761e1f]
+  - @inkeep/agents-work-apps@0.53.8
+  - @inkeep/agents-core@0.53.8
+  - @inkeep/agents-mcp@0.53.8
+
+## 0.53.7
+
+### Patch Changes
+
+- 54985c0: feat(dashboard): refactor external agents form to use zod schemas from `agents-core`
+- Updated dependencies [aa37d3f]
+- Updated dependencies [54985c0]
+  - @inkeep/agents-core@0.53.7
+  - @inkeep/agents-work-apps@0.53.7
+  - @inkeep/agents-mcp@0.53.7
+
+## 0.53.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.53.6
+- @inkeep/agents-mcp@0.53.6
+- @inkeep/agents-work-apps@0.53.6
+
+## 0.53.5
+
+### Patch Changes
+
+- Updated dependencies [7abd1bd]
+  - @inkeep/agents-work-apps@0.53.5
+  - @inkeep/agents-core@0.53.5
+  - @inkeep/agents-mcp@0.53.5
+
+## 0.53.4
+
+### Patch Changes
+
+- 35ca5cb: Refactor API key validation schemas to use shared definitions from `agents-core`
+- Updated dependencies [16d775c]
+- Updated dependencies [35ca5cb]
+- Updated dependencies [be72c29]
+  - @inkeep/agents-work-apps@0.53.4
+  - @inkeep/agents-core@0.53.4
+  - @inkeep/agents-mcp@0.53.4
+
 ## 0.53.3
 
 ### Patch Changes

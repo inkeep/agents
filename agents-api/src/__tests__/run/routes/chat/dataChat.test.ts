@@ -1,41 +1,89 @@
 import { describe, expect, it, vi } from 'vitest';
-import { pendingToolApprovalManager } from '../../../../domains/run/services/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../../../../domains/run/services/ToolApprovalUiBus';
+import type { ExecutionHandlerParams } from '../../../../domains/run/handlers/executionHandler';
+import { PdfUrlIngestionError } from '../../../../domains/run/services/blob-storage/file-security-errors';
+import { pendingToolApprovalManager } from '../../../../domains/run/session/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../../../../domains/run/session/ToolApprovalUiBus';
 
 // Logger mock is now in setup.ts globally
+
+const executionHandlerExecuteMock = vi
+  .fn()
+  .mockImplementation(async (args: ExecutionHandlerParams) => {
+    if (args.sseHelper && typeof args.sseHelper.writeRole === 'function') {
+      await args.sseHelper.writeRole();
+      await args.sseHelper.writeContent('[{"type":"text", "text":"Test response from agent"}]');
+    }
+
+    // Allow tests to simulate delegated approval UI propagation by publishing to the bus.
+    if (args.userMessage === '__trigger_approval_ui_bus__') {
+      await toolApprovalUiBus.publish(args.requestId, {
+        type: 'approval-needed',
+        toolCallId: 'call_bus_1',
+        toolName: 'delete_file',
+        input: { filePath: 'user/readme.md' },
+        providerMetadata: { openai: { itemId: 'fc_test' } },
+        approvalId: 'aitxt-call_bus_1',
+      });
+      await toolApprovalUiBus.publish(args.requestId, {
+        type: 'approval-resolved',
+        toolCallId: 'call_bus_1',
+        approved: true,
+      });
+    }
+    return { success: true, iterations: 1 };
+  });
 
 vi.mock('../../../../domains/run/handlers/executionHandler', () => {
   return {
     ExecutionHandler: vi.fn().mockImplementation(() => ({
-      execute: vi.fn().mockImplementation(async (args: any) => {
-        if (args.sseHelper && typeof args.sseHelper.writeRole === 'function') {
-          await args.sseHelper.writeRole();
-          await args.sseHelper.writeContent('[{"type":"text", "text":"Test response from agent"}]');
-        }
-
-        // Allow tests to simulate delegated approval UI propagation by publishing to the bus.
-        if (args.userMessage === '__trigger_approval_ui_bus__') {
-          await toolApprovalUiBus.publish(args.requestId, {
-            type: 'approval-needed',
-            toolCallId: 'call_bus_1',
-            toolName: 'delete_file',
-            input: { filePath: 'user/readme.md' },
-            providerMetadata: { openai: { itemId: 'fc_test' } },
-            approvalId: 'aitxt-call_bus_1',
-          });
-          await toolApprovalUiBus.publish(args.requestId, {
-            type: 'approval-resolved',
-            toolCallId: 'call_bus_1',
-            approved: true,
-          });
-        }
-        return { success: true, iterations: 1 };
-      }),
+      execute: executionHandlerExecuteMock,
     })),
   };
 });
 
+vi.mock(
+  '../../../../domains/run/services/blob-storage/file-upload-helpers',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('../../../../domains/run/services/blob-storage/file-upload-helpers')
+      >();
+    return {
+      ...actual,
+      inlineExternalPdfUrlParts: vi.fn(async (parts) => parts),
+    };
+  }
+);
+
 import { makeRequest } from '../../../utils/testRequest';
+
+const buildDataUri = (mimeType: string, bytes: Buffer): string => {
+  return `data:${mimeType};base64,${bytes.toString('base64')}`;
+};
+
+const TEXT_DOCUMENT_LIMIT_BYTES = 256 * 1024;
+
+const buildVercelTextAttachmentBody = (options: {
+  url: string;
+  mediaType?: string;
+  filename?: string;
+}) => ({
+  messages: [
+    {
+      role: 'user',
+      content: 'Summarize this text file',
+      parts: [
+        { type: 'text', text: 'Summarize this text file' },
+        {
+          type: 'file',
+          url: options.url,
+          mediaType: options.mediaType ?? 'text/plain',
+          ...(options.filename === undefined ? {} : { filename: options.filename }),
+        },
+      ],
+    },
+  ],
+});
 
 // Mock context exports used by the chat data stream routes
 vi.mock('../../../../domains/run/context', () => ({
@@ -128,12 +176,55 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     getConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue({ id: 'conv-123' })),
+    getWorkflowExecutionByConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(null)),
   };
 });
 
 // No longer need beforeAll/afterAll since ExecutionHandler is mocked at module level
 
 describe('Chat Data Stream Route', () => {
+  it('should pass inline image file parts through to ExecutionHandler', async () => {
+    executionHandlerExecuteMock.mockClear();
+
+    const body = {
+      stream: false,
+      messages: [
+        {
+          role: 'user',
+          content: 'Describe this image',
+          parts: [
+            { type: 'text', text: 'Describe this image' },
+            {
+              type: 'file',
+              url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5w8R8AAAAASUVORK5CYII=',
+              mediaType: 'image/png',
+              filename: 'pixel.png',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(executionHandlerExecuteMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userMessage: 'Describe this image',
+        messageParts: expect.arrayContaining([
+          expect.objectContaining({ kind: 'text', text: 'Describe this image' }),
+          expect.objectContaining({
+            kind: 'file',
+            file: expect.objectContaining({ mimeType: 'image/png' }),
+          }),
+        ]),
+      })
+    );
+  });
+
   it('should stream response using Vercel data stream protocol', async () => {
     // Ensure project exists first
     // await createTestProject(dbClient, tenantId, projectId);
@@ -191,6 +282,309 @@ describe('Chat Data Stream Route', () => {
     // Check that the mock text is included in the stream
     expect(text).toMatch(/Test/);
     expect(text).toMatch(/response/);
+  });
+
+  it('should accept inline PDF file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this PDF',
+          parts: [
+            { type: 'text', text: 'Summarize this PDF' },
+            {
+              type: 'file',
+              url: 'data:application/pdf;base64,JVBERi0xLjQK',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline text document file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this markdown file',
+          parts: [
+            { type: 'text', text: 'Summarize this markdown file' },
+            {
+              type: 'file',
+              url: 'data:text/markdown;base64,IyBUaXRsZQoKLSBpdGVt',
+              mediaType: 'text/markdown',
+              filename: 'doc.md',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline CSV file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this CSV file',
+          parts: [
+            { type: 'text', text: 'Summarize this CSV file' },
+            {
+              type: 'file',
+              url: 'data:text/csv;base64,bmFtZSxjb3VudAphbHBoYSwxCg==',
+              mediaType: 'text/csv',
+              filename: 'data.csv',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline log file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this log file',
+          parts: [
+            { type: 'text', text: 'Summarize this log file' },
+            {
+              type: 'file',
+              url: 'data:text/x-log;base64,W2luZm9dIGJvb3QKW2Vycm9yXSBmYWlsdXJlCg==',
+              mediaType: 'text/x-log',
+              filename: 'server.log',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline JSON file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this JSON file',
+          parts: [
+            { type: 'text', text: 'Summarize this JSON file' },
+            {
+              type: 'file',
+              url: 'data:application/json;base64,eyJuYW1lIjoiYWxwaGEiLCJjb3VudCI6MX0=',
+              mediaType: 'application/json',
+              filename: 'data.json',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline text document file part without filename in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: buildDataUri('text/plain', Buffer.from('hello world', 'utf8')),
+        })
+      ),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline text document file part exactly at the 256 KB limit in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: buildDataUri('text/plain', Buffer.alloc(TEXT_DOCUMENT_LIMIT_BYTES, 0x61)),
+          filename: 'boundary.txt',
+        })
+      ),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should reject malformed base64 text document file part in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: 'data:text/plain;base64,!!!not-base64!!!',
+          filename: 'bad.txt',
+        })
+      ),
+      expectError: true,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('should reject oversized text document file part in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: buildDataUri('text/plain', Buffer.alloc(TEXT_DOCUMENT_LIMIT_BYTES + 1, 0x61)),
+          filename: 'too-large.txt',
+        })
+      ),
+      expectError: true,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('should reject binary payload masquerading as text/plain in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: buildDataUri('text/plain', Buffer.from([0x00, 0x9f, 0x92, 0x96, 0xff, 0x00])),
+          filename: 'binary.txt',
+        })
+      ),
+      expectError: true,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('should reject remote URLs for text document file parts in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this markdown file',
+          parts: [
+            { type: 'text', text: 'Summarize this markdown file' },
+            {
+              type: 'file',
+              url: 'https://example.com/doc.md',
+              mediaType: 'text/markdown',
+              filename: 'doc.md',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('should accept inline image file part using Vercel FileUIPart shape', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Describe this image',
+          parts: [
+            { type: 'text', text: 'Describe this image' },
+            {
+              type: 'file',
+              url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5w8R8AAAAASUVORK5CYII=',
+              mediaType: 'image/png',
+              filename: 'pixel.png',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should return 400 when PDF URL ingestion fails', async () => {
+    const { inlineExternalPdfUrlParts } = await import(
+      '../../../../domains/run/services/blob-storage/file-upload-helpers'
+    );
+    vi.mocked(inlineExternalPdfUrlParts).mockRejectedValueOnce(
+      new PdfUrlIngestionError('https://example.com/report.pdf')
+    );
+
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this PDF',
+          parts: [
+            { type: 'text', text: 'Summarize this PDF' },
+            {
+              type: 'file',
+              url: 'https://example.com/report.pdf',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(400);
   });
 
   it('should stream approval UI events published to ToolApprovalUiBus (simulating delegated agent approval)', async () => {
@@ -265,7 +659,10 @@ describe('Chat Data Stream Route', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type') || '').toMatch(/application\/json/);
     const json = await res.json();
-    expect(json).toMatchObject({ success: true, toolCallId, approved: true });
+    expect(json).toMatchObject({
+      success: true,
+      results: [{ toolCallId, approved: true, alreadyProcessed: false }],
+    });
 
     await expect(approvalPromise).resolves.toMatchObject({ approved: true });
   });
@@ -301,9 +698,73 @@ describe('Chat Data Stream Route', () => {
     const json = await res.json();
     expect(json).toMatchObject({
       success: true,
-      toolCallId,
-      approved: true,
-      alreadyProcessed: true,
+      results: [{ toolCallId, approved: true, alreadyProcessed: true }],
+    });
+  });
+
+  it('should accept batch approval responses in a single request', async () => {
+    const toolCallId1 = 'call_batch_approval_1';
+    const toolCallId2 = 'call_batch_approval_2';
+    const conversationId = 'conv-batch-123';
+
+    const approval1Promise = pendingToolApprovalManager.waitForApproval(
+      toolCallId1,
+      'delete_file',
+      { filePath: 'a.md' },
+      conversationId,
+      'test-agent'
+    );
+    const approval2Promise = pendingToolApprovalManager.waitForApproval(
+      toolCallId2,
+      'send_email',
+      { to: 'user@example.com' },
+      conversationId,
+      'test-agent'
+    );
+
+    const body = {
+      conversationId,
+      messages: [
+        {
+          role: 'assistant',
+          content: null,
+          parts: [
+            {
+              type: `tool-${toolCallId1}`,
+              toolCallId: toolCallId1,
+              state: 'approval-responded',
+              approval: { id: `aitxt-${toolCallId1}`, approved: true },
+            },
+            {
+              type: `tool-${toolCallId2}`,
+              toolCallId: toolCallId2,
+              state: 'approval-responded',
+              approval: { id: `aitxt-${toolCallId2}`, approved: false, reason: 'not now' },
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toMatchObject({
+      success: true,
+      results: [
+        { toolCallId: toolCallId1, approved: true, alreadyProcessed: false },
+        { toolCallId: toolCallId2, approved: false, alreadyProcessed: false },
+      ],
+    });
+
+    await expect(approval1Promise).resolves.toMatchObject({ approved: true });
+    await expect(approval2Promise).resolves.toMatchObject({
+      approved: false,
+      reason: expect.stringContaining('not now'),
     });
   });
 

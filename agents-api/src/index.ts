@@ -1,7 +1,8 @@
 import { env } from './env';
-import { defaultSDK } from './instrumentation';
+import './sentry';
+import { startOpenTelemetrySDK } from './instrumentation';
 
-defaultSDK.start();
+startOpenTelemetrySDK();
 
 import {
   CredentialStoreRegistry,
@@ -12,11 +13,10 @@ import { getLogger } from './logger';
 
 const logger = getLogger('agents-api-init');
 
-import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
+import { createEmailService } from '@inkeep/agents-email';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
 import { createAgentsAuth } from './factory';
-import { createAuth0Provider } from './ssoHelpers';
 import type { SandboxConfig } from './types';
 import { recoverOrphanedWorkflows, world } from './workflow/world';
 
@@ -36,8 +36,6 @@ export type { SSOProviderConfig, UserAuthConfig } from './factory';
 export {
   createAgentsApp,
   createAgentsHono,
-  createAuth0Provider,
-  createOIDCProvider,
 } from './factory';
 
 // Create default configuration
@@ -65,18 +63,6 @@ const sandboxConfig: SandboxConfig =
       }
     : { provider: 'native', runtime: 'node22', timeout: 30000, vcpus: 2 };
 
-// Module-level initialization for default app export
-// This only runs when importing the default app (legacy/simple deployments)
-const ssoProviders = await Promise.all([
-  process.env.AUTH0_DOMAIN && process.env.AUTH0_CLIENT_ID && process.env.AUTH0_CLIENT_SECRET
-    ? createAuth0Provider({
-        domain: process.env.AUTH0_DOMAIN,
-        clientId: process.env.AUTH0_CLIENT_ID,
-        clientSecret: process.env.AUTH0_CLIENT_SECRET,
-      })
-    : null,
-]);
-
 const socialProviders =
   process.env.PUBLIC_GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
     ? {
@@ -89,12 +75,9 @@ const socialProviders =
       }
     : undefined;
 
-export const auth = createAgentsAuth({
-  ssoProviders: ssoProviders.filter(
-    (p: SSOProviderConfig | null): p is SSOProviderConfig => p !== null
-  ),
-  socialProviders,
-});
+const emailService = createEmailService();
+
+export const auth = createAgentsAuth({ socialProviders }, emailService);
 
 // Create default credential stores
 const defaultStores = createDefaultCredentialStores();
@@ -106,6 +89,17 @@ const app = createAgentsHono({
   auth,
   sandboxConfig,
 });
+
+// Ensure playground app configuration on startup (domains + public keys, idempotent)
+import { ensurePlaygroundAppConfig } from './startup/playground-app';
+
+setTimeout(async () => {
+  try {
+    await ensurePlaygroundAppConfig();
+  } catch (err) {
+    logger.error({ error: err }, 'Failed to configure playground app');
+  }
+}, 3000);
 
 // Start the workflow world worker and recover orphaned workflows.
 const workflowWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';

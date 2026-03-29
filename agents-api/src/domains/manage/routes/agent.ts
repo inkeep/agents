@@ -5,7 +5,6 @@ import {
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
-  cascadeDeleteByAgent,
   commonGetErrorResponses,
   createAgent,
   createApiError,
@@ -16,7 +15,6 @@ import {
   getAgentSubAgentInfos,
   getFullAgentDefinition,
   listAgentsPaginated,
-  listSubAgents,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
@@ -27,9 +25,13 @@ import {
   updateAgent,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import runDbClient from '../../../data/db/runDbClient';
+import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -239,13 +241,10 @@ app.openapi(
 
     try {
       const agent = await createAgent(db)({
+        ...validatedBody,
+        id: validatedBody.id || generateId(),
         tenantId,
         projectId,
-        id: validatedBody.id || generateId(),
-        name: validatedBody.name,
-        description: validatedBody.description,
-        defaultSubAgentId: validatedBody.defaultSubAgentId,
-        contextConfigId: validatedBody.contextConfigId ?? undefined,
       });
 
       return c.json({ data: agent }, 201);
@@ -261,61 +260,57 @@ app.openapi(
   }
 );
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Agent',
-    operationId: 'update-agent',
-    tags: ['Agents'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: AgentApiUpdateSchema,
-          },
+const updateAgentRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Agent',
+  tags: ['Agents'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: AgentApiUpdateSchema,
         },
       },
     },
-    responses: {
-      200: {
-        description: 'Agent updated successfully',
-        content: {
-          'application/json': {
-            schema: AgentResponse,
-          },
+  },
+  responses: {
+    200: {
+      description: 'Agent updated successfully',
+      content: {
+        'application/json': {
+          schema: AgentResponse,
         },
       },
-      ...commonGetErrorResponses,
     },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const validatedBody = c.req.valid('json');
+    ...commonGetErrorResponses,
+  },
+};
 
-    const updatedAgent = await updateAgent(db)({
-      scopes: { tenantId, projectId, agentId: id },
-      data: {
-        name: validatedBody.name,
-        description: validatedBody.description,
-        defaultSubAgentId: validatedBody.defaultSubAgentId,
-        contextConfigId: validatedBody.contextConfigId ?? undefined,
-      },
+const updateAgentHandler: ManageRouteHandler<typeof updateAgentRouteConfig> = async (c) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const validatedBody = c.req.valid('json');
+
+  const updatedAgent = await updateAgent(db)({
+    scopes: { tenantId, projectId, agentId: id },
+    data: validatedBody,
+  });
+
+  if (!updatedAgent) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Agent not found',
     });
-
-    if (!updatedAgent) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Agent not found',
-      });
-    }
-
-    return c.json({ data: updatedAgent });
   }
-);
+
+  return c.json({ data: updatedAgent });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateAgentRouteConfig, updateAgentHandler, {
+  operationId: 'update-agent',
+});
 
 app.openapi(
   createProtectedRoute({
@@ -344,23 +339,8 @@ app.openapi(
   }),
   async (c) => {
     const db = c.get('db');
-    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    // Get all subAgentIds for this agent before deleting
-    const subAgents = await listSubAgents(db)({
-      scopes: { tenantId, projectId, agentId: id },
-    });
-    const subAgentIds = subAgents.map((sa) => sa.id);
-
-    // Delete runtime entities for this agent on this branch
-    await cascadeDeleteByAgent(runDbClient)({
-      scopes: { tenantId, projectId, agentId: id },
-      fullBranchName: resolvedRef.name,
-      subAgentIds,
-    });
-
-    // Delete the agent from the config DB
     const deleted = await deleteAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
     });
@@ -371,6 +351,8 @@ app.openapi(
         message: 'Agent not found',
       });
     }
+
+    clearWorkspaceConnectionCache();
 
     return c.body(null, 204);
   }

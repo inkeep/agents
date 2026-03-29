@@ -21,7 +21,7 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { createMCPStreamHelper } from '../utils/stream-helpers';
+import { createMCPStreamHelper } from '../stream/stream-helpers';
 
 const logger = getLogger('mcp');
 
@@ -211,20 +211,21 @@ const processUserMessage = async (
   if (messageSpan) {
     messageSpan.setAttributes({
       'message.content': query,
-      'message.timestamp': Date.now(),
+      'message.timestamp': new Date().toISOString(),
     });
   }
   await createMessage(runDbClient)({
-    id: generateId(),
-    tenantId,
-    projectId,
-    conversationId,
-    role: 'user',
-    content: {
-      text: query,
+    scopes: { tenantId, projectId },
+    data: {
+      id: generateId(),
+      conversationId,
+      role: 'user',
+      content: {
+        text: query,
+      },
+      visibility: 'user-facing',
+      messageType: 'chat',
     },
-    visibility: 'user-facing',
-    messageType: 'chat',
   });
 };
 

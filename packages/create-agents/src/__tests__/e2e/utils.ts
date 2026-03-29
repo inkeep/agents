@@ -293,14 +293,26 @@ export async function startDashboardServer(
   );
   // Resolve symlinks so linked packages (link:) point to the actual monorepo directory
   const manageUiRoot = await fs.realpath(path.dirname(manageUiPkgJson));
-  const standaloneDir = path.join(manageUiRoot, '.next/standalone/agents-manage-ui');
-  const serverEntry = path.join(standaloneDir, 'server.js');
-
-  if (!(await fs.pathExists(serverEntry))) {
+  const standaloneBase = path.join(manageUiRoot, '.next/standalone');
+  const candidates = [
+    path.join(standaloneBase, 'agents-manage-ui', 'server.js'),
+    path.join(standaloneBase, 'agents', 'agents-manage-ui', 'server.js'),
+  ];
+  let serverEntry: string | null = null;
+  let standaloneDir: string | null = null;
+  for (const entry of candidates) {
+    if (await fs.pathExists(entry)) {
+      serverEntry = entry;
+      standaloneDir = path.dirname(entry);
+      break;
+    }
+  }
+  if (!serverEntry || !standaloneDir) {
     const originalPath = path.dirname(manageUiPkgJson);
     throw new Error(
-      `Dashboard standalone server not found at ${serverEntry}` +
-        (originalPath !== manageUiRoot ? ` (symlink resolved from ${originalPath})` : '') +
+      `Dashboard standalone server not found (tried ${candidates.join(', ')}). ` +
+        `Resolved package root: ${manageUiRoot}` +
+        (originalPath !== manageUiRoot ? ` (symlink from ${originalPath})` : '') +
         `. Ensure the package is built with 'output: standalone' (run turbo build).`
     );
   }

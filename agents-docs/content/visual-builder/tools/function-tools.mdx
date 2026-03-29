@@ -1,5 +1,6 @@
 ---
-title: Function Tools
+title: Function Tools in Visual Builder
+sidebarTitle: Function Tools
 description: Create custom JavaScript functions that your agents can execute directly in the Visual Builder
 icon: LuCode
 ---
@@ -14,6 +15,7 @@ Function tools are ideal for:
 - **Data processing** - Transform, validate, or analyze data using JavaScript
 - **API integrations** - Connect to services that don't have MCP servers
 - **Utility functions** - Create reusable helper functions across your agents
+- **Pipeline processing** - Chain tool outputs directly into subsequent tools without storing intermediate results
 
 ## Creating Function Tools
 
@@ -182,6 +184,14 @@ When deploying, you can configure:
 
 See [Deploy to Vercel](/deployment/vercel#step-2-configure-sandbox-in-your-application) for deployment-specific configuration.
 
+## Tool Output Pipelines
+
+Agents can pass the output of one tool directly as the input to another — no artifact creation required. This is useful when intermediate results are purely processing steps that don't need to be saved or shown to the user.
+
+For example, a function tool that fetches a webpage can pass its output directly into a second function tool that extracts the relevant content. The intermediate data never surfaces to the user. When designing tools meant to be used in sequence, ensure their return types match the input types of downstream tools.
+
+MCP server tools work the same way — their outputs can be piped into function tools or other MCP tools in a pipeline.
+
 ### Best Practices
 
 - **Keep functions simple** - Each function should have a single, clear purpose
@@ -189,5 +199,6 @@ See [Deploy to Vercel](/deployment/vercel#step-2-configure-sandbox-in-your-appli
 - **Handle errors** - Always catch and return meaningful error messages
 - **Test thoroughly** - Test your functions independently before deploying
 - **Clear descriptions** - Write descriptive names and descriptions to help agents use tools effectively
+- **Design for composability** - When tools form a pipeline, align return types with downstream input types
 
 Function tools provide powerful customization capabilities while maintaining security and performance through sandboxed execution.

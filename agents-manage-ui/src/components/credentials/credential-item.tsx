@@ -20,9 +20,9 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import { useProjectPermissions } from '@/contexts/project';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import type { Credential } from '@/lib/api/credentials';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
@@ -77,8 +77,8 @@ function CredentialDialogMenu({ credentialId, credentialName }: CredentialDialog
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
           <DialogTrigger asChild>
-            <DropdownMenuItem className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer">
-              <Trash2 className="size-4 text-destructive" />
+            <DropdownMenuItem variant="destructive">
+              <Trash2 className="size-4" />
               Delete
             </DropdownMenuItem>
           </DialogTrigger>
@@ -110,7 +110,9 @@ export function CredentialItem({
   tenantId: string;
   projectId: string;
 }) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const linkPath = `/${tenantId}/projects/${projectId}/credentials/${id}`;
 
   return (

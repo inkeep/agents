@@ -3,29 +3,21 @@ import {
   type AgentApiInsert,
   type AgentApiSelect,
   apiFetch,
+  type FullProjectSelectResponse,
   OPENAI_MODELS,
 } from '@inkeep/agents-core';
+import type { z } from 'zod';
+
+type FullProjectResponse = z.infer<typeof FullProjectSelectResponse>;
 
 abstract class BaseApiClient {
-  protected apiUrl: string;
-  protected tenantId: string | undefined;
-  protected projectId: string;
-  protected apiKey: string | undefined;
-  protected isCI: boolean;
-
   protected constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    this.apiUrl = apiUrl;
-    this.tenantId = tenantId;
-    this.projectId = projectId;
-    this.apiKey = apiKey;
-    this.isCI = isCI;
-  }
+    protected apiUrl: string,
+    protected tenantId: string | undefined,
+    protected projectId: string,
+    protected apiKey?: string,
+    protected isCI = false
+  ) {}
 
   protected checkTenantId(): string {
     if (!this.tenantId) {
@@ -41,7 +33,7 @@ abstract class BaseApiClient {
   protected async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     // Build headers with auth if API key is present
     const headers: Record<string, string> = {
-      ...((options.headers as Record<string, string>) || {}),
+      ...(options.headers as Record<string, string>),
     };
 
     // Add auth header based on mode
@@ -78,15 +70,17 @@ abstract class BaseApiClient {
   }
 }
 
+type ConstructorParams = [
+  apiUrl: string,
+  tenantId: string | undefined,
+  projectId: string,
+  apiKey?: string,
+  isCI?: boolean,
+];
+
 export class ManagementApiClient extends BaseApiClient {
-  private constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    super(apiUrl, tenantId, projectId, apiKey, isCI);
+  private constructor(...args: ConstructorParams) {
+    super(...args);
   }
 
   static async create(
@@ -174,15 +168,16 @@ export class ManagementApiClient extends BaseApiClient {
     return data.data;
   }
 
-  async getFullProject(projectId: string): Promise<any> {
+  async getFullProject(projectId: string, ref?: string): Promise<FullProjectResponse['data']> {
     const tenantId = this.checkTenantId();
+    const url = new URL(`${this.apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`);
+    if (ref) {
+      url.searchParams.set('ref', ref);
+    }
 
-    const response = await this.authenticatedFetch(
-      `${this.apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`,
-      {
-        method: 'GET',
-      }
-    );
+    const response = await this.authenticatedFetch(url.toString(), {
+      method: 'GET',
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -204,6 +199,187 @@ export class ManagementApiClient extends BaseApiClient {
       const errorText = await response.text().catch(() => '');
       throw new Error(
         `Failed to fetch project: ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+
+    const responseData = await response.json();
+    return responseData.data;
+  }
+
+  async getBranch(
+    projectId: string,
+    branchName: string
+  ): Promise<{ baseName: string; fullName: string; hash: string }> {
+    const tenantId = this.checkTenantId();
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}`
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to fetch branch "${branchName}": ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+
+    const responseData = await response.json();
+    return responseData.data;
+  }
+
+  async createBranch(
+    projectId: string,
+    request: { name: string; fromBranch?: string; fromCommit?: string }
+  ): Promise<{ baseName: string; fullName: string; hash: string }> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to create branch "${request.name}": ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+
+    const responseData = await response.json();
+    return responseData.data;
+  }
+
+  async deleteBranch(projectId: string, branchName: string, force?: boolean): Promise<void> {
+    const tenantId = this.checkTenantId();
+
+    const url = new URL(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/${branchName}`
+    );
+    if (force) url.searchParams.set('force', 'true');
+
+    const response = await this.authenticatedFetch(url.toString(), { method: 'DELETE' });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to delete branch "${branchName}": ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+  }
+
+  async pushFullProject(
+    projectId: string,
+    branchName: string,
+    projectData: unknown
+  ): Promise<void> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}?ref=${branchName}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projectData),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to push project to branch "${branchName}": ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+  }
+
+  async mergePreview(
+    projectId: string,
+    request: {
+      sourceBranch: string;
+      targetBranch: string;
+    }
+  ): Promise<{
+    hasConflicts: boolean;
+    sourceHash: string;
+    targetHash: string;
+    canFastForward: boolean;
+    diffSummary: Array<{
+      table: string;
+      diffType: string;
+      dataChange: boolean;
+      schemaChange: boolean;
+    }>;
+    conflicts: Array<{
+      table: string;
+      primaryKey: Record<string, string>;
+      ourDiffType: string;
+      theirDiffType: string;
+      base: Record<string, unknown> | null;
+      ours: Record<string, unknown> | null;
+      theirs: Record<string, unknown> | null;
+    }>;
+  }> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/merge/preview`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to preview merge: ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+
+    const responseData = await response.json();
+    return responseData.data;
+  }
+
+  async mergeExecute(
+    projectId: string,
+    request: {
+      sourceBranch: string;
+      targetBranch: string;
+      sourceHash: string;
+      targetHash: string;
+      message?: string;
+      author?: { name: string; email: string };
+      resolutions?: Array<{
+        table: string;
+        primaryKey: Record<string, string>;
+        rowDefaultPick: 'ours' | 'theirs';
+        columns?: Record<string, 'ours' | 'theirs'>;
+      }>;
+    }
+  ): Promise<{
+    status: 'success';
+    mergeCommitHash: string;
+    sourceBranch: string;
+    targetBranch: string;
+  }> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/branches/merge`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to execute merge: ${response.statusText}${errorText ? `\n${errorText}` : ''}`
       );
     }
 
@@ -391,14 +567,8 @@ export class ManagementApiClient extends BaseApiClient {
 }
 
 export class ExecutionApiClient extends BaseApiClient {
-  private constructor(
-    apiUrl: string,
-    tenantId: string | undefined,
-    projectId: string,
-    apiKey?: string,
-    isCI: boolean = false
-  ) {
-    super(apiUrl, tenantId, projectId, apiKey, isCI);
+  private constructor(...args: ConstructorParams) {
+    super(...args);
   }
 
   static async create(

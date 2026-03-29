@@ -85,7 +85,7 @@ export async function createTestOrganization(
   db: AgentsRunDatabaseClient,
   tenantId: string
 ): Promise<void> {
-  const slug = tenantId.replace(/^test-tenant-/, '').substring(0, 50);
+  const slug = tenantId.replace(/^test-tenant-/, '');
 
   await db
     .insert(schema.organization)

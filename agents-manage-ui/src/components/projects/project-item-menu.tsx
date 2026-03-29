@@ -37,15 +37,12 @@ export function ProjectItemMenu({ projectName, projectData, tenantId }: ProjectI
           align="end"
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
-          <DropdownMenuItem className=" cursor-pointer" onClick={() => setIsEditOpen(true)}>
+          <DropdownMenuItem className="cursor-pointer" onClick={() => setIsEditOpen(true)}>
             <Pencil className="size-4" />
             Edit
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
-            onClick={() => setIsDeleteOpen(true)}
-          >
-            <Trash2 className="size-4 text-destructive" />
+          <DropdownMenuItem variant="destructive" onClick={() => setIsDeleteOpen(true)}>
+            <Trash2 />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

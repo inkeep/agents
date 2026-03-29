@@ -5,16 +5,16 @@ import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { fetchMCPTools } from '@/lib/api/tools';
+import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 
-const mcpToolQueryKeys = {
-  all: ['mcp-tools'] as const,
-  list: (tenantId: string, projectId: string) => ['mcp-tools', tenantId, projectId] as const,
-  status: (tenantId: string, projectId: string, toolId: string) =>
-    ['mcp-tool-status', tenantId, projectId, toolId] as const,
-};
-
-export function useMcpToolsQuery({ enabled = true }: { enabled?: boolean } = {}) {
+export function useMcpToolsQuery({
+  enabled = true,
+  skipDiscovery = false,
+}: {
+  enabled?: boolean;
+  skipDiscovery?: boolean;
+} = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -23,8 +23,8 @@ export function useMcpToolsQuery({ enabled = true }: { enabled?: boolean } = {})
   }
 
   return useQuery<MCPTool[]>({
-    queryKey: mcpToolQueryKeys.list(tenantId, projectId),
-    queryFn: () => fetchMCPTools(tenantId, projectId),
+    queryKey: mcpToolQueryKeys.list(tenantId, projectId, skipDiscovery),
+    queryFn: () => fetchMCPTools(tenantId, projectId, { skipDiscovery }),
     enabled,
     staleTime: 30_000,
     initialData: [],
@@ -47,7 +47,7 @@ export function useMcpToolInvalidation(tenantId: string, projectId: string) {
     async (toolId?: string) => {
       // Invalidate the list query
       await queryClient.invalidateQueries({
-        queryKey: mcpToolQueryKeys.list(tenantId, projectId),
+        queryKey: mcpToolQueryKeys.project(tenantId, projectId),
       });
 
       // If a specific tool ID is provided, invalidate its status query too
@@ -81,7 +81,7 @@ export function useMcpToolStatusQuery({
 
   return useQuery<MCPTool>({
     queryKey: mcpToolQueryKeys.status(tenantId, projectId, toolId),
-    queryFn: async () => {
+    async queryFn() {
       const url = `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`;
 
       const response = await fetch(url, {

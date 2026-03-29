@@ -16,6 +16,7 @@ interface SlackContextValue {
       connectionId: string;
       teamId: string;
       teamName?: string;
+      teamDomain?: string;
       tenantId: string;
       hasDefaultAgent: boolean;
       defaultAgentName?: string;

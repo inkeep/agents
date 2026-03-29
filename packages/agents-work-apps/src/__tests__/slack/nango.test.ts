@@ -89,15 +89,11 @@ describe('nango types', () => {
     it('should have correct shape', () => {
       const config = {
         agentId: 'test',
-        agentName: 'Test Agent',
         projectId: 'proj-1',
-        projectName: 'Test Project',
       };
 
       expect(config.agentId).toBe('test');
-      expect(config.agentName).toBe('Test Agent');
       expect(config.projectId).toBe('proj-1');
-      expect(config.projectName).toBe('Test Project');
     });
   });
 
@@ -111,9 +107,7 @@ describe('nango types', () => {
         tenantId: 'default',
         defaultAgent: {
           agentId: 'agent-1',
-          agentName: 'Support Agent',
           projectId: 'proj-1',
-          projectName: 'Main Project',
         },
       };
 

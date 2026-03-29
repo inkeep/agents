@@ -1,12 +1,20 @@
 import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
 import type {
+  ApiConfigSchema,
+  AppConfigSchema,
+  ChannelAccessModeSchema,
+  ChannelIdsSchema,
   EvaluationJobFilterCriteriaSchema,
   McpTransportConfigSchema,
   ModelSchema,
   ProjectModelSchema,
+  PublicKeyAlgorithmSchema,
+  PublicKeyConfigSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
+  WebClientAuthConfigSchema,
+  WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
 } from '../validation/schemas';
@@ -47,6 +55,7 @@ export type {
   AgentScopeConfig,
   ProjectScopeConfig,
   SubAgentScopeConfig,
+  TenantScopeConfig,
 } from '../db/manage/scope-definitions';
 export interface ConversationScopeOptions {
   taskId?: string;
@@ -69,9 +78,11 @@ export interface AgentConversationHistoryConfig extends ConversationHistoryConfi
 
 export type ConversationMetadata = {
   userContext?: Record<string, unknown>;
+  verifiedClaims?: Record<string, unknown>;
   preferences?: Record<string, unknown>;
   sessionData?: Record<string, unknown>;
   apiKeyId?: string;
+  externalUserId?: string;
   initiatedBy?: {
     type: 'user' | 'api_key';
     id: string;
@@ -110,6 +121,7 @@ export type MessageMetadata = {
     completion_tokens?: number;
     total_tokens?: number;
   };
+  compressionType?: string;
   a2a_metadata?: Record<string, unknown>;
   processing_time_ms?: number;
   error_details?: Record<string, unknown>;
@@ -195,9 +207,9 @@ export type ToolMcpConfig = {
   transport?: McpTransportConfig;
   // Active tools to enable from this MCP server
   activeTools?: string[];
-  // Tool overrides for schema simplification
+  // Tool overrides for individual tool schema/display customization
   toolOverrides?: Record<string, ToolSimplifyConfig>;
-  // Optional custom prompt/instructions for using this MCP server
+  // Custom prompt / instructions sent to the LLM about this MCP server
   prompt?: string;
 };
 
@@ -207,6 +219,8 @@ export type ToolServerCapabilities = {
   prompts?: boolean;
   logging?: boolean;
   streaming?: boolean;
+  // Default instructions from the MCP server's initialize response
+  serverInstructions?: string;
 };
 
 export type TaskMetadataConfig = {
@@ -257,6 +271,7 @@ export const CredentialStoreType = {
   memory: 'memory',
   keychain: 'keychain',
   nango: 'nango',
+  composio: 'composio',
 } as const;
 
 export interface CreateApiKeyParams {
@@ -307,6 +322,13 @@ export interface BaseExecutionContext {
       channelId?: string;
       teamId: string;
     };
+    endUserId?: string;
+    verifiedClaims?: Record<string, unknown>;
+    authMethod?:
+      | 'app_credential_web_client'
+      | 'app_credential_api'
+      | 'app_credential_web_client_authenticated';
+    appPrompt?: string;
   };
 }
 
@@ -408,3 +430,22 @@ export type WorkAppGitHubInstallationStatus = z.infer<typeof WorkAppGitHubInstal
  * - 'User': Installed on a personal GitHub account
  */
 export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSchema>;
+
+/**
+ * Channel access mode for the slack MCP tool.
+ * - 'all': Tool has access to all channels
+ * - 'selected': Tool only has access to channels listed in work_app_slack_mcp_tool_access_config
+ */
+export type ChannelAccessMode = z.infer<typeof ChannelAccessModeSchema>;
+export type ChannelIds = z.infer<typeof ChannelIdsSchema>;
+
+export type AppType = 'web_client' | 'api';
+
+export type PublicKeyAlgorithm = z.infer<typeof PublicKeyAlgorithmSchema>;
+export type PublicKeyConfig = z.infer<typeof PublicKeyConfigSchema>;
+export type WebClientAuthConfig = z.infer<typeof WebClientAuthConfigSchema>;
+export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
+
+export type ApiConfig = z.infer<typeof ApiConfigSchema>;
+
+export type AppConfig = z.infer<typeof AppConfigSchema>;

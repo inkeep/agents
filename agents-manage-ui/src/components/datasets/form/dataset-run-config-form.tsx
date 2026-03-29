@@ -22,10 +22,9 @@ import {
   updateDatasetRunConfigAction,
 } from '@/lib/actions/dataset-run-configs';
 import type { DatasetRunConfigInsert } from '@/lib/api/dataset-run-configs';
-import type { Evaluator } from '@/lib/api/evaluators';
 import { useAgentsQuery } from '@/lib/query/agents';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
-import type { Agent } from '@/lib/types/agent-full';
+import { createLookup } from '@/lib/utils';
 import {
   type DatasetRunConfigFormData,
   datasetRunConfigSchema,
@@ -88,32 +87,10 @@ export function DatasetRunConfigForm({
     }
   }, [initialData, form]);
 
-  const agentLookup = useMemo(() => {
-    return agents.reduce(
-      (acc, agent) => {
-        acc[agent.id] = agent;
-        return acc;
-      },
-      {} as Record<string, Agent>
-    );
-  }, [agents]);
-
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const agentLookup = useMemo(() => createLookup(agents), [agents]);
+  const evaluatorLookup = useMemo(() => createLookup(evaluators), [evaluators]);
 
   const onSubmit = async (data: DatasetRunConfigFormData) => {
-    console.log('Form submission data:', data);
-    console.log('evaluatorIds in form data:', data.evaluatorIds);
-    console.log('Form values:', form.getValues());
-    console.log('Form watch evaluatorIds:', form.watch('evaluatorIds'));
-
     try {
       // Ensure evaluatorIds is always included, even if empty
       const payload = {
@@ -123,10 +100,6 @@ export function DatasetRunConfigForm({
         evaluatorIds: data.evaluatorIds || [],
         ...(runConfigId ? {} : { datasetId }),
       };
-
-      console.log('Payload being sent:', payload);
-      console.log('evaluatorIds in payload:', payload.evaluatorIds);
-      console.log('Payload JSON:', JSON.stringify(payload));
 
       const result = runConfigId
         ? await updateDatasetRunConfigAction(tenantId, projectId, runConfigId, payload)
@@ -183,12 +156,9 @@ export function DatasetRunConfigForm({
                 <p className="text-sm text-muted-foreground">Loading agents...</p>
               ) : (
                 <ComponentSelector
-                  label=""
                   componentLookup={agentLookup}
                   selectedComponents={agentIds as string[]}
-                  onSelectionChange={(newSelection) => {
-                    setAgentIds(newSelection);
-                  }}
+                  onSelectionChange={setAgentIds}
                   emptyStateMessage="No agents available."
                   emptyStateActionText="Create agent"
                   emptyStateActionHref={`/${tenantId}/projects/${projectId}/agents`}
@@ -213,9 +183,7 @@ export function DatasetRunConfigForm({
                   label="Evaluators (Optional)"
                   componentLookup={evaluatorLookup}
                   selectedComponents={field.value || []}
-                  onSelectionChange={(newSelection) => {
-                    field.onChange(newSelection);
-                  }}
+                  onSelectionChange={field.onChange}
                   emptyStateMessage="No evaluators available."
                   emptyStateActionText="Create evaluator"
                   emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}

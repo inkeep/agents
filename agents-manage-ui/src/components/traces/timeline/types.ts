@@ -9,7 +9,8 @@ export type PanelType =
   | 'tool_approval_approved'
   | 'tool_approval_denied'
   | 'trigger_invocation'
-  | 'max_steps_reached';
+  | 'max_steps_reached'
+  | 'stream_lifetime_exceeded';
 
 type MCPError = NonNullable<ConversationDetail['mcpToolErrors']>[number];
 
@@ -32,6 +33,7 @@ export const ACTIVITY_TYPES = {
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
   COMPRESSION: 'compression',
   MAX_STEPS_REACHED: 'max_steps_reached',
+  STREAM_LIFETIME_EXCEEDED: 'stream_lifetime_exceeded',
 } as const;
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
@@ -105,6 +107,7 @@ export interface ActivityItem {
   toolStatusMessage?: string;
   aiResponseText?: string;
   aiResponseToolCalls?: string;
+  costUsd?: number;
   aiPromptMessages?: string;
   traceId?: string;
   // OTEL status fields
@@ -131,22 +134,24 @@ export interface ActivityItem {
   contextBreakdown?: ContextBreakdown;
   // Compression fields
   compressionType?: string;
-  compressionInputTokens?: number;
+  compressionGeneratedTokens?: number;
+  compressionTotalContextTokens?: number;
+  compressionTriggerAt?: number;
   compressionOutputTokens?: number;
   compressionRatio?: number;
-  compressionArtifactCount?: number;
-  compressionMessageCount?: number;
-  compressionHardLimit?: number;
-  compressionSafetyBuffer?: number;
   compressionError?: string;
   compressionSummary?: string;
   // Trigger invocation fields
   invocationType?: string;
+  invocationEntryPoint?: string;
   triggerId?: string;
   triggerInvocationId?: string;
   maxStepsReached?: boolean;
   stepsCompleted?: number;
   maxSteps?: number;
+  streamCleanupReason?: string;
+  streamMaxLifetimeMs?: number;
+  streamBufferSizeBytes?: number;
 }
 
 interface ToolCall {
@@ -221,6 +226,7 @@ export interface ConversationDetail {
     timestamp: string;
   }>;
   invocationType?: string | null;
+  invocationEntryPoint?: string | null;
   triggerId?: string | null;
   triggerInvocationId?: string | null;
 }

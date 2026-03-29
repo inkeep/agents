@@ -6,10 +6,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { ExternalLink } from '@/components/ui/external-link';
 import { UseInYourAppSection } from '@/components/use-in-your-app-section';
 
 type ComponentKind = 'data' | 'artifact';
@@ -29,7 +31,7 @@ export function UseInYourAppModal({
   componentKind = 'data',
   renderCode,
   docsPath,
-  docsLabel,
+  docsLabel = 'Learn more',
 }: UseInYourAppModalProps) {
   return (
     <Dialog>
@@ -39,27 +41,22 @@ export function UseInYourAppModal({
           Use in your app
         </Button>
       </DialogTrigger>
-      <DialogContent
-        className="max-w-3xl max-h-[85dvh] grid-rows-[auto_1fr]"
-        position="top"
-        size="xl"
-      >
+      <DialogContent className="max-w-3xl grid-rows-[auto_1fr]" position="top" size="xl">
         <DialogHeader className="shrink-0">
           <DialogTitle>Use in your app</DialogTitle>
           <DialogDescription className="sr-only">
             Steps to add this component to your application.
           </DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 overflow-y-auto overflow-x-hidden pr-2 scrollbar-thin">
-          <UseInYourAppSection
-            componentId={componentId}
-            componentName={componentName}
-            componentKind={componentKind}
-            renderCode={renderCode}
-            docsPath={docsPath}
-            docsLabel={docsLabel}
-          />
-        </div>
+        <UseInYourAppSection
+          componentId={componentId}
+          componentName={componentName}
+          componentKind={componentKind}
+          renderCode={renderCode}
+        />
+        <DialogFooter>
+          <ExternalLink href={docsPath}>{docsLabel}</ExternalLink>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

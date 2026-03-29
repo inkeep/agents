@@ -7,6 +7,7 @@ import type {
   ScheduledTriggerInsert,
   ScheduledTriggerUpdate,
 } from '../../validation/schemas';
+import { agentScopedWhere, projectScopedWhere } from './scope-helpers';
 
 /**
  * Get a scheduled trigger by ID (agent-scoped)
@@ -21,9 +22,7 @@ export const getScheduledTriggerById =
 
     const result = await db.query.scheduledTriggers.findFirst({
       where: and(
-        eq(scheduledTriggers.tenantId, scopes.tenantId),
-        eq(scheduledTriggers.projectId, scopes.projectId),
-        eq(scheduledTriggers.agentId, scopes.agentId),
+        agentScopedWhere(scheduledTriggers, scopes),
         eq(scheduledTriggers.id, scheduledTriggerId)
       ),
     });
@@ -41,11 +40,7 @@ export const listScheduledTriggersPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = and(
-      eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-      eq(scheduledTriggers.projectId, params.scopes.projectId),
-      eq(scheduledTriggers.agentId, params.scopes.agentId)
-    );
+    const whereClause = agentScopedWhere(scheduledTriggers, params.scopes);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -100,9 +95,7 @@ export const updateScheduledTrigger =
       .set(updateData as any)
       .where(
         and(
-          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggers.projectId, params.scopes.projectId),
-          eq(scheduledTriggers.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggers, params.scopes),
           eq(scheduledTriggers.id, params.scheduledTriggerId)
         )
       )
@@ -121,9 +114,7 @@ export const deleteScheduledTrigger =
       .delete(scheduledTriggers)
       .where(
         and(
-          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggers.projectId, params.scopes.projectId),
-          eq(scheduledTriggers.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggers, params.scopes),
           eq(scheduledTriggers.id, params.scheduledTriggerId)
         )
       );
@@ -155,6 +146,24 @@ export const upsertScheduledTrigger =
   };
 
 /**
+ * Delete all scheduled triggers for a given runAsUserId within a tenant+project scope.
+ * Operates across all agents in the project (not agent-scoped).
+ */
+export const deleteScheduledTriggersByRunAsUserId =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { tenantId: string; projectId: string; runAsUserId: string }): Promise<void> => {
+    await db.delete(scheduledTriggers).where(
+      and(
+        projectScopedWhere(scheduledTriggers, {
+          tenantId: params.tenantId,
+          projectId: params.projectId,
+        }),
+        eq(scheduledTriggers.runAsUserId, params.runAsUserId)
+      )
+    );
+  };
+
+/**
  * List all scheduled triggers for an agent (non-paginated, used by agentFull)
  */
 export const listScheduledTriggers =
@@ -163,13 +172,7 @@ export const listScheduledTriggers =
     const result = await db
       .select()
       .from(scheduledTriggers)
-      .where(
-        and(
-          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggers.projectId, params.scopes.projectId),
-          eq(scheduledTriggers.agentId, params.scopes.agentId)
-        )
-      );
+      .where(agentScopedWhere(scheduledTriggers, params.scopes));
 
     return result as ScheduledTrigger[];
   };

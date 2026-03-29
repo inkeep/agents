@@ -47,6 +47,7 @@ import type {
   EvaluatorUpdate,
 } from '../../types/entities';
 import type { ProjectScopeConfig } from '../../types/utility';
+import { projectScopedWhere } from './scope-helpers';
 // ============================================================================
 // DATASET
 // ============================================================================
@@ -60,11 +61,7 @@ export const getDatasetById =
       .select()
       .from(dataset)
       .where(
-        and(
-          eq(dataset.tenantId, params.scopes.tenantId),
-          eq(dataset.projectId, params.scopes.projectId),
-          eq(dataset.id, params.scopes.datasetId)
-        )
+        and(projectScopedWhere(dataset, params.scopes), eq(dataset.id, params.scopes.datasetId))
       )
       .limit(1);
     return results[0] ?? null;
@@ -73,15 +70,7 @@ export const getDatasetById =
 export const listDatasets =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<DatasetSelect[]> => {
-    return await db
-      .select()
-      .from(dataset)
-      .where(
-        and(
-          eq(dataset.tenantId, params.scopes.tenantId),
-          eq(dataset.projectId, params.scopes.projectId)
-        )
-      );
+    return await db.select().from(dataset).where(projectScopedWhere(dataset, params.scopes));
   };
 
 export const createDataset =
@@ -123,11 +112,7 @@ export const updateDataset =
       .update(dataset)
       .set(updateData)
       .where(
-        and(
-          eq(dataset.tenantId, params.scopes.tenantId),
-          eq(dataset.projectId, params.scopes.projectId),
-          eq(dataset.id, params.scopes.datasetId)
-        )
+        and(projectScopedWhere(dataset, params.scopes), eq(dataset.id, params.scopes.datasetId))
       )
       .returning();
 
@@ -140,11 +125,7 @@ export const deleteDataset =
     const result = await db
       .delete(dataset)
       .where(
-        and(
-          eq(dataset.tenantId, params.scopes.tenantId),
-          eq(dataset.projectId, params.scopes.projectId),
-          eq(dataset.id, params.scopes.datasetId)
-        )
+        and(projectScopedWhere(dataset, params.scopes), eq(dataset.id, params.scopes.datasetId))
       )
       .returning();
 
@@ -165,8 +146,7 @@ export const getDatasetItemById =
       .from(datasetItem)
       .where(
         and(
-          eq(datasetItem.tenantId, params.scopes.tenantId),
-          eq(datasetItem.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetItem, params.scopes),
           eq(datasetItem.id, params.scopes.datasetItemId)
         )
       )
@@ -184,8 +164,7 @@ export const listDatasetItems =
       .from(datasetItem)
       .where(
         and(
-          eq(datasetItem.tenantId, params.scopes.tenantId),
-          eq(datasetItem.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetItem, params.scopes),
           eq(datasetItem.datasetId, params.scopes.datasetId)
         )
       );
@@ -247,8 +226,7 @@ export const updateDatasetItem =
       .set(updateData)
       .where(
         and(
-          eq(datasetItem.tenantId, params.scopes.tenantId),
-          eq(datasetItem.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetItem, params.scopes),
           eq(datasetItem.id, params.scopes.datasetItemId)
         )
       )
@@ -264,8 +242,7 @@ export const deleteDatasetItem =
       .delete(datasetItem)
       .where(
         and(
-          eq(datasetItem.tenantId, params.scopes.tenantId),
-          eq(datasetItem.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetItem, params.scopes),
           eq(datasetItem.id, params.scopes.datasetItemId)
         )
       )
@@ -281,8 +258,7 @@ export const deleteDatasetItemsByDataset =
       .delete(datasetItem)
       .where(
         and(
-          eq(datasetItem.tenantId, params.scopes.tenantId),
-          eq(datasetItem.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetItem, params.scopes),
           eq(datasetItem.datasetId, params.scopes.datasetId)
         )
       )
@@ -305,8 +281,7 @@ export const getDatasetRunConfigById =
       .from(datasetRunConfig)
       .where(
         and(
-          eq(datasetRunConfig.tenantId, params.scopes.tenantId),
-          eq(datasetRunConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRunConfig, params.scopes),
           eq(datasetRunConfig.id, params.scopes.datasetRunConfigId)
         )
       )
@@ -320,12 +295,7 @@ export const listDatasetRunConfigs =
     return await db
       .select()
       .from(datasetRunConfig)
-      .where(
-        and(
-          eq(datasetRunConfig.tenantId, params.scopes.tenantId),
-          eq(datasetRunConfig.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(datasetRunConfig, params.scopes));
   };
 
 export const createDatasetRunConfig =
@@ -368,8 +338,7 @@ export const updateDatasetRunConfig =
       .set(updateData)
       .where(
         and(
-          eq(datasetRunConfig.tenantId, params.scopes.tenantId),
-          eq(datasetRunConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRunConfig, params.scopes),
           eq(datasetRunConfig.id, params.scopes.datasetRunConfigId)
         )
       )
@@ -387,8 +356,7 @@ export const deleteDatasetRunConfig =
       .delete(datasetRunConfig)
       .where(
         and(
-          eq(datasetRunConfig.tenantId, params.scopes.tenantId),
-          eq(datasetRunConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRunConfig, params.scopes),
           eq(datasetRunConfig.id, params.scopes.datasetRunConfigId)
         )
       )
@@ -411,8 +379,7 @@ export const getDatasetRunConfigAgentRelations =
       .from(datasetRunConfigAgentRelations)
       .where(
         and(
-          eq(datasetRunConfigAgentRelations.tenantId, params.scopes.tenantId),
-          eq(datasetRunConfigAgentRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRunConfigAgentRelations, params.scopes),
           eq(datasetRunConfigAgentRelations.datasetRunConfigId, params.scopes.datasetRunConfigId)
         )
       );
@@ -446,8 +413,7 @@ export const deleteDatasetRunConfigAgentRelation =
       .delete(datasetRunConfigAgentRelations)
       .where(
         and(
-          eq(datasetRunConfigAgentRelations.tenantId, params.scopes.tenantId),
-          eq(datasetRunConfigAgentRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRunConfigAgentRelations, params.scopes),
           eq(datasetRunConfigAgentRelations.datasetRunConfigId, params.scopes.datasetRunConfigId),
           eq(datasetRunConfigAgentRelations.agentId, params.scopes.agentId)
         )
@@ -471,8 +437,7 @@ export const getEvaluatorById =
       .from(evaluator)
       .where(
         and(
-          eq(evaluator.tenantId, params.scopes.tenantId),
-          eq(evaluator.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluator, params.scopes),
           eq(evaluator.id, params.scopes.evaluatorId)
         )
       )
@@ -483,15 +448,7 @@ export const getEvaluatorById =
 export const listEvaluators =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<EvaluatorSelect[]> => {
-    return await db
-      .select()
-      .from(evaluator)
-      .where(
-        and(
-          eq(evaluator.tenantId, params.scopes.tenantId),
-          eq(evaluator.projectId, params.scopes.projectId)
-        )
-      );
+    return await db.select().from(evaluator).where(projectScopedWhere(evaluator, params.scopes));
   };
 
 export const getEvaluatorsByIds =
@@ -508,8 +465,7 @@ export const getEvaluatorsByIds =
       .from(evaluator)
       .where(
         and(
-          eq(evaluator.tenantId, params.scopes.tenantId),
-          eq(evaluator.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluator, params.scopes),
           inArray(evaluator.id, params.evaluatorIds)
         )
       );
@@ -555,8 +511,7 @@ export const updateEvaluator =
       .set(updateData)
       .where(
         and(
-          eq(evaluator.tenantId, params.scopes.tenantId),
-          eq(evaluator.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluator, params.scopes),
           eq(evaluator.id, params.scopes.evaluatorId)
         )
       )
@@ -572,8 +527,7 @@ export const deleteEvaluator =
       .delete(evaluator)
       .where(
         and(
-          eq(evaluator.tenantId, params.scopes.tenantId),
-          eq(evaluator.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluator, params.scopes),
           eq(evaluator.id, params.scopes.evaluatorId)
         )
       )
@@ -596,8 +550,7 @@ export const getEvaluationSuiteConfigById =
       .from(evaluationSuiteConfig)
       .where(
         and(
-          eq(evaluationSuiteConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationSuiteConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationSuiteConfig, params.scopes),
           eq(evaluationSuiteConfig.id, params.scopes.evaluationSuiteConfigId)
         )
       )
@@ -611,12 +564,7 @@ export const listEvaluationSuiteConfigs =
     return await db
       .select()
       .from(evaluationSuiteConfig)
-      .where(
-        and(
-          eq(evaluationSuiteConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationSuiteConfig.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(evaluationSuiteConfig, params.scopes));
   };
 
 export const createEvaluationSuiteConfig =
@@ -659,8 +607,7 @@ export const updateEvaluationSuiteConfig =
       .set(updateData)
       .where(
         and(
-          eq(evaluationSuiteConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationSuiteConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationSuiteConfig, params.scopes),
           eq(evaluationSuiteConfig.id, params.scopes.evaluationSuiteConfigId)
         )
       )
@@ -678,8 +625,7 @@ export const deleteEvaluationSuiteConfig =
       .delete(evaluationSuiteConfig)
       .where(
         and(
-          eq(evaluationSuiteConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationSuiteConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationSuiteConfig, params.scopes),
           eq(evaluationSuiteConfig.id, params.scopes.evaluationSuiteConfigId)
         )
       )
@@ -702,8 +648,7 @@ export const getEvaluationSuiteConfigEvaluatorRelations =
       .from(evaluationSuiteConfigEvaluatorRelations)
       .where(
         and(
-          eq(evaluationSuiteConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
-          eq(evaluationSuiteConfigEvaluatorRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationSuiteConfigEvaluatorRelations, params.scopes),
           eq(
             evaluationSuiteConfigEvaluatorRelations.evaluationSuiteConfigId,
             params.scopes.evaluationSuiteConfigId
@@ -740,8 +685,7 @@ export const deleteEvaluationSuiteConfigEvaluatorRelation =
       .delete(evaluationSuiteConfigEvaluatorRelations)
       .where(
         and(
-          eq(evaluationSuiteConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
-          eq(evaluationSuiteConfigEvaluatorRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationSuiteConfigEvaluatorRelations, params.scopes),
           eq(
             evaluationSuiteConfigEvaluatorRelations.evaluationSuiteConfigId,
             params.scopes.evaluationSuiteConfigId
@@ -761,8 +705,7 @@ export const deleteEvaluationSuiteConfigEvaluatorRelationsByEvaluator =
       .delete(evaluationSuiteConfigEvaluatorRelations)
       .where(
         and(
-          eq(evaluationSuiteConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
-          eq(evaluationSuiteConfigEvaluatorRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationSuiteConfigEvaluatorRelations, params.scopes),
           eq(evaluationSuiteConfigEvaluatorRelations.evaluatorId, params.scopes.evaluatorId)
         )
       )
@@ -785,8 +728,7 @@ export const getEvaluationRunConfigById =
       .from(evaluationRunConfig)
       .where(
         and(
-          eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationRunConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRunConfig, params.scopes),
           eq(evaluationRunConfig.id, params.scopes.evaluationRunConfigId)
         )
       )
@@ -800,12 +742,7 @@ export const listEvaluationRunConfigs =
     return await db
       .select()
       .from(evaluationRunConfig)
-      .where(
-        and(
-          eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationRunConfig.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(evaluationRunConfig, params.scopes));
   };
 
 export const listEvaluationRunConfigsWithSuiteConfigs =
@@ -836,12 +773,7 @@ export const listEvaluationRunConfigsWithSuiteConfigs =
           )
         )
       )
-      .where(
-        and(
-          eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationRunConfig.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(evaluationRunConfig, params.scopes));
 
     const runConfigsById = new Map<string, EvaluationRunConfigWithSuiteConfigs>();
 
@@ -906,8 +838,7 @@ export const updateEvaluationRunConfig =
       .set(updateData)
       .where(
         and(
-          eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationRunConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRunConfig, params.scopes),
           eq(evaluationRunConfig.id, params.scopes.evaluationRunConfigId)
         )
       )
@@ -925,8 +856,7 @@ export const deleteEvaluationRunConfig =
       .delete(evaluationRunConfig)
       .where(
         and(
-          eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationRunConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRunConfig, params.scopes),
           eq(evaluationRunConfig.id, params.scopes.evaluationRunConfigId)
         )
       )
@@ -949,8 +879,7 @@ export const getEvaluationRunConfigEvaluationSuiteConfigRelations =
       .from(evaluationRunConfigEvaluationSuiteConfigRelations)
       .where(
         and(
-          eq(evaluationRunConfigEvaluationSuiteConfigRelations.tenantId, params.scopes.tenantId),
-          eq(evaluationRunConfigEvaluationSuiteConfigRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRunConfigEvaluationSuiteConfigRelations, params.scopes),
           eq(
             evaluationRunConfigEvaluationSuiteConfigRelations.evaluationRunConfigId,
             params.scopes.evaluationRunConfigId
@@ -987,8 +916,7 @@ export const deleteEvaluationRunConfigEvaluationSuiteConfigRelation =
       .delete(evaluationRunConfigEvaluationSuiteConfigRelations)
       .where(
         and(
-          eq(evaluationRunConfigEvaluationSuiteConfigRelations.tenantId, params.scopes.tenantId),
-          eq(evaluationRunConfigEvaluationSuiteConfigRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationRunConfigEvaluationSuiteConfigRelations, params.scopes),
           eq(
             evaluationRunConfigEvaluationSuiteConfigRelations.evaluationRunConfigId,
             params.scopes.evaluationRunConfigId
@@ -1018,8 +946,7 @@ export const getEvaluationJobConfigById =
       .from(evaluationJobConfig)
       .where(
         and(
-          eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationJobConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationJobConfig, params.scopes),
           eq(evaluationJobConfig.id, params.scopes.evaluationJobConfigId)
         )
       )
@@ -1033,12 +960,7 @@ export const listEvaluationJobConfigs =
     return await db
       .select()
       .from(evaluationJobConfig)
-      .where(
-        and(
-          eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationJobConfig.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(evaluationJobConfig, params.scopes));
   };
 
 export const createEvaluationJobConfig =
@@ -1067,8 +989,7 @@ export const deleteEvaluationJobConfig =
       .delete(evaluationJobConfig)
       .where(
         and(
-          eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationJobConfig.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationJobConfig, params.scopes),
           eq(evaluationJobConfig.id, params.scopes.evaluationJobConfigId)
         )
       )
@@ -1091,8 +1012,7 @@ export const getEvaluationJobConfigEvaluatorRelations =
       .from(evaluationJobConfigEvaluatorRelations)
       .where(
         and(
-          eq(evaluationJobConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
-          eq(evaluationJobConfigEvaluatorRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationJobConfigEvaluatorRelations, params.scopes),
           eq(
             evaluationJobConfigEvaluatorRelations.evaluationJobConfigId,
             params.scopes.evaluationJobConfigId
@@ -1129,8 +1049,7 @@ export const deleteEvaluationJobConfigEvaluatorRelation =
       .delete(evaluationJobConfigEvaluatorRelations)
       .where(
         and(
-          eq(evaluationJobConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
-          eq(evaluationJobConfigEvaluatorRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationJobConfigEvaluatorRelations, params.scopes),
           eq(
             evaluationJobConfigEvaluatorRelations.evaluationJobConfigId,
             params.scopes.evaluationJobConfigId
@@ -1150,8 +1069,7 @@ export const deleteEvaluationJobConfigEvaluatorRelationsByEvaluator =
       .delete(evaluationJobConfigEvaluatorRelations)
       .where(
         and(
-          eq(evaluationJobConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
-          eq(evaluationJobConfigEvaluatorRelations.projectId, params.scopes.projectId),
+          projectScopedWhere(evaluationJobConfigEvaluatorRelations, params.scopes),
           eq(evaluationJobConfigEvaluatorRelations.evaluatorId, params.scopes.evaluatorId)
         )
       )
@@ -1171,8 +1089,7 @@ export const linkDatasetRunToEvaluationJobConfig =
       .set({ evaluationJobConfigId: params.evaluationJobConfigId })
       .where(
         and(
-          eq(datasetRun.tenantId, params.scopes.tenantId),
-          eq(datasetRun.projectId, params.scopes.projectId),
+          projectScopedWhere(datasetRun, params.scopes),
           eq(datasetRun.id, params.scopes.datasetRunId)
         )
       );

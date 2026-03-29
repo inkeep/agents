@@ -56,5 +56,8 @@ pids/
 *.seed
 *.pid.lock
 
+# Inkeep CLI state
+.inkeep/
+
 # cursor
 .cursor/

@@ -1,111 +1,102 @@
-import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
+import { join } from 'node:path';
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
+import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { addStringProperty, createFactoryDefinition, toCamelCase } from '../utils';
+import { asRecord } from '../collector-common';
+import {
+  buildSequentialNameFileNames,
+  resolveExternalAgentNamingSeed,
+} from '../generation-resolver';
+import type { GenerationTask } from '../generation-types';
+import { addNamedImports, applyImportPlan, createImportPlan } from '../import-plan';
+import { generateSimpleFactoryDefinition } from '../simple-factory-generator';
+import { addValueToObject, codeReference, toCamelCase } from '../utils';
 
-interface ExternalAgentDefinitionData {
-  externalAgentId: string;
-  name: string;
-  description?: string | null;
-  baseUrl: string;
-  credentialReference?:
-    | string
-    | {
-        id?: string;
-        name?: string;
-        description?: string;
-      };
-}
-
-const ExternalAgentSchema = z.looseObject({
-  externalAgentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().nullable().optional(),
-  baseUrl: z.string().nonempty(),
-  credentialReference: z
-    .union([
-      z.string(),
-      z.looseObject({
-        id: z.string().optional(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-      }),
-    ])
-    .optional(),
+const MySchema = FullProjectDefinitionSchema.shape.externalAgents.unwrap().valueType.omit({
+  id: true,
 });
 
-type ParsedExternalAgentDefinitionData = z.infer<typeof ExternalAgentSchema>;
+const ExternalAgentSchema = z.strictObject({
+  externalAgentId: z.string().nonempty(),
+  externalAgentReferenceName: z.string().optional(),
+  ...MySchema.shape,
+});
 
-export function generateExternalAgentDefinition(data: ExternalAgentDefinitionData): SourceFile {
-  const result = ExternalAgentSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for external agent:\n${z.prettifyError(result.error)}`);
-  }
+type ExternalAgentInput = z.input<typeof ExternalAgentSchema>;
 
-  const parsed = result.data;
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'externalAgent',
-    variableName: toCamelCase(parsed.externalAgentId),
+export function generateExternalAgentDefinition({
+  id,
+  tenantId,
+  projectId,
+  createdAt,
+  updatedAt,
+  ...data
+}: ExternalAgentInput & Record<string, unknown>): SourceFile {
+  return generateSimpleFactoryDefinition(data, {
+    schema: ExternalAgentSchema,
+    factory: {
+      importName: 'externalAgent',
+      variableName: (parsed) =>
+        parsed.externalAgentReferenceName ?? toCamelCase(parsed.externalAgentId),
+    },
+    buildConfig(parsed) {
+      const {
+        externalAgentReferenceName: _externalAgentReferenceName,
+        externalAgentId,
+        credentialReferenceId: _credentialReferenceId,
+        ...rest
+      } = parsed;
+      return {
+        id: externalAgentId,
+        ...rest,
+      };
+    },
+    finalize({ parsed, sourceFile, configObject }) {
+      if (!parsed.credentialReferenceId) {
+        return;
+      }
+
+      const credentialReferenceName = toCamelCase(parsed.credentialReferenceId);
+      const importPlan = createImportPlan();
+      addNamedImports(
+        importPlan,
+        `../credentials/${parsed.credentialReferenceId}`,
+        credentialReferenceName
+      );
+      applyImportPlan(sourceFile, importPlan);
+      addValueToObject(configObject, 'credentialReference', codeReference(credentialReferenceName));
+    },
   });
-
-  if (typeof parsed.credentialReference === 'string') {
-    sourceFile.addImportDeclaration({
-      namedImports: [toCamelCase(parsed.credentialReference)],
-      moduleSpecifier: `../credentials/${parsed.credentialReference}`,
-    });
-  }
-
-  writeExternalAgentConfig(configObject, parsed);
-  return sourceFile;
 }
 
-function writeExternalAgentConfig(
-  configObject: ObjectLiteralExpression,
-  data: ParsedExternalAgentDefinitionData
-): void {
-  addStringProperty(configObject, 'id', data.externalAgentId);
-  addStringProperty(configObject, 'name', data.name);
-
-  if (data.description !== null && data.description !== undefined) {
-    addStringProperty(configObject, 'description', data.description);
-  } else {
-    addStringProperty(configObject, 'description', `External agent ${data.externalAgentId}`);
-  }
-
-  addStringProperty(configObject, 'baseUrl', data.baseUrl);
-
-  if (typeof data.credentialReference === 'string') {
-    configObject.addPropertyAssignment({
-      name: 'credentialReference',
-      initializer: toCamelCase(data.credentialReference),
-    });
-    return;
-  }
-
-  if (!data.credentialReference) {
-    return;
-  }
-
-  const credentialReferenceProperty = configObject.addPropertyAssignment({
-    name: 'credentialReference',
-    initializer: '{}',
-  });
-  const credentialReferenceObject = credentialReferenceProperty.getInitializerIfKindOrThrow(
-    SyntaxKind.ObjectLiteralExpression
-  );
-
-  if (data.credentialReference.id !== undefined) {
-    addStringProperty(credentialReferenceObject, 'id', data.credentialReference.id);
-  }
-
-  if (data.credentialReference.name !== undefined) {
-    addStringProperty(credentialReferenceObject, 'name', data.credentialReference.name);
-  }
-
-  if (data.credentialReference.description !== undefined) {
-    addStringProperty(
-      credentialReferenceObject,
-      'description',
-      data.credentialReference.description
+export const task = {
+  type: 'external-agent',
+  collect(context) {
+    const externalAgentEntries = Object.entries(context.project.externalAgents ?? {});
+    const fileNamesByExternalAgentId = buildSequentialNameFileNames(
+      externalAgentEntries.map(([externalAgentId, externalAgentData]) => [
+        externalAgentId,
+        { name: resolveExternalAgentNamingSeed(externalAgentId, externalAgentData) },
+      ])
     );
-  }
-}
+
+    return externalAgentEntries.map(([externalAgentId, externalAgentData]) => {
+      const externalAgentRecord = asRecord(externalAgentData) ?? {};
+      return {
+        id: externalAgentId,
+        filePath: context.resolver.resolveOutputFilePath(
+          'externalAgents',
+          externalAgentId,
+          join(context.paths.externalAgentsDir, fileNamesByExternalAgentId[externalAgentId])
+        ),
+        payload: {
+          externalAgentId,
+          externalAgentReferenceName:
+            context.resolver.getExternalAgentReferenceName(externalAgentId),
+          ...externalAgentRecord,
+        } as Parameters<typeof generateExternalAgentDefinition>[0],
+      };
+    });
+  },
+  generate: generateExternalAgentDefinition,
+} satisfies GenerationTask<Parameters<typeof generateExternalAgentDefinition>[0]>;

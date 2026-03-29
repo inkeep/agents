@@ -2,6 +2,7 @@
 
 import type { JSX } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { FormControl } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { FormFieldWrapper } from './form-field-wrapper';
 
@@ -42,15 +43,17 @@ export function GenericTextarea<
       description={description}
     >
       {(field) => (
-        <Textarea
-          placeholder={placeholder}
-          className={className}
-          rows={rows}
-          {...field}
-          value={field.value ?? ''}
-          readOnly={readOnly}
-          disabled={disabled}
-        />
+        <FormControl>
+          <Textarea
+            placeholder={placeholder}
+            className={className}
+            rows={rows}
+            {...field}
+            value={field.value ?? ''}
+            readOnly={readOnly}
+            disabled={disabled}
+          />
+        </FormControl>
       )}
     </FormFieldWrapper>
   );

@@ -6,6 +6,7 @@
  */
 import {
   addConversationIdToInvocation,
+  canUseProjectStrict,
   createScheduledTriggerInvocation,
   deletePendingInvocationsForTrigger,
   generateId,
@@ -20,17 +21,19 @@ import {
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
   type Part,
+  resetCancelledInvocationToPending,
   resolveRef,
   type ScheduledTriggerInvocation,
   updateScheduledTriggerInvocationStatus,
+  updateScheduledWorkflowRunId,
   withRef,
 } from '@inkeep/agents-core';
 import { CronExpressionParser } from 'cron-parser';
-import { manageDbClient } from 'src/data/db';
+import { manageDbClient } from '../../../../data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
-import { executeAgentAsync } from '../../services/TriggerService';
+import { buildTimezoneHeaders, executeAgentAsync } from '../../services/TriggerService';
 
 const logger = getLogger('workflow-scheduled-trigger-steps');
 
@@ -155,6 +158,7 @@ export async function checkTriggerEnabledStep(params: {
   agentId: string;
   scheduledTriggerId: string;
   runnerId: string;
+  parentRunId?: string | null;
 }) {
   'use step';
 
@@ -201,11 +205,45 @@ export async function checkTriggerEnabledStep(params: {
 
   // If workflowRunId changed in the workflow record, this runner was superseded
   if (workflow?.workflowRunId && workflow.workflowRunId !== params.runnerId) {
-    logger.info(
-      { scheduledTriggerId: params.scheduledTriggerId, reason: 'superseded' },
-      'Scheduled trigger workflow stopping'
-    );
-    return { shouldContinue: false, reason: 'superseded', trigger: null };
+    // Adoption: parent called start() to create this child but crashed before updating
+    // the DB with the child's runId. DB still holds the parent's ID, so adopt it.
+    if (params.parentRunId && workflow.workflowRunId === params.parentRunId) {
+      try {
+        await withRef(manageDbPool, resolvedRef, async (db) => {
+          await updateScheduledWorkflowRunId(db)({
+            scopes,
+            scheduledWorkflowId: workflow.id,
+            workflowRunId: params.runnerId,
+            status: 'running',
+          });
+        });
+      } catch (err) {
+        logger.error(
+          {
+            scheduledTriggerId: params.scheduledTriggerId,
+            parentRunId: params.parentRunId,
+            runnerId: params.runnerId,
+            error: err instanceof Error ? err.message : String(err),
+          },
+          'Failed to adopt workflowRunId — step will be retried by workflow framework'
+        );
+        throw err;
+      }
+      logger.info(
+        {
+          scheduledTriggerId: params.scheduledTriggerId,
+          parentRunId: params.parentRunId,
+          newRunnerId: params.runnerId,
+        },
+        'Child workflow adopted workflowRunId from parent'
+      );
+    } else {
+      logger.info(
+        { scheduledTriggerId: params.scheduledTriggerId, reason: 'superseded' },
+        'Scheduled trigger workflow stopping'
+      );
+      return { shouldContinue: false, reason: 'superseded', trigger: null };
+    }
   }
 
   return {
@@ -242,6 +280,16 @@ export async function createInvocationIdempotentStep(params: {
     return { invocation: existing, alreadyExists: true };
   }
 
+  const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
+  const resolvedRef = await resolveRef(manageDbClient)(ref);
+
+  if (!resolvedRef) {
+    logger.warn(
+      { tenantId: params.tenantId, projectId: params.projectId },
+      'Failed to resolve ref for project, run will not be associated with a branch'
+    );
+  }
+
   const invocationId = generateId();
 
   const invocation = await createScheduledTriggerInvocation(runDbClient)({
@@ -250,6 +298,7 @@ export async function createInvocationIdempotentStep(params: {
     projectId: params.projectId,
     agentId: params.agentId,
     scheduledTriggerId: params.scheduledTriggerId,
+    ref: resolvedRef ?? undefined,
     status: 'pending',
     scheduledFor: params.scheduledFor,
     resolvedPayload: params.payload,
@@ -442,6 +491,45 @@ export async function incrementAttemptStep(params: {
 }
 
 /**
+ * Step: Reset a cancelled invocation back to pending.
+ * Used when a restarted workflow finds a cancelled invocation via idempotency
+ * that is still scheduled for a future time.
+ */
+export async function resetInvocationToPendingStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  invocationId: string;
+}) {
+  'use step';
+
+  const updated = await resetCancelledInvocationToPending(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    invocationId: params.invocationId,
+  });
+
+  if (updated) {
+    logger.info(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Reset cancelled invocation to pending'
+    );
+  } else {
+    logger.warn(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Skipped reset — invocation status changed concurrently (no longer cancelled)'
+    );
+  }
+
+  return updated;
+}
+
+/**
  * Step: Execute the scheduled trigger using executeAgentAsync.
  *
  * Uses the shared executeAgentAsync from TriggerService which includes
@@ -456,6 +544,8 @@ export async function executeScheduledTriggerStep(params: {
   messageTemplate?: string | null;
   payload?: Record<string, unknown> | null;
   timeoutSeconds: number;
+  runAsUserId?: string | null;
+  cronTimezone?: string | null;
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
@@ -468,10 +558,42 @@ export async function executeScheduledTriggerStep(params: {
     messageTemplate,
     payload,
     timeoutSeconds,
+    runAsUserId,
+    cronTimezone,
   } = params;
 
+  if (runAsUserId) {
+    try {
+      const canUse = await canUseProjectStrict({
+        userId: runAsUserId,
+        tenantId,
+        projectId,
+      });
+
+      if (!canUse) {
+        logger.warn(
+          { scheduledTriggerId, invocationId, runAsUserId, projectId },
+          'User no longer has access to project, failing invocation'
+        );
+        return {
+          success: false,
+          error: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}. An org admin should update or remove the runAsUserId on this trigger.`,
+        };
+      }
+    } catch (err) {
+      logger.error(
+        { scheduledTriggerId, invocationId, runAsUserId, projectId, error: err },
+        'Failed to check user project access'
+      );
+      return {
+        success: false,
+        error: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
   logger.info(
-    { scheduledTriggerId, invocationId },
+    { scheduledTriggerId, invocationId, runAsUserId },
     'Executing scheduled trigger via executeAgentAsync'
   );
 
@@ -531,6 +653,9 @@ export async function executeScheduledTriggerStep(params: {
         userMessage,
         messageParts,
         resolvedRef,
+        runAsUserId: runAsUserId ?? undefined,
+        forwardedHeaders: buildTimezoneHeaders(cronTimezone),
+        invocationType: 'scheduled_trigger',
       }),
       timeoutPromise,
     ]);

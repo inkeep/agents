@@ -1,5 +1,6 @@
 ---
-title: Function Tools
+title: Function Tools in TypeScript SDK
+sidebarTitle: Function Tools
 description: Create custom JavaScript functions that your agents can execute in secure sandboxes
 icon: LuCode
 ---
@@ -26,6 +27,7 @@ Function tools are perfect for:
 - **Data processing** - Transform, validate, or analyze data using JavaScript
 - **API integrations** - Make HTTP calls to services that don't have MCP servers
 - **Utility functions** - Create reusable helper functions for your agents
+- **Pipeline processing** - Chain tool outputs directly into subsequent tools without storing intermediate results
 
 ## Creating Function Tools
 
@@ -210,6 +212,48 @@ Function tools execute with strong security guarantees:
 - **Resource limits** - CPU, memory, and execution time constraints enforced
 - **No state persistence** - Functions are stateless between executions
 
+## Tool Output Pipelines
+
+Agents can pass the output of one tool directly as the input to another — no artifact creation required. This is useful when intermediate results are purely processing steps that don't need to be saved or shown to the user.
+
+For example, a pipeline that fetches a webpage and then processes its content:
+
+```typescript
+const fetchPage = functionTool({
+  name: "fetch-page",
+  description: "Fetch the raw HTML content of a URL",
+  inputSchema: {
+    type: "object",
+    properties: {
+      url: { type: "string", description: "URL to fetch" },
+    },
+    required: ["url"],
+  },
+  execute: async ({ url }) => {
+    const response = await fetch(url);
+    return await response.text();
+  },
+});
+
+const extractText = functionTool({
+  name: "extract-text",
+  description: "Extract readable text from HTML content",
+  inputSchema: {
+    type: "object",
+    properties: {
+      html: { type: "string", description: "HTML content to extract text from" },
+    },
+    required: ["html"],
+  },
+  execute: async ({ html }) => {
+    // Strip tags and return plain text
+    return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  },
+});
+```
+
+When the agent calls `fetch-page` and then `extract-text`, it passes the HTML output directly into the next call. The intermediate HTML never surfaces to the user. Design tools meant to be used in sequence so their return types match the input types of downstream tools.
+
 ### Best Practices
 
 - **Keep functions focused** - Each function should do one thing well
@@ -217,5 +261,6 @@ Function tools execute with strong security guarantees:
 - **Handle errors gracefully** - Always catch and return meaningful errors
 - **Test independently** - Functions should be testable in isolation
 - **Document thoroughly** - Clear descriptions help agents use tools effectively
+- **Design for composability** - When tools form a pipeline, align return types with downstream input types
 
 </SkillRule>

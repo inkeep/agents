@@ -8,7 +8,7 @@ const ISSUER = 'inkeep-auth';
 const AUDIENCE = 'inkeep-api';
 const TOKEN_USE = 'slackUser';
 const ACTOR_SUB = 'inkeep-work-app-slack';
-const TOKEN_TTL = '5m';
+const TOKEN_TTL = '1h';
 
 /**
  * Zod schema for validating Slack user access token JWT payload.

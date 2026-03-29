@@ -2,13 +2,14 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ApiProvider } from '@nangohq/types';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import NextLink from 'next/link';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { ProviderIcon } from '@/components/icons/provider-icon';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
@@ -18,8 +19,10 @@ interface GenericAuthFormProps {
   provider: ApiProvider;
   backLink: string;
   onSubmit: (credentials: Record<string, any>) => void;
+  onCancel?: () => void;
   loading?: boolean;
   className?: string;
+  mode?: 'create' | 'update';
 }
 
 /**
@@ -30,28 +33,26 @@ function createFormSchema(formConfig: NonNullable<ReturnType<typeof getFormConfi
   const schemaObject: Record<string, z.ZodTypeAny> = {};
 
   for (const field of allFields) {
-    let fieldSchema: z.ZodTypeAny = z.string();
+    let fieldSchema: z.ZodTypeAny;
 
-    // Apply custom validation if provided
+    if (field.required) {
+      fieldSchema = z.string().min(1, `${field.label} is required`);
+    } else {
+      fieldSchema = z.string().optional().or(z.literal(''));
+    }
+
     if (field.validate) {
       fieldSchema = fieldSchema.refine(
         (value: unknown) => {
           const stringValue = String(value || '');
-          if (!stringValue && !field.required) return true; // Allow empty for non-required fields
-          const error = field.validate ? field.validate(stringValue) : undefined;
+          if (!stringValue && !field.required) return true;
+          const error = field.validate?.(stringValue);
           return !error;
         },
         {
           message: `Invalid ${field.label.toLowerCase()}`,
         }
       );
-    }
-
-    // Handle required vs optional fields
-    if (field.required) {
-      fieldSchema = z.string().min(1, `${field.label} is required`);
-    } else {
-      fieldSchema = z.string().optional().or(z.literal(''));
     }
 
     schemaObject[field.key] = fieldSchema;
@@ -64,8 +65,10 @@ export function GenericAuthForm({
   provider,
   backLink,
   onSubmit,
+  onCancel,
   loading = false,
   className,
+  mode = 'create',
 }: GenericAuthFormProps) {
   const formConfig = getFormConfig(provider.auth_mode);
 
@@ -173,13 +176,27 @@ export function GenericAuthForm({
         <div className="flex items-center gap-3">
           <ProviderIcon provider={provider.name} size={24} />
           <div>
-            <h1 className="text-lg font-medium">Setup {provider.display_name || provider.name}</h1>
+            <h1 className="text-lg font-medium">
+              {mode === 'update' ? 'Update' : 'Setup'} {provider.display_name || provider.name}
+            </h1>
             <p className="text-muted-foreground">
-              Complete the required fields to set up this credential.
+              {mode === 'update'
+                ? 'Update the app credentials for this provider.'
+                : 'Complete the required fields to set up this credential.'}
             </p>
           </div>
         </div>
       </div>
+
+      {mode === 'update' && (
+        <Alert variant="warning">
+          <TriangleAlert className="h-4 w-4" />
+          <AlertDescription>
+            Updating the Client ID or Client Secret will invalidate token refreshes for all existing
+            connections using this OAuth app. Affected users will need to re-authenticate.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
@@ -187,11 +204,23 @@ export function GenericAuthForm({
 
           <div className="flex gap-3">
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating Credential...' : 'Create Credential'}
+              {loading
+                ? mode === 'update'
+                  ? 'Updating...'
+                  : 'Creating Credential...'
+                : mode === 'update'
+                  ? 'Update Credentials'
+                  : 'Create Credential'}
             </Button>
-            <Button type="button" variant="outline" asChild disabled={loading}>
-              <NextLink href={backLink}>Cancel</NextLink>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+                Cancel
+              </Button>
+            ) : (
+              <Button type="button" variant="outline" asChild disabled={loading}>
+                <NextLink href={backLink}>Cancel</NextLink>
+              </Button>
+            )}
           </div>
         </form>
       </Form>

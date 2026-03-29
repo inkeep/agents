@@ -14,6 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
 export function GenericPromptEditor<
@@ -28,17 +29,23 @@ export function GenericPromptEditor<
   label,
   className,
   placeholder,
+  readOnly,
   ...props
 }: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
   className?: string;
   placeholder: string;
+  readOnly?: boolean;
   uri?: ComponentProps<typeof PromptEditor>['uri'];
 }) {
   'use memo';
   const [open, onOpenChange] = useState(false);
   const $uri = props.uri ?? `${name}.template`;
   const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
+  const { getEditorByUri } = useMonacoActions();
 
+  function focusEditor() {
+    getEditorByUri(uri)?.focus();
+  }
   return (
     <FormField
       control={control}
@@ -47,10 +54,10 @@ export function GenericPromptEditor<
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <div className="flex">
-              <FormLabel isRequired={isRequired} className="inline-flex grow">
+              <FormLabel isRequired={isRequired} className="inline-flex grow" onClick={focusEditor}>
                 {label}
               </FormLabel>
-              {uri.endsWith('.template') && <AddVariableAction uri={uri} />}
+              {uri.endsWith('.template') && !readOnly && <AddVariableAction uri={uri} />}
               {!open && <Editor.DialogTrigger />}
             </div>
             <FormControl>
@@ -60,7 +67,7 @@ export function GenericPromptEditor<
                 className={cn(!open && 'max-h-96', 'min-h-16', className)}
                 hasDynamicHeight={!open}
                 placeholder={placeholder}
-                // aria-labelledby={id}
+                readOnly={readOnly}
                 {...field}
               />
             </FormControl>

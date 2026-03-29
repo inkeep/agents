@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for trigger generator
  */
@@ -88,7 +87,7 @@ describe('Trigger Generator', () => {
       const triggerId = 'github-webhook';
       const definition = generateTriggerDefinition({ triggerId, ...basicTriggerData });
 
-      expect(definition).toContain('export const githubWebhook = new Trigger({');
+      expect(definition).toContain('export const githubWebhookTrigger = new Trigger({');
       expect(definition).toContain("id: 'github-webhook',");
       expect(definition).toContain("name: 'GitHub Webhook',");
       expect(definition).toContain("messageTemplate: 'New event from GitHub: {{body.action}}'");
@@ -105,7 +104,9 @@ describe('Trigger Generator', () => {
         ...triggerWithSignatureVerification,
       });
 
-      expect(definition).toContain('export const githubWebhook = new Trigger({');
+      expect(definition).toContain(
+        'export const githubWebhookWithSignatureTrigger = new Trigger({'
+      );
       expect(definition).toContain('signatureVerification: {');
       expect(definition).toContain("algorithm: 'sha256',");
       expect(definition).toContain("encoding: 'hex',");
@@ -247,6 +248,52 @@ describe('Trigger Generator', () => {
           // No registry provided
         });
       }).toThrow('Registry is required for signingSecretCredentialReferenceId generation');
+    });
+
+    it('should accept null fields and omit them from generated output', async () => {
+      const triggerId = 'nullable-fields';
+      const definition = generateTriggerDefinition({
+        triggerId,
+        name: 'Nullable Trigger',
+        description: null,
+        messageTemplate: null,
+        outputTransform: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+      });
+
+      expect(definition).toContain("id: 'nullable-fields',");
+      expect(definition).toContain("name: 'Nullable Trigger',");
+      expect(definition).not.toContain('description:');
+      expect(definition).not.toContain('messageTemplate:');
+      expect(definition).not.toContain('outputTransform:');
+      expect(definition).not.toContain('authentication:');
+      expect(definition).not.toContain('signatureVerification:');
+      await expectSnapshots(definition);
+    });
+
+    it('should accept a mix of null and defined fields', async () => {
+      const triggerId = 'mixed-nullable';
+      const definition = generateTriggerDefinition({
+        triggerId,
+        name: 'Mixed Trigger',
+        description: null,
+        messageTemplate: 'Event received: {{body.type}}',
+        outputTransform: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+      });
+
+      expect(definition).toContain("name: 'Mixed Trigger',");
+      expect(definition).toContain("messageTemplate: 'Event received: {{body.type}}'");
+      expect(definition).not.toContain('description:');
+      expect(definition).not.toContain('outputTransform:');
+      expect(definition).not.toContain('authentication:');
+      expect(definition).not.toContain('signatureVerification:');
+      expect(definition).not.toContain('signingSecretCredentialReference:');
+      await expectSnapshots(definition);
     });
   });
 });

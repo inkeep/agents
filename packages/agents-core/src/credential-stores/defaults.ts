@@ -1,5 +1,6 @@
 import type { CredentialStore } from '../types/server';
-import { DEFAULT_NANGO_STORE_ID } from './default-constants';
+import { ComposioCredentialStore } from './composio-store';
+import { DEFAULT_COMPOSIO_STORE_ID, DEFAULT_NANGO_STORE_ID } from './default-constants';
 import { createKeyChainStore } from './keychain-store';
 import { InMemoryCredentialStore } from './memory-store';
 import { createNangoCredentialStore } from './nango-store';
@@ -21,6 +22,10 @@ export function createDefaultCredentialStores(): CredentialStore[] {
         secretKey: process.env.NANGO_SECRET_KEY,
       })
     );
+  }
+
+  if (process.env.COMPOSIO_API_KEY) {
+    stores.push(new ComposioCredentialStore(DEFAULT_COMPOSIO_STORE_ID));
   }
 
   try {

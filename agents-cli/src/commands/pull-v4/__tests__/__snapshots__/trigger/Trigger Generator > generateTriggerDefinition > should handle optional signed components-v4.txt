@@ -1,9 +1,10 @@
 import { Trigger } from '@inkeep/agents-sdk';
 import { githubWebhookSecret } from '../../credentials/github-webhook-secret';
 
-export const webhookOptional = new Trigger({
+export const githubWebhookWithSignatureTrigger = new Trigger({
   id: 'webhook-optional',
   name: 'GitHub Webhook with Signature',
+  enabled: true,
   messageTemplate: 'New push event from GitHub',
   signatureVerification: {
     algorithm: 'sha256',

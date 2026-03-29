@@ -10,7 +10,7 @@ import { registerAuthzMeta } from './authz-meta';
  * auth requirement.
  *
  * Use this when the route lives under a path that already has
- * middleware applied (e.g. `/manage/tenants/*` has `manageApiKeyOrSessionAuth`).
+ * middleware applied (e.g. `/manage/tenants/*` has `manageBearerOrSessionAuth`).
  */
 export const inheritedAuth = (meta: {
   resource?: string;
@@ -26,7 +26,7 @@ export const inheritedAuth = (meta: {
 
 /**
  * Marker for routes under `/manage/tenants/*` whose auth is handled
- * by `manageApiKeyOrSessionAuth()` in createApp.ts.
+ * by `manageBearerOrSessionAuth()` in createApp.ts.
  *
  * No auth check runs at the route level — this is purely for OpenAPI documentation.
  */
@@ -35,7 +35,7 @@ export const inheritedManageTenantAuth = () =>
     resource: 'organization',
     permission: 'member',
     description:
-      'Requires organization membership. Auth is enforced by the manageApiKeyOrSessionAuth middleware in createApp.ts.',
+      'Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.',
   });
 
 /**

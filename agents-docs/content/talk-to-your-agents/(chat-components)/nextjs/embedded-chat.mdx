@@ -1,5 +1,6 @@
 ---
-title: Embedded Chat
+title: Embedded Chat for Next.js
+sidebarTitle: Embedded Chat
 description: Integrate Inkeep's embedded chat component in Next.js with App Router and dynamic import.
 icon: LuMonitor
 ---
@@ -15,15 +16,15 @@ The InkeepEmbeddedChat component provides a fully embedded chat interface. In Ne
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/agents-ui
+npm install @inkeep/agents-ui-cloud
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/agents-ui
+yarn add @inkeep/agents-ui-cloud
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/agents-ui
+pnpm add @inkeep/agents-ui-cloud
 ```
 
 </CodeGroup>
@@ -39,17 +40,17 @@ pnpm add @inkeep/agents-ui
     'use client';
 
     import dynamic from 'next/dynamic';
-    import type { InkeepEmbeddedChatProps } from '@inkeep/agents-ui';
+    import type { InkeepEmbeddedChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepEmbeddedChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepEmbeddedChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepEmbeddedChat),
       { ssr: false },
     );
 
     const embeddedChatProps: InkeepEmbeddedChatProps = {
       aiChatSettings: {
-        agentUrl: 'https://your-api.example.com/run/api/chat',
-        apiKey: process.env.NEXT_PUBLIC_INKEEP_API_KEY,
+        baseUrl: "https://your-api.example.com",
+        appId: process.env.NEXT_PUBLIC_INKEEP_APP_ID, // Your app ID
       },
     };
 
@@ -74,21 +75,17 @@ pnpm add @inkeep/agents-ui
     'use client';
 
     import dynamic from 'next/dynamic';
-    import type { InkeepEmbeddedChatProps } from '@inkeep/agents-ui';
+    import type { InkeepEmbeddedChatProps } from '@inkeep/agents-ui-cloud';
 
     const InkeepEmbeddedChat = dynamic(
-      () => import('@inkeep/agents-ui').then((mod) => mod.InkeepEmbeddedChat),
+      () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepEmbeddedChat),
       { ssr: false },
     );
 
     const embeddedChatProps: InkeepEmbeddedChatProps = {
       aiChatSettings: {
-        agentUrl: 'http://localhost:3002/run/api/chat',
-        headers: {
-          'x-inkeep-tenant-id': 'your-tenant-id',
-          'x-inkeep-project-id': 'your-project-id',
-          'x-inkeep-agent-id': 'your-agent-id',
-        },
+        baseUrl: 'http://localhost:3003',
+        appId: 'YOUR_APP_ID',
       },
     };
 

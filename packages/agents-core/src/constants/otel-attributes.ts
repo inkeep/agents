@@ -17,6 +17,7 @@ export const SPAN_NAMES = {
   TOOL_APPROVAL_DENIED: 'tool.approval_denied',
   COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
+  STREAM_FORCE_CLEANUP: 'stream.force_cleanup',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -58,7 +59,16 @@ export const SPAN_KEYS = {
   AI_TELEMETRY_SUB_AGENT_ID: 'ai.telemetry.metadata.subAgentId',
   AI_TELEMETRY_SUB_AGENT_NAME: 'ai.telemetry.metadata.subAgentName',
   AI_TELEMETRY_METADATA_PHASE: 'ai.telemetry.metadata.phase',
+  AI_TELEMETRY_GENERATION_TYPE: 'ai.telemetry.metadata.generationType',
+  AI_TELEMETRY_TENANT_ID: 'ai.telemetry.metadata.tenantId',
+  AI_TELEMETRY_PROJECT_ID: 'ai.telemetry.metadata.projectId',
+  AI_TELEMETRY_AGENT_ID: 'ai.telemetry.metadata.agentId',
+  AI_TELEMETRY_CONVERSATION_ID: 'ai.telemetry.metadata.conversationId',
+  AI_TELEMETRY_SESSION_ID: 'ai.telemetry.metadata.sessionId',
   AI_MODEL_ID: 'ai.model.id',
+  AI_RESPONSE_FINISH_REASON: 'ai.response.finishReason',
+  AI_USAGE_PROMPT_TOKENS: 'ai.usage.promptTokens',
+  AI_USAGE_COMPLETION_TOKENS: 'ai.usage.completionTokens',
 
   // Tool attributes
   AI_TOOL_CALL_NAME: 'ai.toolCall.name',
@@ -76,6 +86,7 @@ export const SPAN_KEYS = {
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
+  GEN_AI_COST_ESTIMATED_USD: 'gen_ai.cost.estimated_usd',
 
   // Context attributes
   CONTEXT_URL: 'context.url',
@@ -109,6 +120,7 @@ export const SPAN_KEYS = {
 
   // Trigger/Invocation attributes
   INVOCATION_TYPE: 'invocation.type',
+  INVOCATION_ENTRY_POINT: 'invocation.entryPoint',
   TRIGGER_ID: 'trigger.id',
   TRIGGER_INVOCATION_ID: 'trigger.invocation.id',
 
@@ -137,9 +149,44 @@ export const SPAN_KEYS = {
   CONTEXT_BREAKDOWN_THINKING_PREPARATION: 'context.breakdown.thinking_preparation_tokens',
   CONTEXT_BREAKDOWN_CONVERSATION_HISTORY: 'context.breakdown.conversation_history_tokens',
   CONTEXT_BREAKDOWN_TOTAL: 'context.breakdown.total_tokens',
+  CONTEXT_BREAKDOWN_ACTUAL_INPUT_TOKENS: 'context.breakdown.actual_input_tokens',
+
+  // Compression telemetry
+  COMPRESSION_TYPE: 'compression.type',
+  COMPRESSION_SESSION_ID: 'compression.session_id',
+  COMPRESSION_MESSAGE_COUNT: 'compression.message_count',
+  COMPRESSION_BASE_CONTEXT_TOKENS: 'compression.base_context_tokens',
+  COMPRESSION_GENERATED_TOKENS: 'compression.generated_tokens',
+  COMPRESSION_TOTAL_CONTEXT_TOKENS: 'compression.total_context_tokens',
+  COMPRESSION_HARD_LIMIT: 'compression.hard_limit',
+  COMPRESSION_TRIGGER_AT: 'compression.trigger_at',
+  COMPRESSION_SAFETY_BUFFER: 'compression.safety_buffer',
+  COMPRESSION_OVERAGE: 'compression.overage',
+  COMPRESSION_SUCCESS: 'compression.success',
+  COMPRESSION_ERROR: 'compression.error',
+  COMPRESSION_RESULT_ARTIFACT_COUNT: 'compression.result.artifact_count',
+  COMPRESSION_RESULT_ARTIFACT_IDS: 'compression.result.artifact_ids',
+  COMPRESSION_RESULT_OUTPUT_TOKENS: 'compression.result.output_tokens',
+  COMPRESSION_RESULT_COMPRESSION_RATIO: 'compression.result.compression_ratio',
+  COMPRESSION_RESULT_HIGH_LEVEL: 'compression.result.high_level',
+  COMPRESSION_RESULT_USER_INTENT: 'compression.result.user_intent',
+  COMPRESSION_RESULT_DECISIONS_COUNT: 'compression.result.decisions_count',
+  COMPRESSION_RESULT_NEXT_STEPS_FOR_AGENT_COUNT: 'compression.result.next_steps_for_agent_count',
+  COMPRESSION_RESULT_OPEN_QUESTIONS_COUNT: 'compression.result.open_questions_count',
+  COMPRESSION_RESULT_RELATED_ARTIFACT_COUNT: 'compression.result.related_artifact_count',
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
   AGENT_STEPS_COMPLETED: 'agent.steps_completed',
   AGENT_MAX_STEPS: 'agent.max_steps',
+
+  // Generation timeout attributes
+  GENERATION_TIMEOUT_MS: 'generation.timeout_ms',
+
+  // Stream lifetime attributes
+  STREAM_CLEANUP_REASON: 'stream.cleanup.reason',
+  STREAM_MAX_LIFETIME_MS: 'stream.max_lifetime_ms',
+  STREAM_BUFFER_SIZE_BYTES: 'stream.buffer_size_bytes',
+  STREAM_SENT_ITEMS_COUNT: 'stream.sent_items_count',
+  STREAM_COMPLETED_ITEMS_COUNT: 'stream.completed_items_count',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;
@@ -159,6 +206,7 @@ export const ACTIVITY_TYPES = {
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
   COMPRESSION: 'compression',
   MAX_STEPS_REACHED: 'max_steps_reached',
+  STREAM_LIFETIME_EXCEEDED: 'stream_lifetime_exceeded',
 } as const;
 
 /** Activity Status Values */
@@ -168,6 +216,21 @@ export const ACTIVITY_STATUS = {
   PENDING: 'pending',
   WARNING: 'warning',
 } as const;
+
+/** Generation type constants for usage tracking telemetry */
+export const GENERATION_TYPES = {
+  SUB_AGENT_GENERATION: 'sub_agent_generation',
+  CONVERSATION_COMPRESSION: 'conversation_compression',
+  MID_GENERATION_COMPRESSION: 'mid_generation_compression',
+  ARTIFACT_METADATA: 'artifact_metadata',
+  STATUS_UPDATE: 'status_update',
+  EVAL_SIMULATION: 'eval_simulation',
+  EVAL_SCORING: 'eval_scoring',
+  COMPONENT_RENDER: 'component_render',
+} as const;
+
+/** Valid generation types for usage tracking */
+export const USAGE_GENERATION_TYPES = Object.values(GENERATION_TYPES);
 
 /** Agent IDs */
 export const AGENT_IDS = {

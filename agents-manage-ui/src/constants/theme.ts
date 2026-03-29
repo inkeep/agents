@@ -3,6 +3,7 @@ export const MONACO_THEME_NAME = Object.freeze({
   dark: 'inkeep-dark',
 });
 export const INKEEP_BRAND_COLOR = '#3784ff';
+export const SLACK_BRAND_COLOR = '#4A154B';
 export const DOCS_BASE_URL = 'https://docs.inkeep.com';
 export const TEMPLATE_LANGUAGE = 'template';
 export const VARIABLE_TOKEN = 'variable';
@@ -17,7 +18,8 @@ export const STATIC_LABELS = Object.freeze({
   projects: 'Projects',
   stats: 'Statistics',
   agents: 'Agents',
-  'api-keys': 'API Keys',
+  apps: 'Apps',
+  'api-keys': 'API Keys (Deprecated)',
   artifacts: 'Artifacts',
   settings: 'Settings',
   traces: 'Traces',
@@ -47,4 +49,5 @@ export const STATIC_LABELS = Object.freeze({
   github: 'GitHub',
   'no-organization-found': 'No organization found',
   skills: 'Skills',
+  profile: 'Profile',
 });

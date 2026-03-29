@@ -1,70 +1,65 @@
+import { join } from 'node:path';
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
+import { collectReferencedSubAgentComponentIds } from '../collector-common';
+import type { GenerationTask } from '../generation-types';
+import { generateFactorySourceFile } from '../simple-factory-generator';
 import {
   addStringProperty,
   addValueToObject,
+  buildComponentFileName,
+  codeExpression,
   convertJsonSchemaToZodSafe,
-  createFactoryDefinition,
   toCamelCase,
 } from '../utils';
 
-interface DataComponentDefinitionData {
-  dataComponentId: string;
-  name: string;
-  description?: string | null;
-  props?: unknown;
-  schema?: unknown;
-  render?: {
-    component?: string;
-    mockData?: Record<string, unknown>;
-  } | null;
-}
-
-const DataComponentSchema = z.object({
-  dataComponentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().nullable().optional(),
-  props: z.unknown().optional(),
-  schema: z.unknown().optional(),
-  render: z
-    .looseObject({
-      component: z.string().optional(),
-      mockData: z.looseObject({}).optional(),
-    })
-    .nullable()
-    .optional(),
+const MySchema = FullProjectDefinitionSchema.shape.dataComponents.unwrap().valueType.omit({
+  id: true,
 });
 
-type ParsedDataComponentDefinitionData = z.infer<typeof DataComponentSchema>;
+const DataComponentSchema = z.strictObject({
+  dataComponentId: z.string().nonempty(),
+  ...MySchema.shape,
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  // Each property must have a "description" for LLM compatibility
+  props: z.unknown(),
+});
 
-export function generateDataComponentDefinition(data: DataComponentDefinitionData): SourceFile {
-  const result = DataComponentSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for data component:\n${z.prettifyError(result.error)}`);
-  }
+type DataComponentInput = z.input<typeof DataComponentSchema>;
+type DataComponentOutput = z.output<typeof DataComponentSchema>;
 
-  const parsed = result.data;
-  const props = parsed.props !== undefined ? parsed.props : parsed.schema;
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'dataComponent',
-    variableName: toCamelCase(parsed.dataComponentId),
+export function generateDataComponentDefinition({
+  tenantId,
+  id,
+  projectId,
+  createdAt,
+  updatedAt,
+  ...data
+}: DataComponentInput & Record<string, unknown>): SourceFile {
+  return generateFactorySourceFile(data, {
+    schema: DataComponentSchema,
+    factory: {
+      importName: 'dataComponent',
+      variableName: (parsed) => toCamelCase(parsed.dataComponentId),
+    },
+    render({ parsed, sourceFile, configObject }) {
+      const props = parsed.props;
+      if (props !== undefined) {
+        sourceFile.addImportDeclaration({
+          namedImports: ['z'],
+          moduleSpecifier: 'zod',
+        });
+      }
+
+      writeDataComponentConfig(configObject, parsed, props);
+    },
   });
-
-  if (props !== undefined) {
-    sourceFile.addImportDeclaration({
-      namedImports: ['z'],
-      moduleSpecifier: 'zod',
-    });
-  }
-
-  writeDataComponentConfig(configObject, parsed, props);
-
-  return sourceFile;
 }
 
 function writeDataComponentConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedDataComponentDefinitionData,
+  data: DataComponentOutput,
   props: unknown
 ): void {
   addStringProperty(configObject, 'id', data.dataComponentId);
@@ -75,10 +70,7 @@ function writeDataComponentConfig(
   }
 
   if (props !== undefined) {
-    configObject.addPropertyAssignment({
-      name: 'props',
-      initializer: convertJsonSchemaToZodSafe(props),
-    });
+    addValueToObject(configObject, 'props', codeExpression(convertJsonSchemaToZodSafe(props)));
   }
 
   if (data.render) {
@@ -88,7 +80,7 @@ function writeDataComponentConfig(
 
 function addRenderProperty(
   configObject: ObjectLiteralExpression,
-  render: NonNullable<ParsedDataComponentDefinitionData['render']>
+  render: NonNullable<DataComponentOutput['render']>
 ): void {
   if (render.component) {
     addValueToObject(configObject, 'render', {
@@ -97,3 +89,61 @@ function addRenderProperty(
     });
   }
 }
+
+export const task = {
+  type: 'data-component',
+  collect(context) {
+    const recordsByDataComponentId = new Map<
+      string,
+      ReturnType<
+        GenerationTask<Parameters<typeof generateDataComponentDefinition>[0]>['collect']
+      >[number]
+    >();
+
+    for (const [dataComponentId, dataComponent] of Object.entries(
+      context.project.dataComponents ?? {}
+    )) {
+      recordsByDataComponentId.set(dataComponentId, {
+        id: dataComponentId,
+        filePath: context.resolver.resolveOutputFilePath(
+          'dataComponents',
+          dataComponentId,
+          join(
+            context.paths.dataComponentsDir,
+            buildComponentFileName(dataComponentId, dataComponent.name ?? undefined)
+          )
+        ),
+        payload: {
+          dataComponentId,
+          ...dataComponent,
+        } as Parameters<typeof generateDataComponentDefinition>[0],
+      });
+    }
+
+    for (const dataComponentId of collectReferencedSubAgentComponentIds(
+      context,
+      'dataComponents'
+    )) {
+      if (recordsByDataComponentId.has(dataComponentId)) {
+        continue;
+      }
+
+      recordsByDataComponentId.set(dataComponentId, {
+        id: dataComponentId,
+        filePath: context.resolver.resolveOutputFilePath(
+          'dataComponents',
+          dataComponentId,
+          join(context.paths.dataComponentsDir, `${dataComponentId}.ts`)
+        ),
+        payload: {
+          dataComponentId,
+          name: dataComponentId,
+          props: { type: 'object', properties: {} },
+        } as Parameters<typeof generateDataComponentDefinition>[0],
+      });
+    }
+
+    return [...recordsByDataComponentId.values()];
+  },
+  generate: generateDataComponentDefinition,
+} satisfies GenerationTask<Parameters<typeof generateDataComponentDefinition>[0]>;

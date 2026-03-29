@@ -2,7 +2,12 @@ Index: index.ts
 ===================================================================
 --- index.ts	before
 +++ index.ts	after
-@@ -7,7 +7,7 @@
+@@ -4,11 +4,11 @@
+ import { customerProfile } from './data-components/customer-profile';
+ import { ticketSummary } from './artifact-components/ticket-summary';
+ // biome-ignore lint/correctness/noUnusedImports: ignore in snapshot
+-import { apiCredentials } from './credentials/api-credentials';
++import { apiCredentials, apiCredentialsCredential } from './credentials/api-credentials';
  
  export const supportProject = project({
    id: 'support-project',
@@ -11,3 +16,10 @@ Index: index.ts
    description: 'Support project for introspect v4 tests',
    agents: () => [supportAgent],
    skills: () => loadSkills(path.join('support-project', 'skills')),
+@@ -19,5 +19,5 @@
+   },
+   dataComponents: () => [customerProfile],
+   artifactComponents: () => [ticketSummary],
+-  credentialReferences: () => [apiCredentials]
++  credentialReferences: () => [apiCredentialsCredential]
+ });

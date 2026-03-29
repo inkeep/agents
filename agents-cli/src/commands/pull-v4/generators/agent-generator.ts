@@ -1,490 +1,422 @@
-import { type ObjectLiteralExpression, type SourceFile, SyntaxKind } from 'ts-morph';
+import { join } from 'node:path';
+import { AgentWithinContextOfProjectSchemaBase } from '@inkeep/agents-core';
+import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
+import { asRecord, collectTemplateVariablesFromValues } from '../collector-common';
 import {
-  addObjectEntries,
-  addReferenceGetterProperty,
-  addStringProperty,
-  collectTemplateVariableNames as collectTemplateVariableNamesFromString,
-  createFactoryDefinition,
-  createUniqueReferenceName,
-  formatStringLiteral,
+  collectContextTemplateReferences,
+  collectSubAgentReferenceOverrides,
+  collectSubAgentReferencePathOverrides,
+} from '../collector-reference-helpers';
+import type { GenerationTask } from '../generation-types';
+import {
+  addResolvedReferenceImports,
+  resolveReferenceBinding,
+  resolveReferenceBindingsFromIds,
+  toReferenceNameMap,
+} from '../reference-resolution';
+import { generateFactorySourceFile } from '../simple-factory-generator';
+import {
+  addValueToObject,
+  buildComponentFileName,
+  codePropertyAccess,
+  codeReference,
+  createReferenceGetterValue,
   formatTemplate,
   isPlainObject,
   toCamelCase,
+  toTriggerReferenceName,
 } from '../utils';
+import {
+  addScheduledTriggerImports,
+  addStatusComponentImports,
+  addTriggerImports,
+  createReferenceNameMap,
+  createScheduledTriggerReferenceMaps,
+  createTriggerReferenceMaps,
+  extractIds,
+  type ReferenceNameMap,
+} from './helpers/agent';
 
 const SubAgentReferenceSchema = z.object({
   name: z.string().nonempty(),
   local: z.boolean().optional(),
 });
 
-const AgentSchema = z.looseObject({
+const MySchema = AgentWithinContextOfProjectSchemaBase.omit({
+  id: true,
+});
+
+const SubAgentSchema = MySchema.shape.subAgents.valueType.omit({
+  // Invalid input: expected "internal"
+  type: true,
+});
+
+const ToolSchema = MySchema.shape.tools.unwrap().valueType;
+
+const BaseAgentSchema = z.strictObject({
   agentId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().nullish(),
-  prompt: z.string().optional(),
-  models: z.looseObject({}).optional(),
-  defaultSubAgentId: z.string().nonempty(),
-  subAgents: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]),
-  contextConfig: z.union([z.string(), z.looseObject({ id: z.string().optional() })]).optional(),
-  stopWhen: z
-    .object({
-      transferCountIs: z.int().optional(),
+  ...MySchema.shape,
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  models: z.preprocess((v) => v ?? undefined, MySchema.shape.models),
+  stopWhen: z.preprocess(
+    (v) => (v && Object.keys(v).length && v) || undefined,
+    MySchema.shape.stopWhen
+  ),
+  subAgents: z.record(
+    z.string(),
+    z.strictObject({
+      ...SubAgentSchema.shape,
+      models: z.preprocess((v) => v ?? undefined, SubAgentSchema.shape.models),
+      stopWhen: z.preprocess((v) => v ?? undefined, SubAgentSchema.shape.stopWhen),
+      // Unrecognized keys: "name", "description", "content", "metadata", "subAgentSkillId", "subAgentId", "createdAt", "updatedAt"
+      skills: z.unknown(),
+      // Invalid input
+      canDelegateTo: z.unknown(),
     })
+  ),
+  tools: z
+    .record(
+      z.string(),
+      z.strictObject({
+        ...ToolSchema.shape,
+        // Invalid input: expected string, received null
+        imageUrl: z.preprocess((v) => v ?? undefined, ToolSchema.shape.imageUrl),
+      })
+    )
     .optional(),
-  statusUpdates: z
-    .strictObject({
-      numEvents: z.int().optional(),
-      timeInSeconds: z.int().optional(),
-      statusComponents: z
-        .array(
-          z.union([
-            z.string(),
-            z.looseObject({
-              id: z.string().optional(),
-              type: z.string(),
-              name: z.string().optional(),
-            }),
-          ])
-        )
-        .optional(),
-      prompt: z.string().optional(),
-    })
-    .optional(),
-  credentials: z.array(z.union([z.string(), z.strictObject({ id: z.string() })])).optional(),
-  triggers: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
+  // ✖ Invalid input: expected string, received undefined
+  // → at triggers.t546ck7yueh52jils88rm.authentication.headers[0].value
+  triggers: z.record(z.string(), z.unknown()).optional(),
   agentVariableName: z.string().nonempty().optional(),
   subAgentReferences: z.record(z.string(), SubAgentReferenceSchema).optional(),
+  subAgentReferencePathOverrides: z.record(z.string(), z.string().nonempty()).optional(),
   contextConfigReference: SubAgentReferenceSchema.optional(),
   contextConfigHeadersReference: SubAgentReferenceSchema.optional(),
 });
 
-type AgentDefinitionData = z.input<typeof AgentSchema>;
-type ParsedAgentDefinitionData = z.infer<typeof AgentSchema>;
-type ReferenceNameMap = Map<string, string>;
+const AgentSchema = BaseAgentSchema.transform((data) => ({
+  ...data,
+  normalizedContextConfigId: normalizeContextConfigId(data.contextConfig),
+  normalizedStatusComponentIds: normalizeStatusComponentIds(data.statusUpdates?.statusComponents),
+  normalizedStatusComponentSequence: normalizeStatusComponentSequence(
+    data.statusUpdates?.statusComponents
+  ),
+}));
+
+type AgentInput = z.input<typeof AgentSchema>;
+type AgentOutput = z.output<typeof AgentSchema>;
+
+function normalizeContextConfigId(contextConfig: unknown): string | undefined {
+  if (typeof contextConfig === 'string') {
+    return contextConfig;
+  }
+
+  if (isPlainObject(contextConfig) && typeof contextConfig.id === 'string') {
+    return contextConfig.id;
+  }
+
+  return undefined;
+}
+
+function normalizeStatusComponentId(statusComponent: unknown): string | undefined {
+  if (typeof statusComponent === 'string') {
+    return statusComponent;
+  }
+
+  if (!isPlainObject(statusComponent)) {
+    return undefined;
+  }
+
+  if (typeof statusComponent.id === 'string') {
+    return statusComponent.id;
+  }
+
+  if (typeof statusComponent.type === 'string') {
+    return statusComponent.type;
+  }
+
+  return undefined;
+}
+
+function normalizeStatusComponentSequence(statusComponents: unknown[] | undefined): string[] {
+  if (!Array.isArray(statusComponents)) {
+    return [];
+  }
+
+  return statusComponents
+    .map((statusComponent) => normalizeStatusComponentId(statusComponent))
+    .filter((statusComponentId): statusComponentId is string => Boolean(statusComponentId));
+}
+
+function normalizeStatusComponentIds(statusComponents: unknown[] | undefined): string[] {
+  return [...new Set(normalizeStatusComponentSequence(statusComponents))];
+}
 
 interface AgentReferenceNames {
   subAgents: ReferenceNameMap;
   contextConfig?: string;
   contextHeaders?: string;
   triggers: ReferenceNameMap;
+  scheduledTriggers: ReferenceNameMap;
   statusComponents: ReferenceNameMap;
 }
 
-export function generateAgentDefinition(data: AgentDefinitionData): SourceFile {
-  const result = AgentSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for agent:\n${z.prettifyError(result.error)}`);
-  }
-
-  const parsed = result.data;
-
-  const subAgentIds = new Set(extractIds(parsed.subAgents));
-  subAgentIds.add(parsed.defaultSubAgentId);
-  const agentVarName = parsed.agentVariableName || toCamelCase(parsed.agentId);
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'agent',
-    variableName: agentVarName,
-  });
-  const reservedReferenceNames = new Set([agentVarName]);
-  const { referenceNames: subAgentReferenceNames, importNames: subAgentImportNames } =
-    createSubAgentReferenceMaps(
-      subAgentIds,
-      reservedReferenceNames,
-      'SubAgent',
-      parsed.subAgentReferences
-    );
-  addSubAgentImports(sourceFile, subAgentReferenceNames, subAgentImportNames);
-
-  const contextConfigId = extractContextConfigId(parsed.contextConfig);
-  let contextConfigReferenceName: string | undefined;
-  let contextHeadersReferenceName: string | undefined;
-  const promptTemplateVariables = collectTemplateVariableNamesFromFields([
-    parsed.prompt,
-    parsed.statusUpdates?.prompt,
-  ]);
-  const hasHeadersTemplateVariables = promptTemplateVariables.some((variableName) =>
-    variableName.startsWith('headers.')
-  );
-  if (contextConfigId) {
-    const contextConfigImportName =
-      parsed.contextConfigReference?.name ?? toCamelCase(contextConfigId);
-    contextConfigReferenceName = createUniqueReferenceName(
-      contextConfigImportName,
-      reservedReferenceNames,
-      'ContextConfig'
-    );
-    const contextHeadersImportName =
-      parsed.contextConfigHeadersReference?.name ?? `${toCamelCase(contextConfigId)}Headers`;
-    if (hasHeadersTemplateVariables) {
-      contextHeadersReferenceName = createUniqueReferenceName(
-        contextHeadersImportName,
-        reservedReferenceNames,
-        'Headers'
-      );
-    }
-
-    const namedImports: Array<string | { name: string; alias: string }> = [];
-    if (parsed.contextConfigReference?.local !== true) {
-      namedImports.push(
-        contextConfigImportName === contextConfigReferenceName
-          ? contextConfigImportName
-          : { name: contextConfigImportName, alias: contextConfigReferenceName }
-      );
-    }
-    if (
-      hasHeadersTemplateVariables &&
-      contextHeadersReferenceName &&
-      parsed.contextConfigHeadersReference?.local !== true
-    ) {
-      namedImports.push(
-        contextHeadersImportName === contextHeadersReferenceName
-          ? contextHeadersImportName
-          : { name: contextHeadersImportName, alias: contextHeadersReferenceName }
-      );
-    }
-
-    if (namedImports.length > 0) {
-      sourceFile.addImportDeclaration({
-        namedImports,
-        moduleSpecifier: `../context-configs/${contextConfigId}`,
+export function generateAgentDefinition({
+  id,
+  createdAt,
+  updatedAt,
+  ...data
+}: AgentInput & Record<string, unknown>): SourceFile {
+  return generateFactorySourceFile(data, {
+    schema: AgentSchema,
+    factory: {
+      importName: 'agent',
+      variableName: (parsed) => parsed.agentVariableName || toCamelCase(parsed.agentId),
+    },
+    render({ parsed, sourceFile, configObject }) {
+      const subAgentIds = new Set(extractIds(parsed.subAgents));
+      if (parsed.defaultSubAgentId) {
+        subAgentIds.add(parsed.defaultSubAgentId);
+      }
+      const agentVarName = parsed.agentVariableName || toCamelCase(parsed.agentId);
+      const reservedReferenceNames = new Set([agentVarName]);
+      const subAgentReferences = resolveReferenceBindingsFromIds({
+        ids: subAgentIds,
+        reservedNames: reservedReferenceNames,
+        conflictSuffix: 'SubAgent',
+        referenceOverrides: parsed.subAgentReferences,
+        referencePathOverrides: parsed.subAgentReferencePathOverrides,
+        defaultModulePath: (id) => id,
       });
-    }
-  }
+      const subAgentReferenceNames = toReferenceNameMap(subAgentReferences);
+      addResolvedReferenceImports(sourceFile, subAgentReferences, (reference) => {
+        return `./sub-agents/${reference.modulePath}`;
+      });
 
-  const triggerIds = parsed.triggers ? extractIds(parsed.triggers) : [];
-  const triggerReferenceNames = createReferenceNameMap(
-    triggerIds,
-    reservedReferenceNames,
-    'Trigger'
-  );
-  addTriggerImports(sourceFile, triggerReferenceNames);
+      const contextConfigId = parsed.normalizedContextConfigId;
+      let contextConfigReferenceName: string | undefined;
+      let contextHeadersReferenceName: string | undefined;
+      const promptTemplateVariables = collectTemplateVariablesFromValues([
+        parsed.prompt,
+        parsed.statusUpdates?.prompt,
+      ]);
+      const hasHeadersTemplateVariables = promptTemplateVariables.some((variableName) =>
+        variableName.startsWith('headers.')
+      );
+      if (contextConfigId) {
+        const contextConfigReference = resolveReferenceBinding(
+          {
+            id: `${contextConfigId}:context`,
+            importName: parsed.contextConfigReference?.name ?? toCamelCase(contextConfigId),
+            modulePath: contextConfigId,
+            local: parsed.contextConfigReference?.local === true,
+            conflictSuffix: 'ContextConfig',
+          },
+          {
+            reservedNames: reservedReferenceNames,
+          }
+        );
+        contextConfigReferenceName = contextConfigReference.localName;
 
-  const statusComponentReferenceNames = createReferenceNameMap(
-    extractStatusComponentIds(parsed.statusUpdates),
-    reservedReferenceNames,
-    'StatusComponent'
-  );
-  addStatusComponentImports(sourceFile, statusComponentReferenceNames);
+        const contextReferences = [contextConfigReference];
+        if (hasHeadersTemplateVariables) {
+          const headersReference = resolveReferenceBinding(
+            {
+              id: `${contextConfigId}:headers`,
+              importName:
+                parsed.contextConfigHeadersReference?.name ??
+                `${toCamelCase(contextConfigId)}Headers`,
+              modulePath: contextConfigId,
+              local: parsed.contextConfigHeadersReference?.local === true,
+              conflictSuffix: 'Headers',
+            },
+            {
+              reservedNames: reservedReferenceNames,
+            }
+          );
+          contextHeadersReferenceName = headersReference.localName;
+          contextReferences.push(headersReference);
+        }
 
-  writeAgentConfig(configObject, parsed, {
-    subAgents: subAgentReferenceNames,
-    contextConfig: contextConfigReferenceName,
-    contextHeaders: contextHeadersReferenceName,
-    triggers: triggerReferenceNames,
-    statusComponents: statusComponentReferenceNames,
+        addResolvedReferenceImports(sourceFile, contextReferences, () => {
+          return `../context-configs/${contextConfigId}`;
+        });
+      }
+
+      const { referenceNames: triggerReferenceNames, importRefs: triggerImportRefs } =
+        createTriggerReferenceMaps(parsed.triggers, reservedReferenceNames);
+      addTriggerImports(sourceFile, triggerReferenceNames, triggerImportRefs);
+
+      const {
+        referenceNames: scheduledTriggerReferenceNames,
+        importRefs: scheduledTriggerImportRefs,
+      } = createScheduledTriggerReferenceMaps(parsed.scheduledTriggers, reservedReferenceNames);
+      addScheduledTriggerImports(
+        sourceFile,
+        scheduledTriggerReferenceNames,
+        scheduledTriggerImportRefs
+      );
+
+      const statusComponentReferenceNames = createReferenceNameMap(
+        parsed.normalizedStatusComponentIds,
+        reservedReferenceNames,
+        'StatusComponent'
+      );
+      addStatusComponentImports(sourceFile, statusComponentReferenceNames);
+
+      writeAgentConfig(configObject, parsed, {
+        subAgents: subAgentReferenceNames,
+        contextConfig: contextConfigReferenceName,
+        contextHeaders: contextHeadersReferenceName,
+        triggers: triggerReferenceNames,
+        scheduledTriggers: scheduledTriggerReferenceNames,
+        statusComponents: statusComponentReferenceNames,
+      });
+    },
   });
-  return sourceFile;
 }
 
 function writeAgentConfig(
   configObject: ObjectLiteralExpression,
-  data: ParsedAgentDefinitionData,
+  data: AgentOutput,
   referenceNames: AgentReferenceNames
 ) {
-  addStringProperty(configObject, 'id', data.agentId);
-  addStringProperty(configObject, 'name', data.name);
+  const agentConfig: Record<string, unknown> = {
+    id: data.agentId,
+    name: data.name,
+    description: data.description,
+    prompt:
+      data.prompt &&
+      formatTemplate(data.prompt, {
+        contextReference: referenceNames.contextConfig,
+        headersReference: referenceNames.contextHeaders,
+      }),
+    models: data.models,
+    stopWhen: data.stopWhen,
+  };
 
-  if (data.description != null) {
-    addStringProperty(configObject, 'description', data.description);
-  }
-
-  if (data.prompt !== undefined) {
-    const template = formatTemplate(data.prompt, {
-      contextReference: referenceNames.contextConfig,
-      headersReference: referenceNames.contextHeaders,
-    });
-    configObject.addPropertyAssignment({
-      name: 'prompt',
-      initializer: formatStringLiteral(template),
-    });
-  }
-
-  if (data.models && Object.keys(data.models).length > 0) {
-    const modelsProperty = configObject.addPropertyAssignment({
-      name: 'models',
-      initializer: '{}',
-    });
-    const modelsObject = modelsProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
+  const { defaultSubAgentId } = data;
+  if (defaultSubAgentId) {
+    agentConfig.defaultSubAgent = codeReference(
+      referenceNames.subAgents.get(defaultSubAgentId) ?? toCamelCase(defaultSubAgentId)
     );
-    addObjectEntries(modelsObject, data.models);
   }
-
-  configObject.addPropertyAssignment({
-    name: 'defaultSubAgent',
-    initializer:
-      referenceNames.subAgents.get(data.defaultSubAgentId) ?? toCamelCase(data.defaultSubAgentId),
-  });
 
   const subAgentIds = extractIds(data.subAgents);
-  addReferenceGetterProperty(
-    configObject,
-    'subAgents',
+  agentConfig.subAgents = createReferenceGetterValue(
     subAgentIds.map((id) => referenceNames.subAgents.get(id) ?? toCamelCase(id))
   );
 
-  const contextConfigId = extractContextConfigId(data.contextConfig);
+  const contextConfigId = data.normalizedContextConfigId;
   if (contextConfigId && referenceNames.contextConfig) {
-    configObject.addPropertyAssignment({
-      name: 'contextConfig',
-      initializer: referenceNames.contextConfig,
-    });
-  }
-
-  if (data.credentials?.length) {
-    const credentialIds = data.credentials
-      .map((credential) => {
-        if (typeof credential === 'string') {
-          return credential;
-        }
-        return credential.id;
-      })
-      .filter((id): id is string => Boolean(id));
-
-    if (credentialIds.length > 0) {
-      addReferenceGetterProperty(
-        configObject,
-        'credentials',
-        credentialIds.map((id) => toCamelCase(id))
-      );
-    }
+    agentConfig.contextConfig = codeReference(referenceNames.contextConfig);
   }
 
   const triggerIds = data.triggers ? extractIds(data.triggers) : [];
-  if (triggerIds.length > 0) {
-    addReferenceGetterProperty(
-      configObject,
-      'triggers',
-      triggerIds.map((id) => referenceNames.triggers.get(id) ?? toCamelCase(id))
+  if (triggerIds.length) {
+    agentConfig.triggers = createReferenceGetterValue(
+      triggerIds.map((id) => referenceNames.triggers.get(id) ?? toTriggerReferenceName(id))
     );
   }
 
-  if (data.stopWhen?.transferCountIs !== undefined) {
-    const stopWhenProperty = configObject.addPropertyAssignment({
-      name: 'stopWhen',
-      initializer: '{}',
-    });
-    const stopWhenObject = stopWhenProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
+  const scheduledTriggerIds = data.scheduledTriggers ? extractIds(data.scheduledTriggers) : [];
+  if (scheduledTriggerIds.length) {
+    agentConfig.scheduledTriggers = createReferenceGetterValue(
+      scheduledTriggerIds.map(
+        (id) => referenceNames.scheduledTriggers.get(id) ?? toTriggerReferenceName(id)
+      )
     );
-    stopWhenObject.addPropertyAssignment({
-      name: 'transferCountIs',
-      initializer: String(data.stopWhen.transferCountIs),
-    });
   }
 
   if (data.statusUpdates) {
-    const statusUpdatesProperty = configObject.addPropertyAssignment({
-      name: 'statusUpdates',
-      initializer: '{}',
-    });
-    const statusUpdatesObject = statusUpdatesProperty.getInitializerIfKindOrThrow(
-      SyntaxKind.ObjectLiteralExpression
+    const statusComponentRefs = data.normalizedStatusComponentSequence.map((statusComponentId) =>
+      codePropertyAccess(
+        referenceNames.statusComponents.get(statusComponentId) ?? toCamelCase(statusComponentId),
+        'config'
+      )
     );
+    agentConfig.statusUpdates = {
+      numEvents: data.statusUpdates.numEvents,
+      timeInSeconds: data.statusUpdates.timeInSeconds,
+      prompt:
+        data.statusUpdates.prompt &&
+        formatTemplate(data.statusUpdates.prompt, {
+          contextReference: referenceNames.contextConfig,
+          headersReference: referenceNames.contextHeaders,
+        }),
+      ...(statusComponentRefs?.length && { statusComponents: statusComponentRefs }),
+    };
+  }
 
-    if (data.statusUpdates.numEvents !== undefined) {
-      statusUpdatesObject.addPropertyAssignment({
-        name: 'numEvents',
-        initializer: String(data.statusUpdates.numEvents),
-      });
+  for (const [key, value] of Object.entries(agentConfig)) {
+    addValueToObject(configObject, key, value);
+  }
+}
+
+export const task = {
+  type: 'agent',
+  collect(context) {
+    if (!context.project.agents) {
+      return [];
     }
 
-    if (data.statusUpdates.timeInSeconds !== undefined) {
-      statusUpdatesObject.addPropertyAssignment({
-        name: 'timeInSeconds',
-        initializer: String(data.statusUpdates.timeInSeconds),
-      });
-    }
+    const records = [];
+    for (const agentId of context.completeAgentIds) {
+      const agentData = context.project.agents[agentId];
+      if (!agentData) {
+        continue;
+      }
 
-    if (data.statusUpdates.statusComponents && data.statusUpdates.statusComponents.length > 0) {
-      const statusComponentRefs = data.statusUpdates.statusComponents.map(
-        (statusComponent) =>
-          `${referenceNames.statusComponents.get(resolveStatusComponentId(statusComponent)) ?? toCamelCase(resolveStatusComponentId(statusComponent))}.config`
+      const agentName = typeof agentData.name === 'string' ? agentData.name : undefined;
+      const agentFilePath = context.resolver.resolveOutputFilePath(
+        'agents',
+        agentId,
+        join(context.paths.agentsDir, buildComponentFileName(agentId, agentName))
+      );
+      const existingAgent = context.resolver.getExistingComponent(agentId, 'agents');
+      const subAgentReferences = collectSubAgentReferenceOverrides(
+        context,
+        agentData,
+        agentFilePath
+      );
+      const subAgentReferencePathOverrides = collectSubAgentReferencePathOverrides(
+        context,
+        agentData
+      );
+      const statusUpdates = asRecord(agentData.statusUpdates);
+      const contextTemplateReferences = collectContextTemplateReferences(
+        context,
+        agentData,
+        agentFilePath,
+        [
+          typeof agentData.prompt === 'string' ? agentData.prompt : undefined,
+          typeof statusUpdates?.prompt === 'string' ? statusUpdates.prompt : undefined,
+        ]
       );
 
-      if (statusComponentRefs.length > 0) {
-        const statusComponentsProperty = statusUpdatesObject.addPropertyAssignment({
-          name: 'statusComponents',
-          initializer: '[]',
-        });
-        const statusComponentsArray = statusComponentsProperty.getInitializerIfKindOrThrow(
-          SyntaxKind.ArrayLiteralExpression
-        );
-        statusComponentsArray.addElements(statusComponentRefs);
-      }
-    }
-
-    if (data.statusUpdates.prompt !== undefined) {
-      const template = formatTemplate(data.statusUpdates.prompt, {
-        contextReference: referenceNames.contextConfig,
-        headersReference: referenceNames.contextHeaders,
-      });
-      statusUpdatesObject.addPropertyAssignment({
-        name: 'prompt',
-        initializer: formatStringLiteral(template),
+      records.push({
+        id: agentId,
+        filePath: agentFilePath,
+        payload: {
+          agentId,
+          ...agentData,
+          ...(existingAgent?.name?.length && { agentVariableName: existingAgent.name }),
+          ...(Object.keys(subAgentReferences).length && { subAgentReferences }),
+          ...(Object.keys(subAgentReferencePathOverrides).length && {
+            subAgentReferencePathOverrides,
+          }),
+          ...(contextTemplateReferences && {
+            contextConfigReference: contextTemplateReferences.contextConfigReference,
+          }),
+          ...(contextTemplateReferences?.contextConfigHeadersReference && {
+            contextConfigHeadersReference: contextTemplateReferences.contextConfigHeadersReference,
+          }),
+        } as Parameters<typeof generateAgentDefinition>[0],
       });
     }
-  }
-}
 
-function collectTemplateVariableNamesFromFields(values: Array<string | undefined>): string[] {
-  const variables: string[] = [];
-  for (const value of values) {
-    if (typeof value !== 'string') {
-      continue;
-    }
-    variables.push(...collectTemplateVariableNamesFromString(value));
-  }
-  return variables;
-}
-
-function extractIds(value: string[] | Record<string, unknown>): string[] {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => {
-        if (typeof item === 'string') {
-          return item;
-        }
-        // @ts-expect-error -- fixme
-        if (isPlainObject(item) && typeof item.id === 'string') {
-          // @ts-expect-error -- fixme
-          return item.id;
-        }
-        return null;
-      })
-      .filter((id) => !!id);
-  }
-  return Object.keys(value);
-}
-
-function extractContextConfigId(contextConfig?: string | { id?: string }): string | undefined {
-  if (!contextConfig) {
-    return;
-  }
-  if (typeof contextConfig === 'string') {
-    return contextConfig;
-  }
-  return contextConfig.id;
-}
-
-function addSubAgentImports(
-  sourceFile: SourceFile,
-  referenceNames: ReferenceNameMap,
-  importNames: ReferenceNameMap
-): void {
-  for (const [subAgentId, referenceName] of referenceNames) {
-    const importName = importNames.get(subAgentId);
-    if (!importName) {
-      continue;
-    }
-
-    sourceFile.addImportDeclaration({
-      namedImports: [
-        importName === referenceName ? importName : { name: importName, alias: referenceName },
-      ],
-      moduleSpecifier: `./sub-agents/${subAgentId}`,
-    });
-  }
-}
-
-function addTriggerImports(sourceFile: SourceFile, referenceNames: ReferenceNameMap): void {
-  for (const [triggerId, referenceName] of referenceNames) {
-    const importName = toCamelCase(triggerId);
-    sourceFile.addImportDeclaration({
-      namedImports: [
-        importName === referenceName ? importName : { name: importName, alias: referenceName },
-      ],
-      moduleSpecifier: `./triggers/${triggerId}`,
-    });
-  }
-}
-
-function extractStatusComponentIds(
-  statusUpdates?: ParsedAgentDefinitionData['statusUpdates']
-): string[] {
-  if (!statusUpdates?.statusComponents?.length) {
-    return [];
-  }
-
-  const statusComponentIds = statusUpdates.statusComponents.map(resolveStatusComponentId);
-  return [...new Set(statusComponentIds)];
-}
-
-function resolveStatusComponentId(
-  statusComponent: string | { id?: string; type?: string; name?: string }
-): string {
-  const id =
-    typeof statusComponent === 'string'
-      ? statusComponent
-      : statusComponent.id || statusComponent.type;
-  if (!id) {
-    throw new Error(
-      `Unable to resolve status component with id ${JSON.stringify(statusComponent)}`
-    );
-  }
-  return id;
-}
-
-function addStatusComponentImports(sourceFile: SourceFile, referenceNames: ReferenceNameMap): void {
-  for (const [statusComponentId, referenceName] of referenceNames) {
-    const importName = toCamelCase(statusComponentId);
-    sourceFile.addImportDeclaration({
-      namedImports: [
-        importName === referenceName ? importName : { name: importName, alias: referenceName },
-      ],
-      moduleSpecifier: `../status-components/${statusComponentId}`,
-    });
-  }
-}
-
-function createSubAgentReferenceMaps(
-  ids: Iterable<string>,
-  reservedNames: Set<string>,
-  conflictSuffix: string,
-  overrides?: ParsedAgentDefinitionData['subAgentReferences']
-): {
-  referenceNames: ReferenceNameMap;
-  importNames: ReferenceNameMap;
-} {
-  const referenceNames: ReferenceNameMap = new Map();
-  const importNames: ReferenceNameMap = new Map();
-
-  for (const id of ids) {
-    if (referenceNames.has(id)) {
-      continue;
-    }
-
-    const override = overrides?.[id];
-    const importName = override?.name ?? toCamelCase(id);
-    const isLocal = override?.local === true;
-    const referenceName = isLocal
-      ? importName
-      : createUniqueReferenceName(importName, reservedNames, conflictSuffix);
-
-    if (isLocal) {
-      reservedNames.add(referenceName);
-    } else {
-      importNames.set(id, importName);
-    }
-
-    referenceNames.set(id, referenceName);
-  }
-
-  return { referenceNames, importNames };
-}
-
-function createReferenceNameMap(
-  ids: Iterable<string>,
-  reservedNames: Set<string>,
-  conflictSuffix: string
-): ReferenceNameMap {
-  const map: ReferenceNameMap = new Map();
-  for (const id of ids) {
-    if (map.has(id)) {
-      continue;
-    }
-    map.set(id, createUniqueReferenceName(toCamelCase(id), reservedNames, conflictSuffix));
-  }
-  return map;
-}
+    return records;
+  },
+  generate: generateAgentDefinition,
+} satisfies GenerationTask<Parameters<typeof generateAgentDefinition>[0]>;

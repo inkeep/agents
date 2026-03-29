@@ -1,42 +1,75 @@
+import { join } from 'node:path';
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import type { SourceFile } from 'ts-morph';
 import { z } from 'zod';
-import { addValueToObject, createFactoryDefinition, toCamelCase } from '../utils';
+import { buildSequentialNameFileNames } from '../generation-resolver';
+import type { GenerationTask } from '../generation-types';
+import { generateSimpleFactoryDefinition } from '../simple-factory-generator';
+import { toCredentialReferenceName } from '../utils';
 
-interface CredentialDefinitionData {
-  credentialId: string;
-  name: string;
-  type: string;
-  credentialStoreId: string;
-  description?: string | null;
-  retrievalParams?: unknown;
-}
-
-const CredentialSchema = z.object({
-  credentialId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  type: z.string().nonempty(),
-  credentialStoreId: z.string().nonempty(),
-  description: z.string().optional(),
-  retrievalParams: z.unknown().optional(),
+const MySchema = FullProjectDefinitionSchema.shape.credentialReferences.unwrap().valueType.omit({
+  id: true,
+  createdBy: true,
+  toolId: true,
+  userId: true,
 });
 
-export function generateCredentialDefinition(data: CredentialDefinitionData): SourceFile {
-  const result = CredentialSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for credential:\n${z.prettifyError(result.error)}`);
-  }
+const CredentialSchema = z.strictObject({
+  credentialId: z.string().nonempty(),
+  ...MySchema.shape,
+});
 
-  const parsed = result.data;
-  const credentialVarName = toCamelCase(parsed.credentialId);
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'credential',
-    variableName: credentialVarName,
+type CredentialInput = z.input<typeof CredentialSchema>;
+
+export function generateCredentialDefinition({
+  tenantId,
+  id,
+  projectId,
+  createdBy,
+  createdAt,
+  updatedAt,
+  toolId,
+  userId,
+  ...data
+}: CredentialInput & Record<string, unknown>): SourceFile {
+  return generateSimpleFactoryDefinition(data, {
+    schema: CredentialSchema,
+    factory: {
+      importName: 'credential',
+      variableName: (parsed) => toCredentialReferenceName(parsed.name),
+    },
+    buildConfig(parsed) {
+      const { credentialId, ...rest } = parsed;
+      return {
+        id: credentialId,
+        ...rest,
+      };
+    },
   });
-
-  const { credentialId, ...rest } = parsed;
-
-  for (const [k, v] of Object.entries({ id: credentialId, ...rest })) {
-    addValueToObject(configObject, k, v);
-  }
-  return sourceFile;
 }
+
+export const task = {
+  type: 'credential',
+  collect(context) {
+    if (!context.project.credentialReferences) {
+      return [];
+    }
+
+    const credentialEntries = Object.entries(context.project.credentialReferences);
+    const fileNamesByCredentialId = buildSequentialNameFileNames(credentialEntries);
+
+    return credentialEntries.map(([credentialId, credentialData]) => ({
+      id: credentialId,
+      filePath: context.resolver.resolveOutputFilePath(
+        'credentials',
+        credentialId,
+        join(context.paths.credentialsDir, fileNamesByCredentialId[credentialId])
+      ),
+      payload: {
+        credentialId,
+        ...credentialData,
+      } as Parameters<typeof generateCredentialDefinition>[0],
+    }));
+  },
+  generate: generateCredentialDefinition,
+} satisfies GenerationTask<Parameters<typeof generateCredentialDefinition>[0]>;

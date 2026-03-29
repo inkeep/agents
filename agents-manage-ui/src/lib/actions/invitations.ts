@@ -1,5 +1,6 @@
 'use server';
 
+import type { MethodOption } from '@inkeep/agents-core/auth/auth-types';
 import { makeManagementApiRequest } from '../api/api-config';
 import { ApiError } from '../types/errors';
 
@@ -15,13 +16,20 @@ interface PendingInvitation {
   inviterId: string;
 }
 
-export async function getPendingInvitations(email: string): Promise<PendingInvitation[]> {
+export type PendingInvitationsResult =
+  | { success: true; invitations: PendingInvitation[] }
+  | { success: false; error: string };
+
+export async function getPendingInvitations(email: string): Promise<PendingInvitationsResult> {
   try {
-    return await makeManagementApiRequest<PendingInvitation[]>(
+    const invitations = await makeManagementApiRequest<PendingInvitation[]>(
       `api/invitations/pending?email=${encodeURIComponent(email)}`
     );
-  } catch {
-    return [];
+    return { success: true, invitations };
+  } catch (error) {
+    console.error('[getPendingInvitations] Error:', error);
+    const message = error instanceof ApiError ? error.message : 'Failed to load invitations';
+    return { success: false, error: message };
   }
 }
 
@@ -32,6 +40,8 @@ export interface InvitationVerification {
   organizationId: string;
   role: string;
   expiresAt: string;
+  authMethod: string | null;
+  allowedAuthMethods?: MethodOption[];
 }
 
 interface InvitationVerificationError {
@@ -55,7 +65,6 @@ export async function verifyInvitation(
     );
     return result;
   } catch (error) {
-    console.error('[verifyInvitation] Error:', error);
     const message = error instanceof ApiError ? error.message : 'Failed to validate invitation';
     return {
       valid: false,

@@ -3,7 +3,6 @@
  */
 globalThis.MonacoEnvironment = {
   getWorker(_workerId: string, label: string) {
-    console.info('setup-workers/webpack', { label });
     if (label === 'json') {
       return new Worker(
         new URL('monaco-editor/esm/vs/language/json/json.worker.js', import.meta.url)

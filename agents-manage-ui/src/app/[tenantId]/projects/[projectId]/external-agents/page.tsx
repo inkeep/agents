@@ -22,12 +22,10 @@ async function ExternalAgentsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const [externalAgents, permissions] = await Promise.all([
+    const [externalAgents, { canEdit }] = await Promise.all([
       fetchExternalAgents(tenantId, projectId),
       fetchProjectPermissions(tenantId, projectId),
     ]);
-
-    const canEdit = permissions.canEdit;
 
     return externalAgents.length ? (
       <>

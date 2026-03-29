@@ -1,10 +1,10 @@
 import type {
   Artifact,
   ArtifactComponentApiInsert,
+  AssembleResult,
   BreakdownComponentDef,
   DataComponentApiInsert,
 } from '@inkeep/agents-core';
-import type { AssembleResult } from '../utils/token-estimator';
 
 // Re-export for convenience
 export type { BreakdownComponentDef };
@@ -29,13 +29,16 @@ export interface SkillData {
 }
 
 export interface SystemPromptV1 {
-  corePrompt: string; // Just the agent's prompt string
-  prompt?: string; // Agent-level context and instructions
+  corePrompt: string; // Sub-agent's own instructions — rendered into <core_instructions>
+  prompt?: string; // Overarching agent system's prompt — rendered into <agent_context>. Different source from corePrompt.
+  appPrompt?: string; // App deployment prompt — rendered into <app_context>. Supplemental to agent instructions.
   skills?: SkillData[];
   artifacts: Artifact[];
-  tools: ToolData[]; // Support both formats
+  tools: ToolData[];
+  mcpServerGroups?: McpServerGroupData[];
   dataComponents: DataComponentApiInsert[];
   artifactComponents?: ArtifactComponentApiInsert[];
+  allProjectArtifactComponents?: ArtifactComponentApiInsert[];
   hasAgentArtifactComponents?: boolean; // Whether any agent in the agent has artifact components
   hasTransferRelations?: boolean; // Agent has transfer capabilities
   hasDelegateRelations?: boolean; // Agent has delegation capabilities
@@ -49,4 +52,10 @@ export interface ToolData {
   description?: string | null;
   inputSchema?: Record<string, unknown>; // JSON Schema format (MCP compatible)
   usageGuidelines?: string;
+}
+
+export interface McpServerGroupData {
+  serverName: string;
+  serverInstructions?: string;
+  tools: ToolData[];
 }
