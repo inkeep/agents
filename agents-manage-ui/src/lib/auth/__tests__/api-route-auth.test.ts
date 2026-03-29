@@ -2,6 +2,7 @@ import {
   filterAuthCookieHeader,
   requireApiRouteProjectPermission,
   requireApiRouteSession,
+  requireApiRouteSessionOrBearer,
 } from '../api-route-auth';
 
 vi.mock('@/lib/api/api-config', () => ({
@@ -61,6 +62,83 @@ describe('api-route-auth', () => {
         'better-auth.session_token=abc; __Secure-better-auth.session_data=def'
       );
       expect(result.session.user.id).toBe('user-1');
+    }
+
+    expect(fetchMock).toHaveBeenCalledWith('http://agents-api.test/api/auth/get-session', {
+      headers: {
+        cookie: 'better-auth.session_token=abc; __Secure-better-auth.session_data=def',
+      },
+      cache: 'no-store',
+    });
+  });
+
+  it('accepts bearer-authenticated requests without fetching the session', async () => {
+    const result = await requireApiRouteSessionOrBearer(
+      new Request('http://localhost/api/test', {
+        headers: {
+          authorization: 'Bearer test-bypass-secret',
+        },
+      })
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.authType).toBe('bearer');
+      expect(result.authorizationHeader).toBe('Bearer test-bypass-secret');
+      expect(result.headers).toEqual({
+        Authorization: 'Bearer test-bypass-secret',
+      });
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('prefers bearer auth over cookies when both are present', async () => {
+    const result = await requireApiRouteSessionOrBearer(
+      new Request('http://localhost/api/test', {
+        headers: {
+          authorization: 'Bearer test-bypass-secret',
+          cookie: 'better-auth.session_token=abc',
+        },
+      })
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.authType).toBe('bearer');
+      expect(result.headers).toEqual({
+        Authorization: 'Bearer test-bypass-secret',
+      });
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to session auth when no bearer token is provided', async () => {
+    fetchMock.mockResolvedValueOnce(
+      Response.json({
+        session: { id: 'session-1' },
+        user: { id: 'user-1', email: 'user@example.com' },
+      })
+    );
+
+    const result = await requireApiRouteSessionOrBearer(
+      new Request('http://localhost/api/test', {
+        headers: {
+          cookie:
+            'theme=dark; better-auth.session_token=abc; __Secure-better-auth.session_data=def',
+        },
+      })
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.authType).toBe('session');
+      expect(result.cookieHeader).toBe(
+        'better-auth.session_token=abc; __Secure-better-auth.session_data=def'
+      );
+      expect(result.headers).toEqual({
+        Cookie: 'better-auth.session_token=abc; __Secure-better-auth.session_data=def',
+      });
+      expect(result.session?.user.id).toBe('user-1');
     }
 
     expect(fetchMock).toHaveBeenCalledWith('http://agents-api.test/api/auth/get-session', {

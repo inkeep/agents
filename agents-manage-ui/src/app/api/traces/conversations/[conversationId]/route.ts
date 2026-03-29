@@ -29,7 +29,7 @@ import {
   DEFAULT_LOOKBACK_MS,
   getConversationTimeRange,
 } from '@/lib/api/signoz-conversation-time-range';
-import { requireApiRouteSession } from '@/lib/auth/api-route-auth';
+import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 import { getLogger } from '@/lib/logger';
 
 // Configure axios retry
@@ -105,7 +105,7 @@ function formatGenerationType(
 async function signozQuery(
   payload: any,
   tenantId: string,
-  cookieHeader: string
+  authHeaders: Record<string, string>
 ): Promise<SigNozResp> {
   const logger = getLogger('traces-query');
 
@@ -115,9 +115,8 @@ async function signozQuery(
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...authHeaders,
     };
-
-    headers.Cookie = cookieHeader;
 
     logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
 
@@ -490,7 +489,7 @@ export async function GET(
   req: NextRequest,
   context: RouteContext<'/api/traces/conversations/[conversationId]'>
 ) {
-  const authResult = await requireApiRouteSession(req);
+  const authResult = await requireApiRouteSessionOrBearer(req);
   if (!authResult.ok) {
     return authResult.response;
   }
@@ -527,7 +526,7 @@ export async function GET(
     const batchResults = await Promise.all(
       payloads.map(async (p, i) => {
         const batchStart = Date.now();
-        const result = await signozQuery(p, tenantId, authResult.cookieHeader);
+        const result = await signozQuery(p, tenantId, authResult.headers);
         logger.info(
           {
             batch: batchLabels[i],

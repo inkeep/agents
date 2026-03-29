@@ -17,12 +17,22 @@ interface ApiRouteAuthSuccess {
   session: SessionPayload;
 }
 
+interface ApiRouteSessionOrBearerSuccess {
+  ok: true;
+  authType: 'session' | 'bearer';
+  headers: Record<string, string>;
+  cookieHeader?: string;
+  authorizationHeader?: string;
+  session?: SessionPayload;
+}
+
 interface ApiRouteAuthFailure {
   ok: false;
   response: NextResponse;
 }
 
 type ApiRouteAuthResult = ApiRouteAuthSuccess | ApiRouteAuthFailure;
+type ApiRouteSessionOrBearerResult = ApiRouteSessionOrBearerSuccess | ApiRouteAuthFailure;
 
 function unauthorizedResponse() {
   return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -34,6 +44,16 @@ function forbiddenResponse() {
 
 function internalErrorResponse(message = 'Failed to validate authentication') {
   return NextResponse.json({ error: message }, { status: 500 });
+}
+
+const BEARER_PREFIX = 'Bearer ';
+
+function getBearerAuthorizationHeader(authorizationHeader: string | null): string | null {
+  const normalizedHeader = authorizationHeader?.trim();
+  const token = normalizedHeader?.startsWith(BEARER_PREFIX)
+    ? normalizedHeader.slice(BEARER_PREFIX.length).trim()
+    : '';
+  return token ? `${BEARER_PREFIX}${token}` : null;
 }
 
 export function filterAuthCookieHeader(cookieHeader: string | null): string | null {
@@ -51,7 +71,7 @@ export function filterAuthCookieHeader(cookieHeader: string | null): string | nu
       return isAuthCookie(cookieName);
     });
 
-  return authCookies.length > 0 ? authCookies.join('; ') : null;
+  return authCookies.length ? authCookies.join('; ') : null;
 }
 
 async function fetchSession(cookieHeader: string): Promise<SessionPayload | null> {
@@ -126,6 +146,38 @@ export async function requireApiRouteSession(request: Request): Promise<ApiRoute
       response: internalErrorResponse(),
     };
   }
+}
+
+export async function requireApiRouteSessionOrBearer(
+  request: Request
+): Promise<ApiRouteSessionOrBearerResult> {
+  const authorizationHeader = getBearerAuthorizationHeader(request.headers.get('authorization'));
+
+  if (authorizationHeader) {
+    return {
+      ok: true,
+      authType: 'bearer',
+      authorizationHeader,
+      headers: {
+        Authorization: authorizationHeader,
+      },
+    };
+  }
+
+  const authResult = await requireApiRouteSession(request);
+  if (!authResult.ok) {
+    return authResult;
+  }
+
+  return {
+    ok: true,
+    authType: 'session',
+    cookieHeader: authResult.cookieHeader,
+    session: authResult.session,
+    headers: {
+      Cookie: authResult.cookieHeader,
+    },
+  };
 }
 
 export async function requireApiRouteProjectPermission(

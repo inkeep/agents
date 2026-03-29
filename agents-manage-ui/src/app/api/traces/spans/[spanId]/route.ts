@@ -3,7 +3,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
-import { requireApiRouteSession } from '@/lib/auth/api-route-auth';
+import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 
 axiosRetry(axios, {
   retries: 3,
@@ -17,7 +17,7 @@ type RouteContext<_T> = {
 };
 
 export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
-  const authResult = await requireApiRouteSession(req);
+  const authResult = await requireApiRouteSessionOrBearer(req);
   if (!authResult.ok) {
     return authResult.response;
   }
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
       {
         headers: {
           'Content-Type': 'application/json',
-          Cookie: authResult.cookieHeader,
+          ...authResult.headers,
         },
         timeout: 15000,
         withCredentials: true,
