@@ -35,10 +35,7 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
     enabled: isOpen && Boolean(sourceProjectId),
   });
 
-  const availableProjects = projects;
-  const selectedProject = availableProjects.find(
-    (project) => project.projectId === sourceProjectId
-  );
+  const selectedProject = projects.find((project) => project.projectId === sourceProjectId);
   const selectedAgent = sourceAgents.find((agent) => agent.id === sourceAgentId);
 
   useEffect(() => {
@@ -72,16 +69,16 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
         <div className="space-y-2">
           <div className="text-sm font-medium">Source project</div>
           <Combobox
-            options={availableProjects.map((project) => ({
+            options={projects.map((project) => ({
               value: project.projectId,
               label: (
                 <div className="min-w-0">
                   <div className="truncate font-medium">{project.name}</div>
-                  {project.description ? (
+                  {project.description && (
                     <div className="truncate text-xs text-muted-foreground">
                       {project.description}
                     </div>
-                  ) : null}
+                  )}
                 </div>
               ),
               searchBy: `${project.name} ${project.description ?? ''}`,
@@ -105,11 +102,11 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
               label: (
                 <div className="min-w-0">
                   <div className="truncate font-medium">{agent.name}</div>
-                  {agent.description ? (
+                  {agent.description && (
                     <div className="truncate text-xs text-muted-foreground">
                       {agent.description}
                     </div>
-                  ) : null}
+                  )}
                 </div>
               ),
               searchBy: `${agent.name} ${agent.description ?? ''} ${agent.id}`,
@@ -128,13 +125,13 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
         </div>
       </div>
 
-      {projectsLoading ? (
+      {projectsLoading && (
         <Alert>
           <Info />
           <AlertTitle>Loading projects</AlertTitle>
           <AlertDescription>Fetching accessible projects for this workspace.</AlertDescription>
         </Alert>
-      ) : null}
+      )}
 
       {projectsError ? (
         <Alert variant="warning">
@@ -157,36 +154,36 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
         </Alert>
       ) : null}
 
-      {sourceProjectId && sourceAgentsLoading ? (
+      {sourceProjectId && sourceAgentsLoading && (
         <Alert>
           <Info />
           <AlertTitle>Loading agents</AlertTitle>
           <AlertDescription>Fetching agents from the selected source project.</AlertDescription>
         </Alert>
-      ) : null}
+      )}
 
-      {sourceProjectId && sourceAgentsError ? (
+      {sourceProjectId && sourceAgentsError && (
         <Alert variant="warning">
           <AlertCircle />
           <AlertTitle>Could not load agents</AlertTitle>
           <AlertDescription>Try selecting the source project again.</AlertDescription>
         </Alert>
-      ) : null}
+      )}
 
       {sourceProjectId &&
-      !sourceAgentsLoading &&
-      !sourceAgentsError &&
-      sourceAgents.length === 0 ? (
-        <Alert>
-          <Info />
-          <AlertTitle>No agents found</AlertTitle>
-          <AlertDescription>
-            {selectedProject?.name ?? 'This project'} does not have any agents to import yet.
-          </AlertDescription>
-        </Alert>
-      ) : null}
+        !sourceAgentsLoading &&
+        !sourceAgentsError &&
+        sourceAgents.length === 0 && (
+          <Alert>
+            <Info />
+            <AlertTitle>No agents found</AlertTitle>
+            <AlertDescription>
+              {selectedProject?.name ?? 'This project'} does not have any agents to import yet.
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {selectedProject && selectedAgent ? (
+      {selectedProject && selectedAgent && (
         <div className="rounded-lg border bg-muted/20 p-4">
           <div className="text-sm font-medium">Selected source</div>
           <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
@@ -204,7 +201,7 @@ export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAge
             </div>
           </dl>
         </div>
-      ) : null}
+      )}
 
       <div className="flex justify-end">
         <Button
