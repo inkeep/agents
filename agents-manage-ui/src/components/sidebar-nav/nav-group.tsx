@@ -8,12 +8,13 @@ import {
 } from '@/components/ui/sidebar';
 import { NavItem, type NavItemProps } from './nav-item';
 
-interface NavGroupProps {
-  items: NavItemProps[];
+export interface NavGroupProps {
+  items: Omit<NavItemProps, 'currentPath'>[];
   label?: string;
+  currentPath: string;
 }
 
-export function NavGroup({ items, label }: NavGroupProps) {
+export function NavGroup({ items, label, currentPath }: NavGroupProps) {
   return (
     <SidebarGroup className="px-2 py-1">
       {label ? (
@@ -27,7 +28,7 @@ export function NavGroup({ items, label }: NavGroupProps) {
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           {items.map((item) => (
-            <NavItem key={item.title} {...item} />
+            <NavItem key={item.title} currentPath={currentPath} {...item} />
           ))}
         </SidebarMenu>
       </SidebarGroupContent>

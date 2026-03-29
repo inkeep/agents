@@ -20,10 +20,10 @@ import {
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { type ComponentProps, type Dispatch, type FC, useCallback } from 'react';
+import { useParams, usePathname } from 'next/navigation';
+import type { ComponentProps, Dispatch, FC } from 'react';
 import { MCPIcon } from '@/components/icons/mcp-icon';
-import { NavGroup } from '@/components/sidebar-nav/nav-group';
+import { NavGroup, type NavGroupProps } from '@/components/sidebar-nav/nav-group';
 import { ProjectSwitcher } from '@/components/sidebar-nav/project-switcher';
 import {
   Sidebar,
@@ -37,15 +37,18 @@ import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
-import type { NavItemProps } from './nav-item';
 
 interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
   open: boolean;
   setOpen: Dispatch<boolean>;
 }
 
+type NavItemProps = NavGroupProps['items'][number];
+
 export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => {
+  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
+  const pathname = usePathname();
   const { user } = useAuthSession();
 
   const isWorkAppsEnabled = process.env.NEXT_PUBLIC_ENABLE_WORK_APPS === 'true';
@@ -193,25 +196,22 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       ]
     : [];
 
-  const handleHover: NonNullable<ComponentProps<'div'>['onMouseEnter']> = useCallback(
-    throttle(200, (event) => {
-      const isBlur = event.type === 'mouseleave';
+  const handleHover = throttle(200, (event) => {
+    const isBlur = event.type === 'mouseleave';
 
-      if (isBlur) {
-        const blurToElement = event.relatedTarget;
-        const insideMainContent =
-          blurToElement &&
-          blurToElement instanceof HTMLElement &&
-          !!blurToElement.closest('#main-content');
+    if (isBlur) {
+      const blurToElement = event.relatedTarget;
+      const insideMainContent =
+        blurToElement &&
+        blurToElement instanceof HTMLElement &&
+        !!blurToElement.closest('#main-content');
 
-        if (!insideMainContent) {
-          return;
-        }
+      if (!insideMainContent) {
+        return;
       }
-      setOpen(!isBlur);
-    }),
-    []
-  );
+    }
+    setOpen(!isBlur);
+  }) satisfies ComponentProps<'div'>['onMouseEnter'];
 
   return (
     <Sidebar
@@ -255,15 +255,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
                 </Link>
               </SidebarMenuButton>
             </div>
-            <NavGroup items={configureNavItems} />
-            <NavGroup label="Register" items={registerNavItems} />
-            <NavGroup label="UI" items={uiNavItems} />
-            <NavGroup label="Monitor" items={monitorNavItems} />
+            <NavGroup currentPath={pathname} items={configureNavItems} />
+            <NavGroup currentPath={pathname} label="Register" items={registerNavItems} />
+            <NavGroup currentPath={pathname} label="UI" items={uiNavItems} />
+            <NavGroup currentPath={pathname} label="Monitor" items={monitorNavItems} />
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
-            <NavGroup items={topNavItems} />
-            {user && <NavGroup label="Organization" items={orgNavItems} />}
+            <NavGroup currentPath={pathname} items={topNavItems} />
+            {user && <NavGroup currentPath={pathname} label="Organization" items={orgNavItems} />}
           </div>
         )}
       </SidebarContent>
