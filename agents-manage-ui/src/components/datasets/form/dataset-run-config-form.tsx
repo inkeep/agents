@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useController, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -21,6 +21,7 @@ import {
   createDatasetRunConfigAction,
   updateDatasetRunConfigAction,
 } from '@/lib/actions/dataset-run-configs';
+import { fetchDatasetAgents, fetchEvaluatorAgents } from '@/lib/api/agent-relations';
 import type { DatasetRunConfigInsert } from '@/lib/api/dataset-run-configs';
 import { useAgentsQuery } from '@/lib/query/agents';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
@@ -87,8 +88,59 @@ export function DatasetRunConfigForm({
     }
   }, [initialData, form]);
 
-  const agentLookup = useMemo(() => createLookup(agents), [agents]);
-  const evaluatorLookup = useMemo(() => createLookup(evaluators), [evaluators]);
+  const [datasetScopedAgentIds, setDatasetScopedAgentIds] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    fetchDatasetAgents(tenantId, projectId, datasetId)
+      .then((relations) => {
+        if (relations.length > 0) {
+          setDatasetScopedAgentIds(relations.map((r) => r.agentId));
+        } else {
+          setDatasetScopedAgentIds(null);
+        }
+      })
+      .catch(() => toast.error('Failed to load dataset agent scope'));
+  }, [tenantId, projectId, datasetId]);
+
+  const filteredAgents = useMemo(() => {
+    if (!datasetScopedAgentIds) return agents;
+    const allowed = new Set(datasetScopedAgentIds);
+    return agents.filter((a) => allowed.has(a.id));
+  }, [agents, datasetScopedAgentIds]);
+
+  const agentLookup = useMemo(() => createLookup(filteredAgents), [filteredAgents]);
+
+  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState<Map<string, string[]>>(new Map());
+
+  useEffect(() => {
+    if (evaluators.length === 0) return;
+    const abortController = new AbortController();
+    Promise.all(
+      evaluators.map(async (ev) => {
+        const relations = await fetchEvaluatorAgents(tenantId, projectId, ev.id);
+        return [ev.id, relations.map((r) => r.agentId)] as const;
+      })
+    )
+      .then((entries) => {
+        if (!abortController.signal.aborted) {
+          setEvaluatorAgentMap(new Map(entries));
+        }
+      })
+      .catch(() => toast.error('Failed to load evaluator agent scopes'));
+    return () => abortController.abort();
+  }, [evaluators, tenantId, projectId]);
+
+  const filteredEvaluators = useMemo(() => {
+    const selected = agentIds as string[];
+    if (selected.length === 0) return evaluators;
+    return evaluators.filter((ev) => {
+      const scopedAgents = evaluatorAgentMap.get(ev.id);
+      if (!scopedAgents || scopedAgents.length === 0) return true;
+      return scopedAgents.some((agentId) => selected.includes(agentId));
+    });
+  }, [evaluators, agentIds, evaluatorAgentMap]);
+
+  const evaluatorLookup = useMemo(() => createLookup(filteredEvaluators), [filteredEvaluators]);
 
   const onSubmit = async (data: DatasetRunConfigFormData) => {
     try {
@@ -165,7 +217,11 @@ export function DatasetRunConfigForm({
                   placeholder="Select agents..."
                 />
               )}
-              <FormDescription>Select which agents to run this test suite against</FormDescription>
+              <FormDescription>
+                {datasetScopedAgentIds
+                  ? 'Only agents scoped to this test suite are shown.'
+                  : 'Select which agents to run this test suite against.'}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

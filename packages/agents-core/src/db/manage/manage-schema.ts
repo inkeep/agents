@@ -33,7 +33,6 @@ import type {
   AgentStopWhen,
   ModelSettings,
   SignatureVerificationConfig,
-  SimulationAgent,
   StopWhen,
   SubAgentStopWhen,
 } from '../../validation/schemas';
@@ -697,15 +696,12 @@ export const dataset = pgTable(
 );
 
 /**
- *
  * Individual test case within a dataset. Contains the input messages to send
- * to an agent and optionally expected output or simulation configuration.
+ * to an agent and optionally expected output.
  * When a dataset run executes, it creates conversations from these items.
  *
- *
  * Includes: input (messages array with optional headers), expected output (array of messages),
- * simulation agent (stopWhen conditions, prompt/modelConfig), and timestamps
- * simulationAgent is for when a user wants to create a multi-turn simulation aka a simulating agent is creating input messages based on a persona
+ * and timestamps.
  */
 export const datasetItem = pgTable(
   'dataset_item',
@@ -714,7 +710,6 @@ export const datasetItem = pgTable(
     datasetId: varchar('dataset_id', { length: 256 }).notNull(),
     input: jsonb('input').$type<DatasetItemInput>().notNull(),
     expectedOutput: jsonb('expected_output').$type<DatasetItemExpectedOutput>(),
-    simulationAgent: jsonb('simulation_agent').$type<SimulationAgent>(),
     ...timestamps,
   },
   (table) => [
@@ -1064,6 +1059,8 @@ export const agentRelations = relations(agents, ({ one, many }) => ({
   functionTools: many(functionTools),
   scheduledWorkflows: many(scheduledWorkflows),
   scheduledTriggers: many(scheduledTriggers),
+  datasetRelations: many(agentDatasetRelations),
+  evaluatorRelations: many(agentEvaluatorRelations),
 }));
 
 export const scheduledTriggersRelations = relations(scheduledTriggers, ({ one }) => ({
@@ -1306,6 +1303,80 @@ export const subAgentTeamAgentRelationsRelations = relations(
 );
 
 /**
+ * Links agents to datasets. Many-to-many relationship that scopes a dataset
+ * to specific agents. When a dataset has agent relations, it is only associated
+ * with those agents. When it has NO agent relations, it is treated as
+ * project-wide and available to all agents.
+ *
+ * Includes: agentId, datasetId, and timestamps
+ */
+export const agentDatasetRelations = pgTable(
+  'agent_dataset_relations',
+  {
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    datasetId: varchar('dataset_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'agent_dataset_relations_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetId],
+      foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
+      name: 'agent_dataset_relations_dataset_fk',
+    }).onDelete('cascade'),
+    unique('agent_dataset_relations_unique').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId,
+      table.datasetId
+    ),
+  ]
+);
+
+/**
+ * Links agents to evaluators. Many-to-many relationship that scopes an evaluator
+ * to specific agents. When an evaluator has agent relations, it is only associated
+ * with those agents. When it has NO agent relations, it is treated as
+ * project-wide and available to all agents.
+ *
+ * Includes: agentId, evaluatorId, and timestamps
+ */
+export const agentEvaluatorRelations = pgTable(
+  'agent_evaluator_relations',
+  {
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    evaluatorId: varchar('evaluator_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'agent_evaluator_relations_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+      name: 'agent_evaluator_relations_evaluator_fk',
+    }).onDelete('cascade'),
+    unique('agent_evaluator_relations_unique').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId,
+      table.evaluatorId
+    ),
+  ]
+);
+
+/**
  * Links agents to dataset run configs. Many-to-many relationship that
  * allows one dataset run config to use multiple agents, and one agent to be used
  * by multiple dataset run configs.
@@ -1334,3 +1405,41 @@ export const datasetRunConfigAgentRelations = pgTable(
     }).onDelete('cascade'),
   ]
 );
+
+export const agentDatasetRelationsRelations = relations(agentDatasetRelations, ({ one }) => ({
+  agent: one(agents, {
+    fields: [
+      agentDatasetRelations.tenantId,
+      agentDatasetRelations.projectId,
+      agentDatasetRelations.agentId,
+    ],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  dataset: one(dataset, {
+    fields: [
+      agentDatasetRelations.tenantId,
+      agentDatasetRelations.projectId,
+      agentDatasetRelations.datasetId,
+    ],
+    references: [dataset.tenantId, dataset.projectId, dataset.id],
+  }),
+}));
+
+export const agentEvaluatorRelationsRelations = relations(agentEvaluatorRelations, ({ one }) => ({
+  agent: one(agents, {
+    fields: [
+      agentEvaluatorRelations.tenantId,
+      agentEvaluatorRelations.projectId,
+      agentEvaluatorRelations.agentId,
+    ],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  evaluator: one(evaluator, {
+    fields: [
+      agentEvaluatorRelations.tenantId,
+      agentEvaluatorRelations.projectId,
+      agentEvaluatorRelations.evaluatorId,
+    ],
+    references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+  }),
+}));

@@ -92,26 +92,6 @@ export function DatasetItemsTable({
           ),
       },
       {
-        id: 'simulationAgent',
-        header: 'Simulation Agent',
-        enableSorting: false,
-        cell: ({ row }) => {
-          const hasSimulationAgent = !!(
-            row.original.simulationAgent &&
-            typeof row.original.simulationAgent === 'object' &&
-            !Array.isArray(row.original.simulationAgent) &&
-            (row.original.simulationAgent.prompt || row.original.simulationAgent.model)
-          );
-          return hasSimulationAgent ? (
-            <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              Configured
-            </span>
-          ) : (
-            <span className="text-sm text-muted-foreground italic">None</span>
-          );
-        },
-      },
-      {
         id: 'actions',
         header: '',
         enableSorting: false,
