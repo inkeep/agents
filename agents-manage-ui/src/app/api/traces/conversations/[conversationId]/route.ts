@@ -62,6 +62,46 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+const GENERATION_TYPE_LABELS: Record<string, string> = {
+  sub_agent_generation: 'Agent Generation',
+  status_update: 'Status Update',
+  artifact_metadata: 'Artifact Metadata',
+  mid_generation_compression: 'Mid-Generation Compression',
+  conversation_compression: 'Conversation Compression',
+};
+
+function formatGenerationType(
+  genType: string,
+  responseText?: string
+): { description: string; result?: string } {
+  const label = GENERATION_TYPE_LABELS[genType] ?? genType.replace(/_/g, ' ');
+
+  if (!responseText) return { description: label };
+
+  try {
+    const parsed = JSON.parse(responseText);
+
+    if (genType === 'artifact_metadata' && parsed.name) {
+      return { description: 'Artifact Metadata', result: parsed.name };
+    }
+
+    if (genType === 'status_update' && parsed.updates) {
+      const updates = parsed.updates as Array<{ type: string; data?: { label?: string } }>;
+      if (updates.length === 1 && updates[0].type === 'no_relevant_updates') {
+        return { description: 'Status Update', result: 'No updates' };
+      }
+      const items = updates.filter((u) => u.data?.label).map((u) => `[${u.type}] ${u.data?.label}`);
+      if (items.length > 0) {
+        return { description: 'Status Update', result: items.join(', ') };
+      }
+    }
+  } catch {
+    // not valid JSON, use label as-is
+  }
+
+  return { description: label };
+}
+
 async function signozQuery(
   payload: any,
   tenantId: string,
@@ -275,11 +315,13 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
         sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, int64, attr),
         sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
+        sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
         sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
         sf(SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, str, attr),
         sf(SPAN_KEYS.AI_PROMPT_MESSAGES, str, attr),
         sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
         sf(SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, str, attr),
+        sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attr),
       ]
     ),
     buildQueryEnvelope(
@@ -428,7 +470,6 @@ function buildConversationPayloads(
       `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.STREAM_FORCE_CLEANUP}'`,
       [
         sf(SPAN_KEYS.SPAN_ID, str, span),
-
         sf(SPAN_KEYS.TIMESTAMP, int64, span),
         sf(SPAN_KEYS.HAS_ERROR, bool, span),
         sf(SPAN_KEYS.STREAM_CLEANUP_REASON, str, attr),
@@ -642,6 +683,7 @@ export async function GET(
       aiModel?: string;
       inputTokens?: number;
       outputTokens?: number;
+      costUsd?: number;
       serviceTier?: string;
       aiResponseContent?: string;
       aiResponseTimestamp?: string;
@@ -930,32 +972,30 @@ export async function GET(
       const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
 
       const aiGeneration = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const genType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
+      const genResponseText = getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '');
+      const formatted = genType
+        ? formatGenerationType(genType, genResponseText)
+        : { description: 'AI model generating text' };
       activities.push({
         id: aiGeneration,
         type: ACTIVITY_TYPES.AI_GENERATION,
-        description: 'AI model generating text response',
+        description: formatted.description,
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(aiGeneration) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(
-          span,
-          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
-          ACTIVITY_NAMES.UNKNOWN_AGENT
-        ),
-        subAgentName: getString(
-          span,
-          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
-          ACTIVITY_NAMES.UNKNOWN_AGENT
-        ),
-        result: hasError
-          ? 'AI generation failed'
-          : `AI text generated successfully (${durMs.toFixed(2)}ms)`,
+        subAgentId: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, '') || undefined,
+        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, '') || undefined,
+        result: hasError ? 'AI generation failed' : (formatted.result ?? `${durMs.toFixed(2)}ms`),
         aiModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
+        costUsd: getNumber(span, SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, 0) || undefined,
         aiResponseText: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '') || undefined,
         aiResponseToolCalls: aiResponseToolCalls || undefined,
         aiPromptMessages: aiPromptMessages || undefined,
+        aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        aiTelemetryPhase: getString(span, SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, '') || undefined,
       });
     }
 
@@ -993,31 +1033,29 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingText = getString(span, SPAN_KEYS.SPAN_ID, '');
       const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
+      const streamGenType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
+      const streamResponseText = getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '');
+      const streamFormatted = streamGenType
+        ? formatGenerationType(streamGenType, streamResponseText)
+        : { description: 'AI model streaming text' };
       activities.push({
         id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
-        description: 'AI model streaming text response',
+        description: streamFormatted.description,
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(aiStreamingText) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(
-          span,
-          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
-          ACTIVITY_NAMES.UNKNOWN_AGENT
-        ),
-        subAgentName: getString(
-          span,
-          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
-          ACTIVITY_NAMES.UNKNOWN_AGENT
-        ),
+        subAgentId: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, '') || undefined,
+        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, '') || undefined,
         result: hasError
           ? 'AI streaming failed'
-          : `AI text streamed successfully (${durMs.toFixed(2)}ms)`,
+          : (streamFormatted.result ?? `${durMs.toFixed(2)}ms`),
         aiStreamTextContent: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, ''),
         aiStreamTextModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
         aiStreamTextOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
+        costUsd: getNumber(span, SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, 0) || undefined,
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         aiTelemetryPhase: getString(span, SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, '') || undefined,
         otelStatusDescription: statusMessage || undefined,

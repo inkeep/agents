@@ -9,8 +9,11 @@ import type {
   McpTransportConfigSchema,
   ModelSchema,
   ProjectModelSchema,
+  PublicKeyAlgorithmSchema,
+  PublicKeyConfigSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
+  WebClientAuthConfigSchema,
   WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
@@ -75,9 +78,11 @@ export interface AgentConversationHistoryConfig extends ConversationHistoryConfi
 
 export type ConversationMetadata = {
   userContext?: Record<string, unknown>;
+  verifiedClaims?: Record<string, unknown>;
   preferences?: Record<string, unknown>;
   sessionData?: Record<string, unknown>;
   apiKeyId?: string;
+  externalUserId?: string;
   initiatedBy?: {
     type: 'user' | 'api_key';
     id: string;
@@ -116,6 +121,7 @@ export type MessageMetadata = {
     completion_tokens?: number;
     total_tokens?: number;
   };
+  compressionType?: string;
   a2a_metadata?: Record<string, unknown>;
   processing_time_ms?: number;
   error_details?: Record<string, unknown>;
@@ -317,7 +323,12 @@ export interface BaseExecutionContext {
       teamId: string;
     };
     endUserId?: string;
-    authMethod?: 'app_credential_web_client' | 'app_credential_api';
+    verifiedClaims?: Record<string, unknown>;
+    authMethod?:
+      | 'app_credential_web_client'
+      | 'app_credential_api'
+      | 'app_credential_web_client_authenticated';
+    appPrompt?: string;
   };
 }
 
@@ -430,6 +441,9 @@ export type ChannelIds = z.infer<typeof ChannelIdsSchema>;
 
 export type AppType = 'web_client' | 'api';
 
+export type PublicKeyAlgorithm = z.infer<typeof PublicKeyAlgorithmSchema>;
+export type PublicKeyConfig = z.infer<typeof PublicKeyConfigSchema>;
+export type WebClientAuthConfig = z.infer<typeof WebClientAuthConfigSchema>;
 export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
 
 export type ApiConfig = z.infer<typeof ApiConfigSchema>;

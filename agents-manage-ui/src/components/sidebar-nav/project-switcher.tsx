@@ -3,7 +3,7 @@
 import { Check, ChevronsUpDown, Plus, Search } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, type FC, useCallback, useMemo, useState } from 'react';
+import { type ComponentProps, type FC, useState } from 'react';
 import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
@@ -44,6 +44,7 @@ const ProjectItem: FC<{
 };
 
 export const ProjectSwitcher: FC = () => {
+  'use memo';
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
   const { isAdmin: canCreateProject } = useIsOrgAdmin();
@@ -52,18 +53,16 @@ export const ProjectSwitcher: FC = () => {
   const { data: projects, isFetching } = useProjectsQuery({ tenantId });
   const invalidateProjects = useProjectsInvalidation(tenantId);
 
-  const handleCreateProject = useCallback(() => {
+  function handleCreateProject() {
     setIsProjectDialogOpen(true);
-  }, []);
+  }
+  const query = search.trim().toLowerCase();
 
-  const filteredProjects = useMemo(() => {
-    if (!projects) return [];
-    if (!search.trim()) return projects;
-    const query = search.toLowerCase();
-    return projects.filter(
-      (p) => p.name.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query)
-    );
-  }, [projects, search]);
+  const filteredProjects = query
+    ? projects.filter(
+        (p) => p.name.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query)
+      )
+    : projects;
 
   if (isFetching) {
     return <Skeleton className="h-12" />;
@@ -92,17 +91,18 @@ export const ProjectSwitcher: FC = () => {
         align="end"
         sideOffset={4}
       >
-        <div className="flex items-center gap-2 px-2 py-1.5">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
-          <Input
+        <InputGroup className="h-7 border-0 has-[[data-slot=input-group-control]:focus-visible]:ring-0 shadow-none">
+          <InputGroupInput
             aria-label="Search projects"
             placeholder="Search projects..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.stopPropagation()}
-            className="h-7 border-none shadow-none focus-visible:ring-0 px-0"
           />
-        </div>
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+        </InputGroup>
         <DropdownMenuSeparator />
         <div className="overflow-y-auto max-h-[200px]">
           {filteredProjects.length === 0 ? (

@@ -129,18 +129,6 @@ describe('Sub-Agent Generator', () => {
       await expectSnapshots(definition);
     });
 
-    it('should fall back to sub-agent id when name is missing', async () => {
-      const subAgentId = 'my-complex-sub-agent_v2';
-      const definition = generateSubAgentDefinition({
-        id: subAgentId,
-        ...basicSubAgentData,
-        name: '',
-      });
-
-      expect(definition).toContain('export const myComplexSubAgentV2 = subAgent({');
-      await expectSnapshots(definition);
-    });
-
     it('should handle multiline prompts and descriptions', async () => {
       const multilineData = {
         name: 'Multiline Agent',
@@ -304,24 +292,6 @@ describe('Sub-Agent Generator', () => {
   });
 
   describe('edge cases', () => {
-    it('should preserve empty string name when provided', async () => {
-      const emptyStringData = {
-        name: '',
-        description: '',
-        prompt: '',
-      };
-      const subAgentId = 'empty-strings-sub-agent';
-
-      // Empty strings are intentionally preserved (not auto-generated from ID)
-      // This allows remote projects to have empty names if needed
-      const definition = generateSubAgentDefinition({
-        id: subAgentId,
-        ...emptyStringData,
-      });
-      expect(definition).toContain("name: '',");
-      await expectSnapshots(definition);
-    });
-
     it.skip('should not throw error when name is provided (other fields can be null/undefined)', () => {
       const nullData = {
         name: 'Test Sub Agent',

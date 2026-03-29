@@ -114,7 +114,7 @@ export const weatherMcpTool = mcpTool({
         subAgents: {
           'docs-assistant': {
             id: 'docs-assistant',
-            name: '',
+            name: 'docs-assistant',
             description: 'Answers questions about docs',
             prompt: 'Use the Inkeep RAG MCP tool to find relevant information.',
             canUse: [{ toolId: 'inkeep-rag-mcp' }],

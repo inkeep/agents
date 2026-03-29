@@ -142,6 +142,11 @@ const envSchema = z
       .describe(
         'Temporary JWT private key for Playground (generate with scripts/generate-jwt-keys.sh)'
       ),
+    INKEEP_PLAYGROUND_APP_ID: z
+      .string()
+      .optional()
+      .default('app_playground')
+      .describe('App ID for the global playground app record (created by db:auth:init)'),
 
     // Nango (OAuth integrations)
     NANGO_SERVER_URL: z

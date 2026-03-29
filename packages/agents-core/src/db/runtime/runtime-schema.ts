@@ -135,6 +135,27 @@ export const tasks = pgTable(
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
 );
 
+export const workflowExecutions = pgTable(
+  'workflow_executions',
+  {
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    requestId: varchar('request_id', { length: 256 }),
+    status: varchar('status', { length: 50 }).notNull().default('running'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('workflow_executions_conversation_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId
+    ),
+  ]
+);
+
 export const apiKeys = pgTable(
   'api_keys',
   {
@@ -171,6 +192,7 @@ export const apps = pgTable(
     type: varchar('type', { length: 64 }).$type<AppType>().notNull(),
     defaultProjectId: varchar('default_project_id', { length: 256 }),
     defaultAgentId: varchar('default_agent_id', { length: 256 }),
+    prompt: text('prompt'),
     enabled: boolean('enabled').notNull().default(true),
     config: jsonb('config').$type<AppConfig>().notNull(),
     lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
@@ -647,6 +669,15 @@ export const userProfileRelations = relations(userProfile, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// ============================================================================
+// USAGE GENERATION TYPES (table removed — usage now tracked via OTel/SigNoz)
+// ============================================================================
+
+import { USAGE_GENERATION_TYPES } from '../../constants/otel-attributes';
+
+export { USAGE_GENERATION_TYPES };
+export type GenerationType = (typeof USAGE_GENERATION_TYPES)[number];
 
 // ============================================================================
 // RUNTIME RELATIONS

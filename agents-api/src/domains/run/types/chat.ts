@@ -2,12 +2,10 @@ import { z } from '@hono/zod-openapi';
 import {
   DATA_URI_IMAGE_BASE64_REGEX,
   DATA_URI_PDF_BASE64_REGEX,
+  DATA_URI_TEXT_BASE64_REGEX,
+  normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
-
-export type TextContentItem = {
-  type: 'text';
-  text: string;
-};
+import { isTextDocumentMimeType } from '../utils/text-document-attachments';
 
 const hasValidBase64Payload = (val: string): boolean => {
   const base64Part = val.split(',')[1];
@@ -27,7 +25,17 @@ const PdfDataUriSchema = z
   .regex(DATA_URI_PDF_BASE64_REGEX, 'File must be a PDF data URI')
   .refine(hasValidBase64Payload, 'Invalid base64 data in PDF data URI');
 
+const TextDocumentDataUriSchema = z
+  .string()
+  .regex(
+    DATA_URI_TEXT_BASE64_REGEX,
+    'File must be a text/plain, text/markdown, text/html, text/csv, text/x-log, or application/json data URI'
+  )
+  .refine(hasValidBase64Payload, 'Invalid base64 data in text document data URI');
+
 export const ImageUrlSchema = z.union([z.httpUrl(), ImageDataUriSchema]);
+export const PdfDataOrUrlSchema = z.union([PdfDataUriSchema, z.httpUrl()]);
+export const InlineDocumentDataSchema = z.union([PdfDataOrUrlSchema, TextDocumentDataUriSchema]);
 
 /** OpenAI-specific image detail level. Has no effect on other providers. */
 export const ImageDetailEnum = ['auto', 'low', 'high'] as const;
@@ -47,20 +55,12 @@ export type ImageContentItem = z.infer<typeof ImageContentItemSchema>;
 export const FileContentItemSchema = z.object({
   type: z.literal('file'),
   file: z.object({
-    file_data: PdfDataUriSchema,
+    file_data: InlineDocumentDataSchema,
     filename: z.string().optional(),
   }),
 });
 
 export type FileContentItem = z.infer<typeof FileContentItemSchema>;
-
-export type ContentItem = TextContentItem | ImageContentItem | FileContentItem;
-
-export type Message = {
-  role: 'system' | 'user' | 'assistant' | 'function' | 'tool';
-  content: string | ContentItem[];
-  name?: string;
-};
 
 // --- Vercel data-stream content part schemas ---
 
@@ -74,18 +74,24 @@ export const VercelImagePartSchema = z.object({
   text: ImageUrlSchema,
 });
 
-const VercelFilePartBaseSchema = z.object({
-  type: z.literal('file'),
-  text: z.string(),
-  mediaType: z.string().optional(),
-  mimeType: z.string().optional(),
-  filename: z.string().optional(),
-});
+export const VercelFilePartSchema = z
+  .object({
+    type: z.literal('file'),
+    url: z.string(),
+    mediaType: z.string(),
+    filename: z.string().optional(),
+  })
+  .superRefine((part, ctx) => {
+    const mimeType = normalizeMimeType(part.mediaType);
 
-export const VercelFilePartSchema = VercelFilePartBaseSchema.refine(
-  (value) => Boolean(value.mediaType || value.mimeType),
-  { message: 'Either mediaType or mimeType is required for file parts' }
-);
+    if (isTextDocumentMimeType(mimeType) && !DATA_URI_TEXT_BASE64_REGEX.test(part.url)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Text document file parts must use inline base64 data URIs',
+        path: ['url'],
+      });
+    }
+  });
 
 export const VercelAudioVideoPartSchema = z.object({
   type: z.union([
@@ -132,21 +138,40 @@ export const VercelMessageSchema = z.object({
 export const VercelContentPartSchema = z.union([
   VercelTextPartSchema,
   VercelImagePartSchema,
-  VercelFilePartBaseSchema,
+  VercelFilePartSchema,
 ]);
 
-export type ChatCompletionRequest = {
-  model: string;
-  messages: Message[];
-  temperature?: number;
-  top_p?: number;
-  n?: number;
-  stream?: boolean;
-  max_tokens?: number;
-  presence_penalty?: number;
-  frequency_penalty?: number;
-  logit_bias?: Record<string, number>;
-  user?: string;
-  tools?: Record<string, unknown>; // Could be properly typed if needed
-  runConfig?: Record<string, unknown>; // For assistant API requests
-};
+export const ContentItemSchema = z.union([
+  VercelTextPartSchema,
+  ImageContentItemSchema,
+  FileContentItemSchema,
+]);
+
+export type TextContentItem = z.infer<typeof VercelTextPartSchema>;
+export type ContentItem = z.infer<typeof ContentItemSchema>;
+
+export const MessageSchema = z.object({
+  role: z.enum(['system', 'user', 'assistant', 'function', 'tool']),
+  content: z.union([z.string(), z.array(ContentItemSchema)]),
+  name: z.string().optional(),
+});
+
+export type Message = z.infer<typeof MessageSchema>;
+
+export const ChatCompletionRequestSchema = z.object({
+  model: z.string(),
+  messages: z.array(MessageSchema),
+  temperature: z.number().optional(),
+  top_p: z.number().optional(),
+  n: z.number().optional(),
+  stream: z.boolean().optional(),
+  max_tokens: z.number().optional(),
+  presence_penalty: z.number().optional(),
+  frequency_penalty: z.number().optional(),
+  logit_bias: z.record(z.string(), z.number()).optional(),
+  user: z.string().optional(),
+  tools: z.record(z.string(), z.unknown()).optional(),
+  runConfig: z.record(z.string(), z.unknown()).optional(),
+});
+
+export type ChatCompletionRequest = z.infer<typeof ChatCompletionRequestSchema>;

@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import type { ProjectPaths } from '../introspect-generator';
 import { introspectGenerate } from '../introspect-generator';
+import { buildComponentFileName } from '../utils';
 import { cleanupTestEnvironment, createTestEnvironment, getTestPath } from './test-helpers';
 
 describe('pull-v4 introspect generator', () => {
@@ -44,7 +45,7 @@ describe('pull-v4 introspect generator', () => {
           subAgents: {
             pq7f4ockfcm61y9ubfhuk: {
               id: 'pq7f4ockfcm61y9ubfhuk',
-              name: '',
+              name: 'test3',
               canUse: [],
             },
           },
@@ -90,7 +91,7 @@ describe('pull-v4 introspect generator', () => {
           subAgents: {
             avkkjrdavvv12h0g0dpv622222: {
               id: 'avkkjrdavvv12h0g0dpv622222',
-              name: '',
+              name: 'test4',
               canUse: [
                 {
                   agentToolRelationId: 's67lldl8b9hlsrjomssso',
@@ -304,7 +305,12 @@ describe('pull-v4 introspect generator', () => {
     await expect(agentFile).toMatchFileSnapshot(`${getTestPath()}-agent.ts`);
 
     // Sub Agent
-    const subAgentFilePath = join(testDir, 'agents', 'sub-agents', 'avkkjrdavvv12h0g0dpv622222.ts');
+    const subAgentFilePath = join(
+      testDir,
+      'agents',
+      'sub-agents',
+      buildComponentFileName('avkkjrdavvv12h0g0dpv622222', 'test4')
+    );
     const { default: subAgentFile } = await import(`${subAgentFilePath}?raw`);
     expect(subAgentFile).toContain("import { linearTool } from '../../tools/linear';");
     await expect(subAgentFile).toMatchFileSnapshot(`${getTestPath()}-sub-agent.ts`);

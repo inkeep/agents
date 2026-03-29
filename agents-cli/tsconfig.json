@@ -13,7 +13,7 @@
     "outDir": "./dist",
     "types": ["vitest/globals"],
     "resolveJsonModule": true,
-    "baseUrl": "."
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
