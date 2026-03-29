@@ -9,7 +9,6 @@
 
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 interface ModelSettings {
   model?: string;

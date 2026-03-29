@@ -2,7 +2,6 @@
 
 import type { ProjectRole } from '@inkeep/agents-core';
 import { makeManagementApiRequest } from './api-config';
-import { validateTenantId } from './resource-validation';
 
 export interface ProjectMember {
   userId: string;
@@ -81,7 +80,6 @@ export async function addProjectMember(
 export async function updateProjectMember(
   params: UpdateProjectMemberParams
 ): Promise<{ data: ProjectMember }> {
-
   const response = await makeManagementApiRequest<{ data: ProjectMember }>(
     `tenants/${params.tenantId}/projects/${params.projectId}/members/${params.userId}`,
     {

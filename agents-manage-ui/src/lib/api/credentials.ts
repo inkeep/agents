@@ -10,7 +10,6 @@ import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 export type Credential = CredentialReferenceApiSelect & {

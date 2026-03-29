@@ -13,7 +13,6 @@ import type {
 } from '@inkeep/agents-core/client-exports';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 // Note: ApiKeyApiSelect might not have a 'name' field yet, and UI expects undefined instead of null

@@ -2,7 +2,6 @@
 
 import type { SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface DatasetRunConfig {
   id: string;

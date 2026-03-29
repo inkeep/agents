@@ -2,7 +2,6 @@
 
 import type { CredentialStoreType } from '@inkeep/agents-core/client-exports';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface CredentialStoreStatus {
   id: string;

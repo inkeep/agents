@@ -6,7 +6,6 @@ import type { ProjectFormData } from '@/components/projects/form/validation';
 import type { Project } from '../types/project';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateTenantId } from './resource-validation';
 
 async function $fetchProjects(tenantId: string): Promise<ListResponse<Project>> {
   const response = await makeManagementApiRequest<ListResponse<any>>(

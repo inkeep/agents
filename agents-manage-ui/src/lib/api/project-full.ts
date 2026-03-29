@@ -8,7 +8,6 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import type { SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 /**
  * Get a full project definition with all nested resources

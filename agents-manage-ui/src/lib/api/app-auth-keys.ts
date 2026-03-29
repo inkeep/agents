@@ -1,7 +1,6 @@
 'use server';
 
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface PublicKeyConfig {
   kid: string;

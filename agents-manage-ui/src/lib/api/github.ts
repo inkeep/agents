@@ -2,7 +2,6 @@
 
 import { cache } from 'react';
 import { makeManagementApiRequest } from './api-config';
-import { validateTenantId } from './resource-validation';
 
 export type WorkAppGitHubAccountType = 'Organization' | 'User';
 export type WorkAppGitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'disconnected';

@@ -5,7 +5,6 @@ import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Use Omit to make id optional for creation, and add metadata field
 type CreateMCPToolRequest = Omit<ToolApiInsert, 'id'> & {

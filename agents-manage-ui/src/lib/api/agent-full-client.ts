@@ -18,7 +18,6 @@ import type {
 } from '../types/agent-full';
 import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 async function $fetchAgents(tenantId: string, projectId: string): Promise<ListResponse<Agent>> {
   return makeManagementApiRequest<ListResponse<Agent>>(
