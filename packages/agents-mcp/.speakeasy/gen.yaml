@@ -14,6 +14,7 @@ generation:
     securityFeb2025: true
     sharedErrorComponentsApr2025: true
     sharedNestedComponentsJan2026: true
+    nameOverrideFeb2026: false
   auth:
     oAuth2ClientCredentialsEnabled: true
     oAuth2PasswordEnabled: true
@@ -23,6 +24,7 @@ generation:
   schemas:
     allOfMergeStrategy: shallowMerge
   requestBodyFieldName: body
+  versioningStrategy: automatic
   persistentEdits:
     enabled: "true"
   tests:
@@ -50,3 +52,4 @@ mcp-typescript:
   outputModelSuffix: output
   packageName: '@inkeep/agents-mcp'
   responseFormat: envelope
+  validateResponse: false
