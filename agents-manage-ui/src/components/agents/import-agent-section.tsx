@@ -11,17 +11,16 @@ import { useProjectsQuery } from '@/lib/query/projects';
 
 interface ImportAgentSectionProps {
   tenantId: string;
-  currentProjectId: string;
   isOpen: boolean;
   onImportStub?: (selection: { sourceProjectId: string; sourceAgentId: string }) => void;
 }
 
 export function ImportAgentSection({
   tenantId,
-  currentProjectId,
   isOpen,
   onImportStub,
 }: ImportAgentSectionProps) {
+  'use memo';
   const [sourceProjectId, setSourceProjectId] = useState('');
   const [sourceAgentId, setSourceAgentId] = useState('');
 
