@@ -19,7 +19,6 @@ import {
   upsertFunction,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../data/db/manageDbClient';
 import {
   createTestArtifactComponentData,
