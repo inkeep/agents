@@ -4,6 +4,230 @@
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.agent_dataset_relations": {
+      "name": "agent_dataset_relations",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dataset_id": {
+          "name": "dataset_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "agent_dataset_relations_agent_fk": {
+          "name": "agent_dataset_relations_agent_fk",
+          "tableFrom": "agent_dataset_relations",
+          "tableTo": "agent",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "agent_dataset_relations_dataset_fk": {
+          "name": "agent_dataset_relations_dataset_fk",
+          "tableFrom": "agent_dataset_relations",
+          "tableTo": "dataset",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "dataset_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "agent_dataset_relations_tenant_id_project_id_id_pk": {
+          "name": "agent_dataset_relations_tenant_id_project_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "agent_dataset_relations_unique": {
+          "name": "agent_dataset_relations_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "dataset_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.agent_evaluator_relations": {
+      "name": "agent_evaluator_relations",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "evaluator_id": {
+          "name": "evaluator_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "agent_evaluator_relations_agent_fk": {
+          "name": "agent_evaluator_relations_agent_fk",
+          "tableFrom": "agent_evaluator_relations",
+          "tableTo": "agent",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "agent_evaluator_relations_evaluator_fk": {
+          "name": "agent_evaluator_relations_evaluator_fk",
+          "tableFrom": "agent_evaluator_relations",
+          "tableTo": "evaluator",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "evaluator_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "agent_evaluator_relations_tenant_id_project_id_id_pk": {
+          "name": "agent_evaluator_relations_tenant_id_project_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "agent_evaluator_relations_unique": {
+          "name": "agent_evaluator_relations_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "evaluator_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.agent": {
       "name": "agent",
       "schema": "",

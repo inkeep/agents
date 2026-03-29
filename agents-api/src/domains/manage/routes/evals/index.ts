@@ -1,5 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { ManageAppVariables } from '../../../../types/app';
+import agentDatasetRelationsRoutes from './agentDatasetRelations';
+import agentEvaluatorRelationsRoutes from './agentEvaluatorRelations';
 import datasetItemsRoutes from './datasetItems';
 import datasetRunConfigsRoutes from './datasetRunConfigs';
 import datasetRunsRoutes from './datasetRuns';
@@ -23,7 +25,9 @@ app.route('evaluation-run-configs', evaluationRunConfigsRoutes);
 app.route('evaluation-suite-configs', evaluationSuiteConfigsRoutes);
 app.route('evaluation-suite-configs', evaluationSuiteConfigEvaluatorRelationsRoutes);
 app.route('datasets', datasetRoutes);
+app.route('datasets', agentDatasetRelationsRoutes);
 app.route('evaluators', evaluatorsRoutes);
+app.route('evaluators', agentEvaluatorRelationsRoutes);
 app.route('evaluation-results', evaluationResultsRoutes);
 
 export default app;
