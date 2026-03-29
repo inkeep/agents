@@ -118,6 +118,7 @@ describe('S3BlobStorageProvider', () => {
         BLOB_STORAGE_S3_ACCESS_KEY_ID: 'key',
         BLOB_STORAGE_S3_SECRET_ACCESS_KEY: 'secret',
         BLOB_STORAGE_S3_FORCE_PATH_STYLE: true,
+        BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS: 7200,
       },
     }));
 
@@ -129,7 +130,7 @@ describe('S3BlobStorageProvider', () => {
 
     expect(url).toBe('https://bucket.s3.us-east-1.amazonaws.com/key?signed=true');
     expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
-      expiresIn: 3600,
+      expiresIn: 7200,
     });
   });
 
@@ -142,6 +143,7 @@ describe('S3BlobStorageProvider', () => {
         BLOB_STORAGE_S3_ACCESS_KEY_ID: 'key',
         BLOB_STORAGE_S3_SECRET_ACCESS_KEY: 'secret',
         BLOB_STORAGE_S3_FORCE_PATH_STYLE: true,
+        BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS: 7200,
       },
     }));
 
@@ -149,10 +151,10 @@ describe('S3BlobStorageProvider', () => {
     const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
     const provider = new S3BlobStorageProvider();
 
-    await provider.getPresignedUrl('v1/t_tenant/media/file.png', 7200);
+    await provider.getPresignedUrl('v1/t_tenant/media/file.png', 900);
 
     expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
-      expiresIn: 7200,
+      expiresIn: 900,
     });
   });
 
@@ -165,6 +167,7 @@ describe('S3BlobStorageProvider', () => {
         BLOB_STORAGE_S3_ACCESS_KEY_ID: 'key',
         BLOB_STORAGE_S3_SECRET_ACCESS_KEY: 'secret',
         BLOB_STORAGE_S3_FORCE_PATH_STYLE: true,
+        BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS: 7200,
       },
     }));
 

@@ -15,7 +15,6 @@ import type {
 } from './types';
 
 const logger = getLogger('S3BlobStorageProvider');
-const DEFAULT_PRESIGNED_EXPIRY_SECONDS = 3600;
 
 export class S3BlobStorageProvider implements BlobStorageProvider {
   private client: S3Client;
@@ -120,7 +119,7 @@ export class S3BlobStorageProvider implements BlobStorageProvider {
   }
 
   async getPresignedUrl(key: string, expiresInSeconds?: number): Promise<string> {
-    const expiry = expiresInSeconds ?? DEFAULT_PRESIGNED_EXPIRY_SECONDS;
+    const expiry = expiresInSeconds ?? env.BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS;
     logger.debug({ key, expiry }, 'Generating presigned URL');
     try {
       return await getSignedUrl(
