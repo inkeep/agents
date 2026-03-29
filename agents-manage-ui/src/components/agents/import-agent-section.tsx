@@ -15,11 +15,7 @@ interface ImportAgentSectionProps {
   onImportStub?: (selection: { sourceProjectId: string; sourceAgentId: string }) => void;
 }
 
-export function ImportAgentSection({
-  tenantId,
-  isOpen,
-  onImportStub,
-}: ImportAgentSectionProps) {
+export function ImportAgentSection({ tenantId, isOpen, onImportStub }: ImportAgentSectionProps) {
   'use memo';
   const [sourceProjectId, setSourceProjectId] = useState('');
   const [sourceAgentId, setSourceAgentId] = useState('');
@@ -39,7 +35,7 @@ export function ImportAgentSection({
     enabled: isOpen && Boolean(sourceProjectId),
   });
 
-  const availableProjects = projects.filter((project) => project.projectId !== currentProjectId);
+  const availableProjects = projects;
   const selectedProject = availableProjects.find(
     (project) => project.projectId === sourceProjectId
   );
@@ -52,12 +48,12 @@ export function ImportAgentSection({
     }
   }, [isOpen]);
 
-  const handleProjectSelect = (projectId: string) => {
+  function handleProjectSelect(projectId: string) {
     setSourceProjectId(projectId);
     setSourceAgentId('');
-  };
+  }
 
-  const handleImportClick = () => {
+  function handleImportClick() {
     if (!sourceProjectId || !sourceAgentId) {
       return;
     }
@@ -68,18 +64,10 @@ export function ImportAgentSection({
     }
 
     toast.info('Import from project is coming soon.');
-  };
+  }
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="text-base font-medium">Import from existing project</h3>
-        <p className="text-sm text-muted-foreground">
-          Search another project in this workspace and choose an existing agent. Import execution is
-          not available yet, but you can use this flow to preview the dashboard experience.
-        </p>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <div className="text-sm font-medium">Source project</div>
