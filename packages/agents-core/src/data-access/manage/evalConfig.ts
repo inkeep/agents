@@ -1,6 +1,8 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
+  agentDatasetRelations,
+  agentEvaluatorRelations,
   dataset,
   datasetItem,
   datasetRunConfig,
@@ -16,6 +18,10 @@ import {
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { datasetRun } from '../../db/runtime/runtime-schema';
 import type {
+  AgentDatasetRelationInsert,
+  AgentDatasetRelationSelect,
+  AgentEvaluatorRelationInsert,
+  AgentEvaluatorRelationSelect,
   DatasetInsert,
   DatasetItemInsert,
   DatasetItemSelect,
@@ -1093,4 +1099,223 @@ export const linkDatasetRunToEvaluationJobConfig =
           eq(datasetRun.id, params.scopes.datasetRunId)
         )
       );
+  };
+
+export const getAgentDatasetRelationsByAgent =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { agentId: string };
+  }): Promise<AgentDatasetRelationSelect[]> => {
+    return await db
+      .select()
+      .from(agentDatasetRelations)
+      .where(
+        and(
+          projectScopedWhere(agentDatasetRelations, params.scopes),
+          eq(agentDatasetRelations.agentId, params.scopes.agentId)
+        )
+      );
+  };
+
+export const getAgentDatasetRelationsByDataset =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { datasetId: string };
+  }): Promise<AgentDatasetRelationSelect[]> => {
+    return await db
+      .select()
+      .from(agentDatasetRelations)
+      .where(
+        and(
+          projectScopedWhere(agentDatasetRelations, params.scopes),
+          eq(agentDatasetRelations.datasetId, params.scopes.datasetId)
+        )
+      );
+  };
+
+export const createAgentDatasetRelation =
+  (db: AgentsManageDatabaseClient) =>
+  async (data: AgentDatasetRelationInsert): Promise<AgentDatasetRelationSelect> => {
+    const now = new Date().toISOString();
+    const [created] = await db
+      .insert(agentDatasetRelations)
+      .values({ ...data, createdAt: now, updatedAt: now })
+      .returning();
+    return created;
+  };
+
+export const deleteAgentDatasetRelation =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { agentId: string; datasetId: string };
+  }): Promise<boolean> => {
+    const result = await db
+      .delete(agentDatasetRelations)
+      .where(
+        and(
+          projectScopedWhere(agentDatasetRelations, params.scopes),
+          eq(agentDatasetRelations.agentId, params.scopes.agentId),
+          eq(agentDatasetRelations.datasetId, params.scopes.datasetId)
+        )
+      )
+      .returning();
+    return result.length > 0;
+  };
+
+export const getAgentEvaluatorRelationsByAgent =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { agentId: string };
+  }): Promise<AgentEvaluatorRelationSelect[]> => {
+    return await db
+      .select()
+      .from(agentEvaluatorRelations)
+      .where(
+        and(
+          projectScopedWhere(agentEvaluatorRelations, params.scopes),
+          eq(agentEvaluatorRelations.agentId, params.scopes.agentId)
+        )
+      );
+  };
+
+export const getAgentEvaluatorRelationsByEvaluator =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { evaluatorId: string };
+  }): Promise<AgentEvaluatorRelationSelect[]> => {
+    return await db
+      .select()
+      .from(agentEvaluatorRelations)
+      .where(
+        and(
+          projectScopedWhere(agentEvaluatorRelations, params.scopes),
+          eq(agentEvaluatorRelations.evaluatorId, params.scopes.evaluatorId)
+        )
+      );
+  };
+
+export const createAgentEvaluatorRelation =
+  (db: AgentsManageDatabaseClient) =>
+  async (data: AgentEvaluatorRelationInsert): Promise<AgentEvaluatorRelationSelect> => {
+    const now = new Date().toISOString();
+    const [created] = await db
+      .insert(agentEvaluatorRelations)
+      .values({ ...data, createdAt: now, updatedAt: now })
+      .returning();
+    return created;
+  };
+
+export const deleteAgentEvaluatorRelation =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { agentId: string; evaluatorId: string };
+  }): Promise<boolean> => {
+    const result = await db
+      .delete(agentEvaluatorRelations)
+      .where(
+        and(
+          projectScopedWhere(agentEvaluatorRelations, params.scopes),
+          eq(agentEvaluatorRelations.agentId, params.scopes.agentId),
+          eq(agentEvaluatorRelations.evaluatorId, params.scopes.evaluatorId)
+        )
+      )
+      .returning();
+    return result.length > 0;
+  };
+
+export const listDatasetsForAgent =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; agentId: string }): Promise<DatasetSelect[]> => {
+    const { scopes, agentId } = params;
+    const rows = await db
+      .select({ dataset })
+      .from(dataset)
+      .leftJoin(
+        agentDatasetRelations,
+        and(
+          eq(dataset.tenantId, agentDatasetRelations.tenantId),
+          eq(dataset.projectId, agentDatasetRelations.projectId),
+          eq(dataset.id, agentDatasetRelations.datasetId)
+        )
+      )
+      .where(
+        and(
+          projectScopedWhere(dataset, scopes),
+          or(isNull(agentDatasetRelations.agentId), eq(agentDatasetRelations.agentId, agentId))
+        )
+      )
+      .groupBy(
+        dataset.tenantId,
+        dataset.projectId,
+        dataset.id,
+        dataset.name,
+        dataset.createdAt,
+        dataset.updatedAt
+      );
+    return rows.map((r) => r.dataset);
+  };
+
+export const listEvaluatorsForAgent =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; agentId: string }): Promise<EvaluatorSelect[]> => {
+    const { scopes, agentId } = params;
+    const rows = await db
+      .select({ evaluator })
+      .from(evaluator)
+      .leftJoin(
+        agentEvaluatorRelations,
+        and(
+          eq(evaluator.tenantId, agentEvaluatorRelations.tenantId),
+          eq(evaluator.projectId, agentEvaluatorRelations.projectId),
+          eq(evaluator.id, agentEvaluatorRelations.evaluatorId)
+        )
+      )
+      .where(
+        and(
+          projectScopedWhere(evaluator, scopes),
+          or(isNull(agentEvaluatorRelations.agentId), eq(agentEvaluatorRelations.agentId, agentId))
+        )
+      )
+      .groupBy(
+        evaluator.tenantId,
+        evaluator.projectId,
+        evaluator.id,
+        evaluator.name,
+        evaluator.description,
+        evaluator.prompt,
+        evaluator.schema,
+        evaluator.model,
+        evaluator.passCriteria,
+        evaluator.createdAt,
+        evaluator.updatedAt
+      );
+    return rows.map((r) => r.evaluator);
+  };
+
+export const getAgentIdsForEvaluators =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    evaluatorIds: string[];
+  }): Promise<Map<string, string[]>> => {
+    if (params.evaluatorIds.length === 0) return new Map();
+    const rows = await db
+      .select({
+        evaluatorId: agentEvaluatorRelations.evaluatorId,
+        agentId: agentEvaluatorRelations.agentId,
+      })
+      .from(agentEvaluatorRelations)
+      .where(
+        and(
+          projectScopedWhere(agentEvaluatorRelations, params.scopes),
+          inArray(agentEvaluatorRelations.evaluatorId, params.evaluatorIds)
+        )
+      );
+    const result = new Map<string, string[]>();
+    for (const row of rows) {
+      const existing = result.get(row.evaluatorId) ?? [];
+      existing.push(row.agentId);
+      result.set(row.evaluatorId, existing);
+    }
+    return result;
   };

@@ -3,25 +3,15 @@ import {
   commonGetErrorResponses,
   createApiError,
   createDataset,
-  // Commenting out dataset runs
-  // createDatasetRun,
-  // createEvaluationJobConfig,
-  // createEvaluationJobConfigEvaluatorRelation,
-  // createEvaluationRun,
   DatasetApiInsertSchema,
   DatasetApiSelectSchema,
   DatasetApiUpdateSchema,
-  // datasetRun,
   deleteDataset,
-  // EvalApiClient,
   generateId,
-  // getAgentById,
   getDatasetById,
-  // getEvaluatorById,
-  // InternalServices,
   ListResponseSchema,
-  // listDatasetItems,
   listDatasets,
+  listDatasetsForAgent,
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateDataset,
@@ -48,6 +38,9 @@ app.openapi(
     permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
+      query: z.object({
+        agentId: z.string().optional(),
+      }),
     },
     responses: {
       200: {
@@ -64,9 +57,12 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
+    const { agentId } = c.req.valid('query');
 
     try {
-      const datasets = await listDatasets(db)({ scopes: { tenantId, projectId } });
+      const datasets = agentId
+        ? await listDatasetsForAgent(db)({ scopes: { tenantId, projectId }, agentId })
+        : await listDatasets(db)({ scopes: { tenantId, projectId } });
       return c.json({
         data: datasets as any,
         pagination: {

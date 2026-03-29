@@ -806,11 +806,7 @@ app.openapi(
     const db = c.get('db');
     const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
-    const {
-      userMessage,
-      messageParts: rawMessageParts,
-      forwardedHeaders,
-    } = c.req.valid('json');
+    const { userMessage, messageParts: rawMessageParts, forwardedHeaders } = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
     const tenantRole = c.get('tenantRole') as OrgRole;
     if (!tenantRole) {

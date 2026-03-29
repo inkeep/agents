@@ -3,6 +3,7 @@ import {
   type EvaluationSuiteFilterCriteria,
   type Filter,
   generateId,
+  getAgentIdsForEvaluators,
   getConversation,
   getEvaluationSuiteConfigById,
   getEvaluationSuiteConfigEvaluatorRelations,
@@ -129,9 +130,31 @@ export const triggerConversationEvaluation = async (params: {
           })
         );
 
-        const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
+        let evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
 
         if (evaluatorIds.length === 0) continue;
+
+        if (conversation.agentId) {
+          const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
+            getAgentIdsForEvaluators(db)({
+              scopes: { tenantId, projectId },
+              evaluatorIds,
+            })
+          );
+          evaluatorIds = evaluatorIds.filter((evalId) => {
+            const scopedAgents = agentIdsMap.get(evalId);
+            if (!scopedAgents || scopedAgents.length === 0) return true;
+            return scopedAgents.includes(conversation.agentId!);
+          });
+
+          if (evaluatorIds.length === 0) {
+            logger.info(
+              { suiteConfigId, conversationAgentId: conversation.agentId, conversationId },
+              'All evaluators filtered out by agent scoping'
+            );
+            continue;
+          }
+        }
 
         // Create evaluation run
         const evaluationRunId = generateId();

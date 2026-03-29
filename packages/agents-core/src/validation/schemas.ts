@@ -3,6 +3,8 @@ import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 // Config DB imports (Doltgres - versioned)
 import {
+  agentDatasetRelations,
+  agentEvaluatorRelations,
   agents,
   artifactComponents,
   contextConfigs,
@@ -1642,6 +1644,38 @@ export const DatasetRunConfigApiInsertSchema = createApiInsertSchema(DatasetRunC
 export const DatasetRunConfigApiUpdateSchema = createApiUpdateSchema(DatasetRunConfigUpdateSchema)
   .omit({ id: true })
   .openapi('DatasetRunConfigUpdate');
+
+export const AgentDatasetRelationSelectSchema = createSelectSchema(agentDatasetRelations);
+export const AgentDatasetRelationInsertSchema = createInsertSchema(agentDatasetRelations).extend({
+  id: ResourceIdSchema,
+});
+export const AgentDatasetRelationUpdateSchema = AgentDatasetRelationInsertSchema.partial();
+
+export const AgentDatasetRelationApiSelectSchema = createApiSchema(
+  AgentDatasetRelationSelectSchema
+).openapi('AgentDatasetRelation');
+export const AgentDatasetRelationApiInsertSchema = createApiInsertSchema(
+  AgentDatasetRelationInsertSchema
+)
+  .omit({ id: true })
+  .openapi('AgentDatasetRelationCreate');
+
+export const AgentEvaluatorRelationSelectSchema = createSelectSchema(agentEvaluatorRelations);
+export const AgentEvaluatorRelationInsertSchema = createInsertSchema(
+  agentEvaluatorRelations
+).extend({
+  id: ResourceIdSchema,
+});
+export const AgentEvaluatorRelationUpdateSchema = AgentEvaluatorRelationInsertSchema.partial();
+
+export const AgentEvaluatorRelationApiSelectSchema = createApiSchema(
+  AgentEvaluatorRelationSelectSchema
+).openapi('AgentEvaluatorRelation');
+export const AgentEvaluatorRelationApiInsertSchema = createApiInsertSchema(
+  AgentEvaluatorRelationInsertSchema
+)
+  .omit({ id: true })
+  .openapi('AgentEvaluatorRelationCreate');
 
 export const DatasetRunConfigAgentRelationSelectSchema = createSelectSchema(
   datasetRunConfigAgentRelations

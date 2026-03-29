@@ -118,7 +118,6 @@ describe('runDatasetItem Workflow Steps', () => {
 
       expect(result.error).toContain('Chat API error');
     });
-
   });
 
   describe('createRelationStep', () => {

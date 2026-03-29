@@ -15,6 +15,7 @@ import {
   deleteDatasetRunConfig,
   deleteDatasetRunConfigAgentRelation,
   generateId,
+  getAgentDatasetRelationsByDataset,
   getDatasetRunConfigAgentRelations,
   getDatasetRunConfigById,
   ListResponseSchema,
@@ -26,12 +27,12 @@ import {
   updateDatasetRunConfig,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import type { DatasetRunQueueItem } from '../../../evals/services/datasetRun';
-import { queueDatasetRunItems } from '../../../evals/services/datasetRun';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
+import type { DatasetRunQueueItem } from '../../../evals/services/datasetRun';
+import { queueDatasetRunItems } from '../../../evals/services/datasetRun';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRunConfigs');
@@ -281,14 +282,45 @@ app.openapi(
         ) as any;
       }
 
-      const [datasetItems, agentRelations] = await Promise.all([
+      const datasetId = (config as any).datasetId;
+      const [datasetItems, allAgentRelations, datasetAgentRelations] = await Promise.all([
         listDatasetItems(db)({
-          scopes: { tenantId, projectId, datasetId: (config as any).datasetId },
+          scopes: { tenantId, projectId, datasetId },
         }),
         getDatasetRunConfigAgentRelations(db)({
           scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
         }),
+        getAgentDatasetRelationsByDataset(db)({
+          scopes: { tenantId, projectId, datasetId },
+        }),
       ]);
+
+      let agentRelations = allAgentRelations;
+      if (datasetAgentRelations.length > 0) {
+        const allowedAgentIds = new Set(datasetAgentRelations.map((r) => r.agentId));
+        agentRelations = allAgentRelations.filter((r) => allowedAgentIds.has(r.agentId));
+
+        if (agentRelations.length < allAgentRelations.length) {
+          const excluded = allAgentRelations
+            .filter((r) => !allowedAgentIds.has(r.agentId))
+            .map((r) => r.agentId);
+          logger.info(
+            { runConfigId, datasetId, excludedAgents: excluded },
+            'Excluded agents not scoped to this dataset'
+          );
+        }
+
+        if (agentRelations.length === 0) {
+          return c.json(
+            createApiError({
+              code: 'bad_request',
+              message:
+                'None of the configured agents are scoped to this dataset. Update the dataset agent scope or run config agents.',
+            }),
+            400
+          ) as any;
+        }
+      }
 
       const datasetRunId = generateId();
 

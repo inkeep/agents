@@ -11,6 +11,7 @@ import {
   createDatasetRunConversationRelation,
   createEvaluationResult,
   generateId,
+  getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorById,
   getProjectScopedRef,
@@ -106,7 +107,12 @@ async function executeDatasetItemStep(payload: RunDatasetItemPayload) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(
-      { datasetRunId, invocationId: scheduledTriggerInvocationId, conversationId, error: errorMessage },
+      {
+        datasetRunId,
+        invocationId: scheduledTriggerInvocationId,
+        conversationId,
+        error: errorMessage,
+      },
       'Dataset item execution failed'
     );
     return { success: false, conversationId, error: errorMessage };
@@ -353,6 +359,56 @@ async function logStep(message: string, data: Record<string, unknown>) {
 }
 
 /**
+ * Step: Filter evaluators by agent scoping.
+ * Evaluators with no agent relations pass through (project-wide).
+ * Evaluators scoped to specific agents are kept only if agentId matches.
+ */
+async function filterEvaluatorsByAgentStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  evaluatorIds: string[];
+  ref?: string;
+}): Promise<string[]> {
+  'use step';
+
+  const { tenantId, projectId, agentId, evaluatorIds } = params;
+  const ref = getProjectScopedRef(tenantId, projectId, params.ref || 'main');
+  const resolvedRef = await resolveRef(manageDbClient)(ref);
+
+  if (!resolvedRef) {
+    return evaluatorIds;
+  }
+
+  const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
+    getAgentIdsForEvaluators(db)({
+      scopes: { tenantId, projectId },
+      evaluatorIds,
+    })
+  );
+
+  const filtered = evaluatorIds.filter((evalId) => {
+    const scopedAgents = agentIdsMap.get(evalId);
+    if (!scopedAgents || scopedAgents.length === 0) return true;
+    return scopedAgents.includes(agentId);
+  });
+
+  if (filtered.length < evaluatorIds.length) {
+    logger.info(
+      {
+        agentId,
+        originalCount: evaluatorIds.length,
+        filteredCount: filtered.length,
+        excluded: evaluatorIds.filter((id) => !filtered.includes(id)),
+      },
+      'Filtered evaluators by agent scoping in dataset run'
+    );
+  }
+
+  return filtered;
+}
+
+/**
  * Main workflow function - processes a single dataset item.
  * Calls executeAgentAsync directly for agent execution.
  * Optionally runs evaluators on the resulting conversation.
@@ -408,7 +464,15 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
     });
 
     if (evaluatorIds && evaluatorIds.length > 0 && evaluationRunId) {
-      for (const evaluatorId of evaluatorIds) {
+      const filteredEvaluatorIds = await filterEvaluatorsByAgentStep({
+        tenantId,
+        projectId,
+        agentId,
+        evaluatorIds,
+        ref: payload.ref,
+      });
+
+      for (const evaluatorId of filteredEvaluatorIds) {
         await executeEvaluatorStep(
           tenantId,
           projectId,
