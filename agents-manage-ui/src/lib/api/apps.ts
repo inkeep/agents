@@ -14,9 +14,6 @@ export type AppCreateResponse = {
 };
 
 export async function fetchApps(tenantId: string, projectId: string): Promise<ListResponse<App>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<ListResponse<AppApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/apps?limit=100`
   );

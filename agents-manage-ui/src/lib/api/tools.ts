@@ -62,9 +62,6 @@ export async function fetchMCPTools(
  * Get a single MCP tool by ID
  */
 async function $fetchMCPTool(tenantId: string, projectId: string, id: string): Promise<McpTool> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
     `tenants/${tenantId}/projects/${projectId}/tools/${id}`
   );
@@ -105,9 +102,6 @@ export async function updateMCPTool(
   id: string,
   data: Partial<CreateMCPToolRequest>
 ): Promise<McpTool> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
     `tenants/${tenantId}/projects/${projectId}/tools/${id}`,
     {

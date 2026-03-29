@@ -37,9 +37,6 @@ export async function fetchDatasets(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<Dataset>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<Dataset>>(
     `tenants/${tenantId}/projects/${projectId}/evals/datasets`
   );
@@ -53,9 +50,6 @@ async function $fetchDataset(
   projectId: string,
   datasetId: string
 ): Promise<Dataset> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Dataset>>(
     `tenants/${tenantId}/projects/${projectId}/evals/datasets/${datasetId}`
   );
@@ -73,9 +67,6 @@ export async function createDataset(
   projectId: string,
   dataset: DatasetInsert
 ): Promise<Dataset> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Dataset>>(
     `tenants/${tenantId}/projects/${projectId}/evals/datasets`,
     {

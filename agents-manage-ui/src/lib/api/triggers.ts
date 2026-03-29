@@ -48,9 +48,6 @@ async function $getTrigger(
   agentId: string,
   triggerId: string
 ): Promise<Trigger> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`
   );

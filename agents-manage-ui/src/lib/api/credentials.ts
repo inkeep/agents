@@ -124,9 +124,6 @@ export async function fetchUserScopedCredential(
   projectId: string,
   toolId: string
 ): Promise<Credential | null> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   try {
     const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
       `tenants/${tenantId}/projects/${projectId}/tools/${toolId}/user-credential`

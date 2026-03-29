@@ -35,9 +35,6 @@ export async function createDatasetRunConfig(
   projectId: string,
   data: DatasetRunConfigInsert
 ): Promise<SingleResponse<DatasetRunConfig>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs`,
     {
@@ -53,9 +50,6 @@ export async function updateDatasetRunConfig(
   runConfigId: string,
   data: DatasetRunConfigUpdate
 ): Promise<SingleResponse<DatasetRunConfig>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}`,
     {

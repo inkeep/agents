@@ -41,9 +41,6 @@ export async function createSkill(
   projectId: string,
   skill: SkillApiInsert
 ): Promise<Skill> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Skill>>(
     `tenants/${tenantId}/projects/${projectId}/skills`,
     {
