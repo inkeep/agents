@@ -46,6 +46,7 @@ export function ProjectForm({
   readOnly = false,
   className,
 }: ProjectFormProps) {
+  'use memo';
   const form = useForm({
     resolver: zodResolver(ProjectSchema),
     defaultValues: initialData ? createDefaultValues(initialData) : defaultValues,
@@ -121,7 +122,6 @@ export function ProjectForm({
           name="description"
           label="Description"
           placeholder="Describe what this project is for..."
-          className="min-h-[100px]"
           disabled={readOnly}
           isRequired={isRequired(ProjectSchema, 'description')}
         />
@@ -146,25 +146,16 @@ export function ProjectForm({
           </>
         )}
 
-        {!readOnly && (
-          <div className={`flex gap-3 ${onCancel ? 'justify-end' : 'justify-start'}`}>
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-                Cancel
-              </Button>
-            )}
+        <div className="flex gap-3 justify-end">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          {!readOnly && (
             <Button type="submit" disabled={isSubmitting}>
               {projectId ? 'Update project' : 'Create project'}
             </Button>
-          </div>
-        )}
-        {readOnly && onCancel && (
-          <div className="flex justify-end">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Close
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </form>
     </Form>
   );

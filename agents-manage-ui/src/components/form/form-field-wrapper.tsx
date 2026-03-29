@@ -1,6 +1,6 @@
 'use client';
 
-import type React from 'react';
+import type { JSX, ReactNode } from 'react';
 
 import type { Control, ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form';
 import { FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -12,9 +12,9 @@ export interface FormFieldWrapperProps<
 > {
   control: Control<FV, unknown, TV>;
   name: TName;
-  label: string | React.JSX.Element;
-  children: (field: ControllerRenderProps<FV, TName>) => React.ReactNode;
-  description?: React.ReactNode;
+  label: string | JSX.Element;
+  children: (field: ControllerRenderProps<FV, TName>) => ReactNode;
+  description?: ReactNode;
   isRequired?: boolean;
   tooltip?: string;
 }
