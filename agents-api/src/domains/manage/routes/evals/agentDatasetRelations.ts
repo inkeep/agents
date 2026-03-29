@@ -1,11 +1,14 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  AgentDatasetRelationApiSelectSchema,
   commonGetErrorResponses,
   createAgentDatasetRelation,
   createApiError,
   deleteAgentDatasetRelation,
   generateId,
   getAgentDatasetRelationsByDataset,
+  ListResponseSchema,
+  SingleResponseSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -32,7 +35,7 @@ app.openapi(
         description: 'List of agent relations for this dataset',
         content: {
           'application/json': {
-            schema: z.array(z.any()),
+            schema: ListResponseSchema(AgentDatasetRelationApiSelectSchema),
           },
         },
       },
@@ -47,7 +50,7 @@ app.openapi(
       const relations = await getAgentDatasetRelationsByDataset(db)({
         scopes: { tenantId, projectId, datasetId },
       });
-      return c.json({ data: relations as any }) as any;
+      return c.json({ data: relations }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset agents');
       return c.json(
@@ -80,7 +83,7 @@ app.openapi(
         description: 'Agent relation created',
         content: {
           'application/json': {
-            schema: z.any(),
+            schema: SingleResponseSchema(AgentDatasetRelationApiSelectSchema),
           },
         },
       },
@@ -99,10 +102,10 @@ app.openapi(
         projectId,
         datasetId,
         agentId,
-      } as any);
+      });
 
       logger.info({ tenantId, projectId, datasetId, agentId }, 'Agent-dataset relation created');
-      return c.json({ data: created as any }, 201) as any;
+      return c.json({ data: created }, 201) as any;
     } catch (error) {
       logger.error(
         { error, tenantId, projectId, datasetId, agentId },

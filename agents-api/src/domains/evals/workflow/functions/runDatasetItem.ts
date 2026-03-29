@@ -203,7 +203,9 @@ async function markCompletedStep(params: {
       triggerId: params.datasetRunId,
       invocationId: params.scheduledTriggerInvocationId,
       data: { status: 'success' },
-    }).catch(() => {}),
+    }).catch((err) =>
+      logger.warn({ err, invocationId: params.scheduledTriggerInvocationId }, 'Failed to update trigger invocation status to success')
+    ),
   ]);
 }
 
@@ -238,7 +240,9 @@ async function markFailedStep(params: {
       triggerId: params.datasetRunId,
       invocationId: params.scheduledTriggerInvocationId,
       data: { status: 'failed' },
-    }).catch(() => {}),
+    }).catch((err) =>
+      logger.warn({ err, invocationId: params.scheduledTriggerInvocationId }, 'Failed to update trigger invocation status to failed')
+    ),
   ]);
 }
 

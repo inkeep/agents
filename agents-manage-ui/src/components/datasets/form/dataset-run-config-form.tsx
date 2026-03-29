@@ -91,13 +91,15 @@ export function DatasetRunConfigForm({
   const [datasetScopedAgentIds, setDatasetScopedAgentIds] = useState<string[] | null>(null);
 
   useEffect(() => {
-    fetchDatasetAgents(tenantId, projectId, datasetId).then((relations) => {
-      if (relations.length > 0) {
-        setDatasetScopedAgentIds(relations.map((r) => r.agentId));
-      } else {
-        setDatasetScopedAgentIds(null);
-      }
-    });
+    fetchDatasetAgents(tenantId, projectId, datasetId)
+      .then((relations) => {
+        if (relations.length > 0) {
+          setDatasetScopedAgentIds(relations.map((r) => r.agentId));
+        } else {
+          setDatasetScopedAgentIds(null);
+        }
+      })
+      .catch(() => toast.error('Failed to load dataset agent scope'));
   }, [tenantId, projectId, datasetId]);
 
   const filteredAgents = useMemo(() => {
@@ -118,11 +120,13 @@ export function DatasetRunConfigForm({
         const relations = await fetchEvaluatorAgents(tenantId, projectId, ev.id);
         return [ev.id, relations.map((r) => r.agentId)] as const;
       })
-    ).then((entries) => {
-      if (!abortController.signal.aborted) {
-        setEvaluatorAgentMap(new Map(entries));
-      }
-    });
+    )
+      .then((entries) => {
+        if (!abortController.signal.aborted) {
+          setEvaluatorAgentMap(new Map(entries));
+        }
+      })
+      .catch(() => toast.error('Failed to load evaluator agent scopes'));
     return () => abortController.abort();
   }, [evaluators, tenantId, projectId]);
 

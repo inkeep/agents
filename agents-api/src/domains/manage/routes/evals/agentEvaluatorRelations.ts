@@ -1,11 +1,14 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  AgentEvaluatorRelationApiSelectSchema,
   commonGetErrorResponses,
   createAgentEvaluatorRelation,
   createApiError,
   deleteAgentEvaluatorRelation,
   generateId,
   getAgentEvaluatorRelationsByEvaluator,
+  ListResponseSchema,
+  SingleResponseSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -32,7 +35,7 @@ app.openapi(
         description: 'List of agent relations for this evaluator',
         content: {
           'application/json': {
-            schema: z.array(z.any()),
+            schema: ListResponseSchema(AgentEvaluatorRelationApiSelectSchema),
           },
         },
       },
@@ -47,7 +50,7 @@ app.openapi(
       const relations = await getAgentEvaluatorRelationsByEvaluator(db)({
         scopes: { tenantId, projectId, evaluatorId },
       });
-      return c.json({ data: relations as any }) as any;
+      return c.json({ data: relations }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, evaluatorId }, 'Failed to list evaluator agents');
       return c.json(
@@ -80,7 +83,7 @@ app.openapi(
         description: 'Agent relation created',
         content: {
           'application/json': {
-            schema: z.any(),
+            schema: SingleResponseSchema(AgentEvaluatorRelationApiSelectSchema),
           },
         },
       },
@@ -99,13 +102,13 @@ app.openapi(
         projectId,
         evaluatorId,
         agentId,
-      } as any);
+      });
 
       logger.info(
         { tenantId, projectId, evaluatorId, agentId },
         'Agent-evaluator relation created'
       );
-      return c.json({ data: created as any }, 201) as any;
+      return c.json({ data: created }, 201) as any;
     } catch (error) {
       logger.error(
         { error, tenantId, projectId, evaluatorId, agentId },

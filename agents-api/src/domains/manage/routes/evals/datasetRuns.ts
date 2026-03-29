@@ -30,8 +30,11 @@ function deriveRunStatus(summary: {
 }): string {
   const { pending, running, completed, failed } = summary;
   const total = pending + running + completed + failed;
-  if (total > 0 && pending + running === 0) return 'completed';
-  return 'pending';
+  if (total === 0) return 'pending';
+  if (running > 0) return 'running';
+  if (failed > 0 && completed === 0) return 'failed';
+  if (pending + running === 0) return 'completed';
+  return 'running';
 }
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -66,7 +69,7 @@ app.openapi(
 
     try {
       const runs = await listDatasetRuns(runDbClient)({ scopes: { tenantId, projectId } });
-      const filteredRuns = runs.filter((run) => (run as any).datasetId === datasetId);
+      const filteredRuns = runs.filter((run) => run.datasetId === datasetId);
 
       const runsWithMeta = await Promise.all(
         filteredRuns.map(async (run) => {
@@ -384,7 +387,6 @@ const DatasetRunItemResponseSchema = z.object({
   completedAt: z.string().nullable().optional(),
   attemptNumber: z.number(),
   createdAt: z.string(),
-  updatedAt: z.string(),
   conversationId: z.string().nullable().optional(),
 });
 
@@ -446,7 +448,6 @@ app.openapi(
           completedAt: inv.completedAt ?? null,
           attemptNumber: inv.attemptNumber,
           createdAt: inv.createdAt,
-          updatedAt: inv.createdAt,
           conversationId: rel?.conversationId ?? null,
         };
       });

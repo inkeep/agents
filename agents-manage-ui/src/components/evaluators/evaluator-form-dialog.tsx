@@ -322,7 +322,7 @@ export function EvaluatorFormDialog({
             />
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Agent Scope</label>
+              <span className="text-sm font-medium">Agent Scope</span>
               {loadingAgents ? (
                 <p className="text-sm text-muted-foreground">Loading agents...</p>
               ) : (
