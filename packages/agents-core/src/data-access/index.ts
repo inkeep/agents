@@ -5,6 +5,7 @@ export * from '../db/manage/scope-definitions';
 export * from '../db/runtime/runtime-client';
 // Config data access (Doltgres - versioned)
 export * from './manage/agentFull';
+export * from './manage/agentDuplicate';
 export * from './manage/agents';
 export * from './manage/artifactComponents';
 export * from './manage/audit-queries';
