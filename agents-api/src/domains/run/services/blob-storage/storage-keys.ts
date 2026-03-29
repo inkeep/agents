@@ -10,7 +10,16 @@ export type ConversationMediaKeyInput = {
   ext: string;
 };
 
-export type StorageKeyInput = ConversationMediaKeyInput;
+export type ArtifactDataKeyInput = {
+  category: 'artifact-data';
+  tenantId: string;
+  projectId: string;
+  artifactId: string;
+  contentHash: string;
+  ext: string;
+};
+
+export type StorageKeyInput = ConversationMediaKeyInput | ArtifactDataKeyInput;
 
 export function buildStorageKey(input: StorageKeyInput): string {
   switch (input.category) {
@@ -23,6 +32,15 @@ export function buildStorageKey(input: StorageKeyInput): string {
         'conv',
         `c_${input.conversationId}`,
         `m_${input.messageId}`,
+        `sha256-${input.contentHash}.${input.ext}`,
+      ].join('/');
+    case 'artifact-data':
+      return [
+        STORAGE_KEY_VERSION,
+        `t_${input.tenantId}`,
+        input.category,
+        `p_${input.projectId}`,
+        `a_${input.artifactId}`,
         `sha256-${input.contentHash}.${input.ext}`,
       ].join('/');
   }

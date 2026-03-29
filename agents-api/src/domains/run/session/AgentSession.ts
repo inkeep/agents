@@ -34,6 +34,7 @@ import {
   STATUS_UPDATE_DEFAULT_NUM_EVENTS,
 } from '../constants/execution-limits';
 import { getFormattedConversationHistory, getScopedHistory } from '../data/conversations';
+import { stripBinaryDataForObservability } from '../services/blob-storage/artifact-binary-sanitizer';
 import { getStreamHelper } from '../stream/stream-registry';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getModelContextWindow } from '../utils/model-context-utils';
@@ -1376,7 +1377,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'subAgent.id': artifactData.subAgentId || 'unknown',
           'subAgent.name': artifactData.subAgentName || 'unknown',
           'artifact.tool_call_id': artifactData.metadata?.toolCallId || 'unknown',
-          'artifact.data': JSON.stringify(artifactData.data, null, 2),
+          'artifact.data': JSON.stringify(stripBinaryDataForObservability(artifactData.data)),
           'tenant.id': artifactData.tenantId || 'unknown',
           'project.id': artifactData.projectId || 'unknown',
           'context.id': artifactData.contextId || 'unknown',
@@ -1587,9 +1588,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           } else {
             // Truncate artifact data based on model context limits (use 20% for data preview)
             const fullDataStr = JSON.stringify(
-              artifactData.data || artifactData.summaryData || {},
-              null,
-              2
+              stripBinaryDataForObservability(artifactData.data || artifactData.summaryData || {})
             );
             let truncatedData = fullDataStr;
 
@@ -1674,9 +1673,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                   'artifact.type': artifactData.artifactType,
                   'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
                   'artifact.full': JSON.stringify(
-                    artifactData.data || artifactData.summaryData,
-                    null,
-                    2
+                    stripBinaryDataForObservability(artifactData.data || artifactData.summaryData)
                   ),
                   'prompt.length': prompt.length,
                 },
@@ -1722,9 +1719,9 @@ Make the name extremely specific to what this tool call actually returned, not g
                       'artifact.description': result.output.description,
                       'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
                       'artifact.full': JSON.stringify(
-                        artifactData.data || artifactData.summaryData,
-                        null,
-                        2
+                        stripBinaryDataForObservability(
+                          artifactData.data || artifactData.summaryData
+                        )
                       ),
                       'generation.name_length': result.output.name.length,
                       'generation.description_length': result.output.description.length,
