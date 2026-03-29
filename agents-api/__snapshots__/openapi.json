@@ -322,6 +322,66 @@
         ],
         "type": "object"
       },
+      "AgentDatasetRelation": {
+        "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "datasetId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "agentId",
+          "datasetId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "AgentEvaluatorRelation": {
+        "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "evaluatorId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "agentId",
+          "evaluatorId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "AgentIdPathParam": {
         "description": "Agent identifier",
         "example": "agent_789",
@@ -31587,9 +31647,6 @@
                           },
                           "tenantId": {
                             "type": "string"
-                          },
-                          "updatedAt": {
-                            "type": "string"
                           }
                         },
                         "required": [
@@ -31601,8 +31658,7 @@
                           "datasetItemId",
                           "status",
                           "attemptNumber",
-                          "createdAt",
-                          "updatedAt"
+                          "createdAt"
                         ],
                         "type": "object"
                       },
@@ -32336,10 +32392,22 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "nullable": true
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/AgentDatasetRelation"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
                   },
-                  "type": "array"
+                  "required": [
+                    "data",
+                    "pagination"
+                  ],
+                  "type": "object"
                 }
               }
             },
@@ -32574,7 +32642,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "nullable": true
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AgentDatasetRelation"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
                 }
               }
             },
@@ -36538,10 +36614,22 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "nullable": true
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/AgentEvaluatorRelation"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
                   },
-                  "type": "array"
+                  "required": [
+                    "data",
+                    "pagination"
+                  ],
+                  "type": "object"
                 }
               }
             },
@@ -36776,7 +36864,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "nullable": true
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AgentEvaluatorRelation"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
                 }
               }
             },
