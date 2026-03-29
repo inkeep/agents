@@ -1,8 +1,9 @@
 'use client';
 
-import { ChevronRight, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type UseFormReturn, useFormState, useWatch } from 'react-hook-form';
+import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import {
   type ProjectInput,
@@ -10,8 +11,6 @@ import {
   ProjectSchema,
 } from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
-import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
 import {
@@ -184,35 +183,17 @@ export function ProjectModelsSection({ form, disabled }: ProjectModelsSectionPro
           Set default models that will be inherited by agents and sub agents in this project.
         </p>
       </div>
-
-      <Collapsible
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        className="border rounded-md bg-background"
-      >
-        <CollapsibleTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="flex items-center justify-start gap-2 w-full group p-0 h-auto hover:!bg-transparent transition-colors py-2 px-4"
-          >
-            <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-            Configure default models
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-6  mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
-          {/* Base Model */}
-          <BaseModelSection form={form} disabled={disabled} />
-          {/* Structured Output Model */}
-          <StructuredOutputModelSection form={form} disabled={disabled} />
-          {/* Summarizer Model */}
-          <SummarizerModelSection form={form} disabled={disabled} />
-          <InfoCard title="How model inheritance works:" Icon={Info}>
-            <ModelInheritanceInfo />
-          </InfoCard>
-        </CollapsibleContent>
-      </Collapsible>
+      <CollapsibleSettings open={isOpen} onOpenChange={setIsOpen} title="Configure default models">
+        {/* Base Model */}
+        <BaseModelSection form={form} disabled={disabled} />
+        {/* Structured Output Model */}
+        <StructuredOutputModelSection form={form} disabled={disabled} />
+        {/* Summarizer Model */}
+        <SummarizerModelSection form={form} disabled={disabled} />
+        <InfoCard title="How model inheritance works:" Icon={Info}>
+          <ModelInheritanceInfo />
+        </InfoCard>
+      </CollapsibleSettings>
     </div>
   );
 }
