@@ -138,7 +138,7 @@ app.openapi(
     summary: 'Get Evaluators by IDs',
     operationId: 'get-evaluators-batch',
     tags: ['Evaluations'],
-    permission: requireProjectPermission('edit'),
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       body: {

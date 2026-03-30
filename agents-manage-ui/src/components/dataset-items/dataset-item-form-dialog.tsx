@@ -174,7 +174,7 @@ export function DatasetItemFormDialog({
                     control={form.control}
                     name="input"
                     label="Input"
-                    description="Messages to send to the agent, with optional headers"
+                    description="Messages to send to the agent"
                   />
                   <FormMessage />
                 </FormItem>

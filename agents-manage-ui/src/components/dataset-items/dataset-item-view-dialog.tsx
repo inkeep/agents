@@ -44,11 +44,6 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
     hasInput && item.input && typeof item.input === 'object' && 'messages' in item.input
       ? item.input.messages
       : [];
-  const inputHeaders =
-    hasInput && item.input && typeof item.input === 'object' && 'headers' in item.input
-      ? (item.input.headers as Record<string, unknown>)
-      : undefined;
-  const hasInputHeaders = !!(inputHeaders && Object.keys(inputHeaders).length > 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -66,7 +61,7 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
             <div>
               <Label className="text-sm font-medium">Input</Label>
               <p className="text-sm text-muted-foreground mt-1">
-                Messages sent to the agent, with optional headers
+                Messages sent to the agent
               </p>
             </div>
 
@@ -94,17 +89,6 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
               </div>
             )}
 
-            {/* Headers */}
-            {hasInputHeaders && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Headers</Label>
-                <div className="bg-muted rounded-md p-3">
-                  <pre className="text-sm whitespace-pre-wrap break-words">
-                    {JSON.stringify(inputHeaders, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Expected Output */}

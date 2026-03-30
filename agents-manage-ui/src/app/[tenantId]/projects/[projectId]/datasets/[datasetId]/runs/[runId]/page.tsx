@@ -20,8 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { DatasetRunWithConversations } from '@/lib/api/dataset-runs';
-import { fetchDatasetRun } from '@/lib/api/dataset-runs';
+import type { DatasetRunInvocation, DatasetRunWithConversations } from '@/lib/api/dataset-runs';
+import { fetchDatasetRun, fetchDatasetRunItems } from '@/lib/api/dataset-runs';
 import { fetchEvaluationJobConfigEvaluators } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
@@ -35,6 +35,7 @@ export default function Page({
   const [error, setError] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [filters, setFilters] = useState<TestCaseFiltersType>({});
+  const [invocations, setInvocations] = useState<DatasetRunInvocation[]>([]);
   const [evaluationProgress, setEvaluationProgress] = useState<{
     total: number;
     completed: number;
@@ -48,8 +49,12 @@ export default function Page({
           setLoading(true);
         }
         setError(null);
-        const response = await fetchDatasetRun(tenantId, projectId, runId);
+        const [response, itemsResponse] = await Promise.all([
+          fetchDatasetRun(tenantId, projectId, runId),
+          fetchDatasetRunItems(tenantId, projectId, runId),
+        ]);
         setRun(response.data);
+        setInvocations(itemsResponse.data || []);
 
         // If there's an evaluation job, fetch evaluation progress
         if (response.data?.evaluationJobConfigId) {
@@ -102,15 +107,16 @@ export default function Page({
     [tenantId, projectId, runId]
   );
 
-  // Calculate conversation progress
   const conversationProgress = useMemo(() => {
-    if (!run?.items) return { total: 0, completed: 0, isRunning: false };
-    const total = run.items.length;
-    const completed = run.items.filter(
-      (item) => item.conversations && item.conversations.length > 0
+    if (invocations.length === 0) return { total: 0, completed: 0, failed: 0, isRunning: false };
+    const total = invocations.length;
+    const completed = invocations.filter((inv) => inv.status === 'completed').length;
+    const failed = invocations.filter(
+      (inv) => inv.status === 'failed' || inv.status === 'cancelled'
     ).length;
-    return { total, completed, isRunning: completed < total && total > 0 };
-  }, [run]);
+    const settled = completed + failed;
+    return { total, completed, failed, isRunning: settled < total && total > 0 };
+  }, [invocations]);
 
   // Overall progress - run is complete only when both conversations AND evaluations are done
   const isRunInProgress =
@@ -131,6 +137,16 @@ export default function Page({
 
     return () => clearInterval(interval);
   }, [isRunInProgress, loadRun]);
+
+  const invocationByItemId = useMemo(() => {
+    const map = new Map<string, DatasetRunInvocation>();
+    for (const inv of invocations) {
+      if (inv.datasetItemId) {
+        map.set(inv.datasetItemId, inv);
+      }
+    }
+    return map;
+  }, [invocations]);
 
   const uniqueAgents = useMemo(() => {
     if (!run?.items) return [];
@@ -263,12 +279,17 @@ export default function Page({
                 <span className="text-xs text-muted-foreground">
                   Test cases: {conversationProgress.completed} of {conversationProgress.total}{' '}
                   completed
+                  {conversationProgress.failed > 0 && (
+                    <span className="ml-1 text-red-600 dark:text-red-400">
+                      ({conversationProgress.failed} failed)
+                    </span>
+                  )}
                   {!conversationProgress.isRunning && conversationProgress.total > 0 && (
                     <span className="ml-2 text-green-600 dark:text-green-400">✓</span>
                   )}
                 </span>
                 <Progress
-                  value={conversationProgress.completed}
+                  value={conversationProgress.completed + conversationProgress.failed}
                   max={conversationProgress.total}
                   className="h-1.5"
                 />
@@ -295,8 +316,18 @@ export default function Page({
           )}
           {!isRunInProgress && conversationProgress.total > 0 && (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="text-green-600 dark:text-green-400">✓</span>
-              Run completed: {conversationProgress.completed} test cases
+              {conversationProgress.failed > 0 ? (
+                <>
+                  <span className="text-yellow-600 dark:text-yellow-400">⚠</span>
+                  Run finished: {conversationProgress.completed} completed,{' '}
+                  {conversationProgress.failed} failed
+                </>
+              ) : (
+                <>
+                  <span className="text-green-600 dark:text-green-400">✓</span>
+                  Run completed: {conversationProgress.completed} test cases
+                </>
+              )}
               {evaluationProgress && `, ${evaluationProgress.completed} evaluations`}
             </div>
           )}
@@ -392,9 +423,13 @@ export default function Page({
                   // Show all conversations for this item (one row per agent run)
                   const conversations = item.conversations || [];
                   if (conversations.length === 0) {
-                    // No conversations yet - show placeholder row with loading state if run is in progress
+                    const inv = invocationByItemId.get(item.id);
+                    const isFailed = inv?.status === 'failed' || inv?.status === 'cancelled';
+                    const isPending = inv?.status === 'pending';
+                    const isRunning = inv?.status === 'running';
+
                     return (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.id} className={isFailed ? 'bg-red-50 dark:bg-red-950/20' : ''}>
                         <TableCell>
                           <button
                             type="button"
@@ -409,22 +444,32 @@ export default function Page({
                           <span className="text-sm text-muted-foreground">-</span>
                         </TableCell>
                         <TableCell>
-                          {conversationProgress.isRunning ? (
+                          {isFailed ? (
+                            <span className="text-sm text-red-600 dark:text-red-400 font-medium">
+                              Failed
+                            </span>
+                          ) : isRunning ? (
                             <span className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Loader2 className="h-3 w-3 animate-spin" />
                               Processing...
                             </span>
+                          ) : isPending ? (
+                            <span className="text-sm text-muted-foreground">Pending...</span>
                           ) : (
                             <span className="text-sm text-muted-foreground">No output</span>
                           )}
                         </TableCell>
                         <TableCell>
                           <span className="text-sm">
-                            {formatDateTime(run.createdAt, { local: true })}
+                            {formatDateTime(inv?.createdAt ?? run.createdAt, { local: true })}
                           </span>
                         </TableCell>
                         <TableCell>
-                          {conversationProgress.isRunning ? (
+                          {isFailed ? (
+                            <span className="text-sm text-red-600 dark:text-red-400">
+                              Execution failed
+                            </span>
+                          ) : (isPending || isRunning) ? (
                             <span className="text-sm text-muted-foreground">Pending...</span>
                           ) : (
                             <span className="text-sm text-muted-foreground">No conversation</span>

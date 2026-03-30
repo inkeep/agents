@@ -192,22 +192,21 @@ app.openapi(
       });
 
       const triggeredConversationIds: string[] = [];
-
       const workflowPromises: Promise<unknown>[] = [];
-      for (let i = 0; i < conversations.length; i++) {
-        const conversation = conversations[i];
+
+      for (const [i, conversation] of conversations.entries()) {
         if (!conversation) continue;
         const conversationId = conversationIds[i];
         const { agentId } = conversation;
+
         const scopedEvaluatorIds = agentId
           ? evaluatorIds.filter((evalId) => {
               const scopedAgents = agentIdsMap.get(evalId);
-              if (!scopedAgents || scopedAgents.length === 0) return true;
-              return scopedAgents.includes(agentId);
+              return !scopedAgents?.length || scopedAgents.includes(agentId);
             })
           : evaluatorIds;
 
-        if (scopedEvaluatorIds.length === 0) {
+        if (!scopedEvaluatorIds.length) {
           logger.info(
             { conversationId, agentId },
             'All evaluators filtered out by agent scoping for conversation'

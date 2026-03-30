@@ -5,4 +5,4 @@
 "@inkeep/agents-api": patch
 ---
 
-implementing datasets
+Add agent-scoped datasets and evaluators with direct agent execution for dataset runs

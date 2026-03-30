@@ -599,7 +599,13 @@ export const getScheduledTriggerInvocationStatusSummary =
   async (params: {
     scopes: ProjectScopeConfig;
     scheduledTriggerId: string;
-  }): Promise<{ pending: number; running: number; completed: number; failed: number }> => {
+  }): Promise<{
+    pending: number;
+    running: number;
+    completed: number;
+    failed: number;
+    cancelled: number;
+  }> => {
     const rows = await db
       .select({ status: scheduledTriggerInvocations.status, cnt: count() })
       .from(scheduledTriggerInvocations)
@@ -614,11 +620,11 @@ export const getScheduledTriggerInvocationStatusSummary =
 
     return rows.reduce(
       (acc, { status, cnt }) => {
-        const key = status === 'cancelled' ? 'failed' : (status as keyof typeof acc);
+        const key = status as keyof typeof acc;
         if (key in acc) acc[key] += Number(cnt);
         return acc;
       },
-      { pending: 0, running: 0, completed: 0, failed: 0 }
+      { pending: 0, running: 0, completed: 0, failed: 0, cancelled: 0 }
     );
   };
 

@@ -8,7 +8,6 @@ import {
   getDatasetRunConfigById,
   getDatasetRunConversationRelations,
   getMessagesByConversation,
-  getScheduledTriggerInvocationStatusSummary,
   ListResponseSchema,
   listDatasetItems,
   listDatasetRuns,
@@ -21,21 +20,6 @@ import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
-
-function deriveRunStatus(summary: {
-  pending: number;
-  running: number;
-  completed: number;
-  failed: number;
-}): string {
-  const { pending, running, completed, failed } = summary;
-  const total = pending + running + completed + failed;
-  if (total === 0) return 'pending';
-  if (running > 0) return 'running';
-  if (failed > 0 && completed === 0) return 'failed';
-  if (pending + running === 0) return 'completed';
-  return 'running';
-}
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRuns');
@@ -73,25 +57,14 @@ app.openapi(
 
       const runsWithMeta = await Promise.all(
         filteredRuns.map(async (run) => {
-          const [runConfig, summary] = await Promise.all([
-            run.datasetRunConfigId
-              ? getDatasetRunConfigById(db)({
-                  scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
-                })
-              : Promise.resolve(null),
-            getScheduledTriggerInvocationStatusSummary(runDbClient)({
-              scopes: { tenantId, projectId },
-              scheduledTriggerId: run.id,
-            }),
-          ]);
-          const total = summary.pending + summary.running + summary.completed + summary.failed;
+          const runConfig = run.datasetRunConfigId
+            ? await getDatasetRunConfigById(db)({
+                scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
+              })
+            : null;
           return {
             ...run,
             runConfigName: runConfig?.name ?? null,
-            status: deriveRunStatus(summary),
-            totalItems: total,
-            completedItems: summary.completed,
-            failedItems: summary.failed,
           };
         })
       );
@@ -136,17 +109,6 @@ app.openapi(
           'application/json': {
             schema: SingleResponseSchema(
               DatasetRunApiSelectSchema.extend({
-                conversations: z.array(
-                  z.object({
-                    id: z.string(),
-                    conversationId: z.string(),
-                    datasetRunId: z.string(),
-                    agentId: z.string().nullable().optional(),
-                    output: z.string().nullable().optional(),
-                    createdAt: z.string(),
-                    updatedAt: z.string(),
-                  })
-                ),
                 items: z.array(
                   z.object({
                     id: z.string(),
@@ -194,23 +156,18 @@ app.openapi(
         ) as any;
       }
 
-      const [runConfig, summary, conversationRelations] = await Promise.all([
+      const [runConfig, conversationRelations] = await Promise.all([
         run.datasetRunConfigId
           ? getDatasetRunConfigById(db)({
               scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
             })
           : Promise.resolve(null),
-        getScheduledTriggerInvocationStatusSummary(runDbClient)({
-          scopes: { tenantId, projectId },
-          scheduledTriggerId: runId,
-        }),
         getDatasetRunConversationRelations(runDbClient)({
           scopes: { tenantId, projectId, datasetRunId: runId },
         }),
       ]);
 
       const runConfigName = runConfig?.name ?? null;
-      const totalItems = summary.pending + summary.running + summary.completed + summary.failed;
 
       // Get all dataset items for this dataset
       const datasetItems = await listDatasetItems(db)({
@@ -293,72 +250,10 @@ app.openapi(
         })
       );
 
-      // Also fetch output and agentId for all conversations in the main conversations array
-      const conversationsWithOutput = await Promise.all(
-        conversationRelations.map(async (conv) => {
-          try {
-            // Fetch conversation to get sub-agent ID, then look up parent agent ID
-            const conversation = await getConversation(runDbClient)({
-              scopes: { tenantId, projectId },
-              conversationId: conv.conversationId,
-            });
-
-            const agentId: string | null = conversation?.agentId || null;
-
-            const messages = await getMessagesByConversation(runDbClient)({
-              scopes: { tenantId, projectId },
-              conversationId: conv.conversationId,
-              pagination: { page: 1, limit: 100 },
-            });
-
-            const assistantMessage = messages
-              .filter((msg) => msg.role === 'assistant' || msg.role === 'agent')
-              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-
-            let output: string | null = null;
-            if (assistantMessage?.content) {
-              if (typeof assistantMessage.content === 'string') {
-                output = assistantMessage.content;
-              } else if (
-                typeof assistantMessage.content === 'object' &&
-                assistantMessage.content !== null &&
-                'text' in assistantMessage.content
-              ) {
-                output =
-                  typeof assistantMessage.content.text === 'string'
-                    ? assistantMessage.content.text
-                    : null;
-              }
-            }
-
-            return {
-              ...conv,
-              output,
-              agentId,
-            };
-          } catch (error) {
-            logger.warn(
-              { error, conversationId: conv.conversationId },
-              'Failed to fetch conversation output'
-            );
-            return {
-              ...conv,
-              output: null,
-              agentId: null,
-            };
-          }
-        })
-      );
-
       return c.json({
         data: {
           ...run,
           runConfigName,
-          status: deriveRunStatus(summary),
-          totalItems,
-          completedItems: summary.completed,
-          failedItems: summary.failed,
-          conversations: conversationsWithOutput,
           items: itemsWithConversations,
         } as any,
       }) as any;

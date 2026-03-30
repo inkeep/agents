@@ -408,12 +408,13 @@ export type EvaluationSuiteFilterCriteria = {
   [key: string]: unknown;
 };
 
+export type DatasetMessageRole = 'user' | 'assistant' | 'system';
+
 export type DatasetItemInput = {
-  messages: Array<{ role: string; content: MessageContent }>;
-  headers?: Record<string, string>;
+  messages: Array<{ role: DatasetMessageRole; content: MessageContent }>;
 };
 
-export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageContent }>;
+export type DatasetItemExpectedOutput = Array<{ role: DatasetMessageRole; content: MessageContent }>;
 
 /**
  * GitHub App installation status.

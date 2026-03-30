@@ -1,8 +1,5 @@
 import type { DatasetItemInput, DatasetRunItem } from '@inkeep/agents-core';
-import {
-  markScheduledTriggerInvocationFailed,
-  markScheduledTriggerInvocationRunning,
-} from '@inkeep/agents-core';
+import { markScheduledTriggerInvocationFailed } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -24,18 +21,12 @@ export async function queueDatasetRunItems(params: {
 
   const results = await Promise.allSettled(
     items.map(async (item) => {
-      await markScheduledTriggerInvocationRunning(runDbClient)({
-        scopes: { tenantId, projectId, agentId: item.agentId },
-        scheduledTriggerId: datasetRunId,
-        invocationId: item.scheduledTriggerInvocationId,
-      });
-
       await start(runDatasetItemWorkflow, [
         {
           tenantId,
           projectId,
           agentId: item.agentId,
-          datasetItemId: item.id ?? '',
+          datasetItemId: item.id ?? (() => { throw new Error(`Dataset item missing id for agent ${item.agentId}`); })(),
           datasetItemInput: item.input as DatasetItemInput,
           datasetItemExpectedOutput: item.expectedOutput,
           datasetRunId,

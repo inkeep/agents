@@ -44,7 +44,6 @@ type RunDatasetItemPayload = {
   scheduledTriggerInvocationId: string;
   evaluatorIds?: string[];
   evaluationRunId?: string;
-  timeoutSeconds?: number;
   ref?: string;
 };
 
@@ -61,11 +60,10 @@ async function executeDatasetItemStep(payload: RunDatasetItemPayload) {
     datasetItemInput,
     datasetRunId,
     scheduledTriggerInvocationId,
-    timeoutSeconds,
   } = payload;
 
   const conversationId = generateId();
-  const effectiveTimeout = timeoutSeconds ?? 300;
+  const effectiveTimeout = 780;
 
   try {
     const ref = getProjectScopedRef(tenantId, projectId, payload.ref || 'main');
@@ -387,7 +385,11 @@ async function filterEvaluatorsByAgentStep(params: {
   const resolvedRef = await resolveRef(manageDbClient)(ref);
 
   if (!resolvedRef) {
-    return evaluatorIds;
+    logger.warn(
+      { tenantId, projectId, agentId, ref: params.ref },
+      'Failed to resolve ref for evaluator agent scoping — skipping all evaluators'
+    );
+    return [];
   }
 
   const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>

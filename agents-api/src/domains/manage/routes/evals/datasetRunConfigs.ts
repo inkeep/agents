@@ -243,7 +243,6 @@ app.openapi(
             schema: z.object({
               branchName: z.string().optional(),
               evaluatorIds: z.array(z.string()).optional(),
-              evaluationRunConfigId: z.string().optional(),
             }),
           },
         },

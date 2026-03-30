@@ -10,14 +10,15 @@
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 
+type DatasetMessageRole = 'user' | 'assistant' | 'system';
+
 export interface DatasetItem {
   id: string;
   datasetId: string;
   input?: {
-    messages: Array<{ role: string; content: unknown }>;
-    headers?: Record<string, string>;
+    messages: Array<{ role: DatasetMessageRole; content: unknown }>;
   } | null;
-  expectedOutput?: Array<{ role: string; content: unknown }> | null;
+  expectedOutput?: Array<{ role: DatasetMessageRole; content: unknown }> | null;
   createdAt: string;
   updatedAt: string;
   tenantId: string;
@@ -27,18 +28,16 @@ export interface DatasetItem {
 export interface DatasetItemInsert {
   id?: string;
   input?: {
-    messages: Array<{ role: string; content: unknown }>;
-    headers?: Record<string, string>;
+    messages: Array<{ role: DatasetMessageRole; content: unknown }>;
   } | null;
-  expectedOutput?: Array<{ role: string; content: unknown }> | null;
+  expectedOutput?: Array<{ role: DatasetMessageRole; content: unknown }> | null;
 }
 
 export interface DatasetItemUpdate {
   input?: {
-    messages: Array<{ role: string; content: unknown }>;
-    headers?: Record<string, string>;
+    messages: Array<{ role: DatasetMessageRole; content: unknown }>;
   } | null;
-  expectedOutput?: Array<{ role: string; content: unknown }> | null;
+  expectedOutput?: Array<{ role: DatasetMessageRole; content: unknown }> | null;
 }
 
 /**

@@ -632,7 +632,7 @@ export async function executeAgentAsync(
   } & (
     | { userMessage: string; messageParts: Part[]; messages?: undefined }
     | {
-        messages: Array<{ role: string; content: unknown }>;
+        messages: Array<{ role: 'user' | 'assistant' | 'system'; content: unknown }>;
         userMessage?: undefined;
         messageParts?: undefined;
       }
@@ -910,7 +910,7 @@ export async function executeAgentAsync(
               data: {
                 id: generateId(),
                 conversationId,
-                role: msg.role as 'user' | 'assistant' | 'system',
+                role: msg.role,
                 content: {
                   text,
                   parts: [{ kind: 'text' as const, text }],
