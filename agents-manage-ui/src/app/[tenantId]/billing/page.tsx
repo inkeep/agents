@@ -87,12 +87,7 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
   }
 
   if (!isOrgAdmin) {
-    return (
-      <ErrorContent
-        error={new Error('You do not have permission to view this page')}
-        context="authorization"
-      />
-    );
+    return <ErrorContent errorCode="forbidden" context="billing" />;
   }
 
   if (error) {
