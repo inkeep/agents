@@ -15,7 +15,6 @@ import type {
 import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Type definitions
 export type ScheduledTrigger = ScheduledTriggerApiSelect;
@@ -49,9 +48,6 @@ export async function fetchScheduledTriggers(
   projectId: string,
   agentId: string
 ): Promise<ListResponse<ScheduledTriggerWithRunInfo>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<ListResponse<ScheduledTriggerWithRunInfo>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers?limit=100`
   );
@@ -68,9 +64,6 @@ async function $getScheduledTrigger(
   agentId: string,
   scheduledTriggerId: string
 ): Promise<ScheduledTrigger> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ScheduledTrigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}`
   );
@@ -89,9 +82,6 @@ export async function createScheduledTrigger(
   agentId: string,
   triggerData: CreateScheduledTriggerInput
 ): Promise<ScheduledTrigger> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ScheduledTrigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`,
     {
@@ -113,9 +103,6 @@ export async function updateScheduledTrigger(
   scheduledTriggerId: string,
   triggerData: UpdateScheduledTriggerInput
 ): Promise<ScheduledTrigger> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ScheduledTrigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}`,
     {
@@ -136,9 +123,6 @@ export async function deleteScheduledTrigger(
   agentId: string,
   scheduledTriggerId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}`,
     {
@@ -157,10 +141,6 @@ export async function cancelScheduledTriggerInvocation(
   scheduledTriggerId: string,
   invocationId: string
 ): Promise<{ success: boolean; message?: string }> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const { makeManagementApiRequest } = await import('./api-config');
   const response = await makeManagementApiRequest<{ success: boolean; message?: string }>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/invocations/${invocationId}/cancel`,
     {
@@ -181,10 +161,6 @@ export async function rerunScheduledTriggerInvocation(
   scheduledTriggerId: string,
   invocationId: string
 ): Promise<{ success: boolean; newInvocationId: string; originalInvocationId: string }> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const { makeManagementApiRequest } = await import('./api-config');
   const response = await makeManagementApiRequest<{
     success: boolean;
     newInvocationId: string;
@@ -208,10 +184,6 @@ export async function runScheduledTriggerNow(
   agentId: string,
   scheduledTriggerId: string
 ): Promise<{ success: boolean; invocationId: string }> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const { makeManagementApiRequest } = await import('./api-config');
   const response = await makeManagementApiRequest<{
     success: boolean;
     invocationId: string;
@@ -239,9 +211,6 @@ export async function fetchScheduledTriggerInvocations(
     page?: number;
   }
 ): Promise<ListResponse<ScheduledTriggerInvocation>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const params = new URLSearchParams();
   if (options?.status) params.append('status', options.status);
   if (options?.limit) params.append('limit', options.limit.toString());

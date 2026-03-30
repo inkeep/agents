@@ -18,12 +18,8 @@ import type {
 } from '../types/agent-full';
 import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 async function $fetchAgents(tenantId: string, projectId: string): Promise<ListResponse<Agent>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<Agent>>(
     `tenants/${tenantId}/projects/${projectId}/agents?limit=100`
   );
@@ -36,9 +32,6 @@ export async function createAgent(
   projectId: string,
   agentData: AgentApiInsert
 ): Promise<CreateAgentResponse> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<CreateAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agents`,
     {
@@ -57,8 +50,6 @@ export async function updateAgent(
   agentId: string,
   agentData: AgentApiInsert
 ): Promise<UpdateAgentResponse> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
   return makeManagementApiRequest<UpdateAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
     {
@@ -76,9 +67,6 @@ async function $getFullAgent(
   projectId: string,
   agentId: string
 ): Promise<GetAgentResponse> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<GetAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agent/${agentId}`,
     {
@@ -98,9 +86,6 @@ export async function updateFullAgent(
   agentId: string,
   agentData: FullAgentPayload
 ): Promise<UpdateFullAgentResponse> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<UpdateFullAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agent/${agentId}`,
     {
@@ -118,9 +103,6 @@ export async function deleteFullAgent(
   projectId: string,
   agentId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(`tenants/${tenantId}/projects/${projectId}/agent/${agentId}`, {
     method: 'DELETE',
   });
