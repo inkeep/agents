@@ -8,7 +8,7 @@ import { getLogger } from '@inkeep/agents-core';
 const configLogger = getLogger('config');
 configLogger.updateOptions({ level: 'silent' });
 
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { addCommand } from './commands/add';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
 import { devCommand } from './commands/dev';
@@ -114,6 +114,7 @@ program
     'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
   )
   .option('--quiet', 'Suppress profile/config logging')
+  .option('--force', 'Skip conflict detection and push directly to remote')
   .action(pushCommand);
 
 program
@@ -139,6 +140,12 @@ program
     'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
   )
   .option('--quiet', 'Suppress profile/config logging')
+  .addOption(
+    new Option(
+      '--conflict-strategy <strategy>',
+      'Auto-resolve merge conflicts: ours (keep local) or theirs (accept remote). Skips interactive prompts.'
+    ).choices(['ours', 'theirs'])
+  )
   .action(async (options) => {
     await pullV4Command(options);
   });

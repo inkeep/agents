@@ -1,10 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../dolt/pk-map', () => ({
-  isValidManageTable: vi.fn((name: string) => name === 'agent' || name === 'tools'),
+  isValidManageTable: vi.fn((name: string) =>
+    ['agent', 'tools', 'functions', 'function_tools'].includes(name)
+  ),
   managePkMap: {
     agent: ['tenant_id', 'project_id', 'id'],
     tools: ['tenant_id', 'project_id', 'id'],
+    functions: ['tenant_id', 'project_id', 'id'],
+    function_tools: ['tenant_id', 'project_id', 'agent_id', 'id'],
+  },
+}));
+
+vi.mock('../../dolt/fk-map', () => ({
+  manageFkDeps: {
+    function_tools: ['functions', 'agent'],
+    tools: ['projects'],
+    agent: ['projects'],
   },
 }));
 
@@ -61,7 +73,7 @@ describe('applyResolutions', () => {
   });
 
   it('applies theirs pick with UPDATE for modified rows', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -100,7 +112,7 @@ describe('applyResolutions', () => {
   });
 
   it('applies DELETE for theirs pick when theirDiffType is removed', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -136,7 +148,7 @@ describe('applyResolutions', () => {
   });
 
   it('applies mixed column resolution', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -177,7 +189,7 @@ describe('applyResolutions', () => {
 
   it('serializes jsonb object values correctly in UPDATE', async () => {
     const configObj = { maxTokens: 100, nested: { key: 'value' } };
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -217,7 +229,7 @@ describe('applyResolutions', () => {
 
   it('serializes jsonb object values correctly in INSERT (ourDiffType=removed)', async () => {
     const configObj = { enabled: true };
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'removed',
@@ -258,7 +270,7 @@ describe('applyResolutions', () => {
   it('serializes jsonb object values correctly in mixed resolution', async () => {
     const oursConfig = { source: 'ours' };
     const theirsConfig = { source: 'theirs' };
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'modified',
@@ -299,7 +311,7 @@ describe('applyResolutions', () => {
   });
 
   it('finds conflict row when base PK columns are NULL (add-add conflict)', async () => {
-    mockDb.queryResults['dolt_conflicts_agent'] = {
+    mockDb.queryResults.dolt_conflicts_agent = {
       rows: [
         {
           our_diff_type: 'added',
@@ -352,5 +364,307 @@ describe('applyResolutions', () => {
     ];
 
     await expect(applyResolutions(mockDb.db)(resolutions)).rejects.toThrow('Invalid table name');
+  });
+
+  it('inserts parent table before child table when both need INSERT', async () => {
+    mockDb.queryResults.dolt_conflicts_functions = {
+      rows: [
+        {
+          our_diff_type: 'removed',
+          their_diff_type: 'modified',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'f1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'f1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'f1',
+          our_execute_code: null,
+          their_execute_code: 'console.log("hi")',
+        },
+      ],
+    };
+
+    mockDb.queryResults.dolt_conflicts_function_tools = {
+      rows: [
+        {
+          our_diff_type: 'removed',
+          their_diff_type: 'modified',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_agent_id: 'a1',
+          base_id: 'ft1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_agent_id: 'a1',
+          our_id: 'ft1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_agent_id: 'a1',
+          their_id: 'ft1',
+          our_function_id: null,
+          their_function_id: 'f1',
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'function_tools',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', agent_id: 'a1', id: 'ft1' },
+        rowDefaultPick: 'theirs',
+      },
+      {
+        table: 'functions',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'f1' },
+        rowDefaultPick: 'theirs',
+      },
+    ];
+
+    await applyResolutions(mockDb.db)(resolutions);
+
+    const insertQueries = mockDb.executedQueries.filter((q: string) => q.includes('INSERT'));
+    expect(insertQueries).toHaveLength(2);
+    expect(insertQueries[0]).toContain('"functions"');
+    expect(insertQueries[1]).toContain('"function_tools"');
+  });
+
+  it('deletes child table before parent table when both need DELETE', async () => {
+    mockDb.queryResults.dolt_conflicts_functions = {
+      rows: [
+        {
+          our_diff_type: 'modified',
+          their_diff_type: 'removed',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'f1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'f1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'f1',
+          our_execute_code: 'console.log("hi")',
+          their_execute_code: null,
+        },
+      ],
+    };
+
+    mockDb.queryResults.dolt_conflicts_function_tools = {
+      rows: [
+        {
+          our_diff_type: 'modified',
+          their_diff_type: 'removed',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_agent_id: 'a1',
+          base_id: 'ft1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_agent_id: 'a1',
+          our_id: 'ft1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_agent_id: 'a1',
+          their_id: 'ft1',
+          our_function_id: 'f1',
+          their_function_id: null,
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'functions',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'f1' },
+        rowDefaultPick: 'theirs',
+      },
+      {
+        table: 'function_tools',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', agent_id: 'a1', id: 'ft1' },
+        rowDefaultPick: 'theirs',
+      },
+    ];
+
+    await applyResolutions(mockDb.db)(resolutions);
+
+    const deleteQueries = mockDb.executedQueries.filter((q: string) => q.includes('DELETE'));
+    expect(deleteQueries).toHaveLength(2);
+    expect(deleteQueries[0]).toContain('"function_tools"');
+    expect(deleteQueries[1]).toContain('"functions"');
+  });
+
+  it('rejects column overrides when ours side deleted the row', async () => {
+    mockDb.queryResults.dolt_conflicts_agent = {
+      rows: [
+        {
+          our_diff_type: 'removed',
+          their_diff_type: 'modified',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: null,
+          their_name: 'Their Agent',
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'theirs',
+        columns: { name: 'ours' },
+      },
+    ];
+
+    await expect(applyResolutions(mockDb.db)(resolutions)).rejects.toThrow(
+      'Cannot apply column overrides'
+    );
+  });
+
+  it('rejects column overrides when theirs side deleted the row', async () => {
+    mockDb.queryResults.dolt_conflicts_agent = {
+      rows: [
+        {
+          our_diff_type: 'modified',
+          their_diff_type: 'removed',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: 'Our Agent',
+          their_name: null,
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'ours',
+        columns: { name: 'theirs' },
+      },
+    ];
+
+    await expect(applyResolutions(mockDb.db)(resolutions)).rejects.toThrow(
+      'Cannot apply column overrides'
+    );
+  });
+
+  it('allows column overrides matching rowDefaultPick when a side is removed', async () => {
+    mockDb.queryResults.dolt_conflicts_agent = {
+      rows: [
+        {
+          our_diff_type: 'modified',
+          their_diff_type: 'removed',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: 'Our Agent',
+          their_name: null,
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'ours',
+        columns: { name: 'ours' },
+      },
+    ];
+
+    await applyResolutions(mockDb.db)(resolutions);
+
+    const mutationQueries = mockDb.executedQueries.filter(
+      (q) => !q.includes('DOLT_CONFLICTS_RESOLVE') && !q.includes('dolt_conflicts_')
+    );
+    expect(mutationQueries).toHaveLength(0);
+  });
+
+  it('processes DELETEs before INSERTs across different tables', async () => {
+    mockDb.queryResults.dolt_conflicts_functions = {
+      rows: [
+        {
+          our_diff_type: 'removed',
+          their_diff_type: 'modified',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'f1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'f1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'f1',
+          our_execute_code: null,
+          their_execute_code: 'code',
+        },
+      ],
+    };
+
+    mockDb.queryResults.dolt_conflicts_agent = {
+      rows: [
+        {
+          our_diff_type: 'modified',
+          their_diff_type: 'removed',
+          base_tenant_id: 't1',
+          base_project_id: 'p1',
+          base_id: 'a1',
+          our_tenant_id: 't1',
+          our_project_id: 'p1',
+          our_id: 'a1',
+          their_tenant_id: 't1',
+          their_project_id: 'p1',
+          their_id: 'a1',
+          our_name: 'Agent',
+          their_name: null,
+        },
+      ],
+    };
+
+    const resolutions: ConflictResolution[] = [
+      {
+        table: 'functions',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'f1' },
+        rowDefaultPick: 'theirs',
+      },
+      {
+        table: 'agent',
+        primaryKey: { tenant_id: 't1', project_id: 'p1', id: 'a1' },
+        rowDefaultPick: 'theirs',
+      },
+    ];
+
+    await applyResolutions(mockDb.db)(resolutions);
+
+    const mutationQueries = mockDb.executedQueries.filter(
+      (q: string) => q.includes('DELETE') || q.includes('INSERT')
+    );
+    expect(mutationQueries).toHaveLength(2);
+    expect(mutationQueries[0]).toContain('DELETE');
+    expect(mutationQueries[1]).toContain('INSERT');
   });
 });

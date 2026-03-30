@@ -1,6 +1,6 @@
 {
-  "id": "2f229658-7636-4a12-bd32-ba8497e4cec8",
-  "prevId": "aed8320f-0737-4399-92c1-db038ccabe6b",
+  "id": "077fbc00-78ca-4743-ad71-c5233248443c",
+  "prevId": "9dc3e813-268e-4093-8338-cb04bc5ff68a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1708,101 +1708,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.org_entitlement": {
-      "name": "org_entitlement",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resource_type": {
-          "name": "resource_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "max_value": {
-          "name": "max_value",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "org_entitlement_org_idx": {
-          "name": "org_entitlement_org_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "org_entitlement_organization_fk": {
-          "name": "org_entitlement_organization_fk",
-          "tableFrom": "org_entitlement",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "org_entitlement_org_resource_unique": {
-          "name": "org_entitlement_org_resource_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "organization_id",
-            "resource_type"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "org_entitlement_resource_type_format": {
-          "name": "org_entitlement_resource_type_format",
-          "value": "resource_type ~ '^[a-z]+:[a-z][a-z0-9_]*$'"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.organization": {
       "name": "organization",
       "schema": "",
@@ -1845,12 +1750,6 @@
         },
         "preferred_auth_method": {
           "name": "preferred_auth_method",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "allowed_auth_methods": {
-          "name": "allowed_auth_methods",
           "type": "text",
           "primaryKey": false,
           "notNull": false

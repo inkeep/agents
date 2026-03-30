@@ -5,7 +5,7 @@ import type { ModelSettings } from '../../validation/schemas';
 // Mock the Azure provider
 vi.mock('@ai-sdk/azure', () => ({
   createAzure: vi.fn(() => ({
-    languageModel: vi.fn(() => ({ provider: 'azure', model: 'mocked-azure-model' })),
+    languageModel: vi.fn(() => ({ provider: 'azure', modelId: 'mocked-azure-model' })),
   })),
 }));
 
@@ -333,7 +333,7 @@ describe('ModelFactory', () => {
       expect(model).toBeDefined();
       expect(model).toMatchObject({
         provider: 'azure',
-        model: 'mocked-azure-model',
+        modelId: 'mocked-azure-model',
       });
     });
 
@@ -353,7 +353,7 @@ describe('ModelFactory', () => {
       expect(model).toBeDefined();
       expect(model).toMatchObject({
         provider: 'azure',
-        model: 'mocked-azure-model',
+        modelId: 'mocked-azure-model',
       });
     });
 
@@ -374,7 +374,7 @@ describe('ModelFactory', () => {
       expect(model).toBeDefined();
       expect(model).toMatchObject({
         provider: 'azure',
-        model: 'mocked-azure-model',
+        modelId: 'mocked-azure-model',
       });
     });
 
@@ -429,7 +429,7 @@ describe('ModelFactory', () => {
       expect(result).toMatchObject({
         model: {
           provider: 'azure',
-          model: 'mocked-azure-model',
+          modelId: 'mocked-azure-model',
         },
         temperature: 0.7,
         maxOutputTokens: 2048,
@@ -474,7 +474,7 @@ describe('ModelFactory', () => {
       expect(result).toMatchObject({
         model: {
           provider: 'azure',
-          model: 'mocked-azure-model',
+          modelId: 'mocked-azure-model',
         },
         temperature: 0.7,
         maxOutputTokens: 2048,

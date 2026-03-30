@@ -1,4 +1,4 @@
-import type { ModelSettings } from '@inkeep/agents-core';
+import { GENERATION_TYPES, type ModelSettings } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import type { CompressedArtifactInfo } from '../artifacts/artifact-utils';
 import {
@@ -26,6 +26,7 @@ export class ConversationCompressor extends BaseCompressor {
     conversationId: string,
     tenantId: string,
     projectId: string,
+    agentId: string,
     options?: {
       config?: CompressionConfig;
       summarizerModel?: ModelSettings;
@@ -40,6 +41,7 @@ export class ConversationCompressor extends BaseCompressor {
       conversationId,
       tenantId,
       projectId,
+      agentId,
       compressionConfig,
       options?.summarizerModel,
       options?.baseModel
@@ -150,6 +152,12 @@ export class ConversationCompressor extends BaseCompressor {
       currentSummary: this.priorSummary,
       messageFormatter: (maxChars) =>
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
+      usageContext: {
+        tenantId: this.tenantId,
+        projectId: this.projectId,
+        agentId: this.agentId,
+        generationType: GENERATION_TYPES.CONVERSATION_COMPRESSION,
+      },
     });
   }
 }
