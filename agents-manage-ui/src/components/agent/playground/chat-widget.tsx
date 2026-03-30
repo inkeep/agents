@@ -83,7 +83,12 @@ export function ChatWidget({
   const { data: dataComponents } = useDataComponentsQuery();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
-  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
+  const {
+    apiKey: tempApiKey,
+    appId: playgroundAppId,
+    isLoading: isLoadingKey,
+    refresh: refreshToken,
+  } = useTempApiKey({
     tenantId,
     projectId,
     agentId: agentId || '',
@@ -148,6 +153,14 @@ export function ChatWidget({
         <InkeepEmbeddedChat
           baseSettings={{
             shouldBypassCaptcha: true,
+            ...(playgroundAppId && tempApiKey
+              ? {
+                  getAuthToken: async () => {
+                    const token = await refreshToken();
+                    return token ?? tempApiKey;
+                  },
+                }
+              : {}),
             async onEvent(event) {
               posthog?.capture(event.eventName, {
                 ...event.properties,
@@ -230,12 +243,17 @@ export function ChatWidget({
             isViewOnly: hasHeadersError,
             conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
+            ...(playgroundAppId ? { appId: playgroundAppId } : {}),
             headers: {
-              'x-inkeep-tenant-id': tenantId,
-              'x-inkeep-project-id': projectId,
-              'x-inkeep-agent-id': agentId || '',
+              ...(playgroundAppId
+                ? {}
+                : {
+                    'x-inkeep-tenant-id': tenantId,
+                    'x-inkeep-project-id': projectId,
+                    'x-inkeep-agent-id': agentId || '',
+                    Authorization: `Bearer ${tempApiKey}`,
+                  }),
               'x-emit-operations': 'true',
-              Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
             messageActions: isCopilotConfigured

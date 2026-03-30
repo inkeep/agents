@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  buildConversationMetadata,
   type CredentialStoreRegistry,
   createApiError,
   createMessage,
@@ -21,7 +22,10 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { PdfUrlIngestionError } from '../services/blob-storage/file-security-errors';
+import {
+  FileSecurityError,
+  PdfUrlIngestionError,
+} from '../services/blob-storage/file-security-errors';
 import {
   buildPersistedMessageContent,
   inlineExternalPdfUrlParts,
@@ -101,6 +105,10 @@ const chatCompletionsRoute = createProtectedRoute({
               .describe(
                 'Headers data for template processing (validated against context config schema)'
               ),
+            userProperties: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe('User properties to associate with the conversation'),
           }),
         },
       },
@@ -251,6 +259,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
+      const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
       await createOrGetConversation(runDbClient)({
         tenantId,
         projectId,
@@ -259,6 +268,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         activeSubAgentId: defaultSubAgentId,
         ref: executionContext.resolvedRef,
         userId: executionContext.metadata?.endUserId,
+        ...(conversationMeta ? { metadata: conversationMeta } : {}),
       });
 
       const activeAgent = await getActiveAgentForConversation(runDbClient)({
@@ -333,7 +343,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       if (messageSpan) {
         messageSpan.setAttributes({
           'message.content': userMessage,
-          'message.timestamp': Date.now(),
+          'message.timestamp': new Date().toISOString(),
           'agent.name': agentName,
         });
         const invocationType = c.req.header('x-inkeep-invocation-type');
@@ -585,6 +595,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
       });
     });
   } catch (error) {
+    if (error instanceof FileSecurityError) {
+      throw createApiError({
+        code: 'bad_request',
+        message: error.message,
+      });
+    }
     if (error instanceof PdfUrlIngestionError) {
       throw createApiError({
         code: 'bad_request',

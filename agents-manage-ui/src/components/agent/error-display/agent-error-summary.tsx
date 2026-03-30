@@ -1,5 +1,6 @@
 'use client';
 
+import { useNodes } from '@xyflow/react';
 import { AlertCircle, ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
 import { type ComponentProps, useEffect, useState } from 'react';
 import { useFormState } from 'react-hook-form';
@@ -9,11 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { flatNestedFieldMessage } from '@/components/ui/form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { findNodeByGraphKey, getNodeGraphKey } from '@/features/agent/domain';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useSidePane } from '@/hooks/use-side-pane';
-
-interface AgentErrorSummaryProps {
-  onNavigateToNode?: (nodeId: string) => void;
-}
 
 interface PartialProcessedAgentError {
   nodeId?: string;
@@ -144,17 +143,32 @@ function useWindowFocus(): boolean {
   return isFocused;
 }
 
-export function AgentErrorSummary({ onNavigateToNode }: AgentErrorSummaryProps) {
+export function AgentErrorSummary() {
   'use memo';
   const { setQueryState } = useSidePane();
+  const nodes = useNodes();
+  const { setNodes, setEdges } = useAgentActions();
 
   function handleNavigateToNode(nodeId: string) {
-    if (onNavigateToNode) {
-      onNavigateToNode(nodeId);
+    const targetNode = findNodeByGraphKey(nodes, nodeId);
+
+    if (!targetNode) {
       return;
     }
-
-    setQueryState({ pane: 'node', nodeId, edgeId: null });
+    // Clear selection and select the target node
+    setNodes((nodes) =>
+      nodes.map((node) => ({
+        ...node,
+        selected: node.id === targetNode.id,
+      }))
+    );
+    setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
+    // Open the sidepane for the selected node
+    setQueryState({
+      pane: 'node',
+      nodeId: getNodeGraphKey(targetNode),
+      edgeId: null,
+    });
   }
 
   const { subAgents, functionTools, externalAgents, teamAgents, tools, agentSettings, other } =

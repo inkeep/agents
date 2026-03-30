@@ -90,6 +90,17 @@ const app = createAgentsHono({
   sandboxConfig,
 });
 
+// Ensure playground app configuration on startup (domains + public keys, idempotent)
+import { ensurePlaygroundAppConfig } from './startup/playground-app';
+
+setTimeout(async () => {
+  try {
+    await ensurePlaygroundAppConfig();
+  } catch (err) {
+    logger.error({ error: err }, 'Failed to configure playground app');
+  }
+}, 3000);
+
 // Start the workflow world worker and recover orphaned workflows.
 const workflowWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';
 if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {

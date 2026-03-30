@@ -432,7 +432,19 @@ export const createFullProjectServerSide =
           }
         });
 
-        await Promise.all(agentPromises);
+        const phase1Results = await Promise.allSettled(agentPromises);
+        const phase1Errors = phase1Results
+          .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+          .map((r) => r.reason);
+
+        if (phase1Errors.length > 0) {
+          logger.error(
+            { projectId: typed.id, errorCount: phase1Errors.length },
+            `Some agents failed to create in phase 1: ${phase1Errors.join(', ')}`
+          );
+          throw phase1Errors[0];
+        }
+
         logger.info(
           {
             projectId: typed.id,
@@ -480,7 +492,19 @@ export const createFullProjectServerSide =
             }
           });
 
-        await Promise.all(updatePromises);
+        const phase2Results = await Promise.allSettled(updatePromises);
+        const phase2Errors = phase2Results
+          .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+          .map((r) => r.reason);
+
+        if (phase2Errors.length > 0) {
+          logger.error(
+            { projectId: typed.id, errorCount: phase2Errors.length },
+            `Some agents failed to add sub-agents in phase 2: ${phase2Errors.join(', ')}`
+          );
+          throw phase2Errors[0];
+        }
+
         logger.info(
           {
             projectId: typed.id,
@@ -1152,14 +1176,30 @@ export const updateFullProjectServerSide =
             logger.info({ projectId: typed.id, agentId }, 'Agent updated successfully in project');
           } catch (error) {
             logger.error(
-              { projectId: typed.id, agentId, error },
+              {
+                projectId: typed.id,
+                agentId,
+                error,
+              },
               'Failed to update agent in project'
             );
             throw error;
           }
         });
 
-        await Promise.all(agentPromises);
+        const agentResults = await Promise.allSettled(agentPromises);
+        const agentErrors = agentResults
+          .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+          .map((r) => r.reason);
+
+        if (agentErrors.length > 0) {
+          logger.error(
+            { projectId: typed.id, errorCount: agentErrors.length },
+            `Some agents failed to update in project: ${agentErrors.join(', ')}`
+          );
+          throw agentErrors[0];
+        }
+
         logger.info(
           {
             projectId: typed.id,

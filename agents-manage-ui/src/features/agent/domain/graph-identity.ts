@@ -14,7 +14,7 @@ export function getNodeGraphKey(node?: Node): string | null {
 
 export function findNodeByGraphKey(nodes: Node[], graphKey?: string | null): Node | undefined {
   if (!graphKey) {
-    return undefined;
+    return;
   }
 
   return nodes.find((node) => getNodeGraphKey(node) === graphKey);
@@ -57,7 +57,7 @@ export function findEdgeByGraphKey(
   graphKey?: string | null
 ): Edge | undefined {
   if (!graphKey) {
-    return undefined;
+    return;
   }
 
   return edges.find((edge) => getEdgeGraphKey(edge, nodes) === graphKey);
