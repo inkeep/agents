@@ -1061,7 +1061,7 @@ Return your evaluation as a JSON object matching the schema above.`;
                 tenantId,
                 projectId,
                 conversationId,
-                agentId,
+                agentId: agentId ?? '',
                 generationType: GENERATION_TYPES.EVAL_SCORING,
               },
             },
