@@ -1,5 +1,7 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Load environment files from project root during development
 // This allows the Next.js app to read .env files from the workspace root in development
@@ -14,6 +16,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const isSentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+const monorepoRoot = path.resolve(configDir, '..', '..', '..');
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -51,6 +55,7 @@ const nextConfig: NextConfig = {
     ];
   },
   turbopack: {
+    root: monorepoRoot,
     rules: {
       './**/icons/*.svg': {
         loaders: [
