@@ -55,9 +55,6 @@ export async function triggerDatasetRun(
   runConfigId: string,
   data?: { evaluatorIds?: string[] }
 ): Promise<TriggerDatasetRunResponse> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<TriggerDatasetRunResponse>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}/run`,
     {

@@ -90,9 +90,6 @@ export async function fetchDatasetRunItems(
   projectId: string,
   runId: string
 ): Promise<ListResponse<DatasetRunInvocation>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<DatasetRunInvocation>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}/items`
   );

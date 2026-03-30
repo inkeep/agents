@@ -1,7 +1,6 @@
 'use server';
 
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface AgentRelation {
   id: string;
@@ -23,8 +22,7 @@ export async function fetchDatasetAgents(
   projectId: string,
   datasetId: string
 ): Promise<AgentRelation[]> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
+
 
   const res = await makeManagementApiRequest<{ data: AgentRelation[] }>(
     `${evalsPath(tenantId, projectId)}/datasets/${datasetId}/agents`
@@ -38,8 +36,7 @@ export async function addDatasetAgent(
   datasetId: string,
   agentId: string
 ): Promise<AgentRelation> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
+
 
   const res = await makeManagementApiRequest<{ data: AgentRelation }>(
     `${evalsPath(tenantId, projectId)}/datasets/${datasetId}/agents/${agentId}`,
@@ -54,8 +51,7 @@ export async function removeDatasetAgent(
   datasetId: string,
   agentId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
+
 
   await makeManagementApiRequest(
     `${evalsPath(tenantId, projectId)}/datasets/${datasetId}/agents/${agentId}`,
@@ -68,8 +64,7 @@ export async function fetchEvaluatorAgents(
   projectId: string,
   evaluatorId: string
 ): Promise<AgentRelation[]> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
+
 
   const res = await makeManagementApiRequest<{ data: AgentRelation[] }>(
     `${evalsPath(tenantId, projectId)}/evaluators/${evaluatorId}/agents`
@@ -83,8 +78,7 @@ export async function addEvaluatorAgent(
   evaluatorId: string,
   agentId: string
 ): Promise<AgentRelation> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
+
 
   const res = await makeManagementApiRequest<{ data: AgentRelation }>(
     `${evalsPath(tenantId, projectId)}/evaluators/${evaluatorId}/agents/${agentId}`,
@@ -99,8 +93,7 @@ export async function removeEvaluatorAgent(
   evaluatorId: string,
   agentId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
+
 
   await makeManagementApiRequest(
     `${evalsPath(tenantId, projectId)}/evaluators/${evaluatorId}/agents/${agentId}`,
