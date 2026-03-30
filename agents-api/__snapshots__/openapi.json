@@ -40487,6 +40487,14 @@
                   "conversationId": {
                     "type": "string"
                   },
+                  "executionMode": {
+                    "description": "Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.",
+                    "enum": [
+                      "classic",
+                      "durable"
+                    ],
+                    "type": "string"
+                  },
                   "headers": {
                     "additionalProperties": {
                       "nullable": true
@@ -41598,6 +41606,14 @@
                 "properties": {
                   "conversationId": {
                     "description": "Conversation ID for multi-turn chat",
+                    "type": "string"
+                  },
+                  "executionMode": {
+                    "description": "Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.",
+                    "enum": [
+                      "classic",
+                      "durable"
+                    ],
                     "type": "string"
                   },
                   "frequency_penalty": {
