@@ -144,9 +144,9 @@ const SkillApiInsertSchema = z
     files: SkillFilesInputSchema,
   })
   .transform((skill) => {
-    const skillFile = skill.files.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
+    const skillFile = skill.files.find((file) => file.filePath === SKILL_ENTRY_FILE_PATH);
     if (!skillFile) {
-      throw new Error('should never happens');
+      throw new Error('should never happen');
     }
     const extracted = transformSkill(skillFile.content);
     return {
@@ -158,7 +158,7 @@ const SkillApiInsertSchema = z
   .openapi('SkillCreate');
 
 const SkillApiUpdateSchema = SkillUpdateSchema.transform((skill) => {
-  const skillFile = skill.files?.find((skill) => skill.filePath === SKILL_ENTRY_FILE_PATH);
+  const skillFile = skill.files?.find((file) => file.filePath === SKILL_ENTRY_FILE_PATH);
   if (!skillFile) {
     return { files: [] } as any;
   }
