@@ -64,9 +64,7 @@ function getDelegationMetadata(params: {
     ...(isInternal ? metadata : safeMetadata),
     isDelegation: true,
     delegationId,
-    ...(isInternal
-      ? { fromSubAgentId: callingAgentId }
-      : { fromExternalAgentId: callingAgentId }),
+    ...(isInternal ? { fromSubAgentId: callingAgentId } : { fromExternalAgentId: callingAgentId }),
   };
 }
 
