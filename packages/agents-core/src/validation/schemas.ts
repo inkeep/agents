@@ -23,8 +23,6 @@ import {
   functions,
   functionTools,
   projects,
-  scheduledTriggers,
-  scheduledWorkflows,
   skills,
   subAgentArtifactComponents,
   subAgentDataComponents,
@@ -52,6 +50,8 @@ import {
   messages,
   projectMetadata,
   scheduledTriggerInvocations,
+  scheduledTriggers,
+  schedulerState,
   taskRelations,
   tasks,
   triggerInvocations,
@@ -991,6 +991,7 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
       .default('UTC')
       .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
   runAt: () => z.iso.datetime().nullable().optional().describe('One-time execution timestamp'),
+  ref: () => z.string().max(256).default('main').describe('Branch ref to run the agent from'),
   payload: () =>
     z
       .record(z.string(), z.unknown())
@@ -1004,10 +1005,19 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
   createdBy: () =>
     UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
-}).omit({
-  createdAt: true,
-  updatedAt: true,
-});
+})
+  .omit({
+    nextRunAt: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    payload: z
+      .record(z.string(), z.unknown())
+      .nullable()
+      .optional()
+      .describe('Static payload for agent execution'),
+  });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
   (data) => data.cronExpression || data.runAt,
@@ -1024,6 +1034,7 @@ export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.ext
     .nullable()
     .optional()
     .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
+  ref: z.string().max(256).optional().describe('Branch ref to run the agent from'),
   maxRetries: z.number().int().min(0).max(10).optional(),
   retryDelaySeconds: z.number().int().min(10).max(3600).optional(),
   timeoutSeconds: z.number().int().min(30).max(780).optional(),
@@ -1053,49 +1064,6 @@ export const ScheduledTriggerApiInsertSchema = ScheduledTriggerApiInsertBaseSche
 export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
   ScheduledTriggerUpdateSchema
 ).openapi('ScheduledTriggerUpdate');
-
-export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
-export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
-export type ScheduledTriggerUpdate = z.infer<typeof ScheduledTriggerUpdateSchema>;
-export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
-export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
-export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
-
-//scheduled workflows
-export const ScheduledWorkflowSelectSchema = createSelectSchema(scheduledWorkflows);
-
-const ScheduledWorkflowInsertSchemaBase = createInsertSchema(scheduledWorkflows, {
-  id: () => ResourceIdSchema,
-  name: () => z.string().trim().min(1).describe('Scheduled workflow name'),
-  description: () => z.string().optional().describe('Scheduled workflow description'),
-  workflowRunId: () =>
-    z.string().nullable().optional().describe('Active workflow run ID for lifecycle management'),
-  scheduledTriggerId: () => z.string().describe('The scheduled trigger this workflow belongs to'),
-});
-
-export const ScheduledWorkflowInsertSchema = ScheduledWorkflowInsertSchemaBase;
-
-export const ScheduledWorkflowUpdateSchema = ScheduledWorkflowInsertSchemaBase.extend({
-  scheduledTriggerId: z.string().optional(),
-}).partial();
-
-export const ScheduledWorkflowApiSelectSchema = createAgentScopedApiSchema(
-  ScheduledWorkflowSelectSchema
-).openapi('ScheduledWorkflow');
-
-export const ScheduledWorkflowApiInsertSchema = createAgentScopedApiInsertSchema(
-  ScheduledWorkflowInsertSchemaBase
-)
-  .extend({ id: ResourceIdSchema.optional() })
-  .openapi('ScheduledWorkflowCreate');
-
-export const ScheduledWorkflowApiUpdateSchema = createAgentScopedApiUpdateSchema(
-  ScheduledWorkflowUpdateSchema
-).openapi('ScheduledWorkflowUpdate');
-
-export type ScheduledWorkflow = z.infer<typeof ScheduledWorkflowSelectSchema>;
-export type ScheduledWorkflowInsert = z.infer<typeof ScheduledWorkflowInsertSchema>;
-export type ScheduledWorkflowUpdate = z.infer<typeof ScheduledWorkflowUpdateSchema>;
 
 export const ScheduledTriggerInvocationStatusEnum = z.enum([
   'pending',
@@ -1152,14 +1120,9 @@ export const ScheduledTriggerInvocationApiUpdateSchema = createAgentScopedApiUpd
   ScheduledTriggerInvocationUpdateSchema
 ).openapi('ScheduledTriggerInvocationUpdate');
 
-export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationSelectSchema>;
-export type ScheduledTriggerInvocationInsert = z.infer<
-  typeof ScheduledTriggerInvocationInsertSchema
->;
-export type ScheduledTriggerInvocationUpdate = z.infer<
-  typeof ScheduledTriggerInvocationUpdateSchema
->;
 export type ScheduledTriggerInvocationStatus = z.infer<typeof ScheduledTriggerInvocationStatusEnum>;
+
+export const SchedulerStateSelectSchema = createSelectSchema(schedulerState);
 
 export const TaskSelectSchema = createSelectSchema(tasks).extend({
   ref: ResolvedRefSchema.nullable().optional(),
@@ -2630,8 +2593,15 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
 }).openapi('FullAgentAgentInsert');
 
 export const AgentWithinContextOfProjectSchemaBase = AgentApiInsertSchema.extend({
-  contextConfig: ContextConfigApiInsertSchema.optional(),
-  statusUpdates: StatusUpdateSchema.optional(),
+  subAgents: z.record(z.string(), FullAgentAgentInsertSchema),
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(),
+  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(),
+  teamAgents: z.record(z.string(), TeamAgentSchema).optional(),
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(),
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
+  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(),
+  contextConfig: z.optional(ContextConfigApiInsertSchema),
+  statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
   stopWhen: AgentStopWhenSchema.optional(),
   prompt: z
@@ -2642,15 +2612,6 @@ export const AgentWithinContextOfProjectSchemaBase = AgentApiInsertSchema.extend
       `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
     )
     .optional(),
-  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
-  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
-  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
-  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-  //
-  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
-  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
 });
 
 export const AgentWithinContextOfProjectSchema = AgentWithinContextOfProjectSchemaBase.superRefine(
@@ -2798,7 +2759,6 @@ export const AgentWithinContextOfProjectSelectSchema = AgentApiSelectSchema.exte
   teamAgents: z.record(z.string(), TeamAgentSchema).nullable(),
   functionTools: z.record(z.string(), FunctionToolApiSelectSchema).nullable(),
   functions: z.record(z.string(), FunctionApiSelectSchema).nullable(),
-  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiSelectSchema).nullable(),
   contextConfig: ContextConfigApiSelectSchema.nullable(),
   statusUpdates: StatusUpdateSchema.nullable(),
   models: ModelSchema.nullable(),
@@ -3039,15 +2999,6 @@ export const ScheduledTriggerInvocationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('ScheduledTriggerInvocationListResponse');
-export const ScheduledWorkflowResponse = z
-  .object({ data: ScheduledWorkflowApiSelectSchema })
-  .openapi('ScheduledWorkflowResponse');
-export const ScheduledWorkflowListResponse = z
-  .object({
-    data: z.array(ScheduledWorkflowApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('ScheduledWorkflowListResponse');
 
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })

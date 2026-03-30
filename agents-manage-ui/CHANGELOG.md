@@ -1,5 +1,25 @@
 # @inkeep/agents-manage-ui
 
+## 0.63.1
+
+### Patch Changes
+
+- 02eb244: Updated Cost UI
+- e222844: Omit falsy model configs in agent form to prevent empty model objects in payload
+- 4fa11aa: Making agent timeout more noticeable in trace conversation view
+  - @inkeep/agents-core@0.63.1
+
+## 0.63.0
+
+### Minor Changes
+
+- 0f77d00: Add scheduler workflow with centralized trigger dispatch and deploy restart endpoint
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+
 ## 0.62.2
 
 ### Patch Changes

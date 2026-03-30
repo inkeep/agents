@@ -2,7 +2,7 @@ name: Preview Environments
 
 # Required GitHub Actions configuration
 # Secrets:
-# - RAILWAY_TOKEN
+# - RAILWAY_API_TOKEN (workspace or account API token)
 # - VERCEL_TOKEN
 # - VERCEL_ORG_ID
 # - VERCEL_API_PROJECT_ID
@@ -53,7 +53,7 @@ permissions:
 
 concurrency:
   group: preview-environments-${{ github.event.pull_request.number || inputs.pr_number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   PREVIEW_BASE_DOMAIN: preview.inkeep.com
@@ -168,6 +168,9 @@ jobs:
     name: Provision Tier 1 (Railway)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: preview-railway-${{ vars.RAILWAY_PROJECT_ID || 'default' }}
+      cancel-in-progress: false
     needs: [compute-context]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
@@ -181,14 +184,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli@4.31.0
-
       - name: Provision per-PR resources
         id: provision
         env:
           CI: true
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
@@ -225,16 +225,13 @@ jobs:
       - name: Install
         uses: ./.github/composite-actions/install
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli@4.31.0
-
       - name: Seed preview admin user
         env:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
           SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
           SPICEDB_TLS_ENABLED: false
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
           RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
@@ -265,9 +262,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli@4.31.0
-
       - name: Upsert Vercel env vars for API + UI projects
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -284,7 +278,7 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
           SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           CI: true
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
           RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
@@ -360,6 +354,9 @@ jobs:
     name: Teardown Tier 1 (Railway)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: preview-railway-${{ vars.RAILWAY_PROJECT_ID || 'default' }}
+      cancel-in-progress: false
     needs: [compute-context]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
@@ -369,13 +366,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli@4.31.0
-
       - name: Teardown per-PR resources
         env:
           CI: true
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}

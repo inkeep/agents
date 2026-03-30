@@ -1,5 +1,29 @@
 # @inkeep/agents-cli
 
+## 0.63.1
+
+### Patch Changes
+
+- Updated dependencies [02eb244]
+- Updated dependencies [e222844]
+- Updated dependencies [4fa11aa]
+  - @inkeep/agents-manage-ui@0.63.1
+  - @inkeep/agents-core@0.63.1
+  - @inkeep/agents-sdk@0.63.1
+
+## 0.63.0
+
+### Minor Changes
+
+- 0f77d00: Add scheduler workflow with centralized trigger dispatch and deploy restart endpoint
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+  - @inkeep/agents-manage-ui@0.63.0
+  - @inkeep/agents-sdk@0.63.0
+
 ## 0.62.2
 
 ### Patch Changes

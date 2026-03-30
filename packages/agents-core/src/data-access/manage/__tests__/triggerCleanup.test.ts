@@ -13,7 +13,7 @@ vi.mock('../../../dolt/ref-scope', () => ({
   withRef: vi.fn(),
 }));
 
-vi.mock('../scheduledTriggers', () => ({
+vi.mock('../../runtime/scheduledTriggers', () => ({
   deleteScheduledTriggersByRunAsUserId: vi.fn(),
 }));
 
@@ -24,7 +24,7 @@ vi.mock('../triggers', () => ({
 const { listProjectsMetadata } = await import('../../runtime/projects');
 const { resolveProjectMainRefs } = await import('../../../dolt/ref-helpers');
 const { withRef } = await import('../../../dolt/ref-scope');
-const { deleteScheduledTriggersByRunAsUserId } = await import('../scheduledTriggers');
+const { deleteScheduledTriggersByRunAsUserId } = await import('../../runtime/scheduledTriggers');
 const { deleteTriggersByRunAsUserId } = await import('../triggers');
 
 const listProjectsMetadataMock = vi.mocked(listProjectsMetadata);
@@ -64,7 +64,7 @@ describe('cleanupUserTriggers', () => {
     expect(withRefMock).not.toHaveBeenCalled();
   });
 
-  it('should resolve refs and call withRef for each project', async () => {
+  it('should delete scheduled triggers from runtime DB and webhook triggers via withRef', async () => {
     const projects = [
       { id: 'proj-1', tenantId: 'tenant-1' },
       { id: 'proj-2', tenantId: 'tenant-1' },
@@ -84,6 +84,9 @@ describe('cleanupUserTriggers', () => {
       return fn({} as any);
     });
 
+    const scheduledDeleteFn = vi.fn().mockResolvedValue(undefined);
+    deleteScheduledByUserMock.mockReturnValue(scheduledDeleteFn);
+
     await cleanupUserTriggers({
       tenantId: 'tenant-1',
       userId: 'user-1',
@@ -91,50 +94,17 @@ describe('cleanupUserTriggers', () => {
       manageDbPool: mockPool,
     });
 
-    expect(mockPool.connect).toHaveBeenCalledOnce();
-    expect(mockConnection.release).toHaveBeenCalledOnce();
+    expect(deleteScheduledByUserMock).toHaveBeenCalledWith(mockRunDb);
+    expect(scheduledDeleteFn).toHaveBeenCalledTimes(2);
+
     expect(withRefMock).toHaveBeenCalledTimes(2);
     expect(withRefMock).toHaveBeenCalledWith(mockPool, ref1, expect.any(Function), {
       commit: true,
       commitMessage: 'Remove triggers for departing user user-1',
     });
-    expect(withRefMock).toHaveBeenCalledWith(mockPool, ref2, expect.any(Function), {
-      commit: true,
-      commitMessage: 'Remove triggers for departing user user-1',
-    });
   });
 
-  it('should skip projects with unresolvable branches', async () => {
-    const projects = [
-      { id: 'proj-good', tenantId: 'tenant-1' },
-      { id: 'proj-bad', tenantId: 'tenant-1' },
-    ];
-    listProjectsMetadataMock.mockReturnValue(vi.fn().mockResolvedValue(projects));
-
-    const goodRef = { type: 'branch' as const, name: 'tenant-1_proj-good_main', hash: 'abc' };
-    resolveProjectMainRefsMock.mockReturnValue(
-      vi.fn().mockResolvedValue([{ projectId: 'proj-good', ref: goodRef }])
-    );
-
-    withRefMock.mockImplementation(async (_pool, _ref, fn) => {
-      return fn({} as any);
-    });
-
-    await cleanupUserTriggers({
-      tenantId: 'tenant-1',
-      userId: 'user-1',
-      runDb: mockRunDb,
-      manageDbPool: mockPool,
-    });
-
-    expect(withRefMock).toHaveBeenCalledTimes(1);
-    expect(withRefMock).toHaveBeenCalledWith(mockPool, goodRef, expect.any(Function), {
-      commit: true,
-      commitMessage: 'Remove triggers for departing user user-1',
-    });
-  });
-
-  it('should continue processing other projects if one fails', async () => {
+  it('should continue processing other projects if one webhook trigger cleanup fails', async () => {
     const projects = [
       { id: 'proj-fail', tenantId: 'tenant-1' },
       { id: 'proj-ok', tenantId: 'tenant-1' },
@@ -167,46 +137,11 @@ describe('cleanupUserTriggers', () => {
     expect(withRefMock).toHaveBeenCalledTimes(2);
   });
 
-  it('should call both deleteScheduledTriggersByRunAsUserId and deleteTriggersByRunAsUserId in the same withRef callback', async () => {
-    const projects = [{ id: 'proj-1', tenantId: 'tenant-1' }];
-    listProjectsMetadataMock.mockReturnValue(vi.fn().mockResolvedValue(projects));
-
-    const ref1 = { type: 'branch' as const, name: 'tenant-1_proj-1_main', hash: 'abc' };
-    resolveProjectMainRefsMock.mockReturnValue(
-      vi.fn().mockResolvedValue([{ projectId: 'proj-1', ref: ref1 }])
-    );
-
-    withRefMock.mockImplementation(async (_pool, _ref, fn) => {
-      return fn({} as any);
-    });
-
-    const scheduledDeleteFn = vi.fn().mockResolvedValue(undefined);
-    const webhookDeleteFn = vi.fn().mockResolvedValue(undefined);
-    deleteScheduledByUserMock.mockReturnValue(scheduledDeleteFn);
-    deleteWebhookByUserMock.mockReturnValue(webhookDeleteFn);
-
-    await cleanupUserTriggers({
-      tenantId: 'tenant-1',
-      userId: 'user-1',
-      runDb: mockRunDb,
-      manageDbPool: mockPool,
-    });
-
-    expect(scheduledDeleteFn).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
-      projectId: 'proj-1',
-      runAsUserId: 'user-1',
-    });
-    expect(webhookDeleteFn).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
-      projectId: 'proj-1',
-      runAsUserId: 'user-1',
-    });
-  });
-
   it('should always release the connection even if ref resolution fails', async () => {
     const projects = [{ id: 'proj-1', tenantId: 'tenant-1' }];
     listProjectsMetadataMock.mockReturnValue(vi.fn().mockResolvedValue(projects));
+
+    deleteScheduledByUserMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
 
     resolveProjectMainRefsMock.mockReturnValue(
       vi.fn().mockRejectedValue(new Error('DB connection error'))

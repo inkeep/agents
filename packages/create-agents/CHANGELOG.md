@@ -1,5 +1,18 @@
 # @inkeep/create-agents
 
+## 0.63.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.63.1
+
+## 0.63.0
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+
 ## 0.62.2
 
 ### Patch Changes
