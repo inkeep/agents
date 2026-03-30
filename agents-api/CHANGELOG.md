@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.63.1
+
+### Patch Changes
+
+- 4141e26: Return 403 Forbidden with "Origin not allowed for this app" when origin validation fails, instead of misleading 401 "Invalid Token"
+- 02eb244: Updated Cost UI
+- 0f0247e: Fix delegation metadata leaking API key to external agents
+- 7dc35b6: Set `initiatedBy` in execution context metadata for app credential auth paths so user-scoped MCP credentials (e.g. Linear OAuth) are resolved correctly
+  - @inkeep/agents-core@0.63.1
+  - @inkeep/agents-email@0.63.1
+  - @inkeep/agents-mcp@0.63.1
+  - @inkeep/agents-work-apps@0.63.1
+
 ## 0.63.0
 
 ### Minor Changes
