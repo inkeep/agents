@@ -1,14 +1,179 @@
 'use client';
 
-import { Plus, X } from 'lucide-react';
+import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, useEffect, useRef, useState } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandItem, CommandList } from '@/components/ui/command';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { azureModelProviderOptionsTemplate, providerOptionsTemplate } from '@/lib/templates';
+import { cn } from '@/lib/utils';
 import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
+
+const AVAILABLE_PROVIDERS = [
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'google', label: 'Google' },
+  { value: 'bedrock', label: 'AWS Bedrock' },
+  { value: 'azure', label: 'Azure' },
+  { value: 'vertex', label: 'Google Vertex' },
+] as const;
+
+const providerLabel = (value: string) =>
+  AVAILABLE_PROVIDERS.find((p) => p.value === value)?.label ?? value;
+
+const AllowedProvidersSection: FC<{
+  allowedProviders?: string[];
+  inheritedAllowedProviders?: string[];
+  onAllowedProvidersChange: (providers: string[]) => void;
+  disabled: boolean;
+}> = ({ allowedProviders, inheritedAllowedProviders, onAllowedProvidersChange, disabled }) => {
+  const [addOpen, setAddOpen] = useState(false);
+  const [draggingId, setDraggingId] = useState('');
+  const [dragOverId, setDragOverId] = useState('');
+
+  const effectiveProviders = allowedProviders ?? inheritedAllowedProviders;
+  const isInherited = !allowedProviders && !!inheritedAllowedProviders;
+  const isSpecific = !!effectiveProviders?.length;
+
+  const availableToAdd = AVAILABLE_PROVIDERS.filter((p) => !effectiveProviders?.includes(p.value));
+
+  function handleReorder(fromId: string, toId: string) {
+    if (fromId === toId || !allowedProviders) return;
+    const list = [...allowedProviders];
+    const fromIndex = list.indexOf(fromId);
+    const toIndex = list.indexOf(toId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const [moved] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, moved);
+    onAllowedProvidersChange(list);
+  }
+
+  return (
+    <div className="space-y-3">
+      <FieldLabel
+        label="Allowed providers"
+        tooltip="Restrict and prioritize which providers can serve requests. Order determines preference."
+      />
+      <RadioGroup
+        value={isSpecific ? 'specific' : 'all'}
+        onValueChange={(val) => {
+          if (val === 'all') {
+            onAllowedProvidersChange([]);
+          }
+        }}
+        disabled={disabled || isInherited}
+      >
+        <div className="flex items-center gap-2">
+          <RadioGroupItem value="all" id="providers-all" />
+          <Label htmlFor="providers-all" className="text-sm font-normal cursor-pointer">
+            All providers
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <RadioGroupItem value="specific" id="providers-specific" />
+          <Label htmlFor="providers-specific" className="text-sm font-normal cursor-pointer">
+            Specific providers
+          </Label>
+        </div>
+      </RadioGroup>
+
+      {isSpecific && (
+        <div className="space-y-2">
+          <div className="border rounded-md text-xs">
+            <ul>
+              {effectiveProviders.map((provider, index) => (
+                <li
+                  key={provider}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 transition-colors',
+                    index > 0 && 'border-t',
+                    dragOverId === provider ? 'bg-muted/30' : 'hover:bg-muted/30'
+                  )}
+                  draggable={!disabled && !isInherited}
+                  data-id={provider}
+                  onDragStart={(e) => setDraggingId(e.currentTarget.dataset.id as string)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOverId(e.currentTarget.dataset.id as string);
+                  }}
+                  onDragLeave={() => setDragOverId('')}
+                  onDrop={(e) => {
+                    handleReorder(draggingId, e.currentTarget.dataset.id as string);
+                    setDraggingId('');
+                    setDragOverId('');
+                  }}
+                  onDragEnd={() => {
+                    setDraggingId('');
+                    setDragOverId('');
+                  }}
+                >
+                  <GripVertical className="size-4 text-muted-foreground shrink-0 cursor-grab" />
+                  <span className="text-xs text-muted-foreground w-4 shrink-0">{index + 1}.</span>
+                  <span className="text-sm grow">{providerLabel(provider)}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={() => {
+                      const next = (allowedProviders ?? []).filter((p) => p !== provider);
+                      onAllowedProvidersChange(next);
+                    }}
+                    disabled={disabled || isInherited}
+                    aria-label={`Remove ${providerLabel(provider)}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {availableToAdd.length > 0 && (
+            <Popover open={addOpen} onOpenChange={setAddOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={disabled || isInherited}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add provider
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-(--radix-popover-trigger-width)" align="start">
+                <Command>
+                  <CommandList>
+                    <CommandEmpty>No providers available</CommandEmpty>
+                    {availableToAdd.map((provider) => (
+                      <CommandItem
+                        key={provider.value}
+                        value={provider.value}
+                        className="cursor-pointer"
+                        onSelect={() => {
+                          onAllowedProvidersChange([...(allowedProviders ?? []), provider.value]);
+                          setAddOpen(false);
+                        }}
+                      >
+                        {provider.label}
+                      </CommandItem>
+                    ))}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const FallbackModelsSection: FC<{
   editorNamePrefix: string;
@@ -157,6 +322,12 @@ interface ModelConfigurationProps {
   inheritedFallbackModels?: string[];
   /** Called when fallback models change */
   onFallbackModelsChange?: (models: string[]) => void;
+  /** Ordered list of allowed providers */
+  allowedProviders?: string[];
+  /** Inherited allowed providers to show when no value is set */
+  inheritedAllowedProviders?: string[];
+  /** Called when allowed providers change */
+  onAllowedProvidersChange?: (providers: string[]) => void;
 }
 
 export function ModelConfiguration({
@@ -177,6 +348,9 @@ export function ModelConfiguration({
   fallbackModels,
   inheritedFallbackModels,
   onFallbackModelsChange,
+  allowedProviders,
+  inheritedAllowedProviders,
+  onAllowedProvidersChange,
 }: ModelConfigurationProps) {
   const { data: capabilities } = useCapabilitiesQuery();
   // Internal state for provider options to handle immediate updates
@@ -308,6 +482,16 @@ export function ModelConfiguration({
             readOnly={disabled || isUsingInheritedOptions}
           />
         </div>
+      )}
+
+      {/* Allowed Providers */}
+      {capabilities?.modelFallback?.enabled && effectiveModel && onAllowedProvidersChange && (
+        <AllowedProvidersSection
+          allowedProviders={allowedProviders}
+          inheritedAllowedProviders={inheritedAllowedProviders}
+          onAllowedProvidersChange={onAllowedProvidersChange}
+          disabled={disabled}
+        />
       )}
 
       {/* Fallback Models */}

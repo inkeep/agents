@@ -229,6 +229,10 @@ export const ModelSettingsSchema = z
       description:
         'Ordered list of fallback models if the primary fails. Requires AI Gateway. Format: provider/model (e.g. "openai/gpt-5.2").',
     }),
+    allowedProviders: z.array(z.string().nonempty()).optional().openapi({
+      description:
+        'Restrict and prioritize which providers can serve requests. Order determines preference. Requires AI Gateway. (e.g. ["bedrock", "anthropic"]).',
+    }),
   })
   .openapi('ModelSettings');
 

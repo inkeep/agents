@@ -356,15 +356,24 @@ export class ModelFactory {
     );
     const maxDuration = modelSettings?.providerOptions?.maxDuration as number | undefined;
 
-    if (modelSettings?.fallbackModels?.length && process.env.AI_GATEWAY_API_KEY) {
-      const existingGateway = (streamProviderOptions?.gateway ?? {}) as Record<string, unknown>;
-      streamProviderOptions = {
-        ...streamProviderOptions,
-        gateway: {
-          ...existingGateway,
-          models: modelSettings.fallbackModels,
-        } as JSONObject,
-      };
+    if (process.env.AI_GATEWAY_API_KEY) {
+      const hasAllowedProviders = !!modelSettings?.allowedProviders?.length;
+      const hasFallbackModels = !!modelSettings?.fallbackModels?.length;
+
+      if (hasAllowedProviders || hasFallbackModels) {
+        const existingGateway = (streamProviderOptions?.gateway ?? {}) as Record<string, unknown>;
+        streamProviderOptions = {
+          ...streamProviderOptions,
+          gateway: {
+            ...existingGateway,
+            ...(hasFallbackModels && { models: modelSettings.fallbackModels }),
+            ...(hasAllowedProviders && {
+              order: modelSettings.allowedProviders,
+              only: modelSettings.allowedProviders,
+            }),
+          } as JSONObject,
+        };
+      }
     }
 
     return {

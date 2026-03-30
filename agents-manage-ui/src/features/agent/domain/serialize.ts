@@ -81,6 +81,9 @@ function processModels(modelsData?: AgentModels): ExtendedAgent['models'] | unde
           ...(modelsData.base.fallbackModels?.length && {
             fallbackModels: modelsData.base.fallbackModels.filter(Boolean),
           }),
+          ...(modelsData.base.allowedProviders?.length && {
+            allowedProviders: modelsData.base.allowedProviders.filter(Boolean),
+          }),
         }
       : undefined,
     structuredOutput: modelsData.structuredOutput
@@ -90,6 +93,9 @@ function processModels(modelsData?: AgentModels): ExtendedAgent['models'] | unde
           ...(modelsData.structuredOutput.fallbackModels?.length && {
             fallbackModels: modelsData.structuredOutput.fallbackModels.filter(Boolean),
           }),
+          ...(modelsData.structuredOutput.allowedProviders?.length && {
+            allowedProviders: modelsData.structuredOutput.allowedProviders.filter(Boolean),
+          }),
         }
       : undefined,
     summarizer: modelsData.summarizer
@@ -98,6 +104,9 @@ function processModels(modelsData?: AgentModels): ExtendedAgent['models'] | unde
           providerOptions: safeJsonParse(modelsData.summarizer.providerOptions),
           ...(modelsData.summarizer.fallbackModels?.length && {
             fallbackModels: modelsData.summarizer.fallbackModels.filter(Boolean),
+          }),
+          ...(modelsData.summarizer.allowedProviders?.length && {
+            allowedProviders: modelsData.summarizer.allowedProviders.filter(Boolean),
           }),
         }
       : undefined,

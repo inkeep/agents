@@ -38,6 +38,10 @@ function BaseModelSection({
     control,
     name: 'models.base.fallbackModels',
   });
+  const { field: allowedProvidersField } = useController({
+    control,
+    name: 'models.base.allowedProviders',
+  });
 
   return (
     <div className="space-y-4">
@@ -77,6 +81,10 @@ function BaseModelSection({
             onFallbackModelsChange={(models) => {
               fallbackModelsField.onChange(models.length ? models : undefined);
             }}
+            allowedProviders={allowedProvidersField.value ?? undefined}
+            onAllowedProvidersChange={(providers) => {
+              allowedProvidersField.onChange(providers.length ? providers : undefined);
+            }}
           />
         )}
       </FormFieldWrapper>
@@ -99,10 +107,15 @@ function StructuredOutputModelSection({
     control,
     name: 'models.structuredOutput.fallbackModels',
   });
+  const { field: allowedProvidersField } = useController({
+    control,
+    name: 'models.structuredOutput.allowedProviders',
+  });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
   const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
+  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
 
   return (
     <div className="space-y-4">
@@ -151,6 +164,11 @@ function StructuredOutputModelSection({
             onFallbackModelsChange={(models) => {
               fallbackModelsField.onChange(models.length ? models : undefined);
             }}
+            allowedProviders={allowedProvidersField.value ?? undefined}
+            inheritedAllowedProviders={baseAllowedProviders ?? undefined}
+            onAllowedProvidersChange={(providers) => {
+              allowedProvidersField.onChange(providers.length ? providers : undefined);
+            }}
           />
         )}
       </FormFieldWrapper>
@@ -173,10 +191,15 @@ function SummarizerModelSection({
     control,
     name: 'models.summarizer.fallbackModels',
   });
+  const { field: allowedProvidersField } = useController({
+    control,
+    name: 'models.summarizer.allowedProviders',
+  });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
   const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
+  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
 
   return (
     <div className="space-y-4">
@@ -224,6 +247,11 @@ function SummarizerModelSection({
             inheritedFallbackModels={baseFallbackModels ?? undefined}
             onFallbackModelsChange={(models) => {
               fallbackModelsField.onChange(models.length ? models : undefined);
+            }}
+            allowedProviders={allowedProvidersField.value ?? undefined}
+            inheritedAllowedProviders={baseAllowedProviders ?? undefined}
+            onAllowedProvidersChange={(providers) => {
+              allowedProvidersField.onChange(providers.length ? providers : undefined);
             }}
           />
         )}

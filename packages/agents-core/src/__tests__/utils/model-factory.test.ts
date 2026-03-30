@@ -557,4 +557,83 @@ describe('ModelFactory', () => {
       expect(gateway.models).toEqual(['openai/gpt-5.2']);
     });
   });
+
+  describe('allowedProviders in prepareGenerationConfig', () => {
+    beforeEach(() => {
+      delete process.env.AI_GATEWAY_API_KEY;
+    });
+
+    afterEach(() => {
+      delete process.env.AI_GATEWAY_API_KEY;
+    });
+
+    test('should inject allowedProviders as gateway order and only when AI_GATEWAY_API_KEY is set', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        allowedProviders: ['bedrock', 'anthropic'],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      const gateway = (result.providerOptions as any).gateway;
+      expect(gateway.order).toEqual(['bedrock', 'anthropic']);
+      expect(gateway.only).toEqual(['bedrock', 'anthropic']);
+    });
+
+    test('should ignore allowedProviders when AI_GATEWAY_API_KEY is not set', () => {
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        allowedProviders: ['bedrock', 'anthropic'],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      expect(result.providerOptions?.gateway).toBeUndefined();
+    });
+
+    test('should not inject when allowedProviders is empty', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        allowedProviders: [],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      expect(result.providerOptions?.gateway).toBeUndefined();
+    });
+
+    test('should combine allowedProviders with fallbackModels', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        allowedProviders: ['bedrock', 'anthropic'],
+        fallbackModels: ['anthropic/claude-haiku-4-5'],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      const gateway = (result.providerOptions as any).gateway;
+      expect(gateway.order).toEqual(['bedrock', 'anthropic']);
+      expect(gateway.only).toEqual(['bedrock', 'anthropic']);
+      expect(gateway.models).toEqual(['anthropic/claude-haiku-4-5']);
+    });
+
+    test('allowedProviders should override existing gateway order/only from providerOptions', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        providerOptions: {
+          gateway: { order: ['openai'], only: ['openai'] },
+        },
+        allowedProviders: ['bedrock', 'anthropic'],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      const gateway = (result.providerOptions as any).gateway;
+      expect(gateway.order).toEqual(['bedrock', 'anthropic']);
+      expect(gateway.only).toEqual(['bedrock', 'anthropic']);
+    });
+  });
 });
