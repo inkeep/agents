@@ -18,45 +18,16 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  cypress-e2e:
+  # Lightweight check on a cheap runner — avoids spinning up expensive service
+  # containers (Doltgres, Postgres) on ubuntu-32gb just to skip everything.
+  changeset-check:
     if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
-    name: Cypress E2E Tests
-    runs-on: ubuntu-32gb
-    timeout-minutes: 30
-
-    services:
-      doltgres:
-        image: dolthub/doltgresql:0.55.4
-        env:
-          DOLTGRES_USER: appuser
-          DOLTGRES_PASSWORD: password
-          DOLTGRES_DB: inkeep_agents
-          DOLTGRES_DATA_DIR: /var/lib/doltgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-          --health-start-period 30s
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_DB: inkeep_agents
-          POSTGRES_USER: appuser
-          POSTGRES_PASSWORD: password
-        options: >-
-          --health-cmd "pg_isready -U appuser -d inkeep_agents"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5433:5432
-
+    runs-on: ubuntu-latest
+    outputs:
+      is_changeset: ${{ steps.check.outputs.is_changeset }}
     steps:
       - name: Check if changeset PR
-        id: changeset-check
+        id: check
         run: |
           IS_CHANGESET=false
 
@@ -110,37 +81,69 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
 
+  cypress-e2e:
+    needs: changeset-check
+    if: needs.changeset-check.outputs.is_changeset != 'true'
+    name: Cypress E2E Tests
+    runs-on: ubuntu-32gb
+    timeout-minutes: 30
+
+    services:
+      doltgres:
+        image: dolthub/doltgresql:0.55.4
+        env:
+          DOLTGRES_USER: appuser
+          DOLTGRES_PASSWORD: password
+          DOLTGRES_DB: inkeep_agents
+          DOLTGRES_DATA_DIR: /var/lib/doltgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT count(*) FROM dolt_status' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 30s
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: inkeep_agents
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd "pg_isready -U appuser -d inkeep_agents"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
+
+    steps:
       - name: Checkout code
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Node.js
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.x
 
       - name: Setup pnpm
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
         with:
           version: 10.10.0
           run_install: false
 
       - name: Get pnpm store directory
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         shell: bash
         run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       # Create necessary directories for postinstall scripts
       - name: Prepare directories
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           mkdir -p agents-docs/.source
           touch agents-docs/.source/index.ts
 
       - name: Setup pnpm cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ env.STORE_PATH }}
@@ -148,7 +151,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Setup Turborepo cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .turbo
@@ -156,21 +158,18 @@ jobs:
           restore-keys: ${{ runner.os }}-turbo-
 
       - name: Install dependencies
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
       # Clean database files before running tests
       - name: Clean database files
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
       # Start SpiceDB (needs explicit `serve` subcommand, so can't use service container)
       - name: Start SpiceDB
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           docker run -d --name spicedb \
             --network host \
@@ -190,7 +189,6 @@ jobs:
 
       # Run Cypress E2E tests using composite action
       - name: Run Cypress E2E Tests
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: ./.github/composite-actions/cypress-e2e
         env:
           NODE_OPTIONS: --max-old-space-size=8192
