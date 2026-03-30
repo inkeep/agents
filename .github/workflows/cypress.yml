@@ -26,60 +26,12 @@ jobs:
     outputs:
       is_changeset: ${{ steps.check.outputs.is_changeset }}
     steps:
-      - name: Check if changeset PR
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          sparse-checkout: .github/composite-actions/changeset-check
+          fetch-depth: 1
+      - uses: ./.github/composite-actions/changeset-check
         id: check
-        run: |
-          IS_CHANGESET=false
-
-          if [ "$HEAD_REF" = "changeset-release/main" ]; then
-            IS_CHANGESET=true
-            echo "Changeset PR detected via branch name"
-          fi
-
-          if [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ "$IS_CHANGESET" = "false" ]; then
-            PR_NUM=$(echo "$MERGE_GROUP_HEAD_REF" | sed -n 's|.*/pr-\([0-9]*\)-.*|\1|p')
-            if [ -n "$PR_NUM" ]; then
-              BRANCH=$(gh pr view "$PR_NUM" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName 2>/dev/null || echo "")
-              if [ "$BRANCH" = "changeset-release/main" ]; then
-                IS_CHANGESET=true
-                echo "Changeset PR detected via merge group (PR #$PR_NUM)"
-              fi
-            fi
-          fi
-
-          # Check if PR only contains .changeset/ file changes
-          if [ "$IS_CHANGESET" = "false" ] && [ "$GITHUB_EVENT_NAME" != "push" ]; then
-            if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -n "$PR_NUMBER" ]; then
-              if ! CHANGED_FILES=$(gh pr diff "$PR_NUMBER" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
-                echo "::warning::Failed to fetch PR diff for #$PR_NUMBER: $CHANGED_FILES"
-                CHANGED_FILES=""
-              fi
-            elif [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ -n "$PR_NUM" ]; then
-              if ! CHANGED_FILES=$(gh pr diff "$PR_NUM" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
-                echo "::warning::Failed to fetch PR diff for #$PR_NUM: $CHANGED_FILES"
-                CHANGED_FILES=""
-              fi
-            fi
-
-            if [ -n "$CHANGED_FILES" ]; then
-              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/' || true)
-              if [ -z "$NON_CHANGESET" ]; then
-                IS_CHANGESET=true
-                echo "Only .changeset/ files changed — skipping Cypress tests"
-              fi
-            fi
-          fi
-
-          echo "is_changeset=$IS_CHANGESET" >> $GITHUB_OUTPUT
-          if [ "$IS_CHANGESET" = "true" ]; then
-            echo "Changeset PR — skipping Cypress tests"
-          fi
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          MERGE_GROUP_HEAD_REF: ${{ github.event.merge_group.head_ref }}
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
 
   cypress-e2e:
     needs: changeset-check
