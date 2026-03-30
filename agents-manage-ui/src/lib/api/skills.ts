@@ -17,7 +17,6 @@ import { cache } from 'react';
 import type { z } from 'zod';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export type Skill = SkillApiSelect;
 export type SkillDetail = SkillWithFilesApiSelect;
@@ -26,9 +25,6 @@ export async function fetchSkills(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<Skill>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<Skill>>(
     `tenants/${tenantId}/projects/${projectId}/skills?limit=100`
   );
@@ -39,9 +35,6 @@ async function $fetchSkill(
   projectId: string,
   skillId: string
 ): Promise<SkillDetail> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<SkillDetail>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}`
   );
@@ -55,9 +48,6 @@ export async function createSkill(
   projectId: string,
   skill: z.input<typeof SkillApiInsertSchema>
 ): Promise<SkillDetail> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<SkillDetail>>(
     `tenants/${tenantId}/projects/${projectId}/skills`,
     {
@@ -76,9 +66,6 @@ export async function updateSkill(
   skillId: string,
   skill: SkillApiUpdate
 ): Promise<SkillDetail> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<SkillDetail>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}`,
     {
@@ -98,9 +85,6 @@ export async function updateSkillFile(
   fileId: string,
   file: SkillFileApiUpdate
 ): Promise<SkillFileApiSelect> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<SkillFileApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files/${fileId}`,
     {
@@ -119,9 +103,6 @@ export async function createSkillFile(
   skillId: string,
   file: SkillFileApiInsert
 ): Promise<SkillFileApiSelect> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<SkillFileApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files`,
     {
@@ -135,9 +116,6 @@ export async function createSkillFile(
 }
 
 export async function deleteSkill(tenantId: string, projectId: string, skillId: string) {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(`tenants/${tenantId}/projects/${projectId}/skills/${skillId}`, {
     method: 'DELETE',
   });
@@ -150,9 +128,6 @@ export async function deleteSkillFile(
   skillId: string,
   fileId: string
 ) {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/skills/${skillId}/files/${fileId}`,
     { method: 'DELETE' }

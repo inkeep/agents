@@ -9,7 +9,6 @@
 
 import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface EvaluationResult {
   id: string;
@@ -37,9 +36,6 @@ export async function fetchEvaluationResultsByJobConfig(
   projectId: string,
   configId: string
 ): Promise<ListResponse<EvaluationResult>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<EvaluationResult>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs/${configId}/results`
   );
@@ -53,9 +49,6 @@ export async function fetchEvaluationResultsByRunConfig(
   projectId: string,
   configId: string
 ): Promise<ListResponse<EvaluationResult>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<EvaluationResult>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs/${configId}/results`
   );

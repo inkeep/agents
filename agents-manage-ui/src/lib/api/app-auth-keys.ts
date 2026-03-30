@@ -1,7 +1,6 @@
 'use server';
 
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface PublicKeyConfig {
   kid: string;
@@ -15,9 +14,6 @@ export async function fetchAppAuthKeys(
   projectId: string,
   appId: string
 ): Promise<PublicKeyConfig[]> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<{ data: PublicKeyConfig[] }>(
     `tenants/${tenantId}/projects/${projectId}/apps/${appId}/auth/keys`
   );
@@ -31,9 +27,6 @@ export async function addAppAuthKey(
   appId: string,
   body: { kid: string; publicKey: string; algorithm: string }
 ): Promise<PublicKeyConfig> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<{ data: PublicKeyConfig }>(
     `tenants/${tenantId}/projects/${projectId}/apps/${appId}/auth/keys`,
     {
@@ -51,9 +44,6 @@ export async function deleteAppAuthKey(
   appId: string,
   kid: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/apps/${appId}/auth/keys/${encodeURIComponent(kid)}`,
     {

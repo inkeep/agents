@@ -13,7 +13,6 @@ import type {
 } from '@inkeep/agents-core/client-exports';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 // Note: ApiKeyApiSelect might not have a 'name' field yet, and UI expects undefined instead of null
@@ -33,9 +32,6 @@ export async function fetchApiKeys(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<ApiKey>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<ListResponse<ApiKeyApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/api-keys?limit=100`
   );
@@ -59,8 +55,6 @@ export async function createApiKey(
   projectId: string,
   apiKeyData: Partial<ApiKey>
 ): Promise<ApiKeyCreateResponse> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
   const response = await makeManagementApiRequest<SingleResponse<ApiKeyApiCreationResponse>>(
     `tenants/${tenantId}/projects/${projectId}/api-keys`,
     {
@@ -107,9 +101,6 @@ export async function deleteApiKey(
   projectId: string,
   apiKeyId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(`tenants/${tenantId}/projects/${projectId}/api-keys/${apiKeyId}`, {
     method: 'DELETE',
   });
@@ -123,9 +114,6 @@ export async function updateApiKey(
   projectId: string,
   apiKeyData: Partial<ApiKey>
 ): Promise<ApiKey> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ApiKeyApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/api-keys/${apiKeyData.id}`,
     {
