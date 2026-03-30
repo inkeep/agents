@@ -126,39 +126,6 @@ const personalAgent = subAgent({
 
 Context variables are resolved using [JSONPath notation](https://jsonpath.com).
 
-## Using Credentials
-
-If your fetch requires authentication via a stored credential, pass the `credentialReferenceId` to the `fetchDefinition`:
-
-```typescript
-const projectInfoFetcher = fetchDefinition({
-  id: "project-info",
-  name: "Project Information",
-  trigger: "initialization",
-  credentialReferenceId: "u6zq98tz0lkloakuqbpdv",
-  fetchConfig: {
-    url: "https://api.example.com/graphql",
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: {
-      query: "query GetProjectInfo { project { name description } }",
-    },
-    transform: "data.project",
-  },
-  defaultValue: "Unable to fetch project information",
-});
-```
-
-### Finding the Credential Reference ID
-
-To find the credential reference ID:
-
-1. Navigate to the **Credentials** page in the Inkeep dashboard.
-2. Click on the credential you want to use.
-3. Copy the ID from the browser URL — it is the last path segment. For example, in `https://app.inkeep.com/.../credentials/u6zq98tz0lkloakuqbpdv`, the credential reference ID is `u6zq98tz0lkloakuqbpdv`.
-
 ## Data transformation
 
 The `transform` property on fetch definitions lets you extract exactly what you need from API responses using JSONPath notation:

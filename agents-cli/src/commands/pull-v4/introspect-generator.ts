@@ -9,7 +9,6 @@ import {
   validateProject,
 } from './generation-types';
 import { generationTasks } from './generators';
-import { writeTextFile } from './text-file-writer';
 import { writeTypeScriptFile } from './typescript-file-writer';
 
 export type { ProjectPaths } from './generation-types';
@@ -51,12 +50,8 @@ export async function introspectGenerate({
   for (const task of Object.values(generationTasks)) {
     const records = task.collect(context);
     for (const record of records) {
-      const generatedOutput = task.generate(record.payload);
-      if (typeof generatedOutput === 'string') {
-        writeTextFile(record.filePath, generatedOutput);
-      } else {
-        writeTypeScriptFile(record.filePath, generatedOutput.getFullText(), writeMode);
-      }
+      const sourceFile = task.generate(record.payload);
+      writeTypeScriptFile(record.filePath, sourceFile.getFullText(), writeMode);
       generatedFiles.push(record.filePath);
     }
   }

@@ -1,16 +1,19 @@
 import { ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 import type { ComponentProps, FC } from 'react';
 import { cn } from '@/lib/utils';
 
-export const ExternalLink: FC<ComponentProps<'a'> & { iconClassName?: string }> = ({
+export const ExternalLink: FC<ComponentProps<typeof Link> & { iconClassName?: string }> = ({
   href,
   children,
   className,
   iconClassName,
   ...props
 }) => {
+  'use memo';
+
   return (
-    <a
+    <Link
       href={href}
       target="_blank"
       rel="noreferrer noopener"
@@ -23,10 +26,10 @@ export const ExternalLink: FC<ComponentProps<'a'> & { iconClassName?: string }> 
       {children}
       <ArrowUpRight
         className={cn(
-          'shrink-0 size-3.5 text-muted-foreground opacity-60 group-hover/link:text-primary inline',
+          'size-3.5 text-muted-foreground opacity-60 group-hover/link:text-primary inline',
           iconClassName
         )}
       />
-    </a>
+    </Link>
   );
 };

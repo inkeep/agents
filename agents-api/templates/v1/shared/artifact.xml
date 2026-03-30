@@ -7,5 +7,5 @@
   <type>{{ARTIFACT_TYPE}}</type>
   <type_schema>{{ARTIFACT_TYPE_SCHEMA}}</type_schema>
   <summary_data>{{ARTIFACT_SUMMARY}}</summary_data>
-  <!-- NOTE: This shows summary/preview data only. To pass full data to another tool, tool-chain it: use { "{{SENTINEL_ARTIFACT}}": "<id>", "{{SENTINEL_TOOL}}": "<tool_call_id>" } as a tool argument, with optional "{{SENTINEL_SELECT}}" for filtering. Only use get_reference_artifact when you need to read the data yourself. -->
+  <!-- NOTE: This shows summary/preview data only. Use get_reference_artifact tool to get complete artifact data if needed. -->
 </artifact>

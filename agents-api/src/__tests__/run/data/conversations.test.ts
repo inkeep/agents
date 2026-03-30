@@ -141,11 +141,11 @@ describe('reconstructMessageText', () => {
 });
 
 describe('formatMessagesAsConversationHistory', () => {
-  it('returns empty string when there are no messages', async () => {
-    await expect(formatMessagesAsConversationHistory([])).resolves.toBe('');
+  it('returns empty string when there are no messages', () => {
+    expect(formatMessagesAsConversationHistory([])).toBe('');
   });
 
-  it('returns empty string when every message has empty reconstructed text', async () => {
+  it('returns empty string when every message has empty reconstructed text', () => {
     const messages = [
       {
         role: 'user',
@@ -153,10 +153,10 @@ describe('formatMessagesAsConversationHistory', () => {
         content: { parts: [{ kind: 'image' }] },
       },
     ] as MessageSelect[];
-    await expect(formatMessagesAsConversationHistory(messages)).resolves.toBe('');
+    expect(formatMessagesAsConversationHistory(messages)).toBe('');
   });
 
-  it('wraps non-empty history in conversation_history tags', async () => {
+  it('wraps non-empty history in conversation_history tags', () => {
     const messages = [
       {
         role: 'user',
@@ -164,7 +164,7 @@ describe('formatMessagesAsConversationHistory', () => {
         content: { text: 'hi' },
       },
     ] as MessageSelect[];
-    await expect(formatMessagesAsConversationHistory(messages)).resolves.toBe(
+    expect(formatMessagesAsConversationHistory(messages)).toBe(
       '<conversation_history>\nuser: """hi"""\n</conversation_history>\n'
     );
   });

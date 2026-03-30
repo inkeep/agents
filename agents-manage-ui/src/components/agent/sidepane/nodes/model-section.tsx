@@ -1,4 +1,4 @@
-import type { AgentModels } from '@/components/agent/configuration/agent-types';
+import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import {
@@ -11,15 +11,13 @@ import {
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
+import { createProviderOptionsHandler } from '@/lib/utils';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
 
 interface ModelSectionProps {
-  models: AgentModels;
-  updatePath: (
-    path: `models.${'base' | 'structuredOutput' | 'summarizer'}.${'model' | 'providerOptions' | 'fallbackModels' | 'allowedProviders'}`,
-    value: string | string[] | undefined
-  ) => void;
+  models: AgentNodeData['models'];
+  updatePath: (path: string, value: any) => void;
   projectModels?: any;
   agentModels?: any;
 }
@@ -30,61 +28,62 @@ export function ModelSection({
   projectModels,
   agentModels,
 }: ModelSectionProps) {
-  const hasAdvancedOptions = models.structuredOutput?.model || models.summarizer?.model;
+  const hasAdvancedOptions = models?.structuredOutput || models?.summarizer;
 
-  function getInheritance(key: 'structuredOutput' | 'summarizer') {
-    const agentModel = agentModels?.[key];
-    if (agentModel?.model) {
+  // Helper to get inherited model and provider options from the same source
+  const getStructuredOutputInheritance = () => {
+    if (agentModels?.structuredOutput?.model) {
       return {
-        model: agentModel.model,
-        options: agentModel.providerOptions,
-        fallbackModels: agentModel.fallbackModels,
-        allowedProviders: agentModel.allowedProviders,
+        model: agentModels.structuredOutput.model,
+        options: agentModels.structuredOutput.providerOptions,
       };
     }
-    const projectModel = projectModels?.[key];
-    if (projectModel?.model) {
+    if (projectModels?.structuredOutput?.model) {
       return {
-        model: projectModel.model,
-        options: projectModel.providerOptions,
-        fallbackModels: projectModel.fallbackModels,
-        allowedProviders: projectModel.allowedProviders,
+        model: projectModels.structuredOutput.model,
+        options: projectModels.structuredOutput.providerOptions,
       };
     }
     if (models?.base?.model) {
-      return {
-        model: models.base.model,
-        options: models.base.providerOptions,
-        fallbackModels: models.base.fallbackModels,
-        allowedProviders: models.base.allowedProviders,
-      };
+      return { model: models.base.model, options: models.base.providerOptions };
     }
     if (agentModels?.base?.model) {
-      return {
-        model: agentModels.base.model,
-        options: agentModels.base.providerOptions,
-        fallbackModels: agentModels.base.fallbackModels,
-        allowedProviders: agentModels.base.allowedProviders,
-      };
+      return { model: agentModels.base.model, options: agentModels.base.providerOptions };
     }
     if (projectModels?.base?.model) {
+      return { model: projectModels.base.model, options: projectModels.base.providerOptions };
+    }
+    return { model: undefined, options: undefined };
+  };
+
+  const getSummarizerInheritance = () => {
+    if (agentModels?.summarizer?.model) {
       return {
-        model: projectModels.base.model,
-        options: projectModels.base.providerOptions,
-        fallbackModels: projectModels.base.fallbackModels,
-        allowedProviders: projectModels.base.allowedProviders,
+        model: agentModels.summarizer.model,
+        options: agentModels.summarizer.providerOptions,
       };
     }
-    return {
-      model: undefined,
-      options: undefined,
-      fallbackModels: undefined,
-      allowedProviders: undefined,
-    };
-  }
+    if (projectModels?.summarizer?.model) {
+      return {
+        model: projectModels.summarizer.model,
+        options: projectModels.summarizer.providerOptions,
+      };
+    }
+    if (models?.base?.model) {
+      return { model: models.base.model, options: models.base.providerOptions };
+    }
+    if (agentModels?.base?.model) {
+      return { model: agentModels.base.model, options: agentModels.base.providerOptions };
+    }
+    if (projectModels?.base?.model) {
+      return { model: projectModels.base.model, options: projectModels.base.providerOptions };
+    }
+    return { model: undefined, options: undefined };
+  };
 
-  const structuredOutputInheritance = getInheritance('structuredOutput');
-  const summarizerInheritance = getInheritance('summarizer');
+  const structuredOutputInheritance = getStructuredOutputInheritance();
+  const summarizerInheritance = getSummarizerInheritance();
+
   return (
     <div className="space-y-8">
       <SectionHeader
@@ -121,27 +120,11 @@ export function ModelSection({
           </div>
         }
         description="Primary model for general sub agent responses"
-        onModelChange={(value) => {
-          updatePath('models.base.model', value);
-        }}
-        onProviderOptionsChange={(options) => {
+        onModelChange={(value) => updatePath('models.base.model', value || undefined)}
+        onProviderOptionsChange={createProviderOptionsHandler((options) => {
           updatePath('models.base.providerOptions', options);
-        }}
+        })}
         editorNamePrefix="base"
-        fallbackModels={models?.base?.fallbackModels}
-        inheritedFallbackModels={
-          agentModels?.base?.fallbackModels || projectModels?.base?.fallbackModels
-        }
-        onFallbackModelsChange={(models) =>
-          updatePath('models.base.fallbackModels', models.length ? models : undefined)
-        }
-        allowedProviders={models?.base?.allowedProviders}
-        inheritedAllowedProviders={
-          agentModels?.base?.allowedProviders || projectModels?.base?.allowedProviders
-        }
-        onAllowedProvidersChange={(providers) =>
-          updatePath('models.base.allowedProviders', providers.length ? providers : undefined)
-        }
       />
 
       <CollapsibleSettings defaultOpen={!!hasAdvancedOptions} title="Advanced Model Options">
@@ -165,12 +148,10 @@ export function ModelSection({
             </div>
           }
           description="The model used for structured output and components (defaults to base model)"
-          onModelChange={(value) => {
-            updatePath('models.structuredOutput.model', value);
-          }}
-          onProviderOptionsChange={(options) => {
-            updatePath('models.structuredOutput.providerOptions', options);
-          }}
+          onModelChange={(value) => updatePath('models.structuredOutput.model', value || undefined)}
+          onProviderOptionsChange={createProviderOptionsHandler((options) =>
+            updatePath('models.structuredOutput.providerOptions', options)
+          )}
           editorNamePrefix="structured"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {
@@ -178,19 +159,6 @@ export function ModelSection({
             }
             return structuredOutputModelProviderOptionsTemplate;
           }}
-          fallbackModels={models?.structuredOutput?.fallbackModels}
-          inheritedFallbackModels={structuredOutputInheritance.fallbackModels}
-          onFallbackModelsChange={(models) =>
-            updatePath('models.structuredOutput.fallbackModels', models.length ? models : undefined)
-          }
-          allowedProviders={models?.structuredOutput?.allowedProviders}
-          inheritedAllowedProviders={structuredOutputInheritance.allowedProviders}
-          onAllowedProvidersChange={(providers) =>
-            updatePath(
-              'models.structuredOutput.allowedProviders',
-              providers.length ? providers : undefined
-            )
-          }
         />
 
         <ModelConfiguration
@@ -213,12 +181,10 @@ export function ModelSection({
             </div>
           }
           description="The model used for summarization tasks (defaults to base model)"
-          onModelChange={(value) => {
-            updatePath('models.summarizer.model', value);
-          }}
-          onProviderOptionsChange={(options) => {
-            updatePath('models.summarizer.providerOptions', options);
-          }}
+          onModelChange={(value) => updatePath('models.summarizer.model', value || undefined)}
+          onProviderOptionsChange={createProviderOptionsHandler((options) =>
+            updatePath('models.summarizer.providerOptions', options)
+          )}
           editorNamePrefix="summarizer"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {
@@ -226,19 +192,6 @@ export function ModelSection({
             }
             return summarizerModelProviderOptionsTemplate;
           }}
-          fallbackModels={models?.summarizer?.fallbackModels}
-          inheritedFallbackModels={summarizerInheritance.fallbackModels}
-          onFallbackModelsChange={(models) =>
-            updatePath('models.summarizer.fallbackModels', models.length ? models : undefined)
-          }
-          allowedProviders={models?.summarizer?.allowedProviders}
-          inheritedAllowedProviders={summarizerInheritance.allowedProviders}
-          onAllowedProvidersChange={(providers) =>
-            updatePath(
-              'models.summarizer.allowedProviders',
-              providers.length ? providers : undefined
-            )
-          }
         />
       </CollapsibleSettings>
     </div>

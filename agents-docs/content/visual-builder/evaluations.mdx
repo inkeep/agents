@@ -3,10 +3,10 @@ title: Evaluations in Visual Builder
 sidebarTitle: Evaluations
 description: Configure evaluators, batch evaluations, and continuous tests in the Visual Builder
 icon: LuFlaskConical
-keywords: evaluations, evaluators, batch evaluations, continuous tests, test suites
+keywords: evaluations, evaluators, batch evaluations, continuous tests, datasets
 ---
 
-The Visual Builder lets you define, manage, and run evaluations. You define evaluators (how to score agents), then run them in two ways: **batch evaluations** (one-time jobs over selected conversations) and **continuous tests** (automatic evaluation on a sample of live conversations). For **fixed test cases** (curated prompts and optional gold outputs), use **[test suites](/visual-builder/test-suites)** and test suite runs instead of batch evaluation over conversation history.
+The Visual Builder lets you define, manage, and run evaluations. You define evaluators (how to score agents), then run them in two ways: **batch evaluations** (one-time jobs over selected conversations) and **continuous tests** (automatic evaluation on a sample of live conversations).
 
 ## Where to find evaluations
 
@@ -47,17 +47,15 @@ From the Evaluators list, open an evaluator to view or edit it, or use the delet
 
 ## Batch evaluations
 
-Batch evaluations run selected evaluators over a set of conversations once. In the Visual Builder you scope that set with a **date range**. The API and TypeScript SDK can also scope a job to specific **test suite runs** using test suite run IDs (`datasetRunIds` in the API)—for example to evaluate only conversations produced by a given [test suite](/visual-builder/test-suites) run. Starting a test suite run **with evaluators** creates a matching batch evaluation automatically.
+Batch evaluations run selected evaluators over a set of conversations once. You choose which evaluators to run and over what date range.
 
 ### Creating a batch evaluation
 
 1. Go to **Evaluations** and open the **Batch Evaluations** tab.
 2. Click **New batch evaluation**.
 3. Select one or more **Evaluators**.
-4. Narrow the scope by **Date range** — only conversations within that range.
+4. Narrow the scope by **Date range** — only conversations within that range
 5. Start the job. A new batch evaluation job is created and runs asynchronously.
-
-For run-scoped jobs, use the [Evaluations API](/api-reference/evaluations) or [`triggerBatchEvaluation`](/typescript-sdk/evaluations) with `datasetRunIds`, or attach evaluators when you trigger a test suite run from **Test Suites**.
 
 ### Viewing results
 
@@ -89,6 +87,5 @@ From the Continuous Tests list, open a config to see **Results** for that run co
 | **Evaluators** | Define how to score agent outputs (prompt, model, schema, pass criteria). |
 | **Batch evaluations** | Run evaluators once over a scoped set of conversations (date range). |
 | **Continuous tests** | Automatically run evaluators on a sample of live conversations. |
-| **Test suites** | Curated items (input messages and optional expected output); run agents against them via run configurations. See [Test suites](/visual-builder/test-suites). |
 
 For programmatic access to the same concepts, see [TypeScript SDK: Evaluations](/typescript-sdk/evaluations) and the [Evaluations API reference](/api-reference/evaluations).

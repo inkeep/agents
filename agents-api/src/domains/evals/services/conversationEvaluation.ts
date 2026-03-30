@@ -3,7 +3,6 @@ import {
   type EvaluationSuiteFilterCriteria,
   type Filter,
   generateId,
-  getAgentIdsForEvaluators,
   getConversation,
   getEvaluationSuiteConfigById,
   getEvaluationSuiteConfigEvaluatorRelations,
@@ -54,7 +53,7 @@ export const triggerConversationEvaluation = async (params: {
 
     if (runConfigs.length === 0) {
       logger.debug(
-        { conversationId },
+        { tenantId, projectId, conversationId },
         'No active evaluation run configs found, skipping evaluation'
       );
       return {
@@ -65,7 +64,7 @@ export const triggerConversationEvaluation = async (params: {
     }
 
     logger.info(
-      { conversationId, runConfigCount: runConfigs.length },
+      { tenantId, projectId, conversationId, runConfigCount: runConfigs.length },
       'Triggering conversation evaluation'
     );
 
@@ -130,32 +129,9 @@ export const triggerConversationEvaluation = async (params: {
           })
         );
 
-        let evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
+        const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
 
         if (evaluatorIds.length === 0) continue;
-
-        const { agentId: conversationAgentId } = conversation;
-        if (conversationAgentId) {
-          const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
-            getAgentIdsForEvaluators(db)({
-              scopes: { tenantId, projectId },
-              evaluatorIds,
-            })
-          );
-          evaluatorIds = evaluatorIds.filter((evalId) => {
-            const scopedAgents = agentIdsMap.get(evalId);
-            if (!scopedAgents || scopedAgents.length === 0) return true;
-            return scopedAgents.includes(conversationAgentId);
-          });
-
-          if (evaluatorIds.length === 0) {
-            logger.info(
-              { suiteConfigId, conversationAgentId, conversationId },
-              'All evaluators filtered out by agent scoping'
-            );
-            continue;
-          }
-        }
 
         // Create evaluation run
         const evaluationRunId = generateId();
@@ -202,7 +178,13 @@ export const triggerConversationEvaluation = async (params: {
     };
   } catch (error) {
     logger.error(
-      { error: (error as Error)?.message, errorStack: (error as Error)?.stack, conversationId },
+      {
+        error: (error as Error)?.message,
+        errorStack: (error as Error)?.stack,
+        tenantId,
+        projectId,
+        conversationId,
+      },
       'Failed to trigger conversation evaluation'
     );
     throw error;

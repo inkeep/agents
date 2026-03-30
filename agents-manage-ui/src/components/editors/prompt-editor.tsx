@@ -20,6 +20,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   children,
   ...props
 }) => {
+  'use memo';
   const id = useId();
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();

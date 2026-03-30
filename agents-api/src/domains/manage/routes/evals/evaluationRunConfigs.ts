@@ -75,7 +75,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error }, 'Failed to list evaluation run configs');
+      logger.error({ error, tenantId, projectId }, 'Failed to list evaluation run configs');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -138,7 +138,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, configId }, 'Failed to get evaluation run config');
+      logger.error({ error, tenantId, projectId, configId }, 'Failed to get evaluation run config');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -258,7 +258,10 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, configId }, 'Failed to get evaluation results for run config');
+      logger.error(
+        { error, tenantId, projectId, configId },
+        'Failed to get evaluation results for run config'
+      );
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -336,7 +339,7 @@ app.openapi(
         scopes: { tenantId, projectId, evaluationRunConfigId: id },
       });
 
-      logger.info({ configId: id }, 'Evaluation run config created');
+      logger.info({ tenantId, projectId, configId: id }, 'Evaluation run config created');
       return c.json(
         {
           data: {
@@ -347,7 +350,10 @@ app.openapi(
         201
       ) as any;
     } catch (error) {
-      logger.error({ error, configData }, 'Failed to create evaluation run config');
+      logger.error(
+        { error, tenantId, projectId, configData },
+        'Failed to create evaluation run config'
+      );
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -453,7 +459,7 @@ app.openapi(
         scopes: { tenantId, projectId, evaluationRunConfigId: configId },
       });
 
-      logger.info({ configId }, 'Evaluation run config updated');
+      logger.info({ tenantId, projectId, configId }, 'Evaluation run config updated');
       return c.json({
         data: {
           ...updated,
@@ -461,7 +467,10 @@ app.openapi(
         } as any,
       }) as any;
     } catch (error) {
-      logger.error({ error, configId, configData }, 'Failed to update evaluation run config');
+      logger.error(
+        { error, tenantId, projectId, configId, configData },
+        'Failed to update evaluation run config'
+      );
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -507,7 +516,7 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ configId }, 'Evaluation run config deleted');
+      logger.info({ tenantId, projectId, configId }, 'Evaluation run config deleted');
       return c.body(null, 204) as any;
     } catch (error: any) {
       logger.error(
@@ -517,6 +526,8 @@ app.openapi(
           errorCode: error?.cause?.code,
           errorDetail: error?.cause?.detail,
           errorConstraint: error?.cause?.constraint,
+          tenantId,
+          projectId,
           configId,
         },
         'Failed to delete evaluation run config'

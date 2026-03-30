@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import type { SkillOutput } from '@/components/skills/form/validation';
 import { createSkill, fetchSkill, fetchSkills, updateSkill } from '@/lib/api/skills';
-import type { SkillDetail } from '@/lib/types/skills';
+import type { Skill } from '@/lib/types/skills';
 
 const skillQueryKeys = {
   list: (tenantId: string, projectId: string) => ['skills', tenantId, projectId] as const,
@@ -19,6 +19,7 @@ interface UpsertSkillInput {
 }
 
 export function useSkillsQuery({ enabled = true }: { enabled?: boolean } = {}) {
+  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
@@ -49,13 +50,14 @@ export function useSkillQuery({
   skillId?: string;
   enabled?: boolean;
 } = {}) {
+  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
     throw new Error('tenantId and projectId are required');
   }
 
-  return useQuery<SkillDetail | null>({
+  return useQuery<Skill | null>({
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     staleTime: 30_000,
@@ -73,6 +75,7 @@ export function useSkillQuery({
 }
 
 export function useUpsertSkillMutation() {
+  'use memo';
   const queryClient = useQueryClient();
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -80,7 +83,7 @@ export function useUpsertSkillMutation() {
     throw new Error('tenantId and projectId are required');
   }
 
-  return useMutation<SkillDetail, Error, UpsertSkillInput>({
+  return useMutation<Skill, Error, UpsertSkillInput>({
     async mutationFn({ skillId, data }) {
       const result = skillId
         ? await updateSkill(tenantId, projectId, skillId, data)

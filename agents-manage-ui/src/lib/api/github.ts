@@ -2,6 +2,7 @@
 
 import { cache } from 'react';
 import { makeManagementApiRequest } from './api-config';
+import { validateTenantId } from './resource-validation';
 
 export type WorkAppGitHubAccountType = 'Organization' | 'User';
 export type WorkAppGitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'disconnected';
@@ -68,6 +69,8 @@ async function $fetchWorkAppGitHubInstallations(
   tenantId: string,
   includeDisconnected = true
 ): Promise<WorkAppGitHubInstallation[]> {
+  validateTenantId(tenantId);
+
   const queryParams = includeDisconnected ? '?includeDisconnected=true' : '';
   const response = await makeManagementApiRequest<ListWorkAppGitHubInstallationsResponse>(
     `tenants/${tenantId}/github/installations${queryParams}`
@@ -84,6 +87,8 @@ async function $fetchWorkAppGitHubInstallationDetail(
   tenantId: string,
   installationId: string
 ): Promise<WorkAppGitHubInstallationDetail> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<WorkAppGitHubInstallationDetailResponse>(
     `tenants/${tenantId}/github/installations/${installationId}`
   );
@@ -100,6 +105,8 @@ export const fetchWorkAppGitHubInstallationDetail = cache($fetchWorkAppGitHubIns
  * The URL redirects the user to GitHub to install the app.
  */
 export async function getWorkAppGitHubInstallUrl(tenantId: string): Promise<string> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<WorkAppGitHubInstallUrlResponse>(
     `tenants/${tenantId}/github/install-url`
   );
@@ -115,6 +122,8 @@ export async function syncWorkAppGitHubRepositories(
   tenantId: string,
   installationId: string
 ): Promise<WorkAppGitHubSyncRepositoriesResponse> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<WorkAppGitHubSyncRepositoriesResponse>(
     `tenants/${tenantId}/github/installations/${installationId}/sync`,
     {
@@ -134,6 +143,8 @@ export async function disconnectWorkAppGitHubInstallation(
   tenantId: string,
   installationId: string
 ): Promise<void> {
+  validateTenantId(tenantId);
+
   await makeManagementApiRequest<WorkAppGitHubDisconnectResponse>(
     `tenants/${tenantId}/github/installations/${installationId}/disconnect`,
     {
@@ -154,6 +165,8 @@ export async function reconnectWorkAppGitHubInstallation(
   tenantId: string,
   installationId: string
 ): Promise<void> {
+  validateTenantId(tenantId);
+
   await makeManagementApiRequest<WorkAppGitHubReconnectResponse>(
     `tenants/${tenantId}/github/installations/${installationId}/reconnect`,
     {
@@ -183,6 +196,8 @@ async function $getProjectWorkAppGitHubAccess(
   tenantId: string,
   projectId: string
 ): Promise<WorkAppGitHubProjectAccess> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<WorkAppGitHubProjectAccess>(
     `tenants/${tenantId}/projects/${projectId}/github-access`
   );
@@ -202,6 +217,8 @@ export async function setProjectWorkAppGitHubAccess(
   mode: WorkAppGitHubAccessMode,
   repositoryIds?: string[]
 ): Promise<SetProjectWorkAppGitHubAccessResponse> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<SetProjectWorkAppGitHubAccessResponse>(
     `tenants/${tenantId}/projects/${projectId}/github-access`,
     {
@@ -242,6 +259,8 @@ async function $getMcpToolWorkAppGitHubAccess(
   projectId: string,
   toolId: string
 ): Promise<McpToolWorkAppGitHubAccess> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<McpToolWorkAppGitHubAccess>(
     `tenants/${tenantId}/projects/${projectId}/tools/${toolId}/github-access`
   );
@@ -262,6 +281,8 @@ export async function setMcpToolWorkAppGitHubAccess(
   mode: WorkAppGitHubAccessMode,
   repositoryIds?: string[]
 ): Promise<SetMcpToolWorkAppGitHubAccessResponse> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<SetMcpToolWorkAppGitHubAccessResponse>(
     `tenants/${tenantId}/projects/${projectId}/tools/${toolId}/github-access`,
     {

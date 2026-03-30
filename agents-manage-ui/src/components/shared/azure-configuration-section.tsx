@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 
 interface AzureConfigurationSectionProps {
   providerOptions: Record<string, unknown> | string | undefined;
-  onProviderOptionsChange: (value: string | undefined) => void;
+  onProviderOptionsChange?: (value: string | undefined) => void;
   editorNamePrefix: string;
   disabled?: boolean;
 }
@@ -20,6 +20,8 @@ export function AzureConfigurationSection({
       : providerOptions || {};
 
   const handleFieldChange = (field: string, value: string) => {
+    if (!onProviderOptionsChange) return;
+
     const updatedOptions = {
       ...providerOptionsObj,
       [field]: value || undefined,

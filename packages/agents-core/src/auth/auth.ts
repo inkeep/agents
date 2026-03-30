@@ -1,12 +1,10 @@
 import { dash } from '@better-auth/infra';
-import { oauthProvider } from '@better-auth/oauth-provider';
 import { type SSOOptions, sso } from '@better-auth/sso';
 import { betterAuth, type Session, type User } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import {
   bearer,
   deviceAuthorization,
-  jwt,
   lastLoginMethod,
   oAuthProxy,
   organization,
@@ -24,7 +22,6 @@ import {
 import type { BetterAuthConfig } from './auth-types';
 import { type OrgRole, OrgRoles } from './authz/types';
 import { setEmailSendStatus } from './email-send-status-store';
-import { DEFAULT_MEMBERSHIP_LIMIT } from './entitlement-constants';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
@@ -58,11 +55,6 @@ function _inferAuthType() {
     plugins: [
       bearer(),
       oAuthProxy(),
-      jwt(),
-      oauthProvider({
-        loginPage: '/login',
-        consentPage: '/consent',
-      }),
       organization({
         schema: {
           invitation: {
@@ -93,7 +85,6 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     appName: 'Inkeep Agents',
     baseURL: config.baseURL,
     secret: config.secret,
-    disabledPaths: ['/token'],
     database: drizzleAdapter(config.dbClient, {
       provider: 'pg',
     }),
@@ -135,7 +126,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       accountLinking: {
         enabled: true,
         trustedProviders: async () => {
-          const base = ['google', 'microsoft', 'email-password'];
+          const base = ['google', 'email-password'];
           try {
             const providerIds = await querySsoProviderIds(config.dbClient)();
             return [...base, ...providerIds];
@@ -162,28 +153,16 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         },
       },
     },
-    socialProviders: (config.socialProviders?.google || config.socialProviders?.microsoft) && {
-      ...(config.socialProviders?.google && {
-        google: {
-          ...config.socialProviders.google,
-          // For local/preview env, redirect to production URL registered in Google Console
-          ...(env.OAUTH_PROXY_PRODUCTION_URL && {
-            redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
-          }),
-        },
-      }),
-      ...(config.socialProviders?.microsoft && {
-        microsoft: {
-          ...config.socialProviders.microsoft,
-          // For local/preview env, redirect to production URL registered in Entra app
-          ...(env.OAUTH_PROXY_PRODUCTION_URL && {
-            redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/microsoft`,
-          }),
-        },
-      }),
+    socialProviders: config.socialProviders?.google && {
+      google: {
+        ...config.socialProviders.google,
+        // For local/preview env, redirect to production URL registered in Google Console
+        ...(env.OAUTH_PROXY_PRODUCTION_URL && {
+          redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
+        }),
+      },
     },
     session: {
-      storeSessionInDatabase: true,
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
       cookieCache: {
@@ -213,20 +192,6 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     plugins: [
       bearer(),
       dash(),
-      jwt(),
-      oauthProvider({
-        loginPage: `${env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000'}/login`,
-        consentPage: `${env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000'}/consent`,
-        scopes: ['openid', 'profile', 'email', 'offline_access'],
-        customAccessTokenClaims: async ({ user }) => {
-          if (!user) return {};
-          const org = await getInitialOrganization(config.dbClient, user.id);
-          return {
-            'https://inkeep.com/tenantId': org?.id ?? undefined,
-            'https://inkeep.com/email': user.email,
-          };
-        },
-      }),
       lastLoginMethod({
         customResolveMethod(ctx) {
           const path = ctx.path;
@@ -279,15 +244,8 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
           owner: ownerRole,
         },
         creatorRole: OrgRoles.ADMIN,
-        membershipLimit: async (_user, org) => {
-          const { resolveTotalMembershipLimit } = await import('./entitlements');
-          const { dalGetServiceAccountUserId } = await import(
-            '../data-access/runtime/entitlements'
-          );
-          const serviceAccountUserId = await dalGetServiceAccountUserId(config.dbClient, org.id);
-          return resolveTotalMembershipLimit(config.dbClient, org.id, !!serviceAccountUserId);
-        },
-        invitationLimit: DEFAULT_MEMBERSHIP_LIMIT,
+        membershipLimit: 300,
+        invitationLimit: 300,
         invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)
         async sendInvitationEmail(data) {
           if (config.emailService?.isConfigured) {
@@ -352,14 +310,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
           },
         },
         organizationHooks: {
-          beforeCreateInvitation: async ({ invitation, organization: org }) => {
-            const { enforcePerRoleSeatLimit } = await import('./entitlements');
-            await enforcePerRoleSeatLimit(config.dbClient, org.id, invitation.role);
-          },
           beforeAddMember: async ({ member, user, organization: org }) => {
-            const { enforcePerRoleSeatLimit } = await import('./entitlements');
-            await enforcePerRoleSeatLimit(config.dbClient, org.id, member.role);
-
             try {
               const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
               await syncOrgMemberToSpiceDb({
@@ -379,9 +330,6 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             }
           },
           beforeAcceptInvitation: async ({ invitation, user, organization: org }) => {
-            const { enforcePerRoleSeatLimit } = await import('./entitlements');
-            await enforcePerRoleSeatLimit(config.dbClient, org.id, invitation.role);
-
             try {
               const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
               await syncOrgMemberToSpiceDb({
@@ -405,65 +353,18 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             } catch (error) {
               console.error('[auth] Failed to create user profile for user', user.id, error);
             }
-
-            if (invitation.role !== OrgRoles.ADMIN && invitation.role !== OrgRoles.OWNER) {
-              const { getProjectAssignmentsForInvitation, deleteInvitationProjectAssignments } =
-                await import('../data-access/runtime/invitationProjectAssignments');
-              const { grantProjectAccess } = await import('./authz/sync');
-
-              const assignments = await getProjectAssignmentsForInvitation(config.dbClient)(
-                invitation.id
-              );
-
-              if (assignments.length > 0) {
-                const results = await Promise.allSettled(
-                  assignments.map((a) =>
-                    grantProjectAccess({
-                      tenantId: org.id,
-                      projectId: a.projectId,
-                      userId: user.id,
-                      role: a.projectRole,
-                    })
-                  )
-                );
-                results.forEach((result, i) => {
-                  if (result.status === 'rejected') {
-                    console.warn(
-                      `[auth] Failed to grant project access for project ${assignments[i]?.projectId}:`,
-                      result.reason
-                    );
-                  }
-                });
-              }
-
-              await deleteInvitationProjectAssignments(config.dbClient)(invitation.id);
-            }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {
-            const { roleMatchesAdminBucket, enforcePerRoleSeatLimit } = await import(
-              './entitlements'
-            );
+            const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
             const oldRole = member.role as OrgRole;
             const targetRole = newRole as OrgRole;
 
-            const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
-
-            const doRoleChange = async () => {
-              await changeOrgRole({
-                tenantId: org.id,
-                userId: member.userId,
-                oldRole,
-                newRole: targetRole,
-              });
-            };
-
-            const oldBucketIsAdmin = roleMatchesAdminBucket(oldRole);
-            const newBucketIsAdmin = roleMatchesAdminBucket(targetRole);
-            if (oldBucketIsAdmin !== newBucketIsAdmin) {
-              await enforcePerRoleSeatLimit(config.dbClient, org.id, targetRole, doRoleChange);
-            } else {
-              await doRoleChange();
-            }
+            await changeOrgRole({
+              tenantId: org.id,
+              userId: member.userId,
+              oldRole,
+              newRole: targetRole,
+            });
             console.log(
               `🔐 SpiceDB: Updated member ${member.userId} role from ${oldRole} to ${targetRole} in org ${org.name}`
             );

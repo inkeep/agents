@@ -1,7 +1,6 @@
 {
   "pages": [
     "sub-agents",
-    "execution-modes",
     "tools",
     "headers",
     "structured-outputs",
@@ -10,7 +9,6 @@
     "access-control",
     "skills",
     "evaluations",
-    "test-suites",
     "..."
   ]
 }

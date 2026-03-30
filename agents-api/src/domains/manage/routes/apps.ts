@@ -18,7 +18,6 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAppForProject,
-  WebClientConfigSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -44,10 +43,7 @@ app.openapi(
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
-        type: z
-          .enum(['web_client', 'api', 'support_copilot'])
-          .optional()
-          .describe('Filter by app type'),
+        type: z.enum(['web_client', 'api']).optional().describe('Filter by app type'),
       }),
     },
     responses: {
@@ -67,7 +63,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
-    const type = c.req.query('type') as 'web_client' | 'api' | 'support_copilot' | undefined;
+    const type = c.req.query('type') as 'web_client' | 'api' | undefined;
 
     const result = await listAppsPaginated(runDbClient)({
       scopes: { tenantId, projectId },
@@ -219,35 +215,6 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
   const data = { ...body };
   if ('defaultAgentId' in data) {
     data.defaultProjectId = data.defaultAgentId ? (data.defaultProjectId ?? projectId) : null;
-  }
-
-  if (data.config && data.config.type === 'web_client') {
-    const parsed = WebClientConfigSchema.safeParse(data.config);
-    if (!parsed.success) {
-      throw createApiError({
-        code: 'bad_request',
-        message: `Invalid web client config: ${parsed.error.issues.map((i) => i.message).join(', ')}`,
-      });
-    }
-    const existingApp = await getAppByIdForProject(runDbClient)({
-      scopes: { tenantId, projectId },
-      id,
-    });
-    if (existingApp?.config?.type === 'web_client') {
-      const existingWc = existingApp.config.webClient;
-      const incomingWc = parsed.data.webClient;
-      data.config = {
-        type: 'web_client' as const,
-        webClient: {
-          ...existingWc,
-          allowedDomains: incomingWc.allowedDomains ?? existingWc.allowedDomains,
-          ...(incomingWc.allowAnonymous !== undefined && {
-            allowAnonymous: incomingWc.allowAnonymous,
-          }),
-          ...(incomingWc.audience !== undefined && { audience: incomingWc.audience }),
-        } as typeof existingWc,
-      };
-    }
   }
 
   const updatedApp = await updateAppForProject(runDbClient)({

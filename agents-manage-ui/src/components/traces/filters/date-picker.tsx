@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import { CalendarIcon, Check } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import type { SelectOption } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
@@ -80,7 +80,7 @@ export function DatePickerWithPresets({
   const presetValue = options.find((option) => option.value === value);
 
   // Memoize only the expensive date formatting operations
-  const dateComputations = (() => {
+  const dateComputations = useMemo(() => {
     if (!value || typeof value !== 'object') {
       return { initialDate: undefined, dateFormattedValue: undefined };
     }
@@ -97,7 +97,7 @@ export function DatePickerWithPresets({
       : undefined;
 
     return { initialDate, dateFormattedValue };
-  })();
+  }, [value]);
 
   // Combine preset and date values (preset lookup is cheap, no need to memoize)
   const initialDate = dateComputations.initialDate;
@@ -112,15 +112,14 @@ export function DatePickerWithPresets({
       {showCalendarDirectly ? (
         <PopoverTrigger asChild>
           <Button
-            variant="gray-outline"
-            size="sm"
+            variant="outline"
             disabled={disabled}
             className={cn(
-              !dateComputations.dateFormattedValue && 'text-muted-foreground',
-              `flex items-center gap-2 w-full justify-start focus:ring-0 max-w-full min-w-0 text-left`
+              'w-full justify-start text-left font-normal',
+              !dateComputations.dateFormattedValue && 'text-muted-foreground'
             )}
           >
-            <CalendarIcon className="h-4 w-4 text-gray-400 dark:text-white/50" />
+            <CalendarIcon className="mr-2 h-4 w-4" />
             {directTriggerLabel}
           </Button>
         </PopoverTrigger>

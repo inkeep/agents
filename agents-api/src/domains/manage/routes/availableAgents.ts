@@ -154,7 +154,7 @@ app.openapi(
     // Identify user from token (supports multiple token types)
     const user = await identifyUserFromToken(token);
     if (!user) {
-      logger.warn('Token verification failed - no valid auth method found');
+      logger.warn({}, 'Token verification failed - no valid auth method found');
       throw createApiError({
         code: 'unauthorized',
         message: 'Invalid or expired token',
@@ -176,7 +176,7 @@ app.openapi(
       projectIds,
     });
 
-    logger.info({ userId, agentCount: agents.length }, 'Returning usable agents');
+    logger.info({ userId, tenantId, agentCount: agents.length }, 'Returning usable agents');
 
     return c.json({ data: agents });
   }

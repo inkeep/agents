@@ -3,7 +3,7 @@
 import { Check, ChevronsUpDown, Plus, Search } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, type FC, useState } from 'react';
+import { type ComponentProps, type FC, useCallback, useMemo, useState } from 'react';
 import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -52,16 +52,18 @@ export const ProjectSwitcher: FC = () => {
   const { data: projects, isFetching } = useProjectsQuery({ tenantId });
   const invalidateProjects = useProjectsInvalidation(tenantId);
 
-  function handleCreateProject() {
+  const handleCreateProject = useCallback(() => {
     setIsProjectDialogOpen(true);
-  }
-  const query = search.trim().toLowerCase();
+  }, []);
 
-  const filteredProjects = query
-    ? projects.filter(
-        (p) => p.name.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query)
-      )
-    : projects;
+  const filteredProjects = useMemo(() => {
+    if (!projects) return [];
+    if (!search.trim()) return projects;
+    const query = search.toLowerCase();
+    return projects.filter(
+      (p) => p.name.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query)
+    );
+  }, [projects, search]);
 
   if (isFetching) {
     return <Skeleton className="h-12" />;

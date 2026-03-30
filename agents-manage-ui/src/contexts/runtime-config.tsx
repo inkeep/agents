@@ -1,11 +1,21 @@
+// components/RuntimeConfigContext.tsx
 'use client';
 
+import type React from 'react';
 import { createContext, use } from 'react';
-import type { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
+import type { RuntimeConfig } from '@/lib/runtime-config/types';
 
-const Ctx = createContext<ReturnType<typeof getRuntimeConfig> | null>(null);
+const Ctx = createContext<RuntimeConfig | null>(null);
 
-export const RuntimeConfigProvider = Ctx;
+export function RuntimeConfigProvider({
+  value,
+  children,
+}: {
+  value: RuntimeConfig;
+  children: React.ReactNode;
+}) {
+  return <Ctx value={value}>{children}</Ctx>;
+}
 
 export function useRuntimeConfig() {
   const ctx = use(Ctx);

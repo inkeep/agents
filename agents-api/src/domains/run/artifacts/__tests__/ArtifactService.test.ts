@@ -1,5 +1,4 @@
 import type { ResolvedRef } from '@inkeep/agents-core';
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type ArtifactCreateRequest,
@@ -42,7 +41,6 @@ vi.mock('@inkeep/agents-core', () => ({
   getTask: getTaskMock,
   getLedgerArtifacts: getLedgerArtifactsMock,
   upsertLedgerArtifact: upsertLedgerArtifactMock,
-  SESSION_EVENT_ARTIFACT_SAVED: 'artifact_saved',
   // Add stubs for exports needed by transitive dependencies
   createAgentsRunDatabaseClient: vi.fn(() => 'mock-run-db-client'),
   createAgentsManageDatabaseClient: vi.fn(() => 'mock-manage-db-client'),
@@ -70,7 +68,15 @@ vi.mock('../../../../data/db/runDbClient', () => ({
 }));
 
 // Mock logger to prevent transitive @inkeep/agents-core imports (path from test file to src)
-vi.mock('../../../../logger', () => createMockLoggerModule().module);
+vi.mock('../../../../logger', () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  })),
+}));
 
 // Mock schema-validation to prevent @inkeep/agents-core/utils imports
 vi.mock('../../utils/schema-validation', () => ({

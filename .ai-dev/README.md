@@ -305,7 +305,7 @@ The sandbox uses a custom Dockerfile (`Dockerfile`) instead of the official `doc
 | Tool | Version | Why custom |
 |------|---------|-----------|
 | Node.js | 22 | Repo requires >=22 (official image has 20) |
-| pnpm | 10.33.0 | Repo package manager (not in official image) |
+| pnpm | 10.10.0 | Repo package manager (not in official image) |
 | gh | Latest | GitHub CLI for optional PR workflow |
 | jq | Latest | JSON processing for ralph.sh |
 | Claude Code | Latest | Installed via official installer |

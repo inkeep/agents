@@ -1,8 +1,14 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NangoCredentialStore } from '../../credential-stores/nango-store';
 
-vi.mock('../../logger.js', () => createMockLoggerModule().module);
+// Mock the logger
+vi.mock('../../logger.js', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
 
 // Mock fetch
 global.fetch = vi.fn();

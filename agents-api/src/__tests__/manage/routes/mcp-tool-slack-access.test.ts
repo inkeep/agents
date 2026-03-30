@@ -1,5 +1,4 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -34,7 +33,13 @@ vi.mock('@inkeep/agents-work-apps/slack', () => ({
   validateBotChannelMembership: validateBotChannelMembershipMock,
 }));
 
-vi.mock('../../../logger', () => createMockLoggerModule().module);
+vi.mock('../../../logger', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 vi.mock('../../../middleware/projectAccess', () => ({
   requireProjectPermission: () => async (_c: unknown, next: () => Promise<void>) => {

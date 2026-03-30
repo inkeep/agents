@@ -10,7 +10,6 @@
     "dev:api": "turbo dev --filter agents-api-quickstart",
     "dev:ui": "inkeep dev",
     "dev:mcp": "turbo dev --filter mcp-quickstart",
-    "knip": "knip --directory . --dependencies",
     "db:migrate": "pnpm db:manage:migrate && pnpm db:run:migrate",
     "db:drop": "tsx scripts/db-drop.ts",
     "db:manage:migrate": "tsx scripts/migrate-dolt.ts",
@@ -41,7 +40,6 @@
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.4",
-    "knip": "^5.82.0",
     "mprocs": "^0.7.3",
     "pg": "^8.16.3",
     "tsx": "^4.19.0",
@@ -50,7 +48,7 @@
   "engines": {
     "node": ">=22.18.0"
   },
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@10.10.0",
   "pnpm": {
     "overrides": {
       "@hono/node-server": ">=1.19.10",

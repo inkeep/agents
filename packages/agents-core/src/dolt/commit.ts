@@ -57,6 +57,7 @@ export const doltAddAndCommit =
     await doltAdd(db)({});
     return doltCommit(db)(params);
   };
+
 /**
  * Get commit log
  */

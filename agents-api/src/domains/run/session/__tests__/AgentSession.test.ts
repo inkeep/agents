@@ -569,64 +569,6 @@ describe('AgentSession', () => {
     });
   });
 
-  describe('Artifact processing retry', () => {
-    const artifactSavedData = {
-      artifactId: 'art-1',
-      taskId: 'task-1',
-      artifactType: 'chart',
-      pendingGeneration: true,
-      tenantId: 'tenant-1',
-      projectId: 'project-1',
-      contextId: 'context-1',
-      data: { value: 42 },
-    };
-
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('removes artifact from pending set after successful processing', async () => {
-      vi.spyOn(session as any, 'processArtifact').mockResolvedValue(undefined);
-
-      session.recordEvent('artifact_saved', 'agent-1', artifactSavedData);
-
-      await vi.runAllTimersAsync();
-
-      expect(await session.waitForPendingArtifacts()).toBeUndefined();
-    });
-
-    it('retries once after a transient failure then succeeds', async () => {
-      const processArtifact = vi
-        .spyOn(session as any, 'processArtifact')
-        .mockRejectedValueOnce(new Error('storage unavailable'))
-        .mockResolvedValueOnce(undefined);
-
-      session.recordEvent('artifact_saved', 'agent-1', artifactSavedData);
-
-      await vi.runAllTimersAsync();
-
-      expect(processArtifact).toHaveBeenCalledTimes(2);
-      await session.waitForPendingArtifacts();
-    });
-
-    it('gives up and removes artifact from pending after retry also fails', async () => {
-      const processArtifact = vi
-        .spyOn(session as any, 'processArtifact')
-        .mockRejectedValue(new Error('storage unavailable'));
-
-      session.recordEvent('artifact_saved', 'agent-1', artifactSavedData);
-
-      await vi.runAllTimersAsync();
-
-      expect(processArtifact).toHaveBeenCalledTimes(2);
-      await expect(session.waitForPendingArtifacts()).resolves.toBeUndefined();
-    });
-  });
-
   describe('AgentSessionManager', () => {
     it('should create and retrieve sessions', () => {
       const sessionId = agentSessionManager.createSession(

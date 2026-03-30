@@ -6,6 +6,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 
 export const AppSidebarProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  'use memo';
   const [isSidebarHoverExpanded, setIsSidebarHoverExpanded] = useState(false);
   const isPinnedExpanded = useAgentStore(
     (state) => state.isSidebarPinnedOpen && state.isSidebarSessionOpen

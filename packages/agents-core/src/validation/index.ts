@@ -6,6 +6,4 @@ export * from './event-schemas';
 export * from './props-validation';
 export * from './render-validation';
 export * from './schemas';
-export * from './schemas/shared';
-export * from './schemas/skills';
 export * from './stream-event-schemas';

@@ -8,11 +8,20 @@ import type {
 } from '../api/dataset-run-configs';
 import {
   createDatasetRunConfig as apiCreateDatasetRunConfig,
-  triggerDatasetRun as apiTriggerDatasetRun,
   updateDatasetRunConfig as apiUpdateDatasetRunConfig,
 } from '../api/dataset-run-configs';
 import { ApiError } from '../types/errors';
-import type { ActionResult } from './types';
+
+type ActionResult<T = void> =
+  | {
+      success: true;
+      data: T;
+    }
+  | {
+      success: false;
+      error: string;
+      code?: string;
+    };
 
 export async function createDatasetRunConfigAction(
   tenantId: string,
@@ -21,18 +30,37 @@ export async function createDatasetRunConfigAction(
 ): Promise<ActionResult<DatasetRunConfig>> {
   try {
     const response = await apiCreateDatasetRunConfig(tenantId, projectId, data);
-    await apiTriggerDatasetRun(tenantId, projectId, response.data.id, {
-      evaluatorIds: data.evaluatorIds,
-    });
     revalidatePath(`/${tenantId}/projects/${projectId}/datasets/${data.datasetId}`);
-    return { success: true, data: response.data };
+    return {
+      success: true,
+      data: response.data,
+    };
   } catch (error) {
+    console.error('Error in createDatasetRunConfigAction:', error);
     if (error instanceof ApiError) {
-      return { success: false, error: error.message, code: error.error.code };
+      console.error('ApiError details:', {
+        message: error.message,
+        code: error.error.code,
+        status: error.status,
+        error: error.error,
+      });
+      return {
+        success: false,
+        error: error.message || 'Failed to create dataset run config',
+        code: error.error.code,
+      };
     }
+
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === 'object' && error !== null && 'message' in error
+          ? String(error.message)
+          : 'Failed to create dataset run config';
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create dataset run config',
+      error: errorMessage,
       code: 'unknown_error',
     };
   }

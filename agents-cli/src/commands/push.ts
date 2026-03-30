@@ -2,15 +2,12 @@ import { existsSync, readdirSync, statSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import { ManagementApiClient } from '../api';
 import { env } from '../env';
 import { performBackgroundVersionCheck } from '../utils/background-version-check';
 import { initializeCommand } from '../utils/cli-pipeline';
 import { findAllConfigFiles, findConfigFile } from '../utils/config';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
 import { loadProject } from '../utils/project-loader';
-import { readProjectState } from '../utils/state';
-import { withLocalStateBranch } from '../utils/temp-branch';
 
 export interface PushOptions {
   project?: string;
@@ -21,7 +18,6 @@ export interface PushOptions {
   all?: boolean;
   tag?: string;
   quiet?: boolean;
-  force?: boolean;
 }
 
 interface BatchPushResult {
@@ -208,70 +204,12 @@ export async function pushCommand(options: PushOptions): Promise<void> {
       }
     }
 
-    // Check for conflicts before pushing (unless --force is set)
-    const projectId = project.getId();
-    if (!options.force) {
-      const existingState = readProjectState(projectId);
-      const lastPulledHash = existingState?.lastPulledHash;
-
-      if (lastPulledHash) {
-        s.start('Checking for conflicts with remote...');
-        const apiClient = await ManagementApiClient.create(
-          config.agentsApiUrl,
-          options.config,
-          config.tenantId,
-          projectId,
-          undefined,
-          config.agentsApiKey
-        );
-
-        try {
-          const projectDefinition = await project.getFullDefinition();
-
-          const preview = await withLocalStateBranch({
-            apiClient,
-            projectId,
-            fromCommit: lastPulledHash,
-            localDefinition: projectDefinition,
-            branchPrefix: 'cli-push-check',
-            fn: (tempBranchName) =>
-              apiClient.mergePreview(projectId, {
-                sourceBranch: tempBranchName,
-                targetBranch: 'main',
-              }),
-          });
-
-          if (preview.hasConflicts) {
-            s.stop('Conflicts detected');
-            console.error(
-              chalk.red(
-                `\n✗ Push aborted: ${preview.conflicts.length} conflict(s) detected between your local state and remote.`
-              )
-            );
-            console.log(
-              chalk.yellow(
-                '\nRun `inkeep pull` to resolve conflicts before pushing, or use `inkeep push --force` to overwrite remote.'
-              )
-            );
-            process.exit(1);
-          }
-
-          s.stop('No conflicts detected');
-        } catch {
-          s.stop('Could not check for conflicts, proceeding with push');
-          console.log(
-            chalk.yellow(
-              `\n⚠ Conflict detection failed. Run \`inkeep pull\` first if you want to ensure no conflicts exist.`
-            )
-          );
-        }
-      }
-    }
-
     // Initialize the project (this will push to the backend)
     s.start('Initializing project...');
     await project.init();
 
+    // Get project details
+    const projectId = project.getId();
     const projectName = project.getName();
     const stats = project.getStats();
 
@@ -595,54 +533,12 @@ async function pushSingleProject(
       project.setCredentials(credentials);
     }
 
-    const projectId = project.getId();
-
-    if (!options.force) {
-      const existingState = readProjectState(projectId);
-      const lastPulledHash = existingState?.lastPulledHash;
-
-      if (lastPulledHash) {
-        const apiClient = await ManagementApiClient.create(
-          config.agentsApiUrl,
-          configFile || undefined,
-          config.tenantId,
-          projectId,
-          undefined,
-          config.agentsApiKey
-        );
-
-        const projectDefinition = await project.getFullDefinition();
-
-        const preview = await withLocalStateBranch({
-          apiClient,
-          projectId,
-          fromCommit: lastPulledHash,
-          localDefinition: projectDefinition,
-          branchPrefix: 'cli-push-check',
-          fn: (tempBranchName) =>
-            apiClient.mergePreview(projectId, {
-              sourceBranch: tempBranchName,
-              targetBranch: 'main',
-            }),
-        });
-
-        if (preview.hasConflicts) {
-          return {
-            projectDir,
-            projectId,
-            projectName: project.getName(),
-            success: false,
-            error: `${preview.conflicts.length} conflict(s) detected — run \`inkeep pull\` to resolve or use \`--force\``,
-          };
-        }
-      }
-    }
-
+    // Initialize the project (this will push to the backend)
     await project.init();
 
     return {
       projectDir,
-      projectId,
+      projectId: project.getId(),
       projectName: project.getName(),
       success: true,
     };

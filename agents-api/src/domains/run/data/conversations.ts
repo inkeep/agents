@@ -370,7 +370,7 @@ export async function getFormattedConversationHistory({
     });
   }
 
-  return await formatMessagesAsConversationHistory(finalMessagesToFormat);
+  return formatMessagesAsConversationHistory(finalMessagesToFormat);
 }
 
 /**
@@ -902,15 +902,13 @@ export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): str
   return fromParts || textFallback;
 }
 
-export async function formatMessagesAsConversationHistory(
-  messages: MessageSelect[]
-): Promise<string> {
+export function formatMessagesAsConversationHistory(messages: MessageSelect[]): string {
   if (messages.length === 0) {
     return '';
   }
 
-  const formattedHistoryParts = await Promise.all(
-    messages.map(async (msg: MessageSelect) => {
+  const formattedHistory = messages
+    .map((msg: MessageSelect) => {
       let roleLabel: string;
 
       if (msg.role === 'user') {
@@ -941,9 +939,6 @@ export async function formatMessagesAsConversationHistory(
       }
       return `${roleLabel}: """${reconstructedMessage}"""`; // TODO: add timestamp?
     })
-  );
-
-  const formattedHistory = formattedHistoryParts
     .filter((line): line is string => line !== null)
     .join('\n');
 

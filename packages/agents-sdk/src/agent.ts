@@ -11,6 +11,7 @@ import {
 import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
 import { getFullProjectViaAPI } from './projectFullClient';
+import type { ScheduledTrigger, ScheduledTriggerInterface } from './scheduled-trigger';
 import type { Trigger } from './trigger';
 import type {
   AgentConfig,
@@ -59,7 +60,8 @@ export class Agent implements AgentInterface {
   private stopWhen?: AgentStopWhen;
   private triggers: TriggerInterface[] = [];
   private triggerMap: Map<string, Trigger> = new Map();
-  private executionMode?: 'classic' | 'durable';
+  private scheduledTriggers: ScheduledTriggerInterface[] = [];
+  private scheduledTriggerMap: Map<string, ScheduledTrigger> = new Map();
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
@@ -76,7 +78,6 @@ export class Agent implements AgentInterface {
 
     this.statusUpdateSettings = config.statusUpdates;
     this.prompt = config.prompt;
-    this.executionMode = config.executionMode;
     // Set stopWhen - preserve original config or set default during inheritance
     this.stopWhen = config.stopWhen
       ? {
@@ -90,6 +91,12 @@ export class Agent implements AgentInterface {
     this.triggers = resolveGetter(config.triggers) || [];
     this.triggerMap = new Map(
       this.triggers.map((trigger) => [trigger.getId(), trigger as Trigger])
+    );
+
+    // Initialize scheduled triggers
+    this.scheduledTriggers = resolveGetter(config.scheduledTriggers) || [];
+    this.scheduledTriggerMap = new Map(
+      this.scheduledTriggers.map((trigger) => [trigger.getId(), trigger as ScheduledTrigger])
     );
 
     // Add default agent to map if not already present
@@ -115,6 +122,7 @@ export class Agent implements AgentInterface {
         agentCount: this.subAgents.length,
         defaultSubAgent: this.defaultSubAgent?.getName(),
         triggerCount: this.triggers.length,
+        scheduledTriggerCount: this.scheduledTriggers.length,
       },
       'Agent initialized'
     );
@@ -406,6 +414,12 @@ export class Agent implements AgentInterface {
       };
     }
 
+    // Serialize scheduled triggers
+    const scheduledTriggersObject: Record<string, any> = {};
+    for (const [triggerId, trigger] of this.scheduledTriggerMap.entries()) {
+      scheduledTriggersObject[triggerId] = trigger.getConfig();
+    }
+
     return {
       id: this.agentId,
       name: this.agentName,
@@ -420,11 +434,11 @@ export class Agent implements AgentInterface {
       // Always include triggers (even if empty) so the API knows to sync them
       // If undefined, API preserves existing triggers (for UI which manages triggers separately)
       triggers: triggersObject,
+      scheduledTriggers: scheduledTriggersObject,
       models: this.models,
       stopWhen: this.stopWhen,
       statusUpdates: processedStatusUpdates,
       prompt: this.prompt,
-      executionMode: this.executionMode,
     };
   }
 
@@ -780,6 +794,36 @@ export class Agent implements AgentInterface {
           triggerName: trigger.getName(),
         },
         'Trigger added to agent'
+      );
+    }
+  }
+
+  /**
+   * Get all scheduled triggers for this agent
+   */
+  getScheduledTriggers(): Record<string, ScheduledTrigger> {
+    const scheduledTriggersObject: Record<string, ScheduledTrigger> = {};
+    for (const [id, trigger] of this.scheduledTriggerMap.entries()) {
+      scheduledTriggersObject[id] = trigger;
+    }
+    return scheduledTriggersObject;
+  }
+
+  /**
+   * Add one or more scheduled triggers to the agent at runtime
+   */
+  addScheduledTrigger(...triggers: ScheduledTriggerInterface[]): void {
+    for (const trigger of triggers) {
+      this.scheduledTriggers.push(trigger);
+      this.scheduledTriggerMap.set(trigger.getId(), trigger as ScheduledTrigger);
+
+      logger.info(
+        {
+          agentId: this.agentId,
+          scheduledTriggerId: trigger.getId(),
+          scheduledTriggerName: trigger.getName(),
+        },
+        'Scheduled trigger added to agent'
       );
     }
   }

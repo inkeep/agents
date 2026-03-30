@@ -2,6 +2,7 @@
 
 import type { CredentialStoreType } from '@inkeep/agents-core/client-exports';
 import { makeManagementApiRequest } from './api-config';
+import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface CredentialStoreStatus {
   id: string;
@@ -29,6 +30,9 @@ export async function listCredentialStores(
   tenantId: string,
   projectId: string
 ): Promise<CredentialStoreStatus[]> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<CredentialStoresListResponse>(
     `tenants/${tenantId}/projects/${projectId}/credential-stores`
   );
@@ -54,6 +58,9 @@ export async function createCredentialInStore({
   value: string;
   metadata?: Record<string, string>;
 }): Promise<CreateCredentialInStoreResponse['data']> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<CreateCredentialInStoreResponse>(
     `tenants/${tenantId}/projects/${projectId}/credential-stores/${storeId}/credentials`,
     {

@@ -1,5 +1,4 @@
 import { PGlite } from '@electric-sql/pglite';
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -32,7 +31,15 @@ import {
   upsertWorkAppSlackChannelAgentConfig,
 } from '../runtime/workAppSlack';
 
-vi.mock('../../logger', () => createMockLoggerModule().module);
+vi.mock('../../logger', () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  })),
+}));
 
 describe('workAppSlack data access', () => {
   let db: AgentsRunDatabaseClient;

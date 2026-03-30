@@ -60,7 +60,7 @@ export default async function ScheduledTriggerInvocationsPage({
         description={`${metadata.description} (Agent: ${agent.data.name})`}
       />
       <ScheduledTriggerInvocationsTable
-        initialInvocations={invocations}
+        invocations={invocations}
         tenantId={tenantId}
         projectId={projectId}
         agentId={agentId}

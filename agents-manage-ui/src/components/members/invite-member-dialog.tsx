@@ -1,17 +1,11 @@
 'use client';
 
-import {
-  type OrgRole,
-  OrgRoles,
-  type ProjectRole,
-  ProjectRoles,
-} from '@inkeep/agents-core/client-exports';
-import { AlertCircle, Check, Copy, Mail, X } from 'lucide-react';
+import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
+import { AlertCircle, Check, Copy, Mail } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -20,12 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { getInvitationEmailStatus, inviteMembers } from '@/lib/actions/invitations';
-import { fetchProjects } from '@/lib/api/projects';
-import { ProjectRoleSelector } from '../access/project-role-selector';
 import { OrgRoleSelector } from './org-role-selector';
 
 interface InviteMemberDialogProps {
@@ -40,14 +32,8 @@ interface InvitationResult {
   status: 'success' | 'error';
   link?: string;
   error?: string;
-  compensated?: boolean;
   emailSent?: boolean;
   emailError?: string;
-}
-
-interface ProjectOption {
-  id: string;
-  name: string;
 }
 
 export function InviteMemberDialog({
@@ -58,68 +44,14 @@ export function InviteMemberDialog({
 }: InviteMemberDialogProps) {
   const params = useParams();
   const organizationId = params.tenantId as string;
-  const { PUBLIC_IS_SMTP_CONFIGURED } = useRuntimeConfig();
+  const authClient = useAuthClient();
+  const { PUBLIC_IS_SMTP_CONFIGURED, PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
 
   const [emails, setEmails] = useState('');
   const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.MEMBER);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationResults, setInvitationResults] = useState<InvitationResult[]>([]);
-
-  const [projects, setProjects] = useState<ProjectOption[]>([]);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
-  const [projectsLoadError, setProjectsLoadError] = useState(false);
-  const [projectSearch, setProjectSearch] = useState('');
-  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
-  const [projectRole, setProjectRole] = useState<ProjectRole>(ProjectRoles.MEMBER);
-
-  useEffect(() => {
-    if (open && selectedRole === OrgRoles.MEMBER) {
-      setIsLoadingProjects(true);
-      setProjectsLoadError(false);
-      fetchProjects(organizationId)
-        .then((response) => {
-          const list: ProjectOption[] = [];
-          for (const p of response?.data ?? []) {
-            if (typeof p.id === 'string') {
-              list.push({ id: p.id, name: p.name });
-            }
-          }
-          setProjects(list);
-        })
-        .catch((err) => {
-          console.warn('[invite-member] Failed to load projects:', err);
-          setProjects([]);
-          setProjectsLoadError(true);
-        })
-        .then(() => {
-          setIsLoadingProjects(false);
-        });
-    }
-  }, [open, selectedRole, organizationId]);
-
-  const filteredProjects = projects
-    .filter((p) => p.name.toLowerCase().includes(projectSearch.toLowerCase()))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  const allFilteredSelected =
-    filteredProjects.length > 0 && filteredProjects.every((p) => selectedProjectIds.has(p.id));
-
-  const toggleSelectAll = () => {
-    if (allFilteredSelected) {
-      setSelectedProjectIds((prev) => {
-        const next = new Set(prev);
-        for (const p of filteredProjects) next.delete(p.id);
-        return next;
-      });
-    } else {
-      setSelectedProjectIds((prev) => {
-        const next = new Set(prev);
-        for (const p of filteredProjects) next.add(p.id);
-        return next;
-      });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,11 +75,13 @@ export function InviteMemberDialog({
     setError(null);
     setInvitationResults([]);
 
+    // Parse comma-separated emails and clean them
     const emailList = emails
       .split(',')
       .map((e) => e.trim())
       .filter((e) => e.length > 0);
 
+    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const invalidEmails = emailList.filter((e) => !emailRegex.test(e));
 
@@ -157,64 +91,83 @@ export function InviteMemberDialog({
       return;
     }
 
-    const assignments =
-      selectedRole === OrgRoles.MEMBER && selectedProjectIds.size > 0
-        ? Array.from(selectedProjectIds).map((projectId) => ({ projectId, projectRole }))
-        : undefined;
+    const results: InvitationResult[] = [];
 
-    const response = await inviteMembers({
-      emails: emailList,
-      role: selectedRole,
-      organizationId,
-      assignments,
-    });
+    // Create invitations for each email
+    for (const email of emailList) {
+      try {
+        const result = await authClient.organization.inviteMember({
+          email,
+          role: selectedRole,
+          organizationId,
+        });
 
-    if (!response.success) {
-      setError(response.error);
-      setIsSubmitting(false);
-      return;
+        if ('error' in result && result.error) {
+          results.push({
+            email,
+            status: 'error',
+            error: result.error.message || 'Failed to add member',
+          });
+        } else if ('data' in result && result.data && 'id' in result.data) {
+          const invitationId = result.data.id;
+          const baseUrl = window.location.origin;
+          const link = `${baseUrl}/accept-invitation/${invitationId}?email=${encodeURIComponent(email)}`;
+
+          let emailSent = false;
+          let emailError: string | undefined;
+          if (PUBLIC_IS_SMTP_CONFIGURED) {
+            try {
+              const statusRes = await fetch(
+                `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/api/invitations/${invitationId}/email-status`,
+                { credentials: 'include' }
+              );
+              if (statusRes.ok) {
+                const statusData = await statusRes.json();
+                emailSent = statusData.emailSent === true;
+                emailError = statusData.error;
+              }
+            } catch (err) {
+              console.debug('[invite-member] Email status check failed:', err);
+            }
+          }
+
+          results.push({
+            email,
+            status: 'success',
+            link,
+            emailSent,
+            emailError,
+          });
+        } else {
+          results.push({
+            email,
+            status: 'error',
+            error: 'Failed to add member',
+          });
+        }
+      } catch (err) {
+        results.push({
+          email,
+          status: 'error',
+          error: err instanceof Error ? err.message : 'Failed to add member',
+        });
+      }
     }
 
-    const baseUrl = window.location.origin;
-    const results: InvitationResult[] = await Promise.all(
-      response.results.map(async (item): Promise<InvitationResult> => {
-        if (item.status === 'error') {
-          return {
-            email: item.email,
-            status: 'error',
-            error: item.error ?? 'Failed to add member',
-            compensated: item.compensated,
-          };
-        }
-
-        const invitationId = item.id;
-        const link = invitationId
-          ? `${baseUrl}/accept-invitation/${invitationId}?email=${encodeURIComponent(item.email)}`
-          : undefined;
-
-        let emailSent = false;
-        let emailError: string | undefined;
-        if (PUBLIC_IS_SMTP_CONFIGURED && invitationId) {
-          const status = await getInvitationEmailStatus(invitationId);
-          emailSent = status.emailSent;
-          emailError = status.error;
-        }
-
-        return { email: item.email, status: 'success', link, emailSent, emailError };
-      })
-    );
-
     setInvitationResults(results);
+    setIsSubmitting(false);
 
+    // Auto-copy invite link when email is not configured and exactly one invitation succeeded
     const successfulResults = results.filter((r) => r.status === 'success' && r.link);
     if (
       !PUBLIC_IS_SMTP_CONFIGURED &&
       successfulResults.length === 1 &&
       successfulResults[0]?.link
     ) {
-      navigator.clipboard.writeText(successfulResults[0].link).catch(() => {});
+      navigator.clipboard.writeText(successfulResults[0].link).catch(() => {
+        // Clipboard write can fail silently (e.g. no permissions)
+      });
     }
-    setIsSubmitting(false);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -224,9 +177,6 @@ export function InviteMemberDialog({
       setSelectedRole(OrgRoles.MEMBER);
       setError(null);
       setInvitationResults([]);
-      setSelectedProjectIds(new Set());
-      setProjectRole(ProjectRoles.MEMBER);
-      setProjectSearch('');
       onOpenChange(newOpen);
       if (!newOpen && hadSuccessfulInvitations) {
         onInvitationsSent?.();
@@ -257,7 +207,7 @@ export function InviteMemberDialog({
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="emails">Email addresses</Label>
-                <textarea
+                <Textarea
                   id="emails"
                   value={emails}
                   onChange={(e) => setEmails(e.target.value)}
@@ -266,7 +216,7 @@ export function InviteMemberDialog({
                   required
                   rows={3}
                   placeholder="user@example.com, another@example.com, ..."
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                  className="resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
                   Separate multiple email addresses with commas
@@ -282,114 +232,6 @@ export function InviteMemberDialog({
                   triggerClassName="w-full h-auto py-2"
                 />
               </div>
-
-              {selectedRole === OrgRoles.MEMBER ? (
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Projects (optional)</Label>
-                    {selectedProjectIds.size > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {selectedProjectIds.size} selected
-                      </span>
-                    )}
-                  </div>
-
-                  {isLoadingProjects ? (
-                    <p className="text-xs text-muted-foreground">Loading projects...</p>
-                  ) : projectsLoadError ? (
-                    <p className="text-xs text-destructive">
-                      Failed to load projects. Try reopening the dialog.
-                    </p>
-                  ) : projects.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No projects available.</p>
-                  ) : (
-                    <div className="border rounded-md">
-                      <div className="p-2 border-b relative">
-                        <Input
-                          placeholder="Search projects..."
-                          value={projectSearch}
-                          onChange={(e) => setProjectSearch(e.target.value)}
-                          className="h-7 text-sm pr-7"
-                          disabled={isSubmitting}
-                        />
-                        {projectSearch && (
-                          <button
-                            type="button"
-                            aria-label="Clear search"
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100"
-                            onClick={() => setProjectSearch('')}
-                          >
-                            <X className="h-3.5 w-3.5" aria-hidden="true" />
-                          </button>
-                        )}
-                      </div>
-                      <div className="p-2 border-b flex items-center gap-2">
-                        <Checkbox
-                          id="select-all-projects"
-                          checked={allFilteredSelected}
-                          onCheckedChange={toggleSelectAll}
-                          disabled={isSubmitting || filteredProjects.length === 0}
-                        />
-                        <label
-                          htmlFor="select-all-projects"
-                          className="text-xs text-muted-foreground cursor-pointer"
-                        >
-                          Select all projects
-                        </label>
-                      </div>
-                      <div
-                        className={`overflow-y-auto ${projects.length > 6 ? 'h-[200px] contain-strict' : 'max-h-[200px]'}`}
-                      >
-                        {filteredProjects.length === 0 ? (
-                          <p className="text-xs text-muted-foreground p-2">No matching projects</p>
-                        ) : (
-                          filteredProjects.map((p) => (
-                            <div
-                              key={p.id}
-                              className="flex items-center gap-2 px-2 h-8 hover:bg-muted/50"
-                            >
-                              <Checkbox
-                                id={`project-${p.id}`}
-                                checked={selectedProjectIds.has(p.id)}
-                                onCheckedChange={(checked) => {
-                                  setSelectedProjectIds((prev) => {
-                                    const next = new Set(prev);
-                                    if (checked) next.add(p.id);
-                                    else next.delete(p.id);
-                                    return next;
-                                  });
-                                }}
-                                disabled={isSubmitting}
-                              />
-                              <label
-                                htmlFor={`project-${p.id}`}
-                                className="text-sm cursor-pointer flex-1"
-                              >
-                                {p.name}
-                              </label>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-1">
-                    <Label className="text-xs text-muted-foreground">
-                      Role for selected projects
-                    </Label>
-                    <ProjectRoleSelector
-                      value={projectRole}
-                      onChange={setProjectRole}
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Org admins have access to all projects automatically.
-                </p>
-              )}
 
               {error && (
                 <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
@@ -443,12 +285,6 @@ export function InviteMemberDialog({
                       </Button>
                     )}
                   </div>
-                  {result.status === 'success' && selectedProjectIds.size > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1 ml-6">
-                      Invited + added to {selectedProjectIds.size} project
-                      {selectedProjectIds.size !== 1 ? 's' : ''}
-                    </p>
-                  )}
                   {result.status === 'success' && result.emailSent && (
                     <p className="text-xs text-muted-foreground mt-1 ml-6 flex items-center gap-1">
                       <Mail className="h-3 w-3" aria-hidden="true" />
@@ -464,13 +300,7 @@ export function InviteMemberDialog({
                           : 'Email status unknown. Copy the link to share manually.'}
                       </p>
                     )}
-                  {result.status === 'error' && result.compensated && (
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-2 ml-6">
-                      Invitation failed — project assignment error. Please re-invite and add to
-                      projects manually.
-                    </p>
-                  )}
-                  {result.status === 'error' && !result.compensated && result.error && (
+                  {result.status === 'error' && result.error && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-2 ml-6">
                       {result.error}
                     </p>

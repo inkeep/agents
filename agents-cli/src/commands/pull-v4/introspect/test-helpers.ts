@@ -37,7 +37,6 @@ export function createTestEnvironment(): { testDir: string; projectPaths: Projec
       credentialsDir: join(testDir, 'credentials'),
       contextConfigsDir: join(testDir, 'context-configs'),
       externalAgentsDir: join(testDir, 'external-agents'),
-      skillsDir: join(testDir, 'skills'),
     },
   };
 }

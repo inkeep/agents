@@ -9,6 +9,7 @@ const dataComponentQueryKeys = {
 };
 
 export function useDataComponentsQuery({ enabled = true }: { enabled?: boolean } = {}) {
+  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {

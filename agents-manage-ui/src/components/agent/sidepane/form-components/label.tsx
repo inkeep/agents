@@ -9,7 +9,7 @@ interface FieldLabelProps {
   label: ReactNode;
   isRequired?: boolean;
   tooltip?: string;
-  error?: boolean;
+  error?: string;
   className?: string;
 }
 
@@ -20,10 +20,9 @@ export const FieldLabel: FC<FieldLabelProps> = ({
   tooltip,
   error,
   className,
-  ...props
 }) => {
   return (
-    <Label htmlFor={id} className={cn('gap-1', error && 'text-destructive', className)} {...props}>
+    <Label htmlFor={id} className={cn('gap-1', error && 'text-red-600', className)}>
       {label}
       {isRequired && <span className="text-red-500">*</span>}
       {tooltip && (

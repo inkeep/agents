@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-mcp",
-  "version": "0.68.4",
+  "version": "0.59.4",
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,
@@ -22,7 +22,7 @@
     "check": "npm run lint",
     "lint": "eslint --cache --max-warnings=0 src",
     "prepublishOnly": "npm run build",
-    "generate": "speakeasy run --skip-compile"
+    "generate": "speakeasy run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",

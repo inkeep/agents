@@ -46,7 +46,6 @@ vi.mock('@inkeep/agents-core', () => ({
   getAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
   validateOrigin: vi.fn().mockReturnValue(false),
   updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
-  getInProcessFetch: () => vi.fn(),
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -57,8 +56,6 @@ vi.mock('@inkeep/agents-core', () => ({
 
 vi.mock('jose', () => ({
   jwtVerify: vi.fn().mockRejectedValue(new Error('not mocked')),
-  createRemoteJWKSet: vi.fn(() => vi.fn()),
-  customFetch: Symbol('customFetch'),
 }));
 
 vi.mock('../../../domains/run/routes/auth', () => ({
@@ -446,14 +443,12 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      // agentId = JWT sub (origin/parent), subAgentId = JWT aud (target)
       expect(body).toMatchObject({
         apiKey:
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        agentId: 'origin-agent',
-        subAgentId: 'target-agent',
+        agentId: 'target-agent',
         apiKeyId: 'team-agent-token',
         baseUrl: expect.stringContaining('http'),
         metadata: {
@@ -555,14 +550,12 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      // agentId = JWT sub (origin/parent), subAgentId = JWT aud (target)
       expect(body).toMatchObject({
         apiKey:
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        agentId: 'origin-agent',
-        subAgentId: 'target-agent',
+        agentId: 'target-agent',
         apiKeyId: 'team-agent-token',
         metadata: {
           teamDelegation: true,
@@ -593,7 +586,7 @@ describe('API Key Authentication Middleware', () => {
       expect(body).toContain('Authentication failed');
     });
 
-    it('should derive agentId and subAgentId from JWT, ignoring headers', async () => {
+    it('should resolve agentId from x-inkeep-agent-id header in team delegation context', async () => {
       const mockJwtPayload = {
         iss: 'inkeep-agents',
         aud: 'sub-agent-being-called',
@@ -619,16 +612,16 @@ describe('API Key Authentication Middleware', () => {
         headers: {
           Authorization:
             'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
-          'x-inkeep-agent-id': 'attacker-supplied-parent',
+          'x-inkeep-agent-id': 'parent-team-agent',
           'x-inkeep-sub-agent-id': 'sub-agent-being-called',
         },
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      // agentId comes from JWT sub (origin agent), not the x-inkeep-agent-id header
-      expect(body.agentId).toBe('origin-agent');
-      // subAgentId comes from JWT aud, not the x-inkeep-sub-agent-id header
+      // The agentId should be the parent agent from the header, not the JWT aud (sub-agent).
+      // This is critical for project lookup: project.agents[parentAgent].subAgents[subAgent]
+      expect(body.agentId).toBe('parent-team-agent');
       expect(body.subAgentId).toBe('sub-agent-being-called');
       expect(body.metadata).toMatchObject({
         teamDelegation: true,
@@ -636,7 +629,7 @@ describe('API Key Authentication Middleware', () => {
       });
     });
 
-    it('should derive agentId from JWT sub even when x-inkeep-agent-id header is absent', async () => {
+    it('should use JWT aud as agentId when x-inkeep-agent-id header is absent in team delegation', async () => {
       const mockJwtPayload = {
         iss: 'inkeep-agents',
         aud: 'target-agent',
@@ -662,14 +655,14 @@ describe('API Key Authentication Middleware', () => {
         headers: {
           Authorization:
             'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+          // No x-inkeep-agent-id header
         },
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      // agentId = JWT sub (origin/parent), subAgentId = JWT aud (target)
-      expect(body.agentId).toBe('origin-agent');
-      expect(body.subAgentId).toBe('target-agent');
+      // Without the parent agent header, falls back to JWT aud
+      expect(body.agentId).toBe('target-agent');
     });
 
     it('should preserve JWT token as apiKey for chained A2A calls', async () => {

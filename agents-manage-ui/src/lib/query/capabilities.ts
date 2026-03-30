@@ -8,6 +8,8 @@ const capabilitiesQueryKeys = {
 };
 
 export function useCapabilitiesQuery({ enabled = true }: { enabled?: boolean } = {}) {
+  'use memo';
+
   return useQuery<Capabilities | null>({
     queryKey: capabilitiesQueryKeys.current,
     async queryFn() {

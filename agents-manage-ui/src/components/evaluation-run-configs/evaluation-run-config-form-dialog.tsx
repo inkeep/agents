@@ -29,7 +29,6 @@ import {
 } from '@/lib/actions/evaluation-run-configs';
 import { createEvaluationSuiteConfigAction } from '@/lib/actions/evaluation-suite-configs';
 import type { ActionResult } from '@/lib/actions/types';
-import { fetchEvaluatorAgentScopesBatch } from '@/lib/api/agent-relations';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { useAgentsQuery } from '@/lib/query/agents';
 import {
@@ -95,6 +94,7 @@ export function EvaluationRunConfigFormDialog({
   trigger,
   onSuccess,
 }: EvaluationRunConfigFormDialogProps) {
+  'use memo';
   const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
 
@@ -156,52 +156,10 @@ export function EvaluationRunConfigFormDialog({
     });
   }, [isOpen, initialData, form, suiteConfigForm]);
 
+  const evaluatorLookup = createLookup(evaluators);
   const agentLookup = createLookup(agents);
 
-  const [suiteAgentIds, selectedEvaluatorIds] = useWatch({
-    control: suiteConfigForm.control,
-    name: ['agentIds', 'evaluatorIds'],
-  });
-
-  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState(new Map<string, string[]>());
-
-  useEffect(() => {
-    if (evaluators.length === 0 || !isOpen) return;
-    const abortController = new AbortController();
-    fetchEvaluatorAgentScopesBatch(
-      tenantId,
-      projectId,
-      evaluators.map((ev) => ev.id)
-    )
-      .then((map) => {
-        if (!abortController.signal.aborted) {
-          setEvaluatorAgentMap(map);
-        }
-      })
-      .catch(() => toast.error('Failed to load evaluator agent scopes'));
-    return () => abortController.abort();
-  }, [evaluators, tenantId, projectId, isOpen]);
-
-  const displayEvaluators =
-    suiteAgentIds.length === 0
-      ? evaluators
-      : evaluators.filter((ev) => {
-          const scopedAgents = evaluatorAgentMap.get(ev.id);
-          if (!scopedAgents || scopedAgents.length === 0) return true;
-          return scopedAgents.some((agentId) => suiteAgentIds.includes(agentId));
-        });
-
-  const displayEvaluatorLookup = createLookup(displayEvaluators);
-
-  useEffect(() => {
-    if (!displayEvaluators.length) return;
-    const validIds = new Set(displayEvaluators.map((e) => e.id));
-    const filtered = selectedEvaluatorIds.filter((id) => validIds.has(id));
-    if (filtered.length !== selectedEvaluatorIds.length) {
-      suiteConfigForm.setValue('evaluatorIds', filtered);
-    }
-  }, [displayEvaluators, selectedEvaluatorIds, suiteConfigForm]);
-
+  const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
   const { isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -212,27 +170,11 @@ export function EvaluationRunConfigFormDialog({
       return;
     }
 
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doRequest() {
+      // First, create the evaluation suite config
       const suiteConfigData = suiteConfigForm.getValues();
-      const selectedAgents = suiteConfigData.agentIds || [];
-      const selectedEvals = suiteConfigData.evaluatorIds || [];
-
-      if (selectedAgents.length > 0 && selectedEvals.length > 0) {
-        const unscopedEvaluators = selectedEvals.filter((evId) => {
-          const scopedAgents = evaluatorAgentMap.get(evId);
-          if (!scopedAgents || scopedAgents.length === 0) return false;
-          return !scopedAgents.some((aId) => selectedAgents.includes(aId));
-        });
-
-        if (unscopedEvaluators.length > 0) {
-          const names = unscopedEvaluators
-            .map((id) => evaluators.find((e) => e.id === id)?.name ?? id)
-            .join(', ');
-          toast.error(`The following evaluators are not scoped to the selected agents: ${names}`);
-          return;
-        }
-      }
-
       const filters: Record<string, unknown> | null =
         suiteConfigData.agentIds && suiteConfigData.agentIds.length > 0
           ? { agentIds: suiteConfigData.agentIds }
@@ -397,19 +339,15 @@ export function EvaluationRunConfigFormDialog({
                       </Link>
                     </div>
                     <ComponentSelector
-                      componentLookup={displayEvaluatorLookup}
+                      label=""
+                      componentLookup={evaluatorLookup}
                       selectedComponents={field.value}
                       onSelectionChange={field.onChange}
-                      emptyStateMessage="No evaluators available for the selected agent."
+                      emptyStateMessage="No evaluators available."
                       emptyStateActionText="Create evaluator"
                       emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
                       placeholder="Select evaluators..."
                     />
-                    {suiteAgentIds.length > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        Showing evaluators scoped to the selected agent(s).
-                      </div>
-                    )}
                     <FormMessage />
                   </FormItem>
                 )}

@@ -1,8 +1,5 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
-import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { getTeamAgentGraphKey } from '@/features/agent/domain';
-import { useSidePane } from '@/hooks/use-side-pane';
 import { useAgentsQuery } from '@/lib/query/agents';
 import type { Agent } from '@/lib/types/agent-full';
 import { NodeType } from '../../../configuration/node-types';
@@ -11,6 +8,7 @@ import { TeamAgentSelectorLoading } from './loading';
 import { TeamAgentItem } from './team-agent-item';
 
 export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
+  'use memo';
   const { updateNode } = useReactFlow();
   const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
@@ -20,39 +18,18 @@ export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
   const { data: agents, isFetching, isError } = useAgentsQuery();
   // Filter out the current agent to prevent self-selection
   const availableAgents = agents.filter((agent) => agent.id !== agentId);
-  const form = useFullAgentFormContext();
-  const { setQueryState } = useSidePane();
 
-  function handleSelect(data: Agent) {
-    const nodeId = data.id;
-    form.setValue(
-      `teamAgents.${nodeId}`,
-      {
-        id: nodeId,
-        name: data.name,
-        description: data.description ?? '',
-        headers: '{}',
-      },
-      { shouldDirty: true }
-    );
-
+  const handleSelect = (agent: Agent) => {
     updateNode(selectedNode.id, {
       type: NodeType.TeamAgent,
       data: {
-        nodeKey: getTeamAgentGraphKey(nodeId),
-        teamAgentId: nodeId,
+        id: agent.id,
+        name: agent.name,
+        description: agent.description,
         relationshipId: null, // Will be set after saving to database
       },
     });
-    setQueryState(
-      {
-        pane: 'node',
-        nodeId: getTeamAgentGraphKey(nodeId),
-        edgeId: null,
-      },
-      { history: 'replace' }
-    );
-  }
+  };
 
   if (isFetching) {
     return <TeamAgentSelectorLoading title="Select team agent" />;
@@ -79,12 +56,14 @@ export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
   }
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-medium mb-2">Select team agent</h3>
-      <div className="flex flex-col gap-2 min-w-0 min-h-0">
-        {availableAgents.map((agent) => (
-          <TeamAgentItem key={agent.id} agent={agent} onClick={handleSelect} />
-        ))}
+    <div>
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium mb-2">Select team agent</h3>
+        <div className="flex flex-col gap-2 min-w-0 min-h-0">
+          {availableAgents.map((agent) => (
+            <TeamAgentItem key={agent.id} agent={agent} onClick={handleSelect} />
+          ))}
+        </div>
       </div>
     </div>
   );

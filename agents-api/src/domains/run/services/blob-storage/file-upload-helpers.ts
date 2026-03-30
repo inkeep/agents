@@ -1,12 +1,11 @@
 import type { MessageContent, Part } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
-import { createAttachmentArtifacts } from './attachment-artifacts';
 import { downloadExternalFile } from './external-file-downloader';
-import { FileSecurityError, PdfUrlIngestionError } from './file-security-errors';
+import { PdfUrlIngestionError } from './file-security-errors';
 import {
   hasFileParts,
   makeMessageContentParts,
-  type PersistedMessageUploadContext,
+  type UploadContext,
   uploadPartsFiles,
 } from './file-upload';
 import { makeSanitizedSourceUrl } from './file-url-security';
@@ -72,7 +71,7 @@ export async function inlineExternalPdfUrlParts(parts: Part[]): Promise<Part[]> 
 export async function buildPersistedMessageContent(
   text: string,
   parts: Part[],
-  ctx: PersistedMessageUploadContext & { skipArtifactCreation?: boolean }
+  ctx: UploadContext
 ): Promise<MessageContent> {
   if (!hasFileParts(parts)) {
     return { text };
@@ -81,36 +80,19 @@ export async function buildPersistedMessageContent(
   try {
     const uploadedParts = await uploadPartsFiles(parts, ctx);
     const contentParts = makeMessageContentParts(uploadedParts);
-    const attachmentRefs = ctx.skipArtifactCreation
-      ? []
-      : await createAttachmentArtifacts(uploadedParts, ctx);
-    const persistedParts = [
-      ...contentParts,
-      ...attachmentRefs.map((ref) => ({
-        kind: 'data' as const,
-        data: {
-          artifactId: ref.artifactId,
-          toolCallId: ref.toolCallId,
-        },
-      })),
-    ];
 
     logger.debug(
       {
         messageId: ctx.messageId,
         originalParts: parts.length,
-        uploadedParts: persistedParts.length,
+        uploadedParts: contentParts.length,
         fileParts: contentParts.filter((p) => p.kind === 'file').length,
-        attachmentArtifactRefs: attachmentRefs.length,
       },
       'Built persisted message content with uploaded files'
     );
 
-    return { text, parts: persistedParts };
+    return { text, parts: contentParts };
   } catch (error) {
-    if (error instanceof FileSecurityError) {
-      throw error;
-    }
     logger.error(
       {
         error: error instanceof Error ? error.message : String(error),

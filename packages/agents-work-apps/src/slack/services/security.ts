@@ -28,7 +28,7 @@ export function verifySlackRequest(
   try {
     const fiveMinutesAgo = Math.floor(Date.now() / 1000) - 60 * 5;
     if (Number.parseInt(timestamp, 10) < fiveMinutesAgo) {
-      logger.warn('Slack request timestamp too old');
+      logger.warn({}, 'Slack request timestamp too old');
       return false;
     }
 

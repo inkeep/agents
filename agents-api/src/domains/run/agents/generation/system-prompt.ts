@@ -1,10 +1,5 @@
 import type { Artifact, ArtifactComponentApiInsert, AssembleResult } from '@inkeep/agents-core';
-import {
-  DELEGATE_TOOL_PREFIX,
-  LOAD_SKILL_TOOL,
-  TemplateEngine,
-  TRANSFER_TOOL_PREFIX,
-} from '@inkeep/agents-core';
+import { TemplateEngine } from '@inkeep/agents-core';
 import type { ToolSet } from 'ai';
 import { getLogger } from '../../../../logger';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
@@ -27,7 +22,7 @@ export async function getResolvedContext(
     const project = ctx.executionContext.project;
 
     if (!ctx.config.contextConfigId) {
-      logger.debug('No context config found for agent');
+      logger.debug({ agentId: ctx.config.agentId }, 'No context config found for agent');
       return null;
     }
 
@@ -97,6 +92,7 @@ export async function getPrompt(ctx: AgentRunContext): Promise<string | undefine
   } catch (error) {
     logger.warn(
       {
+        agentId: ctx.config.agentId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to get agent prompt'
@@ -224,7 +220,7 @@ export async function buildSystemPrompt(
   const functionTools = preLoadedTools.functionTools;
   const relationTools = preLoadedTools.relationTools;
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);
-  const skillTools = hasOnDemandSkills ? { [LOAD_SKILL_TOOL]: createLoadSkillTool(ctx) } : {};
+  const skillTools = hasOnDemandSkills ? { load_skill: createLoadSkillTool(ctx) } : {};
   const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools } as Record<
     string,
     AiSdkToolDefinition
@@ -256,10 +252,10 @@ export async function buildSystemPrompt(
       description: tool.description || '',
       inputSchema: (tool.inputSchema ?? tool.parameters ?? {}) as Record<string, unknown>,
       usageGuidelines:
-        name === LOAD_SKILL_TOOL
-          ? 'Use this tool to load the full content and attached files of an on-demand skill by name.'
-          : name.startsWith(TRANSFER_TOOL_PREFIX) || name.startsWith(DELEGATE_TOOL_PREFIX)
-            ? `Use this tool to ${name.startsWith(TRANSFER_TOOL_PREFIX) ? 'transfer' : 'delegate'} to another agent when appropriate.`
+        name === 'load_skill'
+          ? 'Use this tool to load the full content of an on-demand skill by name.'
+          : name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
+            ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
             : 'Use this tool when appropriate for the task at hand.',
     }));
 
@@ -322,6 +318,7 @@ export async function buildSystemPrompt(
 
   logger.info(
     {
+      agentId: ctx.config.id,
       hasStructuredOutput,
       excludeDataComponents,
       includeDataComponents,

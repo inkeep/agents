@@ -1,18 +1,15 @@
 import type { NodeProps } from '@xyflow/react';
 import { cn } from '@/lib/utils';
-import {
-  nodeTypeMap,
-  type PlaceholderNodeData,
-  type PlaceholderType,
-  placeholderNodeLabels,
-} from '../configuration/node-types';
+import { nodeTypeMap, type PlaceholderType } from '../configuration/node-types';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 
-export function PlaceholderNode({
-  selected,
-  type,
-}: NodeProps & { data: PlaceholderNodeData; type: PlaceholderType }) {
-  const name = placeholderNodeLabels[type];
+type PlaceholderNodeData = {
+  name: string;
+  type: PlaceholderType;
+};
+
+export function PlaceholderNode({ data, selected }: NodeProps & { data: PlaceholderNodeData }) {
+  const { name, type } = data;
   const { Icon } = nodeTypeMap[type];
 
   return (

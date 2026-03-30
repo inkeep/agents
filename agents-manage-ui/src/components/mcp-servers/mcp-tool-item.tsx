@@ -43,20 +43,27 @@ function MCPToolDialogMenu({ toolId, toolName, editPath }: MCPToolDialogMenuProp
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+  };
+
   const handleDelete = async () => {
     setIsSubmitting(true);
-    const result = await deleteToolAction(tenantId, projectId, toolId);
-    if (result.success) {
-      setIsOpen(false);
-      toast.success('MCP server deleted.');
-    } else {
-      toast.error('Failed to delete MCP server.');
+    try {
+      const result = await deleteToolAction(tenantId, projectId, toolId);
+      if (result.success) {
+        setIsOpen(false);
+        toast.success('MCP server deleted.');
+      } else {
+        toast.error('Failed to delete MCP server.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

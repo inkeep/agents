@@ -4,7 +4,6 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
@@ -114,27 +113,6 @@ export class S3BlobStorageProvider implements BlobStorageProvider {
       logger.error({ key, bucket: this.bucket, error }, 'S3 delete failed');
       throw new Error(
         `S3 delete failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-
-  async getPresignedUrl(key: string, expiresInSeconds?: number): Promise<string> {
-    const expiry = expiresInSeconds ?? env.BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS;
-    logger.debug({ key, expiry }, 'Generating presigned URL');
-    try {
-      // Type cast needed: @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner may resolve
-      // to different internal type versions in the monorepo; runtime-compatible regardless
-      return await (getSignedUrl as any)(
-        this.client,
-        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-        {
-          expiresIn: expiry,
-        }
-      );
-    } catch (error) {
-      logger.error({ key, bucket: this.bucket, error }, 'S3 presigned URL generation failed');
-      throw new Error(
-        `S3 presigned URL failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }

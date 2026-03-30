@@ -6,6 +6,7 @@ import { fetchExternalAgents } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 
 export function useExternalAgentsQuery({ enabled = true }: { enabled?: boolean } = {}) {
+  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {

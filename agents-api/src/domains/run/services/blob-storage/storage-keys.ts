@@ -13,16 +13,19 @@ export type ConversationMediaKeyInput = {
 export type StorageKeyInput = ConversationMediaKeyInput;
 
 export function buildStorageKey(input: StorageKeyInput): string {
-  return [
-    STORAGE_KEY_VERSION,
-    `t_${input.tenantId}`,
-    input.category,
-    `p_${input.projectId}`,
-    'conv',
-    `c_${input.conversationId}`,
-    `m_${input.messageId}`,
-    `sha256-${input.contentHash}.${input.ext}`,
-  ].join('/');
+  switch (input.category) {
+    case 'media':
+      return [
+        STORAGE_KEY_VERSION,
+        `t_${input.tenantId}`,
+        input.category,
+        `p_${input.projectId}`,
+        'conv',
+        `c_${input.conversationId}`,
+        `m_${input.messageId}`,
+        `sha256-${input.contentHash}.${input.ext}`,
+      ].join('/');
+  }
 }
 
 export interface ParsedMediaStorageKey {

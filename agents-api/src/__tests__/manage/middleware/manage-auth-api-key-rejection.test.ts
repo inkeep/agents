@@ -14,19 +14,12 @@ vi.mock('@inkeep/agents-core', () => ({
   isInternalServiceToken: isInternalServiceTokenMock,
   verifyInternalServiceAuthHeader: vi.fn(),
   verifySlackUserToken: vi.fn(),
-  getInProcessFetch: () => vi.fn(),
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
   }),
-}));
-
-vi.mock('jose', () => ({
-  createRemoteJWKSet: vi.fn(() => vi.fn()),
-  customFetch: Symbol('customFetch'),
-  jwtVerify: vi.fn().mockRejectedValue(new Error('not mocked')),
 }));
 
 vi.mock('@inkeep/agents-core/middleware', () => ({

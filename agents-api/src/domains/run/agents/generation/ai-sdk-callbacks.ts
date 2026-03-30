@@ -1,4 +1,3 @@
-import { SESSION_EVENT_AGENT_REASONING, TRANSFER_TOOL_PREFIX } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { agentSessionManager } from '../../session/AgentSession';
@@ -194,16 +193,12 @@ export async function handleStopWhenConditions(
   ctx: AgentRunContext,
   steps: any[]
 ): Promise<boolean> {
-  if (ctx.pendingDurableApproval) {
-    return true;
-  }
-
   const last = steps.at(-1);
   if (last && 'text' in last && last.text) {
     try {
       await agentSessionManager.recordEvent(
         ctx.streamRequestId ?? '',
-        SESSION_EVENT_AGENT_REASONING,
+        'agent_reasoning',
         ctx.config.id,
         {
           parts: [{ type: 'text', content: last.text }],
@@ -233,7 +228,7 @@ export async function handleStopWhenConditions(
     const currentStep = steps[steps.length - 1];
     if (currentStep && 'toolCalls' in currentStep && currentStep.toolCalls) {
       const hasTransferTool = currentStep.toolCalls.some((tc: any) =>
-        tc.toolName.startsWith(TRANSFER_TOOL_PREFIX)
+        tc.toolName.startsWith('transfer_to_')
       );
 
       if (hasTransferTool) {
@@ -247,6 +242,7 @@ export async function handleStopWhenConditions(
     logger.warn(
       {
         subAgentId: ctx.config.id,
+        agentId: ctx.config.agentId,
         stepsCompleted: steps.length,
         maxSteps,
         conversationId: ctx.conversationId,
