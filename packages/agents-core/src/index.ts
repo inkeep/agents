@@ -5,6 +5,7 @@ export * from './auth/authz';
 export * from './auth/cookie-names';
 export * from './auth/email-send-status-store';
 export * from './auth/entitlement-constants';
+export { withEntitlementLock } from './auth/entitlement-lock';
 export { countSeatsByRole, resolveEntitlement } from './auth/entitlements';
 export * from './auth/password-reset-link-store';
 export * from './constants/context-breakdown';

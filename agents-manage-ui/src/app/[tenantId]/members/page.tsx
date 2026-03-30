@@ -1,5 +1,6 @@
 'use client';
 
+import { DEFAULT_MEMBERSHIP_LIMIT } from '@inkeep/agents-core/client-exports';
 import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/members/members-table';
@@ -30,7 +31,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
         authClient.organization.getFullOrganization({
           query: {
             organizationId: tenantId,
-            membersLimit: 300,
+            membersLimit: DEFAULT_MEMBERSHIP_LIMIT,
           },
         }),
         authClient.organization.getActiveMember(),

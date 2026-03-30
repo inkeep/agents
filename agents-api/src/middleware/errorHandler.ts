@@ -111,13 +111,24 @@ export async function errorHandler(err: Error, c: Context): Promise<Response> {
   const errorResponse = await handleApiError(err, requestId);
   c.status(errorResponse.status as StatusCode);
 
+  const {
+    code,
+    title,
+    status: responseStatus,
+    detail,
+    instance,
+    requestId: _reqId,
+    error: errorObj,
+    ...extensions
+  } = errorResponse;
   const responseBody = {
-    ...(errorResponse.code && { code: errorResponse.code }),
-    title: errorResponse.title,
-    status: errorResponse.status,
-    detail: errorResponse.detail,
-    ...(errorResponse.instance && { instance: errorResponse.instance }),
-    ...(errorResponse.error && { error: errorResponse.error }),
+    ...(code && { code }),
+    title,
+    status: responseStatus,
+    detail,
+    ...(instance && { instance }),
+    ...(errorObj && { error: errorObj }),
+    ...extensions,
   };
 
   c.header('Content-Type', 'application/problem+json');

@@ -1,6 +1,10 @@
 'use client';
 
-import { SEAT_RESOURCE_TYPES } from '@inkeep/agents-core/client-exports';
+import {
+  DEFAULT_MEMBERSHIP_LIMIT,
+  QUOTA_RESOURCE_TYPES,
+  SEAT_RESOURCE_TYPES,
+} from '@inkeep/agents-core/client-exports';
 import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,7 +55,7 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
       const [entitlementsResult, orgResult, projectsResult] = await Promise.all([
         fetchEntitlements(tenantId).catch(() => [] as OrgEntitlement[]),
         authClient.organization.getFullOrganization({
-          query: { organizationId: tenantId, membersLimit: 300 },
+          query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
         }),
         fetchProjects(tenantId).catch(() => ({ data: [] })),
       ]);
@@ -97,7 +101,9 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
 
   const adminEntitlement = entitlements.find((e) => e.resourceType === SEAT_RESOURCE_TYPES.ADMIN);
   const memberEntitlement = entitlements.find((e) => e.resourceType === SEAT_RESOURCE_TYPES.MEMBER);
-  const projectEntitlement = entitlements.find((e) => e.resourceType === 'quota:project');
+  const projectEntitlement = entitlements.find(
+    (e) => e.resourceType === QUOTA_RESOURCE_TYPES.PROJECT
+  );
 
   const hasAnyEntitlements = entitlements.length > 0;
 

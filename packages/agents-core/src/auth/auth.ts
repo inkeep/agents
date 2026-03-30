@@ -22,6 +22,7 @@ import {
 import type { BetterAuthConfig } from './auth-types';
 import { type OrgRole, OrgRoles } from './authz/types';
 import { setEmailSendStatus } from './email-send-status-store';
+import { DEFAULT_MEMBERSHIP_LIMIT } from './entitlement-constants';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
@@ -252,7 +253,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
           const serviceAccountUserId = await dalGetServiceAccountUserId(config.dbClient, org.id);
           return resolveTotalMembershipLimit(config.dbClient, org.id, !!serviceAccountUserId);
         },
-        invitationLimit: 300,
+        invitationLimit: DEFAULT_MEMBERSHIP_LIMIT,
         invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)
         async sendInvitationEmail(data) {
           if (config.emailService?.isConfigured) {

@@ -1,5 +1,5 @@
 import { and, eq, like, or, sql } from 'drizzle-orm';
-import { invitation, member, organization } from '../../auth/auth-schema';
+import { member, organization } from '../../auth/auth-schema';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { orgEntitlement } from '../../db/runtime/runtime-schema';
 
@@ -66,25 +66,6 @@ export async function dalCountMembersByRoleBucket(
     .select({ count: sql<number>`count(*)::int` })
     .from(member)
     .where(memberWhere);
-
-  return result?.count ?? 0;
-}
-
-export async function dalCountPendingInvitationsByRoleBucket(
-  db: AgentsRunDatabaseClient,
-  orgId: string,
-  isAdminBucket: boolean
-): Promise<number> {
-  const invitationRole = isAdminBucket
-    ? or(eq(invitation.role, 'owner'), eq(invitation.role, 'admin'))
-    : eq(invitation.role, 'member');
-
-  const [result] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(invitation)
-    .where(
-      and(eq(invitation.organizationId, orgId), eq(invitation.status, 'pending'), invitationRole)
-    );
 
   return result?.count ?? 0;
 }

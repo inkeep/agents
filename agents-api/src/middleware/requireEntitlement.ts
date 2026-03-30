@@ -1,4 +1,4 @@
-import { createApiError, resolveEntitlement } from '@inkeep/agents-core';
+import { createApiError, withEntitlementLock } from '@inkeep/agents-core';
 import { registerEntitlementMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
@@ -27,30 +27,30 @@ export const requireEntitlement = <
       return;
     }
 
-    const limit = await resolveEntitlement(runDbClient, tenantId, resourceType);
-
-    if (limit === null) {
-      await next();
-      return;
-    }
-
     try {
-      const current = await countFn(tenantId);
+      await withEntitlementLock(runDbClient, tenantId, resourceType, async (limit, _tx) => {
+        if (limit === null) {
+          await next();
+          return;
+        }
 
-      if (current >= limit) {
-        throw createApiError({
-          code: 'payment_required',
-          message: `${displayLabel} limit reached (${current}/${limit})`,
-          instance: c.req.path,
-          extensions: {
-            resourceType,
-            current,
-            limit,
-          },
-        });
-      }
+        const current = await countFn(tenantId);
 
-      await next();
+        if (current >= limit) {
+          throw createApiError({
+            code: 'payment_required',
+            message: `${displayLabel} limit reached (${current}/${limit})`,
+            instance: c.req.path,
+            extensions: {
+              resourceType,
+              current,
+              limit,
+            },
+          });
+        }
+
+        await next();
+      });
     } catch (error) {
       if (error instanceof HTTPException) {
         throw error;

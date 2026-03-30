@@ -8,6 +8,7 @@ import {
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { getLogger } from '../utils/logger';
 import { DEFAULT_MEMBERSHIP_LIMIT, SEAT_RESOURCE_TYPES } from './entitlement-constants';
+import { withEntitlementLock } from './entitlement-lock';
 
 const logger = getLogger('entitlements');
 
@@ -45,24 +46,26 @@ export async function enforcePerRoleSeatLimit(
   role: string
 ): Promise<void> {
   const resourceType = resourceTypeForRole(role);
-  const limit = await resolveEntitlement(db, orgId, resourceType);
-  if (limit === null) return;
 
-  const current = await countSeatsByRole(db, orgId, role);
-  if (current >= limit) {
-    const bucket = roleMatchesAdminBucket(role) ? 'Admin' : 'Member';
-    logger.info(
-      { orgId, role, bucket, currentCount: current, maxValue: limit, action: 'enforce' },
-      `${bucket} seat limit reached (${current}/${limit})`
-    );
-    throw new APIError('PAYMENT_REQUIRED', {
-      message: `${bucket} seat limit reached (${current}/${limit})`,
-      code: 'ENTITLEMENT_LIMIT_REACHED',
-      resourceType,
-      current,
-      limit,
-    });
-  }
+  await withEntitlementLock(db, orgId, resourceType, async (limit, tx) => {
+    if (limit === null) return;
+
+    const current = await countSeatsByRole(tx, orgId, role);
+    if (current >= limit) {
+      const bucket = roleMatchesAdminBucket(role) ? 'Admin' : 'Member';
+      logger.info(
+        { orgId, role, bucket, currentCount: current, maxValue: limit, action: 'enforce' },
+        `${bucket} seat limit reached (${current}/${limit})`
+      );
+      throw new APIError('PAYMENT_REQUIRED', {
+        message: `${bucket} seat limit reached (${current}/${limit})`,
+        code: 'ENTITLEMENT_LIMIT_REACHED',
+        resourceType,
+        current,
+        limit,
+      });
+    }
+  });
 }
 
 export async function resolveTotalMembershipLimit(
