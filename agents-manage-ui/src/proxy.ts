@@ -7,22 +7,18 @@ import { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
 const runtimeConfig = getRuntimeConfig();
 
 function buildCsp() {
+  // PostHog Cloud may use multiple changing subdomains; keep CSP aligned with:
+  // https://posthog.com/docs/advanced/content-security-policy
+  const posthogHost = runtimeConfig.PUBLIC_POSTHOG_HOST ? 'https://*.posthog.com' : null;
+
   const connectSrcDomains = [
     "'self'",
     runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL,
-    runtimeConfig.PUBLIC_POSTHOG_HOST,
+    posthogHost,
+    process.env.NEXT_PUBLIC_SENTRY_DSN ? 'https://*.sentry.io' : null,
     runtimeConfig.PUBLIC_SIGNOZ_URL,
     runtimeConfig.PUBLIC_NANGO_SERVER_URL,
     runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
-    process.env.NEXT_PUBLIC_SENTRY_DSN
-      ? (() => {
-          try {
-            return new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).origin;
-          } catch {
-            return null;
-          }
-        })()
-      : null,
   ]
     .filter(Boolean)
     .join(' ');
@@ -35,14 +31,18 @@ function buildCsp() {
     .filter(Boolean)
     .join(' ');
 
-  const scriptSrc =
-    process.env.NODE_ENV === 'production'
-      ? "'self' 'unsafe-inline'"
-      : "'self' 'unsafe-inline' 'unsafe-eval'";
+  const scriptSrcDomains = [
+    "'self'",
+    "'unsafe-inline'",
+    process.env.NODE_ENV === 'production' ? null : "'unsafe-eval'",
+    posthogHost,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return [
     `default-src 'self'`,
-    `script-src ${scriptSrc}`,
+    `script-src ${scriptSrcDomains}`,
     `style-src 'self' 'unsafe-inline'`,
     `font-src 'self'`,
     `img-src 'self' https: data:`,
