@@ -46,6 +46,11 @@ on:
         required: false
         default: false
         type: boolean
+      cleanup_stale_env:
+        description: Delete all branch-scoped Vercel preview env vars (unblocks envs_size_too_large)
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -375,3 +380,42 @@ jobs:
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
           PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
         run: bash .github/scripts/preview/teardown-railway.sh
+
+  teardown-vercel:
+    name: Teardown Vercel Preview Env Vars
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [compute-context]
+    if: |
+      needs.compute-context.outputs.preview_enabled == 'true' &&
+      github.event.action == 'closed' &&
+      needs.compute-context.outputs.is_internal_pr == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Remove branch-scoped Vercel env vars
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          VERCEL_MANAGE_UI_PROJECT_ID: ${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}
+          PR_BRANCH: ${{ needs.compute-context.outputs.pr_branch }}
+        run: bash .github/scripts/preview/teardown-vercel-preview-env.sh
+
+  cleanup-vercel-stale-env:
+    name: Cleanup Stale Vercel Preview Env Vars
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: inputs.cleanup_stale_env == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Delete all branch-scoped Vercel preview env vars
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          VERCEL_MANAGE_UI_PROJECT_ID: ${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}
+        run: bash .github/scripts/preview/cleanup-vercel-stale-env.sh
