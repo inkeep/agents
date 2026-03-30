@@ -610,7 +610,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         { origin, allowedDomains: config.webClient.allowedDomains, appId: app.id },
         'App credential auth: origin not allowed'
       );
-      return { authResult: null, failureMessage: 'Origin not allowed for this app' };
+      throw createApiError({ code: 'forbidden', message: 'Origin not allowed for this app' });
     }
 
     if (!bearerToken) {
