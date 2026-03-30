@@ -57,6 +57,7 @@ function buildCsp() {
   const scriptSrcDomains = [
     "'self'",
     "'unsafe-inline'",
+    "'wasm-unsafe-eval'",
     process.env.NODE_ENV === 'production' ? null : "'unsafe-eval'",
     posthogHost,
   ]
