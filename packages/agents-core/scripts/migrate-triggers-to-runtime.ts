@@ -131,7 +131,7 @@ async function main() {
         if (!branchName.startsWith(prefix)) {
           console.warn(
             `  [SKIP] Branch "${branchName}" does not match expected prefix "${prefix}" ` +
-              `for trigger ${t.tenant_id}/${t.project_id}/${t.id} — skipping`,
+              `for trigger ${t.tenant_id}/${t.project_id}/${t.id} — skipping`
           );
           totalSkipped++;
           continue;

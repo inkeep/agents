@@ -92,6 +92,7 @@ export async function createInvocationIdempotentStep(params: {
   scheduledFor: string;
   payload: Record<string, unknown> | null;
   idempotencyKey: string;
+  ref: string;
 }) {
   'use step';
 
@@ -108,7 +109,7 @@ export async function createInvocationIdempotentStep(params: {
     return { invocation: existing, alreadyExists: true };
   }
 
-  const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
+  const ref = getProjectScopedRef(params.tenantId, params.projectId, params.ref);
   const resolvedRef = await resolveRef(manageDbClient)(ref);
 
   if (!resolvedRef) {

@@ -36,11 +36,22 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
   );
 
   let dispatched = 0;
-  for (const result of results) {
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
     if (result.status === 'fulfilled') {
       dispatched++;
     } else {
-      logger.error({ error: result.reason }, 'Dispatch failed unexpectedly');
+      const trigger = dueTriggers[i];
+      logger.error(
+        {
+          error: result.reason,
+          scheduledTriggerId: trigger.id,
+          tenantId: trigger.tenantId,
+          projectId: trigger.projectId,
+          agentId: trigger.agentId,
+        },
+        'Dispatch failed unexpectedly'
+      );
     }
   }
 

@@ -77,6 +77,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
     scheduledFor,
     payload: trigger.payload ?? null,
     idempotencyKey,
+    ref,
   });
 
   if (alreadyExists && invocation.status !== 'pending') {
