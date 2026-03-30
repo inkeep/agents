@@ -22,7 +22,26 @@ SELECT
 		"skills"."name",
 		E'\n',
 		'description: ',
-		to_json("skills"."description")::text,
+		CASE
+			WHEN "skills"."description" IS NULL THEN 'null'
+			ELSE concat(
+				'"',
+				replace(
+					replace(
+						replace(
+							replace("skills"."description", E'\\', E'\\\\'),
+							E'"',
+							E'\\"'
+						),
+						E'\n',
+						E'\\n'
+					),
+					E'\r',
+					E'\\r'
+				),
+				'"'
+			)
+		END,
 		CASE
 			WHEN "skills"."metadata" IS NULL THEN ''
 			ELSE E'\nmetadata: ' || "skills"."metadata"::text
