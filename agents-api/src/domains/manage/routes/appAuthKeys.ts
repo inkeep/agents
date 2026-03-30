@@ -248,6 +248,14 @@ const UpdateAuthSettingsRequestSchema = z
   })
   .openapi('UpdateAuthSettingsRequest');
 
+const AuthSettingsResponseSchema = z
+  .object({
+    data: z.object({
+      allowAnonymous: z.boolean(),
+    }),
+  })
+  .openapi('AuthSettingsResponse');
+
 app.openapi(
   createProtectedRoute({
     method: 'patch',
@@ -270,6 +278,11 @@ app.openapi(
     responses: {
       200: {
         description: 'Auth settings updated',
+        content: {
+          'application/json': {
+            schema: AuthSettingsResponseSchema,
+          },
+        },
       },
       ...commonGetErrorResponses,
     },
@@ -313,7 +326,7 @@ app.openapi(
       },
     });
 
-    return c.json({ success: true });
+    return c.json({ data: { allowAnonymous } });
   }
 );
 

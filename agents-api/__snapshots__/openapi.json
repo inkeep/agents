@@ -1453,6 +1453,25 @@
         },
         "type": "object"
       },
+      "AuthSettingsResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "allowAnonymous": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "allowAnonymous"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "BadRequest": {
         "allOf": [
           {
@@ -26218,6 +26237,13 @@
         },
         "responses": {
           "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSettingsResponse"
+                }
+              }
+            },
             "description": "Auth settings updated"
           },
           "400": {

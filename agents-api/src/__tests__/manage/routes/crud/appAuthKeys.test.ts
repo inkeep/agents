@@ -33,8 +33,11 @@ describe('App Auth Keys Routes', () => {
     return body.data.app;
   };
 
+  const appUrl = (tenantId: string, projectId: string, appId: string) =>
+    `/manage/tenants/${tenantId}/projects/${projectId}/apps/${appId}`;
+
   const keysUrl = (tenantId: string, projectId: string, appId: string) =>
-    `/manage/tenants/${tenantId}/projects/${projectId}/apps/${appId}/auth/keys`;
+    `${appUrl(tenantId, projectId, appId)}/auth/keys`;
 
   describe('POST /auth/keys', () => {
     it('should add a public key to an app', async () => {
@@ -207,10 +210,12 @@ describe('App Auth Keys Routes', () => {
       });
 
       expect(res.status).toBe(200);
+      const patchBody = await res.json();
+      expect(patchBody.data.allowAnonymous).toBe(false);
 
-      const listRes = await makeRequest(keysUrl(tenantId, projectId, app.id));
-      const body = await listRes.json();
-      expect(body.data).toEqual([]);
+      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
+      const appBody = await getRes.json();
+      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(false);
     });
 
     it('should update allowAnonymous to true', async () => {
@@ -230,6 +235,12 @@ describe('App Auth Keys Routes', () => {
       });
 
       expect(res.status).toBe(200);
+      const patchBody = await res.json();
+      expect(patchBody.data.allowAnonymous).toBe(true);
+
+      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
+      const appBody = await getRes.json();
+      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(true);
     });
 
     it('should preserve existing keys when updating settings', async () => {
@@ -253,6 +264,36 @@ describe('App Auth Keys Routes', () => {
       const body = await listRes.json();
       expect(body.data).toHaveLength(1);
       expect(body.data[0].kid).toBe('preserved-key');
+    });
+
+    it('should preserve audience when updating allowAnonymous', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-audience');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: {
+              allowedDomains: ['example.com'],
+              auth: { audience: 'https://my-app.example.com' },
+            },
+          },
+        }),
+      });
+
+      await makeRequest(settingsUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({ allowAnonymous: false }),
+      });
+
+      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
+      const appBody = await getRes.json();
+      expect(appBody.data.config.webClient.auth.audience).toBe('https://my-app.example.com');
+      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(false);
     });
 
     it('should return 400 for api app type', async () => {
