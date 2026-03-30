@@ -399,12 +399,17 @@ railway_ensure_tcp_proxy() {
 
 vercel_list_preview_only_env_vars() {
   local project_id="$1"
-  local all_envs="[]"
-  local page_json=""
-  local page_envs=""
+  local tmp_all=""
+  local tmp_page=""
   local next_cursor=""
   local limit=100
   local url=""
+
+  tmp_all="$(mktemp)"
+  tmp_page="$(mktemp)"
+  trap "rm -f '${tmp_all}' '${tmp_page}'" RETURN
+
+  printf '[]' > "${tmp_all}"
 
   while true; do
     url="https://api.vercel.com/v10/projects/${project_id}/env?teamId=${VERCEL_ORG_ID}&limit=${limit}"
@@ -412,42 +417,35 @@ vercel_list_preview_only_env_vars() {
       url="${url}&until=${next_cursor}"
     fi
 
-    if ! page_json="$(
-      curl --fail-with-body -sS \
-        --connect-timeout 10 \
-        --max-time 60 \
-        -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-        "${url}" \
-        2>&1
-    )"; then
+    if ! curl --fail-with-body -sS \
+      --connect-timeout 10 \
+      --max-time 60 \
+      -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+      "${url}" \
+      > "${tmp_page}" 2>&1; then
       echo "Failed to list env vars for project ${project_id}." >&2
-      printf '%s\n' "${page_json}" >&2
+      cat "${tmp_page}" >&2
       return 1
     fi
 
-    page_envs="$(printf '%s' "${page_json}" | jq -c '.envs // []')"
-    all_envs="$(jq -nc --argjson a "${all_envs}" --argjson b "${page_envs}" '$a + $b')"
+    jq -c --slurpfile page "${tmp_page}" '. + ($page[0].envs // [])' "${tmp_all}" > "${tmp_all}.new"
+    mv "${tmp_all}.new" "${tmp_all}"
 
-    next_cursor="$(printf '%s' "${page_json}" | jq -r '.pagination.next // empty')"
+    next_cursor="$(jq -r '.pagination.next // empty' "${tmp_page}")"
     if [ -z "${next_cursor}" ]; then
       break
     fi
   done
 
-  local combined=""
-  combined="$(jq -nc --argjson envs "${all_envs}" '{envs: $envs}')"
-
   local non_preview=""
-  non_preview="$(printf '%s' "${combined}" | jq \
-    '[.envs[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"])] | length')"
+  non_preview="$(jq '[.[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"])] | length' "${tmp_all}")"
   if [ "${non_preview}" -gt 0 ]; then
     echo "SAFETY: found ${non_preview} branch-scoped env var(s) targeting production or development — refusing to proceed." >&2
-    printf '%s' "${combined}" | jq -r \
-      '.envs[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"]) | "  \(.key) target=\(.target) branch=\(.gitBranch)"' >&2
+    jq -r '.[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"]) | "  \(.key) target=\(.target) branch=\(.gitBranch)"' "${tmp_all}" >&2
     return 1
   fi
 
-  printf '%s' "${combined}"
+  jq -c '{envs: .}' "${tmp_all}"
 }
 
 redact_preview_logs() {
