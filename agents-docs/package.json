@@ -26,7 +26,7 @@
   "dependencies": {
     "@inkeep/agents-cli": "workspace:*",
     "@inkeep/agents-core": "workspace:*",
-    "@inkeep/agents-ui": "^0.15.18",
+    "@inkeep/agents-ui": "^0.15.23",
     "@inkeep/agents-ui-cloud": "^0.15.18",
     "@inkeep/cxkit-react": "^0.5.98",
     "@inkeep/docskit": "^0.0.8",
