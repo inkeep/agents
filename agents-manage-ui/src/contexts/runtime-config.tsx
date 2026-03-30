@@ -1,9 +1,9 @@
 'use client';
 
 import { createContext, use } from 'react';
-import type { RuntimeConfig } from '@/lib/runtime-config/types';
+import type { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
 
-const Ctx = createContext<RuntimeConfig | null>(null);
+const Ctx = createContext<ReturnType<typeof getRuntimeConfig> | null>(null);
 
 export const RuntimeConfigProvider = Ctx;
 
