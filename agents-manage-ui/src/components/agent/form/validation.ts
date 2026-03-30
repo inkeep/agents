@@ -265,8 +265,6 @@ export function apiToFormValues(data: FullAgentResponse) {
   } = data;
   const statusUpdates = data.statusUpdates ?? {};
 
-  console.log({ models });
-
   const sharedExternalAgentHeaders = new Map<string, string>();
   const sharedTeamAgentHeaders = new Map<string, string>();
   const sharedFunctionToolPolicies = new Map<string, Record<string, { needsApproval?: boolean }>>();
