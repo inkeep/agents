@@ -191,6 +191,110 @@ describe('App Auth Keys Routes', () => {
     });
   });
 
+  describe('PATCH /auth/keys/settings', () => {
+    const settingsUrl = (tenantId: string, projectId: string, appId: string) =>
+      `${keysUrl(tenantId, projectId, appId)}/settings`;
+
+    it('should update allowAnonymous to false', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-false');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      const res = await makeRequest(settingsUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({ allowAnonymous: false }),
+      });
+
+      expect(res.status).toBe(200);
+
+      const listRes = await makeRequest(keysUrl(tenantId, projectId, app.id));
+      const body = await listRes.json();
+      expect(body.data).toEqual([]);
+    });
+
+    it('should update allowAnonymous to true', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-true');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      await makeRequest(settingsUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({ allowAnonymous: false }),
+      });
+
+      const res = await makeRequest(settingsUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({ allowAnonymous: true }),
+      });
+
+      expect(res.status).toBe(200);
+    });
+
+    it('should preserve existing keys when updating settings', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-preserve');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      const pem = await rsaPem();
+      await makeRequest(keysUrl(tenantId, projectId, app.id), {
+        method: 'POST',
+        body: JSON.stringify({ kid: 'preserved-key', publicKey: pem, algorithm: 'RS256' }),
+      });
+
+      await makeRequest(settingsUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({ allowAnonymous: false }),
+      });
+
+      const listRes = await makeRequest(keysUrl(tenantId, projectId, app.id));
+      const body = await listRes.json();
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].kid).toBe('preserved-key');
+    });
+
+    it('should return 400 for api app type', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-api-app');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            name: 'API App',
+            type: 'api',
+            config: { type: 'api', api: {} },
+          }),
+        }
+      );
+      const apiApp = (await createRes.json()).data.app;
+
+      const res = await makeRequest(settingsUrl(tenantId, projectId, apiApp.id), {
+        method: 'PATCH',
+        body: JSON.stringify({ allowAnonymous: false }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 404 for non-existent app', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-404');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const res = await makeRequest(settingsUrl(tenantId, projectId, 'nonexistent-app'), {
+        method: 'PATCH',
+        body: JSON.stringify({ allowAnonymous: false }),
+      });
+
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe('DELETE /auth/keys/:kid', () => {
     it('should delete a key by kid', async () => {
       const tenantId = await createTestTenantWithOrg('auth-keys-delete');

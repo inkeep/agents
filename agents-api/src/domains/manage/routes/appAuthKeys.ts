@@ -240,4 +240,81 @@ app.openapi(
   }
 );
 
+const UpdateAuthSettingsRequestSchema = z
+  .object({
+    allowAnonymous: z
+      .boolean()
+      .describe('Whether anonymous access is allowed when JWT verification fails'),
+  })
+  .openapi('UpdateAuthSettingsRequest');
+
+app.openapi(
+  createProtectedRoute({
+    method: 'patch',
+    path: '/settings',
+    summary: 'Update Auth Settings',
+    description: 'Update authentication settings for a web client app',
+    operationId: 'update-app-auth-settings',
+    tags: ['Apps'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: AppAuthKeyParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: UpdateAuthSettingsRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Auth settings updated',
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, appId } = c.req.valid('param');
+    const { allowAnonymous } = c.req.valid('json');
+
+    const appRecord = await getAppAuthKeysForProject(runDbClient)({
+      scopes: { tenantId, projectId },
+      id: appId,
+    });
+
+    if (!appRecord) {
+      throw createApiError({ code: 'not_found', message: 'App not found' });
+    }
+
+    if (appRecord.config.type !== 'web_client') {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Auth settings are only supported for web_client apps',
+      });
+    }
+
+    const existingAuth = appRecord.config.webClient.auth;
+    const updatedAuth = {
+      ...existingAuth,
+      publicKeys: existingAuth?.publicKeys ?? [],
+      allowAnonymous,
+    };
+
+    await updateAppAuthKeysForProject(runDbClient)({
+      scopes: { tenantId, projectId },
+      id: appId,
+      config: {
+        type: 'web_client',
+        webClient: {
+          ...appRecord.config.webClient,
+          auth: updatedAuth,
+        },
+      },
+    });
+
+    return c.json({ success: true });
+  }
+);
+
 export default app;

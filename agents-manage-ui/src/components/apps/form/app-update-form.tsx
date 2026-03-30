@@ -28,6 +28,7 @@ interface WebClientConfigShape {
   allowedDomains?: string[];
   auth?: {
     audience?: string;
+    allowAnonymous?: boolean;
   };
 }
 
@@ -169,7 +170,12 @@ export function AppUpdateForm({
         {app.type === 'web_client' && (
           <>
             <Separator />
-            <AuthKeysSection tenantId={tenantId} projectId={projectId} appId={app.id} />
+            <AuthKeysSection
+              tenantId={tenantId}
+              projectId={projectId}
+              appId={app.id}
+              allowAnonymous={webConfig?.auth?.allowAnonymous}
+            />
             <GenericInput
               control={form.control}
               name="audience"

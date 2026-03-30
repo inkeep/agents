@@ -14,12 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   addAppAuthKeyAction,
   deleteAppAuthKeyAction,
   fetchAppAuthKeysAction,
+  updateAppAuthSettingsAction,
 } from '@/lib/actions/app-auth-keys';
 import type { PublicKeyConfig } from '@/lib/api/app-auth-keys';
 
@@ -33,14 +35,22 @@ interface AuthKeysSectionProps {
   tenantId: string;
   projectId: string;
   appId: string;
+  allowAnonymous?: boolean;
 }
 
-export function AuthKeysSection({ tenantId, projectId, appId }: AuthKeysSectionProps) {
+export function AuthKeysSection({
+  tenantId,
+  projectId,
+  appId,
+  allowAnonymous,
+}: AuthKeysSectionProps) {
   const [keys, setKeys] = useState<PublicKeyConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [deletingKid, setDeletingKid] = useState<string | null>(null);
+  const [requireAuth, setRequireAuth] = useState(allowAnonymous === false);
+  const [isUpdatingAuth, setIsUpdatingAuth] = useState(false);
 
   const [kid, setKid] = useState('');
   const [algorithm, setAlgorithm] = useState('RS256');
@@ -96,6 +106,27 @@ export function AuthKeysSection({ tenantId, projectId, appId }: AuthKeysSectionP
       }
     } finally {
       setDeletingKid(null);
+    }
+  };
+
+  const handleToggleRequireAuth = async (checked: boolean) => {
+    setRequireAuth(checked);
+    setIsUpdatingAuth(true);
+    try {
+      const result = await updateAppAuthSettingsAction(tenantId, projectId, appId, !checked);
+      if (result.success) {
+        toast.success(
+          checked ? 'Authentication required for all users' : 'Anonymous access allowed'
+        );
+      } else {
+        setRequireAuth(!checked);
+        toast.error(result.error || 'Failed to update auth settings');
+      }
+    } catch {
+      setRequireAuth(!checked);
+      toast.error('Failed to update auth settings');
+    } finally {
+      setIsUpdatingAuth(false);
     }
   };
 
@@ -174,6 +205,23 @@ export function AuthKeysSection({ tenantId, projectId, appId }: AuthKeysSectionP
             ))}
           </div>
         </TooltipProvider>
+      )}
+
+      {keys.length > 0 && (
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div className="space-y-0.5">
+            <Label className="text-sm">Require Authentication</Label>
+            <p className="text-xs text-muted-foreground">
+              When enabled, all users must present a valid signed JWT. Anonymous access is blocked.
+            </p>
+          </div>
+          <Switch
+            checked={requireAuth}
+            onCheckedChange={handleToggleRequireAuth}
+            disabled={isUpdatingAuth}
+            aria-label="Require authentication"
+          />
+        </div>
       )}
 
       {showAddForm && (
