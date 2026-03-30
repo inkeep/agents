@@ -139,7 +139,7 @@ export async function proxy(request: NextRequest) {
 }
 
 async function tryDevAutoLogin(): Promise<string | null> {
-  const apiUrl = runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL
+  const apiUrl = runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL;
   const bypassSecret = process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
 
   if (!bypassSecret) {
