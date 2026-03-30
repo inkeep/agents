@@ -2597,7 +2597,7 @@ class SigNozStatsAPI {
   async getUsageCostSummary(
     startTime: number,
     endTime: number,
-    groupBy: 'model' | 'agent' | 'generation_type' | 'conversation',
+    groupBy: 'model' | 'agent' | 'generation_type' | 'conversation' | 'provider',
     projectId?: string
   ): Promise<
     Array<{
@@ -2629,7 +2629,9 @@ class SigNozStatsAPI {
               ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
               : groupBy === 'conversation'
                 ? SPAN_KEYS.CONVERSATION_ID
-                : 'timestamp';
+                : groupBy === 'provider'
+                  ? SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER
+                  : 'timestamp';
 
       const stats = new Map<
         string,
@@ -2758,6 +2760,7 @@ class SigNozStatsAPI {
                   sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attrCtx),
                   sf(SPAN_KEYS.AI_MODEL_ID, str, attrCtx),
                   sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attrCtx),
                   sf(SPAN_KEYS.AGENT_ID, str, attrCtx),
                   sf(SPAN_KEYS.SUB_AGENT_ID, str, attrCtx),
                   sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attrCtx),
@@ -2801,7 +2804,7 @@ class SigNozStatsAPI {
           timestamp: ts,
           generationType: d[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE] || 'unknown',
           model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
-          provider: d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
+          provider: d[SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER] || d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
           agentId: d[SPAN_KEYS.AGENT_ID] || '',
           subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
           conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
@@ -2843,7 +2846,9 @@ class SigNozStatsAPI {
             ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
             : groupBy === 'conversation'
               ? SPAN_KEYS.CONVERSATION_ID
-              : SPAN_KEYS.TIMESTAMP;
+              : groupBy === 'provider'
+                ? SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER
+                : SPAN_KEYS.TIMESTAMP;
 
     const groupByFieldContext = FIELD_CONTEXTS.ATTRIBUTE;
 

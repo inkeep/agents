@@ -43,18 +43,26 @@ function extractGatewayCost(providerMetadata: Record<string, any> | undefined): 
   return 0;
 }
 
-function setGatewayCostOnSpan(providerMetadata: Record<string, any> | undefined): void {
+function setGatewayAttributesOnSpan(providerMetadata: Record<string, any> | undefined): void {
   const activeSpan = trace.getActiveSpan();
   if (!activeSpan) return;
 
   const cost = extractGatewayCost(providerMetadata);
   activeSpan.setAttribute(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, cost);
 
-  if (providerMetadata?.gateway && cost === 0) {
-    logger.warn(
-      { gateway: providerMetadata.gateway },
-      'Routed through gateway but no cost data in response'
-    );
+  const gw = providerMetadata?.gateway;
+  if (gw) {
+    if (cost === 0) {
+      logger.warn({ gateway: gw }, 'Routed through gateway but no cost data in response');
+    }
+
+    const routing = gw.routing as Record<string, any> | undefined;
+    if (routing?.finalProvider) {
+      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, routing.finalProvider);
+    }
+    if (routing?.resolvedProvider) {
+      activeSpan.setAttribute(SPAN_KEYS.GEN_AI_REQUEST_PROVIDER, routing.resolvedProvider);
+    }
   }
 }
 
@@ -65,7 +73,7 @@ export const gatewayCostMiddleware: LanguageModelMiddleware = {
     const result = await doGenerate();
 
     try {
-      setGatewayCostOnSpan(result.providerMetadata as Record<string, any> | undefined);
+      setGatewayAttributesOnSpan(result.providerMetadata as Record<string, any> | undefined);
     } catch (error) {
       logger.warn({ error }, 'Failed to extract gateway cost in wrapGenerate');
     }
@@ -83,7 +91,7 @@ export const gatewayCostMiddleware: LanguageModelMiddleware = {
 
           if (chunk.type === 'finish') {
             try {
-              setGatewayCostOnSpan(chunk.providerMetadata as Record<string, any> | undefined);
+              setGatewayAttributesOnSpan(chunk.providerMetadata as Record<string, any> | undefined);
             } catch (error) {
               logger.warn({ error }, 'Failed to extract gateway cost in wrapStream');
             }

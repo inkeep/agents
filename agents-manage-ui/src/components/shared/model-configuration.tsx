@@ -36,12 +36,13 @@ const AllowedProvidersSection: FC<{
   const [addOpen, setAddOpen] = useState(false);
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
+  const [specificMode, setSpecificMode] = useState(false);
 
-  const effectiveProviders = allowedProviders ?? inheritedAllowedProviders;
+  const effectiveProviders = allowedProviders ?? inheritedAllowedProviders ?? [];
   const isInherited = !allowedProviders && !!inheritedAllowedProviders;
-  const isSpecific = !!effectiveProviders?.length;
+  const isSpecific = specificMode || effectiveProviders.length > 0;
 
-  const availableToAdd = AVAILABLE_PROVIDERS.filter((p) => !effectiveProviders?.includes(p.value));
+  const availableToAdd = AVAILABLE_PROVIDERS.filter((p) => !effectiveProviders.includes(p.value));
 
   function handleReorder(fromId: string, toId: string) {
     if (fromId === toId || !allowedProviders) return;
@@ -64,7 +65,10 @@ const AllowedProvidersSection: FC<{
         value={isSpecific ? 'specific' : 'all'}
         onValueChange={(val) => {
           if (val === 'all') {
+            setSpecificMode(false);
             onAllowedProvidersChange([]);
+          } else {
+            setSpecificMode(true);
           }
         }}
         disabled={disabled || isInherited}

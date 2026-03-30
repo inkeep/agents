@@ -212,7 +212,8 @@ export class ModelFactory {
     let model: LanguageModel;
 
     if (shouldRouteViaGateway) {
-      model = gateway(`${provider}/${modelName}`);
+      const hasAllowedProviders = !!modelSettings.allowedProviders?.length;
+      model = gateway(hasAllowedProviders ? modelName : `${provider}/${modelName}`);
     } else if (
       provider !== 'mock' &&
       (provider === 'azure' || Object.keys(providerConfig).length > 0)
@@ -348,6 +349,7 @@ export class ModelFactory {
     const model = ModelFactory.createModel({
       model: modelString,
       providerOptions: modelSettings?.providerOptions,
+      allowedProviders: modelSettings?.allowedProviders,
     });
 
     const generationParams = ModelFactory.getGenerationParams(modelSettings?.providerOptions);

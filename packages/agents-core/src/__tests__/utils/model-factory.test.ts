@@ -619,6 +619,29 @@ describe('ModelFactory', () => {
       expect(gateway.models).toEqual(['anthropic/claude-haiku-4-5']);
     });
 
+    test('should strip provider prefix from gateway model when allowedProviders is set', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+        allowedProviders: ['bedrock', 'anthropic'],
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      expect(result.model.modelId).toBe('claude-sonnet-4-5');
+    });
+
+    test('should keep provider prefix in gateway model when allowedProviders is not set', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+
+      const config: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-5',
+      };
+
+      const result = ModelFactory.prepareGenerationConfig(config);
+      expect(result.model.modelId).toBe('anthropic/claude-sonnet-4-5');
+    });
+
     test('allowedProviders should override existing gateway order/only from providerOptions', () => {
       process.env.AI_GATEWAY_API_KEY = 'test-key';
 

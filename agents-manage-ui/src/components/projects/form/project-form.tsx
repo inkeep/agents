@@ -68,6 +68,9 @@ const serializeData = (data: ProjectFormData) => {
         ...(data.models.base.fallbackModels?.length && {
           fallbackModels: data.models.base.fallbackModels.filter(Boolean),
         }),
+        ...(data.models.base.allowedProviders?.length && {
+          allowedProviders: data.models.base.allowedProviders.filter(Boolean),
+        }),
       },
       structuredOutput: data.models?.structuredOutput?.model
         ? {
@@ -75,6 +78,9 @@ const serializeData = (data: ProjectFormData) => {
             providerOptions: cleanProviderOptions(data.models.structuredOutput.providerOptions),
             ...(data.models.structuredOutput.fallbackModels?.length && {
               fallbackModels: data.models.structuredOutput.fallbackModels.filter(Boolean),
+            }),
+            ...(data.models.structuredOutput.allowedProviders?.length && {
+              allowedProviders: data.models.structuredOutput.allowedProviders.filter(Boolean),
             }),
           }
         : undefined,
@@ -84,6 +90,9 @@ const serializeData = (data: ProjectFormData) => {
             providerOptions: cleanProviderOptions(data.models.summarizer.providerOptions),
             ...(data.models.summarizer.fallbackModels?.length && {
               fallbackModels: data.models.summarizer.fallbackModels.filter(Boolean),
+            }),
+            ...(data.models.summarizer.allowedProviders?.length && {
+              allowedProviders: data.models.summarizer.allowedProviders.filter(Boolean),
             }),
           }
         : undefined,
