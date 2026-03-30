@@ -35,6 +35,17 @@ function isBlobBackedArtifactData(value: unknown): value is BlobBackedArtifactDa
 }
 
 async function buildHydratedReferenceArtifactResult(artifactData: ArtifactToolResult) {
+  const metadataContent = {
+    artifactId: artifactData.artifactId,
+    name: artifactData.name,
+    description: artifactData.description,
+    type: artifactData.type,
+    mimeType: isBlobBackedArtifactData(artifactData.data) ? artifactData.data.mimeType : undefined,
+    binaryType: isBlobBackedArtifactData(artifactData.data)
+      ? artifactData.data.binaryType
+      : undefined,
+  };
+
   if (!isBlobBackedArtifactData(artifactData.data)) {
     return {
       artifactId: artifactData.artifactId,
@@ -42,40 +53,71 @@ async function buildHydratedReferenceArtifactResult(artifactData: ArtifactToolRe
       description: artifactData.description,
       type: artifactData.type,
       data: artifactData.data,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(metadataContent),
+        },
+      ],
     };
   }
 
   const storage = getBlobStorageProvider();
-  const blob = await storage.download(fromBlobUri(artifactData.data.blobUri));
-  const mimeType = artifactData.data.mimeType || blob.contentType || 'application/octet-stream';
-  const filename = artifactData.data.blobUri.split('/').at(-1);
+  try {
+    const blob = await storage.download(fromBlobUri(artifactData.data.blobUri));
+    const mimeType = artifactData.data.mimeType || blob.contentType || 'application/octet-stream';
+    const filename = artifactData.data.blobUri.split('/').at(-1);
 
-  return {
-    artifactId: artifactData.artifactId,
-    name: artifactData.name,
-    description: artifactData.description,
-    type: artifactData.type,
-    data: artifactData.data,
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify({
-          artifactId: artifactData.artifactId,
-          name: artifactData.name,
-          description: artifactData.description,
-          type: artifactData.type,
+    return {
+      artifactId: artifactData.artifactId,
+      name: artifactData.name,
+      description: artifactData.description,
+      type: artifactData.type,
+      data: artifactData.data,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            ...metadataContent,
+            mimeType,
+          }),
+        },
+        {
+          type: 'file',
+          data: Buffer.from(blob.data).toString('base64'),
           mimeType,
-          binaryType: artifactData.data.binaryType,
-        }),
-      },
+          ...(filename ? { filename } : {}),
+        },
+      ],
+    };
+  } catch (error) {
+    logger.warn(
       {
-        type: 'file',
-        data: Buffer.from(blob.data).toString('base64'),
-        mimeType,
-        ...(filename ? { filename } : {}),
+        artifactId: artifactData.artifactId,
+        type: artifactData.type,
+        blobUri: artifactData.data.blobUri,
+        error: error instanceof Error ? error.message : String(error),
       },
-    ],
-  };
+      'Failed to hydrate blob-backed artifact, returning metadata only'
+    );
+
+    return {
+      artifactId: artifactData.artifactId,
+      name: artifactData.name,
+      description: artifactData.description,
+      type: artifactData.type,
+      data: artifactData.data,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            ...metadataContent,
+            hydrationStatus: 'metadata_only',
+          }),
+        },
+      ],
+    };
+  }
 }
 
 export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {

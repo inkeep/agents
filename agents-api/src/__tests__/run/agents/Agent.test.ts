@@ -11,6 +11,7 @@ import { buildSystemPrompt } from '../../../domains/run/agents/generation/system
 import { buildToolResultForConversationHistory } from '../../../domains/run/agents/generation/tool-result-for-conversation-history';
 import { buildToolResultForModelInput } from '../../../domains/run/agents/generation/tool-result-for-model-input';
 import { getArtifactTools, getDefaultTools } from '../../../domains/run/agents/tools/default-tools';
+import { getBlobStorageProvider } from '../../../domains/run/services/blob-storage';
 import { createDeniedToolResult } from '../../../domains/run/utils/tool-result';
 
 const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
@@ -1758,7 +1759,7 @@ describe('Agent tool result persistence', () => {
         toolCallId: 'tool-1',
         name: 'cutecat',
         description: 'binary image',
-        type: 'BinaryAttachment',
+        type: 'binary_attachment',
         data: {
           blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
           mimeType: 'image/png',
@@ -1788,7 +1789,7 @@ describe('Agent tool result persistence', () => {
       artifactId: 'art-1',
       name: 'cutecat',
       description: 'binary image',
-      type: 'BinaryAttachment',
+      type: 'binary_attachment',
       data: {
         blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
         mimeType: 'image/png',
@@ -1801,7 +1802,7 @@ describe('Agent tool result persistence', () => {
             artifactId: 'art-1',
             name: 'cutecat',
             description: 'binary image',
-            type: 'BinaryAttachment',
+            type: 'binary_attachment',
             mimeType: 'image/png',
             binaryType: 'image',
           }),
@@ -1823,7 +1824,7 @@ describe('Agent tool result persistence', () => {
         toolCallId: 'tool-1',
         name: 'cutecat',
         description: 'binary image',
-        type: 'BinaryAttachment',
+        type: 'binary_attachment',
         data: {
           blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
           mimeType: 'image/png',
@@ -1869,7 +1870,7 @@ describe('Agent tool result persistence', () => {
             artifactId: 'art-1',
             name: 'cutecat',
             description: 'binary image',
-            type: 'BinaryAttachment',
+            type: 'binary_attachment',
             mimeType: 'image/png',
             binaryType: 'image',
           }),
@@ -1900,6 +1901,69 @@ describe('Agent tool result persistence', () => {
           text: JSON.stringify({ _toolCallId: 'toolu_abc', _structureHints: structureHints }),
         },
         { type: 'text', text: 'some text' },
+      ],
+    });
+  });
+
+  test('get_reference_artifact falls back to metadata-only when blob download fails', async () => {
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      download: vi.fn().mockRejectedValue(new Error('not found')),
+    } as any);
+
+    const artifactService = {
+      getArtifactFull: vi.fn().mockResolvedValue({
+        artifactId: 'art-1',
+        toolCallId: 'tool-1',
+        name: 'cutecat',
+        description: 'binary image',
+        type: 'binary_attachment',
+        data: {
+          blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
+          mimeType: 'image/png',
+          binaryType: 'image',
+        },
+      }),
+    };
+
+    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
+    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
+
+    const runContext = makeRunContext();
+    runContext.streamRequestId = 'stream-123';
+
+    const tool = getArtifactTools(runContext as any) as any;
+
+    const result = await tool.execute(
+      {
+        artifactId: 'art-1',
+        toolCallId: 'tool-1',
+      },
+      undefined
+    );
+
+    expect(result).toEqual({
+      artifactId: 'art-1',
+      name: 'cutecat',
+      description: 'binary image',
+      type: 'binary_attachment',
+      data: {
+        blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
+        mimeType: 'image/png',
+        binaryType: 'image',
+      },
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            artifactId: 'art-1',
+            name: 'cutecat',
+            description: 'binary image',
+            type: 'binary_attachment',
+            mimeType: 'image/png',
+            binaryType: 'image',
+            hydrationStatus: 'metadata_only',
+          }),
+        },
       ],
     });
   });

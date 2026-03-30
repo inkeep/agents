@@ -22,6 +22,11 @@ export type AttachmentArtifactRef = {
   toolCallId: string;
 };
 
+function extractContentHashFromBlobUri(blobUri: string): string | null {
+  const match = blobUri.match(/sha256-([a-f0-9]{3,64})(?:\.|$)/i);
+  return match?.[1] ?? null;
+}
+
 function getBinaryType(mimeType: string | undefined): 'image' | 'file' {
   return mimeType?.startsWith('image/') ? 'image' : 'file';
 }
@@ -73,7 +78,10 @@ export async function createAttachmentArtifacts(
       typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined;
     const mimeType = file.mimeType || 'application/octet-stream';
     const binaryType = getBinaryType(mimeType);
-    const artifactId = `attachment_${ctx.messageId}_${fileIndex + 1}`;
+    const contentHash = extractContentHashFromBlobUri(file.uri);
+    const artifactId = contentHash
+      ? `attachment_${ctx.messageId}_${contentHash}`
+      : `attachment_${ctx.messageId}_${fileIndex + 1}`;
 
     artifacts.push({
       artifactId,
