@@ -35,9 +35,30 @@ PY
   sleep "${jittered_sleep}"
 }
 
+sleep_with_backoff_and_jitter() {
+  local base_sleep_seconds="$1"
+  local attempt="$2"
+  local max_sleep_seconds="${3:-30}"
+  local jittered_sleep=""
+
+  jittered_sleep="$(
+    python3 - <<PY
+import random
+base = float(${base_sleep_seconds})
+attempt = int(${attempt})
+cap = float(${max_sleep_seconds})
+sleep_seconds = min(base * (2 ** max(attempt - 1, 0)), cap)
+print(sleep_seconds * (0.5 + random.random()))
+PY
+  )"
+
+  sleep "${jittered_sleep}"
+}
+
 railway_cli_with_retry() {
   local max_attempts="${RAILWAY_CLI_MAX_ATTEMPTS:-12}"
   local sleep_seconds="${RAILWAY_CLI_SLEEP_SECONDS:-3}"
+  local max_sleep_seconds="${RAILWAY_CLI_MAX_SLEEP_SECONDS:-30}"
   local attempt=""
   local output=""
   local exit_code="1"
@@ -57,7 +78,7 @@ railway_cli_with_retry() {
     fi
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
-      sleep_with_jitter "${sleep_seconds}"
+      sleep_with_backoff_and_jitter "${sleep_seconds}" "${attempt}" "${max_sleep_seconds}"
     fi
   done
 
@@ -75,18 +96,14 @@ pr_env_name() {
 railway_env_exists_count() {
   local project_id="$1"
   local env_name="$2"
-  local output_path="${3:-/tmp/railway-projects.json}"
+  local env_id=""
 
-  if ! railway_cli_with_retry railway project list --json > "${output_path}"; then
-    echo "Failed to list Railway environments for project ${project_id}." >&2
-    return 1
+  env_id="$(railway_environment_id "${project_id}" "${env_name}")"
+  if [ -n "${env_id}" ]; then
+    printf '1'
+  else
+    printf '0'
   fi
-
-  jq -r \
-    --arg project_id "${project_id}" \
-    --arg name "${env_name}" \
-    '[.[] | select(.id == $project_id) | .environments.edges[].node | select(.name == $name)] | length' \
-    "${output_path}"
 }
 
 railway_link_service() {
@@ -159,21 +176,67 @@ mask_env_vars() {
 railway_graphql() {
   local query="$1"
   local payload=""
+  local max_attempts="${RAILWAY_GRAPHQL_MAX_ATTEMPTS:-6}"
+  local sleep_seconds="${RAILWAY_GRAPHQL_SLEEP_SECONDS:-3}"
+  local max_sleep_seconds="${RAILWAY_GRAPHQL_MAX_SLEEP_SECONDS:-30}"
+  local attempt=""
+  local body_file=""
+  local header_file=""
+  local status=""
+  local retry_after=""
+  local exit_code="0"
 
   payload="$(jq -nc --arg query "${query}" '{query: $query}')"
 
-  curl --connect-timeout 10 --max-time 30 -fsS \
-    --retry 8 \
-    --retry-delay 1 \
-    --retry-max-time 90 \
-    --retry-all-errors \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ${RAILWAY_API_TOKEN}" \
-    -H "User-Agent: Mozilla/5.0" \
-    -H "Origin: https://railway.com" \
-    -H "Referer: https://railway.com/" \
-    -d "${payload}" \
-    https://backboard.railway.com/graphql/v2
+  body_file="$(mktemp)"
+  header_file="$(mktemp)"
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    exit_code="0"
+    : > "${body_file}"
+    : > "${header_file}"
+    status="$(
+      curl --connect-timeout 10 --max-time 30 -sS \
+        -D "${header_file}" \
+        -o "${body_file}" \
+        -w '%{http_code}' \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${RAILWAY_API_TOKEN}" \
+        -H "User-Agent: Mozilla/5.0" \
+        -H "Origin: https://railway.com" \
+        -H "Referer: https://railway.com/" \
+        -d "${payload}" \
+        https://backboard.railway.com/graphql/v2
+    )" || exit_code="$?"
+
+    if [ "${exit_code}" = "0" ] && [ "${status}" = "200" ]; then
+      cat "${body_file}"
+      rm -f "${body_file}" "${header_file}"
+      return 0
+    fi
+
+    retry_after="$(
+      awk 'tolower($1) == "retry-after:" {print $2}' "${header_file}" |
+      tr -d '\r' |
+      tail -n 1
+    )"
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if [ -n "${retry_after}" ] && [[ "${retry_after}" =~ ^[0-9]+$ ]]; then
+        sleep_with_jitter "${retry_after}"
+      elif [ "${exit_code}" != "0" ] || [[ "${status}" =~ ^(429|5[0-9]{2}|000)$ ]]; then
+        sleep_with_backoff_and_jitter "${sleep_seconds}" "${attempt}" "${max_sleep_seconds}"
+      else
+        cat "${body_file}" >&2
+        rm -f "${body_file}" "${header_file}"
+        return 1
+      fi
+    fi
+  done
+
+  cat "${body_file}" >&2
+  rm -f "${body_file}" "${header_file}"
+  return 1
 }
 
 railway_environment_id() {
@@ -229,8 +292,8 @@ EOF
 railway_wait_for_environment_id() {
   local project_id="$1"
   local env_name="$2"
-  local max_attempts="${3:-30}"
-  local sleep_seconds="${4:-2}"
+  local max_attempts="${3:-20}"
+  local sleep_seconds="${4:-4}"
   local attempt=""
   local env_id=""
 
@@ -254,8 +317,8 @@ railway_wait_for_service_id_for_env() {
   local env_id="$1"
   local service_name="$2"
   local env_name="$3"
-  local max_attempts="${4:-30}"
-  local sleep_seconds="${5:-2}"
+  local max_attempts="${4:-20}"
+  local sleep_seconds="${5:-4}"
   local attempt=""
   local service_id=""
 
@@ -280,8 +343,8 @@ railway_ensure_tcp_proxy() {
   local env_name="$2"
   local service_name="$3"
   local application_port="$4"
-  local max_attempts="${5:-30}"
-  local sleep_seconds="${6:-2}"
+  local max_attempts="${5:-20}"
+  local sleep_seconds="${6:-4}"
   local env_id=""
   local service_id=""
   local response=""

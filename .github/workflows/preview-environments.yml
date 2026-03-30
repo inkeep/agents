@@ -53,7 +53,7 @@ permissions:
 
 concurrency:
   group: preview-environments-${{ github.event.pull_request.number || inputs.pr_number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   PREVIEW_BASE_DOMAIN: preview.inkeep.com
