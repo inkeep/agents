@@ -45,12 +45,12 @@ app.post('/commands', async (c) => {
   const signature = c.req.header('x-slack-signature') || '';
 
   if (!env.SLACK_SIGNING_SECRET) {
-    logger.error('SLACK_SIGNING_SECRET not configured - rejecting request');
+    logger.error({}, 'SLACK_SIGNING_SECRET not configured - rejecting request');
     return c.json({ response_type: 'ephemeral', text: 'Server configuration error' }, 500);
   }
 
   if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
-    logger.error('Invalid Slack request signature');
+    logger.error({}, 'Invalid Slack request signature');
     return c.json({ response_type: 'ephemeral', text: 'Invalid request signature' }, 401);
   }
 
@@ -129,7 +129,7 @@ app.post('/events', async (c) => {
       if (!env.SLACK_SIGNING_SECRET) {
         outcome = 'error';
         span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-        logger.error('SLACK_SIGNING_SECRET not configured - rejecting request');
+        logger.error({}, 'SLACK_SIGNING_SECRET not configured - rejecting request');
         span.end();
         return c.json({ error: 'Server configuration error' }, 500);
       }
@@ -145,7 +145,7 @@ app.post('/events', async (c) => {
       if (eventType === 'url_verification') {
         outcome = 'url_verification';
         span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
-        logger.info('Responding to Slack URL verification challenge');
+        logger.info({}, 'Responding to Slack URL verification challenge');
         span.end();
         return c.text(String(eventBody.challenge));
       }
@@ -193,13 +193,13 @@ app.post('/nango-webhook', async (c) => {
   // Verify Nango webhook signature — required in production
   const nangoSecret = env.NANGO_SLACK_SECRET_KEY || env.NANGO_SECRET_KEY;
   if (!nangoSecret) {
-    logger.error('No Nango secret key configured — rejecting webhook');
+    logger.error({}, 'No Nango secret key configured — rejecting webhook');
     return c.json({ error: 'Server configuration error' }, 503);
   }
 
   const signature = c.req.header('x-nango-signature');
   if (!signature) {
-    logger.warn('Missing Nango webhook signature');
+    logger.warn({}, 'Missing Nango webhook signature');
     return c.json({ error: 'Missing signature' }, 401);
   }
 

@@ -63,7 +63,7 @@ app.openapi(
 
       return c.json({ data: result as any }) as any;
     } catch (error) {
-      logger.error({ error, resultId }, 'Failed to get evaluation result');
+      logger.error({ error, tenantId, projectId, resultId }, 'Failed to get evaluation result');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -118,10 +118,13 @@ app.openapi(
         projectId,
       });
 
-      logger.info({ resultId: id }, 'Evaluation result created');
+      logger.info({ tenantId, projectId, resultId: id }, 'Evaluation result created');
       return c.json({ data: created as any }, 201) as any;
     } catch (error: any) {
-      logger.error({ error, resultData }, 'Failed to create evaluation result');
+      logger.error(
+        { error, tenantId, projectId, resultData },
+        'Failed to create evaluation result'
+      );
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -180,10 +183,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ resultId }, 'Evaluation result updated');
+      logger.info({ tenantId, projectId, resultId }, 'Evaluation result updated');
       return c.json({ data: updated as any }) as any;
     } catch (error: any) {
-      logger.error({ error, resultId }, 'Failed to update evaluation result');
+      logger.error({ error, tenantId, projectId, resultId }, 'Failed to update evaluation result');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -228,10 +231,10 @@ app.openapi(
         );
       }
 
-      logger.info({ resultId }, 'Evaluation result deleted');
+      logger.info({ tenantId, projectId, resultId }, 'Evaluation result deleted');
       return c.body(null, 204);
     } catch (error) {
-      logger.error({ error, resultId }, 'Failed to delete evaluation result');
+      logger.error({ error, tenantId, projectId, resultId }, 'Failed to delete evaluation result');
       return c.json(
         createApiError({
           code: 'internal_server_error',

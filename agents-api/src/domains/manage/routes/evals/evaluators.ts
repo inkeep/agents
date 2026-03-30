@@ -12,7 +12,6 @@ import {
   getEvaluatorsByIds,
   ListResponseSchema,
   listEvaluators,
-  listEvaluatorsForAgent,
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateEvaluator,
@@ -37,9 +36,6 @@ app.openapi(
     permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
-      query: z.object({
-        agentId: z.string().optional(),
-      }),
     },
     responses: {
       200: {
@@ -56,12 +52,9 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
-    const { agentId } = c.req.valid('query');
 
     try {
-      const evaluators = agentId
-        ? await listEvaluatorsForAgent(db)({ scopes: { tenantId, projectId }, agentId })
-        : await listEvaluators(db)({ scopes: { tenantId, projectId } });
+      const evaluators = await listEvaluators(db)({ scopes: { tenantId, projectId } });
       return c.json({
         data: evaluators as any,
         pagination: {
@@ -72,7 +65,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error }, 'Failed to list evaluators');
+      logger.error({ error, tenantId, projectId }, 'Failed to list evaluators');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to list evaluators' }),
         500
@@ -122,7 +115,7 @@ app.openapi(
 
       return c.json({ data: evaluator as any }) as any;
     } catch (error) {
-      logger.error({ error, evaluatorId }, 'Failed to get evaluator');
+      logger.error({ error, tenantId, projectId, evaluatorId }, 'Failed to get evaluator');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to get evaluator' }),
         500
@@ -138,7 +131,7 @@ app.openapi(
     summary: 'Get Evaluators by IDs',
     operationId: 'get-evaluators-batch',
     tags: ['Evaluations'],
-    permission: requireProjectPermission('view'),
+    permission: requireProjectPermission('edit'),
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -178,7 +171,7 @@ app.openapi(
 
       return c.json({ data: evaluators as any }) as any;
     } catch (error) {
-      logger.error({ error, evaluatorIds }, 'Failed to get evaluators batch');
+      logger.error({ error, tenantId, projectId, evaluatorIds }, 'Failed to get evaluators batch');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to get evaluators' }),
         500
@@ -231,10 +224,10 @@ app.openapi(
         projectId,
       } as any);
 
-      logger.info({ evaluatorId: id }, 'Evaluator created');
+      logger.info({ tenantId, projectId, evaluatorId: id }, 'Evaluator created');
       return c.json({ data: created as any }, 201) as any;
     } catch (error) {
-      logger.error({ error, evaluatorData }, 'Failed to create evaluator');
+      logger.error({ error, tenantId, projectId, evaluatorData }, 'Failed to create evaluator');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to create evaluator' }),
         500
@@ -291,10 +284,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ evaluatorId }, 'Evaluator updated');
+      logger.info({ tenantId, projectId, evaluatorId }, 'Evaluator updated');
       return c.json({ data: updated as any }) as any;
     } catch (error) {
-      logger.error({ error, evaluatorId }, 'Failed to update evaluator');
+      logger.error({ error, tenantId, projectId, evaluatorId }, 'Failed to update evaluator');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to update evaluator' }),
         500
@@ -337,10 +330,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ evaluatorId }, 'Evaluator deleted');
+      logger.info({ tenantId, projectId, evaluatorId }, 'Evaluator deleted');
       return c.body(null, 204) as any;
     } catch (error) {
-      logger.error({ error, evaluatorId }, 'Failed to delete evaluator');
+      logger.error({ error, tenantId, projectId, evaluatorId }, 'Failed to delete evaluator');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to delete evaluator' }),
         500

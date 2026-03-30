@@ -14,26 +14,26 @@ describe('reconcile', () => {
   it('calls onCreated handler for insert diffs', async () => {
     const onCreated = vi.fn().mockResolvedValue(undefined);
     const registry: EntityEffectRegistry = {
-      agent: { onCreated },
+      scheduled_triggers: { onCreated },
     };
     const diffs: EntityDiff[] = [
       {
-        table: 'agent',
+        table: 'scheduled_triggers',
         operation: 'insert',
-        primaryKey: { id: 'agent-1' },
+        primaryKey: { id: 'trigger-1' },
         before: null,
-        after: { id: 'agent-1', name: 'test' } as any,
+        after: { id: 'trigger-1', name: 'test' } as any,
       },
     ];
 
     const result = await reconcile(registry, diffs, mockCtx);
 
-    expect(onCreated).toHaveBeenCalledWith({ id: 'agent-1', name: 'test' }, mockCtx);
+    expect(onCreated).toHaveBeenCalledWith({ id: 'trigger-1', name: 'test' }, mockCtx);
     expect(result.applied).toHaveLength(1);
     expect(result.applied[0]).toEqual({
-      table: 'agent',
+      table: 'scheduled_triggers',
       operation: 'insert',
-      primaryKey: { id: 'agent-1' },
+      primaryKey: { id: 'trigger-1' },
     });
   });
 
@@ -86,7 +86,7 @@ describe('reconcile', () => {
     const registry: EntityEffectRegistry = {};
     const diffs: EntityDiff[] = [
       {
-        table: 'tools',
+        table: 'scheduled_triggers',
         operation: 'insert',
         primaryKey: { id: '1' },
         before: null,
@@ -123,15 +123,15 @@ describe('reconcile', () => {
   it('captures handler errors in failed[] without throwing', async () => {
     const onCreated = vi.fn().mockRejectedValue(new Error('workflow start failed'));
     const registry: EntityEffectRegistry = {
-      agent: { onCreated },
+      scheduled_triggers: { onCreated },
     };
     const diffs: EntityDiff[] = [
       {
-        table: 'agent',
+        table: 'scheduled_triggers',
         operation: 'insert',
-        primaryKey: { id: 'agent-1' },
+        primaryKey: { id: 'trigger-1' },
         before: null,
-        after: { id: 'agent-1' } as any,
+        after: { id: 'trigger-1' } as any,
       },
     ];
 
@@ -142,7 +142,7 @@ describe('reconcile', () => {
     expect(result.applied).toHaveLength(0);
     expect(mockCtx.logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
-        table: 'agent',
+        table: 'scheduled_triggers',
         operation: 'insert',
         error: 'workflow start failed',
       }),
@@ -152,7 +152,7 @@ describe('reconcile', () => {
 
   it('returns empty result for empty diffs array', async () => {
     const registry: EntityEffectRegistry = {
-      tools: { onCreated: vi.fn() },
+      scheduled_triggers: { onCreated: vi.fn() },
     };
 
     const result = await reconcile(registry, [], mockCtx);
@@ -166,16 +166,16 @@ describe('reconcile', () => {
     const onCreated = vi.fn().mockResolvedValue(undefined);
     const onDeleted = vi.fn().mockRejectedValue(new Error('cascade failed'));
     const registry: EntityEffectRegistry = {
-      agent: { onCreated },
+      scheduled_triggers: { onCreated },
       tools: { onDeleted },
     };
     const diffs: EntityDiff[] = [
       {
-        table: 'agent',
+        table: 'scheduled_triggers',
         operation: 'insert',
-        primaryKey: { id: 'agent-1' },
+        primaryKey: { id: 'trigger-1' },
         before: null,
-        after: { id: 'agent-1' } as any,
+        after: { id: 'trigger-1' } as any,
       },
       {
         table: 'tools',

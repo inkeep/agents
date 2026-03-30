@@ -3,7 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { ChevronRight, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -40,7 +40,7 @@ export function DatasetRunsList({
   const [error, setError] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  async function loadRuns() {
+  const loadRuns = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -49,48 +49,48 @@ export function DatasetRunsList({
     } catch (err) {
       console.error('Error loading dataset runs:', err);
       setError(err instanceof Error ? err.message : 'Failed to load runs');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  }, [tenantId, projectId, datasetId]);
 
   useEffect(() => {
     void refreshKey;
     loadRuns();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadRuns,
-    refreshKey,
-  ]);
+  }, [loadRuns, refreshKey]);
 
-  const columns: ColumnDef<DatasetRun>[] = [
-    {
-      id: 'name',
-      accessorFn: (row) => row.runConfigName || `Run ${row.id.slice(0, 8)}`,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-      sortingFn: 'text',
-      cell: ({ row }) => (
-        <span className="font-medium">
-          {row.original.runConfigName || `Run ${row.original.id.slice(0, 8)}`}
-        </span>
-      ),
-    },
-    {
-      id: 'createdAt',
-      accessorFn: (row) => new Date(row.createdAt),
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
-      sortingFn: 'datetime',
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">{formatDateAgo(row.original.createdAt)}</span>
-      ),
-    },
-    {
-      id: 'chevron',
-      header: '',
-      enableSorting: false,
-      meta: { className: 'w-12' },
-      cell: () => <ChevronRight className="h-4 w-4" />,
-    },
-  ];
+  const columns = useMemo<ColumnDef<DatasetRun>[]>(
+    () => [
+      {
+        id: 'name',
+        accessorFn: (row) => row.runConfigName || `Run ${row.id.slice(0, 8)}`,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+        sortingFn: 'text',
+        cell: ({ row }) => (
+          <span className="font-medium">
+            {row.original.runConfigName || `Run ${row.original.id.slice(0, 8)}`}
+          </span>
+        ),
+      },
+      {
+        id: 'createdAt',
+        accessorFn: (row) => new Date(row.createdAt),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+        sortingFn: 'datetime',
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{formatDateAgo(row.original.createdAt)}</span>
+        ),
+      },
+      {
+        id: 'chevron',
+        header: '',
+        enableSorting: false,
+        meta: { className: 'w-12' },
+        cell: () => <ChevronRight className="h-4 w-4" />,
+      },
+    ],
+    []
+  );
 
   if (loading) {
     return (

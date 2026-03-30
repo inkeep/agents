@@ -1,8 +1,19 @@
+import type { AxiosResponse } from 'axios';
+import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
-import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
+
+axiosRetry(axios, {
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay,
+});
 
 export const dynamic = 'force-dynamic';
+
+type RouteContext<_T> = {
+  params: Promise<Record<string, string>>;
+};
 
 export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
   const { spanId } = await context.params;
@@ -23,30 +34,20 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
   try {
     const agentsApiUrl = getAgentsApiUrl();
     const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/span-lookup`;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-    }
+    const response: AxiosResponse = await axios.post(
+      endpoint,
+      { conversationId, spanId },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: cookieHeader,
+        },
+        timeout: 15000,
+        withCredentials: true,
+      }
+    );
 
-    const response = await fetchWithRetry(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ conversationId, spanId }),
-      credentials: 'include',
-      timeout: 15000,
-      maxAttempts: 3,
-      label: 'signoz-span-lookup',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: errorData?.message ?? 'Failed to fetch span details' },
-        { status: response.status }
-      );
-    }
-
-    const json = await response.json();
+    const json = response.data;
     const results = json?.data?.data?.results ?? [];
     const result = results?.[0];
     const columns: Array<{ name: string }> = result?.columns ?? [];

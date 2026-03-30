@@ -77,6 +77,7 @@ export class ToolSessionManager {
     logger.debug(
       {
         sessionId,
+        tenantId,
         contextId,
         taskId,
         totalSessions: this.sessions.size,
@@ -102,7 +103,10 @@ export class ToolSessionManager {
       return sessionId;
     }
 
-    logger.debug({ sessionId, contextId, taskId }, 'Creating new agent-scoped tool session');
+    logger.debug(
+      { sessionId, tenantId, contextId, taskId },
+      'Creating new agent-scoped tool session'
+    );
     return this.createSessionWithId(sessionId, tenantId, projectId, contextId, taskId);
   }
 

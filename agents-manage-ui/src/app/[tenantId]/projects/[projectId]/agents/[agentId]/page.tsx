@@ -1,7 +1,5 @@
 import type { FC } from 'react';
-import { apiToFormValues } from '@/components/agent/form/validation';
 import FullPageError from '@/components/errors/full-page-error';
-import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 import { getFullAgent } from '@/lib/api/agent-full-client';
 import { Agent } from './page.client';
 
@@ -13,11 +11,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   const { agentId, tenantId, projectId } = await params;
   try {
     const agent = await getFullAgent(tenantId, projectId, agentId);
-    return (
-      <FullAgentFormProvider defaultValues={apiToFormValues(agent.data)}>
-        <Agent agent={agent.data} />
-      </FullAgentFormProvider>
-    );
+    return <Agent agent={agent.data} />;
   } catch (error) {
     return (
       <FullPageError

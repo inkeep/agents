@@ -11,19 +11,6 @@ import {
   formatMessagesAsConversationHistory,
   getConversationHistoryWithCompression,
 } from '../../data/conversations';
-import {
-  type BlobStorageDownloadResult,
-  fromBlobUri,
-  getBlobStorageProvider,
-  isBlobUri,
-} from '../../services/blob-storage';
-import { normalizeInlineFileBytes } from '../../services/blob-storage/file-content-security';
-import { UnsupportedTextAttachmentSourceError } from '../../services/blob-storage/file-security-errors';
-import {
-  buildDecodedTextAttachmentBlock,
-  buildTextAttachmentBlock,
-  isTextDocumentMimeType,
-} from '../../utils/text-document-attachments';
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 
@@ -88,7 +75,7 @@ export async function buildConversationHistory(
         streamRequestId,
         fullContextSize: initialContextBreakdown.total,
       });
-      conversationHistory = await formatMessagesAsConversationHistory(historyMessages);
+      conversationHistory = formatMessagesAsConversationHistory(historyMessages);
     } else if (historyConfig.mode === 'scoped') {
       const historyMessages = await getConversationHistoryWithCompression({
         tenantId: ctx.config.tenantId,
@@ -107,7 +94,7 @@ export async function buildConversationHistory(
         streamRequestId,
         fullContextSize: initialContextBreakdown.total,
       });
-      conversationHistory = await formatMessagesAsConversationHistory(historyMessages);
+      conversationHistory = formatMessagesAsConversationHistory(historyMessages);
     }
   }
 
@@ -125,55 +112,12 @@ export async function buildConversationHistory(
   return { conversationHistory, contextBreakdown: updatedContextBreakdown };
 }
 
-async function buildTextAttachmentPart(
-  part: FilePart,
-  mimeType: string
-): Promise<AiSdkContentPart> {
-  const filename = typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined;
-  const file = part.file;
-  let bytes: Uint8Array;
-
-  if ('bytes' in file && file.bytes) {
-    bytes = (await normalizeInlineFileBytes(file)).data;
-  } else if ('uri' in file && file.uri && isBlobUri(file.uri)) {
-    let downloaded: BlobStorageDownloadResult;
-    try {
-      downloaded = await getBlobStorageProvider().download(fromBlobUri(file.uri));
-    } catch (err) {
-      logger.warn(
-        { err, uri: file.uri, mimeType, failureKind: 'download' },
-        'Failed to download text attachment from blob storage'
-      );
-      return {
-        type: 'text',
-        text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
-      };
-    }
-    bytes = downloaded.data;
-  } else {
-    throw new UnsupportedTextAttachmentSourceError(mimeType);
-  }
-
-  try {
-    return {
-      type: 'text',
-      text: buildDecodedTextAttachmentBlock({ data: bytes, mimeType, filename }),
-    };
-  } catch (err) {
-    logger.warn({ err, mimeType, failureKind: 'decode' }, 'Failed to decode text attachment');
-    return {
-      type: 'text',
-      text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
-    };
-  }
-}
-
-export async function buildInitialMessages(
+export function buildInitialMessages(
   systemPrompt: string,
   conversationHistory: string,
   userMessage: string,
   fileParts?: FilePart[]
-): Promise<any[]> {
+): any[] {
   const messages: any[] = [];
   messages.push({ role: 'system', content: systemPrompt });
 
@@ -181,7 +125,7 @@ export async function buildInitialMessages(
     messages.push({ role: 'user', content: conversationHistory });
   }
 
-  const userContent = await buildUserMessageContent(userMessage, fileParts);
+  const userContent = buildUserMessageContent(userMessage, fileParts);
   messages.push({
     role: 'user',
     content: userContent,
@@ -190,10 +134,10 @@ export async function buildInitialMessages(
   return messages;
 }
 
-export async function buildUserMessageContent(
+export function buildUserMessageContent(
   text: string,
   fileParts?: FilePart[]
-): Promise<string | AiSdkContentPart[]> {
+): string | AiSdkContentPart[] {
   if (!fileParts || fileParts.length === 0) {
     return text;
   }
@@ -207,12 +151,6 @@ export async function buildUserMessageContent(
         ? new URL(file.uri)
         : `data:${file.mimeType || ''};base64,${file.bytes}`;
     const mimeType = normalizeMimeType(file.mimeType ?? '');
-
-    if (isTextDocumentMimeType(mimeType)) {
-      content.push(await buildTextAttachmentPart(part, mimeType));
-      continue;
-    }
-
     const mappedPart = mapFileToAiSdkContentPart(fileValue, mimeType, {
       detail: typeof part.metadata?.detail === 'string' ? part.metadata.detail : undefined,
       filename: typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined,

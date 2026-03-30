@@ -127,7 +127,7 @@ app.openapi(
     const { tenantId, projectId, toolId } = c.req.valid('param');
     const db = c.get('db');
 
-    logger.info({ toolId }, 'Getting MCP tool GitHub access configuration');
+    logger.info({ tenantId, projectId, toolId }, 'Getting MCP tool GitHub access configuration');
 
     await validateGitHubWorkappTool(db, tenantId, projectId, toolId);
 
@@ -135,7 +135,10 @@ app.openapi(
     const mode = await getMcpToolAccessMode(runDbClient)({ tenantId, projectId, toolId });
 
     if (mode === 'all') {
-      logger.info({ toolId }, 'MCP tool has access to all project repositories (mode=all)');
+      logger.info(
+        { tenantId, projectId, toolId },
+        'MCP tool has access to all project repositories (mode=all)'
+      );
       return c.json(
         {
           mode: 'all' as const,
@@ -153,7 +156,7 @@ app.openapi(
     });
 
     logger.info(
-      { toolId, repositoryCount: repositoriesWithDetails.length },
+      { tenantId, projectId, toolId, repositoryCount: repositoriesWithDetails.length },
       'Got MCP tool GitHub access configuration (mode=selected)'
     );
 
@@ -218,13 +221,16 @@ const setMcpToolGithubAccessHandler: ManageRouteHandler<
   const { mode, repositoryIds } = c.req.valid('json');
   const db = c.get('db');
 
-  logger.info({ toolId, mode }, 'Setting MCP tool GitHub access configuration');
+  logger.info(
+    { tenantId, projectId, toolId, mode },
+    'Setting MCP tool GitHub access configuration'
+  );
 
   await validateGitHubWorkappTool(db, tenantId, projectId, toolId);
 
   if (mode === 'selected') {
     if (!repositoryIds || repositoryIds.length === 0) {
-      logger.warn({ toolId }, 'repositoryIds required when mode is selected');
+      logger.warn({ tenantId, projectId, toolId }, 'repositoryIds required when mode is selected');
       throw createApiError({
         code: 'bad_request',
         message: 'repositoryIds is required when mode is "selected"',
@@ -238,7 +244,7 @@ const setMcpToolGithubAccessHandler: ManageRouteHandler<
 
     if (invalidRepoIds.length > 0) {
       logger.warn(
-        { toolId, invalidRepoIds },
+        { tenantId, projectId, toolId, invalidRepoIds },
         'Some repository IDs do not belong to tenant installations'
       );
       throw createApiError({
@@ -257,7 +263,7 @@ const setMcpToolGithubAccessHandler: ManageRouteHandler<
     });
 
     logger.info(
-      { toolId, repositoryCount: repositoryIds.length },
+      { tenantId, projectId, toolId, repositoryCount: repositoryIds.length },
       'MCP tool GitHub access set to selected repositories'
     );
 
@@ -279,7 +285,10 @@ const setMcpToolGithubAccessHandler: ManageRouteHandler<
     repositoryIds: [],
   });
 
-  logger.info({ toolId }, 'MCP tool GitHub access set to all project repositories');
+  logger.info(
+    { tenantId, projectId, toolId },
+    'MCP tool GitHub access set to all project repositories'
+  );
 
   return c.json(
     {

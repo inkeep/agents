@@ -12,13 +12,11 @@ const createTestWebClientApp = async ({
   tenantId,
   projectId,
   allowedDomains = ['help.customer.com'],
-  allowAnonymous = true,
   enabled = true,
 }: {
   tenantId: string;
   projectId: string;
   allowedDomains?: string[];
-  allowAnonymous?: boolean;
   enabled?: boolean;
 }) => {
   const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
@@ -31,7 +29,6 @@ const createTestWebClientApp = async ({
         type: 'web_client',
         webClient: {
           allowedDomains,
-          allowAnonymous,
         },
       },
     }),
@@ -305,135 +302,6 @@ describe('Anonymous Session Endpoint', () => {
       const uniqueSubs = new Set(subs);
       expect(uniqueSubs.size).toBe(3);
     });
-  });
-});
-
-describe('Anonymous Session — allowAnonymous enforcement', () => {
-  let originalPowSecret: string | undefined;
-
-  beforeEach(() => {
-    originalPowSecret = env.INKEEP_POW_HMAC_SECRET;
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
-  });
-
-  afterEach(() => {
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalPowSecret;
-  });
-
-  const setAllowAnonymous = async (
-    tenantId: string,
-    projectId: string,
-    appId: string,
-    allowAnonymous: boolean
-  ) => {
-    const res = await makeRequest(
-      `/manage/tenants/${tenantId}/projects/${projectId}/apps/${appId}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({
-          config: {
-            type: 'web_client',
-            webClient: {
-              allowedDomains: ['help.customer.com'],
-              allowAnonymous,
-            },
-          },
-        }),
-      }
-    );
-    expect(res.status).toBe(200);
-  };
-
-  it('should reject anonymous session when allowAnonymous is false', async () => {
-    const tenantId = await createTestTenantWithOrg('anon-enforce-reject');
-    const projectId = 'default-project';
-    await createTestProject(manageDbClient, tenantId, projectId);
-    const appRecord = await createTestWebClientApp({ tenantId, projectId });
-
-    await setAllowAnonymous(tenantId, projectId, appRecord.id, false);
-
-    const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: 'https://help.customer.com',
-      },
-    });
-
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.error.message).toContain('Anonymous sessions are disabled');
-  });
-
-  it('should allow anonymous session when allowAnonymous is true', async () => {
-    const tenantId = await createTestTenantWithOrg('anon-enforce-allow');
-    const projectId = 'default-project';
-    await createTestProject(manageDbClient, tenantId, projectId);
-    const appRecord = await createTestWebClientApp({ tenantId, projectId });
-
-    await setAllowAnonymous(tenantId, projectId, appRecord.id, true);
-
-    const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: 'https://help.customer.com',
-      },
-    });
-
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.token).toBeDefined();
-  });
-
-  it('should reject anonymous session by default (allowAnonymous defaults to false)', async () => {
-    const tenantId = await createTestTenantWithOrg('anon-enforce-default');
-    const projectId = 'default-project';
-    await createTestProject(manageDbClient, tenantId, projectId);
-    const appRecord = await createTestWebClientApp({ tenantId, projectId, allowAnonymous: false });
-
-    const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: 'https://help.customer.com',
-      },
-    });
-
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.error.message).toContain('Anonymous sessions are disabled');
-  });
-
-  it('should reject then allow after toggling allowAnonymous back to true', async () => {
-    const tenantId = await createTestTenantWithOrg('anon-enforce-toggle');
-    const projectId = 'default-project';
-    await createTestProject(manageDbClient, tenantId, projectId);
-    const appRecord = await createTestWebClientApp({ tenantId, projectId });
-
-    await setAllowAnonymous(tenantId, projectId, appRecord.id, false);
-
-    const rejectRes = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: 'https://help.customer.com',
-      },
-    });
-    expect(rejectRes.status).toBe(401);
-
-    await setAllowAnonymous(tenantId, projectId, appRecord.id, true);
-
-    const allowRes = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: 'https://help.customer.com',
-      },
-    });
-    expect(allowRes.status).toBe(200);
-    const body = await allowRes.json();
-    expect(body.token).toBeDefined();
   });
 });
 

@@ -1,6 +1,4 @@
 import type { WithTimestamps } from '@inkeep/agents-core/validation/extend-schemas';
-import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
-import { StreamableHTTPError } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { CredentialStoreRegistry } from '../../credential-stores';
@@ -47,73 +45,28 @@ import { agentScopedWhere, projectScopedWhere } from './scope-helpers';
 import { updateAgentToolRelation } from './subAgentRelations';
 
 /**
- * Check if an error is a timeout/connection error (transient, not auth-related).
+ * Check if an error is a timeout/connection error.
  * Uses MCP SDK ErrorCode for proper type safety.
  */
 function isTimeoutOrConnectionError(error: unknown): boolean {
   if (error instanceof McpError) {
-    return (
-      error.code === ErrorCode.RequestTimeout ||
-      error.code === ErrorCode.ConnectionClosed ||
-      error.code === ErrorCode.InternalError
-    );
-  }
-
-  if (error instanceof StreamableHTTPError) {
-    return error.code !== undefined && error.code >= 500;
+    return error.code === ErrorCode.RequestTimeout || error.code === ErrorCode.ConnectionClosed;
   }
 
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     const cause = (error as any).cause;
 
-    if (
-      message.includes('timed out') ||
-      message.includes('timeout') ||
-      message.includes('fetch failed')
-    ) {
+    // Check for timeout-related error messages
+    if (message.includes('timed out') || message.includes('timeout')) {
       return true;
     }
 
-    const transientCodes = [
-      'ETIMEDOUT',
-      'ECONNABORTED',
-      'ECONNRESET',
-      'ECONNREFUSED',
-      'ENOTFOUND',
-      'EHOSTUNREACH',
-      'ENETUNREACH',
-      'EPIPE',
-    ];
-    if (cause?.code && transientCodes.includes(cause.code)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Check if an error indicates the credential is invalid/expired/revoked.
- * These errors mean the user genuinely needs to re-authenticate.
- */
-function isAuthenticationError(error: unknown): boolean {
-  if (error instanceof UnauthorizedError) {
-    return true;
-  }
-
-  if (error instanceof StreamableHTTPError) {
-    return error.code === 401 || error.code === 403;
-  }
-
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
+    // Check for network error codes
     if (
-      message.includes('unauthorized') ||
-      message.includes('forbidden') ||
-      message.includes('invalid_token') ||
-      message.includes('token expired') ||
-      message.includes('invalid_grant')
+      cause?.code === 'ETIMEDOUT' ||
+      cause?.code === 'ECONNABORTED' ||
+      cause?.code === 'ECONNRESET'
     ) {
       return true;
     }
@@ -329,7 +282,9 @@ const discoverToolsFromServer = async (
     await client.connect();
 
     const serverTools = await client.tools();
-    const serverInstructions = client.getInstructions() ?? undefined;
+    const rawServerInstructions = client.getInstructions();
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: Intentionally matching control chars to remove them
+    const serverInstructions = rawServerInstructions?.replace(/\u0000/g, '');
 
     await client.disconnect();
 
@@ -447,26 +402,14 @@ export const dbResultToMcpTool = async (
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Tool discovery failed';
 
+    // Check for timeout/connection errors first using MCP SDK types
+    // These are transient and don't indicate auth issues
     if (isTimeoutOrConnectionError(error)) {
       status = 'unavailable';
       const errorCode = error instanceof McpError ? ` (MCP error ${error.code})` : '';
       lastErrorComputed = `Connection failed - the MCP server may be slow or temporarily unreachable.${errorCode} ${errorMessage}`;
-    } else if (isAuthenticationError(error)) {
-      status = 'needs_auth';
-      lastErrorComputed = `Authentication required - OAuth login needed. ${errorMessage}`;
-    } else if (credentialReference) {
-      logger.warn(
-        {
-          toolId: dbResult.id,
-          credentialId: credentialReference.id,
-          errorCode: error instanceof McpError ? error.code : undefined,
-          errorMessage,
-        },
-        'MCP server discovery failed with existing credential — treating as transient'
-      );
-      status = 'unavailable';
-      lastErrorComputed = `Server temporarily unavailable. ${errorMessage}`;
     } else {
+      // Only check for auth requirement if it's not a timeout/connection error
       const toolNeedsAuth = await detectAuthenticationRequired({
         serverUrl: mcpServerUrl,
         error: error instanceof Error ? error : undefined,

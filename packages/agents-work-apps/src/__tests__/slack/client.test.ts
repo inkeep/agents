@@ -10,7 +10,6 @@
  * - Message posting (channels and threads)
  */
 
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import type { WebClient } from '@slack/web-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -56,7 +55,14 @@ vi.mock('@slack/web-api', () => {
   };
 });
 
-vi.mock('../../logger', () => createMockLoggerModule().module);
+vi.mock('../../logger', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 describe('Slack Client', () => {
   beforeEach(() => {

@@ -8,9 +8,6 @@ interface AgentToAgentEdgeProps extends Omit<EdgeProps, 'data'> {
   data: AnimatedEdge & A2AEdgeData;
 }
 
-const getMarker = (isSelected?: boolean) =>
-  isSelected ? 'url(#marker-selected)' : 'url(#marker-default)';
-
 export function AgentToAgentEdge({
   sourceX,
   sourceY,
@@ -63,27 +60,33 @@ export function AgentToAgentEdge({
     sourcePosition,
   });
 
+  let PrimaryIcon = null;
   const hasSourceToTarget =
     relationships.transferSourceToTarget || relationships.delegateSourceToTarget;
   const hasTargetToSource =
     relationships.transferTargetToSource || relationships.delegateTargetToSource;
-  const PrimaryIcon =
-    hasSourceToTarget && hasTargetToSource
-      ? ArrowRightLeft
-      : hasTransfer || hasDelegate
-        ? ArrowRight
-        : null;
+
+  if (hasSourceToTarget && hasTargetToSource) {
+    PrimaryIcon = ArrowRightLeft;
+  } else if (hasTransfer) {
+    PrimaryIcon = ArrowRight;
+  } else if (hasDelegate) {
+    PrimaryIcon = ArrowRight;
+  }
+
+  const getMarker = (isSelected: boolean) =>
+    isSelected ? 'url(#marker-selected)' : 'url(#marker-default)';
 
   // Determine markers based on relationship directions
   const transferMarkerStart =
-    hasTransfer && relationships.transferTargetToSource ? getMarker(selected) : undefined;
+    hasTransfer && relationships.transferTargetToSource ? getMarker(!!selected) : undefined;
   const transferMarkerEnd =
-    hasTransfer && relationships.transferSourceToTarget ? getMarker(selected) : undefined;
+    hasTransfer && relationships.transferSourceToTarget ? getMarker(!!selected) : undefined;
 
   const delegateMarkerStart =
-    hasDelegate && relationships.delegateTargetToSource ? getMarker(selected) : undefined;
+    hasDelegate && relationships.delegateTargetToSource ? getMarker(!!selected) : undefined;
   const delegateMarkerEnd =
-    hasDelegate && relationships.delegateSourceToTarget ? getMarker(selected) : undefined;
+    hasDelegate && relationships.delegateSourceToTarget ? getMarker(!!selected) : undefined;
 
   const className = cn(
     data.status && 'edge-delegating',

@@ -62,8 +62,7 @@ Incoming payloads are validated, transformed into a message, and used to start a
 | **Authentication** | One or more custom headers with expected values (see [Authentication](#authentication)) |
 | **Signing Secret** | HMAC-SHA256 secret for signature verification (GitHub, Stripe, Slack) |
 | **Output Transform** | Reshape payloads before interpolating the message template (see [Payload transformation](#payload-transformation)) |
-| **Run As Users** | Execute the trigger as one or more users to access their connected credentials (see [User-scoped execution](#user-scoped-execution)) |
-| **Dispatch Delay** | Optional delay in milliseconds between each per-user execution to smooth out downstream rate limits |
+| **Run As User** | Execute the trigger as a specific user to access their connected credentials (see [User-scoped execution](#user-scoped-execution)) |
 
 ### Message templates
 
@@ -115,9 +114,9 @@ Object Transformation is converted to JMESPath under the hood. Start with object
 
 ## User-scoped execution
 
-By default, webhook triggers run without a user identity — tools requiring user-scoped credentials are skipped. Setting **Run As Users** makes the trigger execute as one or more specific users, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira).
+By default, webhook triggers run without a user identity — tools requiring user-scoped credentials are skipped. Setting **Run As User** makes the trigger execute as a specific user, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira).
 
-Each selected user gets a separate execution and invocation record for every webhook request. When a run-as user is set, agents automatically use that user's profile timezone for time-aware responses.
+When a run-as user is set, agents automatically use that user's profile timezone for time-aware responses.
 
 ## How webhooks are processed
 
@@ -126,7 +125,7 @@ Each selected user gets a separate execution and invocation record for every web
 3. The payload is validated against the input schema (if configured)
 4. The payload is transformed using the output transform (if configured)
 5. The message template is interpolated with the (transformed) payload
-6. The webhook returns `202 Accepted` immediately with the accepted invocation IDs
+6. The webhook returns `202 Accepted` immediately
 7. The agent processes the message asynchronously in a new conversation
 
 ## Monitor invocations
@@ -140,7 +139,6 @@ Every webhook invocation is tracked with:
 | Field | Description |
 | --- | --- |
 | **Status** | `pending` → `success` or `failed` |
-| **Run As User** | Which user identity this invocation executed as |
 | **Request Payload** | The original webhook body |
 | **Transformed Payload** | The payload after output transformation |
 | **Conversation ID** | Links to the conversation the invocation created |

@@ -4,11 +4,11 @@ import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Control } from 'react-hook-form';
 import { useFormState, useWatch } from 'react-hook-form';
-import { SectionHeader } from '@/components/agent/sidepane/section';
 import { GenericInput } from '@/components/form/generic-input';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
+import { Label } from '@/components/ui/label';
 import type { ProjectFormData } from './validation';
 
 interface ProjectStopWhenSectionProps {
@@ -20,8 +20,9 @@ export function ProjectStopWhenSection({ control, disabled }: ProjectStopWhenSec
   const stopWhen = useWatch({ control, name: 'stopWhen' });
   const hasConfiguredStopWhen = !!(stopWhen?.transferCountIs || stopWhen?.stepCountIs);
   const [isOpen, setIsOpen] = useState(hasConfiguredStopWhen);
+
   const { errors } = useFormState({ control });
-  const hasStopWhenErrors = !!errors.stopWhen;
+  const hasStopWhenErrors = !!(errors.stopWhen?.transferCountIs || errors.stopWhen?.stepCountIs);
 
   // Auto-open the collapsible when there are errors in the stopWhen section
   useEffect(() => {
@@ -32,10 +33,13 @@ export function ProjectStopWhenSection({ control, disabled }: ProjectStopWhenSec
 
   return (
     <div className="space-y-4">
-      <SectionHeader
-        title="Execution limits"
-        description="Set default execution limits that will be inherited by agents and sub agents in this project."
-      />
+      <div>
+        <Label className="text-sm font-medium">Execution limits</Label>
+        <p className="text-sm text-muted-foreground mt-1">
+          Set default execution limits that will be inherited by agents and sub agents in this
+          project.
+        </p>
+      </div>
 
       <Collapsible
         open={isOpen}

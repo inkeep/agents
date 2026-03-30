@@ -32,7 +32,7 @@ export default async function ProjectScheduledTriggerInvocationsPage({
       </div>
       <PageHeader title={metadata.title} description={metadata.description} />
       <ProjectScheduledTriggerInvocationsTable
-        initialInvocations={invocations}
+        invocations={invocations}
         tenantId={tenantId}
         projectId={projectId}
       />

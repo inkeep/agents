@@ -192,8 +192,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   return (
     <div
       className={cn(
-        'min-w-0',
-        'max-h-[90vh]', // set fixed max height, otherwise page freezes up / lags when clicking into it
+        'max-h-screen', // set fixed max height, otherwise page freezes up / lags when clicking into it
         !hasDynamicHeight && 'h-full',
         'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
@@ -207,14 +206,13 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       {...props}
       ref={containerRef}
     >
-      {monaco ? (
-        children
-      ) : (
+      {!monaco && (
         <>
           <Skeleton className="h-4 w-4/5" />
           <Skeleton className="h-4 w-3/5 mt-3 mb-full" />
         </>
       )}
+      {children}
     </div>
   );
 };

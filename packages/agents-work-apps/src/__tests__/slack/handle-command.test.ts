@@ -8,7 +8,6 @@
  * - Unknown text treated as question
  */
 
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@inkeep/agents-core', () => ({
@@ -36,7 +35,14 @@ vi.mock('../../env', () => ({
   },
 }));
 
-vi.mock('../../logger', () => createMockLoggerModule().module);
+vi.mock('../../logger', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: vi.fn().mockResolvedValue({

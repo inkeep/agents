@@ -102,7 +102,7 @@ export function getTracer(serviceName: string, serviceVersion?: string): Tracer 
   try {
     return trace.getTracer(serviceName, serviceVersion);
   } catch (_error) {
-    logger.debug('OpenTelemetry tracer not available, using no-op tracer');
+    logger.debug({}, 'OpenTelemetry tracer not available, using no-op tracer');
     return noopTracer;
   }
 }

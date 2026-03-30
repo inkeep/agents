@@ -46,7 +46,6 @@ vi.mock('@inkeep/agents-core', () => ({
   canUseProjectStrict: canUseProjectStrictMock,
   validateTargetAgent: validateTargetAgentMock,
   verifyPoW: verifyPoWMock,
-  getInProcessFetch: () => vi.fn(),
   getPoWErrorMessage: (error: string) => {
     const messages: Record<string, string> = {
       pow_expired: 'Proof-of-work challenge has expired.',
@@ -65,8 +64,6 @@ vi.mock('@inkeep/agents-core', () => ({
 
 vi.mock('jose', () => ({
   jwtVerify: jwtVerifyMock,
-  createRemoteJWKSet: vi.fn(() => vi.fn()),
-  customFetch: Symbol('customFetch'),
   errors: {
     JWTExpired: class JWTExpired extends Error {},
     JWSSignatureVerificationFailed: class JWSSignatureVerificationFailed extends Error {},
@@ -129,7 +126,7 @@ function makeWebClientApp(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('app prompt resolution via appId', () => {
+describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', () => {
   let app: Hono;
   const originalEnv = process.env.ENVIRONMENT;
 
@@ -150,8 +147,45 @@ describe('app prompt resolution via appId', () => {
     process.env.ENVIRONMENT = originalEnv;
   });
 
-  describe('app credential auth sets appId from DB (appPrompt resolved later in handler)', () => {
-    it('should set metadata.appId but not metadata.appPrompt at auth time', async () => {
+  describe('API key auth (production path)', () => {
+    it('should set metadata.appPrompt from x-inkeep-app-prompt header', async () => {
+      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.json((c as any).get('executionContext')));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
+          'x-inkeep-app-prompt': 'Be concise and link to documentation pages.',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.metadata.appPrompt).toBe('Be concise and link to documentation pages.');
+    });
+
+    it('should not set metadata.appPrompt when header is absent', async () => {
+      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.json((c as any).get('executionContext')));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.metadata?.appPrompt).toBeUndefined();
+    });
+  });
+
+  describe('app credential auth (appPrompt from DB takes precedence)', () => {
+    it('should not override DB-sourced appPrompt with header value', async () => {
       const appRecord = makeWebClientApp({ prompt: 'Prompt from database' });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
@@ -174,93 +208,17 @@ describe('app prompt resolution via appId', () => {
           'x-inkeep-app-id': 'app-id-1',
           'x-inkeep-agent-id': 'agent-1',
           Origin: 'https://help.customer.com',
+          'x-inkeep-app-prompt': 'Header prompt that should be ignored',
         },
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.metadata.appId).toBe('app-id-1');
-      expect(body.metadata.appPrompt).toBeUndefined();
-    });
-  });
-
-  describe('A2A forwarding: appId comes from verified service token JWT, not headers', () => {
-    it('should set metadata.appId from service token JWT when teamDelegation', async () => {
-      verifyServiceTokenMock.mockResolvedValueOnce({
-        valid: true,
-        payload: {
-          iss: 'inkeep-agents',
-          sub: 'parent-agent',
-          aud: 'sub-agent-1',
-          tenantId: 'tenant_123',
-          projectId: 'project_123',
-          initiatedBy: { type: 'user', id: 'user_123' },
-          appId: 'app-from-jwt',
-          iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + 3600,
-        },
-      });
-      validateTargetAgentMock.mockReturnValue(true);
-
-      app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.json((c as any).get('executionContext')));
-
-      const res = await app.request('/', {
-        headers: {
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.valid-service-token',
-          'x-inkeep-sub-agent-id': 'sub-agent-1',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.metadata.appId).toBe('app-from-jwt');
-      expect(body.metadata.teamDelegation).toBe(true);
-      expect(body.metadata?.appPrompt).toBeUndefined();
+      expect(body.metadata.appPrompt).toBe('Prompt from database');
     });
 
-    it('should NOT forward x-inkeep-app-id header for regular API key auth', async () => {
-      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
-
-      app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.json((c as any).get('executionContext')));
-
-      const res = await app.request('/', {
-        headers: {
-          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
-          'x-inkeep-app-id': 'attacker-supplied-app-id',
-          'x-inkeep-sub-agent-id': 'sub-agent-1',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.metadata?.appId).toBeUndefined();
-    });
-
-    it('should not set metadata.appId when headers are absent', async () => {
-      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
-
-      app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.json((c as any).get('executionContext')));
-
-      const res = await app.request('/', {
-        headers: {
-          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.metadata?.appId).toBeUndefined();
-    });
-  });
-
-  describe('non-ASCII app prompt does not break auth (prompt resolved in handler, not auth)', () => {
-    it('should set appId without appPrompt even when app has unicode prompt', async () => {
-      const unicodePrompt =
-        'Be helpful and concise. Use \u2018smart quotes\u2019 and emoji \ud83d\ude80';
-      const appRecord = makeWebClientApp({ prompt: unicodePrompt });
+    it('should use header appPrompt when app has no prompt in DB', async () => {
+      const appRecord = makeWebClientApp({ prompt: null });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
       jwtVerifyMock.mockResolvedValueOnce({
@@ -282,13 +240,13 @@ describe('app prompt resolution via appId', () => {
           'x-inkeep-app-id': 'app-id-1',
           'x-inkeep-agent-id': 'agent-1',
           Origin: 'https://help.customer.com',
+          'x-inkeep-app-prompt': 'Forwarded from parent agent',
         },
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.metadata.appId).toBe('app-id-1');
-      expect(body.metadata.appPrompt).toBeUndefined();
+      expect(body.metadata.appPrompt).toBe('Forwarded from parent agent');
     });
   });
 });

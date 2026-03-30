@@ -68,7 +68,7 @@ app.openapi(
 
       return c.json(result) as any;
     } catch (error) {
-      logger.error({ error }, 'Failed to list function tools');
+      logger.error({ error, tenantId, projectId, agentId }, 'Failed to list function tools');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to list function tools' }),
         500
@@ -119,7 +119,7 @@ app.openapi(
 
       return c.json({ data: functionTool }) as any;
     } catch (error) {
-      logger.error({ error, id }, 'Failed to get function tool');
+      logger.error({ error, tenantId, projectId, agentId, id }, 'Failed to get function tool');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to get function tool' }),
         500
@@ -176,7 +176,7 @@ app.openapi(
 
       return c.json({ data: functionTool }, 201) as any;
     } catch (error) {
-      logger.error({ error, body }, 'Failed to create function tool');
+      logger.error({ error, tenantId, projectId, agentId, body }, 'Failed to create function tool');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -236,7 +236,10 @@ const updateFunctionToolHandler: ManageRouteHandler<typeof updateFunctionToolRou
 
     return c.json({ data: functionTool }) as any;
   } catch (error) {
-    logger.error({ error, id, body }, 'Failed to update function tool');
+    logger.error(
+      { error, tenantId, projectId, agentId, id, body },
+      'Failed to update function tool'
+    );
     return c.json(
       createApiError({
         code: 'internal_server_error',
@@ -293,7 +296,7 @@ app.openapi(
 
       return c.body(null, 204);
     } catch (error) {
-      logger.error({ error, id }, 'Failed to delete function tool');
+      logger.error({ error, tenantId, projectId, agentId, id }, 'Failed to delete function tool');
       return c.json(
         createApiError({
           code: 'internal_server_error',

@@ -4,7 +4,6 @@ import FullPageError from '@/components/errors/full-page-error';
 import { EvaluationJobResults } from '@/components/evaluation-jobs/evaluation-job-results';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { LocalDateTimeText } from '@/components/ui/local-date-time-text';
 import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 import type {
   EvaluationJobConfig,
@@ -13,6 +12,7 @@ import type {
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluators } from '@/lib/api/evaluators';
+import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,11 +70,7 @@ async function EvaluationJobPage({
         </div>
         <PageHeader
           title={await getJobName({ tenantId, projectId, jobConfig })}
-          description={
-            <>
-              Created <LocalDateTimeText dateString={jobConfig.createdAt} />
-            </>
-          }
+          description={`Created ${formatDateTimeTable(jobConfig.createdAt)}`}
         />
         <EvaluationJobResults
           tenantId={tenantId}

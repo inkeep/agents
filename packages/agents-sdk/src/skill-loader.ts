@@ -1,27 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { SkillApiInsertSchema } from '@inkeep/agents-core';
-import { z } from 'zod';
+import { SkillFrontmatterSchema } from '@inkeep/agents-core/client-exports';
+import { simplematter } from 'simplematter';
 import type { SkillDefinition } from './types';
 
 function getParentDirName(filePath: string): string {
   return path.basename(path.dirname(filePath));
-}
-
-function toPosixPath(filePath: string): string {
-  return filePath.split(path.sep).join('/');
-}
-
-function loadSkillFiles(skillDir: string) {
-  return fs
-    .globSync('**/*', {
-      cwd: skillDir,
-    })
-    .filter((filePath) => fs.statSync(path.join(skillDir, filePath)).isFile())
-    .map((filePath) => ({
-      filePath: toPosixPath(filePath),
-      content: fs.readFileSync(path.join(skillDir, filePath), 'utf8'),
-    }));
 }
 
 export function loadSkills(directoryPath: string): SkillDefinition[] {
@@ -30,19 +14,22 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
   });
 
   return files.map((filePath) => {
-    const skillDir = path.join(directoryPath, path.dirname(filePath));
-    const result = SkillApiInsertSchema.safeParse({
-      files: loadSkillFiles(skillDir),
-    });
-    if (!result.success) {
-      throw new Error(z.prettifyError(result.error));
-    }
-    const { name, files } = result.data;
+    const resolvedPath = path.join(directoryPath, filePath);
+    const fileContent = fs.readFileSync(resolvedPath, 'utf8');
+    const [frontmatter, document] = simplematter(fileContent);
+    const { name, description, metadata } = SkillFrontmatterSchema.parse(frontmatter);
+
     const id = getParentDirName(filePath);
     if (name !== id) {
       throw new Error(`Skill name "${name}" does not match directory "${id}"`);
     }
 
-    return { id, files };
+    return {
+      id,
+      name,
+      description,
+      metadata,
+      content: document.trim(),
+    };
   });
 }

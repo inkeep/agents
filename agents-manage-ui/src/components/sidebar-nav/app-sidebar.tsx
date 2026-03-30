@@ -8,25 +8,22 @@ import {
   Blocks,
   Coins,
   Component,
-  CreditCard,
-  Database,
   Globe,
   Key,
   Layers,
   Library,
   Lock,
   LucideHexagon,
-  MessageSquare,
   Settings,
   Users,
   Workflow,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams, usePathname } from 'next/navigation';
-import { type ComponentProps, type Dispatch, type FC, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { type ComponentProps, type Dispatch, type FC, useCallback } from 'react';
 import { MCPIcon } from '@/components/icons/mcp-icon';
-import { NavGroup, type NavItemProps } from '@/components/sidebar-nav/nav-group';
+import { NavGroup } from '@/components/sidebar-nav/nav-group';
 import { ProjectSwitcher } from '@/components/sidebar-nav/project-switcher';
 import {
   Sidebar,
@@ -38,10 +35,9 @@ import {
 import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
-import { fetchEntitlements } from '@/lib/api/entitlements';
-import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
+import type { NavItemProps } from './nav-item';
 
 interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
   open: boolean;
@@ -50,31 +46,9 @@ interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
 
 export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
-  const pathname = usePathname();
   const { user } = useAuthSession();
 
   const isWorkAppsEnabled = process.env.NEXT_PUBLIC_ENABLE_WORK_APPS === 'true';
-  const { data: capabilities } = useCapabilitiesQuery();
-  const costTrackingEnabled = capabilities?.costTracking?.enabled;
-  const [hasEntitlements, setHasEntitlements] = useState(false);
-
-  useEffect(() => {
-    setHasEntitlements(false);
-    if (!tenantId) return;
-
-    let cancelled = false;
-    fetchEntitlements(tenantId)
-      .then((entitlements) => {
-        if (!cancelled) setHasEntitlements(entitlements.length > 0);
-      })
-      .catch(() => {
-        if (!cancelled) setHasEntitlements(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [tenantId]);
 
   const topNavItems: NavItemProps[] = projectId
     ? []
@@ -89,15 +63,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/stats`,
           icon: BarChart3,
         },
-        ...(costTrackingEnabled
-          ? [
-              {
-                title: 'Cost',
-                url: `/${tenantId}/cost`,
-                icon: Coins,
-              },
-            ]
-          : []),
+        {
+          title: 'Cost',
+          url: `/${tenantId}/cost`,
+          icon: Coins,
+        },
         ...(isWorkAppsEnabled
           ? [
               {
@@ -115,15 +85,6 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       url: `/${tenantId}/members`,
       icon: Users,
     },
-    ...(hasEntitlements
-      ? [
-          {
-            title: STATIC_LABELS.billing,
-            url: `/${tenantId}/billing`,
-            icon: CreditCard,
-          },
-        ]
-      : []),
     {
       title: STATIC_LABELS.settings,
       url: `/${tenantId}/settings`,
@@ -213,49 +174,44 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
         },
-        {
-          title: STATIC_LABELS.feedback,
-          url: `/${tenantId}/projects/${projectId}/feedback`,
-          icon: MessageSquare,
-        },
-        {
-          title: 'Test Suites',
-          url: `/${tenantId}/projects/${projectId}/datasets`,
-          icon: Database,
-        },
+        // Disabling test suites
+        // {
+        //   title: 'Test Suites',
+        //   url: `/${tenantId}/projects/${projectId}/datasets`,
+        //   icon: Database,
+        // },
         {
           title: STATIC_LABELS.evaluations,
           url: `/${tenantId}/projects/${projectId}/evaluations`,
           icon: BarChart3,
         },
-        ...(costTrackingEnabled
-          ? [
-              {
-                title: 'Cost',
-                url: `/${tenantId}/projects/${projectId}/cost`,
-                icon: Coins,
-              },
-            ]
-          : []),
+        {
+          title: 'Cost',
+          url: `/${tenantId}/projects/${projectId}/cost`,
+          icon: Coins,
+        },
       ]
     : [];
 
-  const handleHover = throttle(200, (event) => {
-    const isBlur = event.type === 'mouseleave';
+  const handleHover: NonNullable<ComponentProps<'div'>['onMouseEnter']> = useCallback(
+    throttle(200, (event) => {
+      const isBlur = event.type === 'mouseleave';
 
-    if (isBlur) {
-      const blurToElement = event.relatedTarget;
-      const insideMainContent =
-        blurToElement &&
-        blurToElement instanceof HTMLElement &&
-        !!blurToElement.closest('#main-content');
+      if (isBlur) {
+        const blurToElement = event.relatedTarget;
+        const insideMainContent =
+          blurToElement &&
+          blurToElement instanceof HTMLElement &&
+          !!blurToElement.closest('#main-content');
 
-      if (!insideMainContent) {
-        return;
+        if (!insideMainContent) {
+          return;
+        }
       }
-    }
-    setOpen(!isBlur);
-  }) satisfies ComponentProps<'div'>['onMouseEnter'];
+      setOpen(!isBlur);
+    }),
+    []
+  );
 
   return (
     <Sidebar
@@ -299,15 +255,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
                 </Link>
               </SidebarMenuButton>
             </div>
-            <NavGroup currentPath={pathname} items={configureNavItems} />
-            <NavGroup currentPath={pathname} label="Register" items={registerNavItems} />
-            <NavGroup currentPath={pathname} label="UI" items={uiNavItems} />
-            <NavGroup currentPath={pathname} label="Monitor" items={monitorNavItems} />
+            <NavGroup items={configureNavItems} />
+            <NavGroup label="Register" items={registerNavItems} />
+            <NavGroup label="UI" items={uiNavItems} />
+            <NavGroup label="Monitor" items={monitorNavItems} />
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
-            <NavGroup currentPath={pathname} items={topNavItems} />
-            {user && <NavGroup currentPath={pathname} label="Organization" items={orgNavItems} />}
+            <NavGroup items={topNavItems} />
+            {user && <NavGroup label="Organization" items={orgNavItems} />}
           </div>
         )}
       </SidebarContent>

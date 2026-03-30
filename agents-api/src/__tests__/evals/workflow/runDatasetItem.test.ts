@@ -1,4 +1,3 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist the mock functions
@@ -52,7 +51,14 @@ vi.mock('../../../env.js', () => ({
   },
 }));
 
-vi.mock('../../../logger.js', () => createMockLoggerModule().module);
+vi.mock('../../../logger.js', () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
+}));
 
 vi.mock('../../../domains/evals/services/EvaluationService.js', () => ({
   EvaluationService: vi.fn().mockImplementation(() => ({
@@ -111,6 +117,40 @@ describe('runDatasetItem Workflow Steps', () => {
       });
 
       expect(result.error).toContain('Chat API error');
+    });
+
+    it('should handle simulation agent configuration', async () => {
+      runDatasetItemMock.mockResolvedValue({
+        conversationId: 'conv-456',
+        response: 'Multi-turn response',
+      });
+
+      const result = await runDatasetItemMock({
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        agentId: 'test-agent',
+        datasetItem: {
+          id: 'item-1',
+          input: { messages: [{ role: 'user', content: 'Start conversation' }] },
+          simulationAgent: {
+            prompt: 'You are a curious user',
+            model: { model: 'gpt-4o' },
+            stopWhen: { stepCountIs: 5 },
+          },
+        },
+        datasetRunId: 'run-1',
+      });
+
+      expect(result.conversationId).toBe('conv-456');
+      expect(runDatasetItemMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datasetItem: expect.objectContaining({
+            simulationAgent: expect.objectContaining({
+              prompt: 'You are a curious user',
+            }),
+          }),
+        })
+      );
     });
   });
 

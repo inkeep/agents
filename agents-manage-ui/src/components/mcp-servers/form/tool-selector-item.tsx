@@ -42,6 +42,7 @@ export function ToolSelectorItem({
   onEdit,
   onRemoveOverride,
 }: ToolSelectorItemProps) {
+  'use memo';
   const [isCompareOpen, setIsCompareOpen] = useState(false);
 
   return (

@@ -10,7 +10,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { css } from '@/lib/utils';
-import { ImproveDialog } from './improve-dialog';
+import { FeedbackDialog } from './feedback-dialog';
 
 interface ChatWidgetProps {
   agentId?: string;
@@ -76,17 +76,14 @@ export function ChatWidget({
   setShowTraces,
   hasHeadersError,
 }: ChatWidgetProps) {
+  'use memo';
+
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-  const copilotCtx = useCopilotContext();
+  const { isCopilotConfigured } = useCopilotContext();
   const { data: dataComponents } = useDataComponentsQuery();
-  const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
-  const {
-    apiKey: tempApiKey,
-    appId: playgroundAppId,
-    isLoading: isLoadingKey,
-    refresh: refreshToken,
-  } = useTempApiKey({
+  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
     tenantId,
     projectId,
     agentId: agentId || '',
@@ -151,14 +148,6 @@ export function ChatWidget({
         <InkeepEmbeddedChat
           baseSettings={{
             shouldBypassCaptcha: true,
-            ...(playgroundAppId && tempApiKey
-              ? {
-                  getAuthToken: async () => {
-                    const token = await refreshToken();
-                    return token ?? tempApiKey;
-                  },
-                }
-              : {}),
             async onEvent(event) {
               posthog?.capture(event.eventName, {
                 ...event.properties,
@@ -239,30 +228,31 @@ export function ChatWidget({
             },
             isChatHistoryButtonVisible: false,
             isViewOnly: hasHeadersError,
-            conversationIdOverride: conversationId,
+            conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
-            appId: playgroundAppId ?? undefined,
             headers: {
+              'x-inkeep-tenant-id': tenantId,
+              'x-inkeep-project-id': projectId,
+              'x-inkeep-agent-id': agentId || '',
               'x-emit-operations': 'true',
+              Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
-            messageActions: [
-              ...(copilotCtx.isCopilotConfigured
-                ? [
-                    {
-                      label: 'Improve with AI',
-                      icon: { builtIn: 'LuSparkles' as const },
-                      action: {
-                        type: 'invoke_message_callback' as const,
-                        callback({ messageId }: { messageId?: string }) {
-                          setMessageId(messageId);
-                          setIsImproveDialogOpen(true);
-                        },
+            messageActions: isCopilotConfigured
+              ? [
+                  {
+                    label: 'Improve with AI',
+                    icon: { builtIn: 'LuSparkles' },
+                    action: {
+                      type: 'invoke_message_callback',
+                      callback({ messageId }) {
+                        setMessageId(messageId);
+                        setIsFeedbackDialogOpen(true);
                       },
                     },
-                  ]
-                : []),
-            ],
+                  },
+                ]
+              : undefined,
             components: new Proxy(
               {},
               {
@@ -291,10 +281,10 @@ export function ChatWidget({
           }}
         />
       </div>
-      {isImproveDialogOpen && (
-        <ImproveDialog
-          isOpen={isImproveDialogOpen}
-          onOpenChange={setIsImproveDialogOpen}
+      {isFeedbackDialogOpen && (
+        <FeedbackDialog
+          isOpen={isFeedbackDialogOpen}
+          onOpenChange={setIsFeedbackDialogOpen}
           conversationId={conversationId}
           messageId={messageId}
           setShowTraces={setShowTraces}

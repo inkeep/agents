@@ -28,6 +28,8 @@ Tenant: ${tenantId}`,
 }
 
 export const HeaderMenus: FC = () => {
+  'use memo';
+
   const { user, isLoading } = useAuthSession();
   const { resolvedTheme } = useTheme();
   const isMounted = useIsMounted();

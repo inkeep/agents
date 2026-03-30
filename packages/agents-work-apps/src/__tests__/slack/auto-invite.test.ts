@@ -10,7 +10,6 @@
  * - Errors caught gracefully → falls through to JWT link flow
  */
 
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -57,7 +56,14 @@ vi.mock('../../env', () => ({
   },
 }));
 
-vi.mock('../../logger', () => createMockLoggerModule().module);
+vi.mock('../../logger', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: vi.fn(),

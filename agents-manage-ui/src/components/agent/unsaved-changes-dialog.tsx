@@ -1,6 +1,5 @@
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import { type Control, type FieldValues, useFormState } from 'react-hook-form';
+import { type FC, useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,33 +9,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 type PendingNavigation = () => void;
 
-interface UnsavedChangesDialogProps<FV extends FieldValues, TV extends FieldValues> {
-  dirty?: boolean;
-  onSubmit: () => Promise<void>;
-  control: Control<FV, unknown, TV>;
+interface UnsavedChangesDialogProps {
+  onSubmit: () => Promise<boolean>;
 }
 
-export function UnsavedChangesDialog<
-  TFieldValues extends FieldValues,
-  TTransformedValues extends FieldValues,
->({ dirty, onSubmit, control }: UnsavedChangesDialogProps<TFieldValues, TTransformedValues>) {
+export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }) => {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const { isDirty: rhfDirtyState, isSubmitting, isValid } = useFormState({ control });
-  const isDirty = dirty || rhfDirtyState;
-
+  const [isSavingPendingNavigation, startSavingPendingNavigation] = useTransition();
+  const dirty = useAgentStore((state) => state.dirty);
   const pendingNavigationRef = useRef<PendingNavigation>(null);
   const isNavigatingRef = useRef(false);
   const router = useRouter();
 
-  function handleGoBack() {
+  const handleGoBack = useCallback(() => {
     pendingNavigationRef.current = null;
     setShowUnsavedDialog(false);
-  }
+  }, []);
 
-  function proceedWithNavigation() {
+  const proceedWithNavigation = useCallback(() => {
     const navigate = pendingNavigationRef.current;
     handleGoBack();
 
@@ -45,36 +39,36 @@ export function UnsavedChangesDialog<
     }
     isNavigatingRef.current = true;
     navigate();
-  }
+  }, [handleGoBack]);
 
-  async function handleSaveAndLeave() {
-    if (isSubmitting) {
+  const handleSaveAndLeave = useCallback(() => {
+    if (isSavingPendingNavigation) {
       return;
     }
-    await onSubmit();
-    if (isValid) {
-      proceedWithNavigation();
-    }
-    setShowUnsavedDialog(false);
-  }
+    startSavingPendingNavigation(async () => {
+      const saved = await onSubmit();
+      if (saved) {
+        proceedWithNavigation();
+      }
+      setShowUnsavedDialog(false);
+    });
+  }, [isSavingPendingNavigation, onSubmit, proceedWithNavigation]);
 
   useEffect(() => {
-    if (!isDirty) {
+    if (!dirty) {
       return;
     }
-    function requestNavigationConfirmation(navigate: PendingNavigation) {
+    const requestNavigationConfirmation = (navigate: PendingNavigation) => {
       pendingNavigationRef.current = navigate;
       setShowUnsavedDialog(true);
-    }
-    function handleDocumentClick(event: MouseEvent) {
-      if (!isDirty || isNavigatingRef.current) {
+    };
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (!dirty || isNavigatingRef.current) {
         return;
       }
-      const target = event.target;
-      if (!(target && target instanceof HTMLElement)) {
-        return;
-      }
-      const el = target.closest<HTMLAnchorElement>('a[href]');
+      const el = (event.target as HTMLElement | null)?.closest(
+        'a[href]'
+      ) as HTMLAnchorElement | null;
       const href = el?.href;
       if (
         !href ||
@@ -93,44 +87,37 @@ export function UnsavedChangesDialog<
       event.preventDefault();
       requestNavigationConfirmation(() => {
         if (url.origin === location.origin) {
-          // To avoid race conditions since we update query params of nodeId
-          setTimeout(() => {
-            router.push(`${url.pathname}${url.search}${url.hash}`);
-          }, 0);
+          router.push(`${url.pathname}${url.search}${url.hash}`);
         } else {
           location.href = url.href;
         }
       });
-    }
+    };
 
     document.addEventListener('click', handleDocumentClick, true);
     return () => {
       document.removeEventListener('click', handleDocumentClick, true);
     };
-  }, [isDirty, router]);
+  }, [dirty, router]);
 
   useEffect(() => {
-    if (!isDirty) {
+    if (!dirty) {
       requestAnimationFrame(handleGoBack);
       return;
     }
     // Catches browser closing window
-    function handleBeforeUnload(event: BeforeUnloadEvent) {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (isNavigatingRef.current) {
         return;
       }
       event.preventDefault();
       setShowUnsavedDialog(true);
-    }
+    };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [
-    isDirty,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    handleGoBack,
-  ]);
+  }, [dirty, handleGoBack]);
 
   return (
     <Dialog
@@ -143,21 +130,24 @@ export function UnsavedChangesDialog<
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Do you want to save the changes you made?</DialogTitle>
-          <DialogDescription>Your changes will be lost if you don't save them.</DialogDescription>
+          <DialogTitle>Unsaved changes</DialogTitle>
+          <DialogDescription>
+            You have unsaved changes. Are you sure you want to leave this page and discard your
+            changes?
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="ghost" onClick={handleGoBack} className="sm:mr-auto">
-            Cancel
+            Go back
           </Button>
           <Button variant="secondary" onClick={proceedWithNavigation} className="max-sm:order-1">
             Discard
           </Button>
-          <Button onClick={handleSaveAndLeave} disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save'}
+          <Button onClick={handleSaveAndLeave} disabled={isSavingPendingNavigation}>
+            {isSavingPendingNavigation ? 'Saving...' : 'Save changes'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};

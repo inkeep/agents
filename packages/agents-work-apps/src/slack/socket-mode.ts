@@ -12,7 +12,7 @@ const GLOBAL_KEY = '__inkeep_slack_socket_mode_client__';
 export async function startSocketMode(appToken: string): Promise<void> {
   const existing = (globalThis as Record<string, unknown>)[GLOBAL_KEY];
   if (existing) {
-    logger.info('Socket Mode client already running (HMR reload detected), skipping');
+    logger.info({}, 'Socket Mode client already running (HMR reload detected), skipping');
     return;
   }
 
@@ -23,7 +23,7 @@ export async function startSocketMode(appToken: string): Promise<void> {
 
   await client.start();
   (globalThis as Record<string, unknown>)[GLOBAL_KEY] = client;
-  logger.info('Slack Socket Mode client started');
+  logger.info({}, 'Slack Socket Mode client started');
 }
 
 interface SocketModeEventEmitter {
@@ -42,11 +42,11 @@ function setupSocketModeListeners(client: SocketModeEventEmitter): void {
   });
 
   client.on('disconnected', () => {
-    logger.warn('Socket Mode client disconnected');
+    logger.warn({}, 'Socket Mode client disconnected');
   });
 
   client.on('reconnecting', () => {
-    logger.info('Socket Mode client reconnecting...');
+    logger.info({}, 'Socket Mode client reconnecting...');
   });
 
   client.on('slack_event', async (...args: unknown[]) => {

@@ -92,48 +92,6 @@
       "when": 1772145299599,
       "tag": "0012_petite_weapon_omega",
       "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "7",
-      "when": 1773096333103,
-      "tag": "0013_gorgeous_umar",
-      "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "7",
-      "when": 1774881637246,
-      "tag": "0014_complex_firebird",
-      "breakpoints": true
-    },
-    {
-      "idx": 15,
-      "version": "7",
-      "when": 1774882222737,
-      "tag": "0015_backfill_skill_files",
-      "breakpoints": true
-    },
-    {
-      "idx": 16,
-      "version": "7",
-      "when": 1774968024482,
-      "tag": "0016_complex_klaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 17,
-      "version": "7",
-      "when": 1774971562824,
-      "tag": "0017_brief_doctor_strange",
-      "breakpoints": true
-    },
-    {
-      "idx": 18,
-      "version": "7",
-      "when": 1775500609155,
-      "tag": "0018_gorgeous_captain_america",
-      "breakpoints": true
     }
   ]
 }

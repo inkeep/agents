@@ -39,7 +39,7 @@ const buildTextPart = (text: string): TextPart => {
   return TextPartSchema.parse({ kind: 'text', text });
 };
 
-export const parseDataUri = (dataUri: string): { mimeType: string; base64Data: string } | null => {
+const parseDataUri = (dataUri: string): { mimeType: string; base64Data: string } | null => {
   const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) return null;
   return {

@@ -1,33 +1,29 @@
 'use client';
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
-import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, RefreshCw } from 'lucide-react';
-import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { apiToFormValues } from '@/components/agent/form/validation';
 import { Button } from '@/components/ui/button';
 import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
-import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { apiToGraph, applySelectionFromQueryState } from '@/features/agent/domain';
-import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
-import { useSidePane } from '@/hooks/use-side-pane';
-import { getFullProjectAction } from '@/lib/actions/project-full';
-import { projectQueryKeys } from '@/lib/query/keys/projects';
-import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { sentry } from '@/lib/sentry';
 import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
-import { convertFullProjectToProject } from '@/lib/utils/project-converter';
 import { IkpTool } from './message-parts/message';
 
-const ANALYTICS_EXCLUDED_EVENTS = new Set(['sidebar_chat_opened', 'sidebar_chat_closed']);
+const ANALYTICS_EXCLUDED_EVENTS = ['sidebar_chat_opened', 'sidebar_chat_closed'];
+
+interface CopilotChatProps {
+  agentId?: string;
+  projectId: string;
+  tenantId: string;
+  refreshAgentGraph: (options?: { fetchTools?: boolean }) => Promise<void>;
+}
 
 const styleOverrides = css`
 .ikp-markdown-code {
@@ -41,7 +37,7 @@ const styleOverrides = css`
 }
 `;
 
-export function CopilotChat() {
+export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }: CopilotChatProps) {
   const {
     chatFunctionsRef,
     isOpen,
@@ -53,87 +49,18 @@ export function CopilotChat() {
   } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
   const posthog = usePostHog();
-  const { tenantId, projectId, agentId } = useParams<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-  }>();
-
-  const form = useFullAgentFormContext();
-  const queryClient = useQueryClient();
-  const { refetch: refetchMcpTools } = useMcpToolsQuery({ skipDiscovery: true });
-  const { nodeId, edgeId, setQueryState } = useSidePane();
-  const { setInitial } = useAgentActions();
-
-  // Callback function to fetch and update agent graph from copilot
-  async function refreshAgentGraph(options?: { fetchTools?: boolean }) {
-    try {
-      const [fullProjectResult] = await Promise.all([
-        getFullProjectAction(tenantId, projectId),
-        options?.fetchTools ? refetchMcpTools() : Promise.resolve(null),
-      ]);
-
-      if (!fullProjectResult.success) {
-        console.error('Failed to refresh agent graph:', fullProjectResult.error);
-        return;
-      }
-      const fullProject = fullProjectResult.data;
-      const updatedAgent = fullProject?.agents?.[agentId];
-      // This makes current values the new default values
-      form.reset(apiToFormValues(updatedAgent));
-
-      // Deserialize agent data to nodes and edges
-      const { nodes, edges } = apiToGraph(updatedAgent);
-      const {
-        nodes: nodesWithSelection,
-        edges: edgesWithSelection,
-        selectedNode,
-        selectedEdge,
-      } = applySelectionFromQueryState({
-        nodes,
-        edges,
-        nodeId,
-        edgeId,
-      });
-
-      // Update the store with all refreshed data
-      setInitial(nodesWithSelection, edgesWithSelection);
-
-      if (nodeId && !selectedNode) {
-        setQueryState((prev) => ({
-          ...prev,
-          pane: 'agent',
-          nodeId: null,
-        }));
-      }
-
-      if (edgeId && !selectedEdge) {
-        setQueryState((prev) => ({
-          ...prev,
-          pane: 'agent',
-          edgeId: null,
-        }));
-      }
-
-      // Update project data in React Query cache so components using useProjectQuery get fresh data
-      const convertedProject = convertFullProjectToProject(fullProject, tenantId);
-      queryClient.setQueryData(projectQueryKeys.detail(tenantId, projectId), convertedProject);
-    } catch (error) {
-      console.error('Failed to refresh agent graph:', error);
-    }
-  }
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
-    onFinish() {
+    onFinish: () => {
       refreshAgentGraph({ fetchTools: true });
     },
   });
 
   useEffect(() => {
     return () => setIsStreaming(false);
-  }, []);
+  }, [setIsStreaming]);
 
   useEffect(() => {
     const updateAgentGraph = (event: any) => {
@@ -152,17 +79,17 @@ export function CopilotChat() {
     return () => {
       document.removeEventListener('ikp-data-operation', updateAgentGraph);
     };
-  }, [
-    conversationId,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    refreshAgentGraph,
-  ]);
+  }, [conversationId, refreshAgentGraph]);
 
-  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
+  const {
+    PUBLIC_INKEEP_AGENTS_API_URL,
+    PUBLIC_INKEEP_COPILOT_AGENT_ID,
+    PUBLIC_INKEEP_COPILOT_PROJECT_ID,
+    PUBLIC_INKEEP_COPILOT_TENANT_ID,
+  } = useRuntimeConfig();
 
   const {
     apiKey: copilotToken,
-    appId: copilotAppId,
     cookieHeader,
     isLoading: isLoadingToken,
     error: tokenError,
@@ -194,7 +121,7 @@ export function CopilotChat() {
       });
       setIsOpen(false);
     }
-  }, [tokenError, isLoadingToken, isOpen, refreshToken]);
+  }, [tokenError, isLoadingToken, isOpen, setIsOpen, refreshToken]);
 
   if (!isCopilotConfigured) {
     return null;
@@ -226,7 +153,7 @@ export function CopilotChat() {
           position="left"
           baseSettings={{
             async onEvent(event) {
-              if (!ANALYTICS_EXCLUDED_EVENTS.has(event.eventName)) {
+              if (!ANALYTICS_EXCLUDED_EVENTS.includes(event.eventName)) {
                 posthog?.capture(event.eventName, {
                   ...event.properties,
                   source: 'copilot_chat',
@@ -316,22 +243,43 @@ export function CopilotChat() {
             headers: {
               'x-emit-operations': 'true',
               Authorization: `Bearer ${copilotToken}`,
-              ...(copilotAppId && { 'x-inkeep-app-id': copilotAppId }),
+              'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID || '',
+              'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID || '',
+              'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID || '',
               // Target is the agent that the copilot is building or editing.
               'x-target-tenant-id': tenantId,
               'x-target-project-id': projectId,
-              'x-target-agent-id': agentId,
+              ...(agentId ? { 'x-target-agent-id': agentId } : {}),
               // conversationId and messageId from the 'try now' improve with AI button.
-              ...(dynamicHeaders?.conversationId && {
-                'x-inkeep-from-conversation-id': dynamicHeaders.conversationId,
-              }),
-              ...(dynamicHeaders?.messageId && {
-                'x-inkeep-from-message-id': dynamicHeaders.messageId,
-              }),
+              ...(dynamicHeaders?.conversationId
+                ? { 'x-inkeep-from-conversation-id': dynamicHeaders.conversationId }
+                : {}),
+              ...(dynamicHeaders?.messageId
+                ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
+                : {}),
               // Forward cookies from the server action using custom header (Cookie is a forbidden header in browsers)
-              ...(cookieHeader && { 'x-forwarded-cookie': cookieHeader }),
+              ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
             },
-            introMessage: `Hi! What would you like to change about \`${agentId}\`?`,
+            exampleQuestionsLabel: agentId ? undefined : 'Try one of these examples:',
+            exampleQuestions: agentId
+              ? undefined
+              : [
+                  {
+                    label: 'Build a weather agent',
+                    value: 'Help me build an agent that can tell me the weather in any city.',
+                  },
+                  {
+                    label: 'Build a recipe agent',
+                    value: 'Help me build an agent that can help me find recipes.',
+                  },
+                  {
+                    label: 'Build a travel agent',
+                    value: 'Help me build an agent that can help me plan my travel.',
+                  },
+                ],
+            introMessage: agentId
+              ? `Hi! What would you like to change about \`${agentId}\`?`
+              : 'Hi! What would you like to build?',
           }}
         />
       </div>

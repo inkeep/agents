@@ -8,29 +8,24 @@ import {
   commonGetErrorResponses,
   createAgent,
   createApiError,
-  dbResultToMcpTool,
   deleteAgent,
   ErrorResponseSchema,
   generateId,
   getAgentById,
   getAgentSubAgentInfos,
   getFullAgentDefinition,
-  getToolById,
   listAgentsPaginated,
-  listAgentToolRelations,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
-  ToolStatusSchema,
   throwIfUniqueConstraintError,
   updateAgent,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
-import { z } from 'zod';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import {
@@ -206,124 +201,6 @@ app.openapi(
     }
 
     return c.json({ data: fullAgent });
-  }
-);
-
-const AgentToolStatusItemSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    status: ToolStatusSchema,
-    lastError: z.string().nullable(),
-    expiresAt: z.string().nullable(),
-    imageUrl: z.string().nullable(),
-    subAgentIds: z.array(z.string()),
-  })
-  .openapi('AgentToolStatusItem');
-
-const AgentToolStatusListResponseSchema = z
-  .object({
-    data: z.array(AgentToolStatusItemSchema),
-  })
-  .openapi('AgentToolStatusListResponse');
-
-app.openapi(
-  createProtectedRoute({
-    method: 'get',
-    path: '/{agentId}/tool-status',
-    summary: 'Get Tool Status for Agent',
-    description:
-      'Returns a deduped list of MCP tools used by any sub-agent of the given agent, with live health status. Probes each unique MCP server once.',
-    operationId: 'get-agent-tool-status',
-    tags: ['Agents', 'Tools'],
-    permission: requireProjectPermission('view'),
-    request: {
-      params: TenantProjectAgentParamsSchema,
-      query: z.object({
-        status: ToolStatusSchema.optional(),
-      }),
-    },
-    responses: {
-      200: {
-        description: 'Agent tool status retrieved successfully',
-        content: {
-          'application/json': {
-            schema: AgentToolStatusListResponseSchema,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, agentId } = c.req.valid('param');
-    const { status: statusFilter } = c.req.valid('query');
-    const credentialStores = c.get('credentialStores');
-    const userId = c.get('userId');
-
-    const agent = await getAgentById(db)({
-      scopes: { tenantId, projectId, agentId },
-    });
-    if (!agent) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Agent not found',
-      });
-    }
-
-    const subAgentIdsByToolId = new Map<string, Set<string>>();
-    let page = 1;
-    let hasMore = true;
-    while (hasMore) {
-      const relationsResult = await listAgentToolRelations(db)({
-        scopes: { tenantId, projectId, agentId },
-        pagination: { page, limit: 100 },
-      });
-      for (const relation of relationsResult.data) {
-        const set = subAgentIdsByToolId.get(relation.toolId) ?? new Set<string>();
-        set.add(relation.subAgentId);
-        subAgentIdsByToolId.set(relation.toolId, set);
-      }
-      hasMore = page < relationsResult.pagination.pages;
-      page++;
-    }
-
-    const uniqueToolIds = Array.from(subAgentIdsByToolId.keys());
-
-    const PROBE_CONCURRENCY = 5;
-    const probedTools: Awaited<ReturnType<typeof dbResultToMcpTool>>[] = [];
-    for (let i = 0; i < uniqueToolIds.length; i += PROBE_CONCURRENCY) {
-      const batch = uniqueToolIds.slice(i, i + PROBE_CONCURRENCY);
-      const results = await Promise.allSettled(
-        batch.map(async (toolId) => {
-          const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId });
-          if (!tool) {
-            return null;
-          }
-          return dbResultToMcpTool(tool, db, credentialStores, undefined, userId);
-        })
-      );
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value !== null) {
-          probedTools.push(r.value);
-        }
-      }
-    }
-
-    const data = probedTools
-      .map((tool) => ({
-        id: tool.id,
-        name: tool.name,
-        status: tool.status,
-        lastError: tool.lastError ?? null,
-        expiresAt: tool.expiresAt ?? null,
-        imageUrl: tool.imageUrl ?? null,
-        subAgentIds: Array.from(subAgentIdsByToolId.get(tool.id) ?? []),
-      }))
-      .filter((tool) => (statusFilter ? tool.status === statusFilter : true));
-
-    return c.json({ data });
   }
 );
 

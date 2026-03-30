@@ -87,7 +87,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error }, 'Failed to list evaluation job configs');
+      logger.error({ error, tenantId, projectId }, 'Failed to list evaluation job configs');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -140,7 +140,7 @@ app.openapi(
 
       return c.json({ data: config as any }) as any;
     } catch (error) {
-      logger.error({ error, configId }, 'Failed to get evaluation job config');
+      logger.error({ error, tenantId, projectId, configId }, 'Failed to get evaluation job config');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -212,7 +212,7 @@ app.openapi(
         );
       }
 
-      logger.info({ configId: id }, 'Evaluation job config created');
+      logger.info({ tenantId, projectId, configId: id }, 'Evaluation job config created');
 
       // Fan out manual bulk evaluation job to eval API if evaluators are configured
       if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
@@ -227,6 +227,8 @@ app.openapi(
           .then((result) => {
             logger.info(
               {
+                tenantId,
+                projectId,
                 configId: id,
                 conversationCount: result.conversationCount,
                 queued: result.queued,
@@ -237,18 +239,24 @@ app.openapi(
             );
           })
           .catch((error) => {
-            logger.error({ error, configId: id }, 'Failed to trigger manual bulk evaluation job');
+            logger.error(
+              { error, tenantId, projectId, configId: id },
+              'Failed to trigger manual bulk evaluation job'
+            );
           });
       } else {
         logger.warn(
-          { configId: id },
+          { tenantId, projectId, configId: id },
           'Evaluation job config created without evaluators, skipping job execution'
         );
       }
 
       return c.json({ data: created as any }, 201) as any;
     } catch (error) {
-      logger.error({ error, configData }, 'Failed to create evaluation job config');
+      logger.error(
+        { error, tenantId, projectId, configData },
+        'Failed to create evaluation job config'
+      );
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -294,10 +302,13 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ configId }, 'Evaluation job config deleted');
+      logger.info({ tenantId, projectId, configId }, 'Evaluation job config deleted');
       return c.body(null, 204) as any;
     } catch (error) {
-      logger.error({ error, configId }, 'Failed to delete evaluation job config');
+      logger.error(
+        { error, tenantId, projectId, configId },
+        'Failed to delete evaluation job config'
+      );
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -444,7 +455,7 @@ app.openapi(
       );
 
       logger.info(
-        { configId, resultCount: enrichedResults.length },
+        { tenantId, projectId, configId, resultCount: enrichedResults.length },
         'Retrieved evaluation results for job config'
       );
 
@@ -458,7 +469,10 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, configId }, 'Failed to get evaluation results for job config');
+      logger.error(
+        { error, tenantId, projectId, configId },
+        'Failed to get evaluation results for job config'
+      );
       return c.json(
         createApiError({
           code: 'internal_server_error',

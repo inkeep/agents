@@ -1,9 +1,9 @@
 'use client';
 
-import { ArrowUpRight, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,19 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useOrgMembers } from '@/hooks/use-org-members';
-import { fetchTriggerInvocations, type TriggerInvocation } from '@/lib/api/triggers';
-import {
-  formatInvocationDateTime,
-  getInvocationStatusBadge,
-  type InvocationStatus,
-} from '@/lib/utils/invocation-display';
+import type { TriggerInvocation } from '@/lib/api/triggers';
 import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 import { Combobox } from '../ui/combobox';
-
-const POLLING_INTERVAL_MS = 3000;
-
-type InvocationWithBatch = TriggerInvocation & { batchId?: string | null };
 
 interface InvocationsTableProps {
   invocations: TriggerInvocation[];
@@ -38,189 +28,57 @@ interface InvocationsTableProps {
   };
   tenantId: string;
   projectId: string;
-  agentId?: string;
-  triggerId?: string;
-  isMultiUser?: boolean;
   currentStatus?: 'pending' | 'success' | 'failed';
 }
 
-interface InvocationGroup {
-  key: string;
-  receivedAt: string;
-  invocations: InvocationWithBatch[];
-  summary: {
-    total: number;
-    success: number;
-    failed: number;
-    pending: number;
+function formatDate(dateString: string): string {
+  // Ensure the date is parsed as UTC if no timezone is specified
+  const normalizedDateString = dateString.endsWith('Z') ? dateString : `${dateString}Z`;
+  const date = new Date(normalizedDateString);
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const variants: Record<string, 'primary' | 'code' | 'error'> = {
+    success: 'primary',
+    pending: 'code',
+    failed: 'error',
   };
-}
-
-function groupInvocationsByBatch(invocations: TriggerInvocation[]): InvocationGroup[] {
-  if (invocations.length === 0) return [];
-
-  const batchMap = new Map<string, InvocationWithBatch[]>();
-  const ungrouped: InvocationWithBatch[] = [];
-
-  for (const inv of invocations) {
-    const batchId = (inv as InvocationWithBatch).batchId;
-    if (batchId) {
-      const group = batchMap.get(batchId);
-      if (group) {
-        group.push(inv);
-      } else {
-        batchMap.set(batchId, [inv]);
-      }
-    } else {
-      ungrouped.push(inv);
-    }
-  }
-
-  const groups: InvocationGroup[] = [];
-
-  for (const [batchId, invs] of batchMap) {
-    const earliest = invs.reduce((min, inv) =>
-      new Date(inv.createdAt) < new Date(min.createdAt) ? inv : min
-    );
-    groups.push({
-      key: batchId,
-      receivedAt: earliest.createdAt,
-      invocations: invs,
-      summary: {
-        total: invs.length,
-        success: invs.filter((i) => i.status === 'success').length,
-        failed: invs.filter((i) => i.status === 'failed').length,
-        pending: invs.filter((i) => i.status === 'pending').length,
-      },
-    });
-  }
-
-  for (const inv of ungrouped) {
-    groups.push({
-      key: inv.id,
-      receivedAt: inv.createdAt,
-      invocations: [inv],
-      summary: {
-        total: 1,
-        success: inv.status === 'success' ? 1 : 0,
-        failed: inv.status === 'failed' ? 1 : 0,
-        pending: inv.status === 'pending' ? 1 : 0,
-      },
-    });
-  }
-
-  return groups.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
-}
-
-function GroupStatusSummary({ summary }: { summary: InvocationGroup['summary'] }) {
-  if (summary.total === 1) return null;
-
-  const parts: {
-    label: string;
-    count: number;
-    variant: 'default' | 'destructive' | 'secondary' | 'outline';
-  }[] = [];
-  if (summary.success > 0)
-    parts.push({ label: 'success', count: summary.success, variant: 'default' });
-  if (summary.failed > 0)
-    parts.push({ label: 'failed', count: summary.failed, variant: 'destructive' });
-  if (summary.pending > 0)
-    parts.push({ label: 'pending', count: summary.pending, variant: 'outline' });
 
   return (
-    <div className="flex items-center gap-1.5">
-      {parts.map((p) => (
-        <Badge key={p.label} variant={p.variant} className="text-xs">
-          {p.count} {p.label}
-        </Badge>
-      ))}
-    </div>
+    <Badge className="uppercase" variant={variants[status] || 'code'}>
+      {status}
+    </Badge>
   );
 }
 
 export function InvocationsTable({
-  invocations: initialInvocations,
+  invocations,
   metadata,
   tenantId,
   projectId,
-  agentId,
-  triggerId,
-  isMultiUser,
   currentStatus,
 }: InvocationsTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [invocations, setInvocations] = useState(initialInvocations);
-  const [prevInitial, setPrevInitial] = useState(initialInvocations);
-  if (prevInitial !== initialInvocations) {
-    setPrevInitial(initialInvocations);
-    setInvocations(initialInvocations);
-  }
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const [expandedRows, setExpandedRows] = useState(new Set<string>());
-  const [expandedGroups, setExpandedGroups] = useState(new Set<string>());
-  const { members: orgMembers } = useOrgMembers(tenantId);
-
-  const hasTransientInvocations = invocations.some((inv) => inv.status === 'pending');
-
-  useEffect(() => {
-    if (!hasTransientInvocations || !agentId || !triggerId) return;
-
-    const poll = async () => {
-      try {
-        const response = await fetchTriggerInvocations(tenantId, projectId, agentId, triggerId, {
-          limit: 50,
-        });
-        setInvocations(response.data);
-      } catch (error) {
-        console.error('Failed to poll invocations:', error);
-      }
-    };
-
-    const intervalId = setInterval(poll, POLLING_INTERVAL_MS);
-    return () => clearInterval(intervalId);
-  }, [hasTransientInvocations, tenantId, projectId, agentId, triggerId]);
-
-  function getUserDisplayName(userId: string | null | undefined) {
-    if (!userId) return '—';
-    const member = orgMembers.find((m) => m.id === userId);
-    return member?.name || member?.email || userId;
-  }
-
-  function formatDate(dateString: string): string {
-    const normalizedDateString = dateString.endsWith('Z') ? dateString : `${dateString}Z`;
-    const date = new Date(normalizedDateString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  }
-
-  const toggleRow = (id: string) => {
+  const toggleRow = (invocationId: string) => {
     setExpandedRows((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
+      if (newSet.has(invocationId)) {
+        newSet.delete(invocationId);
       } else {
-        newSet.add(id);
+        newSet.add(invocationId);
       }
       return newSet;
-    });
-  };
-
-  const toggleGroup = (key: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
     });
   };
 
@@ -231,7 +89,7 @@ export function InvocationsTable({
     } else {
       params.set('status', value);
     }
-    params.delete('page');
+    params.delete('page'); // Reset to page 1
     router.push(`?${params.toString()}`);
   };
 
@@ -241,197 +99,49 @@ export function InvocationsTable({
     router.push(`?${params.toString()}`);
   };
 
-  const filterControls = (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <Combobox
-          defaultValue={currentStatus || 'all'}
-          notFoundMessage={'No status found.'}
-          onSelect={(value) => {
-            handleStatusChange(value);
-          }}
-          options={[
-            { value: 'all', label: 'All' },
-            { value: 'success', label: 'Success' },
-            { value: 'failed', label: 'Failed' },
-            { value: 'pending', label: 'Pending' },
-          ]}
-          TriggerComponent={
-            <FilterTriggerComponent
-              disabled={false}
-              filterLabel={currentStatus ? 'Status' : 'All statuses'}
-              isRemovable={true}
-              onDeleteFilter={() => {
-                handleStatusChange('all');
-              }}
-              multipleCheckboxValues={currentStatus ? [currentStatus] : []}
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'success', label: 'Success' },
-                { value: 'failed', label: 'Failed' },
-                { value: 'pending', label: 'Pending' },
-              ]}
-            />
-          }
-        />
-      </div>
-      <div className="text-sm text-muted-foreground flex items-center gap-2">
-        <Badge variant="count">{metadata.total}</Badge> invocation
-        {metadata.total !== 1 ? 's' : ''}
-      </div>
-    </div>
-  );
-
-  const pagination = metadata.pages > 1 && (
-    <div className="flex items-center justify-center gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => handlePageChange(metadata.page - 1)}
-        disabled={metadata.page <= 1}
-      >
-        Previous
-      </Button>
-      <span className="text-sm text-muted-foreground">
-        Page {metadata.page} of {metadata.pages}
-      </span>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => handlePageChange(metadata.page + 1)}
-        disabled={metadata.page >= metadata.pages}
-      >
-        Next
-      </Button>
-    </div>
-  );
-
-  if (isMultiUser) {
-    const groups = groupInvocationsByBatch(invocations);
-
-    return (
-      <div className="space-y-4">
-        {filterControls}
-        <div className="rounded-lg border">
-          <div className="relative w-full overflow-auto">
-            <table className="w-full caption-bottom text-sm">
-              <thead className="[&_tr]:border-b">
-                <tr className="border-b transition-colors hover:bg-muted/50">
-                  <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground w-8" />
-                  <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Received At
-                  </th>
-                  <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Status
-                  </th>
-                  <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Users
-                  </th>
-                  <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Conversation
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {groups.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="h-24 text-center text-muted-foreground">
-                      No invocations found.
-                    </td>
-                  </tr>
-                )}
-                {groups.map((group) => {
-                  const isExpanded = expandedGroups.has(group.key);
-
-                  return (
-                    <Fragment key={group.key}>
-                      <tr
-                        className="border-b transition-colors hover:bg-muted/50 cursor-pointer"
-                        onClick={() => toggleGroup(group.key)}
-                      >
-                        <td className="p-4 align-middle">
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </td>
-                        <td className="p-4 align-middle">
-                          <div className="font-mono text-sm">
-                            {formatInvocationDateTime(group.receivedAt)}
-                          </div>
-                        </td>
-                        <td className="p-4 align-middle">
-                          {group.summary.total === 1 ? (
-                            getInvocationStatusBadge(
-                              group.invocations[0].status as InvocationStatus
-                            )
-                          ) : (
-                            <GroupStatusSummary summary={group.summary} />
-                          )}
-                        </td>
-                        <td className="p-4 align-middle">
-                          <span className="text-sm text-muted-foreground">
-                            {group.summary.total} user{group.summary.total !== 1 ? 's' : ''}
-                          </span>
-                        </td>
-                        <td className="p-4 align-middle" />
-                      </tr>
-                      {isExpanded &&
-                        group.invocations.map((inv) => (
-                          <tr
-                            key={inv.id}
-                            className="border-b transition-colors hover:bg-muted/30 bg-muted/10"
-                          >
-                            <td className="p-4 align-middle" />
-                            <td className="p-4 align-middle pl-8">
-                              <div className="text-sm font-medium">
-                                {getUserDisplayName(
-                                  (inv as TriggerInvocation & { runAsUserId?: string }).runAsUserId
-                                )}
-                              </div>
-                            </td>
-                            <td className="p-4 align-middle">
-                              {getInvocationStatusBadge(inv.status as InvocationStatus)}
-                            </td>
-                            <td className="p-4 align-middle">
-                              {inv.conversationId ? (
-                                <Link
-                                  href={`/${tenantId}/projects/${projectId}/traces/conversations/${inv.conversationId}`}
-                                  className="flex items-center gap-1 text-primary hover:underline text-sm"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  View trace
-                                  <ArrowUpRight className="w-3 h-3" />
-                                </Link>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">—</span>
-                              )}
-                            </td>
-                            <td className="p-4 align-middle">
-                              {inv.errorMessage && (
-                                <span className="text-destructive text-sm truncate max-w-xs block">
-                                  {inv.errorMessage}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        {pagination}
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      {filterControls}
+      {/* Filter Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Combobox
+            defaultValue={currentStatus || 'all'}
+            notFoundMessage={'No status found.'}
+            onSelect={(value) => {
+              handleStatusChange(value);
+            }}
+            options={[
+              { value: 'all', label: 'All' },
+              { value: 'success', label: 'Success' },
+              { value: 'failed', label: 'Failed' },
+              { value: 'pending', label: 'Pending' },
+            ]}
+            TriggerComponent={
+              <FilterTriggerComponent
+                disabled={false}
+                filterLabel={currentStatus ? 'Status' : 'All statuses'}
+                isRemovable={true}
+                onDeleteFilter={() => {
+                  handleStatusChange('all');
+                }}
+                multipleCheckboxValues={currentStatus ? [currentStatus] : []}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'success', label: 'Success' },
+                  { value: 'failed', label: 'Failed' },
+                  { value: 'pending', label: 'Pending' },
+                ]}
+              />
+            }
+          />
+        </div>
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          <Badge variant="count">{metadata.total}</Badge> invocation
+          {metadata.total !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {/* Table */}
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -495,6 +205,7 @@ export function InvocationsTable({
                       </TableCell>
                     </TableRow>
 
+                    {/* Expanded Details Row */}
                     {isExpanded && (
                       <TableRow noHover>
                         <TableCell colSpan={5} className="bg-muted/30 p-6">
@@ -534,21 +245,31 @@ export function InvocationsTable({
           </TableBody>
         </Table>
       </div>
-      {pagination}
+
+      {/* Pagination */}
+      {metadata.pages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(metadata.page - 1)}
+            disabled={metadata.page <= 1}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {metadata.page} of {metadata.pages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(metadata.page + 1)}
+            disabled={metadata.page >= metadata.pages}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, 'primary' | 'code' | 'error'> = {
-    success: 'primary',
-    pending: 'code',
-    failed: 'error',
-  };
-
-  return (
-    <Badge className="uppercase" variant={variants[status] || 'code'}>
-      {status}
-    </Badge>
   );
 }

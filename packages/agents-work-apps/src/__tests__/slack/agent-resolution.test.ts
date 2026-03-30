@@ -7,7 +7,6 @@
  * - getAgentConfigSources for status display
  */
 
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@inkeep/agents-core', () => ({
@@ -18,7 +17,14 @@ vi.mock('../../db/runDbClient', () => ({
   default: {},
 }));
 
-vi.mock('../../logger', () => createMockLoggerModule().module);
+vi.mock('../../logger', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 vi.mock('../../slack/services/nango', () => ({
   getWorkspaceDefaultAgent: vi.fn(),

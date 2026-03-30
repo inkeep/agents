@@ -13,6 +13,7 @@ import type { DataComponentOutput } from '@/components/data-components/form/vali
 import type { ListResponse, SingleResponse } from '../types/response';
 // Configuration for the API client
 import { makeManagementApiRequest } from './api-config';
+import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 // Note: DataComponentApiSelect might have nullable props, but UI expects non-nullable
@@ -30,6 +31,9 @@ export async function fetchDataComponents(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<DataComponent>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<ListResponse<DataComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/data-components?limit=100`
   );
@@ -52,6 +56,9 @@ async function $fetchDataComponent(
   projectId: string,
   dataComponentId: string
 ): Promise<DataComponent> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<SingleResponse<DataComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`
   );
@@ -73,6 +80,9 @@ export async function createDataComponent(
   projectId: string,
   dataComponent: DataComponentApiInsert
 ): Promise<DataComponent> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<SingleResponse<DataComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/data-components`,
     {
@@ -96,6 +106,9 @@ export async function updateDataComponent(
   projectId: string,
   dataComponent: Partial<DataComponentOutput> & Pick<DataComponentOutput, 'id'>
 ): Promise<DataComponent> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<SingleResponse<DataComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponent.id}`,
     {
@@ -119,6 +132,9 @@ export async function deleteDataComponent(
   projectId: string,
   dataComponentId: string
 ): Promise<void> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
     {

@@ -1,11 +1,11 @@
 import type { BetterAuthAdvancedOptions } from 'better-auth';
-import type { GoogleOptions, MicrosoftOptions } from 'better-auth/social-providers';
+import type { GoogleOptions } from 'better-auth/social-providers';
 import { z } from 'zod';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 
-export type AuthMethodType = 'email-password' | 'google' | 'microsoft' | 'sso';
+export type AuthMethodType = 'email-password' | 'google' | 'sso';
 
-export const authMethodTypeSchema = z.enum(['email-password', 'google', 'microsoft', 'sso']);
+export const authMethodTypeSchema = z.enum(['email-password', 'google', 'sso']);
 
 export const methodOptionSchema = z.object({
   method: authMethodTypeSchema,
@@ -83,7 +83,6 @@ export interface SSOProviderConfig {
 const allowedAuthMethodSchema = z.discriminatedUnion('method', [
   z.object({ method: z.literal('email-password') }),
   z.object({ method: z.literal('google') }),
-  z.object({ method: z.literal('microsoft') }),
   z.object({
     method: z.literal('sso'),
     providerId: z.string(),
@@ -142,7 +141,6 @@ export interface BetterAuthConfig {
   cookieDomain?: string;
   socialProviders?: {
     google?: GoogleOptions;
-    microsoft?: MicrosoftOptions;
   };
   advanced?: BetterAuthAdvancedOptions;
   emailService?: EmailServiceConfig;
@@ -151,7 +149,6 @@ export interface BetterAuthConfig {
 export interface UserAuthConfig {
   socialProviders?: {
     google?: GoogleOptions;
-    microsoft?: MicrosoftOptions;
   };
   advanced?: BetterAuthAdvancedOptions;
 }

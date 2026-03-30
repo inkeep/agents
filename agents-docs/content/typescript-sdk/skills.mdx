@@ -23,21 +23,15 @@ For the Visual Builder approach, see [Skills in the Visual Builder](/visual-buil
 ## Defining Skills
 
 Skills are defined as `SKILL.md` files with YAML frontmatter. Each skill lives in its own directory.
-Any additional files under that skill directory are loaded and synced alongside `SKILL.md`.
 
 ### File Structure
 
 ```
 skills/
 ├── weather-safety-guardrails/
-│   ├── SKILL.md
-│   └── reference/
-│       └── safety-checklist.txt
+│   └── SKILL.md
 └── structured-itinerary-responses/
-    ├── SKILL.md
-    └── templates/
-        └── day/
-            └── itinerary-card.html
+    └── SKILL.md
 ```
 
 <Note>The directory name must match the `name` field in the frontmatter.</Note>
@@ -94,11 +88,8 @@ The `loadSkills()` function:
 
 1. Scans the directory for `*/SKILL.md` files
 2. Parses each file's frontmatter and content
-3. Recursively loads every file in each skill directory with paths relative to the skill root
-4. Validates that the `name` matches the directory name
-5. Returns an array of `SkillDefinition` objects
-
-When you run `inkeep push`, the CLI syncs the full skill directory, including nested files. `SKILL.md` still provides the top-level skill name, description, metadata, and prompt content.
+3. Validates that the `name` matches the directory name
+4. Returns an array of `SkillDefinition` objects
 
 ## Attaching Skills to Sub-Agents
 
@@ -168,7 +159,7 @@ Use for skills that apply to every interaction (brand voice, compliance rules).
 
 ### On-Demand (Default)
 
-When `alwaysLoaded` is `false` or omitted, skills appear as an outline in the system prompt. The agent can load the full content and any synced nested files when needed using the built-in `load_skill` tool.
+When `alwaysLoaded` is `false` or omitted, skills appear as an outline in the system prompt. The agent can load the full content when needed using the built-in `load_skill` tool.
 
 ```typescript
 skills: () => [
@@ -189,14 +180,9 @@ activities-planner-advanced/
 │   └── activities-planner-advanced.ts
 └── skills/
     ├── weather-safety-guardrails/
-    │   ├── SKILL.md
-    │   └── reference/
-    │       └── safety-checklist.txt
+    │   └── SKILL.md
     └── structured-itinerary-responses/
-        ├── SKILL.md
-        └── templates/
-            └── day/
-                └── itinerary-card.html
+        └── SKILL.md
 ```
 
 ```typescript title="index.ts"
