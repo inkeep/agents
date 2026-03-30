@@ -222,6 +222,7 @@ app.openapi(
           evaluationJobConfigId: id,
           evaluatorIds,
           jobFilters: getPlainJobFilters<EvaluationJobFilterCriteria>(created.jobFilters),
+          resolvedRef: c.get('resolvedRef'),
         })
           .then((result) => {
             logger.info(

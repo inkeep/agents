@@ -1,0 +1,17 @@
+To upgrade the Inkeep Agent Platform to the latest version, run the following commands:
+
+```bash
+cd inkeep
+docker compose down
+wget -O docker-compose.yml https://raw.githubusercontent.com/inkeep/agents/main/docker-compose.yml
+docker compose pull
+docker compose up -d --remove-orphans
+```
+
+These commands replace your Docker Compose file with the latest version, pull any newer image versions, and restart all the services. Existing database data is preserved, but there will be downtime while the services restart.
+
+To clean up old unused Docker images and free disk space:
+
+```bash
+docker image prune -a
+```

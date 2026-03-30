@@ -25,11 +25,11 @@ import {
   updateDatasetRunConfig,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import { queueDatasetRunItems } from 'src/domains/evals/services/datasetRun';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
+import { queueDatasetRunItems } from '../../../evals/services/datasetRun';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRunConfigs');
@@ -237,6 +237,7 @@ app.openapi(
           datasetId: runConfigData.datasetId,
           datasetRunConfigId: id,
           evaluationJobConfigId: undefined, // Will be linked after conversations exist
+          ref: c.get('resolvedRef'),
         });
 
         logger.info(
@@ -322,6 +323,7 @@ app.openapi(
             tenantId,
             projectId,
             evaluationJobConfigId: evalJobConfigId,
+            ref: c.get('resolvedRef'),
           });
         }
 

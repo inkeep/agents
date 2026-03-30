@@ -10,7 +10,6 @@ import {
   DateTimeFilterQueryParamsSchema,
   deleteScheduledTrigger,
   generateId,
-  getProjectScopedRef,
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerRunInfoBatch,
@@ -27,7 +26,6 @@ import {
   OrgRoles,
   PaginationQueryParamsSchema,
   type Part,
-  resolveRef,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiUpdateSchema,
   ScheduledTriggerInvocationListResponse,
@@ -41,7 +39,6 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { CronExpressionParser } from 'cron-parser';
-import { manageDbClient } from '../../../data/db';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -1028,6 +1025,7 @@ app.openapi(
     });
 
     const { maxRetries, retryDelaySeconds, timeoutSeconds } = trigger;
+    const resolvedRef = c.get('resolvedRef');
 
     // Create a new invocation for the rerun
     const newInvocationId = generateId();
@@ -1038,6 +1036,7 @@ app.openapi(
       projectId,
       agentId,
       scheduledTriggerId,
+      ref: resolvedRef,
       status: 'pending',
       scheduledFor: new Date().toISOString(),
       idempotencyKey: `manual-rerun-${invocationId}-${Date.now()}`,
@@ -1070,13 +1069,6 @@ app.openapi(
           scheduledTriggerId,
           invocationId: newInvocationId,
         });
-
-        // Resolve project ref
-        const ref = getProjectScopedRef(tenantId, projectId, 'main');
-        const resolvedRef = await resolveRef(manageDbClient)(ref);
-        if (!resolvedRef) {
-          throw new Error(`Failed to resolve ref for project ${projectId}`);
-        }
 
         // Build message from template
         const effectivePayload = trigger.payload ?? {};
@@ -1352,12 +1344,15 @@ app.openapi(
     // Create a new invocation
     const invocationId = generateId();
 
+    const resolvedRef = c.get('resolvedRef');
+
     await createScheduledTriggerInvocation(runDbClient)({
       id: invocationId,
       tenantId,
       projectId,
       agentId,
       scheduledTriggerId,
+      ref: resolvedRef,
       status: 'pending',
       scheduledFor: new Date().toISOString(),
       idempotencyKey: `manual-run-${scheduledTriggerId}-${Date.now()}`,
@@ -1389,13 +1384,6 @@ app.openapi(
           scheduledTriggerId,
           invocationId,
         });
-
-        // Resolve project ref
-        const ref = getProjectScopedRef(tenantId, projectId, 'main');
-        const resolvedRef = await resolveRef(manageDbClient)(ref);
-        if (!resolvedRef) {
-          throw new Error(`Failed to resolve ref for project ${projectId}`);
-        }
 
         // Build message from template
         const effectivePayload = trigger.payload ?? {};

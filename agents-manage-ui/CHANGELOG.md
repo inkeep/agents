@@ -1,5 +1,182 @@
 # @inkeep/agents-manage-ui
 
+## 0.62.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.62.1
+
+## 0.62.0
+
+### Patch Changes
+
+- b1507d1: Fix evaluation scoring returning null and display evaluation results in local time
+- ce9c516: Update @inkeep/agents-ui to support getAuthToken, remove max keys limit, add public key hover/copy
+- Updated dependencies [ce9c516]
+  - @inkeep/agents-core@0.62.0
+
+## 0.61.0
+
+### Patch Changes
+
+- 15c3f9d: Improve agent page sidepane performance using Activity component
+- ec1b2f7: Extract selection-sync logic into useAgentSelectionSync hook and remove useDefaultSubAgentNodeIdRef
+- 1e4f05d: Refactor agent graph editor to use deterministic graph keys and single source of truth for form state
+
+  ### Graph identity system
+
+  - Add deterministic graph key derivation for all node types (`getSubAgentGraphKey`, `getMcpGraphKey`, `getFunctionToolGraphKey`, `getExternalAgentGraphKey`, `getTeamAgentGraphKey`) via new `graph-keys.ts`, `graph-identity.ts`, `sub-agent-identity.ts`, and `function-tool-identity.ts` modules
+  - Replace unstable `generateId()` UUIDs with stable, domain-meaningful identifiers derived from persisted IDs (relation IDs, tool IDs, agent IDs)
+  - URL-based sidepane selection now uses graph keys instead of raw React Flow IDs, so deep-links survive re-renders and saves
+
+  ### RHF as single source of truth
+
+  - Strip `node.data` down to a thin identity envelope (`nodeKey` + minimal refs like `toolId`) — all business fields (name, description, prompt, models, code, etc.) are read exclusively from React Hook Form state
+  - Remove `hydrateNodesWithFormData()` entirely; `editorToPayload()` now reads all business data directly from a `SerializeAgentFormState` bundle with `requireFormValue()` fail-fast guards
+  - Rename `FullAgentUpdateSchema` → `FullAgentFormSchema`, remove `.transform()` from schema (resolution now happens at serialize-time), split types into `FullAgentFormValues` / `FullAgentFormInputValues`
+
+  ### Connection state consolidation
+
+  - Collapse scattered `tempSelectedTools`/`tempHeaders`/`tempToolPolicies` on node data into `mcpRelations` and `functionToolRelations` RHF record maps with factory helpers (`createMcpRelationFormInput`, `createFunctionToolRelationFormInput`)
+  - Edge removal triggers synchronous `form.unregister()` instead of deferred `requestAnimationFrame` — only `relationshipId` is unregistered for MCP relations to avoid a race condition where headers would be set to empty string on removal
+  - Remove `subAgentId` manipulation from Zustand store's `onEdgesChange`
+
+  ### Save-cycle reconciliation
+
+  - Expand `syncSavedAgentGraph` to reconcile three categories of server-assigned IDs: tool `canUse` relations, external agent delegate relations, and team agent delegate relations
+  - Rename MCP node IDs to deterministic graph keys post-save; preserve URL selection state via `findNodeByGraphKey`/`findEdgeByGraphKey`
+  - Collapse redundant double `isNodeType` patterns into single guards
+
+  ### Bug fixes
+
+  - Fix function tool "requires approval" flag not persisting across save/reload by hydrating `needsApproval` tool policies from `canUse` relations back into form state during `apiToFormValues()`
+  - Fix model inheritance display: use `getModelInheritanceStatus()` instead of bare `!subAgent.models` check to correctly show "(inherited)" label
+  - Fix MCP node editor crash on deep-link/reload: consolidate null guards for `toolData`, `tool`, and `mcpRelation` with proper JSX fallback UI
+  - Fix function tool node editor crash after node removal: add early return when `functionId` is undefined
+  - Fix race condition when MCP relation is removed but component is still mounted
+
+  ### Performance
+
+  - Replace `useWatch({ name: 'functionTools' })` with targeted `useWatch({ name: 'functionTools.${id}.functionId' })` to eliminate O(N²) re-renders across function tool nodes
+  - Remove `getFunctionIdForTool` helper that iterated the entire `functionTools` map
+
+  ### Schema changes
+
+  - Rename form field `defaultSubAgentId` → `defaultSubAgentNodeId` to clarify it holds a node key; translation to persisted ID happens at serialization time
+  - Add `FunctionToolRelationSchema` and `functionToolRelations` record field to form schema
+  - OpenAPI: `defaultSubAgentId` uses `$ref` to `ResourceId`, `maxTransferCount` type corrected to `integer`, function tool `dependencies` simplified to `StringRecord`
+
+  ### Test coverage
+
+  - Add 7 new test files covering graph identity, function tool identity, form-state defaults, and sync-saved-agent-graph scenarios
+  - Expand serialize and deserialize test suites with new architecture patterns
+  - Add roundtrip test for approval policy hydration
+
+- cad67b9: Move refreshAgentGraph and handleNavigateToNode to their consuming components for better co-location
+- Updated dependencies [12722d9]
+- Updated dependencies [f4a9c69]
+  - @inkeep/agents-core@0.61.0
+
+## 0.60.0
+
+### Patch Changes
+
+- ed10886: Add optional prompt field to app deployments for surface-specific behavioral tuning
+- Updated dependencies [2eaebb3]
+- Updated dependencies [c0018a6]
+- Updated dependencies [ed10886]
+- Updated dependencies [b1199eb]
+  - @inkeep/agents-core@0.60.0
+
+## 0.59.4
+
+### Patch Changes
+
+- 82bd424: Add InputGroup compound component and use it in ProjectSwitcher search input
+- 296c79a: Remove unused tooltip rendering from sidebar nav items to improve performance
+- ef7987f: Replace ad-hoc search input patterns with unified InputGroup compound component
+- 1b37b29: Migrate from individual @radix-ui/react-\* packages to unified radix-ui package
+- 99b5edf: Update TypeScript to 6.0.2
+- 6f1c5da: fix(dashboard): Ensures rounded bottom corners render correctly in dark mode
+- Updated dependencies [be7f056]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+
+## 0.59.3
+
+### Patch Changes
+
+- ed09910: Fix silent error swallowing in pending invitations and add tenant auth to Nango integration actions
+- e2c4c2d: Remove redundant TooltipProvider wrappers to reduce unnecessary React context overhead
+- 6ca8164: v4 to v5 signoz migration
+- b78771b: update Next.js to 16.2.1
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- 028a801: - Replace prop-drilled permission flags (`readOnly`, `canEdit`, `canUse`, `canManage`) with direct consumption via `useProjectPermissionsQuery()` hook in client components
+  - Fix empty breadcrumb on `/[tenantId]/profile` page
+- 6cc27ba: replace manual `useEffect` and `fetchProjectsAction` with `useProjectsQuery` hook and adopt `PageProps` types
+- 825690c: Add back link to sidebar and org settings link to user menu
+- 0b4669f: Fix user-scoped MCP credential card not updating after connect or disconnect without manual page refresh
+  - @inkeep/agents-core@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- eb3a4bb: Fix URL validation bypass and permission guard in credential provider setup
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+- 7ee7de1: Fix scopes field placeholder to show correct comma-separated format expected by Nango API
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+### Patch Changes
+
+- 3d54b6b: Remove `useProject`, `useProjectPermissions`, `useProjectActions`, `useProjectData` in favor of `useProjectPermissionsQuery` and `useProjectQuery` React Query hooks
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- 64b0d88: Improve custom header ux by deriving template json from the headers schema
+  - @inkeep/agents-core@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- 9c06353: Remove `enrichNodes` helper and fix MCP tool image not displaying in sidepane
+- 9e0dd71: fix unauthenticated access to span details
+- ac53c07: rename the api to remove references to signoz
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+  - @inkeep/agents-core@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- f8f16f4: Add GPT-5.4 Mini and GPT-5.4 Nano to model constants, UI picker, and CLI
+- 56a8a91: - Enable sorting for simple tables
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+
 ## 0.58.18
 
 ### Patch Changes

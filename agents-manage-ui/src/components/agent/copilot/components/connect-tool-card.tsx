@@ -4,7 +4,6 @@ import type { CredentialScope } from '@/components/mcp-servers/form/validation';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Button } from '@/components/ui/button';
 import { useScopeSelection } from '@/hooks/use-scope-selection';
-import { getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { fetchMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
 
@@ -114,36 +113,11 @@ export function ConnectToolCard({
     setStatus('connecting');
     setErrorMessage('');
 
-    // proceed with OAuth flow
-    const isThirdPartyServer = toolDetails.url.includes('composio.dev');
-    let credentialScopedRedirectUrl: string | null = null;
-    if (isThirdPartyServer) {
-      try {
-        credentialScopedRedirectUrl = await getThirdPartyOAuthRedirectUrl(
-          targetTenantId,
-          targetProjectId,
-          toolDetails.url,
-          scope
-        );
-
-        if (!credentialScopedRedirectUrl) {
-          setStatus('error');
-          setErrorMessage('Failed to get OAuth URL. Please try connecting from the detail page.');
-          return;
-        }
-      } catch {
-        setStatus('error');
-        setErrorMessage('Failed to get OAuth URL. Please try connecting from the detail page.');
-        return;
-      }
-    }
-
     try {
       await onConnect({
         toolId,
         toolName: toolDetails.name,
         mcpServerUrl: toolDetails.url,
-        thirdPartyConnectAccountUrl: credentialScopedRedirectUrl ?? undefined,
         credentialScope: scope,
       });
       setStatus('success');

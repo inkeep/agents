@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.58.18",
+  "version": "0.62.1",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -42,6 +42,10 @@
       "types": "./dist/validation/index.d.ts",
       "import": "./dist/validation/index.js"
     },
+    "./auth/auth-types": {
+      "types": "./dist/auth/auth-types.d.ts",
+      "import": "./dist/auth/auth-types.js"
+    },
     "./client-exports": {
       "types": "./dist/client-exports.d.ts",
       "import": "./dist/client-exports.js"
@@ -54,9 +58,9 @@
       "types": "./dist/constants/schema-validation/index.d.ts",
       "import": "./dist/constants/schema-validation/index.js"
     },
-    "./constants/allowed-image-formats": {
-      "types": "./dist/constants/allowed-image-formats.d.ts",
-      "import": "./dist/constants/allowed-image-formats.js"
+    "./constants/allowed-file-formats": {
+      "types": "./dist/constants/allowed-file-formats.d.ts",
+      "import": "./dist/constants/allowed-file-formats.js"
     },
     "./credential-stores": {
       "types": "./dist/credential-stores/index.d.ts",
@@ -65,6 +69,10 @@
     "./db/test-client": {
       "types": "./dist/db/test-client.d.ts",
       "import": "./dist/db/test-client.js"
+    },
+    "./utils/env-detection": {
+      "types": "./dist/utils/env-detection.d.ts",
+      "import": "./dist/utils/env-detection.js"
     },
     "./utils/schema-conversion": {
       "types": "./dist/utils/schema-conversion.d.ts",
@@ -77,6 +85,10 @@
     "./auth": {
       "types": "./dist/auth/auth.d.ts",
       "import": "./dist/auth/auth.js"
+    },
+    "./auth/cookie-names": {
+      "types": "./dist/auth/cookie-names.d.ts",
+      "import": "./dist/auth/cookie-names.js"
     },
     "./auth/schema": {
       "types": "./dist/auth/auth-schema.d.ts",
@@ -155,6 +167,7 @@
     "@authzed/authzed-node": "^1.6.1",
     "@babel/parser": "^7.28.6",
     "@better-auth/sso": "catalog:",
+    "@better-auth/infra": "catalog:",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
     "@modelcontextprotocol/sdk": "^1.26.0",
@@ -209,7 +222,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "drizzle-kit": "^0.31.6",
     "tsx": "^4.19.2",
-    "typescript": "^5.9.2",
+    "typescript": "^6.0.2",
     "vitest": "^3.2.4"
   },
   "engines": {

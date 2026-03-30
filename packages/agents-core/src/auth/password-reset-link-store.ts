@@ -4,7 +4,15 @@ type PasswordResetLinkEntry = {
   token: string;
 };
 
-const pendingResolvers = new Map<string, (entry: PasswordResetLinkEntry) => void>();
+const STORE_KEY = Symbol.for('inkeep:password-reset-link-store');
+
+function getPendingResolvers(): Map<string, (entry: PasswordResetLinkEntry) => void> {
+  const g = globalThis as Record<symbol, unknown>;
+  if (!g[STORE_KEY]) {
+    g[STORE_KEY] = new Map<string, (entry: PasswordResetLinkEntry) => void>();
+  }
+  return g[STORE_KEY] as Map<string, (entry: PasswordResetLinkEntry) => void>;
+}
 
 /**
  * Sets up a listener that resolves when `setPasswordResetLink` fires for this email.
@@ -18,6 +26,7 @@ export function waitForPasswordResetLink(
   email: string,
   timeoutMs = 10_000
 ): Promise<PasswordResetLinkEntry> {
+  const pendingResolvers = getPendingResolvers();
   const key = email.toLowerCase();
   return new Promise<PasswordResetLinkEntry>((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -38,6 +47,7 @@ export function waitForPasswordResetLink(
  * Resolves the pending promise for this email (if any).
  */
 export function setPasswordResetLink(entry: { email: string; url: string; token: string }): void {
+  const pendingResolvers = getPendingResolvers();
   const key = entry.email.toLowerCase();
   const resolver = pendingResolvers.get(key);
   if (resolver) {

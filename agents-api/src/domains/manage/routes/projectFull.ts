@@ -1,4 +1,4 @@
-import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   type AgentsManageDatabaseClient,
   cascadeDeleteByProject,
@@ -35,12 +35,12 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute, registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { HTTPException } from 'hono/http-exception';
-import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
+import type { ManageAppVariables } from '../../../types/app';
 import {
   type ManageRouteHandler,
   openapiRegisterPutPatchRoutesForLegacy,
@@ -666,12 +666,6 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
   } catch (error: any) {
     if (error instanceof HTTPException) {
       throw error;
-    }
-    if (error instanceof z.ZodError) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'Invalid project definition',
-      });
     }
 
     if (error instanceof Error && error.message.includes('ID mismatch')) {

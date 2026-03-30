@@ -1,5 +1,99 @@
 # @inkeep/agents-work-apps
 
+## 0.62.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.62.1
+
+## 0.62.0
+
+### Patch Changes
+
+- Updated dependencies [ce9c516]
+  - @inkeep/agents-core@0.62.0
+
+## 0.61.0
+
+### Patch Changes
+
+- Updated dependencies [12722d9]
+- Updated dependencies [f4a9c69]
+  - @inkeep/agents-core@0.61.0
+
+## 0.60.0
+
+### Patch Changes
+
+- Updated dependencies [2eaebb3]
+- Updated dependencies [c0018a6]
+- Updated dependencies [ed10886]
+- Updated dependencies [b1199eb]
+  - @inkeep/agents-core@0.60.0
+
+## 0.59.4
+
+### Patch Changes
+
+- 6a8a439: Add oxfmt format option to github file tools
+- 99b5edf: Update TypeScript to 6.0.2
+- Updated dependencies [be7f056]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+
+## 0.59.3
+
+### Patch Changes
+
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+
+## 0.59.0
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- b4baf66: Fix GitHub OIDC token exchange to scope installation tokens to the repository from the OIDC claims.
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+  - @inkeep/agents-core@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+
 ## 0.58.18
 
 ### Patch Changes

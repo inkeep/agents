@@ -16,8 +16,8 @@ const isRealEndpoint = otlpEndpoint && !hasPlaceholder;
 
 if (isRealEndpoint) {
   try {
-    const { defaultSDK } = await import('@inkeep/agents-api/instrumentation');
-    defaultSDK.start();
+    const { startOpenTelemetrySDK } = await import('@inkeep/agents-api/instrumentation');
+    startOpenTelemetrySDK();
     console.log(`[OTEL] Instrumentation enabled (endpoint: ${otlpEndpoint})`);
   } catch (error) {
     console.error(`[OTEL] Failed to initialize: ${error instanceof Error ? error.message : error}`);

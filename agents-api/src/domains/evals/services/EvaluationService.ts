@@ -11,6 +11,7 @@ import {
   createEvaluationRun,
   type EvaluationResultSelect,
   filterConversationsForJob,
+  GENERATION_TYPES,
   generateId,
   getConversationHistory,
   getEvaluationJobConfigById,
@@ -25,7 +26,8 @@ import {
   updateEvaluationResult,
   withRef,
 } from '@inkeep/agents-core';
-import { generateObject, generateText } from 'ai';
+import { context as otelContext, propagation } from '@opentelemetry/api';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import manageDbClient from '../../../data/db/manageDbClient';
 import manageDbPool from '../../../data/db/manageDbPool';
@@ -51,15 +53,25 @@ export interface ChatApiResponse {
   error?: string;
 }
 
+function withOtelBaggage<T>(entries: Record<string, string>, fn: () => Promise<T>): Promise<T> {
+  const bag = Object.entries(entries).reduce(
+    (b, [key, value]) => b.setEntry(key, { value }),
+    propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage()
+  );
+  return otelContext.with(propagation.setBaggage(otelContext.active(), bag), fn);
+}
+
 /**
  * Service for running dataset items through the chat API endpoint
  */
 export class EvaluationService {
   private readonly agentsApiUrl: string | undefined;
   private readonly runApiBypassSecret: string | undefined;
+  private readonly manageApiBypassSecret: string | undefined;
 
   constructor() {
     this.runApiBypassSecret = env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET ?? undefined;
+    this.manageApiBypassSecret = env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET ?? undefined;
     this.agentsApiUrl = env.INKEEP_AGENTS_API_URL ?? '';
   }
 
@@ -344,10 +356,25 @@ export class EvaluationService {
           'Generating next user message with simulation agent'
         );
 
-        const simulationResponse = await generateText({
+        const simulationConfig = {
           ...simulationModelConfig,
           prompt: simulationPrompt,
-        });
+          experimental_telemetry: {
+            isEnabled: true,
+            metadata: {
+              tenantId,
+              projectId,
+              agentId,
+              conversationId,
+              generationType: GENERATION_TYPES.EVAL_SIMULATION,
+            },
+          },
+        };
+
+        const simulationResponse = await withOtelBaggage(
+          { 'tenant.id': tenantId, 'project.id': projectId, 'conversation.id': conversationId },
+          () => generateText(simulationConfig)
+        );
 
         const nextUserMessage = simulationResponse.text.trim();
 
@@ -655,6 +682,7 @@ Generate the next user message:`;
       tenantId,
       projectId,
       evaluationJobConfigId,
+      ref: resolvedRef,
     });
 
     const results: Array<EvaluationResultSelect> = [];
@@ -842,8 +870,11 @@ Generate the next user message:`;
       );
     }
 
-    // Fetch trace from SigNoz (similar to the example)
-    const prettifiedTrace = await this.fetchTraceFromSigNoz(conversation.id);
+    const prettifiedTrace = await this.fetchTraceFromSigNoz({
+      conversationId: conversation.id,
+      tenantId,
+      projectId,
+    });
 
     logger.info(
       {
@@ -904,6 +935,9 @@ Generate the next user message:`;
       prompt: evaluationPrompt,
       modelConfig,
       schema: schemaObj,
+      tenantId,
+      projectId,
+      conversationId: conversation.id,
     });
 
     return {
@@ -963,14 +997,17 @@ Return your evaluation as a JSON object matching the schema above.`;
   }
 
   /**
-   * Call LLM API using AI SDK's generateObject for structured output
+   * Call LLM API using AI SDK's generateText with structured output
    */
   private async callLLM(params: {
     prompt: string;
     modelConfig: ModelSettings;
     schema: Record<string, unknown>;
+    tenantId: string;
+    projectId: string;
+    conversationId: string;
   }): Promise<{ result: Record<string, unknown>; metadata: Record<string, unknown> }> {
-    const { prompt, modelConfig, schema } = params;
+    const { prompt, modelConfig, schema, tenantId, projectId, conversationId } = params;
 
     const languageModel = ModelFactory.prepareGenerationConfig(modelConfig);
     const providerOptions = modelConfig?.providerOptions || {};
@@ -996,23 +1033,35 @@ Return your evaluation as a JSON object matching the schema above.`;
     const evaluationSchema = resultSchema;
 
     try {
-      // Try generateObject first - this should work with proper schema
       logger.info(
         {
           promptLength: prompt.length,
           model: modelConfig.model,
         },
-        'Calling generateObject'
+        'Calling generateText with structured output for eval scoring'
       );
-      const result = await generateObject({
-        ...languageModel,
-        schema: evaluationSchema,
-        prompt,
-        temperature: (providerOptions.temperature as number) ?? 0.3,
-      });
+      const result = await withOtelBaggage(
+        { 'tenant.id': tenantId, 'project.id': projectId, 'conversation.id': conversationId },
+        () =>
+          generateText({
+            ...languageModel,
+            output: Output.object({ schema: evaluationSchema }),
+            prompt,
+            temperature: (providerOptions.temperature as number) ?? 0.3,
+            experimental_telemetry: {
+              isEnabled: true,
+              metadata: {
+                tenantId,
+                projectId,
+                conversationId,
+                generationType: GENERATION_TYPES.EVAL_SCORING,
+              },
+            },
+          })
+      );
 
       return {
-        result: result.object as Record<string, unknown>,
+        result: (result as any).output as Record<string, unknown>,
         metadata: {
           usage: result.usage,
         },
@@ -1025,20 +1074,24 @@ Return your evaluation as a JSON object matching the schema above.`;
           schema: JSON.stringify(schema, null, 2),
           promptPreview: prompt.substring(0, 500),
         },
-        'Evaluation failed with generateObject'
+        'Evaluation failed with generateText structured output'
       );
       throw new Error(`Evaluation failed: ${errorMessage}`);
     }
   }
 
-  /**
-   * Fetch trace from SigNoz (similar to the example)
-   */
-  private async fetchTraceFromSigNoz(conversationId: string): Promise<any | null> {
+  private async fetchTraceFromSigNoz(params: {
+    conversationId: string;
+    tenantId: string;
+    projectId: string;
+  }): Promise<any | null> {
+    const { conversationId, tenantId, projectId } = params;
     const manageUIUrl = env.INKEEP_AGENTS_MANAGE_UI_URL;
     const maxRetries = 2;
     const retryDelayMs = 20000;
     const initialDelayMs = 30000;
+
+    const traceUrl = `${manageUIUrl}/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`;
 
     try {
       logger.info(
@@ -1055,9 +1108,12 @@ Return your evaluation as a JSON object matching the schema above.`;
             'Fetching trace from SigNoz'
           );
 
-          const traceResponse = await fetch(
-            `${manageUIUrl}/api/signoz/conversations/${conversationId}`
-          );
+          const headers: Record<string, string> = {};
+          if (this.manageApiBypassSecret) {
+            headers.Authorization = `Bearer ${this.manageApiBypassSecret}`;
+          }
+
+          const traceResponse = await fetch(traceUrl, { headers });
 
           if (!traceResponse.ok) {
             logger.warn(

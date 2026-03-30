@@ -131,6 +131,48 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
     });
   });
 
+  describe('composio store type', () => {
+    it('should return connectedAccountId for composio store type', () => {
+      const retrievalParams = {
+        connectedAccountId: 'ca_abc-123',
+      };
+
+      const result = getCredentialStoreLookupKeyFromRetrievalParams({
+        retrievalParams,
+        credentialStoreType: CredentialStoreType.composio,
+      });
+
+      expect(result).toBe('ca_abc-123');
+    });
+
+    it('should return null when connectedAccountId is missing', () => {
+      const retrievalParams = {
+        someOtherParam: 'value',
+      };
+
+      const result = getCredentialStoreLookupKeyFromRetrievalParams({
+        retrievalParams,
+        credentialStoreType: CredentialStoreType.composio,
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should prioritize explicit key over connectedAccountId', () => {
+      const retrievalParams = {
+        key: 'EXPLICIT_KEY',
+        connectedAccountId: 'ca_should-be-ignored',
+      };
+
+      const result = getCredentialStoreLookupKeyFromRetrievalParams({
+        retrievalParams,
+        credentialStoreType: CredentialStoreType.composio,
+      });
+
+      expect(result).toBe('EXPLICIT_KEY');
+    });
+  });
+
   describe('unknown store types', () => {
     it('should return null for memory store type without key', () => {
       const retrievalParams = {

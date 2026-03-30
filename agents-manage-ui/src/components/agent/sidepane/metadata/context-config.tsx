@@ -1,25 +1,44 @@
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { type FC, useEffect } from 'react';
+import { ContextConfigSchema as schema } from '@/components/agent/form/validation';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericJsonSchemaEditor } from '@/components/form/json-schema-input';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
+import { getContextSuggestions } from '@/lib/context-suggestions';
 import { contextVariablesTemplate, headersSchemaTemplate } from '@/lib/templates';
-import type { AgentMetadata, ContextConfig } from '../../configuration/agent-types';
-import { FieldLabel } from '../form-components/label';
+import { isRequired } from '@/lib/utils';
 import { SectionHeader } from '../section';
 
-export function ContextConfigForm({
-  contextConfig,
-  updateMetadata,
-}: {
-  contextConfig: ContextConfig;
-  updateMetadata: (field: keyof AgentMetadata, value: AgentMetadata[keyof AgentMetadata]) => void;
-}) {
-  const { contextVariables, headersSchema } = contextConfig;
+const HeadersSchema = schema.shape.headersSchema;
+const ContextVariablesSchema = schema.shape.contextVariables;
 
-  const updateContextConfig = (field: keyof ContextConfig, value: string) => {
-    const updatedContextConfig = {
-      ...contextConfig,
-      [field]: value,
-    };
-    updateMetadata('contextConfig', updatedContextConfig);
-  };
+export const ContextConfigForm: FC = () => {
+  'use memo';
+  const form = useFullAgentFormContext();
+  const { setVariableSuggestions } = useAgentActions();
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: -- only on mount
+  useEffect(() => {
+    // make sure to unsubscribe;
+    return form.subscribe({
+      name: ['contextConfig.contextVariables', 'contextConfig.headersSchema'],
+      formState: { values: true },
+      callback(data) {
+        const config = data.values.contextConfig;
+
+        const headersSchema = HeadersSchema.safeParse(config?.headersSchema).data;
+        const contextVariables = ContextVariablesSchema.safeParse(config?.contextVariables).data;
+
+        // Generate suggestions from context config
+        const variables = getContextSuggestions({
+          headersSchema,
+          // @ts-expect-error improve types
+          contextVariables,
+        });
+        setVariableSuggestions(variables);
+      },
+    });
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -27,28 +46,22 @@ export function ContextConfigForm({
         title="Context configuration"
         description="Configure dynamic context for this agent."
       />
-      <div className="flex flex-col space-y-8">
-        <div className="space-y-2">
-          <FieldLabel id="contextVariables" label="Context variables (JSON)" />
-          <StandaloneJsonEditor
-            name="contextVariables"
-            value={contextVariables}
-            onChange={(value) => updateContextConfig('contextVariables', value)}
-            placeholder="{}"
-            customTemplate={contextVariablesTemplate}
-          />
-        </div>
-        <div className="space-y-2">
-          <FieldLabel id="headersSchema" label="Headers schema (JSON)" />
-          <StandaloneJsonEditor
-            name="headersSchema"
-            value={headersSchema}
-            onChange={(value) => updateContextConfig('headersSchema', value)}
-            placeholder="{}"
-            customTemplate={headersSchemaTemplate}
-          />
-        </div>
-      </div>
+      <GenericJsonEditor
+        control={form.control}
+        name="contextConfig.contextVariables"
+        label="Context variables"
+        placeholder="{}"
+        customTemplate={contextVariablesTemplate}
+        isRequired={isRequired(schema, 'contextVariables')}
+      />
+      <GenericJsonSchemaEditor
+        control={form.control}
+        name="contextConfig.headersSchema"
+        label="Headers schema"
+        placeholder="{}"
+        customTemplate={headersSchemaTemplate}
+        isRequired={isRequired(schema, 'headersSchema')}
+      />
     </div>
   );
-}
+};

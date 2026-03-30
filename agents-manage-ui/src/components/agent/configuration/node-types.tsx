@@ -1,13 +1,19 @@
-import type { SkillApiSelect } from '@inkeep/agents-core';
-import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
+import type { Node } from '@xyflow/react';
 import { Bot, Code, Globe, Hammer, Users } from 'lucide-react';
+import {
+  getExternalAgentGraphKey,
+  getFunctionToolGraphKey,
+  getMcpGraphKey,
+  getPlaceholderGraphKey,
+  getSubAgentGraphKey,
+  getTeamAgentGraphKey,
+} from '@/features/agent/domain/graph-keys';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
 import { PlaceholderNode } from '../nodes/placeholder-node';
 import { SubAgentNode } from '../nodes/sub-agent-node';
 import { TeamAgentNode } from '../nodes/team-agent-node';
-import type { AgentModels } from './agent-types';
 
 export enum NodeType {
   SubAgentPlaceholder = 'sub-agent-placeholder',
@@ -27,73 +33,84 @@ export type PlaceholderType =
   | NodeType.TeamAgentPlaceholder
   | NodeType.SubAgentPlaceholder;
 
-interface NodeData extends Record<string, unknown> {
-  name: string;
-  isDefault?: boolean;
-  subAgentId?: string | null; // Optional for MCP nodes
-  relationshipId?: string | null; // Optional for MCP nodes
-  type?: PlaceholderType; // Optional for placeholder nodes
+export type GraphNodeStatus = 'delegating' | 'inverted-delegating' | 'executing' | 'error' | null;
+
+interface NodeAnimation {
+  status: GraphNodeStatus;
 }
 
-export interface AnimatedNode {
-  status?: 'delegating' | 'inverted-delegating' | 'executing' | 'error' | null;
+type StrictNodeData<T extends object> = T & Record<string, unknown>;
+
+interface GraphIdentityFields {
+  nodeKey: string;
 }
 
-export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
-  toolId: string;
-  subAgentId?: string | null; // null when unconnected, string when connected to specific agent
-  relationshipId?: string | null; // null when unconnected, maps to specific DB agent_tool_relation row
-  name?: string;
-  imageUrl?: string;
-  provider?: string;
-  tempSelectedTools?: string[] | null;
-  tempHeaders?: Record<string, string> | null;
-  tempToolPolicies?: Record<string, { needsApproval?: boolean }> | null;
+interface AnimatableNodeFields extends GraphIdentityFields {
+  animation?: NodeAnimation;
 }
 
-export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
-  id: string;
-  name: string;
-  description?: string;
-  prompt?: string;
-  dataComponents?: string[];
-  artifactComponents?: string[];
-  skills: (SkillApiSelect & { index: number; alwaysLoaded: boolean })[];
-  models?: AgentModels; // Use same structure as agent
-  stopWhen?: SubAgentStopWhen;
-  isDefault?: boolean;
+export type PlaceholderNodeData = StrictNodeData<GraphIdentityFields>;
+
+export type MCPNodeData = StrictNodeData<
+  AnimatableNodeFields & {
+    toolId: string;
+  }
+>;
+
+export type AgentNodeData = StrictNodeData<AnimatableNodeFields>;
+
+export type ExternalAgentNodeData = StrictNodeData<
+  AnimatableNodeFields & {
+    externalAgentId: string;
+    relationshipId: string | null;
+  }
+>;
+
+export type FunctionToolNodeData = StrictNodeData<
+  AnimatableNodeFields & {
+    toolId: string;
+  }
+>;
+
+export type TeamAgentNodeData = StrictNodeData<
+  AnimatableNodeFields & {
+    teamAgentId: string;
+    relationshipId: string | null;
+  }
+>;
+
+export interface GraphNodeDataByType {
+  [NodeType.SubAgentPlaceholder]: PlaceholderNodeData;
+  [NodeType.SubAgent]: AgentNodeData;
+  [NodeType.ExternalAgent]: ExternalAgentNodeData;
+  [NodeType.TeamAgent]: TeamAgentNodeData;
+  [NodeType.TeamAgentPlaceholder]: PlaceholderNodeData;
+  [NodeType.ExternalAgentPlaceholder]: PlaceholderNodeData;
+  [NodeType.MCP]: MCPNodeData;
+  [NodeType.MCPPlaceholder]: PlaceholderNodeData;
+  [NodeType.FunctionTool]: FunctionToolNodeData;
 }
 
-export interface ExternalAgentNodeData extends Record<string, unknown> {
-  id: string;
-  name: string;
-  description?: string;
-  baseUrl: string;
-  relationshipId?: string | null;
-  credentialReferenceId?: string | null;
-  tempHeaders?: Record<string, string> | null;
-}
+export type GraphNode<T extends keyof GraphNodeDataByType = keyof GraphNodeDataByType> = Node<
+  GraphNodeDataByType[T],
+  T
+>;
 
-export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedNode {
-  functionToolId: string;
-  toolId?: string;
-  agentId?: string | null;
-  relationshipId?: string;
-  tempToolPolicies?: Record<string, { needsApproval?: boolean }>;
-  name?: string;
-  description?: string;
-  code?: string;
-  inputSchema?: Record<string, unknown>;
-  dependencies?: Record<string, unknown>;
-}
+export type AnimatableGraphNode =
+  | GraphNode<NodeType.SubAgent>
+  | GraphNode<NodeType.ExternalAgent>
+  | GraphNode<NodeType.TeamAgent>
+  | GraphNode<NodeType.MCP>
+  | GraphNode<NodeType.FunctionTool>;
 
-export interface TeamAgentNodeData extends Record<string, unknown> {
-  id: string;
-  name: string;
-  description?: string;
-  relationshipId?: string | null;
-  tempHeaders?: Record<string, string> | null;
-}
+export type AnimatableGraphNodeData = AnimatableGraphNode['data'];
+
+export const placeholderNodeLabels: Record<PlaceholderType, string> = {
+  [NodeType.SubAgentPlaceholder]: 'Select agent type',
+  [NodeType.ExternalAgentPlaceholder]: 'Select external agent',
+  [NodeType.TeamAgentPlaceholder]: 'Select team agent',
+  [NodeType.MCPPlaceholder]: 'Select MCP server',
+};
 
 export const nodeTypes = {
   [NodeType.SubAgentPlaceholder]: PlaceholderNode,
@@ -114,44 +131,88 @@ export const externalAgentNodeTargetHandleId = 'target-external-agent';
 export const functionToolNodeHandleId = 'target-function-tool';
 export const teamAgentNodeTargetHandleId = 'target-team-agent';
 
-export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
-  [NodeType.SubAgentPlaceholder]: {
-    name: 'Select agent type',
-    type: NodeType.SubAgentPlaceholder,
-  },
-  [NodeType.SubAgent]: {
-    name: '',
-  },
-  [NodeType.ExternalAgent]: {
-    name: '',
-  },
-  [NodeType.ExternalAgentPlaceholder]: {
-    name: 'Select external agent',
-    type: NodeType.ExternalAgentPlaceholder,
-  },
-  [NodeType.MCP]: {
-    name: 'MCP',
-    subAgentId: null,
+export const newNodeDefaults: {
+  [T in keyof GraphNodeDataByType]: (nodeId: string) => GraphNodeDataByType[T];
+} = {
+  [NodeType.SubAgentPlaceholder]: (nodeId) => ({
+    nodeKey: getPlaceholderGraphKey(NodeType.SubAgentPlaceholder, nodeId),
+  }),
+  [NodeType.SubAgent]: (nodeId) => ({
+    nodeKey: getSubAgentGraphKey(nodeId),
+  }),
+  [NodeType.ExternalAgent]: (nodeId) => ({
+    nodeKey: getExternalAgentGraphKey(nodeId),
+    externalAgentId: nodeId,
     relationshipId: null,
-  },
-  [NodeType.MCPPlaceholder]: {
-    name: 'Select MCP server',
-    type: NodeType.MCPPlaceholder,
-  },
-  [NodeType.FunctionTool]: {
-    name: 'Function Tool',
-    subAgentId: null,
-  },
-  [NodeType.TeamAgent]: {
-    name: 'Team Agent',
-    subAgentId: null,
+  }),
+  [NodeType.ExternalAgentPlaceholder]: (nodeId) => ({
+    nodeKey: getPlaceholderGraphKey(NodeType.ExternalAgentPlaceholder, nodeId),
+  }),
+  [NodeType.MCP]: (nodeId) => ({
+    nodeKey: getMcpGraphKey({ toolId: nodeId }),
+    toolId: nodeId,
+  }),
+  [NodeType.MCPPlaceholder]: (nodeId) => ({
+    nodeKey: getPlaceholderGraphKey(NodeType.MCPPlaceholder, nodeId),
+  }),
+  [NodeType.FunctionTool]: (nodeId) => ({
+    nodeKey: getFunctionToolGraphKey({ toolId: nodeId }),
+    toolId: nodeId,
+  }),
+  [NodeType.TeamAgent]: (nodeId) => ({
+    nodeKey: getTeamAgentGraphKey(nodeId),
+    teamAgentId: nodeId,
     relationshipId: null,
-  },
-  [NodeType.TeamAgentPlaceholder]: {
-    name: 'Select team agent',
-    type: NodeType.TeamAgentPlaceholder,
-  },
+  }),
+  [NodeType.TeamAgentPlaceholder]: (nodeId) => ({
+    nodeKey: getPlaceholderGraphKey(NodeType.TeamAgentPlaceholder, nodeId),
+  }),
 };
+
+type NodeSelectionShape = Pick<Node, 'id' | 'type' | 'data'>;
+
+export function isNodeType<T extends keyof GraphNodeDataByType>(
+  node: NodeSelectionShape | Node | undefined,
+  type: T
+): node is GraphNode<T> | (NodeSelectionShape & { type: T; data: GraphNodeDataByType[T] }) {
+  return !!node && node.type === type;
+}
+
+export function isAnimatableGraphNode(
+  node?: NodeSelectionShape | Node
+): node is
+  | AnimatableGraphNode
+  | (NodeSelectionShape & { type: AnimatableGraphNode['type']; data: AnimatableGraphNodeData }) {
+  return (
+    !!node &&
+    (node.type === NodeType.SubAgent ||
+      node.type === NodeType.ExternalAgent ||
+      node.type === NodeType.TeamAgent ||
+      node.type === NodeType.MCP ||
+      node.type === NodeType.FunctionTool)
+  );
+}
+
+export function getNodeStatus(data?: AnimatableGraphNodeData): GraphNodeStatus {
+  return data?.animation?.status ?? null;
+}
+
+export function setNodeStatus<T extends AnimatableGraphNodeData>(
+  data: T,
+  status: GraphNodeStatus
+): T {
+  if (status == null) {
+    const { animation: _animation, ...rest } = data;
+    return rest as T;
+  }
+
+  return {
+    ...data,
+    animation: {
+      status,
+    },
+  };
+}
 
 export const nodeTypeMap = {
   [NodeType.SubAgentPlaceholder]: {

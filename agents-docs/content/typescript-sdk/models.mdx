@@ -67,7 +67,7 @@ const mySubAgent = subAgent({
 | Provider | Example Models | API Key |
 |----------|----------------|---------|
 | **Anthropic** | `anthropic/claude-sonnet-4-6`<br/>`anthropic/claude-sonnet-4-5`<br/>`anthropic/claude-haiku-4-5`<br/>`anthropic/claude-opus-4-6` | `ANTHROPIC_API_KEY` |
-| **OpenAI** | `openai/gpt-5.4-pro`<br/>`openai/gpt-5.4`<br/>`openai/gpt-5.2`<br/>`openai/gpt-5.1`<br/>`openai/gpt-4.1`<br/>`openai/gpt-4.1-mini`<br/>`openai/gpt-4.1-nano`<br/>`openai/gpt-5`* | `OPENAI_API_KEY` |
+| **OpenAI** | `openai/gpt-5.4-pro`<br/>`openai/gpt-5.4`<br/>`openai/gpt-5.4-mini`<br/>`openai/gpt-5.4-nano`<br/>`openai/gpt-5.2`<br/>`openai/gpt-5.1`<br/>`openai/gpt-4.1`<br/>`openai/gpt-4.1-mini`<br/>`openai/gpt-4.1-nano`<br/>`openai/gpt-5`* | `OPENAI_API_KEY` |
 | **Azure OpenAI** | `azure/my-gpt4-deployment`<br/>`azure/my-gpt35-deployment` | `AZURE_API_KEY` |
 | **Google** | `google/gemini-3.1-pro-preview`<br/>`google/gemini-2.5-flash`<br/>`google/gemini-2.5-flash-lite` | `GOOGLE_GENERATIVE_AI_API_KEY` |
 | **OpenRouter** | `openrouter/anthropic/claude-sonnet-4-0`<br/>`openrouter/meta-llama/llama-3.1-405b` | `OPENROUTER_API_KEY` |
@@ -293,6 +293,10 @@ models: {
 
 <Note>
 All models in the `models` array must be valid [Vercel AI Gateway model IDs](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway). The gateway falls through to the next model on failure — if all models fail, the request errors. Set `AI_GATEWAY_API_KEY` in your environment for authentication.
+</Note>
+
+<Note>
+When `AI_GATEWAY_API_KEY` is set, Anthropic, OpenAI, and Google models are automatically routed through the gateway for per-request cost tracking. No configuration changes are needed — your existing model strings work as-is.
 </Note>
 
 **Azure OpenAI:**

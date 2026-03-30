@@ -264,7 +264,7 @@ export function EvaluationRunConfigResults({
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {result.conversationCreatedAt
-                        ? formatDateTimeTable(result.conversationCreatedAt)
+                        ? formatDateTimeTable(result.conversationCreatedAt, { local: true })
                         : '-'}
                     </TableCell>
                     <TableCell>

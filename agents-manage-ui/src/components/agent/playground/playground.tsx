@@ -1,15 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bug, X } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { type Dispatch, useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import {
   copyFullTraceToClipboard,
@@ -20,9 +21,6 @@ import { ChatWidget } from './chat-widget';
 import { CustomHeadersDialog } from './custom-headers-dialog';
 
 interface PlaygroundProps {
-  agentId: string;
-  projectId: string;
-  tenantId: string;
   setShowPlayground: (show: boolean) => void;
   closeSidePane: () => void;
   showTraces: boolean;
@@ -30,25 +28,44 @@ interface PlaygroundProps {
 }
 
 export const Playground = ({
-  agentId,
-  projectId,
-  tenantId,
   closeSidePane,
   setShowPlayground,
   showTraces,
   setShowTraces,
 }: PlaygroundProps) => {
+  const { tenantId, projectId, agentId } = useParams<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+  }>();
   const { setIsOpen: setIsCopilotOpen } = useCopilotContext();
   const { resetPlaygroundConversationId } = useAgentActions();
   const conversationId = useAgentStore(({ playgroundConversationId }) => playgroundConversationId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string> | undefined>(undefined);
-  const headersSchemaString = useAgentStore(({ metadata }) => metadata.contextConfig.headersSchema);
+  const fullAgentForm = useFullAgentFormContext();
+  const headersSchemaString = useWatch({
+    control: fullAgentForm.control,
+    name: 'contextConfig.headersSchema',
+  });
   const [isCustomHeadersModalOpen, setIsCustomHeadersModalOpen] = useState(false);
 
   useEffect(() => {
     // when the playground is closed the chat widget is unmounted so we need to reset the conversation id
     return () => resetPlaygroundConversationId();
   }, []);
+
+  const headersTemplate = useMemo(() => {
+    if (!headersSchemaString) return undefined;
+    try {
+      const schema = JSON.parse(headersSchemaString);
+      const properties = schema?.properties as Record<string, unknown> | undefined;
+      if (!properties) return undefined;
+      const template = Object.fromEntries(Object.keys(properties).map((key) => [key, '']));
+      return JSON.stringify(template, null, 2);
+    } catch {
+      return undefined;
+    }
+  }, [headersSchemaString]);
 
   const resolver = useMemo(
     () =>
@@ -153,6 +170,7 @@ export const Playground = ({
           form={form}
           isOpen={isCustomHeadersModalOpen}
           setIsOpen={setIsCustomHeadersModalOpen}
+          headersTemplate={headersTemplate}
         />
         <div className="flex items-center gap-2">
           <Button

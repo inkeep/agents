@@ -49,36 +49,112 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 - **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
 - **`conversationId`** — Optional; server generates one if omitted
 
+## File inputs (images, PDFs, and text documents)
 
-### Sending Images
+The chat endpoint supports files in message content parts with different rules by type:
 
-Images can be included as part of multi-part message content. Supported formats are **PNG**, **JPEG**, and **WebP**.
+- **Images (`image_url`)**: support either remote URLs (`https://...`) or base64 `data:` URIs
+- **Files (`file`)**: support PDFs plus these inline text document types:
+  - `text/plain`
+  - `text/markdown`
+  - `text/html`
+  - `text/csv`
+  - `text/x-log`
+  - `application/json`
+- **PDF file inputs**: support either remote URLs (`https://...`) or base64 `data:` payloads
+- **Text document file inputs**: support inline base64 `data:` payloads only. Remote URLs are not accepted for these text document MIME types.
 
-There are two ways to include images:
-
-- **Inline data URIs** — Base64-encoded images with the format `data:image/{png|jpeg|jpg|webp};base64,{data}`
-- **External URLs** — HTTP/HTTPS URLs pointing to hosted images
-
-When both `content` and `parts` are provided, the server keeps all valid `parts` and also includes `content` as text input. If text in `content` and `parts` does not match, the server logs a warning to help identify payload-construction bugs.
+### Request shape for file parts
 
 ```json
 {
   "messages": [
     {
       "role": "user",
-      "content": "What's in this image?",
+      "content": "Summarize these attachments",
       "parts": [
-        { "type": "text", "text": "What's in this image?" },
-        { "type": "image", "text": "data:image/png;base64,iVBORw0KGgo..." }
+        {
+          "type": "text",
+          "text": "Summarize these attachments"
+        },
+        {
+          "type": "image",
+          "text": "https://example.com/image.png"
+        },
+        {
+          "type": "image",
+          "text": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+        },
+        {
+          "type": "file",
+          "url": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...",
+          "mediaType": "application/pdf",
+          "filename": "report.pdf"
+        },
+        {
+          "type": "file",
+          "url": "data:text/plain;base64,SGVsbG8gZnJvbSBhIHR4dCBhdHRhY2htZW50Lg==",
+          "mediaType": "text/plain",
+          "filename": "notes.txt"
+        },
+        {
+          "type": "file",
+          "url": "data:text/markdown;base64,IyBUaXRsZQoKLSBpdGVtIDE=",
+          "mediaType": "text/markdown",
+          "filename": "notes.md"
+        },
+        {
+          "type": "file",
+          "url": "data:text/html;base64,PGgxPkhlbGxvPC9oMT4=",
+          "mediaType": "text/html",
+          "filename": "page.html"
+        },
+        {
+          "type": "file",
+          "url": "data:text/csv;base64,bmFtZSxjb3VudAphbHBoYSwxCg==",
+          "mediaType": "text/csv",
+          "filename": "data.csv"
+        },
+        {
+          "type": "file",
+          "url": "data:text/x-log;base64,W2luZm9dIGJvb3QKW2Vycm9yXSBmYWlsdXJlCg==",
+          "mediaType": "text/x-log",
+          "filename": "server.log"
+        },
+        {
+          "type": "file",
+          "url": "data:application/json;base64,eyJuYW1lIjoiYWxwaGEiLCJjb3VudCI6MX0=",
+          "mediaType": "application/json",
+          "filename": "data.json"
+        },
+        {
+          "type": "file",
+          "url": "https://example.com/document.pdf",
+          "mediaType": "application/pdf",
+          "filename": "document.pdf"
+        }
       ]
     }
   ]
 }
 ```
 
-<Note>
-  Images are validated server-side: MIME types are verified against actual content via byte-sniffing, a 10 MB size limit is enforced, and external URLs must use HTTP/HTTPS with no embedded credentials. DNS checks block requests to private/internal IP addresses.
-</Note>
+### Base64 and size requirements
+
+- **Encoding**: data URIs must include a valid base64 payload
+- **Maximum size**:
+  - Images and PDFs: each inline file payload is limited to **10 MB**
+  - Text documents (`text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`, `application/json`): each inline file payload is limited to **256 KB**
+- **Vercel `parts` file typing**: for `/run/api/chat`, file parts use Vercel-compatible shape
+  with `url` (data URI or `https://` for PDFs) and required `mediaType`
+- **Content validation**:
+  - Images are validated against supported image bytes
+  - PDFs must start with the `%PDF-` signature bytes
+  - Text documents must decode as valid UTF-8 text and are rejected if they contain binary-style control characters
+- **Model input handling for text documents**: text attachments are injected into the prompt only on the turn where the user sends them; persisted text attachments are not re-injected from later conversation history
+- **HTML semantics**: `text/html` files are treated as raw source text. The API does not render, sanitize, or convert HTML to visible page text before injection.
+- **Remote PDF URLs**: must be reachable over `http` or `https` from the Run API. Unreachable hosts, non-PDF responses, or oversized bodies result in **HTTP 400** with an error message (query strings and fragments on the URL are not preserved in stored metadata).
+- **Remote text document URLs**: are not supported. Use inline base64 `data:text/...;base64,...` or `data:application/json;base64,...` payloads instead.
 
 ### Optional Headers
 

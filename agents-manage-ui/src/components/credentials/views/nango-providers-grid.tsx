@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTitle } from '@/components/ui/card';
 import { CardGrid } from '@/components/ui/card-grid';
-import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface NangoProvidersGridProps {
   providers: ApiProvider[];
@@ -27,18 +27,16 @@ export function NangoProvidersGrid({ providers }: NangoProvidersGridProps) {
   const renderProviderHeader = (provider: ApiProvider) => (
     <div className="flex items-center gap-3 overflow-hidden">
       <ProviderIcon provider={provider.name} size={20} className="flex-shrink-0" />
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <CardTitle className="text-sm font-medium leading-tight truncate flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-              {provider.display_name || provider.name}
-            </CardTitle>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{provider.display_name || provider.name}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <CardTitle className="text-sm font-medium leading-tight truncate flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+            {provider.display_name || provider.name}
+          </CardTitle>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{provider.display_name || provider.name}</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 
@@ -86,17 +84,16 @@ export function NangoProvidersGrid({ providers }: NangoProvidersGridProps) {
 
   return (
     <div className="space-y-6">
-      {/* Search bar */}
-      <div className="relative max-w-md mx-auto">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input
+      <InputGroup className="sm:max-w-md mx-auto">
+        <InputGroupInput
           placeholder="Search providers (e.g., slack, github, zendesk)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
         />
-      </div>
-
+        <InputGroupAddon>
+          <Search />
+        </InputGroupAddon>
+      </InputGroup>
       {/* No results */}
       {filteredProviders.length === 0 && searchQuery && (
         <EmptyState
@@ -110,7 +107,6 @@ export function NangoProvidersGrid({ providers }: NangoProvidersGridProps) {
           }
         />
       )}
-
       {/* Provider grid */}
       {filteredProviders.length > 0 && (
         <CardGrid

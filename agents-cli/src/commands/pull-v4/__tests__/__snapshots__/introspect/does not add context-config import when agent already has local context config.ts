@@ -1,9 +1,8 @@
 import { contextConfig, headers, fetchDefinition } from '@inkeep/agents-core';
 import { agent, subAgent } from '@inkeep/agents-sdk';
-import { z } from 'zod';
 import { githubWebhookTrigger } from './triggers/git-hub-webhook';
 import { toolSummary } from '../status-components/tool_summary';
-
+import { z } from 'zod';
 export const supportContextHeaders = headers({
   schema: z.object({ "user_id": z.string().optional() }),
 });

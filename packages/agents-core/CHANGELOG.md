@@ -1,5 +1,75 @@
 # @inkeep/agents-core
 
+## 0.62.1
+
+## 0.62.0
+
+### Minor Changes
+
+- ce9c516: Add migration to seed global playground app for authenticated chat sessions
+
+## 0.61.0
+
+### Patch Changes
+
+- 12722d9: Add interactive merge conflict resolution UI for inkeep pull command
+- f4a9c69: Fix key_findings persistence in compressor by using proper update instead of insert-only upsert
+
+## 0.60.0
+
+### Patch Changes
+
+- 2eaebb3: Fix deterministic ID generation for sub-agent relation/junction tables to prevent Dolt merge conflicts
+- c0018a6: Use actual AI SDK token usage for compression decisions and fix pricing service model ID lookup
+- ed10886: Add optional prompt field to app deployments for surface-specific behavioral tuning
+- b1199eb: Compute sorted merge resolution order based on fk relations
+
+## 0.59.4
+
+### Patch Changes
+
+- be7f056: Add two-phase Doltgres branch merge API with stateless conflict preview and per-row resolution
+- 99b5edf: Update TypeScript to 6.0.2
+
+## 0.59.3
+
+### Patch Changes
+
+- 51d6dfd: Verify Work App domain.
+- 6ca8164: v4 to v5 signoz migration
+
+## 0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+## 0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- 3a868c0: Add isDevelopment, isTest, and isProduction environment detection helpers
+- 15c6752: Add ref fields to runtime tables for branch tracking support
+- 62aad0e: Fix API key leakage vulnerability in Slack/GitHub MCP integrations by adding URL trust validation
+
+## 0.58.19
+
+### Patch Changes
+
+- f8f16f4: Add GPT-5.4 Mini and GPT-5.4 Nano to model constants, UI picker, and CLI
+- 1571ef1: Fix project-level auth bypass in app CRUD endpoints — GET, UPDATE, and DELETE now filter by projectId in addition to tenantId, preventing cross-project access within a tenant
+- 9660fc2: Strip tenantId/projectId/agentId from trigger, scheduled trigger, and scheduled workflow update schemas to prevent cross-tenant reassignment via mass assignment
+
 ## 0.58.18
 
 ## 0.58.17

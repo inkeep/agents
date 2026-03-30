@@ -14,9 +14,13 @@ import {
   apiKeys,
   contextCache,
   conversations,
+  datasetRun,
+  evaluationRun,
   messages,
   organization,
+  scheduledTriggerInvocations,
   tasks,
+  triggerInvocations,
   workAppGitHubInstallations,
   workAppGitHubMcpToolAccessMode,
   workAppGitHubMcpToolRepositoryAccess,
@@ -52,11 +56,14 @@ describe('Cascade Delete Utilities', () => {
   });
 
   beforeEach(async () => {
-    // Clean up all runtime DB tables
     await db.delete(contextCache);
     await db.delete(messages);
     await db.delete(conversations);
     await db.delete(tasks);
+    await db.delete(triggerInvocations);
+    await db.delete(scheduledTriggerInvocations);
+    await db.delete(evaluationRun);
+    await db.delete(datasetRun);
     await db.delete(apiKeys);
     await db.delete(workAppSlackChannelAgentConfigs);
     await db.delete(workAppSlackWorkspaces);
@@ -104,6 +111,46 @@ describe('Cascade Delete Utilities', () => {
         value: {},
       });
 
+      // Create trigger/scheduled/dataset/eval entities on branch1
+      const trigInvId1 = generateId();
+      await db.insert(triggerInvocations).values({
+        tenantId,
+        projectId,
+        agentId,
+        id: trigInvId1,
+        triggerId: 'trig1',
+        status: 'completed',
+        requestPayload: {},
+        ref: branch1Ref,
+      });
+      const schedInvId1 = generateId();
+      await db.insert(scheduledTriggerInvocations).values({
+        tenantId,
+        projectId,
+        agentId,
+        id: schedInvId1,
+        scheduledTriggerId: 'sched1',
+        status: 'completed',
+        scheduledFor: new Date().toISOString(),
+        idempotencyKey: `key-branch1-${schedInvId1}`,
+        ref: branch1Ref,
+      });
+      const dsRunId1 = generateId();
+      await db.insert(datasetRun).values({
+        tenantId,
+        projectId,
+        id: dsRunId1,
+        datasetId: 'ds1',
+        ref: branch1Ref,
+      });
+      const evalRunId1 = generateId();
+      await db.insert(evaluationRun).values({
+        tenantId,
+        projectId,
+        id: evalRunId1,
+        ref: branch1Ref,
+      });
+
       // Create entities on branch2
       const conv2Id = generateId();
       const task2Id = generateId();
@@ -124,6 +171,42 @@ describe('Cascade Delete Utilities', () => {
         ref: branch2Ref,
         status: 'pending',
       });
+      const trigInvId2 = generateId();
+      await db.insert(triggerInvocations).values({
+        tenantId,
+        projectId,
+        agentId,
+        id: trigInvId2,
+        triggerId: 'trig1',
+        status: 'completed',
+        requestPayload: {},
+        ref: branch2Ref,
+      });
+      const schedInvId2 = generateId();
+      await db.insert(scheduledTriggerInvocations).values({
+        tenantId,
+        projectId,
+        agentId,
+        id: schedInvId2,
+        scheduledTriggerId: 'sched1',
+        status: 'completed',
+        scheduledFor: new Date().toISOString(),
+        idempotencyKey: `key-branch2-${schedInvId2}`,
+        ref: branch2Ref,
+      });
+      await db.insert(datasetRun).values({
+        tenantId,
+        projectId,
+        id: generateId(),
+        datasetId: 'ds1',
+        ref: branch2Ref,
+      });
+      await db.insert(evaluationRun).values({
+        tenantId,
+        projectId,
+        id: generateId(),
+        ref: branch2Ref,
+      });
 
       // Delete branch1
       const result = await cascadeDeleteByBranch(db)({
@@ -135,6 +218,10 @@ describe('Cascade Delete Utilities', () => {
       expect(result.conversationsDeleted).toBe(1);
       expect(result.tasksDeleted).toBe(1);
       expect(result.contextCacheDeleted).toBe(1);
+      expect(result.triggerInvocationsDeleted).toBe(1);
+      expect(result.scheduledTriggerInvocationsDeleted).toBe(1);
+      expect(result.datasetRunsDeleted).toBe(1);
+      expect(result.evaluationRunsDeleted).toBe(1);
 
       // Verify branch2 entities still exist
       const remainingConvs = await db
@@ -147,6 +234,32 @@ describe('Cascade Delete Utilities', () => {
       const remainingTasks = await db.select().from(tasks).where(eq(tasks.projectId, projectId));
       expect(remainingTasks).toHaveLength(1);
       expect(remainingTasks[0].id).toBe(task2Id);
+
+      const remainingTrigInvs = await db
+        .select()
+        .from(triggerInvocations)
+        .where(eq(triggerInvocations.projectId, projectId));
+      expect(remainingTrigInvs).toHaveLength(1);
+      expect(remainingTrigInvs[0].id).toBe(trigInvId2);
+
+      const remainingSchedInvs = await db
+        .select()
+        .from(scheduledTriggerInvocations)
+        .where(eq(scheduledTriggerInvocations.projectId, projectId));
+      expect(remainingSchedInvs).toHaveLength(1);
+      expect(remainingSchedInvs[0].id).toBe(schedInvId2);
+
+      const remainingDsRuns = await db
+        .select()
+        .from(datasetRun)
+        .where(eq(datasetRun.projectId, projectId));
+      expect(remainingDsRuns).toHaveLength(1);
+
+      const remainingEvalRuns = await db
+        .select()
+        .from(evaluationRun)
+        .where(eq(evaluationRun.projectId, projectId));
+      expect(remainingEvalRuns).toHaveLength(1);
     });
   });
 
@@ -175,6 +288,42 @@ describe('Cascade Delete Utilities', () => {
         status: 'pending',
       });
 
+      // Create trigger/scheduled/dataset/eval entities for project1 on branch1
+      await db.insert(triggerInvocations).values({
+        tenantId,
+        projectId: project1,
+        agentId,
+        id: generateId(),
+        triggerId: 'trig1',
+        status: 'completed',
+        requestPayload: {},
+        ref: branch1Ref,
+      });
+      await db.insert(scheduledTriggerInvocations).values({
+        tenantId,
+        projectId: project1,
+        agentId,
+        id: generateId(),
+        scheduledTriggerId: 'sched1',
+        status: 'completed',
+        scheduledFor: new Date().toISOString(),
+        idempotencyKey: `key-p1b1-${Date.now()}`,
+        ref: branch1Ref,
+      });
+      await db.insert(datasetRun).values({
+        tenantId,
+        projectId: project1,
+        id: generateId(),
+        datasetId: 'ds1',
+        ref: branch1Ref,
+      });
+      await db.insert(evaluationRun).values({
+        tenantId,
+        projectId: project1,
+        id: generateId(),
+        ref: branch1Ref,
+      });
+
       // Create entities for project1 on branch2 (should NOT be deleted)
       const conv1Branch2Id = generateId();
       await db.insert(conversations).values({
@@ -194,6 +343,13 @@ describe('Cascade Delete Utilities', () => {
         activeSubAgentId: subAgentId,
         ref: branch1Ref,
       });
+      await db.insert(datasetRun).values({
+        tenantId,
+        projectId: project2,
+        id: generateId(),
+        datasetId: 'ds1',
+        ref: branch1Ref,
+      });
 
       // Delete project1 on branch1
       const result = await cascadeDeleteByProject(db)({
@@ -204,6 +360,10 @@ describe('Cascade Delete Utilities', () => {
       // Verify project1 branch1 entities are deleted
       expect(result.conversationsDeleted).toBe(1);
       expect(result.tasksDeleted).toBe(1);
+      expect(result.triggerInvocationsDeleted).toBe(1);
+      expect(result.scheduledTriggerInvocationsDeleted).toBe(1);
+      expect(result.datasetRunsDeleted).toBe(1);
+      expect(result.evaluationRunsDeleted).toBe(1);
 
       // Verify project1 branch2 entities still exist
       const project1Branch2Convs = await db
@@ -218,6 +378,12 @@ describe('Cascade Delete Utilities', () => {
         .from(conversations)
         .where(eq(conversations.projectId, project2));
       expect(project2Convs).toHaveLength(1);
+
+      const project2DsRuns = await db
+        .select()
+        .from(datasetRun)
+        .where(eq(datasetRun.projectId, project2));
+      expect(project2DsRuns).toHaveLength(1);
     });
 
     it('should delete Slack channel configs for the project', async () => {
@@ -331,6 +497,45 @@ describe('Cascade Delete Utilities', () => {
         ref: branch1Ref,
       });
 
+      // Create trigger invocations for agent on branch1
+      await db.insert(triggerInvocations).values({
+        tenantId,
+        projectId,
+        agentId,
+        id: generateId(),
+        triggerId: 'trig1',
+        status: 'completed',
+        requestPayload: {},
+        ref: branch1Ref,
+      });
+
+      // Create scheduled trigger invocations for agent on branch1
+      const schedId = generateId();
+      await db.insert(scheduledTriggerInvocations).values({
+        tenantId,
+        projectId,
+        agentId,
+        id: schedId,
+        scheduledTriggerId: 'sched1',
+        status: 'completed',
+        scheduledFor: new Date().toISOString(),
+        idempotencyKey: `key-agent-${schedId}`,
+        ref: branch1Ref,
+      });
+
+      // Create trigger invocation for a different agent (should NOT be deleted)
+      const otherAgentTrigId = generateId();
+      await db.insert(triggerInvocations).values({
+        tenantId,
+        projectId,
+        agentId: 'other-agent',
+        id: otherAgentTrigId,
+        triggerId: 'trig1',
+        status: 'completed',
+        requestPayload: {},
+        ref: branch1Ref,
+      });
+
       // Create API key for agent
       await db.insert(apiKeys).values({
         tenantId,
@@ -351,6 +556,10 @@ describe('Cascade Delete Utilities', () => {
 
       expect(result.conversationsDeleted).toBe(2);
       expect(result.tasksDeleted).toBe(1);
+      expect(result.triggerInvocationsDeleted).toBe(1);
+      expect(result.scheduledTriggerInvocationsDeleted).toBe(1);
+      expect(result.datasetRunsDeleted).toBe(0);
+      expect(result.evaluationRunsDeleted).toBe(0);
       expect(result.apiKeysDeleted).toBe(1);
 
       // Verify all entities are deleted
@@ -359,6 +568,14 @@ describe('Cascade Delete Utilities', () => {
         .from(conversations)
         .where(eq(conversations.projectId, projectId));
       expect(remainingConvs).toHaveLength(0);
+
+      // Verify other agent's trigger invocation still exists
+      const remainingTrigInvs = await db
+        .select()
+        .from(triggerInvocations)
+        .where(eq(triggerInvocations.projectId, projectId));
+      expect(remainingTrigInvs).toHaveLength(1);
+      expect(remainingTrigInvs[0].id).toBe(otherAgentTrigId);
     });
 
     it('should delete Slack channel configs for the agent', async () => {

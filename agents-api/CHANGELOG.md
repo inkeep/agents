@@ -1,5 +1,219 @@
 # @inkeep/agents-api
 
+## 0.62.1
+
+### Patch Changes
+
+- 9728814: Perserve Part Ordering in Conversations API
+- 6e88d12: Improve playground app startup logging for production observability
+- 8b74409: Add inline text document attachments to the run chat APIs for `text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`, and `application/json` while keeping remote URLs limited to PDFs. Persist text attachments as blob-backed file parts and replay them into model input as XML-tagged text blocks.
+  - @inkeep/agents-core@0.62.1
+  - @inkeep/agents-email@0.62.1
+  - @inkeep/agents-mcp@0.62.1
+  - @inkeep/agents-work-apps@0.62.1
+
+## 0.62.0
+
+### Patch Changes
+
+- ce9c516: Add startup auto-registration of playground public key and derived kid for key rotation
+- b1507d1: Fix evaluation scoring returning null and display evaluation results in local time
+- Updated dependencies [ce9c516]
+  - @inkeep/agents-core@0.62.0
+  - @inkeep/agents-work-apps@0.62.0
+  - @inkeep/agents-email@0.62.0
+  - @inkeep/agents-mcp@0.62.0
+
+## 0.61.0
+
+### Patch Changes
+
+- 1e4f05d: Refactor agent graph editor to use deterministic graph keys and single source of truth for form state
+
+  ### Graph identity system
+
+  - Add deterministic graph key derivation for all node types (`getSubAgentGraphKey`, `getMcpGraphKey`, `getFunctionToolGraphKey`, `getExternalAgentGraphKey`, `getTeamAgentGraphKey`) via new `graph-keys.ts`, `graph-identity.ts`, `sub-agent-identity.ts`, and `function-tool-identity.ts` modules
+  - Replace unstable `generateId()` UUIDs with stable, domain-meaningful identifiers derived from persisted IDs (relation IDs, tool IDs, agent IDs)
+  - URL-based sidepane selection now uses graph keys instead of raw React Flow IDs, so deep-links survive re-renders and saves
+
+  ### RHF as single source of truth
+
+  - Strip `node.data` down to a thin identity envelope (`nodeKey` + minimal refs like `toolId`) — all business fields (name, description, prompt, models, code, etc.) are read exclusively from React Hook Form state
+  - Remove `hydrateNodesWithFormData()` entirely; `editorToPayload()` now reads all business data directly from a `SerializeAgentFormState` bundle with `requireFormValue()` fail-fast guards
+  - Rename `FullAgentUpdateSchema` → `FullAgentFormSchema`, remove `.transform()` from schema (resolution now happens at serialize-time), split types into `FullAgentFormValues` / `FullAgentFormInputValues`
+
+  ### Connection state consolidation
+
+  - Collapse scattered `tempSelectedTools`/`tempHeaders`/`tempToolPolicies` on node data into `mcpRelations` and `functionToolRelations` RHF record maps with factory helpers (`createMcpRelationFormInput`, `createFunctionToolRelationFormInput`)
+  - Edge removal triggers synchronous `form.unregister()` instead of deferred `requestAnimationFrame` — only `relationshipId` is unregistered for MCP relations to avoid a race condition where headers would be set to empty string on removal
+  - Remove `subAgentId` manipulation from Zustand store's `onEdgesChange`
+
+  ### Save-cycle reconciliation
+
+  - Expand `syncSavedAgentGraph` to reconcile three categories of server-assigned IDs: tool `canUse` relations, external agent delegate relations, and team agent delegate relations
+  - Rename MCP node IDs to deterministic graph keys post-save; preserve URL selection state via `findNodeByGraphKey`/`findEdgeByGraphKey`
+  - Collapse redundant double `isNodeType` patterns into single guards
+
+  ### Bug fixes
+
+  - Fix function tool "requires approval" flag not persisting across save/reload by hydrating `needsApproval` tool policies from `canUse` relations back into form state during `apiToFormValues()`
+  - Fix model inheritance display: use `getModelInheritanceStatus()` instead of bare `!subAgent.models` check to correctly show "(inherited)" label
+  - Fix MCP node editor crash on deep-link/reload: consolidate null guards for `toolData`, `tool`, and `mcpRelation` with proper JSX fallback UI
+  - Fix function tool node editor crash after node removal: add early return when `functionId` is undefined
+  - Fix race condition when MCP relation is removed but component is still mounted
+
+  ### Performance
+
+  - Replace `useWatch({ name: 'functionTools' })` with targeted `useWatch({ name: 'functionTools.${id}.functionId' })` to eliminate O(N²) re-renders across function tool nodes
+  - Remove `getFunctionIdForTool` helper that iterated the entire `functionTools` map
+
+  ### Schema changes
+
+  - Rename form field `defaultSubAgentId` → `defaultSubAgentNodeId` to clarify it holds a node key; translation to persisted ID happens at serialization time
+  - Add `FunctionToolRelationSchema` and `functionToolRelations` record field to form schema
+  - OpenAPI: `defaultSubAgentId` uses `$ref` to `ResourceId`, `maxTransferCount` type corrected to `integer`, function tool `dependencies` simplified to `StringRecord`
+
+  ### Test coverage
+
+  - Add 7 new test files covering graph identity, function tool identity, form-state defaults, and sync-saved-agent-graph scenarios
+  - Expand serialize and deserialize test suites with new architecture patterns
+  - Add roundtrip test for approval policy hydration
+
+- ad874d0: Add durable execution mode for agent runs with tool approvals and crash recovery
+- f4a9c69: Fix key_findings persistence in compressor by using proper update instead of insert-only upsert
+- Updated dependencies [12722d9]
+- Updated dependencies [f4a9c69]
+  - @inkeep/agents-core@0.61.0
+  - @inkeep/agents-work-apps@0.61.0
+  - @inkeep/agents-email@0.61.0
+  - @inkeep/agents-mcp@0.61.0
+
+## 0.60.0
+
+### Minor Changes
+
+- 1199d45: BREAKING: File parts on `/run/api/chat` use a Vercel-compatible shape (`url` and required `mediaType`; no `text` or `mimeType`). Add PDF URL ingestion for chat attachments with explicit bad-request errors on PDF URL ingest failures.
+
+### Patch Changes
+
+- 2eaebb3: Fix deterministic ID generation for sub-agent relation/junction tables to prevent Dolt merge conflicts
+- c0018a6: Use actual AI SDK token usage for compression decisions and fix pricing service model ID lookup
+- ed10886: Add optional prompt field to app deployments for surface-specific behavioral tuning
+- Updated dependencies [2eaebb3]
+- Updated dependencies [c0018a6]
+- Updated dependencies [ed10886]
+- Updated dependencies [b1199eb]
+  - @inkeep/agents-core@0.60.0
+  - @inkeep/agents-work-apps@0.60.0
+  - @inkeep/agents-email@0.60.0
+  - @inkeep/agents-mcp@0.60.0
+
+## 0.59.4
+
+### Patch Changes
+
+- be7f056: Add two-phase Doltgres branch merge API with stateless conflict preview and per-row resolution
+- 99b5edf: Update TypeScript to 6.0.2
+- Updated dependencies [be7f056]
+- Updated dependencies [6a8a439]
+- Updated dependencies [99b5edf]
+  - @inkeep/agents-core@0.59.4
+  - @inkeep/agents-work-apps@0.59.4
+  - @inkeep/agents-email@0.59.4
+  - @inkeep/agents-mcp@0.59.4
+
+## 0.59.3
+
+### Patch Changes
+
+- 6ca8164: v4 to v5 signoz migration
+- Updated dependencies [51d6dfd]
+- Updated dependencies [6ca8164]
+  - @inkeep/agents-core@0.59.3
+  - @inkeep/agents-work-apps@0.59.3
+  - @inkeep/agents-email@0.59.3
+  - @inkeep/agents-mcp@0.59.3
+
+## 0.59.2
+
+### Patch Changes
+
+- 5aad291: Fix conversation endpoint to return Vercel AI SDK FileUIPart-compliant file parts with resolved blob URIs
+- c6bcd18: Fix fetchTraceFromSigNoz method in the EvaluationService
+  - @inkeep/agents-core@0.59.2
+  - @inkeep/agents-email@0.59.2
+  - @inkeep/agents-mcp@0.59.2
+  - @inkeep/agents-work-apps@0.59.2
+
+## 0.59.1
+
+### Patch Changes
+
+- fddbd38: Fix OpenTelemetry SDK startup crash during Vite HMR by making initialization idempotent
+- b396a88: Fix scheduled trigger invocations being skipped when trigger is edited without changing the next execution time
+- 65c151d: adding app.id to span attributes
+- bab9603: Add Composio connected account ID pinning to prevent cross-project credential leakage
+- Updated dependencies [bab9603]
+  - @inkeep/agents-core@0.59.1
+  - @inkeep/agents-work-apps@0.59.1
+  - @inkeep/agents-email@0.59.1
+  - @inkeep/agents-mcp@0.59.1
+
+## 0.59.0
+
+### Minor Changes
+
+- b1e6ced: Add SSO configuration, auth method management, and domain-filtered login and invitation flows
+
+### Patch Changes
+
+- Updated dependencies [b1e6ced]
+  - @inkeep/agents-core@0.59.0
+  - @inkeep/agents-work-apps@0.59.0
+  - @inkeep/agents-email@0.59.0
+  - @inkeep/agents-mcp@0.59.0
+
+## 0.58.21
+
+### Patch Changes
+
+- @inkeep/agents-core@0.58.21
+- @inkeep/agents-email@0.58.21
+- @inkeep/agents-mcp@0.58.21
+- @inkeep/agents-work-apps@0.58.21
+
+## 0.58.20
+
+### Patch Changes
+
+- 7daab01: Remove unreachable ZodError catch blocks from agentFull and projectFull handlers
+- 15c6752: Add ref fields to runtime tables for branch tracking support
+- 62aad0e: Fix API key leakage vulnerability in Slack/GitHub MCP integrations by adding URL trust validation
+- 62a7aa2: Allow legacy API key authentication for GET conversation-by-ID manage endpoint
+- 9e0dd71: fix unauthenticated access to span details
+- ac53c07: rename the api to remove references to signoz
+- Updated dependencies [3a868c0]
+- Updated dependencies [15c6752]
+- Updated dependencies [62aad0e]
+- Updated dependencies [b4baf66]
+  - @inkeep/agents-core@0.58.20
+  - @inkeep/agents-work-apps@0.58.20
+  - @inkeep/agents-email@0.58.20
+  - @inkeep/agents-mcp@0.58.20
+
+## 0.58.19
+
+### Patch Changes
+
+- 1571ef1: Fix project-level auth bypass in app CRUD endpoints — GET, UPDATE, and DELETE now filter by projectId in addition to tenantId, preventing cross-project access within a tenant
+- Updated dependencies [f8f16f4]
+- Updated dependencies [1571ef1]
+- Updated dependencies [9660fc2]
+  - @inkeep/agents-core@0.58.19
+  - @inkeep/agents-work-apps@0.58.19
+  - @inkeep/agents-email@0.58.19
+  - @inkeep/agents-mcp@0.58.19
+
 ## 0.58.18
 
 ### Patch Changes

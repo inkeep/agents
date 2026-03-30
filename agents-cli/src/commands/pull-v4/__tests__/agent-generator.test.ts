@@ -17,8 +17,8 @@ describe('Agent Generator', () => {
     description: 'A personalized AI assistant for managing tasks and information',
     defaultSubAgentId: 'personalAssistant',
     subAgents: {
-      personalAssistant: { id: 'personalAssistant', name: '', canUse: [] },
-      coordinatesAgent: { id: 'coordinatesAgent', name: '', canUse: [] },
+      personalAssistant: { id: 'personalAssistant', name: 'personalAssistant', canUse: [] },
+      coordinatesAgent: { id: 'coordinatesAgent', name: 'coordinatesAgent', canUse: [] },
     },
     contextConfig: { id: 'personalAgentContext' },
   };
@@ -28,9 +28,9 @@ describe('Agent Generator', () => {
     description: 'A complex agent with status updates and transfer limits',
     defaultSubAgentId: 'mainAssistant',
     subAgents: {
-      mainAssistant: { id: 'mainAssistant', name: '', canUse: [] },
-      helperAgent: { id: 'helperAgent', name: '', canUse: [] },
-      coordinatorAgent: { id: 'coordinatorAgent', name: '', canUse: [] },
+      mainAssistant: { id: 'mainAssistant', name: 'mainAssistant', canUse: [] },
+      helperAgent: { id: 'helperAgent', name: 'helperAgent', canUse: [] },
+      coordinatorAgent: { id: 'coordinatorAgent', name: 'coordinatorAgent', canUse: [] },
     },
     contextConfig: { id: 'complexAgentContext' },
     stopWhen: {
@@ -122,8 +122,8 @@ describe('Agent Generator', () => {
           'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings',
         defaultSubAgentId: 'defaultSubAgent',
         subAgents: {
-          subAgent1: { id: 'subAgent1', name: '', canUse: [] },
-          subAgent2: { id: 'subAgent2', name: '', canUse: [] },
+          subAgent1: { id: 'subAgent1', name: 'subAgent1', canUse: [] },
+          subAgent2: { id: 'subAgent2', name: 'subAgent2', canUse: [] },
         },
         statusUpdates: {
           numEvents: 2,
@@ -174,7 +174,7 @@ describe('Agent Generator', () => {
         subAgents: {
           subAgent1: {
             id: 'foo',
-            name: '',
+            name: 'subAgent1',
             canUse: [],
           },
         },
@@ -202,7 +202,7 @@ describe('Agent Generator', () => {
         subAgents: {
           subAgent1: {
             id: 'foo',
-            name: '',
+            name: 'subAgent1',
             canUse: [],
           },
         },

@@ -1,9 +1,11 @@
 {
   "pages": [
     "sub-agents",
+    "execution-modes",
     "tools",
     "headers",
     "structured-outputs",
+    "triggers",
     "context-fetchers",
     "access-control",
     "skills",

@@ -1,0 +1,50 @@
+---
+title: Execution Modes
+sidebarTitle: Execution Modes
+description: Choose between classic and durable execution modes for your agents.
+icon: LuPlay
+keywords: execution mode, durable execution, classic mode, workflow, crash recovery, stream resumption, agent settings
+---
+
+Every agent runs in one of two execution modes: **Classic** or **Durable**. The mode determines how the agent's execution lifecycle is managed — specifically how state is handled during LLM calls, tool execution, and error recovery.
+
+## Classic mode (default)
+
+Classic mode runs the entire agent request in a single in-process loop. The LLM call, tool execution, and response streaming all happen within one HTTP request lifecycle.
+
+- Tokens stream to the client word-by-word with minimal latency (~100ms time-to-first-byte)
+- Tool approvals are supported
+- Stream resumption is supported via persisted stream chunks
+- If the server process crashes mid-execution, the request is lost
+
+**Best for:** Interactive chat where streaming responsiveness matters most.
+
+## Durable mode
+
+Durable mode wraps agent execution in a workflow with persistent checkpoints. Each phase of execution (initialize, call LLM, execute tools, complete) is a separate step that persists its result before proceeding.
+
+- Execution state is persisted to the workflow backend (pg-boss in production)
+- If the server crashes, the workflow can resume from the last completed step
+- Tool approval suspends the workflow until the user responds, then resumes
+- Stream data is persisted by the workflow runtime for client reconnection
+- Higher time-to-first-byte (~2s) due to workflow step transitions
+
+**Best for:** Agents with tool approval workflows, long-running executions, or environments where crash recovery is important.
+
+## Choosing a mode
+
+| Consideration | Classic | Durable |
+|---|---|---|
+| **Streaming latency** | ~100ms TTFB | ~2s TTFB |
+| **Crash recovery** | No | Yes |
+| **Tool approval** | In-memory (request-scoped) | Persistent (workflow-scoped) |
+| **Multi-step tool execution** | Same request | Separate workflow steps |
+| **Stream resumption** | Via stream chunks table | Via workflow storage |
+
+For most interactive chat use cases, **Classic** mode provides the best user experience. Switch to **Durable** when you need persistent tool approvals or crash recovery guarantees.
+
+## Setting the execution mode
+
+In the Visual Builder, open your agent's settings panel and find the **Execution mode** section. Select either **Classic** or **Durable** from the dropdown.
+
+The execution mode is set per-agent. Different agents in the same project can use different modes.
