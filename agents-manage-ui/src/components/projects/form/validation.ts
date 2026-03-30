@@ -39,13 +39,15 @@ export const ProjectSchema = ProjectApiInsertSchema.extend({
         ...(summarizer?.model && { summarizer }),
       };
     }),
-  stopWhen: z.strictObject({
-    ...StopWhenSchema.shape,
-    stepCountIs: z.preprocess((v) => v ?? undefined, StopWhenSchema.shape.stepCountIs).optional(),
-    transferCountIs: z
-      .preprocess((v) => v ?? undefined, StopWhenSchema.shape.transferCountIs)
-      .optional(),
-  }),
+  stopWhen: z
+    .strictObject({
+      ...StopWhenSchema.shape,
+      stepCountIs: z.preprocess((v) => v ?? undefined, StopWhenSchema.shape.stepCountIs).optional(),
+      transferCountIs: z
+        .preprocess((v) => v ?? undefined, StopWhenSchema.shape.transferCountIs)
+        .optional(),
+    })
+    .optional(),
 });
 
 export type ProjectInput = z.input<typeof ProjectSchema>;
