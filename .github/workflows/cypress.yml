@@ -33,10 +33,10 @@ jobs:
       - uses: ./.github/composite-actions/changeset-check
         id: check
 
-  cypress-e2e:
+  cypress-e2e-run:
     needs: changeset-check
     if: needs.changeset-check.outputs.is_changeset != 'true'
-    name: Cypress E2E Tests
+    name: Cypress E2E Tests (run)
     runs-on: ubuntu-32gb
     timeout-minutes: 30
 
@@ -162,3 +162,17 @@ jobs:
           OTEL_SDK_DISABLED: true
           CYPRESS_NO_COMMAND_LOG: 1
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # Gate job: satisfy the required "Cypress E2E Tests" branch-protection check
+  # even when the heavy job is skipped on changeset PRs.
+  cypress-e2e:
+    name: Cypress E2E Tests
+    needs: [changeset-check, cypress-e2e-run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [ "${{ needs.cypress-e2e-run.result }}" = "failure" ] || [ "${{ needs.cypress-e2e-run.result }}" = "cancelled" ]; then
+            exit 1
+          fi
