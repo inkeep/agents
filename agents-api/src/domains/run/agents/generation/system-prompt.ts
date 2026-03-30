@@ -253,7 +253,7 @@ export async function buildSystemPrompt(
       inputSchema: (tool.inputSchema ?? tool.parameters ?? {}) as Record<string, unknown>,
       usageGuidelines:
         name === 'load_skill'
-          ? 'Use this tool to load the full content of an on-demand skill by name.'
+          ? 'Use this tool to load the full content and attached files of an on-demand skill by name.'
           : name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
             ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
             : 'Use this tool when appropriate for the task at hand.',

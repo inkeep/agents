@@ -175,9 +175,15 @@ import type {
   SkillApiInsertSchema,
   SkillApiSelectSchema,
   SkillApiUpdateSchema,
+  SkillFileApiInsertSchema,
+  SkillFileApiSelectSchema,
+  SkillFileApiUpdateSchema,
+  SkillFileInsertSchema,
+  SkillFileSelectSchema,
   SkillInsertSchema,
   SkillSelectSchema,
   SkillUpdateSchema,
+  SkillWithFilesApiSelectSchema,
   SubAgentApiInsertSchema,
   SubAgentApiSelectSchema,
   SubAgentApiUpdateSchema,
@@ -276,7 +282,7 @@ import type {
   WorkflowExecutionInsertSchema,
   WorkflowExecutionSelectSchema,
   WorkflowExecutionUpdateSchema,
-} from '../validation/schemas';
+} from '../validation';
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
 export type DatasetRunInsert = z.infer<typeof DatasetRunInsertSchema>;
@@ -514,6 +520,12 @@ export type SkillUpdate = z.infer<typeof SkillUpdateSchema>;
 export type SkillApiSelect = z.infer<typeof SkillApiSelectSchema>;
 export type SkillApiInsert = z.infer<typeof SkillApiInsertSchema>;
 export type SkillApiUpdate = z.infer<typeof SkillApiUpdateSchema>;
+export type SkillFileSelect = z.infer<typeof SkillFileSelectSchema>;
+export type SkillFileInsert = z.infer<typeof SkillFileInsertSchema>;
+export type SkillFileApiSelect = z.infer<typeof SkillFileApiSelectSchema>;
+export type SkillFileApiInsert = z.infer<typeof SkillFileApiInsertSchema>;
+export type SkillFileApiUpdate = z.infer<typeof SkillFileApiUpdateSchema>;
+export type SkillWithFilesApiSelect = z.infer<typeof SkillWithFilesApiSelectSchema>;
 
 export type DataComponentSelect = z.infer<typeof DataComponentSelectSchema>;
 export type DataComponentInsert = z.infer<typeof DataComponentInsertSchema>;

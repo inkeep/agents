@@ -125,16 +125,15 @@ function moveVariableDeclarationsBeforeUsage(sourceFile: SourceFile): SourceFile
 }
 
 function isReferenceInsideFunctionLike(referenceNode: Node): boolean {
-  return Boolean(
-    referenceNode.getFirstAncestor((ancestor) => {
-      return (
-        Node.isArrowFunction(ancestor) ||
-        Node.isFunctionDeclaration(ancestor) ||
-        Node.isFunctionExpression(ancestor) ||
-        Node.isMethodDeclaration(ancestor) ||
-        Node.isGetAccessorDeclaration(ancestor) ||
-        Node.isSetAccessorDeclaration(ancestor)
-      );
-    })
+  const ancestor = referenceNode.getFirstAncestor(
+    (ancestor) =>
+      Node.isArrowFunction(ancestor) ||
+      Node.isFunctionDeclaration(ancestor) ||
+      Node.isFunctionExpression(ancestor) ||
+      Node.isMethodDeclaration(ancestor) ||
+      Node.isGetAccessorDeclaration(ancestor) ||
+      Node.isSetAccessorDeclaration(ancestor)
   );
+
+  return Boolean(ancestor);
 }

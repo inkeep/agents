@@ -41,7 +41,7 @@ import { deleteDataComponent, listDataComponents, upsertDataComponent } from './
 import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { deleteFunction, listFunctions, upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
-import { listSkills, upsertSkill } from './skills';
+import { listSkillsWithFiles, upsertSkill } from './skills';
 import { deleteTool, listTools, upsertTool } from './tools';
 
 const defaultLogger = getLogger('projectFull');
@@ -98,7 +98,7 @@ export const createFullProjectServerSide =
           'Creating project skills'
         );
 
-        const skillPromises = Object.entries(typed.skills).map(async ([skillId, skill]) => {
+        for (const [skillId, skill] of Object.entries(typed.skills)) {
           try {
             await upsertSkill(db)({
               ...skill,
@@ -110,9 +110,7 @@ export const createFullProjectServerSide =
             logger.error({ projectId: typed.id, skillId, error }, 'Failed to create skill');
             throw error;
           }
-        });
-
-        await Promise.all(skillPromises);
+        }
         logger.info(
           { projectId: typed.id, count: Object.keys(typed.skills).length },
           'All project skills created successfully'
@@ -606,7 +604,7 @@ export const updateFullProjectServerSide =
           'Updating project skills'
         );
 
-        const skillPromises = Object.entries(typed.skills).map(async ([skillId, skill]) => {
+        for (const [skillId, skill] of Object.entries(typed.skills)) {
           try {
             await upsertSkill(db)({
               ...skill,
@@ -618,9 +616,7 @@ export const updateFullProjectServerSide =
             logger.error({ projectId: typed.id, skillId, error }, 'Failed to update skill');
             throw error;
           }
-        });
-
-        await Promise.all(skillPromises);
+        }
         logger.info(
           { projectId: typed.id, count: Object.keys(typed.skills).length },
           'All project skills updated successfully'
@@ -1398,7 +1394,7 @@ const getFullProjectInternal =
 
       const projectSkills: Record<string, any> = {};
       try {
-        const skillsList = await listSkills(db)({
+        const skillsList = await listSkillsWithFiles(db)({
           scopes: { tenantId, projectId },
           pagination: { page: 1, limit: 1000 },
         });
@@ -1410,6 +1406,10 @@ const getFullProjectInternal =
             description: skill.description,
             content: skill.content,
             metadata: skill.metadata,
+            files: skill.files.map((file) => ({
+              filePath: file.filePath,
+              content: file.content,
+            })),
             createdAt: skill.createdAt,
             updatedAt: skill.updatedAt,
           };

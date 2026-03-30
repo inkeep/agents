@@ -23,13 +23,11 @@ import {
   functions,
   functionTools,
   projects,
-  skills,
   subAgentArtifactComponents,
   subAgentDataComponents,
   subAgentExternalAgentRelations,
   subAgentFunctionToolRelations,
   subAgentRelations,
-  subAgentSkills,
   subAgents,
   subAgentTeamAgentRelations,
   subAgentToolRelations,
@@ -85,6 +83,22 @@ import {
   DescriptionSchema,
   NameSchema,
 } from './extend-schemas';
+import {
+  createAgentScopedApiInsertSchema,
+  createAgentScopedApiSchema,
+  createAgentScopedApiUpdateSchema,
+  createApiInsertSchema,
+  createApiSchema,
+  createApiUpdateSchema,
+  omitGeneratedFields,
+  omitTenantScope,
+  omitTimestamps,
+  PaginationQueryParamsSchema,
+  PaginationSchema,
+  ResourceIdSchema,
+  StringRecordSchema,
+} from './schemas/shared';
+import { SkillApiInsertSchema, SkillIndexSchema } from './schemas/skills';
 
 // Destructure defaults for use in schemas
 const {
@@ -100,10 +114,6 @@ const {
 } = schemaValidationDefaults;
 
 const VALID_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
-
-export const StringRecordSchema = z
-  .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
-  .openapi('StringRecord');
 
 // A2A Part Schemas
 // These Zod schemas mirror the Part types defined in types/a2a.ts
@@ -161,7 +171,6 @@ export const StopWhenSchema = z
     transferCountIs: z
       .int()
       .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
-      // cc @sarah in front end max was set as 100
       .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
       .optional()
       .describe('The maximum number of transfers to trigger the stop condition.'),
@@ -186,36 +195,10 @@ export type StopWhen = z.infer<typeof StopWhenSchema>;
 export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
 export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
 
-export const MIN_ID_LENGTH = 1;
-export const MAX_ID_LENGTH = 255;
-export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
-
 export const UserIdSchema = z.string().openapi('UserId', {
   description: 'User identifier',
   example: 'user_123',
 });
-
-export const ResourceIdSchema = z
-  .string()
-  .trim()
-  .nonempty('Id is required')
-  .max(MAX_ID_LENGTH)
-  .regex(URL_SAFE_ID_PATTERN, {
-    message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
-  })
-  .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
-  .openapi('ResourceId', {
-    description: 'Resource identifier',
-    example: 'resource_789',
-  });
-
-const pageNumber = z.coerce.number().min(1).default(1).openapi('PaginationPageQueryParam');
-const limitNumber = z.coerce
-  .number()
-  .min(1)
-  .max(100)
-  .default(10)
-  .openapi('PaginationLimitQueryParam');
 
 export const ModelSettingsSchema = z
   .object({
@@ -267,90 +250,6 @@ export const FunctionToolConfigSchema = z.object({
 export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 'execute'> & {
   execute: ((params: any) => Promise<any>) | string;
 };
-
-// Helper functions for creating API schemas by omitting internal scope fields.
-// Zod's .omit() type signature requires exact key matching which doesn't work with generics.
-// We use type assertions with explicit return types to maintain type safety at call sites.
-type OmitProjectScope<T> = Omit<T, 'tenantId' | 'projectId'>;
-type OmitAgentScope<T> = Omit<T, 'tenantId' | 'projectId' | 'agentId'>;
-type OmitTenantScope<T> = Omit<T, 'tenantId'>;
-type OmitTimestamps<T> = Omit<T, 'createdAt' | 'updatedAt'>;
-type OmitGeneratedFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
-
-// Generic helper for tenant-scoped entities (omits only tenantId, not projectId)
-const omitTenantScope = <T extends z.ZodRawShape>(
-  schema: z.ZodObject<T>
-): z.ZodObject<OmitTenantScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true }) as z.ZodObject<
-    OmitTenantScope<T>
-  >;
-
-// Generic helper for omitting timestamp fields
-const omitTimestamps = <T extends z.ZodRawShape>(
-  schema: z.ZodObject<T>
-): z.ZodObject<OmitTimestamps<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({
-    createdAt: true,
-    updatedAt: true,
-  }) as z.ZodObject<OmitTimestamps<T>>;
-
-// Generic helper for omitting auto-generated fields (common for API insert schemas)
-const omitGeneratedFields = <T extends z.ZodRawShape>(
-  schema: z.ZodObject<T>
-): z.ZodObject<OmitGeneratedFields<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  }) as z.ZodObject<OmitGeneratedFields<T>>;
-
-const createApiSchema = <T extends z.ZodRawShape>(
-  schema: z.ZodObject<T>
-): z.ZodObject<OmitProjectScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true, projectId: true }) as z.ZodObject<
-    OmitProjectScope<T>
-  >;
-
-const createApiInsertSchema = <T extends z.ZodRawShape>(
-  schema: z.ZodObject<T>
-): z.ZodObject<OmitProjectScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true, projectId: true }) as z.ZodObject<
-    OmitProjectScope<T>
-  >;
-
-const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  (
-    (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true, projectId: true }) as z.ZodObject<
-      OmitProjectScope<T>
-    >
-  ).partial();
-
-const createAgentScopedApiSchema = <T extends z.ZodRawShape>(
-  schema: z.ZodObject<T>
-): z.ZodObject<OmitAgentScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({
-    tenantId: true,
-    projectId: true,
-    agentId: true,
-  }) as z.ZodObject<OmitAgentScope<T>>;
-
-const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(
-  schema: z.ZodObject<T>
-): z.ZodObject<OmitAgentScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({
-    tenantId: true,
-    projectId: true,
-    agentId: true,
-  }) as z.ZodObject<OmitAgentScope<T>>;
-
-const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  (
-    (schema as z.ZodObject<z.ZodRawShape>).omit({
-      tenantId: true,
-      projectId: true,
-      agentId: true,
-    }) as z.ZodObject<OmitAgentScope<T>>
-  ).partial();
 
 export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
@@ -1637,50 +1536,6 @@ export const DatasetRunConfigAgentRelationInsertSchema = createInsertSchema(
 export const DatasetRunConfigAgentRelationUpdateSchema =
   DatasetRunConfigAgentRelationInsertSchema.partial();
 
-const SkillIndexSchema = z.int().min(0);
-
-export const SkillFrontmatterSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .nonempty()
-    .max(64)
-    .regex(
-      /^[a-z0-9-]+$/,
-      'May only contain lowercase alphanumeric characters and hyphens (a-z, 0-9, -)'
-    )
-    .refine(
-      (v) => !(v.startsWith('-') || v.endsWith('-')),
-      'Must not start or end with a hyphen (-)'
-    )
-    .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)')
-    .refine((v) => v !== 'new', 'Must not use a reserved name "new"'),
-  description: z.string().trim().nonempty().max(1024),
-  metadata: StringRecordSchema.nullish().default(null),
-});
-export const SkillSelectSchema = createSelectSchema(skills).extend({
-  metadata: StringRecordSchema.nullable(),
-});
-export const SkillInsertSchema = createInsertSchema(skills)
-  .extend({
-    ...SkillFrontmatterSchema.shape,
-    content: z.string().trim().nonempty(),
-  })
-  .omit({
-    // We set id under the hood as skill.name
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  });
-export const SkillUpdateSchema = SkillInsertSchema.partial().omit({
-  // Name is persistent
-  name: true,
-});
-
-export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
-export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertSchema).openapi('SkillCreate');
-export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
-
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents)
   .extend({
@@ -1762,37 +1617,6 @@ export const SubAgentArtifactComponentApiInsertSchema = SubAgentArtifactComponen
 export const SubAgentArtifactComponentApiUpdateSchema = createAgentScopedApiUpdateSchema(
   SubAgentArtifactComponentUpdateSchema
 );
-
-export const SubAgentSkillSelectSchema = createSelectSchema(subAgentSkills).extend({
-  index: SkillIndexSchema,
-});
-export const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).extend({
-  id: ResourceIdSchema,
-  subAgentId: ResourceIdSchema,
-  skillId: ResourceIdSchema,
-  index: SkillIndexSchema,
-  alwaysLoaded: z.boolean().optional().default(false),
-});
-export const SubAgentSkillUpdateSchema = SubAgentSkillInsertSchema.partial();
-
-export const SubAgentSkillApiSelectSchema =
-  createAgentScopedApiSchema(SubAgentSkillSelectSchema).openapi('SubAgentSkill');
-export const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
-  tenantId: true,
-  projectId: true,
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).openapi('SubAgentSkillCreate');
-export const SubAgentSkillApiUpdateSchema =
-  createAgentScopedApiUpdateSchema(SubAgentSkillUpdateSchema).openapi('SubAgentSkillUpdate');
-
-export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
-  subAgentSkillId: ResourceIdSchema,
-  subAgentId: ResourceIdSchema,
-  index: SkillIndexSchema,
-  alwaysLoaded: z.boolean(),
-}).openapi('SubAgentSkillWithIndex');
 
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),
@@ -2618,15 +2442,6 @@ export const AgentWithinContextOfProjectSchema = AgentWithinContextOfProjectSche
   }
 ).openapi('AgentWithinContextOfProject');
 
-export const PaginationSchema = z
-  .object({
-    page: pageNumber,
-    limit: limitNumber,
-    total: z.number(),
-    pages: z.number(),
-  })
-  .openapi('Pagination');
-
 export const ListResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
   z.object({
     data: z.array(itemSchema),
@@ -2892,13 +2707,7 @@ export const SubAgentFunctionToolRelationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('SubAgentFunctionToolRelationListResponse');
-export const SkillResponse = z.object({ data: SkillApiSelectSchema }).openapi('SkillResponse');
-export const SkillListResponse = z
-  .object({
-    data: z.array(SkillApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('SkillListResponse');
+
 export const DataComponentListResponse = z
   .object({
     data: z.array(DataComponentApiSelectSchema),
@@ -2998,12 +2807,6 @@ export const SubAgentDataComponentResponse = z
 export const SubAgentArtifactComponentResponse = z
   .object({ data: SubAgentArtifactComponentApiSelectSchema })
   .openapi('SubAgentArtifactComponentResponse');
-export const SubAgentSkillResponse = z
-  .object({ data: SubAgentSkillApiSelectSchema })
-  .openapi('SubAgentSkillResponse');
-export const SubAgentSkillWithIndexArrayResponse = z
-  .object({ data: z.array(SubAgentSkillWithIndexSchema) })
-  .openapi('SubAgentSkillWithIndexArrayResponse');
 
 // Missing response schemas for factory function replacement
 export const FullProjectDefinitionResponse = z
@@ -3181,13 +2984,6 @@ export const TenantProjectAgentSubAgentIdParamsSchema =
 export const RefQueryParamSchema = z.object({
   ref: z.string().optional().describe('Branch name, tag name, or commit hash to query from'),
 });
-
-export const PaginationQueryParamsSchema = z
-  .object({
-    page: pageNumber,
-    limit: limitNumber,
-  })
-  .openapi('PaginationQueryParams');
 
 export const DateTimeFilterQueryParamsSchema = z.object({
   from: z.iso.datetime().optional().describe('Start date for filtering (ISO8601)'),
