@@ -118,12 +118,17 @@ ensure_runtime_var_seeded() {
   local existing=""
   local seed_value=""
   local source_label=""
+  local action="Seeded"
+
+  existing="$(json_get_var "${SERVICE_ENV_JSON}" "${key}")"
 
   if [ -n "${explicit_template}" ]; then
+    if [ "${existing}" = "${explicit_template}" ]; then
+      return
+    fi
     seed_value="${explicit_template}"
     source_label="repository template override"
   else
-    existing="$(json_get_var "${SERVICE_ENV_JSON}" "${key}")"
     if [ -n "${existing}" ]; then
       return
     fi
@@ -144,7 +149,11 @@ ensure_runtime_var_seeded() {
     --skip-deploys \
     "${key}=${seed_value}" >/dev/null
 
-  echo "Seeded ${key} in ${RAILWAY_ENV_NAME} from ${source_label}."
+  if [ -n "${existing}" ]; then
+    action="Updated"
+  fi
+
+  echo "${action} ${key} in ${RAILWAY_ENV_NAME} from ${source_label}."
   refresh_service_env_dump
 }
 
