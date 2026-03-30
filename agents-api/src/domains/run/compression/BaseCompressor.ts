@@ -250,31 +250,21 @@ export abstract class BaseCompressor {
         toolCallIds,
       });
 
-      const artifactsByToolCallId = new Map<string, typeof artifacts>();
       for (const artifact of artifacts) {
-        if (!artifact.toolCallId) continue;
-        const group = artifactsByToolCallId.get(artifact.toolCallId) ?? [];
-        group.push(artifact);
-        artifactsByToolCallId.set(artifact.toolCallId, group);
-      }
+        const toolCallId = artifact.toolCallId;
+        if (!toolCallId || result.has(toolCallId)) continue;
 
-      for (const [toolCallId, group] of artifactsByToolCallId.entries()) {
-        const primaryArtifact =
-          group.find((artifact) => !this.isBinaryPeerArtifact(artifact)) ?? group[0];
-        if (!primaryArtifact) continue;
-
-        const dataPart = primaryArtifact.parts?.find(
-          (p): p is Extract<(typeof primaryArtifact.parts)[number], { kind: 'data' }> =>
-            p.kind === 'data'
+        const dataPart = artifact.parts?.find(
+          (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> => p.kind === 'data'
         );
         result.set(toolCallId, {
-          artifactId: primaryArtifact.artifactId,
-          isOversized: (primaryArtifact.metadata?.isOversized as boolean) ?? false,
-          toolArgs: primaryArtifact.metadata?.toolArgs,
-          toolName: primaryArtifact.metadata?.toolName as string | undefined,
+          artifactId: artifact.artifactId,
+          isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
+          toolArgs: artifact.metadata?.toolArgs,
+          toolName: artifact.metadata?.toolName as string | undefined,
           summaryData: dataPart?.data?.summary ?? dataPart?.data,
-          name: primaryArtifact.name,
-          description: primaryArtifact.description,
+          name: artifact.name,
+          description: artifact.description,
         });
       }
     } catch (error) {
@@ -289,34 +279,6 @@ export abstract class BaseCompressor {
     }
 
     return result;
-  }
-
-  private isBinaryPeerArtifact(artifact: {
-    type?: string;
-    metadata?: Record<string, unknown> | null;
-    parts?: Array<{ kind: string; data?: unknown }>;
-  }): boolean {
-    if (artifact.type?.endsWith('-binary-child') || artifact.type === 'binary_attachment') {
-      return true;
-    }
-
-    if (
-      typeof artifact.metadata?.mimeType === 'string' ||
-      typeof artifact.metadata?.contentHash === 'string'
-    ) {
-      return true;
-    }
-
-    const dataPart = artifact.parts?.find((part) => part.kind === 'data') as
-      | { kind: 'data'; data?: unknown }
-      | undefined;
-    const data = dataPart?.data;
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-      return false;
-    }
-
-    const record = data as Record<string, unknown>;
-    return typeof record.blobUri === 'string' || typeof record.binaryType === 'string';
   }
 
   private convertDatabaseFormatMessage(message: any): void {

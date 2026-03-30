@@ -707,13 +707,13 @@ describe('BaseCompressor', () => {
   });
 
   describe('Integration Scenarios', () => {
-    it('refreshes saved artifacts after async processing and captures child artifacts', async () => {
+    it('refreshes saved artifacts after async processing', async () => {
       const messages = [
         {
           content: [
             {
               type: 'tool-result',
-              toolCallId: 'call-with-children',
+              toolCallId: 'call-after-save',
               toolName: 'read_ticket',
               input: { ticket_id: 6662 },
               output: { content: [{ type: 'image', data: 'base64', mimeType: 'image/png' }] },
@@ -727,33 +727,12 @@ describe('BaseCompressor', () => {
       mockGetLedgerArtifacts.mockReturnValueOnce(vi.fn().mockResolvedValue([])).mockReturnValueOnce(
         vi.fn().mockResolvedValue([
           {
-            artifactId: 'parent-artifact',
-            toolCallId: 'call-with-children',
-            name: 'Parent artifact',
-            description: 'Parent',
+            artifactId: 'saved-artifact',
+            toolCallId: 'call-after-save',
+            name: 'Saved artifact',
+            description: 'Saved',
             metadata: { toolName: 'read_ticket', isOversized: true, toolArgs: { ticket_id: 6662 } },
-            parts: [{ kind: 'data', data: { summary: { toolCallId: 'call-with-children' } } }],
-          },
-          {
-            artifactId: 'child-artifact',
-            toolCallId: 'call-with-children',
-            name: 'Attachment 1',
-            description: 'Binary payload extracted from tool result',
-            metadata: {
-              mimeType: 'image/png',
-              contentHash: 'sha256-abc',
-            },
-            parts: [
-              {
-                kind: 'data',
-                data: {
-                  blobUri: 'blob://v1/t_test/artifact-data/p_test/a_parent/sha256-abc.png',
-                  mimeType: 'image/png',
-                  contentHash: 'sha256-abc',
-                  binaryType: 'image',
-                },
-              },
-            ],
+            parts: [{ kind: 'data', data: { summary: { toolCallId: 'call-after-save' } } }],
           },
         ])
       );
@@ -761,7 +740,7 @@ describe('BaseCompressor', () => {
       const result = await compressor.saveToolResultsAsArtifacts(messages);
 
       expect(mockSession.waitForPendingArtifacts).toHaveBeenCalled();
-      expect(result['call-with-children']?.artifactId).toBe('parent-artifact');
+      expect(result['call-after-save']?.artifactId).toBe('saved-artifact');
     });
 
     it('should handle large conversations with many tool calls efficiently', async () => {
