@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.62.2
+
+### Patch Changes
+
+- f614c56: Add environment-aware domain verification for the playground app
+
 ## 0.62.1
 
 ## 0.62.0
