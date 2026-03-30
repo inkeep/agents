@@ -168,6 +168,9 @@ jobs:
     name: Provision Tier 1 (Railway)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: preview-railway-${{ vars.RAILWAY_PROJECT_ID || 'default' }}
+      cancel-in-progress: false
     needs: [compute-context]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
@@ -360,6 +363,9 @@ jobs:
     name: Teardown Tier 1 (Railway)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: preview-railway-${{ vars.RAILWAY_PROJECT_ID || 'default' }}
+      cancel-in-progress: false
     needs: [compute-context]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&

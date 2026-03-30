@@ -36,8 +36,8 @@ PY
 }
 
 railway_cli_with_retry() {
-  local max_attempts="${RAILWAY_CLI_MAX_ATTEMPTS:-8}"
-  local sleep_seconds="${RAILWAY_CLI_SLEEP_SECONDS:-2}"
+  local max_attempts="${RAILWAY_CLI_MAX_ATTEMPTS:-12}"
+  local sleep_seconds="${RAILWAY_CLI_SLEEP_SECONDS:-3}"
   local attempt=""
   local output=""
   local exit_code="1"
