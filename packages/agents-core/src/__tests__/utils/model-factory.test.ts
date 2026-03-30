@@ -631,7 +631,7 @@ describe('ModelFactory', () => {
       expect(result.model.modelId).toBe('claude-sonnet-4-5');
     });
 
-    test('should keep provider prefix in gateway model when allowedProviders is not set', () => {
+    test('should normalize provider prefix from gateway model when allowedProviders is not set', () => {
       process.env.AI_GATEWAY_API_KEY = 'test-key';
 
       const config: ModelSettings = {
@@ -639,7 +639,7 @@ describe('ModelFactory', () => {
       };
 
       const result = ModelFactory.prepareGenerationConfig(config);
-      expect(result.model.modelId).toBe('anthropic/claude-sonnet-4-5');
+      expect(result.model.modelId).toBe('claude-sonnet-4-5');
     });
 
     test('allowedProviders should override existing gateway order/only from providerOptions', () => {

@@ -1,5 +1,6 @@
 import { trace } from '@opentelemetry/api';
 import type { LanguageModelMiddleware } from 'ai';
+import { GATEWAY_ROUTABLE_PROVIDERS } from '../constants/models.js';
 import { SPAN_KEYS } from '../constants/otel-attributes';
 import { getLogger } from './logger';
 
@@ -43,6 +44,16 @@ function extractGatewayCost(providerMetadata: Record<string, any> | undefined): 
   return 0;
 }
 
+export function normalizeModelId(modelId: string): string {
+  const slashIndex = modelId.indexOf('/');
+  if (slashIndex === -1) return modelId;
+  const prefix = modelId.slice(0, slashIndex);
+  if ((GATEWAY_ROUTABLE_PROVIDERS as readonly string[]).includes(prefix)) {
+    return modelId.slice(slashIndex + 1);
+  }
+  return modelId;
+}
+
 function setGatewayAttributesOnSpan(providerMetadata: Record<string, any> | undefined): void {
   const activeSpan = trace.getActiveSpan();
   if (!activeSpan) return;
@@ -68,6 +79,10 @@ function setGatewayAttributesOnSpan(providerMetadata: Record<string, any> | unde
 
 export const gatewayCostMiddleware: LanguageModelMiddleware = {
   specificationVersion: 'v3',
+
+  overrideModelId({ model }) {
+    return normalizeModelId(model.modelId);
+  },
 
   async wrapGenerate({ doGenerate }) {
     const result = await doGenerate();
