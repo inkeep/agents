@@ -173,7 +173,7 @@ jobs:
       - name: Restart scheduler workflow on new deployment
         run: |
           curl -sf -X POST \
-            "${{ needs.deploy-agents-api.outputs.url }}/api/deploy/restart-scheduler" \
+            "${{ secrets.INKEEP_AGENTS_API_URL }}/api/deploy/restart-scheduler" \
             -H "Authorization: Bearer ${{ secrets.INKEEP_AGENTS_RUN_API_BYPASS_SECRET }}" \
             --retry 3 \
             --retry-delay 5 \
