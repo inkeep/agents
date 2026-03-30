@@ -5,7 +5,8 @@ import { NextResponse } from 'next/server';
 import { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
 
 const runtimeConfig = getRuntimeConfig();
-export function buildCsp() {
+
+function buildCsp() {
   const connectSrcDomains = [
     "'self'",
     runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL,
