@@ -14,17 +14,37 @@ const StringToJsonSchema = z
   .refine((v) => v !== null, 'Cannot be null')
   .optional();
 
+const StopWhenSchema = ProjectApiInsertSchema.shape.stopWhen.unwrap();
+
 export const ProjectSchema = ProjectApiInsertSchema.extend({
-  models: z.strictObject({
-    base: ModelsBaseSchema.extend({
-      providerOptions: StringToJsonSchema.pipe(ModelsBaseSchema.shape.providerOptions),
+  models: z
+    .strictObject({
+      base: ModelsBaseSchema.extend({
+        providerOptions: StringToJsonSchema.pipe(ModelsBaseSchema.shape.providerOptions),
+      }),
+      structuredOutput: ModelsStructuredOutputSchema.extend({
+        providerOptions: StringToJsonSchema.pipe(
+          ModelsStructuredOutputSchema.shape.providerOptions
+        ),
+      }).optional(),
+      summarizer: ModelsSummarizerSchema.extend({
+        providerOptions: StringToJsonSchema.pipe(ModelsSummarizerSchema.shape.providerOptions),
+      }).optional(),
+    })
+    .transform(({ base, structuredOutput, summarizer, ...value }) => {
+      return {
+        ...value,
+        ...(base.model && { base }),
+        ...(structuredOutput?.model && { structuredOutput }),
+        ...(summarizer?.model && { summarizer }),
+      };
     }),
-    structuredOutput: ModelsStructuredOutputSchema.extend({
-      providerOptions: StringToJsonSchema.pipe(ModelsStructuredOutputSchema.shape.providerOptions),
-    }),
-    summarizer: ModelsSummarizerSchema.extend({
-      providerOptions: StringToJsonSchema.pipe(ModelsSummarizerSchema.shape.providerOptions),
-    }),
+  stopWhen: z.strictObject({
+    ...StopWhenSchema.shape,
+    stepCountIs: z.preprocess((v) => v ?? undefined, StopWhenSchema.shape.stepCountIs).optional(),
+    transferCountIs: z
+      .preprocess((v) => v ?? undefined, StopWhenSchema.shape.transferCountIs)
+      .optional(),
   }),
 });
 
