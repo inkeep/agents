@@ -11,6 +11,7 @@ import {
   DateTimeFilterQueryParamsSchema,
   deleteScheduledTrigger,
   generateId,
+  getProjectScopedRef,
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerRunInfoBatch,
@@ -27,6 +28,7 @@ import {
   OrgRoles,
   PaginationQueryParamsSchema,
   type Part,
+  resolveRef,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiUpdateSchema,
   ScheduledTriggerInvocationListResponse,
@@ -40,6 +42,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { CronExpressionParser } from 'cron-parser';
+import { manageDbClient } from '../../../data/db';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -1023,9 +1026,24 @@ app.openapi(
     });
 
     const { maxRetries, retryDelaySeconds, timeoutSeconds } = trigger;
-    const resolvedRef = c.get('resolvedRef');
 
-    // Create a new invocation for the rerun
+    if (!trigger.ref) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Scheduled trigger has no ref configured',
+      });
+    }
+
+    const rerunProjectScopedRef = getProjectScopedRef(tenantId, projectId, trigger.ref);
+    const resolvedRef = await resolveRef(manageDbClient)(rerunProjectScopedRef);
+
+    if (!resolvedRef) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Failed to resolve ref '${trigger.ref}' for project ${projectId}. The branch may have been deleted.`,
+      });
+    }
+
     const newInvocationId = generateId();
 
     await createScheduledTriggerInvocation(runDbClient)({
@@ -1337,10 +1355,24 @@ app.openapi(
     const retryDelaySeconds = trigger.retryDelaySeconds ?? 60;
     const timeoutSeconds = trigger.timeoutSeconds ?? 780;
 
-    // Create a new invocation
-    const invocationId = generateId();
+    if (!trigger.ref) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Scheduled trigger has no ref configured',
+      });
+    }
 
-    const resolvedRef = c.get('resolvedRef');
+    const projectScopedRef = getProjectScopedRef(tenantId, projectId, trigger.ref);
+    const resolvedRef = await resolveRef(manageDbClient)(projectScopedRef);
+
+    if (!resolvedRef) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Failed to resolve ref '${trigger.ref}' for project ${projectId}. The branch may have been deleted.`,
+      });
+    }
+
+    const invocationId = generateId();
 
     await createScheduledTriggerInvocation(runDbClient)({
       id: invocationId,

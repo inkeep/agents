@@ -48,6 +48,11 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         })
       )
     ),
+    resolveRef: vi.fn(() =>
+      vi.fn((refString: string) =>
+        Promise.resolve({ type: 'branch', name: refString, hash: 'test-hash' })
+      )
+    ),
   };
 });
 
