@@ -621,6 +621,18 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
 
     const publicKeys = config.webClient.auth?.publicKeys ?? [];
     const hasAuthConfigured = publicKeys.length > 0;
+    const allowAnonymous = config.webClient.auth?.allowAnonymous !== false;
+
+    if (!hasAuthConfigured && !allowAnonymous) {
+      logger.debug(
+        { appId: app.id },
+        'Anonymous access disabled but no public keys configured — rejecting request'
+      );
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Authentication is required but no public keys are configured for this app',
+      });
+    }
 
     if (hasAuthConfigured) {
       const asymResult = await tryAsymmetricJwtVerification(
@@ -631,7 +643,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       );
 
       if (!asymResult.ok) {
-        const allowAnonymous = config.webClient.auth?.allowAnonymous !== false;
         if (!allowAnonymous) {
           logger.debug(
             { appId: app.id, reason: asymResult.failureMessage },

@@ -1750,7 +1750,7 @@ export const WebClientAuthConfigSchema = z
     publicKeys: z.array(PublicKeyConfigSchema).default([]),
     audience: z.string().optional(),
     validateScopeClaims: z.boolean().optional(),
-    allowAnonymous: z.boolean().optional(),
+    allowAnonymous: z.boolean().default(false),
   })
   .openapi('WebClientAuthConfig');
 
