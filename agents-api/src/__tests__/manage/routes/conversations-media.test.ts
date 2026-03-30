@@ -57,8 +57,26 @@ describe('Conversation media route', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('image/png');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(response.headers.get('Content-Length')).toBe('3');
     expect(response.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable');
+  });
+
+  it('serves HTML media as plain text attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([60, 104, 49, 62]),
+      contentType: 'text/html; charset=utf-8',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.html'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
 
   it('rejects traversal media keys', async () => {

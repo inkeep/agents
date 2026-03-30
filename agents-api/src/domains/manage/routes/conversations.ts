@@ -9,6 +9,7 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -31,6 +32,26 @@ function isMediaNotFoundError(error: unknown): boolean {
     normalized.includes(' 404') ||
     normalized.includes(' not found')
   );
+}
+
+function getSafeMediaResponseHeaders({
+  contentType,
+  contentLength,
+}: {
+  contentType: string;
+  contentLength: number;
+}): Record<string, string> {
+  const normalizedContentType = normalizeMimeType(contentType);
+  const isHtmlDocument =
+    normalizedContentType === 'text/html' || normalizedContentType === 'application/xhtml+xml';
+
+  return {
+    'Content-Type': isHtmlDocument ? 'text/plain; charset=utf-8' : contentType,
+    'X-Content-Type-Options': 'nosniff',
+    ...(isHtmlDocument ? { 'Content-Disposition': 'attachment' } : {}),
+    'Cache-Control': 'private, max-age=31536000, immutable',
+    'Content-Length': contentLength.toString(),
+  };
 }
 
 const ConversationListQuerySchema = z.object({
@@ -312,11 +333,10 @@ app.openapi(
 
       return new Response(result.data as Uint8Array<ArrayBuffer>, {
         status: 200,
-        headers: {
-          'Content-Type': result.contentType,
-          'Cache-Control': 'private, max-age=31536000, immutable',
-          'Content-Length': result.data.length.toString(),
-        },
+        headers: getSafeMediaResponseHeaders({
+          contentType: result.contentType,
+          contentLength: result.data.length,
+        }),
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
