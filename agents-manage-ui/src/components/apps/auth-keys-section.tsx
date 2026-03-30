@@ -52,6 +52,10 @@ export function AuthKeysSection({
   const [requireAuth, setRequireAuth] = useState(allowAnonymous === false);
   const [isUpdatingAuth, setIsUpdatingAuth] = useState(false);
 
+  useEffect(() => {
+    setRequireAuth(allowAnonymous === false);
+  }, [allowAnonymous]);
+
   const [kid, setKid] = useState('');
   const [algorithm, setAlgorithm] = useState('RS256');
   const [publicKey, setPublicKey] = useState('');
@@ -210,16 +214,18 @@ export function AuthKeysSection({
       {keys.length > 0 && (
         <div className="flex items-center justify-between rounded-md border p-3">
           <div className="space-y-0.5">
-            <Label className="text-sm">Require Authentication</Label>
+            <Label htmlFor="require-auth" className="text-sm">
+              Require Authentication
+            </Label>
             <p className="text-xs text-muted-foreground">
               When enabled, all users must present a valid signed JWT. Anonymous access is blocked.
             </p>
           </div>
           <Switch
+            id="require-auth"
             checked={requireAuth}
             onCheckedChange={handleToggleRequireAuth}
             disabled={isUpdatingAuth}
-            aria-label="Require authentication"
           />
         </div>
       )}

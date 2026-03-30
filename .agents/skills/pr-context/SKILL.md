@@ -22,14 +22,14 @@ Use this context to:
 | **Author** | Andrew Mikofalvy |
 | **Base** | `main` |
 | **Repo** | inkeep/agents |
-| **Head SHA** | `690d86227632d1d35ae62bb7fcaea0a5d5793f65` |
-| **Size** | 7 commits · +643/-8 · 13 files (1 untracked) |
+| **Head SHA** | `537ea3d2c3751fc51f659f49953fc70b85c7bcb4` |
+| **Size** | 8 commits · +643/-8 · 13 files |
 | **Labels** | _None — local review._ |
 | **Review state** | LOCAL |
 | **Diff mode** | `inline` — full tracked diff included below |
 | **Event** | `local:manual` |
 | **Trigger command** | `local-review` |
-| **Review scope** | `delta` — scoped to changes since last review (delta from 690d862276) |
+| **Review scope** | `full` — local review uses the full branch diff against the target branch |
 
 ## Description
 
@@ -51,6 +51,7 @@ a18f2cef7 Update app credentials docs with Require Authentication toggle
 e1a6fd01b Add changesets for enforce-app-auth feature
 e206624e1 perf(ci): skip container init for changeset PRs (#2902)
 690d86227 fixup! local-review: address findings (pass 1)
+537ea3d2c fixup! local-review: baseline (pre-review state)
 ```
 
 ## Changed Files
@@ -67,11 +68,11 @@ Per-file diff stats (for prioritizing review effort). Untracked files are listed
  .../(chat-components)/app-credentials.mdx          |  12 +-
  .../src/components/apps/auth-keys-section.tsx      |  50 ++++++-
  .../src/components/apps/form/app-update-form.tsx   |  15 +-
+ ...uld-properly-highlight-nested-error-state-1.png | Bin 0 -> 12046 bytes
  agents-manage-ui/src/lib/actions/app-auth-keys.ts  |  23 +++
  agents-manage-ui/src/lib/api/app-auth-keys.ts      |  15 ++
  specs/enforce-app-auth/SPEC.md                     | 124 ++++++++++++++++
- 12 files changed, 643 insertions(+), 8 deletions(-)
-new file | agents-manage-ui/src/components/form/__tests__/__screenshots__/form.browser.test.tsx/Form-should-properly-highlight-nested-error-state-1.png
+ 13 files changed, 643 insertions(+), 8 deletions(-)
 ```
 
 Full file list (including untracked files when present):
@@ -86,10 +87,10 @@ agents-docs/content/api-reference/(openapi)/apps.mdx
 agents-docs/content/talk-to-your-agents/(chat-components)/app-credentials.mdx
 agents-manage-ui/src/components/apps/auth-keys-section.tsx
 agents-manage-ui/src/components/apps/form/app-update-form.tsx
+agents-manage-ui/src/components/form/__tests__/__screenshots__/form.browser.test.tsx/Form-should-properly-highlight-nested-error-state-1.png
 agents-manage-ui/src/lib/actions/app-auth-keys.ts
 agents-manage-ui/src/lib/api/app-auth-keys.ts
 specs/enforce-app-auth/SPEC.md
-agents-manage-ui/src/components/form/__tests__/__screenshots__/form.browser.test.tsx/Form-should-properly-highlight-nested-error-state-1.png
 ```
 
 ## Diff
@@ -777,6 +778,10 @@ index e6a542660..28d2e90db 100644
              <GenericInput
                control={form.control}
                name="audience"
+diff --git a/agents-manage-ui/src/components/form/__tests__/__screenshots__/form.browser.test.tsx/Form-should-properly-highlight-nested-error-state-1.png b/agents-manage-ui/src/components/form/__tests__/__screenshots__/form.browser.test.tsx/Form-should-properly-highlight-nested-error-state-1.png
+new file mode 100644
+index 000000000..cd4bb4b29
+Binary files /dev/null and b/agents-manage-ui/src/components/form/__tests__/__screenshots__/form.browser.test.tsx/Form-should-properly-highlight-nested-error-state-1.png differ
 diff --git a/agents-manage-ui/src/lib/actions/app-auth-keys.ts b/agents-manage-ui/src/lib/actions/app-auth-keys.ts
 index 365eb9a38..aaba609bf 100644
 --- a/agents-manage-ui/src/lib/actions/app-auth-keys.ts
@@ -976,160 +981,9 @@ index 000000000..26ebfbdc1
 +- **Backward compatible**: Optional field, existing apps unaffected
 ```
 
-> **Note:** 1 untracked file(s) are listed above. Review them directly in the working tree if they are relevant.
-
 ## Changes Since Last Review
 
-### Delta Files
-
-```
-_No files changed in delta._
-```
-
-### Delta Stats
-
-```
-_No stats available._
-```
-
-### Delta Diff
-
-_No delta diff available._
-
-> **Review Focus:** This is a re-review scoped to changes since the last review pass (`690d862276`). Focus your review on the delta — the changes made to address prior findings. The full branch diff is still available above for context, but your review should prioritize the delta changes.
-
-## Review Iteration History
-
-# Review Iteration Log
-
----
-
-## Review Pass 0
-**Recommendation: **APPROVE WITH SUGGESTIONS**** | **Risk: **Low****
-
-<details>
-<summary>Full review</summary>
-
-## PR Review Summary
-
-**(7) Total Issues** | Risk: **Low** | Recommendation: **APPROVE WITH SUGGESTIONS**
-
-### 🟡 Minor (3)
-
-🟡 1) `agents-api/src/domains/manage/routes/appAuthKeys.ts:270-316 || response-shape-no-schema` **PATCH response `{ success: true }` without OpenAPI schema diverges from `{ data: ... }` convention**
-
-**Issue:** The new PATCH `/settings` endpoint returns `{ success: true }` (line 316) but the OpenAPI `responses.200` block has no `content`/`schema` definition (line 270). Every other PATCH endpoint in the manage domain returns the updated resource in a `{ data: ... }` envelope with a typed response schema. This means SDK code generators will produce a `void` or `unknown` return type for this operation, and consumers cannot confirm the persisted value without an additional GET.
-**Why:** This is a customer-facing API contract that will be reflected in generated SDKs. Untyped responses create friction for SDK consumers and break the consistency expectation that PATCH endpoints echo back the updated state.
-**Fix:** Either (a) return `{ data: { allowAnonymous } }` with a matching response schema to align with the PATCH convention, or (b) return `204 No Content` with no body if no response data is needed. Option (a) is preferred because it lets callers confirm the persisted value.
-**Refs:**
-- `agents-api/src/domains/manage/routes/apps.ts:199-233 — PATCH returns { data: sanitizeAppConfig(updatedApp) } with AppResponse schema`
-- `agents-api/src/domains/manage/routes/projects.ts:287-317 — PATCH returns { data: project } with ProjectResponse schema`
-
----
-
-🟡 2) `agents-api/src/__tests__/manage/routes/crud/appAuthKeys.test.ts:198-235 || tests-missing-persistence-assertion` **Tests verify HTTP 200 but never assert `allowAnonymous` was actually persisted**
-
-**Issue:** The test "should update allowAnonymous to false" checks `res.status === 200` then calls `GET /auth/keys`, which only returns the `publicKeys` array — it says nothing about `allowAnonymous`. The "should update allowAnonymous to true" test only checks the status code. No test reads back the actual app config to confirm the field was written. A regression where the handler returns 200 but silently fails to persist (e.g., config merge is wrong, schema strips the field, or the data access layer no-ops) would pass all existing tests.
-**Why:** This is the core behavioral contract of the feature — if `allowAnonymous` doesn't persist, the runtime won't enforce authentication. For a security-sensitive setting, the test suite should verify the end state, not just the HTTP status.
-**Fix:** After calling `PATCH /settings`, read back the full app via `GET /manage/tenants/{tenantId}/projects/{projectId}/apps/{appId}` and assert `config.webClient.auth.allowAnonymous` matches the value that was set. The existing GET `/apps/{id}` endpoint returns the full config.
-
----
-
-🟡 3) `agents-manage-ui/src/components/apps/form/app-update-form.tsx:86-91 || dual-write-path-revalidation-coupling` **Two independent write paths for `config.webClient.auth` coupled only by revalidation timing**
-
-**Issue:** The `AuthKeysSection` toggle updates `allowAnonymous` via the dedicated `PATCH /settings` endpoint, while the parent `AppUpdateForm.onSubmit` builds `config.webClient.auth` by spreading `webConfig.auth` from the `app` prop (line 88). The `app` prop is refreshed via `revalidatePath` after the toggle action, so under normal circumstances the form captures the updated value. However, correctness depends entirely on Next.js revalidation completing and React re-rendering the component tree before the user submits the form — an implicit timing dependency for a security-sensitive setting. This pattern is inherited from the existing key add/delete operations (which have the same coupling), but extending it to a security toggle raises the stakes.
-**Why:** If revalidation is ever delayed, interrupted, or if the component tree is restructured such that the dialog no longer receives fresh props (e.g., moved to a portal outside the revalidated route segment), the form submit would silently revert `allowAnonymous` to its stale value, re-enabling anonymous access.
-**Fix:** The simplest hardening: in `onSubmit`, destructure out fields managed by the dedicated endpoints before spreading:
-```typescript
-const { allowAnonymous: _, publicKeys: __, ...restAuth } =
-  (webConfig?.auth as Record<string, unknown>) ?? {};
-webClientConfig.auth = {
-  ...restAuth,
-  audience: data.audience.trim() || undefined,
-};
-```
-This ensures the form never overwrites fields it doesn't own, regardless of revalidation state.
-
----
-
-### 💭 Consider (4)
-
-💭 4) `agents-manage-ui/src/components/apps/auth-keys-section.tsx:97-110 || stale-allow-anonymous-after-key-deletion` **Deleting all keys leaves `allowAnonymous: false` persisted invisibly**
-
-When a user enables "Require Authentication" and then deletes all public keys, `allowAnonymous: false` remains in the database but the toggle disappears from the UI (`keys.length > 0` render guard at line 210). The runtime is safe — it checks `publicKeys.length > 0` before evaluating `allowAnonymous` — but the persisted state creates a latent surprise: re-adding a key later will immediately enforce authentication without the user explicitly re-enabling the toggle. Consider auto-resetting `allowAnonymous` to `true` on the backend when the last key is deleted, or surfacing the stale state in the UI.
-
----
-
-💭 5) `agents-api/src/domains/manage/routes/appAuthKeys.ts:297-302 || no-guard-zero-keys` **No server-side guard prevents `allowAnonymous: false` with zero public keys**
-
-The UI hides the toggle when no keys exist, but the API endpoint accepts `allowAnonymous: false` regardless of key count. This creates a misleading config state for API/SDK callers — the setting claims auth is required, but the runtime skips the check when no keys are configured. Consider adding a validation guard that rejects `allowAnonymous: false` when `publicKeys` is empty, with an error message like "Cannot require authentication without at least one public key configured."
-
----
-
-💭 6) `agents-api/src/__tests__/manage/routes/crud/appAuthKeys.test.ts:235 || test-field-preservation` **Add test verifying `audience` and other auth fields are preserved**
-
-The "should preserve existing keys" test verifies keys survive a settings update, but doesn't check that `audience` or `validateScopeClaims` are preserved through the `{ ...existingAuth }` spread at line 298. A test that sets up an app with a key + audience, calls PATCH `/settings`, and reads back the full config to confirm audience is intact would guard against future merge-order regressions.
-
----
-
-💭 7) `agents-docs/content/talk-to-your-agents/(chat-components)/app-credentials.mdx:112 || docs-endpoint-reference` **API docs mention setting `allowAnonymous` via API without specifying the endpoint**
-
-The text "set `allowAnonymous` to `false` in the app's auth configuration" could lead developers to try the general app PATCH endpoint rather than the dedicated `PATCH /auth/keys/settings` endpoint. Consider adding the endpoint path or a link to the API reference for clarity.
-
----
-
-## 💡 APPROVE WITH SUGGESTIONS
-
-**Summary:** Well-scoped feature that correctly surfaces an existing runtime control (`allowAnonymous`) through a new API endpoint and UI toggle. The implementation follows established patterns (dedicated PATCH endpoint, optimistic UI toggle, proper authorization, revalidation). The runtime enforcement was already in place and is well-tested. The suggestions focus on API contract consistency (typed response schema), test rigor (persistence assertion), and a defensive fix to decouple the form's config payload from fields managed by dedicated endpoints.
-
-<details>
-<summary>Discarded (8)</summary>
-
-| Location | Issue | Reason Discarded |
-|----------|-------|------------------|
-| `appAuthKeys.ts:274` | Uses `commonGetErrorResponses` instead of `commonUpdateErrorResponses` | Existing split-world — many PATCH routes use `commonGetErrorResponses`. Not functionally different today. |
-| `auth-keys-section.tsx:112` | Optimistic update pattern differs from some other toggles | The pattern used (optimistic set + revert on failure) is valid and arguably better UX than the alternative. Codebase has both patterns. |
-| `appAuthKeys.test.ts` | No test for invalid request body (missing `allowAnonymous`) | Zod validation via `@hono/zod-openapi` handles this automatically. Testing the framework's built-in validation is low value. |
-| `appAuthKeys.test.ts` | No idempotency test for double-set | Standard read-then-write pattern. Very low risk of corruption from double-application. |
-| `appAuthKeys.test.ts` | No test for key deletion + allowAnonymous interaction | LOW confidence finding. Documents expected persistence behavior, not a likely bug. |
-| `app-credentials.mdx:110,138` | Toggle described in two overlapping sections | Both mentions serve distinct contexts (conceptual explanation vs UI walkthrough). Minimal maintenance burden. |
-| `app-update-form.tsx:27` | `WebClientConfigShape` manually duplicates `WebClientConfigSchema` | Pre-existing interface — this PR only added one field to it. Consolidation is desirable but out of scope. |
-| `auth-keys-section.tsx:52` | Toggle state not explicitly reset when keys drop to zero | Toggle is hidden when `keys.length === 0` and re-initialized from prop on remount. Low practical impact since the `allowAnonymous` prop correctly reflects server state after revalidation. |
-
-</details>
-
-<details>
-<summary>Reviewer Stats</summary>
-
-| Reviewer | Returned | Kept |
-|----------|----------|------|
-| `pr-review-standards` | 1 | 1 |
-| `pr-review-product` | 4 | 3 |
-| `pr-review-tests` | 5 | 2 |
-| `pr-review-security-iam` | 2 | 1 |
-| `pr-review-frontend` | 3 | 1 |
-| `pr-review-consistency` | 4 | 1 |
-| `pr-review-docs` | 2 | 1 |
-
-</details>
-
-</details>
-
----
-
-## Fix Response 1
-
-### Addressed
-- 🟡 **PATCH response without schema** (`appAuthKeys.ts:270-316`): Added `AuthSettingsResponseSchema` with typed `{ data: { allowAnonymous } }` response shape. Changed handler to return `{ data: { allowAnonymous } }` instead of `{ success: true }`. Aligns with the `{ data: ... }` convention used by all other PATCH endpoints in the manage domain.
-- 🟡 **Tests missing persistence assertion** (`appAuthKeys.test.ts:198-235`): Both "should update allowAnonymous to false" and "should update allowAnonymous to true" tests now (a) assert the PATCH response body contains the correct `allowAnonymous` value, and (b) read back the full app via GET and assert `config.webClient.auth.allowAnonymous` matches. This verifies the setting is actually persisted, not just acknowledged.
-- 🟡 **Dual-write path revalidation coupling** (`app-update-form.tsx:86-91`): Form `onSubmit` now destructures out `allowAnonymous` and `publicKeys` before spreading `webConfig.auth`, ensuring the form never overwrites fields managed by the dedicated `/auth/keys` and `/auth/keys/settings` endpoints. This eliminates the implicit revalidation-timing dependency for the security-sensitive `allowAnonymous` field.
-- 💭 **Test field preservation** (`appAuthKeys.test.ts:235`): Added test "should preserve audience when updating allowAnonymous" that sets `audience` via the app PATCH endpoint, then calls PATCH `/settings`, then reads back the full app config to confirm both `audience` and `allowAnonymous` are preserved through the `{ ...existingAuth }` spread.
-- 💭 **Docs endpoint reference** (`app-credentials.mdx:112`): Updated API reference text to specify the full endpoint path (`PATCH /manage/tenants/{tenantId}/projects/{projectId}/apps/{appId}/auth/keys/settings`) and request body format instead of the vague "set `allowAnonymous` to `false` in the app's auth configuration."
-
-### Declined
-- 💭 **Stale allowAnonymous after key deletion** (`auth-keys-section.tsx:97-110`): Runtime is safe — `runAuth.ts:632` checks `publicKeys.length > 0` before evaluating `allowAnonymous`. The persisted state is harmless and auto-resetting is a product UX decision outside the scope of this feature's spec.
-- 💭 **No server-side guard for zero keys** (`appAuthKeys.ts:297-302`): Same reasoning — the runtime's `publicKeys.length > 0` check is the safety net. Adding an API validation guard is a product decision about API ergonomics, not a correctness fix.
-
+_N/A — local review (no prior GitHub review baseline)._
 
 ## Prior Feedback
 
