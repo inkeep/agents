@@ -48,7 +48,7 @@ export const conversationSearchIndex = pgTable(
     projectId: varchar('project_id', { length: 256 }).notNull(),
     conversationId: varchar('conversation_id', { length: 256 }).notNull(),
     agentId: varchar('agent_id', { length: 256 }).notNull(),
-    userId: varchar('user_id', { length: 256 }),
+    userId: varchar('user_id', { length: 256 }).notNull(),  // NOT NULL: D6 says NULL userId not searchable — no row created without userId
 
     // Searchable text content (updated every turn)
     searchText: text('search_text').notNull(),
@@ -58,11 +58,8 @@ export const conversationSearchIndex = pgTable(
 
     // Application-managed tsvector (set via to_tsvector('english', search_text) in UPSERT)
     // NOT a GENERATED column — Drizzle does not support GENERATED columns.
-    searchVector: customType<{ data: string; driverParam: string }>({
-      dataType() { return 'tsvector'; },
-      toDriver(value: string) { return value; },
-      fromDriver(value: string) { return value; },
-    })('search_vector'),
+    // Uses shared tsvectorColumn custom type — see packages/agents-core/src/db/runtime/custom-types.ts
+    searchVector: tsvectorColumn('search_vector'),
 
     // Conversation metadata for display + filtering
     title: text('title'),
@@ -94,6 +91,24 @@ export const conversationSearchIndex = pgTable(
 );
 ```
 
+**Shared custom type** (`packages/agents-core/src/db/runtime/custom-types.ts`):
+
+```typescript
+import { customType } from 'drizzle-orm/pg-core';
+
+// tsvector column — application-managed (Drizzle has no built-in tsvector type).
+// Set explicitly via to_tsvector('english', text) in UPSERT queries.
+export const tsvectorColumn = (name: string) =>
+  customType<{ data: string; driverParam: string }>({
+    dataType() { return 'tsvector'; },
+    toDriver(value: string) { return value; },
+    fromDriver(value: string) { return value; },
+  })(name);
+
+// Future Phase 2: vector column for pgvector embeddings
+// export const vectorColumn = (name: string, dimensions: number) => ...
+```
+
 ### 3.2 New Table: `artifact_search_index`
 
 One row per artifact. Created when the artifact is saved.
@@ -109,8 +124,8 @@ export const artifactSearchIndex = pgTable(
     // Scope fields (denormalized for query performance)
     conversationId: varchar('conversation_id', { length: 256 }).notNull(),
     agentId: varchar('agent_id', { length: 256 }).notNull(),
-    userId: varchar('user_id', { length: 256 }),
-    toolCallId: varchar('tool_call_id', { length: 256 }),  // needed for retrieval workflow
+    userId: varchar('user_id', { length: 256 }).notNull(),  // NOT NULL: D6
+    toolCallId: varchar('tool_call_id', { length: 256 }),   // needed for retrieval workflow
 
     // Searchable text content
     searchText: text('search_text').notNull(),
@@ -118,8 +133,8 @@ export const artifactSearchIndex = pgTable(
     artifactType: varchar('artifact_type', { length: 256 }),
     artifactName: varchar('artifact_name', { length: 256 }),
 
-    // Application-managed tsvector
-    searchVector: /* same custom tsvector type as above */,
+    // Application-managed tsvector — same shared custom type
+    searchVector: tsvectorColumn('search_vector'),
 
     // Size metadata
     estimatedTokens: integer('estimated_tokens'),
@@ -219,10 +234,12 @@ User sends message → Agent responds → Response streamed to user
                                     (Single SQL statement — fast, no LLM call)
 
                                     4. IF total user message text > ~2000 tokens:
-                                       Queue async job to generate LLM summary
+                                       Fire-and-forget via getWaitUntil() from @inkeep/agents-core
+                                       (uses Vercel waitUntil in production, Promise.resolve() locally)
                                          ↓ (async, non-blocking, after response)
                                        LLM summary generated via agent's summarization model
                                        UPSERT with summary_source = 'llm_summary'
+                                       On failure: log error, fast-path concatenated text remains valid
 ```
 
 **On ConversationCompressor event (richer, structured summary):**
@@ -340,7 +357,57 @@ ORDER BY rrf_score DESC
 LIMIT $7;
 ```
 
-### 5.2 Data access layer
+### 5.2 Artifact search query
+
+Same pattern as conversation search — keyword + recency via RRF, with optional `toolName` and `conversationId` filters:
+
+```sql
+WITH text_query AS (
+  SELECT plainto_tsquery('english', $1) AS query
+),
+keyword_results AS (
+  SELECT
+    artifact_id,
+    ts_rank_cd(search_vector, (SELECT query FROM text_query), 32) AS text_score,
+    ROW_NUMBER() OVER (
+      ORDER BY ts_rank_cd(search_vector, (SELECT query FROM text_query), 32) DESC
+    ) AS keyword_rank
+  FROM artifact_search_index
+  WHERE tenant_id = $2
+    AND project_id = $3
+    AND agent_id = $4
+    AND user_id = $5                                    -- strict equality (D6)
+    AND ($6::varchar IS NULL OR tool_name = $6)         -- optional tool filter
+    AND ($7::varchar IS NULL OR conversation_id = $7)   -- optional conversation filter
+    AND search_vector @@ (SELECT query FROM text_query)
+  LIMIT 50
+),
+recency_results AS (
+  SELECT
+    artifact_id,
+    ROW_NUMBER() OVER (ORDER BY created_at DESC) AS recency_rank
+  FROM artifact_search_index
+  WHERE tenant_id = $2
+    AND project_id = $3
+    AND agent_id = $4
+    AND user_id = $5
+    AND ($6::varchar IS NULL OR tool_name = $6)
+    AND ($7::varchar IS NULL OR conversation_id = $7)
+  LIMIT 50
+)
+SELECT
+  COALESCE(k.artifact_id, r.artifact_id) AS artifact_id,
+  (COALESCE(1.0 / (60 + k.keyword_rank), 0) +
+   COALESCE(0.5 / (60 + r.recency_rank), 0)) AS rrf_score
+FROM keyword_results k
+FULL JOIN recency_results r USING (artifact_id)
+ORDER BY rrf_score DESC
+LIMIT $8;
+```
+
+**Note:** `search_artifacts` includes artifacts from ALL conversations (including the current one), unlike `search_conversation_history` which excludes the current conversation. This is intentional — the LLM may want to find artifacts from the current conversation that aren't in the prompt (e.g., oversized artifacts).
+
+### 5.3 Data access layer
 
 ```typescript
 // packages/agents-core/src/data-access/runtime/conversationSearch.ts
@@ -404,7 +471,13 @@ WITH matched AS (
   WHERE conversation_id = $1
     AND tenant_id = $2 AND project_id = $3
     AND (visibility = 'user-facing' OR message_type = 'tool-result')
-    AND to_tsvector('english', content->>'text') @@ plainto_tsquery('english', $4)
+    AND to_tsvector('english', COALESCE(
+      content->>'text',                                    -- flat {text: "..."} shape
+      (SELECT string_agg(p->>'text', ' ')                  -- parts array [{kind:'text', text:'...'}]
+       FROM jsonb_array_elements(content->'parts') AS p
+       WHERE p->>'kind' = 'text'),
+      ''
+    )) @@ plainto_tsquery('english', $4)
 ),
 all_msgs AS (
   SELECT id, created_at, content, role, message_type, from_sub_agent_id, metadata,
@@ -489,8 +562,8 @@ search_conversation_history: tool({
 ```typescript
 search_artifacts: tool({
   description:
-    'Search tool results and artifacts from your conversations with this user. ' +
-    'Returns artifact metadata ranked by relevance. ' +
+    'Search tool results and artifacts from all your conversations with this user ' +
+    '(including the current conversation). Returns artifact metadata ranked by relevance. ' +
     'Use when you need to find specific data from past tool executions.',
   inputSchema: z.object({
     query: z.string().describe(
@@ -502,7 +575,9 @@ search_artifacts: tool({
     conversationId: z.string().optional().describe(
       'Optional: limit search to a specific conversation.'
     ),
-    limit: z.number().min(1).max(20).default(5).optional(),
+    limit: z.number().min(1).max(20).default(5).optional().describe(
+      'Maximum number of artifacts to return. Default: 5.'
+    ),
   }),
   execute: async ({ query, toolName, conversationId, limit = 5 }) => {
     return {
@@ -565,7 +640,7 @@ get_conversation_messages: tool({
 
     if (query) {
       // SEARCH MODE: find matching messages, return with context windows
-      // See Section 5.4 for the windowed search query
+      // See Section 5.5 for the windowed search query
       return {
         conversationId,
         mode: 'search',
@@ -642,18 +717,30 @@ execute: async ({ artifactId, toolCallId }) => {
   }
 
   // 2. Fallback: query ledgerArtifacts directly (cross-conversation)
-  //    With DB-level scoping: tenantId + projectId + userId check via conversation FK
   const artifacts = await getLedgerArtifacts(runDbClient)({
     scopes: { tenantId, projectId },
     artifactId,
     toolCallId: toolCallId || undefined,
   });
 
-  if (!artifacts.length) return { error: 'Artifact not found' };
+  if (!artifacts.length) {
+    throw createApiError({ code: 'not_found', message: 'Artifact not found or not accessible' });
+  }
 
-  // Verify the artifact belongs to a conversation owned by this user+agent
+  // 3. Authorization: verify artifact belongs to a conversation owned by this user+agent
   const artifact = artifacts[0];
-  // ... authorization check via conversation lookup ...
+  const ownerConversation = await db.query.conversations.findFirst({
+    where: and(
+      eq(conversations.id, artifact.contextId),        // contextId IS conversationId
+      eq(conversations.tenantId, tenantId),
+      eq(conversations.projectId, projectId),
+      eq(conversations.userId, currentUserId),          // strict userId (D6)
+      eq(conversations.agentId, currentAgentId),
+    ),
+  });
+  if (!ownerConversation) {
+    throw createApiError({ code: 'not_found', message: 'Artifact not found or not accessible' });
+  }
 
   return formatArtifactResult(artifact);
 },
@@ -677,6 +764,7 @@ No prompt template changes in Phase 1.
 ### New files:
 | File | Purpose |
 |------|---------|
+| `packages/agents-core/src/db/runtime/custom-types.ts` | Shared Drizzle custom types (`tsvectorColumn`, and future `vectorColumn` for pgvector Phase 2) |
 | `packages/agents-core/src/data-access/runtime/conversationSearchIndex.ts` | CRUD for conversation_search_index (UPSERT with tsvector) |
 | `packages/agents-core/src/data-access/runtime/artifactSearchIndex.ts` | CRUD for artifact_search_index (INSERT with tsvector) |
 | `packages/agents-core/src/data-access/runtime/conversationSearch.ts` | Search DAL (keyword + recency RRF) |
@@ -687,7 +775,7 @@ No prompt template changes in Phase 1.
 |------|--------|
 | `packages/agents-core/src/db/runtime/runtime-schema.ts` | Add `conversationSearchIndex`, `artifactSearchIndex` tables; add `agentId` column to `ledgerArtifacts` |
 | `agents-api/src/domains/run/agents/tools/default-tools.ts` | Add `search_conversation_history`, `search_artifacts`, `get_conversation_messages`; extend `get_reference_artifact` with DB fallback (D13) |
-| `packages/agents-core/src/data-access/runtime/ledgerArtifacts.ts` | Pass `agentId` on insert; insert into `artifactSearchIndex` on artifact creation |
+| `packages/agents-core/src/data-access/runtime/ledgerArtifacts.ts` | Pass `agentId` on insert; insert into `artifactSearchIndex` on creation; add coordinated deletes to `deleteLedgerArtifactsByTask` and `deleteLedgerArtifactsByContext` to also delete from `artifact_search_index` |
 | `agents-api/src/domains/run/handlers/executionHandler.ts` | UPSERT conversation search index after turn completes (sync fast path + async LLM summary) |
 | `agents-api/src/domains/run/compression/ConversationCompressor.ts` | UPSERT conversation search index with compression summary (MidGenerationCompressor is NOT modified — it doesn't touch the search index) |
 
@@ -787,5 +875,6 @@ No prompt template changes in Phase 1.
 | Synchronous index UPSERT adds latency | Single SQL statement; measure; move fully async if >50ms |
 | Cross-tenant data leakage via search | Strict userId equality (D6); DB-level WHERE clause in all queries |
 | Long conversations: async LLM summary fails | Fast-path concatenated text always available; LLM summary is upgrade |
-| Orphaned artifact_search_index rows | Application-level cleanup on artifact deletion; no FK possible due to ledgerArtifacts compound PK |
-| Nullable `agentId` on existing ledgerArtifacts rows | New rows get agentId; search queries handle NULL gracefully (exclude from results) |
+| Orphaned artifact_search_index rows | Coordinated deletes in `deleteLedgerArtifactsByTask` and `deleteLedgerArtifactsByContext`; conversation cascade deletes handle `conversation_search_index` via FK |
+| Nullable `agentId` on existing ledgerArtifacts rows | New rows get agentId; pre-migration artifacts excluded from search (agentId is NULL). Backfill derivable: `contextId` → `conversations.agentId`. Deferred to OQ3. |
+| pglite test compatibility with tsvector/GIN | pglite supports `to_tsvector` and `plainto_tsquery` but GIN index behavior may differ. Add integration test against real Postgres for search functionality; unit tests can mock the search DAL. |
