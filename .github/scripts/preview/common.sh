@@ -399,32 +399,55 @@ railway_ensure_tcp_proxy() {
 
 vercel_list_preview_only_env_vars() {
   local project_id="$1"
-  local envs_json=""
+  local all_envs="[]"
+  local page_json=""
+  local page_envs=""
+  local next_cursor=""
+  local limit=100
+  local url=""
 
-  if ! envs_json="$(
-    curl --fail-with-body -sS \
-      --connect-timeout 10 \
-      --max-time 60 \
-      -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-      "https://api.vercel.com/v10/projects/${project_id}/env?teamId=${VERCEL_ORG_ID}" \
-      2>&1
-  )"; then
-    echo "Failed to list env vars for project ${project_id}." >&2
-    printf '%s\n' "${envs_json}" >&2
-    return 1
-  fi
+  while true; do
+    url="https://api.vercel.com/v10/projects/${project_id}/env?teamId=${VERCEL_ORG_ID}&limit=${limit}"
+    if [ -n "${next_cursor}" ]; then
+      url="${url}&until=${next_cursor}"
+    fi
+
+    if ! page_json="$(
+      curl --fail-with-body -sS \
+        --connect-timeout 10 \
+        --max-time 60 \
+        -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+        "${url}" \
+        2>&1
+    )"; then
+      echo "Failed to list env vars for project ${project_id}." >&2
+      printf '%s\n' "${page_json}" >&2
+      return 1
+    fi
+
+    page_envs="$(printf '%s' "${page_json}" | jq -c '.envs // []')"
+    all_envs="$(jq -nc --argjson a "${all_envs}" --argjson b "${page_envs}" '$a + $b')"
+
+    next_cursor="$(printf '%s' "${page_json}" | jq -r '.pagination.next // empty')"
+    if [ -z "${next_cursor}" ]; then
+      break
+    fi
+  done
+
+  local combined=""
+  combined="$(jq -nc --argjson envs "${all_envs}" '{envs: $envs}')"
 
   local non_preview=""
-  non_preview="$(printf '%s' "${envs_json}" | jq \
+  non_preview="$(printf '%s' "${combined}" | jq \
     '[.envs[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"])] | length')"
   if [ "${non_preview}" -gt 0 ]; then
     echo "SAFETY: found ${non_preview} branch-scoped env var(s) targeting production or development — refusing to proceed." >&2
-    printf '%s' "${envs_json}" | jq -r \
+    printf '%s' "${combined}" | jq -r \
       '.envs[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"]) | "  \(.key) target=\(.target) branch=\(.gitBranch)"' >&2
     return 1
   fi
 
-  printf '%s' "${envs_json}"
+  printf '%s' "${combined}"
 }
 
 redact_preview_logs() {

@@ -12,7 +12,7 @@ require_env_vars \
   VERCEL_MANAGE_UI_PROJECT_ID \
   PR_BRANCH
 
-if ! [[ "${PR_BRANCH}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+if ! [[ "${PR_BRANCH}" =~ ^[A-Za-z0-9._/+=-]+$ ]]; then
   echo "Invalid PR branch value: ${PR_BRANCH}"
   exit 1
 fi
@@ -39,21 +39,24 @@ delete_branch_env_vars() {
 
   echo "Deleting ${count} env var(s) for project ${project_id} branch ${branch}..."
 
+  local deleted=0
   local env_id=""
   while IFS= read -r env_id; do
     [ -z "${env_id}" ] && continue
-    if ! curl --fail-with-body -sS \
+    if curl --fail-with-body -sS \
       --connect-timeout 10 \
       --max-time 60 \
       -X DELETE \
       -H "Authorization: Bearer ${VERCEL_TOKEN}" \
       "https://api.vercel.com/v10/projects/${project_id}/env/${env_id}?teamId=${VERCEL_ORG_ID}" \
       >/dev/null 2>&1; then
+      deleted=$((deleted + 1))
+    else
       echo "Warning: failed to delete env var ${env_id} for project ${project_id}." >&2
     fi
   done <<< "${ids}"
 
-  echo "Deleted ${count} env var(s) for project ${project_id} branch ${branch}."
+  echo "Deleted ${deleted}/${count} env var(s) for project ${project_id} branch ${branch}."
 }
 
 delete_branch_env_vars "${VERCEL_MANAGE_UI_PROJECT_ID}" "${PR_BRANCH}"
