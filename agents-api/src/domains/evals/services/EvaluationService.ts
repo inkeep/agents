@@ -938,6 +938,7 @@ Generate the next user message:`;
       tenantId,
       projectId,
       conversationId: conversation.id,
+      agentId,
     });
 
     return {
@@ -1006,8 +1007,9 @@ Return your evaluation as a JSON object matching the schema above.`;
     tenantId: string;
     projectId: string;
     conversationId: string;
+    agentId: string | null;
   }): Promise<{ result: Record<string, unknown>; metadata: Record<string, unknown> }> {
-    const { prompt, modelConfig, schema, tenantId, projectId, conversationId } = params;
+    const { prompt, modelConfig, schema, tenantId, projectId, conversationId, agentId } = params;
 
     const languageModel = ModelFactory.prepareGenerationConfig(modelConfig);
     const providerOptions = modelConfig?.providerOptions || {};
@@ -1041,7 +1043,12 @@ Return your evaluation as a JSON object matching the schema above.`;
         'Calling generateText with structured output for eval scoring'
       );
       const result = await withOtelBaggage(
-        { 'tenant.id': tenantId, 'project.id': projectId, 'conversation.id': conversationId },
+        {
+          'tenant.id': tenantId,
+          'project.id': projectId,
+          'conversation.id': conversationId,
+          ...(agentId ? { 'agent.id': agentId } : {}),
+        },
         () =>
           generateText({
             ...languageModel,
@@ -1054,6 +1061,7 @@ Return your evaluation as a JSON object matching the schema above.`;
                 tenantId,
                 projectId,
                 conversationId,
+                agentId,
                 generationType: GENERATION_TYPES.EVAL_SCORING,
               },
             },
