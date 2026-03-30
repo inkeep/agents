@@ -26,7 +26,9 @@ describe('pull-v4 introspect generator', () => {
       id: 'cegsoft',
       name: 'CEGsoft Pilot Dev',
       models: {
-        base: {},
+        base: {
+          model: 'test',
+        },
         summarizer: {},
         structuredOutput: {},
       },
