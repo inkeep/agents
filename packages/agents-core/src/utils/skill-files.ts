@@ -1,6 +1,6 @@
-import type { SkillInsert } from '@inkeep/agents-core';
 import { simplematter } from 'simplematter';
 import { stringify } from 'yaml';
+import type { SkillInsert } from '../types';
 
 export const SKILL_ENTRY_FILE_PATH = 'SKILL.md';
 

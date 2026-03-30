@@ -18,7 +18,7 @@ function revalidateSkillFilePaths(
   revalidatePath(buildSkillFileViewHref(tenantId, projectId, skillId, filePath));
   revalidatePath(buildSkillFileViewHref(tenantId, projectId, skillId, SKILL_ENTRY_FILE_PATH));
 }
-// TODO remove all validation, whcih are done in backend
+
 export async function createSkillFileAction(
   tenantId: string,
   projectId: string,
