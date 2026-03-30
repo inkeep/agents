@@ -66,7 +66,7 @@ function buildCsp() {
   return [
     `default-src 'self'`,
     `script-src ${scriptSrcDomains}`,
-    `style-src 'self' 'unsafe-inline'`,
+    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self'`,
     `img-src 'self' https: data:`,
     `connect-src ${connectSrcDomains}`,
