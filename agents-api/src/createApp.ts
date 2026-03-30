@@ -52,6 +52,14 @@ function createAgentsHono(config: AppConfig) {
   // Core middleware
   app.use('*', requestId());
 
+  // Security response headers
+  app.use('*', async (c, next) => {
+    await next();
+    c.header('X-Content-Type-Options', 'nosniff');
+    c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    c.header('X-XSS-Protection', '0');
+  });
+
   // Route-specific CORS (must be registered before global CORS)
   // Better Auth routes
   app.use('/api/auth/*', cors(authCorsConfig));

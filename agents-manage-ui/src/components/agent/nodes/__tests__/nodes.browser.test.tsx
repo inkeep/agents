@@ -7,6 +7,7 @@ import { MCPNode } from '@/components/agent/nodes/mcp-node';
 import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
 import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 import { createTestQueryClient, renderWithClient } from '@/lib/query/__tests__/test-utils';
 import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';
@@ -78,78 +79,80 @@ function Nodes() {
   };
 
   return (
-    <FullAgentFormProvider
-      defaultValues={{
-        defaultSubAgentNodeId: 'SubAgent',
-        subAgents: {
-          // @ts-expect-error
-          SubAgent: DATA,
-        },
-        externalAgents: {
-          // @ts-expect-error
-          ExternalAgent: DATA,
-        },
-        teamAgents: {
-          // @ts-expect-error
-          TeamAgent: DATA,
-        },
-        tools: {
-          [TOOL_ID]: {
-            ...DATA,
-            config: {
-              type: 'mcp',
-              // @ts-expect-error
-              mcp: {},
+    <TooltipProvider>
+      <FullAgentFormProvider
+        defaultValues={{
+          defaultSubAgentNodeId: 'SubAgent',
+          subAgents: {
+            // @ts-expect-error
+            SubAgent: DATA,
+          },
+          externalAgents: {
+            // @ts-expect-error
+            ExternalAgent: DATA,
+          },
+          teamAgents: {
+            // @ts-expect-error
+            TeamAgent: DATA,
+          },
+          tools: {
+            [TOOL_ID]: {
+              ...DATA,
+              config: {
+                type: 'mcp',
+                // @ts-expect-error
+                mcp: {},
+              },
             },
           },
-        },
-        functionTools: {
+          functionTools: {
+            // @ts-expect-error
+            [TOOL_ID]: DATA,
+          },
           // @ts-expect-error
-          [TOOL_ID]: DATA,
-        },
-        // @ts-expect-error
-        models: {
-          base: {},
-        },
-      }}
-    >
-      <ReactFlowProvider>
-        <ExternalAgentNode
-          {...baseProps}
-          id="ExternalAgent"
-          data={{
-            nodeKey: 'external-agent:ExternalAgent',
-            externalAgentId: 'ExternalAgent',
-            relationshipId: null,
-          }}
-        />
-        {divider}
-        <FunctionToolNode
-          {...baseProps}
-          data={{ nodeKey: `function-tool:${TOOL_ID}`, toolId: TOOL_ID }}
-        />
-        {divider}
-        <MCPNode {...baseProps} data={{ nodeKey: `mcp:${TOOL_ID}:foo`, toolId: TOOL_ID }} />
-        {divider}
-        <PlaceholderNode
-          {...baseProps}
-          type={NodeType.MCPPlaceholder}
-          data={{ nodeKey: 'mcp-placeholder:foo' }}
-        />
-        {divider}
-        <SubAgentNode {...baseProps} id="SubAgent" data={{ nodeKey: 'SubAgent' }} />
-        {divider}
-        <TeamAgentNode
-          {...baseProps}
-          id="TeamAgent"
-          data={{
-            nodeKey: 'team-agent:TeamAgent',
-            teamAgentId: 'TeamAgent',
-            relationshipId: null,
-          }}
-        />
-      </ReactFlowProvider>
-    </FullAgentFormProvider>
+          models: {
+            base: {},
+          },
+        }}
+      >
+        <ReactFlowProvider>
+          <ExternalAgentNode
+            {...baseProps}
+            id="ExternalAgent"
+            data={{
+              nodeKey: 'external-agent:ExternalAgent',
+              externalAgentId: 'ExternalAgent',
+              relationshipId: null,
+            }}
+          />
+          {divider}
+          <FunctionToolNode
+            {...baseProps}
+            data={{ nodeKey: `function-tool:${TOOL_ID}`, toolId: TOOL_ID }}
+          />
+          {divider}
+          <MCPNode {...baseProps} data={{ nodeKey: `mcp:${TOOL_ID}:foo`, toolId: TOOL_ID }} />
+          {divider}
+          <PlaceholderNode
+            {...baseProps}
+            type={NodeType.MCPPlaceholder}
+            data={{ nodeKey: 'mcp-placeholder:foo' }}
+          />
+          {divider}
+          <SubAgentNode {...baseProps} id="SubAgent" data={{ nodeKey: 'SubAgent' }} />
+          {divider}
+          <TeamAgentNode
+            {...baseProps}
+            id="TeamAgent"
+            data={{
+              nodeKey: 'team-agent:TeamAgent',
+              teamAgentId: 'TeamAgent',
+              relationshipId: null,
+            }}
+          />
+        </ReactFlowProvider>
+      </FullAgentFormProvider>
+    </TooltipProvider>
   );
 }
 
