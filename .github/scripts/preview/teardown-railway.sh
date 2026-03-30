@@ -15,14 +15,7 @@ require_env_vars \
 
 RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
 
-if ! railway link \
-  --project "${RAILWAY_PROJECT_ID}" \
-  --service "${RAILWAY_OUTPUT_SERVICE}" \
-  --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
-  >/dev/null; then
-  echo "Failed to link Railway CLI to project ${RAILWAY_PROJECT_ID} service ${RAILWAY_OUTPUT_SERVICE} env ${RAILWAY_TEMPLATE_ENVIRONMENT}." >&2
-  exit 1
-fi
+railway_link_service "${RAILWAY_PROJECT_ID}" "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_TEMPLATE_ENVIRONMENT}"
 
 ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
 if [ "${ENV_EXISTS}" = "0" ]; then
@@ -30,7 +23,7 @@ if [ "${ENV_EXISTS}" = "0" ]; then
   exit 0
 fi
 
-if ! railway environment delete "${RAILWAY_ENV_NAME}" --yes; then
+if ! railway_cli_with_retry railway environment delete "${RAILWAY_ENV_NAME}" --yes; then
   echo "Failed to delete Railway environment ${RAILWAY_ENV_NAME}." >&2
   exit 1
 fi

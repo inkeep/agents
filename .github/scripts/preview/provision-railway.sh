@@ -27,23 +27,15 @@ require_env_vars \
 
 RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
 
-if ! railway link \
-  --project "${RAILWAY_PROJECT_ID}" \
-  --service "${RAILWAY_OUTPUT_SERVICE}" \
-  --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
-  >/dev/null; then
-  echo "Failed to link Railway CLI to project ${RAILWAY_PROJECT_ID} service ${RAILWAY_OUTPUT_SERVICE} env ${RAILWAY_TEMPLATE_ENVIRONMENT}." >&2
-  exit 1
-fi
+railway_link_service "${RAILWAY_PROJECT_ID}" "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_TEMPLATE_ENVIRONMENT}"
 
 ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
 
 if [ "${ENV_EXISTS}" = "0" ]; then
-  if ! railway environment new "${RAILWAY_ENV_NAME}" \
+  if ! railway_cli_with_retry railway environment new "${RAILWAY_ENV_NAME}" \
     --copy "${RAILWAY_TEMPLATE_ENVIRONMENT}"; then
     echo "Initial create attempt failed; re-checking whether ${RAILWAY_ENV_NAME} now exists."
-    ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
-    if [ "${ENV_EXISTS}" = "0" ]; then
+    if ! railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 30 2 >/dev/null; then
       echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}."
       exit 1
     fi
@@ -57,17 +49,11 @@ railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWA
 railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_SPICEDB_SERVICE}" "${RAILWAY_SPICEDB_TCP_PORT}"
 
 TEMPLATE_SERVICE_ENV_JSON="$(
-  railway variable list \
-    --service "${RAILWAY_OUTPUT_SERVICE}" \
-    --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
-    --json
+  railway_variable_list_json "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_TEMPLATE_ENVIRONMENT}"
 )"
 
 SERVICE_ENV_JSON="$(
-  railway variable list \
-    --service "${RAILWAY_OUTPUT_SERVICE}" \
-    --environment "${RAILWAY_ENV_NAME}" \
-    --json
+  railway_variable_list_json "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}"
 )"
 
 json_get_var() {
@@ -82,10 +68,7 @@ validate_spicedb_preshared_key() {
   local current_value=""
 
   spicedb_service_env_json="$(
-    railway variable list \
-      --service "${RAILWAY_SPICEDB_SERVICE}" \
-      --environment "${RAILWAY_ENV_NAME}" \
-      --json
+    railway_variable_list_json "${RAILWAY_SPICEDB_SERVICE}" "${RAILWAY_ENV_NAME}"
   )"
   current_value="$(json_get_var "${spicedb_service_env_json}" "${RAILWAY_SPICEDB_PRESHARED_KEY_KEY}")"
 
@@ -104,10 +87,7 @@ validate_spicedb_preshared_key() {
 
 refresh_service_env_dump() {
   SERVICE_ENV_JSON="$(
-    railway variable list \
-      --service "${RAILWAY_OUTPUT_SERVICE}" \
-      --environment "${RAILWAY_ENV_NAME}" \
-      --json
+    railway_variable_list_json "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}"
   )"
   SERVICE_ENV_DUMP="$(jq -r 'to_entries[] | "\(.key)=\(.value)"' <<< "${SERVICE_ENV_JSON}")"
 }
@@ -143,7 +123,7 @@ ensure_runtime_var_seeded() {
     exit 1
   fi
 
-  railway variable set \
+  railway_cli_with_retry railway variable set \
     --service "${RAILWAY_OUTPUT_SERVICE}" \
     --environment "${RAILWAY_ENV_NAME}" \
     --skip-deploys \

@@ -35,6 +35,36 @@ PY
   sleep "${jittered_sleep}"
 }
 
+railway_cli_with_retry() {
+  local max_attempts="${RAILWAY_CLI_MAX_ATTEMPTS:-8}"
+  local sleep_seconds="${RAILWAY_CLI_SLEEP_SECONDS:-2}"
+  local attempt=""
+  local output=""
+  local exit_code="1"
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    output="$("$@" 2>&1)" && {
+      if [ -n "${output}" ]; then
+        printf '%s' "${output}"
+      fi
+      return 0
+    }
+    exit_code="$?"
+
+    if ! printf '%s' "${output}" | grep -Eiq 'rate.?limit|ratelimit|429|timed out|timeout|temporarily unavailable|connection reset|connection refused|try again later'; then
+      printf '%s\n' "${output}" >&2
+      return "${exit_code}"
+    fi
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      sleep_with_jitter "${sleep_seconds}"
+    fi
+  done
+
+  printf '%s\n' "${output}" >&2
+  return "${exit_code}"
+}
+
 pr_env_name() {
   local pr_number="$1"
 
@@ -47,7 +77,7 @@ railway_env_exists_count() {
   local env_name="$2"
   local output_path="${3:-/tmp/railway-projects.json}"
 
-  if ! railway project list --json > "${output_path}"; then
+  if ! railway_cli_with_retry railway project list --json > "${output_path}"; then
     echo "Failed to list Railway environments for project ${project_id}." >&2
     return 1
   fi
@@ -64,7 +94,7 @@ railway_link_service() {
   local service="$2"
   local env_name="$3"
 
-  if ! railway link \
+  if ! railway_cli_with_retry railway link \
     --project "${project_id}" \
     --service "${service}" \
     --environment "${env_name}" \
@@ -72,6 +102,16 @@ railway_link_service() {
     echo "Failed to link Railway CLI to project ${project_id} service ${service} env ${env_name}." >&2
     return 1
   fi
+}
+
+railway_variable_list_json() {
+  local service="$1"
+  local env_name="$2"
+
+  railway_cli_with_retry railway variable list \
+    --service "${service}" \
+    --environment "${env_name}" \
+    --json
 }
 
 railway_extract_runtime_var() {
@@ -85,10 +125,7 @@ railway_extract_runtime_var() {
 
   for attempt in $(seq 1 "${max_attempts}"); do
     value="$(
-      railway variable list \
-        --service "${service}" \
-        --environment "${env_name}" \
-        --json |
+      railway_variable_list_json "${service}" "${env_name}" |
       jq -r --arg key "${key}" '.[$key] // empty'
     )"
 
@@ -126,6 +163,10 @@ railway_graphql() {
   payload="$(jq -nc --arg query "${query}" '{query: $query}')"
 
   curl --connect-timeout 10 --max-time 30 -fsS \
+    --retry 8 \
+    --retry-delay 1 \
+    --retry-max-time 90 \
+    --retry-all-errors \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ${RAILWAY_API_TOKEN}" \
     -H "User-Agent: Mozilla/5.0" \
@@ -247,47 +288,10 @@ railway_ensure_tcp_proxy() {
   local count=""
   local active=""
   local attempt=""
+  local create_error=""
 
   env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" "${max_attempts}" "${sleep_seconds}")" || return 1
   service_id="$(railway_wait_for_service_id_for_env "${env_id}" "${service_name}" "${env_name}" "${max_attempts}" "${sleep_seconds}")" || return 1
-
-  response="$(
-    railway_graphql "$(cat <<EOF
-query {
-  tcpProxies(environmentId: "${env_id}", serviceId: "${service_id}") {
-    id
-    domain
-    proxyPort
-    applicationPort
-    syncStatus
-  }
-}
-EOF
-)"
-  )"
-
-  count="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port)] | length' <<< "${response}")"
-  if [ "${count}" = "0" ]; then
-    response="$(
-      railway_graphql "$(cat <<EOF
-mutation {
-  tcpProxyCreate(input: {
-    environmentId: "${env_id}"
-    serviceId: "${service_id}"
-    applicationPort: ${application_port}
-  }) {
-    id
-  }
-}
-EOF
-)"
-    )"
-
-    if echo "${response}" | jq -e '.errors' >/dev/null 2>&1; then
-      echo "Failed to create TCP proxy for ${service_name} in ${env_name}: $(echo "${response}" | jq -r '.errors[0].message // "unknown error"')" >&2
-      return 1
-    fi
-  fi
 
   for attempt in $(seq 1 "${max_attempts}"); do
     response="$(
@@ -302,15 +306,44 @@ EOF
 )"
     )"
 
+    count="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port)] | length' <<< "${response}")"
     active="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port and .syncStatus == "ACTIVE")] | length' <<< "${response}")"
     if [ "${active}" != "0" ]; then
       return 0
+    fi
+
+    if [ "${count}" = "0" ]; then
+      response="$(
+        railway_graphql "$(cat <<EOF
+mutation {
+  tcpProxyCreate(input: {
+    environmentId: "${env_id}"
+    serviceId: "${service_id}"
+    applicationPort: ${application_port}
+  }) {
+    id
+  }
+}
+EOF
+)"
+      )"
+
+      if echo "${response}" | jq -e '.errors' >/dev/null 2>&1; then
+        create_error="$(echo "${response}" | jq -r '.errors[0].message // "unknown error"')"
+      else
+        create_error=""
+      fi
     fi
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
       sleep_with_jitter "${sleep_seconds}"
     fi
   done
+
+  if [ -n "${create_error}" ]; then
+    echo "TCP proxy for ${service_name} in ${env_name} did not become ACTIVE. Last create error: ${create_error}" >&2
+    return 1
+  fi
 
   echo "TCP proxy for ${service_name} in ${env_name} did not become ACTIVE." >&2
   return 1
