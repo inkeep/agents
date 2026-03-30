@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.63.2
+
+### Patch Changes
+
+- dc818c0: Add support for nested files and folders within Skills. Each skill is now a directory containing a `SKILL.md` entry file plus any number of nested reference files (templates, checklists, examples). The SDK `loadSkills()` function recursively discovers all files under each skill directory. The CLI `pull` command writes one file per skill file path. The Visual Builder shows a file-tree sidebar with per-file editing, context menus for adding and removing files, and breadcrumb navigation. The API accepts a `files` array for skill create and update, with four new file-level endpoints for individual CRUD operations. `SKILL.md` frontmatter remains the source of truth for skill name, description, and metadata.
+- dc818c0: Load nested skill files in the built-in load_skill tool.
+- Updated dependencies [dc818c0]
+- Updated dependencies [dc818c0]
+  - @inkeep/agents-core@0.63.2
+  - @inkeep/agents-work-apps@0.63.2
+  - @inkeep/agents-email@0.63.2
+  - @inkeep/agents-mcp@0.63.2
+
 ## 0.63.1
 
 ### Patch Changes
