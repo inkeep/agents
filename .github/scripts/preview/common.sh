@@ -397,6 +397,36 @@ railway_ensure_tcp_proxy() {
   return 1
 }
 
+vercel_list_preview_only_env_vars() {
+  local project_id="$1"
+  local envs_json=""
+
+  if ! envs_json="$(
+    curl --fail-with-body -sS \
+      --connect-timeout 10 \
+      --max-time 60 \
+      -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+      "https://api.vercel.com/v10/projects/${project_id}/env?teamId=${VERCEL_ORG_ID}" \
+      2>&1
+  )"; then
+    echo "Failed to list env vars for project ${project_id}." >&2
+    printf '%s\n' "${envs_json}" >&2
+    return 1
+  fi
+
+  local non_preview=""
+  non_preview="$(printf '%s' "${envs_json}" | jq \
+    '[.envs[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"])] | length')"
+  if [ "${non_preview}" -gt 0 ]; then
+    echo "SAFETY: found ${non_preview} branch-scoped env var(s) targeting production or development — refusing to proceed." >&2
+    printf '%s' "${envs_json}" | jq -r \
+      '.envs[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"]) | "  \(.key) target=\(.target) branch=\(.gitBranch)"' >&2
+    return 1
+  fi
+
+  printf '%s' "${envs_json}"
+}
+
 redact_preview_logs() {
   sed -E \
     -e 's#(postgres(ql)?://)[^[:space:]]+#\1[REDACTED]#g' \

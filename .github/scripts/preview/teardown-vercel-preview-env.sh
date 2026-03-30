@@ -24,21 +24,12 @@ delete_branch_env_vars() {
   local ids=""
   local count=""
 
-  if ! envs_json="$(
-    curl --fail-with-body -sS \
-      --connect-timeout 10 \
-      --max-time 60 \
-      -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-      "https://api.vercel.com/v10/projects/${project_id}/env?teamId=${VERCEL_ORG_ID}" \
-      2>&1
-  )"; then
-    echo "Failed to list env vars for project ${project_id}." >&2
-    printf '%s\n' "${envs_json}" >&2
+  if ! envs_json="$(vercel_list_preview_only_env_vars "${project_id}")"; then
     return 1
   fi
 
   ids="$(printf '%s' "${envs_json}" | jq -r --arg branch "${branch}" \
-    '[.envs[] | select(.gitBranch == $branch) | .id] | .[]')"
+    '[.envs[] | select(.gitBranch == $branch and (.target | sort) == ["preview"]) | .id] | .[]')"
 
   count="$(printf '%s' "${ids}" | grep -c . || true)"
   if [ "${count}" -eq 0 ]; then
