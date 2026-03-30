@@ -1,6 +1,5 @@
 'use client';
 
-import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/constants/models';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { type FC, useEffect, useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
@@ -26,17 +25,14 @@ import { cn } from '@/lib/utils';
 interface ModelSelectorProps {
   tooltip?: string;
   label?: React.ReactNode;
-  value: string;
-  onValueChange: (value: string) => void;
+  value?: string;
+  onValueChange?: (value: string) => void;
   onProviderOptionsChange?: (options: Record<string, any>) => void;
   placeholder?: string;
   inheritedValue?: string;
   isRequired?: boolean;
   canClear?: boolean;
   disabled?: boolean;
-  gatewayOnly?: boolean;
-  defaultOpen?: boolean;
-  onClose?: () => void;
 }
 
 export const ModelSelector: FC<ModelSelectorProps> = ({
@@ -50,12 +46,10 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   isRequired = false,
   canClear = true,
   disabled = false,
-  gatewayOnly = false,
-  defaultOpen = false,
-  onClose,
 }) => {
-  const [open, setOpen] = useState(defaultOpen);
+  'use memo';
 
+  const [open, setOpen] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState<
     'openrouter' | 'gateway' | 'nim' | 'custom' | 'azure' | null
   >(null);
@@ -113,20 +107,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {label && <FieldLabel label={label} tooltip={tooltip} isRequired={isRequired} />}
-      <Popover
-        defaultOpen={defaultOpen}
-        open={open}
-        onOpenChange={
-          disabled
-            ? undefined
-            : (nextOpen) => {
-                setOpen(nextOpen);
-                if (!nextOpen && !value && onClose) {
-                  onClose();
-                }
-              }
-        }
-      >
+      <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
         <ButtonGroup className="w-full">
           <PopoverTrigger asChild>
             <Button
@@ -159,7 +140,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               variant="outline"
               size="icon"
               onClick={() => {
-                onValueChange('');
+                onValueChange?.('');
               }}
               aria-label="Clear model selection"
               type="button"
@@ -208,7 +189,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                               // Could be openrouter format, let user decide or add logic here
                             }
 
-                            onValueChange(modelValue);
+                            onValueChange?.(modelValue);
                             setOpen(false);
                           }}
                         >
@@ -226,107 +207,99 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                 })()}
               </CommandEmpty>
               {/* Predefined models */}
-              {Object.entries(modelOptions)
-                .filter(
-                  ([provider]) => !gatewayOnly || GATEWAY_ROUTABLE_PROVIDERS_SET.has(provider)
-                )
-                .map(([provider, models]) => (
-                  <CommandGroup key={provider} heading={provider}>
-                    {models.map((model) => (
-                      <CommandItem
-                        key={model.value}
-                        className="flex items-center justify-between cursor-pointer text-foreground"
-                        value={model.value}
-                        onSelect={(currentValue) => {
-                          onValueChange(currentValue === value ? '' : currentValue);
-                          setOpen(false);
-                          setCustomModelInput('');
-                          setShowCustomInput(null);
-                        }}
-                      >
-                        {model.label}
-                        <Check
-                          className={cn(
-                            'ml-2 h-4 w-4',
-                            value === model.value ? 'opacity-100' : 'opacity-0'
-                          )}
-                        />
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ))}
+              {Object.entries(modelOptions).map(([provider, models]) => (
+                <CommandGroup key={provider} heading={provider}>
+                  {models.map((model) => (
+                    <CommandItem
+                      key={model.value}
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value={model.value}
+                      onSelect={(currentValue) => {
+                        onValueChange?.(currentValue === value ? '' : currentValue);
+                        setOpen(false);
+                        setCustomModelInput('');
+                        setShowCustomInput(null);
+                      }}
+                    >
+                      {model.label}
+                      <Check
+                        className={cn(
+                          'ml-2 h-4 w-4',
+                          value === model.value ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
               {/* Custom OpenAI-compatible */}
-              {!gatewayOnly && (
-                <CommandGroup heading="Custom OpenAI-compatible">
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__custom__"
-                    onSelect={() => {
-                      setShowCustomInput('custom');
-                      setOpen(false);
-                      setCustomModelInput('');
-                    }}
-                  >
-                    Custom OpenAI-compatible ...
-                  </CommandItem>
-                </CommandGroup>
-              )}
+              <CommandGroup heading="Custom OpenAI-compatible">
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__custom__"
+                  onSelect={() => {
+                    setShowCustomInput('custom');
+                    setOpen(false);
+                    setCustomModelInput('');
+                  }}
+                >
+                  Custom OpenAI-compatible ...
+                </CommandItem>
+              </CommandGroup>
               {/* LLM Gateway options */}
-              {!gatewayOnly && (
-                <CommandGroup heading="LLM Gateway">
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__openrouter__"
-                    onSelect={() => {
-                      setShowCustomInput('openrouter');
-                      setOpen(false);
-                      setCustomModelInput('');
-                      onValueChange('openrouter/...');
-                    }}
-                  >
-                    OpenRouter ...
-                  </CommandItem>
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__gateway__"
-                    onSelect={() => {
-                      setShowCustomInput('gateway');
-                      setOpen(false);
-                      setCustomModelInput('');
-                      onValueChange('gateway/...');
-                    }}
-                  >
-                    Vercel AI Gateway ...
-                  </CommandItem>
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__nim__"
-                    onSelect={() => {
-                      setShowCustomInput('nim');
-                      setOpen(false);
-                      setCustomModelInput('');
-                      onValueChange('nim/...');
-                    }}
-                  >
-                    NVIDIA NIM ...
-                  </CommandItem>
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__azure__"
-                    onSelect={() => {
-                      setShowCustomInput('azure');
-                      setOpen(false);
-                      setCustomModelInput('');
-                      setAzureDeploymentName('');
-                      setAzureResourceName('');
-                      setAzureBaseURL('');
-                      onValueChange('azure/...');
-                    }}
-                  >
-                    Azure ...
-                  </CommandItem>
-                </CommandGroup>
-              )}
+              <CommandGroup heading="LLM Gateway">
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__openrouter__"
+                  onSelect={() => {
+                    setShowCustomInput('openrouter');
+                    setOpen(false);
+                    setCustomModelInput('');
+                    onValueChange?.('openrouter/...');
+                  }}
+                >
+                  OpenRouter ...
+                </CommandItem>
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__gateway__"
+                  onSelect={() => {
+                    setShowCustomInput('gateway');
+                    setOpen(false);
+                    setCustomModelInput('');
+                    onValueChange?.('gateway/...');
+                  }}
+                >
+                  Vercel AI Gateway ...
+                </CommandItem>
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__nim__"
+                  onSelect={() => {
+                    setShowCustomInput('nim');
+                    setOpen(false);
+                    setCustomModelInput('');
+                    onValueChange?.('nim/...');
+                  }}
+                >
+                  NVIDIA NIM ...
+                </CommandItem>
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__azure__"
+                  onSelect={() => {
+                    setShowCustomInput('azure');
+                    setOpen(false);
+                    setCustomModelInput('');
+                    setAzureDeploymentName('');
+                    setAzureResourceName('');
+                    setAzureBaseURL('');
+                    onValueChange?.('azure/...');
+                  }}
+                >
+                  Azure ...
+                </CommandItem>
+              </CommandGroup>
             </CommandList>
           </Command>
         </PopoverContent>
@@ -372,7 +345,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         : showCustomInput === 'nim'
                           ? 'nim/'
                           : 'custom/';
-                  onValueChange(`${prefix}${customModelInput.trim()}`);
+                  onValueChange?.(`${prefix}${customModelInput.trim()}`);
                   setShowCustomInput(null);
                   setCustomModelInput('');
                   setOpen(false);
@@ -395,7 +368,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         : showCustomInput === 'nim'
                           ? 'nim/'
                           : 'custom/';
-                  onValueChange(`${prefix}${customModelInput.trim()}`);
+                  onValueChange?.(`${prefix}${customModelInput.trim()}`);
                   setShowCustomInput(null);
                   setCustomModelInput('');
                   setOpen(false);
@@ -411,7 +384,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               onClick={() => {
                 setShowCustomInput(null);
                 setCustomModelInput('');
-                onValueChange('');
+                onValueChange?.('');
               }}
             >
               Cancel
@@ -478,7 +451,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                   (azureResourceName.trim() || azureBaseURL.trim())
                 ) {
                   // Set the Azure model FIRST so the store has it
-                  onValueChange(`azure/${azureDeploymentName.trim()}`);
+                  onValueChange?.(`azure/${azureDeploymentName.trim()}`);
 
                   // Then set the provider options
                   const providerOptions: Record<string, any> = {};
@@ -509,7 +482,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                 setAzureDeploymentName('');
                 setAzureResourceName('');
                 setAzureBaseURL('');
-                onValueChange('');
+                onValueChange?.('');
               }}
             >
               Cancel

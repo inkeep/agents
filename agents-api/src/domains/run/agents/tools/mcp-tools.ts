@@ -1,14 +1,12 @@
-import { parseEmbeddedJson, SESSION_EVENT_ERROR, unwrapError } from '@inkeep/agents-core';
+import { parseEmbeddedJson, unwrapError } from '@inkeep/agents-core';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
-import { jsonSchema, type ToolSet, tool } from 'ai';
+import { type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
 import type { AgentRunContext } from '../agent-types';
 import { isValidTool } from '../agent-types';
 import { enhanceToolResultWithStructureHints } from '../generation/tool-result';
-import type { McpToolSet } from '../services/AgentMcpManager';
 import { toolSessionManager } from '../services/ToolSessionManager';
-import { buildRefAwareSchemas } from './ref-aware-schema';
 import { parseAndCheckApproval } from './tool-approval';
 import { getRelationshipIdForTool } from './tool-utils';
 import { wrapToolWithStreaming } from './tool-wrapper';
@@ -25,25 +23,9 @@ export async function getMcpTools(
       return tool.config?.type === 'mcp';
     }) || [];
   const { mcpManager } = ctx;
-  const toolSets: McpToolSet[] = [];
-  if (mcpManager) {
-    const results = await Promise.allSettled(mcpTools.map((tool) => mcpManager.getToolSet(tool)));
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      if (result.status === 'fulfilled') {
-        toolSets.push(result.value);
-      } else {
-        logger.warn(
-          {
-            toolName: mcpTools[i].name,
-            toolId: mcpTools[i].id,
-            error: result.reason instanceof Error ? result.reason.message : String(result.reason),
-          },
-          'MCP tool failed to load — skipping this tool and continuing with others'
-        );
-      }
-    }
-  }
+  const toolSets = mcpManager
+    ? (await Promise.all(mcpTools.map((tool) => mcpManager.getToolSet(tool)))) || []
+    : [];
 
   if (!sessionId) {
     const wrappedTools: ToolSet = {};
@@ -93,27 +75,9 @@ export async function getMcpTools(
         'Tool approval check'
       );
 
-      let refAwareInputSchema: ReturnType<typeof buildRefAwareSchemas>['refAwareInputSchema'];
-      let baseInputSchema: ReturnType<typeof buildRefAwareSchemas>['baseInputSchema'];
-      try {
-        ({ refAwareInputSchema, baseInputSchema } = buildRefAwareSchemas(
-          originalTool.inputSchema as Record<string, unknown>
-        ));
-      } catch (schemaError) {
-        logger.warn(
-          {
-            toolName,
-            schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
-          },
-          'Failed to build ref-aware schema for MCP tool; falling back to original schema'
-        );
-        refAwareInputSchema = jsonSchema(originalTool.inputSchema as Record<string, unknown>);
-        baseInputSchema = undefined;
-      }
-
-      const baseTool = tool({
+      const sessionWrappedTool = tool({
         description: originalTool.description,
-        inputSchema: refAwareInputSchema,
+        inputSchema: originalTool.inputSchema,
         execute: async (args, { toolCallId, providerMetadata }: any) => {
           const parsed = await parseAndCheckApproval(
             ctx,
@@ -125,9 +89,6 @@ export async function getMcpTools(
           );
           if (parsed.denied) {
             return parsed.result;
-          }
-          if (parsed.pendingApproval) {
-            return null;
           }
           const finalArgs = parsed.args;
 
@@ -156,23 +117,18 @@ export async function getMcpTools(
 
               if (streamRequestId) {
                 const relationshipId = getRelationshipIdForTool(ctx, toolName, 'mcp');
-                agentSessionManager.recordEvent(
-                  streamRequestId,
-                  SESSION_EVENT_ERROR,
-                  ctx.config.id,
-                  {
-                    message: `MCP tool "${toolName}" failed: ${errorMessage}`,
-                    code: 'mcp_tool_error',
-                    severity: 'error',
-                    context: {
-                      toolName,
-                      toolCallId,
-                      errorMessage,
-                      relationshipId,
-                    },
+                agentSessionManager.recordEvent(streamRequestId, 'error', ctx.config.id, {
+                  message: `MCP tool "${toolName}" failed: ${errorMessage}`,
+                  code: 'mcp_tool_error',
+                  severity: 'error',
+                  context: {
+                    toolName,
+                    toolCallId,
+                    errorMessage,
                     relationshipId,
-                  }
-                );
+                  },
+                  relationshipId,
+                });
               }
 
               const activeSpan = trace.getActiveSpan();
@@ -219,9 +175,6 @@ export async function getMcpTools(
           }
         },
       });
-      const sessionWrappedTool = baseInputSchema
-        ? Object.assign(baseTool, { baseInputSchema })
-        : baseTool;
 
       wrappedTools[toolName] = wrapToolWithStreaming(
         ctx,

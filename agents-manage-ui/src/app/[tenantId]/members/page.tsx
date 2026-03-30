@@ -1,7 +1,6 @@
 'use client';
 
-import { DEFAULT_MEMBERSHIP_LIMIT } from '@inkeep/agents-core/client-exports';
-import { use, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/members/members-table';
 import { OrgRoles } from '@/constants/signoz';
@@ -23,7 +22,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     if (!tenantId) return;
 
     try {
@@ -31,7 +30,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
         authClient.organization.getFullOrganization({
           query: {
             organizationId: tenantId,
-            membersLimit: DEFAULT_MEMBERSHIP_LIMIT,
+            membersLimit: 300,
           },
         }),
         authClient.organization.getActiveMember(),
@@ -65,16 +64,14 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch organization');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  }, [tenantId, authClient]);
 
   useEffect(() => {
     fetchData();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    fetchData,
-  ]);
+  }, [fetchData]);
 
   if (loading) {
     return <MembersLoadingSkeleton />;

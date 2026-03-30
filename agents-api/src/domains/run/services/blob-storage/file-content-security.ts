@@ -1,13 +1,5 @@
 import { fileTypeFromBuffer } from 'file-type';
-import {
-  decodeTextDocumentBytes,
-  isTextDocumentMimeType,
-} from '../../utils/text-document-attachments';
-import {
-  ALLOWED_EXTERNAL_IMAGE_MIME_TYPES,
-  MAX_FILE_BYTES,
-  TEXT_DOCUMENT_MAX_BYTES,
-} from './file-security-constants';
+import { ALLOWED_EXTERNAL_IMAGE_MIME_TYPES, MAX_FILE_BYTES } from './file-security-constants';
 import {
   BlockedExternalUnsupportedBytesError,
   BlockedInlineFileExceedingError,
@@ -37,8 +29,8 @@ export async function normalizeInlineFileBytes(file: {
   mimeType: string;
 }> {
   const data = decodeBase64Bytes(file.bytes);
+  validateInlineFileSize(data);
   const requestedMimeType = file.mimeType?.split(';')[0]?.trim().toLowerCase();
-  validateInlineFileSize(data, requestedMimeType);
   const sniffedMime = await sniffAllowedInlineFileMimeType(data, requestedMimeType);
   if (sniffedMime) return { data, mimeType: sniffedMime };
 
@@ -67,12 +59,9 @@ export async function resolveDownloadedFileMimeType(
   throw new BlockedExternalUnsupportedBytesError(headerContentType || expected || 'unknown');
 }
 
-function validateInlineFileSize(data: Uint8Array, requestedMimeType?: string): void {
-  const maxBytes = isTextDocumentMimeType(requestedMimeType)
-    ? TEXT_DOCUMENT_MAX_BYTES
-    : MAX_FILE_BYTES;
-  if (data.length > maxBytes) {
-    throw new BlockedInlineFileExceedingError(maxBytes);
+function validateInlineFileSize(data: Uint8Array): void {
+  if (data.length > MAX_FILE_BYTES) {
+    throw new BlockedInlineFileExceedingError(MAX_FILE_BYTES);
   }
 }
 
@@ -95,15 +84,6 @@ async function sniffAllowedInlineFileMimeType(
       throw new BlockedInlineUnsupportedFileBytesError(requestedMimeType);
     }
     return 'application/pdf';
-  }
-
-  if (isTextDocumentMimeType(requestedMimeType)) {
-    try {
-      decodeTextDocumentBytes(data);
-      return requestedMimeType;
-    } catch {
-      throw new BlockedInlineUnsupportedFileBytesError(requestedMimeType);
-    }
   }
 
   return await sniffAllowedImageMimeType(data);

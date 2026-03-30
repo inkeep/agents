@@ -9,6 +9,8 @@ import {
   ErrorResponseSchema,
   type FullAgentDefinition,
   getFullAgent,
+  listScheduledTriggers,
+  type ScheduledTrigger,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
@@ -16,12 +18,20 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import { HTTPException } from 'hono/http-exception';
+import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import {
   type ManageRouteHandler,
   openapiRegisterPutPatchRoutesForLegacy,
 } from '../../../utils/openapiDualRoute';
+import {
+  onTriggerCreated,
+  onTriggerDeleted,
+  onTriggerUpdated,
+} from '../../run/services/ScheduledTriggerService';
+
+const logger = getLogger('agentFull');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -77,6 +87,25 @@ app.openapi(
       validatedAgentData
     );
 
+    // Start workflows for any scheduled triggers created with the agent
+    try {
+      const triggers = await listScheduledTriggers(db)({
+        scopes: { tenantId, projectId, agentId: createdAgent.id },
+      });
+      for (const trigger of triggers) {
+        try {
+          await onTriggerCreated(trigger);
+        } catch (err) {
+          logger.error(
+            { err, scheduledTriggerId: trigger.id },
+            'Failed to start workflow for scheduled trigger during agent creation'
+          );
+        }
+      }
+    } catch (err) {
+      logger.error({ err }, 'Failed to reconcile scheduled trigger workflows after agent creation');
+    }
+
     return c.json({ data: createdAgent }, 201);
   }
 );
@@ -110,7 +139,10 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
-      const agent: FullAgentDefinition | null = await getFullAgent(db)({
+      const agent: FullAgentDefinition | null = await getFullAgent(
+        db,
+        logger
+      )({
         scopes: { tenantId, projectId, agentId },
       });
 
@@ -194,15 +226,78 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
       });
     }
 
-    const existingAgent: FullAgentDefinition | null = await getFullAgent(db)({
+    const existingAgent: FullAgentDefinition | null = await getFullAgent(
+      db,
+      logger
+    )({
       scopes: { tenantId, projectId, agentId },
     });
     const isCreate = !existingAgent;
+
+    // Capture existing scheduled triggers before update for workflow reconciliation
+    let existingScheduledTriggers: ScheduledTrigger[] = [];
+    if (!isCreate) {
+      try {
+        existingScheduledTriggers = await listScheduledTriggers(db)({
+          scopes: { tenantId, projectId, agentId },
+        });
+      } catch (err) {
+        logger.error({ err }, 'Failed to list existing scheduled triggers before update');
+      }
+    }
 
     // Update/create the full agent using server-side data layer operations
     const updatedAgent: FullAgentDefinition = isCreate
       ? await createFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData)
       : await updateFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData);
+
+    // Reconcile scheduled trigger workflows
+    try {
+      const newScheduledTriggers = await listScheduledTriggers(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
+      const existingTriggerMap = new Map(existingScheduledTriggers.map((t) => [t.id, t]));
+      const newTriggerMap = new Map(newScheduledTriggers.map((t) => [t.id, t]));
+
+      // Handle created and updated triggers
+      for (const trigger of newScheduledTriggers) {
+        const existing = existingTriggerMap.get(trigger.id);
+        try {
+          if (!existing) {
+            await onTriggerCreated(trigger);
+          } else {
+            const scheduleChanged =
+              existing.cronExpression !== trigger.cronExpression ||
+              String(existing.runAt) !== String(trigger.runAt);
+            const previousEnabled = existing.enabled;
+            if (scheduleChanged || previousEnabled !== trigger.enabled) {
+              await onTriggerUpdated({ trigger, previousEnabled, scheduleChanged });
+            }
+          }
+        } catch (err) {
+          logger.error(
+            { err, scheduledTriggerId: trigger.id },
+            'Failed to reconcile scheduled trigger workflow'
+          );
+        }
+      }
+
+      // Handle deleted triggers
+      for (const existing of existingScheduledTriggers) {
+        if (!newTriggerMap.has(existing.id)) {
+          try {
+            await onTriggerDeleted(existing);
+          } catch (err) {
+            logger.error(
+              { err, scheduledTriggerId: existing.id },
+              'Failed to stop workflow for deleted scheduled trigger'
+            );
+          }
+        }
+      }
+    } catch (err) {
+      logger.error({ err }, 'Failed to reconcile scheduled trigger workflows after update');
+    }
 
     return c.json({ data: updatedAgent }, isCreate ? 201 : 200);
   } catch (error) {
@@ -254,7 +349,10 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
-      const deleted = await deleteFullAgent(db)({
+      const deleted = await deleteFullAgent(
+        db,
+        logger
+      )({
         scopes: { tenantId, projectId, agentId },
       });
 

@@ -7,8 +7,6 @@ import { PageHeader } from '@/components/layout/page-header';
 import { STATIC_LABELS } from '@/constants/theme';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { fetchApps } from '@/lib/api/apps';
-import { fetchCredentials } from '@/lib/api/credentials';
-import { fetchEntitlements } from '@/lib/api/entitlements';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import type { Agent } from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
@@ -33,43 +31,21 @@ async function AppsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/
   const { tenantId, projectId } = await params;
 
   try {
-    const [apps, agents, credentials, entitlements, { canUse }] = await Promise.all([
+    const [apps, agents, { canUse }] = await Promise.all([
       fetchApps(tenantId, projectId),
       fetchAgents(tenantId, projectId),
-      fetchCredentials(tenantId, projectId),
-      fetchEntitlements(tenantId),
       fetchProjectPermissions(tenantId, projectId),
     ]);
     const agentLookup = createLookup(agents.data);
     const agentOptions = createAgentOptions(agents.data);
-    const credentialOptions: SelectOption[] = credentials.map((c) => ({
-      value: c.id,
-      label: c.name || c.id,
-    }));
-    const hasSupportCopilotEntitlement = entitlements.some(
-      (e) => e.resourceType === 'feature:support_copilot' && e.maxValue > 0
-    );
     return (
       <>
         <PageHeader
           title={metadata.title}
           description={metadata.description}
-          action={
-            canUse ? (
-              <NewAppDialog
-                agentOptions={agentOptions}
-                credentialOptions={credentialOptions}
-                hasSupportCopilotEntitlement={hasSupportCopilotEntitlement}
-              />
-            ) : undefined
-          }
+          action={canUse ? <NewAppDialog agentOptions={agentOptions} /> : undefined}
         />
-        <AppsTable
-          apps={apps.data}
-          agentLookup={agentLookup}
-          agentOptions={agentOptions}
-          credentialOptions={credentialOptions}
-        />
+        <AppsTable apps={apps.data} agentLookup={agentLookup} agentOptions={agentOptions} />
       </>
     );
   } catch (error) {

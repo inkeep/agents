@@ -65,6 +65,7 @@ export class ContextFetcher {
 
     logger.info(
       {
+        tenantId: this.executionContext.tenantId,
         defaultTimeout: this.defaultTimeout,
         hasCredentialSupport: !!this.credentialStuffer,
       },

@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Loader2, Mail, XCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,7 @@ export default function NoOrganizationPage() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
-  async function checkInvitations() {
+  const checkInvitations = useCallback(async () => {
     if (!user?.email) {
       setLoadingInvites(false);
       return;
@@ -51,14 +51,11 @@ export default function NoOrganizationPage() {
       setPendingInvites([]);
     }
     setLoadingInvites(false);
-  }
+  }, [user?.email]);
 
   useEffect(() => {
     checkInvitations();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    checkInvitations,
-  ]);
+  }, [checkInvitations]);
 
   if (loadingInvites) {
     return (

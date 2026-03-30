@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowUpRight, Building2, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { DisconnectInstallationDialog } from '@/components/settings/work-app-github-disconnect-dialog';
@@ -78,23 +78,21 @@ export default function GitHubInstallationDetailPage({
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  async function loadInstallation() {
+  const loadInstallation = useCallback(async () => {
     try {
       const detail = await fetchWorkAppGitHubInstallationDetail(tenantId, installationId);
       setData(detail);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch installation details');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  }, [tenantId, installationId]);
 
   useEffect(() => {
     loadInstallation();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadInstallation,
-  ]);
+  }, [loadInstallation]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -108,8 +106,9 @@ export default function GitHubInstallationDetailPage({
       toast.error('Failed to sync repositories', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred',
       });
+    } finally {
+      setSyncing(false);
     }
-    setSyncing(false);
   };
 
   const handleDisconnect = async () => {
@@ -126,9 +125,10 @@ export default function GitHubInstallationDetailPage({
       toast.error('Failed to disconnect installation', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred',
       });
+    } finally {
+      setDisconnecting(false);
+      setDisconnectDialogOpen(false);
     }
-    setDisconnecting(false);
-    setDisconnectDialogOpen(false);
   };
 
   if (loading) {

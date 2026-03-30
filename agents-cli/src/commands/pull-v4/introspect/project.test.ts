@@ -2,7 +2,6 @@ import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import type { ProjectPaths } from '../introspect-generator';
 import { introspectGenerate } from '../introspect-generator';
-import { buildComponentFileName } from '../utils';
 import { cleanupTestEnvironment, createTestEnvironment, getTestPath } from './test-helpers';
 
 describe('pull-v4 introspect generator', () => {
@@ -45,7 +44,7 @@ describe('pull-v4 introspect generator', () => {
           subAgents: {
             pq7f4ockfcm61y9ubfhuk: {
               id: 'pq7f4ockfcm61y9ubfhuk',
-              name: 'test3',
+              name: '',
               canUse: [],
             },
           },
@@ -82,10 +81,16 @@ describe('pull-v4 introspect generator', () => {
           id: 'linear-ticket-filer',
           name: 'Linear Ticket Filer',
           defaultSubAgentId: 'avkkjrdavvv12h0g0dpv622222',
+          scheduledTriggers: {
+            fj08bu36pfj1pi0p580d3: {
+              id: 'fj08bu36pfj1pi0p580d3',
+              name: 'my scheduled trigger',
+            },
+          },
           subAgents: {
             avkkjrdavvv12h0g0dpv622222: {
               id: 'avkkjrdavvv12h0g0dpv622222',
-              name: 'test4',
+              name: '',
               canUse: [
                 {
                   agentToolRelationId: 's67lldl8b9hlsrjomssso',
@@ -299,12 +304,7 @@ describe('pull-v4 introspect generator', () => {
     await expect(agentFile).toMatchFileSnapshot(`${getTestPath()}-agent.ts`);
 
     // Sub Agent
-    const subAgentFilePath = join(
-      testDir,
-      'agents',
-      'sub-agents',
-      buildComponentFileName('avkkjrdavvv12h0g0dpv622222', 'test4')
-    );
+    const subAgentFilePath = join(testDir, 'agents', 'sub-agents', 'avkkjrdavvv12h0g0dpv622222.ts');
     const { default: subAgentFile } = await import(`${subAgentFilePath}?raw`);
     expect(subAgentFile).toContain("import { linearTool } from '../../tools/linear';");
     await expect(subAgentFile).toMatchFileSnapshot(`${getTestPath()}-sub-agent.ts`);

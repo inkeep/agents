@@ -26,6 +26,8 @@ export function ExpandableField({
   onOpenChange,
   hasError,
 }: ExpandableFieldProps) {
+  'use memo';
+
   const { getEditorByUri } = useMonacoActions();
 
   function focusEditor() {

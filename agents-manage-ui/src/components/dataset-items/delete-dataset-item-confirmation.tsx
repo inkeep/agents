@@ -46,8 +46,9 @@ export function DeleteDatasetItemConfirmation({
     } catch (error) {
       console.error('Error deleting dataset item:', error);
       toast.error('An unexpected error occurred');
+    } finally {
+      setIsDeleting(false);
     }
-    setIsDeleting(false);
   };
 
   return (

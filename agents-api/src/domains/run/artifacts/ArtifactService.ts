@@ -4,7 +4,6 @@ import {
   getLedgerArtifacts,
   getTask,
   listTaskIdsByContextId,
-  SESSION_EVENT_ARTIFACT_SAVED,
   upsertLedgerArtifact,
 } from '@inkeep/agents-core';
 import jmespath from 'jmespath';
@@ -17,11 +16,6 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import {
-  clearSelectorCache,
-  sanitizeJMESPathSelector,
-  stripInternalFields,
-} from '../utils/select-filter';
 import { detectOversizedArtifact } from './artifact-utils';
 
 const logger = getLogger('ArtifactService');
@@ -82,10 +76,15 @@ export interface ArtifactServiceContext {
  */
 export class ArtifactService {
   private createdArtifacts: Map<string, any> = new Map();
+  private static selectorCache = new Map<string, string>();
+
   constructor(private context: ArtifactServiceContext) {}
 
+  /**
+   * Clear static caches to prevent memory leaks between sessions
+   */
   static clearCaches(): void {
-    clearSelectorCache();
+    ArtifactService.selectorCache.clear();
   }
 
   /**
@@ -96,11 +95,10 @@ export class ArtifactService {
   }
 
   /**
-   * Get the full stored tool result by toolCallId, without MCP unwrapping.
-   * Filters out internal fields (_structureHints). Shared by getToolResultRaw,
-   * createArtifact, and SENTINEL_KEY.SELECT resolution so all access the same data.
+   * Get raw tool result by toolCallId from the current session.
+   * Unwraps MCP-style content arrays; returns the value as-is for non-MCP results.
    */
-  getToolResultFull(toolCallId: string): unknown {
+  getToolResultRaw(toolCallId: string): unknown {
     if (!this.context.sessionId) return undefined;
 
     const record = toolSessionManager.getToolResult(this.context.sessionId, toolCallId);
@@ -114,31 +112,19 @@ export class ArtifactService {
       return undefined;
     }
 
-    return stripInternalFields(record.result);
-  }
-
-  /**
-   * Get raw tool result by toolCallId from the current session.
-   * Unwraps MCP-style content arrays; returns the value as-is for non-MCP results.
-   */
-  getToolResultRaw(toolCallId: string): unknown {
-    const full = this.getToolResultFull(toolCallId);
-    if (full === undefined) return undefined;
+    const result = record.result;
 
     // Unwrap MCP-style content array
-    if (full && typeof full === 'object' && !Array.isArray(full)) {
-      const result = full as Record<string, any>;
-      const first = result?.content?.[0];
-      if (first?.type === 'text') return first.text;
-      if (first?.type === 'image') {
-        return { data: first.data, encoding: 'base64', mimeType: first.mimeType };
-      }
-
-      // Unwrap AI SDK function tool output: { type: "text", value: "..." }
-      if (result?.type === 'text' && typeof result?.value === 'string') return result.value;
+    const first = result?.content?.[0];
+    if (first?.type === 'text') return first.text;
+    if (first?.type === 'image') {
+      return { data: first.data, encoding: 'base64', mimeType: first.mimeType };
     }
 
-    return full;
+    // Unwrap AI SDK function tool output: { type: "text", value: "..." }
+    if (result?.type === 'text' && typeof result?.value === 'string') return result.value;
+
+    return result;
   }
 
   /**
@@ -211,11 +197,19 @@ export class ArtifactService {
       return null;
     }
 
+    // Extract tool arguments and result
     const toolArgs = toolResultRecord.args;
-    const toolResultData = this.getToolResultFull(request.toolCallId);
+    const toolResult = toolResultRecord.result;
 
     try {
-      let sanitizedBaseSelector = sanitizeJMESPathSelector(request.baseSelector);
+      const toolResultData =
+        toolResult && typeof toolResult === 'object' && !Array.isArray(toolResult)
+          ? Object.fromEntries(
+              Object.entries(toolResult).filter(([key]) => key !== '_structureHints')
+            )
+          : toolResult;
+
+      let sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
 
       // Strip 'result.' prefix if it exists (tool results don't have this wrapper)
       if (sanitizedBaseSelector.startsWith('result.')) {
@@ -756,7 +750,7 @@ export class ArtifactService {
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
       await agentSessionManager.recordEvent(
         this.context.streamRequestId,
-        SESSION_EVENT_ARTIFACT_SAVED,
+        'artifact_saved',
         effectiveAgentId,
         {
           artifactId: request.artifactId,
@@ -849,6 +843,36 @@ export class ArtifactService {
   }
 
   /**
+   * Sanitize JMESPath selector to fix common syntax issues (with caching)
+   */
+  private sanitizeJMESPathSelector(selector: string): string {
+    const cached = ArtifactService.selectorCache.get(selector);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    let sanitized = selector.replace(/=="([^"]*)"/g, "=='$1'");
+
+    sanitized = sanitized.replace(
+      /\[\?(\w+)\s*~\s*contains\(@,\s*"([^"]*)"\)\]/g,
+      '[?contains($1, `$2`)]'
+    );
+
+    sanitized = sanitized.replace(
+      /\[\?(\w+)\s*~\s*contains\(@,\s*'([^']*)'\)\]/g,
+      '[?contains($1, `$2`)]'
+    );
+
+    sanitized = sanitized.replace(/\s*~\s*/g, ' ');
+
+    if (ArtifactService.selectorCache.size < 1000) {
+      ArtifactService.selectorCache.set(selector, sanitized);
+    }
+
+    return sanitized;
+  }
+
+  /**
    * Save an already-created artifact directly to the database
    * Used by AgentSession to save artifacts after name/description generation
    */
@@ -862,6 +886,7 @@ export class ArtifactService {
     metadata?: Record<string, any>;
     toolCallId?: string;
   }): Promise<void> {
+    // Use provided summaryData if available, otherwise default to artifact.data
     let summaryData = artifact.summaryData || artifact.data;
     let fullData = artifact.data;
     const { tenantId, projectId } = this.context.executionContext;
@@ -1013,7 +1038,7 @@ export class ArtifactService {
 
           if (customSelector) {
             // Use custom JMESPath selector
-            const sanitizedSelector = sanitizeJMESPathSelector(customSelector);
+            const sanitizedSelector = this.sanitizeJMESPathSelector(customSelector);
             rawValue = jmespath.search(item, sanitizedSelector);
           } else {
             // Default to direct field access

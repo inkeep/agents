@@ -5,19 +5,19 @@ import { Check, Info, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { type FC, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 import FullPageError from '@/components/errors/full-page-error';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
-import type { SkillDetail } from '@/lib/types/skills';
+import type { Skill } from '@/lib/types/skills';
 import { isRequired, serializeJson } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
@@ -29,11 +29,7 @@ interface SkillFormProps {
 
 const resolver = zodResolver(schema);
 
-function normalizeSkillName(value: string) {
-  return value.replaceAll(' ', '-');
-}
-
-function formatFormData(data: SkillDetail | null): SkillInput {
+function formatFormData(data: Skill | null): SkillInput {
   if (data) {
     return {
       ...data,
@@ -49,6 +45,7 @@ function formatFormData(data: SkillDetail | null): SkillInput {
 }
 
 export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
+  'use memo';
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
@@ -72,14 +69,13 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
 
   const onSubmit = form.handleSubmit(async (data) => {
     await upsertSkill({
-      skillId: initialData?.id,
+      skillId: initialData ? data.name : undefined,
       data,
     });
     onSuccess?.();
     if (!skillId) {
       router.push(`/${tenantId}/projects/${projectId}/skills`);
     }
-    // router.refresh();
   });
 
   useEffect(() => {
@@ -115,7 +111,6 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           name="name"
           label="Name"
           placeholder="my-skill"
-          transformValue={normalizeSkillName}
           description={
             initialData
               ? ''
@@ -170,19 +165,17 @@ Use this skill when the user needs to work with PDF files...
 ...`}
           isRequired={isRequired(schema, 'content')}
         />
-        <CollapsibleSettings title="Advanced">
-          <GenericJsonEditor
-            control={form.control}
-            name="metadata"
-            label="Metadata (JSON)"
-            placeholder={`{
+        <GenericJsonEditor
+          control={form.control}
+          name="metadata"
+          label="Metadata (JSON)"
+          placeholder={`{
   "version": "1.0.0",
   "author": "example"
 }`}
-            isRequired={isRequired(schema, 'metadata')}
-            readOnly={readOnly}
-          />
-        </CollapsibleSettings>
+          isRequired={isRequired(schema, 'metadata')}
+          readOnly={readOnly}
+        />
 
         {!readOnly && (
           <div className="flex w-full justify-between">
@@ -191,18 +184,22 @@ Use this skill when the user needs to work with PDF files...
             </Button>
 
             {initialData && (
-              <>
-                <Button
-                  type="button"
-                  variant="destructive-outline"
-                  onClick={() => setIsDeleteOpen(true)}
-                >
-                  Delete Skill
-                </Button>
+              <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="destructive-outline">
+                    Delete Skill
+                  </Button>
+                </DialogTrigger>
                 {isDeleteOpen && (
-                  <DeleteSkillConfirmation skillId={initialData.id} setIsOpen={setIsDeleteOpen} />
+                  <DeleteSkillConfirmation
+                    tenantId={tenantId}
+                    projectId={projectId}
+                    skillId={initialData.id}
+                    skillName={initialData.name}
+                    setIsOpen={setIsDeleteOpen}
+                  />
                 )}
-              </>
+              </Dialog>
             )}
           </div>
         )}

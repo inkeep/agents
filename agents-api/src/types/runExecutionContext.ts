@@ -7,10 +7,9 @@ import { env } from '../env.js';
  */
 export function getUserIdFromContext(ctx: FullExecutionContext): string | undefined {
   const metadata = ctx.metadata as
-    | { initiatedBy?: { type: 'user' | 'api_key'; id: string }; endUserId?: string }
+    | { initiatedBy?: { type: 'user' | 'api_key'; id: string } }
     | undefined;
-  if (metadata?.initiatedBy?.type === 'user') return metadata.initiatedBy.id;
-  return metadata?.endUserId;
+  return metadata?.initiatedBy?.type === 'user' ? metadata.initiatedBy.id : undefined;
 }
 
 /**

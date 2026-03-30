@@ -4,17 +4,28 @@ git clone https://github.com/inkeep/agents-optional-local-dev inkeep-external-se
 cd inkeep-external-services
 ```
 
-Run this command to autogenerate a `.env` file from the template `.env.docker.example`:
+Run this command to autogenerate a `.env` file:
 ```bash
-./scripts/generate-env-from-example.sh
+cp .env.docker.example .env && \
+  nango_encryption_key=$(openssl rand -base64 32) && \
+  nango_dashboard_password=$(openssl rand -base64 8) && \
+  signoz_tokenizer_jwt_secret=$(openssl rand -base64 32) && \
+  tmp_file=$(mktemp) && \
+  sed \
+    -e "s|<REPLACE_WITH_NANGO_ENCRYPTION_KEY>|$nango_encryption_key|" \
+    -e "s|<REPLACE_WITH_NANGO_DASHBOARD_PASSWORD>|$nango_dashboard_password|" \
+    -e "s|<REPLACE_WITH_SIGNOZ_TOKENIZER_JWT_SECRET>|$signoz_tokenizer_jwt_secret|" \
+    .env > "$tmp_file" && \
+  mv "$tmp_file" .env && \
+  echo "Docker environment file created with auto-generated NANGO_ENCRYPTION_KEY, NANGO_DASHBOARD_PASSWORD, and SIGNOZ_TOKENIZER_JWT_SECRET"
 ```
 
 Nango requires a `NANGO_ENCRYPTION_KEY`. Once you create this, it cannot be edited.
 
 Here's an overview of the important environment variables when deploying to production. Make sure to review all of these in your `.env` file.
 ```bash
-NANGO_ENCRYPTION_KEY=<REPLACE_WITH_NANGO_ENCRYPTION_KEY>
-SIGNOZ_TOKENIZER_JWT_SECRET=<REPLACE_WITH_SIGNOZ_TOKENIZER_JWT_SECRET>
+NANGO_ENCRYPTION_KEY=<nango_encryption_key>
+SIGNOZ_TOKENIZER_JWT_SECRET=<signoz_tokenizer_jwt_secret>
 
 # Replace these with your <vm_ip> in production!
 NANGO_SERVER_URL=http://<vm_ip>:3050
@@ -22,7 +33,7 @@ NANGO_PUBLIC_CONNECT_URL=http://<vm_ip>:3051
 
 # Modify these in production environments!
 NANGO_DASHBOARD_USERNAME=admin@example.com
-NANGO_DASHBOARD_PASSWORD=<REPLACE_WITH_NANGO_DASHBOARD_PASSWORD>
+NANGO_DASHBOARD_PASSWORD=adminADMIN!@12
 ```
 
 Build and deploy SigNoz, Nango, OTEL Collector, and Jaeger:

@@ -48,8 +48,9 @@ export function DeleteEvaluationRunConfigConfirmation({
     } catch (error) {
       console.error('Error deleting evaluation run config:', error);
       toast.error('An unexpected error occurred');
+    } finally {
+      setIsDeleting(false);
     }
-    setIsDeleting(false);
   };
 
   return (

@@ -4,6 +4,7 @@ describe('Skills', () => {
       name: 'test-skill',
       description: 'test-description',
       content: 'test-content',
+      metadata: '{"foo":"only-string"}',
     };
 
     cy.visit('/default/projects/activities-planner/skills');
@@ -11,8 +12,7 @@ describe('Skills', () => {
     cy.get('[name=name]').type(fixture.name);
     cy.get('textarea[name=description]').type(fixture.description);
     cy.typeInMonaco('content.md', fixture.content);
-    cy.contains('Advanced').click();
-    cy.typeInMonaco('metadata.json', '{"foo":"only-string"}');
+    cy.typeInMonaco('metadata.json', fixture.metadata);
     cy.contains('Save').click();
 
     // Wait for either success redirect or error toast
@@ -22,6 +22,5 @@ describe('Skills', () => {
     for (const text of Object.values(fixture)) {
       cy.contains(text).should('exist');
     }
-    cy.contains('foo: only-string').should('exist');
   });
 });

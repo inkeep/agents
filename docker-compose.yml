@@ -94,7 +94,7 @@ services:
         condition: service_healthy
     restart: "no"
   inkeep-agents-doltgres-db:
-    image: dolthub/doltgresql:0.56.1
+    image: dolthub/doltgresql:0.55.5
     restart: unless-stopped
     environment:
       DOLTGRES_USER: appuser

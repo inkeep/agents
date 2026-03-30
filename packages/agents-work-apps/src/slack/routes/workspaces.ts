@@ -21,7 +21,11 @@
 
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  deleteAllSlackMcpToolAccessConfigsByTenant,
+  deleteAllWorkAppSlackChannelAgentConfigsByTeam,
+  deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackChannelAgentConfig,
+  deleteWorkAppSlackWorkspaceByNangoConnectionId,
   findWorkAppSlackChannelAgentConfig,
   findWorkAppSlackWorkspaceByTeamId,
   listWorkAppSlackChannelAgentConfigsByTeam,
@@ -35,13 +39,16 @@ import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { requireChannelMemberOrAdmin, requireWorkspaceAdmin } from '../middleware/permissions';
 import {
-  cleanupWorkspaceInstallation,
+  clearWorkspaceConnectionCache,
+  computeWorkspaceConnectionId,
+  deleteWorkspaceInstallation,
   findWorkspaceConnectionByTeamId,
   getBotMemberChannels,
   getSlackChannels,
   getSlackClient,
   listWorkspaceInstallations,
   lookupAgentName,
+  revokeSlackToken,
   setWorkspaceDefaultAgent,
 } from '../services';
 import type { ManageAppVariables } from '../types';
@@ -111,7 +118,7 @@ app.openapi(
     try {
       const sessionTenantId = c.get('tenantId') as string | undefined;
       if (!sessionTenantId) {
-        logger.warn('No tenantId in session context — cannot list workspaces');
+        logger.warn({}, 'No tenantId in session context — cannot list workspaces');
         return c.json({ workspaces: [] });
       }
 
@@ -542,9 +549,11 @@ app.openapi(
     const { teamId: workspaceIdentifier } = c.req.valid('param');
 
     let teamId: string;
+    let connectionId: string;
 
     try {
       if (workspaceIdentifier.includes(':')) {
+        connectionId = workspaceIdentifier;
         const teamMatch = workspaceIdentifier.match(/T:([A-Z0-9]+)/);
         if (!teamMatch) {
           return c.json({ error: 'Invalid connectionId format' }, 400);
@@ -552,6 +561,10 @@ app.openapi(
         teamId = teamMatch[1];
       } else {
         teamId = workspaceIdentifier;
+        connectionId = computeWorkspaceConnectionId({
+          teamId,
+          enterpriseId: undefined,
+        });
       }
 
       const workspace = await findWorkspaceConnectionByTeamId(teamId);
@@ -559,17 +572,62 @@ app.openapi(
         return c.json({ error: 'Workspace not found' }, 404);
       }
 
-      if (!verifyTenantOwnership(c, workspace.tenantId)) {
-        return c.json({ error: 'Access denied' }, 403);
+      if (workspace.botToken) {
+        const tokenRevoked = await revokeSlackToken(workspace.botToken);
+        if (tokenRevoked) {
+          logger.info({ teamId }, 'Revoked Slack bot token');
+        } else {
+          logger.warn({ teamId }, 'Failed to revoke Slack bot token, continuing with uninstall');
+        }
       }
 
-      const result = await cleanupWorkspaceInstallation({ teamId });
+      // Delete from PostgreSQL first (recoverable), then Nango (point of no return)
+      const tenantId = workspace.tenantId;
 
-      if (!result.success) {
-        logger.error({ teamId, result }, 'Workspace uninstall partially failed');
+      const deletedChannelConfigs = await deleteAllWorkAppSlackChannelAgentConfigsByTeam(
+        runDbClient
+      )(tenantId, teamId);
+      if (deletedChannelConfigs > 0) {
+        logger.info(
+          { teamId, deletedChannelConfigs },
+          'Deleted channel configs for uninstalled workspace'
+        );
       }
 
-      logger.info({ teamId }, 'Workspace uninstalled via API');
+      const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
+        tenantId,
+        teamId
+      );
+      if (deletedMappings > 0) {
+        logger.info({ teamId, deletedMappings }, 'Deleted user mappings for uninstalled workspace');
+      }
+
+      const deletedMcpConfigs =
+        await deleteAllSlackMcpToolAccessConfigsByTenant(runDbClient)(tenantId);
+      if (deletedMcpConfigs > 0) {
+        logger.info(
+          { teamId, deletedMcpConfigs },
+          'Deleted MCP tool access configs for uninstalled workspace'
+        );
+      }
+
+      const dbDeleted =
+        await deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(connectionId);
+      if (dbDeleted) {
+        logger.info({ connectionId }, 'Deleted workspace from database');
+      }
+
+      // Point of no return: delete from Nango (OAuth tokens)
+      const nangoSuccess = await deleteWorkspaceInstallation(connectionId);
+      if (!nangoSuccess) {
+        logger.error(
+          { connectionId },
+          'deleteWorkspaceInstallation returned false (DB already cleaned up)'
+        );
+      }
+
+      clearWorkspaceConnectionCache(teamId);
+      logger.info({ connectionId, teamId }, 'Deleted workspace installation and cleared cache');
       return c.json({ success: true });
     } catch (error) {
       logger.error({ error, workspaceIdentifier }, 'Failed to uninstall workspace');

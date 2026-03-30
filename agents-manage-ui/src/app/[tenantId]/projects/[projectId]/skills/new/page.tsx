@@ -6,8 +6,13 @@ const NewSkillPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills/new'>>
   params,
 }) => {
   const { tenantId, projectId } = await params;
-  const fallback = `/${tenantId}/projects/${projectId}/skills`;
-  await checkProjectPermissionOrRedirect(tenantId, projectId, 'edit', fallback);
+
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/skills`
+  );
 
   return <SkillForm />;
 };

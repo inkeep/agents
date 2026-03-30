@@ -56,28 +56,17 @@ jobs:
         run: |
           echo "::notice::Checkout failed — branch was likely deleted (PR merged). Skipping."
 
-      # Generate a GitHub App token so that auto-commits trigger downstream CI
-      # workflows. The default GITHUB_TOKEN's commits are ignored by GitHub to
-      # prevent infinite loops.
-      - name: Generate GitHub App Token
-        id: app-token
-        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
-        with:
-          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
-          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
-
       - name: Setup Node.js
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.x
 
       - name: Setup pnpm
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
         with:
-          version: 10.33.0
+          version: 10.10.0
           run_install: false
 
       - name: Get pnpm store directory
@@ -123,18 +112,11 @@ jobs:
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success' && steps.changes.outputs.has_changes == 'true'
         env:
           PUSH_REF: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
-          APP_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -u
           git commit -m "style: auto-format with biome"
-
-          # Use GitHub App token so the push triggers downstream CI workflows.
-          # The default GITHUB_TOKEN's commits are ignored by GitHub to prevent loops.
-          if [ -n "$APP_TOKEN" ]; then
-            git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          fi
 
           # Verify remote branch still exists before pushing
           if ! git ls-remote --exit-code --heads origin "$PUSH_REF" > /dev/null 2>&1; then

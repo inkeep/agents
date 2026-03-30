@@ -15,44 +15,23 @@ import type {
 import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
+import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 export type Trigger = TriggerApiSelect & {
-  dispatchDelayMs?: number | null;
-  runAsUserId?: string | null;
-  runAsUserIds: string[];
-  userCount: number;
   webhookUrl: string; // Added by management API
 };
 
 export type TriggerInvocation = TriggerInvocationApiSelect;
-
-export type CreateTriggerInput = {
-  id?: string;
-  name: string;
-  description?: string;
-  enabled?: boolean;
-  inputSchema?: Record<string, unknown>;
-  outputTransform?: {
-    jmespath?: string;
-    objectTransformation?: Record<string, unknown>;
-  };
-  messageTemplate?: string | null;
-  authentication?: unknown;
-  signingSecretCredentialReferenceId?: string;
-  signatureVerification?: unknown;
-  runAsUserId?: string | null;
-  runAsUserIds?: string[];
-  dispatchDelayMs?: number | null;
-};
-
-export type UpdateTriggerInput = Partial<CreateTriggerInput>;
 
 export async function fetchTriggers(
   tenantId: string,
   projectId: string,
   agentId: string
 ): Promise<ListResponse<Trigger>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<ListResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers?limit=100`
   );
@@ -69,6 +48,9 @@ async function $getTrigger(
   agentId: string,
   triggerId: string
 ): Promise<Trigger> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`
   );
@@ -85,8 +67,11 @@ export async function createTrigger(
   tenantId: string,
   projectId: string,
   agentId: string,
-  triggerData: CreateTriggerInput
+  triggerData: Partial<Trigger>
 ): Promise<Trigger> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
     {
@@ -106,8 +91,11 @@ export async function updateTrigger(
   projectId: string,
   agentId: string,
   triggerId: string,
-  triggerData: UpdateTriggerInput
+  triggerData: Partial<Trigger>
 ): Promise<Trigger> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`,
     {
@@ -128,6 +116,9 @@ export async function deleteTrigger(
   agentId: string,
   triggerId: string
 ): Promise<void> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`,
     {
@@ -147,9 +138,11 @@ export async function rerunTrigger(
   params: {
     userMessage: string;
     messageParts?: Part[];
-    runAsUserId?: string;
   }
 ): Promise<{ success: boolean; invocationId: string; conversationId: string }> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   return makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
     {
@@ -173,6 +166,9 @@ export async function fetchTriggerInvocations(
     page?: number;
   }
 ): Promise<ListResponse<TriggerInvocation>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const params = new URLSearchParams();
   if (options?.status) params.append('status', options.status);
   if (options?.limit) params.append('limit', options.limit.toString());

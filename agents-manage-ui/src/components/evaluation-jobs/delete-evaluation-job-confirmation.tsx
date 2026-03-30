@@ -45,8 +45,9 @@ export function DeleteEvaluationJobConfirmation({
     } catch (error) {
       console.error('Error deleting batch evaluation:', error);
       toast.error('An unexpected error occurred');
+    } finally {
+      setIsDeleting(false);
     }
-    setIsDeleting(false);
   };
 
   return (

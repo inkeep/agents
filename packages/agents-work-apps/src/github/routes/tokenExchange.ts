@@ -48,10 +48,10 @@ app.post('/', async (c) => {
 
   const body = parseResult.data;
 
-  logger.info('Processing token exchange request');
+  logger.info({}, 'Processing token exchange request');
 
   if (!isGitHubAppConfigured()) {
-    logger.error('GitHub App credentials not configured');
+    logger.error({}, 'GitHub App credentials not configured');
     const errorMessage =
       'GitHub App credentials are not configured. Please contact the administrator to set up GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY.';
     c.header('Content-Type', 'application/problem+json');

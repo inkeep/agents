@@ -4,15 +4,13 @@ import type {
   McpTool,
   MessageType,
 } from '@inkeep/agents-core';
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { buildSystemPrompt } from '../../../domains/run/agents/generation/system-prompt';
 import { buildToolResultForConversationHistory } from '../../../domains/run/agents/generation/tool-result-for-conversation-history';
 import { buildToolResultForModelInput } from '../../../domains/run/agents/generation/tool-result-for-model-input';
-import { getArtifactTools, getDefaultTools } from '../../../domains/run/agents/tools/default-tools';
-import { getBlobStorageProvider } from '../../../domains/run/services/blob-storage';
+import { getDefaultTools } from '../../../domains/run/agents/tools/default-tools';
 import { createDeniedToolResult } from '../../../domains/run/utils/tool-result';
 
 const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
@@ -284,20 +282,7 @@ vi.mock('../../../domains/run/agents/services/ToolSessionManager', () => ({
 vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     recordEvent: vi.fn(),
-    getArtifactService: vi.fn(),
-    getArtifactParser: vi.fn().mockReturnValue(null),
   },
-}));
-
-vi.mock('../../../domains/run/services/blob-storage', () => ({
-  isBlobUri: vi.fn((value: string) => value.startsWith('blob://')),
-  fromBlobUri: vi.fn((value: string) => value.slice('blob://'.length)),
-  getBlobStorageProvider: vi.fn(() => ({
-    download: vi.fn().mockResolvedValue({
-      data: Uint8Array.from([137, 80, 78, 71]),
-      contentType: 'image/png',
-    }),
-  })),
 }));
 
 vi.mock('../../../domains/run/services/blob-storage/file-upload-helpers', () => ({
@@ -367,7 +352,15 @@ vi.mock('@opentelemetry/api', () => ({
   },
 }));
 
-vi.mock('../../../logger.js', () => createMockLoggerModule().module);
+// Mock the logger
+vi.mock('../../../logger.js', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+  }),
+}));
 
 // Mock the SystemPromptBuilder
 vi.mock('../../../domains/run/agents/SystemPromptBuilder.js', () => ({
@@ -1372,34 +1365,15 @@ describe('Agent Conditional Tool Availability', () => {
       skills: [
         {
           id: 'always-loaded-skill',
-          subAgentSkillId: 'sub-agent-skill-1',
           name: 'always-loaded-skill',
           content: '',
-          description: 'Always loaded skill',
-          metadata: null,
-          index: 0,
           alwaysLoaded: false,
-          files: [],
         },
         {
           id: 'on-demand-skill',
-          subAgentSkillId: 'sub-agent-skill-2',
           name: 'on-demand-skill',
           content: '',
-          description: 'On demand skill',
-          metadata: null,
-          index: 1,
           alwaysLoaded: false,
-          files: [
-            {
-              filePath: 'SKILL.md',
-              content: 'Primary skill instructions',
-            },
-            {
-              filePath: 'templates/example.md',
-              content: 'Nested file content',
-            },
-          ],
         },
       ] as AgentConfig['skills'],
     };
@@ -1412,16 +1386,6 @@ describe('Agent Conditional Tool Availability', () => {
     expect(result).toMatchObject({
       id: 'on-demand-skill',
       name: 'on-demand-skill',
-      files: [
-        {
-          filePath: 'SKILL.md',
-          content: 'Primary skill instructions',
-        },
-        {
-          filePath: 'templates/example.md',
-          content: 'Nested file content',
-        },
-      ],
     });
   });
 });
@@ -1637,7 +1601,7 @@ describe('Agent tool result persistence', () => {
         {
           kind: 'file',
           data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
-          metadata: { mimeType: 'image/webp' },
+          metadata: { mimeType: 'image/webp', type: 'image' },
         },
       ],
     });
@@ -1664,8 +1628,7 @@ describe('Agent tool result persistence', () => {
       result,
       'toolu_123',
       'conv-123',
-      'msg-123',
-      'task_conv-123-msg-123'
+      'msg-123'
     );
 
     expect(buildPersistedMessageContentMock).toHaveBeenCalledWith(
@@ -1678,6 +1641,7 @@ describe('Agent tool result persistence', () => {
             bytes: 'base64-image-data',
             mimeType: 'image/webp',
           },
+          metadata: { type: 'image' },
         },
       ],
       {
@@ -1685,9 +1649,6 @@ describe('Agent tool result persistence', () => {
         projectId: 'test-project',
         conversationId: 'conv-123',
         messageId: 'msg-123',
-        taskId: 'task_conv-123-msg-123',
-        toolCallId: 'toolu_123',
-        source: 'tool-result',
       }
     );
     expect(content.parts).toEqual([
@@ -1695,7 +1656,7 @@ describe('Agent tool result persistence', () => {
       {
         kind: 'file',
         data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
-        metadata: { mimeType: 'image/webp' },
+        metadata: { mimeType: 'image/webp', type: 'image' },
       },
     ]);
   });
@@ -1731,356 +1692,6 @@ describe('Agent tool result persistence', () => {
     });
   });
 
-  test('maps hydrated file tool results to model input parts', () => {
-    const output = buildToolResultForModelInput({
-      content: [
-        {
-          type: 'file',
-          data: 'base64-image-data',
-          mimeType: 'image/webp',
-          filename: 'cat.webp',
-        },
-        {
-          type: 'file',
-          data: 'JVBERi0xLjQK',
-          mimeType: 'application/pdf',
-          filename: 'doc.pdf',
-        },
-      ],
-    });
-
-    expect(output).toEqual({
-      type: 'content',
-      value: [
-        {
-          type: 'image-data',
-          data: 'base64-image-data',
-          mediaType: 'image/webp',
-        },
-        {
-          type: 'file-data',
-          data: 'JVBERi0xLjQK',
-          mediaType: 'application/pdf',
-          filename: 'doc.pdf',
-        },
-      ],
-    });
-  });
-
-  test('get_reference_artifact hydrates blob-backed binary artifacts into file content', async () => {
-    const artifactService = {
-      getArtifactFull: vi.fn().mockResolvedValue({
-        artifactId: 'art-1',
-        toolCallId: 'tool-1',
-        name: 'cutecat',
-        description: 'binary image',
-        type: 'binary_attachment',
-        data: {
-          blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
-          mimeType: 'image/png',
-          binaryType: 'image',
-        },
-      }),
-    };
-
-    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
-    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
-
-    const runContext = makeRunContext();
-    runContext.streamRequestId = 'stream-123';
-
-    const tool = getArtifactTools(runContext as any) as any;
-
-    const result = await tool.execute(
-      {
-        artifactId: 'art-1',
-        toolCallId: 'tool-1',
-      },
-      undefined
-    );
-
-    expect(artifactService.getArtifactFull).toHaveBeenCalledWith('art-1', 'tool-1');
-    expect(result).toEqual({
-      artifactId: 'art-1',
-      name: 'cutecat',
-      description: 'binary image',
-      type: 'binary_attachment',
-      data: {
-        blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
-        mimeType: 'image/png',
-        binaryType: 'image',
-      },
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            artifactId: 'art-1',
-            name: 'cutecat',
-            description: 'binary image',
-            type: 'binary_attachment',
-            mimeType: 'image/png',
-            binaryType: 'image',
-          }),
-        },
-        {
-          type: 'file',
-          data: 'iVBORw==',
-          mimeType: 'image/png',
-          filename: 'sha256-abc.png',
-        },
-      ],
-    });
-  });
-
-  test('get_reference_artifact from default tools: toModelOutput maps hydrated PNG file parts to image-data', async () => {
-    const artifactService = {
-      getArtifactFull: vi.fn().mockResolvedValue({
-        artifactId: 'art-1',
-        toolCallId: 'tool-1',
-        name: 'cutecat',
-        description: 'binary image',
-        type: 'binary_attachment',
-        data: {
-          blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
-          mimeType: 'image/png',
-          binaryType: 'image',
-        },
-      }),
-    };
-
-    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
-    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
-
-    const runContext = makeRunContext();
-    runContext.streamRequestId = 'stream-123';
-    runContext.executionContext.project.agents[runContext.config.agentId].subAgents[
-      runContext.config.id
-    ].artifactComponents = [
-      {
-        id: 'artifact-component',
-        name: 'ArtifactComponent',
-        description: 'Test artifact component',
-      },
-    ];
-
-    const tools = await getDefaultTools(runContext as any, 'stream-123');
-    const tool = tools.get_reference_artifact as any;
-
-    const hydratedResult = await tool.execute(
-      {
-        artifactId: 'art-1',
-        toolCallId: 'tool-1',
-      },
-      {
-        toolCallId: 'toolu_reference_artifact',
-      }
-    );
-
-    expect(tool.toModelOutput({ output: hydratedResult })).toEqual({
-      type: 'content',
-      value: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            artifactId: 'art-1',
-            name: 'cutecat',
-            description: 'binary image',
-            type: 'binary_attachment',
-            mimeType: 'image/png',
-            binaryType: 'image',
-          }),
-        },
-        {
-          type: 'image-data',
-          data: 'iVBORw==',
-          mediaType: 'image/png',
-        },
-      ],
-    });
-  });
-
-  test('get_reference_artifact hydrates text/plain artifacts into a decoded text content part', async () => {
-    const fileBody = 'Important Context:\nphone number: 123-456-7890\n';
-    vi.mocked(getBlobStorageProvider).mockReturnValue({
-      download: vi.fn().mockResolvedValue({
-        data: new TextEncoder().encode(fileBody),
-        contentType: 'text/plain',
-      }),
-    } as any);
-
-    const artifactService = {
-      getArtifactFull: vi.fn().mockResolvedValue({
-        artifactId: 'art-text-1',
-        toolCallId: 'tool-1',
-        name: 'context',
-        description: 'text attachment',
-        type: 'binary_attachment',
-        data: {
-          blobUri: 'blob://v1/t_test/media/p_test/conv/c_1/m_1/sha256-abc.txt',
-          mimeType: 'text/plain',
-          binaryType: 'file',
-          filename: 'context.txt',
-        },
-      }),
-    };
-
-    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
-    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
-
-    const runContext = makeRunContext();
-    runContext.streamRequestId = 'stream-123';
-
-    const tool = getArtifactTools(runContext as any) as any;
-
-    const result = await tool.execute(
-      {
-        artifactId: 'art-text-1',
-        toolCallId: 'tool-1',
-      },
-      undefined
-    );
-
-    expect(artifactService.getArtifactFull).toHaveBeenCalledWith('art-text-1', 'tool-1');
-    expect(result.content).toHaveLength(2);
-    expect(result.content[0]).toEqual({
-      type: 'text',
-      text: JSON.stringify({
-        artifactId: 'art-text-1',
-        name: 'context',
-        description: 'text attachment',
-        type: 'binary_attachment',
-        mimeType: 'text/plain',
-        binaryType: 'file',
-      }),
-    });
-    expect(result.content[1]).toEqual({
-      type: 'text',
-      text:
-        '<attached_file filename="context.txt" media_type="text/plain">\n' +
-        `${fileBody}\n` +
-        '</attached_file>',
-    });
-    expect(result.content.some((part: any) => part.type === 'file')).toBe(false);
-  });
-
-  test('get_reference_artifact from default tools: toModelOutput maps hydrated text/plain to text parts', async () => {
-    const fileBody = 'line one\nline two\n';
-    vi.mocked(getBlobStorageProvider).mockReturnValue({
-      download: vi.fn().mockResolvedValue({
-        data: new TextEncoder().encode(fileBody),
-        contentType: 'text/plain',
-      }),
-    } as any);
-
-    const artifactService = {
-      getArtifactFull: vi.fn().mockResolvedValue({
-        artifactId: 'art-text-2',
-        toolCallId: 'tool-1',
-        name: 'notes',
-        description: 'markdown notes',
-        type: 'binary_attachment',
-        data: {
-          blobUri: 'blob://v1/t_test/media/p_test/conv/c_1/m_1/sha256-def.md',
-          mimeType: 'text/markdown',
-          binaryType: 'file',
-          filename: 'notes.md',
-        },
-      }),
-    };
-
-    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
-    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
-
-    const runContext = makeRunContext();
-    runContext.streamRequestId = 'stream-123';
-    runContext.executionContext.project.agents[runContext.config.agentId].subAgents[
-      runContext.config.id
-    ].artifactComponents = [
-      {
-        id: 'artifact-component',
-        name: 'ArtifactComponent',
-        description: 'Test artifact component',
-      },
-    ];
-
-    const tools = await getDefaultTools(runContext as any, 'stream-123');
-    const tool = tools.get_reference_artifact as any;
-
-    const hydratedResult = await tool.execute(
-      {
-        artifactId: 'art-text-2',
-        toolCallId: 'tool-1',
-      },
-      {
-        toolCallId: 'toolu_reference_artifact',
-      }
-    );
-
-    const modelOutput = tool.toModelOutput({ output: hydratedResult });
-    expect(modelOutput.type).toBe('content');
-    for (const part of modelOutput.value) {
-      expect(part.type).toBe('text');
-    }
-    expect(
-      modelOutput.value.some(
-        (part: any) =>
-          part.type === 'text' &&
-          part.text.includes('<attached_file filename="notes.md" media_type="text/markdown">') &&
-          part.text.includes('line one\nline two')
-      )
-    ).toBe(true);
-  });
-
-  test('get_reference_artifact falls back to file-data when text decode fails', async () => {
-    vi.mocked(getBlobStorageProvider).mockReturnValue({
-      download: vi.fn().mockResolvedValue({
-        data: Uint8Array.from([0x01, 0x02, 0x03]),
-        contentType: 'text/plain',
-      }),
-    } as any);
-
-    const artifactService = {
-      getArtifactFull: vi.fn().mockResolvedValue({
-        artifactId: 'art-text-3',
-        toolCallId: 'tool-1',
-        name: 'corrupt',
-        description: 'mislabeled text',
-        type: 'binary_attachment',
-        data: {
-          blobUri: 'blob://v1/t_test/media/p_test/conv/c_1/m_1/sha256-ghi.txt',
-          mimeType: 'text/plain',
-          binaryType: 'file',
-          filename: 'corrupt.txt',
-        },
-      }),
-    };
-
-    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
-    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
-
-    const runContext = makeRunContext();
-    runContext.streamRequestId = 'stream-123';
-
-    const tool = getArtifactTools(runContext as any) as any;
-
-    const result = await tool.execute(
-      {
-        artifactId: 'art-text-3',
-        toolCallId: 'tool-1',
-      },
-      undefined
-    );
-
-    expect(result.content).toHaveLength(2);
-    expect(result.content[0].type).toBe('text');
-    expect(result.content[1]).toEqual({
-      type: 'file',
-      data: Buffer.from(Uint8Array.from([0x01, 0x02, 0x03])).toString('base64'),
-      mimeType: 'text/plain',
-      filename: 'sha256-ghi.txt',
-    });
-  });
-
   test('prepends _toolCallId and _structureHints as a text part for MCP content results', () => {
     const structureHints = { terminalPaths: ['result.foo[string]'] };
 
@@ -2098,69 +1709,6 @@ describe('Agent tool result persistence', () => {
           text: JSON.stringify({ _toolCallId: 'toolu_abc', _structureHints: structureHints }),
         },
         { type: 'text', text: 'some text' },
-      ],
-    });
-  });
-
-  test('get_reference_artifact falls back to metadata-only when blob download fails', async () => {
-    vi.mocked(getBlobStorageProvider).mockReturnValue({
-      download: vi.fn().mockRejectedValue(new Error('not found')),
-    } as any);
-
-    const artifactService = {
-      getArtifactFull: vi.fn().mockResolvedValue({
-        artifactId: 'art-1',
-        toolCallId: 'tool-1',
-        name: 'cutecat',
-        description: 'binary image',
-        type: 'binary_attachment',
-        data: {
-          blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
-          mimeType: 'image/png',
-          binaryType: 'image',
-        },
-      }),
-    };
-
-    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
-    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
-
-    const runContext = makeRunContext();
-    runContext.streamRequestId = 'stream-123';
-
-    const tool = getArtifactTools(runContext as any) as any;
-
-    const result = await tool.execute(
-      {
-        artifactId: 'art-1',
-        toolCallId: 'tool-1',
-      },
-      undefined
-    );
-
-    expect(result).toEqual({
-      artifactId: 'art-1',
-      name: 'cutecat',
-      description: 'binary image',
-      type: 'binary_attachment',
-      data: {
-        blobUri: 'blob://v1/t_test/artifact-data/p_test/a_art-1/sha256-abc.png',
-        mimeType: 'image/png',
-        binaryType: 'image',
-      },
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            artifactId: 'art-1',
-            name: 'cutecat',
-            description: 'binary image',
-            type: 'binary_attachment',
-            mimeType: 'image/png',
-            binaryType: 'image',
-            hydrationStatus: 'metadata_only',
-          }),
-        },
       ],
     });
   });

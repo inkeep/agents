@@ -211,7 +211,7 @@ const processUserMessage = async (
   if (messageSpan) {
     messageSpan.setAttributes({
       'message.content': query,
-      'message.timestamp': new Date().toISOString(),
+      'message.timestamp': Date.now(),
     });
   }
   await createMessage(runDbClient)({
@@ -695,7 +695,7 @@ app.openapi(
 );
 
 app.get('/', async (c) => {
-  logger.info('Received GET MCP request');
+  logger.info({}, 'Received GET MCP request');
   return c.json(
     {
       jsonrpc: '2.0',
@@ -710,7 +710,7 @@ app.get('/', async (c) => {
 });
 
 app.delete('/', async (c) => {
-  logger.info('Received DELETE MCP request');
+  logger.info({}, 'Received DELETE MCP request');
 
   return c.json(
     {

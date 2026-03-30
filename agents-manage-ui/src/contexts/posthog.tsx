@@ -13,11 +13,6 @@ type PosthogModules = {
 
 const PostHogContext = createContext<PostHogClient | null>(null);
 
-// Workaround for a React Compiler limitation.
-function importPostHog() {
-  return Promise.all([import('posthog-js'), import('@posthog/react')]);
-}
-
 export function usePostHog() {
   return use(PostHogContext);
 }
@@ -33,7 +28,10 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
-        const [{ default: posthog }, { PostHogProvider }] = await importPostHog();
+        const [{ default: posthog }, { PostHogProvider }] = await Promise.all([
+          import('posthog-js'),
+          import('@posthog/react'),
+        ]);
 
         if (cancelled) return;
 

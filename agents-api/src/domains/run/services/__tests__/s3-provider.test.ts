@@ -12,12 +12,6 @@ vi.mock('@aws-sdk/client-s3', () => ({
   DeleteObjectCommand: vi.fn(),
 }));
 
-vi.mock('@aws-sdk/s3-request-presigner', () => ({
-  getSignedUrl: vi
-    .fn()
-    .mockResolvedValue('https://bucket.s3.us-east-1.amazonaws.com/key?signed=true'),
-}));
-
 vi.mock('@smithy/node-http-handler', () => ({
   NodeHttpHandler: vi.fn().mockImplementation(() => ({})),
 }));
@@ -106,79 +100,6 @@ describe('S3BlobStorageProvider', () => {
 
     await expect(provider.delete('tenant/project/file.png')).rejects.toThrow(
       'S3 delete failed for key tenant/project/file.png: NoSuchKey'
-    );
-  });
-
-  it('generates presigned URLs using getSignedUrl', async () => {
-    vi.doMock('../../../../env', () => ({
-      env: {
-        BLOB_STORAGE_S3_ENDPOINT: 'http://localhost:9000',
-        BLOB_STORAGE_S3_BUCKET: 'bucket',
-        BLOB_STORAGE_S3_REGION: 'us-east-1',
-        BLOB_STORAGE_S3_ACCESS_KEY_ID: 'key',
-        BLOB_STORAGE_S3_SECRET_ACCESS_KEY: 'secret',
-        BLOB_STORAGE_S3_FORCE_PATH_STYLE: true,
-        BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS: 7200,
-      },
-    }));
-
-    const { S3BlobStorageProvider } = await import('../blob-storage/s3-provider');
-    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
-    const provider = new S3BlobStorageProvider();
-
-    const url = await provider.getPresignedUrl('v1/t_tenant/media/file.png');
-
-    expect(url).toBe('https://bucket.s3.us-east-1.amazonaws.com/key?signed=true');
-    expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
-      expiresIn: 7200,
-    });
-  });
-
-  it('uses custom expiry when provided', async () => {
-    vi.doMock('../../../../env', () => ({
-      env: {
-        BLOB_STORAGE_S3_ENDPOINT: 'http://localhost:9000',
-        BLOB_STORAGE_S3_BUCKET: 'bucket',
-        BLOB_STORAGE_S3_REGION: 'us-east-1',
-        BLOB_STORAGE_S3_ACCESS_KEY_ID: 'key',
-        BLOB_STORAGE_S3_SECRET_ACCESS_KEY: 'secret',
-        BLOB_STORAGE_S3_FORCE_PATH_STYLE: true,
-        BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS: 7200,
-      },
-    }));
-
-    const { S3BlobStorageProvider } = await import('../blob-storage/s3-provider');
-    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
-    const provider = new S3BlobStorageProvider();
-
-    await provider.getPresignedUrl('v1/t_tenant/media/file.png', 900);
-
-    expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
-      expiresIn: 900,
-    });
-  });
-
-  it('wraps presigned URL errors with key context', async () => {
-    vi.doMock('../../../../env', () => ({
-      env: {
-        BLOB_STORAGE_S3_ENDPOINT: 'http://localhost:9000',
-        BLOB_STORAGE_S3_BUCKET: 'bucket',
-        BLOB_STORAGE_S3_REGION: 'us-east-1',
-        BLOB_STORAGE_S3_ACCESS_KEY_ID: 'key',
-        BLOB_STORAGE_S3_SECRET_ACCESS_KEY: 'secret',
-        BLOB_STORAGE_S3_FORCE_PATH_STYLE: true,
-        BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS: 7200,
-      },
-    }));
-
-    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
-    vi.mocked(getSignedUrl).mockRejectedValueOnce(new Error('SignatureError'));
-
-    const { S3BlobStorageProvider } = await import('../blob-storage/s3-provider');
-    const provider = new S3BlobStorageProvider();
-
-    await expect(provider.getPresignedUrl('tenant/project/file.png')).rejects.toThrow(
-      'S3 presigned URL failed for key tenant/project/file.png: SignatureError'
     );
   });
 });

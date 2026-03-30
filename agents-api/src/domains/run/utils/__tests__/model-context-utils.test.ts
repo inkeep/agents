@@ -1,5 +1,4 @@
 import type { ModelSettings } from '@inkeep/agents-core';
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCompressionConfigForModel, getModelContextWindow } from '../model-context-utils';
 
@@ -63,7 +62,15 @@ vi.mock('llm-info', () => ({
   },
 }));
 
-vi.mock('../../../../logger', () => createMockLoggerModule().module);
+// Mock the logger
+vi.mock('../../../../logger', () => ({
+  getLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 describe('Model Context Utils', () => {
   beforeEach(() => {

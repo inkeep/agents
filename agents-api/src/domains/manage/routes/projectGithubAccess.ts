@@ -78,13 +78,13 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
 
-    logger.info('Getting project GitHub access configuration');
+    logger.info({ tenantId, projectId }, 'Getting project GitHub access configuration');
 
     // Get explicit mode from mode table (defaults to 'selected' if not set)
     const mode = await getProjectAccessMode(runDbClient)({ tenantId, projectId });
 
     if (mode === 'all') {
-      logger.info('Project has access to all repositories (mode=all)');
+      logger.info({ tenantId, projectId }, 'Project has access to all repositories (mode=all)');
       return c.json(
         {
           mode: 'all' as const,
@@ -101,7 +101,7 @@ app.openapi(
     });
 
     logger.info(
-      { repositoryCount: repositoriesWithDetails.length },
+      { tenantId, projectId, repositoryCount: repositoriesWithDetails.length },
       'Got project GitHub access configuration (mode=selected)'
     );
 
@@ -163,11 +163,11 @@ const setProjectGithubAccessHandler: ManageRouteHandler<
   const { tenantId, projectId } = c.req.valid('param');
   const { mode, repositoryIds } = c.req.valid('json');
 
-  logger.info({ mode }, 'Setting project GitHub access configuration');
+  logger.info({ tenantId, projectId, mode }, 'Setting project GitHub access configuration');
 
   if (mode === 'selected') {
     if (!repositoryIds || repositoryIds.length === 0) {
-      logger.warn('repositoryIds required when mode is selected');
+      logger.warn({ tenantId, projectId }, 'repositoryIds required when mode is selected');
       throw createApiError({
         code: 'bad_request',
         message: 'repositoryIds is required when mode is "selected"',
@@ -180,7 +180,10 @@ const setProjectGithubAccessHandler: ManageRouteHandler<
     });
 
     if (invalidRepoIds.length > 0) {
-      logger.warn({ invalidRepoIds }, 'Some repository IDs do not belong to tenant installations');
+      logger.warn(
+        { tenantId, projectId, invalidRepoIds },
+        'Some repository IDs do not belong to tenant installations'
+      );
       throw createApiError({
         code: 'bad_request',
         message: `Invalid repository IDs: ${invalidRepoIds.join(', ')}. Repositories must belong to GitHub installations owned by this tenant.`,
@@ -196,7 +199,7 @@ const setProjectGithubAccessHandler: ManageRouteHandler<
     });
 
     logger.info(
-      { repositoryCount: repositoryIds.length },
+      { tenantId, projectId, repositoryCount: repositoryIds.length },
       'Project GitHub access set to selected repositories'
     );
 
@@ -217,7 +220,7 @@ const setProjectGithubAccessHandler: ManageRouteHandler<
     repositoryIds: [],
   });
 
-  logger.info('Project GitHub access set to all repositories');
+  logger.info({ tenantId, projectId }, 'Project GitHub access set to all repositories');
 
   return c.json(
     {

@@ -10,7 +10,7 @@ FOUR WAYS TO ACCESS ARTIFACT DATA:
 2. artifact:create in text → PREVIEW FIELDS ONLY
    Saves a new artifact from a tool result. Only summary/preview fields are captured in context.
 
-3. { "{{SENTINEL_ARTIFACT}}": "id", "{{SENTINEL_TOOL}}": "toolCallId" } as a tool argument → FULL DATA
+3. { "$artifact": "id", "$tool": "toolCallId" } as a tool argument → FULL DATA
    Passes the artifact directly to a tool. The system resolves the complete artifact data automatically — no retrieval needed.
 
 4. get_reference_artifact tool → FULL DATA

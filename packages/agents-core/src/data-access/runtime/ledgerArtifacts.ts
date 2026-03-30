@@ -367,28 +367,6 @@ export const getLedgerArtifactsByContext =
   };
 
 /**
- * Update the parts column of an existing ledger artifact by ID.
- * Used to persist modifications (e.g. key_findings) to artifacts that already exist.
- */
-export const updateLedgerArtifactParts =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    artifactId: string;
-    parts: Part[];
-  }): Promise<boolean> => {
-    const { scopes, artifactId, parts } = params;
-
-    const result = await db
-      .update(ledgerArtifacts)
-      .set({ parts, updatedAt: new Date().toISOString() })
-      .where(and(projectScopedWhere(ledgerArtifacts, scopes), eq(ledgerArtifacts.id, artifactId)))
-      .returning();
-
-    return result.length > 0;
-  };
-
-/**
  * Delete ledger artifacts by task ID
  */
 export const deleteLedgerArtifactsByTask =

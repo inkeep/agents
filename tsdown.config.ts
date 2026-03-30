@@ -5,6 +5,9 @@ export default defineConfig({
   dts: true,
   entry: ['src/index.ts'],
   target: 'es2022',
+  treeshake: {
+    preset: 'smallest',
+  },
   format: ['esm', 'cjs'],
   // Disable hash in filenames for predictable DTS file paths
   hash: false,

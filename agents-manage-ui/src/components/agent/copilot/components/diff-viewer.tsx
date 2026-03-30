@@ -1,6 +1,10 @@
 import { CodeDiff } from './code-diff';
 import { TextDiff } from './text-diff';
 
+const FieldLabel = ({ children }: { children: React.ReactNode }) => {
+  return <div className="text-sm font-medium mb-2 text-foreground">{children}</div>;
+};
+
 interface DiffFieldProps {
   originalValue: any;
   field: string;
@@ -28,7 +32,7 @@ export const DiffField = ({
 
   return (
     <div className="flex flex-col relative">
-      <div className="text-sm font-medium mb-2 text-foreground">{formatFieldName(field)}</div>
+      <FieldLabel>{formatFieldName(field)}</FieldLabel>
       {bothStrings && !useCodeDiff ? (
         <TextDiff originalValue={originalValue} newValue={newValue} />
       ) : (

@@ -33,17 +33,20 @@ export function DeleteAgentConfirmation({
 
   const displayName = agentName;
 
-  async function handleDelete() {
+  const handleDelete = async () => {
     setIsSubmitting(true);
-    const result = await deleteFullAgentAction(tenantId, projectId, agentId);
-    if (result.success) {
-      toast.success('Agent deleted.');
-      setIsOpen(false);
-    } else {
-      toast.error(result.error);
+    try {
+      const result = await deleteFullAgentAction(tenantId, projectId, agentId);
+      if (result.success) {
+        toast.success('Agent deleted.');
+        setIsOpen(false);
+      } else {
+        toast.error(result.error);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-  }
+  };
 
   return (
     <DialogContent>

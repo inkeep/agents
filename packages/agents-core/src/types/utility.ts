@@ -9,11 +9,8 @@ import type {
   McpTransportConfigSchema,
   ModelSchema,
   ProjectModelSchema,
-  PublicKeyAlgorithmSchema,
-  PublicKeyConfigSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
-  SupportCopilotConfigSchema,
   WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
@@ -78,11 +75,9 @@ export interface AgentConversationHistoryConfig extends ConversationHistoryConfi
 
 export type ConversationMetadata = {
   userContext?: Record<string, unknown>;
-  verifiedClaims?: Record<string, unknown>;
   preferences?: Record<string, unknown>;
   sessionData?: Record<string, unknown>;
   apiKeyId?: string;
-  externalUserId?: string;
   initiatedBy?: {
     type: 'user' | 'api_key';
     id: string;
@@ -323,13 +318,7 @@ export interface BaseExecutionContext {
       teamId: string;
     };
     endUserId?: string;
-    verifiedClaims?: Record<string, unknown>;
-    authMethod?:
-      | 'app_credential_web_client'
-      | 'app_credential_api'
-      | 'app_credential_web_client_authenticated'
-      | 'app_credential_support_copilot';
-    appId?: string;
+    authMethod?: 'app_credential_web_client' | 'app_credential_api';
     appPrompt?: string;
   };
 }
@@ -410,16 +399,12 @@ export type EvaluationSuiteFilterCriteria = {
   [key: string]: unknown;
 };
 
-export type DatasetMessageRole = 'user' | 'assistant' | 'system';
-
 export type DatasetItemInput = {
-  messages: Array<{ role: DatasetMessageRole; content: MessageContent }>;
+  messages: Array<{ role: string; content: MessageContent }>;
+  headers?: Record<string, string>;
 };
 
-export type DatasetItemExpectedOutput = Array<{
-  role: DatasetMessageRole;
-  content: MessageContent;
-}>;
+export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageContent }>;
 
 /**
  * GitHub App installation status.
@@ -445,14 +430,10 @@ export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSc
 export type ChannelAccessMode = z.infer<typeof ChannelAccessModeSchema>;
 export type ChannelIds = z.infer<typeof ChannelIdsSchema>;
 
-export type AppType = 'web_client' | 'api' | 'support_copilot';
+export type AppType = 'web_client' | 'api';
 
-export type PublicKeyAlgorithm = z.infer<typeof PublicKeyAlgorithmSchema>;
-export type PublicKeyConfig = z.infer<typeof PublicKeyConfigSchema>;
 export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
 
 export type ApiConfig = z.infer<typeof ApiConfigSchema>;
-
-export type SupportCopilotConfig = z.infer<typeof SupportCopilotConfigSchema>;
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;

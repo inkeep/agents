@@ -16,7 +16,7 @@ interface JwksCache {
 let jwksCache: JwksCache | null = null;
 
 function createJwksWithLogging(): JwksFunction {
-  logger.info('Creating new JWKS fetch function for GitHub OIDC');
+  logger.info({}, 'Creating new JWKS fetch function for GitHub OIDC');
   return createRemoteJWKSet(new URL(GITHUB_OIDC_JWKS_URL), {
     cacheMaxAge: CACHE_TTL_MS,
   });
@@ -100,7 +100,7 @@ export async function getJwkForToken(header: JWSHeaderParameters): Promise<GetJw
 
 export function clearJwksCache(): void {
   jwksCache = null;
-  logger.debug('JWKS cache cleared');
+  logger.debug({}, 'JWKS cache cleared');
 }
 
 export function getJwksCacheStatus(): { cached: boolean; expiresIn?: number } {

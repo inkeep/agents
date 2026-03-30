@@ -6,6 +6,7 @@
 
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
+import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface EvaluationSuiteConfig {
   id: string;
@@ -31,6 +32,9 @@ export async function fetchEvaluationSuiteConfigs(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<EvaluationSuiteConfig>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   return makeManagementApiRequest<ListResponse<EvaluationSuiteConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-suite-configs`
   );
@@ -44,6 +48,9 @@ export async function fetchEvaluationSuiteConfig(
   projectId: string,
   configId: string
 ): Promise<SingleResponse<EvaluationSuiteConfig>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   return makeManagementApiRequest<SingleResponse<EvaluationSuiteConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-suite-configs/${configId}`
   );
@@ -57,6 +64,9 @@ export async function fetchEvaluationSuiteConfigEvaluators(
   projectId: string,
   configId: string
 ): Promise<ListResponse<{ evaluatorId: string }>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   return makeManagementApiRequest<ListResponse<{ evaluatorId: string }>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-suite-configs/${configId}/evaluators`
   );
@@ -70,6 +80,9 @@ export async function createEvaluationSuiteConfig(
   projectId: string,
   config: EvaluationSuiteConfigInsert
 ): Promise<EvaluationSuiteConfig> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<SingleResponse<EvaluationSuiteConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-suite-configs`,
     {

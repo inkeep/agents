@@ -56,6 +56,7 @@ export class ContextResolver {
 
     logger.info(
       {
+        tenantId: this.executionContext.tenantId,
         hasCredentialSupport: !!credentialStoreRegistry,
       },
       'ContextResolver initialized'

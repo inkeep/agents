@@ -4,12 +4,9 @@ import type { ManageAppVariables } from '../../types/app';
 import authLookupRoutes from './routes/authLookup';
 import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
-import entitlementsRoutes from './routes/entitlements';
-import feedbackRoutes from './routes/feedback';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
-import inviteMemberRoutes from './routes/inviteMember';
 import mcpToolGitHubAccessRoutes from './routes/mcpToolGithubAccess';
 import mcpToolSlackAccessRoutes from './routes/mcpToolSlackAccess';
 import oauthRoutes from './routes/oauth';
@@ -18,7 +15,6 @@ import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import projectGitHubAccessRoutes from './routes/projectGithubAccess';
 import signozRoutes from './routes/signoz';
-import tenantAppsRoutes from './routes/tenantApps';
 import userProfileRoutes from './routes/userProfile';
 import userProjectMembershipsRoutes from './routes/userProjectMemberships';
 import usersRoutes from './routes/users';
@@ -38,10 +34,6 @@ export function createManageRoutes() {
 
   // Mount invitations routes - includes /verify (unauthenticated) and /pending (authenticated)
   app.route('/api/invitations', invitationsRoutes);
-  app.route('/api/invitations', inviteMemberRoutes);
-
-  // Mount entitlements routes under tenant
-  app.route('/tenants/:tenantId/entitlements', entitlementsRoutes);
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
@@ -73,12 +65,6 @@ export function createManageRoutes() {
     '/tenants/:tenantId/projects/:projectId/tools/:toolId/slack-access',
     mcpToolSlackAccessRoutes
   );
-
-  // Mount feedback routes under tenant/project
-  app.route('/tenants/:tenantId/projects/:projectId/feedback', feedbackRoutes);
-
-  // Mount tenant-level apps listing (cross-project, e.g. for support_copilot discovery)
-  app.route('/tenants/:tenantId/apps', tenantAppsRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);

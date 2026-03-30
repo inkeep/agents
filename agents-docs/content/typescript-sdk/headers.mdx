@@ -254,47 +254,6 @@ const personalAgentContext = contextConfig({
 
 </SkillRule>
 
-## Verified claims from authenticated sessions
-
-When using [authenticated chat sessions](/talk-to-your-agents/app-credentials#authenticated-chat-sessions), non-standard claims from the customer-signed JWT are automatically extracted and made available as **verified claims** in the conversation context. Unlike headers and `userProperties`, verified claims are cryptographically verified and cannot be modified by the client.
-
-| Source | Trust level | Mutability |
-|--------|-------------|------------|
-| **Headers** | Validated against schema | Updated per-request |
-| **User properties** | Unverified, client-provided | Client can modify freely |
-| **Verified claims** | Cryptographically signed via JWT | Immutable for the session |
-
-Verified claims are available at `metadata.verifiedClaims` in the execution context and are persisted in conversation metadata. Any non-standard claims in the JWT (e.g., `email`, `org_id`, `role`, or custom claims) are extracted automatically. Standard JWT claims (`iss`, `aud`, `exp`, `iat`, `nbf`, `jti`) are excluded.
-
-<Note>
-  Verified claims are limited to 1KB. Tokens with claims exceeding this limit are rejected.
-</Note>
-
-### Using verified claims in prompts
-
-You can reference verified claims to personalize agent behavior with trusted identity data:
-
-```typescript
-const supportAgent = subAgent({
-  id: "support-agent",
-  name: "Support Agent",
-  description: "Authenticated support assistant",
-  prompt: `You are a support assistant.
-
-  The user has been authenticated. Use their verified identity
-  to provide personalized, account-specific assistance.
-
-  Verified claims from their session are available in the conversation context
-  and can be trusted for authorization decisions.`,
-});
-```
-
-<Tip>
-  Use verified claims for authorization and identity decisions. Use headers and `userProperties` for non-sensitive personalization like display preferences.
-</Tip>
-
-For setup instructions, see [Authenticated chat sessions](/talk-to-your-agents/app-credentials#authenticated-chat-sessions).
-
 ## Best practices
 
 - **Use lowercase keys**: Always define schema properties in lowercase and reference them as lowercase in templates
@@ -392,6 +351,5 @@ If context values aren't available in subsequent requests:
 - [Context Fetchers](/typescript-sdk/context-fetchers) - Learn about fetching and caching external data
 - [External Agents](/typescript-sdk/external-agents) - Configure external agent integrations
 - [Credentials](/typescript-sdk/credentials/overview) - Manage secure credentials for your Agents
-- [App Credentials](/talk-to-your-agents/app-credentials) - Authentication for chat components, including authenticated sessions
 
 

@@ -7,7 +7,6 @@ import type {
   FullAgentDefinition,
   McpTransportConfig,
   ModelSettings,
-  SkillApiInsertSchema,
   StatusUpdateSettings,
   SubAgentApiInsert,
   ToolInsert,
@@ -19,10 +18,12 @@ import type { AgentMcpConfig as SubAgentMcpConfig } from './builders';
 import type { DataComponentInterface } from './data-component';
 import type { ExternalAgentConfig } from './external-agent';
 import type { FunctionTool } from './function-tool';
+import type { ScheduledTriggerInterface } from './scheduled-trigger';
 import type { Tool } from './tool';
 import type { TriggerInterface } from './trigger';
 
 export type { ModelSettings };
+export type { ScheduledTriggerInterface };
 export type { TriggerInterface };
 
 /**
@@ -82,8 +83,14 @@ export interface ToolResult {
   error?: string;
 }
 
-export interface SkillDefinition extends z.input<typeof SkillApiInsertSchema> {
+export interface SkillDefinition {
   id: string;
+  name: string;
+  description: string;
+  content: string;
+  metadata: Record<string, string> | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type SkillReference =
@@ -256,7 +263,7 @@ export interface AgentConfig {
   };
   statusUpdates?: StatusUpdateSettings;
   triggers?: () => TriggerInterface[];
-  executionMode?: 'classic' | 'durable';
+  scheduledTriggers?: () => ScheduledTriggerInterface[];
 }
 
 export class AgentError extends Error {

@@ -1,4 +1,3 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -13,20 +12,12 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 
 vi.mock('../../../data/db/runDbClient', () => ({ default: {} }));
 
-vi.mock('../../../logger', () => createMockLoggerModule().module);
+vi.mock('../../../logger', () => ({
+  getLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
+}));
 
 vi.mock('../../../domains/run/compression/ConversationCompressor', () => ({
   ConversationCompressor: vi.fn(),
-}));
-
-const mockBlobDownload = vi.fn();
-
-vi.mock('../../../domains/run/services/blob-storage', () => ({
-  isBlobUri: (value: string) => value.startsWith('blob://'),
-  fromBlobUri: (value: string) => value.slice('blob://'.length),
-  getBlobStorageProvider: () => ({
-    download: mockBlobDownload,
-  }),
 }));
 
 import { getConversationHistory, getLedgerArtifacts } from '@inkeep/agents-core';
@@ -75,7 +66,6 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetConversationHistory.mockReturnValue(vi.fn().mockResolvedValue([]));
-    mockBlobDownload.mockReset();
   });
 
   it('replaces tool-result content with compact artifact reference', async () => {

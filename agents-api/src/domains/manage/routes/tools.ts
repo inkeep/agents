@@ -444,7 +444,7 @@ app.openapi(
       const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId });
 
       if (!tool) {
-        logger.error({ toolId }, 'Tool not found for OAuth login');
+        logger.error({ toolId, tenantId, projectId }, 'Tool not found for OAuth login');
         return c.text('Tool not found', 404);
       }
 
@@ -461,7 +461,7 @@ app.openapi(
 
       return c.redirect(redirectUrl, 302);
     } catch (error) {
-      logger.error({ toolId, error }, 'OAuth login failed');
+      logger.error({ toolId, tenantId, projectId, error }, 'OAuth login failed');
 
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to initiate OAuth login';
