@@ -7,12 +7,14 @@ import { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
 const runtimeConfig = getRuntimeConfig();
 
 function buildCsp() {
+  // PostHog Cloud may use multiple changing subdomains; keep CSP aligned with:
+  // https://posthog.com/docs/advanced/content-security-policy
+  const posthogHost = runtimeConfig.PUBLIC_POSTHOG_HOST ? 'https://*.posthog.com' : null;
+
   const connectSrcDomains = [
     "'self'",
     runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL,
-    // PostHog Cloud may use multiple changing subdomains; keep CSP aligned with:
-    // https://posthog.com/docs/advanced/content-security-policy
-    runtimeConfig.PUBLIC_POSTHOG_HOST ? 'https://*.posthog.com' : null,
+    posthogHost,
     process.env.NEXT_PUBLIC_SENTRY_DSN ? 'https://*.sentry.io' : null,
     runtimeConfig.PUBLIC_SIGNOZ_URL,
     runtimeConfig.PUBLIC_NANGO_SERVER_URL,
@@ -33,7 +35,7 @@ function buildCsp() {
     "'self'",
     "'unsafe-inline'",
     process.env.NODE_ENV === 'production' ? null : "'unsafe-eval'",
-    posthogHost ? 'https://*.posthog.com' : null,
+    posthogHost,
   ]
     .filter(Boolean)
     .join(' ');
