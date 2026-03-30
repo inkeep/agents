@@ -43,7 +43,7 @@ for attempt in $(seq 1 10); do
   fi
 
   if [ "${attempt}" -lt 10 ]; then
-    sleep 2
+    sleep_with_jitter 2
   fi
 done
 
