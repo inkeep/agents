@@ -200,3 +200,116 @@ describe('ExecutionHandler - x-inkeep-run-as-user-id forwarding', () => {
     expect(headers?.['x-inkeep-run-as-user-id']).toBeUndefined();
   });
 });
+
+describe('ExecutionHandler - A2A client header override protection', () => {
+  let handler: ExecutionHandler;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    handler = new ExecutionHandler();
+    mockSendMessage.mockResolvedValue({
+      result: {
+        id: 'task-123',
+        status: { state: 'completed' },
+        contextId: 'test-context',
+        artifacts: [{ parts: [{ kind: 'text', text: 'response' }] }],
+      },
+    });
+  });
+
+  async function executeWithForwardedHeaders(forwardedHeaders: Record<string, string>) {
+    await handler.execute({
+      executionContext: createExecutionContext({ type: 'user', id: 'user_abc123' }) as any,
+      conversationId: 'conv-123',
+      userMessage: 'hello',
+      initialAgentId: 'sub-1',
+      requestId: 'req-123',
+      sseHelper: createMockStreamHelper() as any,
+      forwardedHeaders,
+    });
+  }
+
+  it('does not allow forwardedHeaders to override Authorization', async () => {
+    await executeWithForwardedHeaders({
+      Authorization: 'Bearer attacker-token',
+    });
+    const headers = getA2AClientHeaders();
+    expect(headers?.Authorization).toBe('Bearer mock-service-token');
+  });
+
+  it('does not allow forwardedHeaders to override x-inkeep-tenant-id', async () => {
+    await executeWithForwardedHeaders({
+      'x-inkeep-tenant-id': 'attacker-tenant',
+    });
+    const headers = getA2AClientHeaders();
+    expect(headers?.['x-inkeep-tenant-id']).toBe('test-tenant');
+  });
+
+  it('does not allow forwardedHeaders to override x-inkeep-project-id', async () => {
+    await executeWithForwardedHeaders({
+      'x-inkeep-project-id': 'attacker-project',
+    });
+    const headers = getA2AClientHeaders();
+    expect(headers?.['x-inkeep-project-id']).toBe('test-project');
+  });
+
+  it('does not allow forwardedHeaders to override x-inkeep-agent-id', async () => {
+    await executeWithForwardedHeaders({
+      'x-inkeep-agent-id': 'attacker-agent',
+    });
+    const headers = getA2AClientHeaders();
+    expect(headers?.['x-inkeep-agent-id']).toBe('test-agent');
+  });
+
+  it('does not allow forwardedHeaders to override x-inkeep-sub-agent-id', async () => {
+    await executeWithForwardedHeaders({
+      'x-inkeep-sub-agent-id': 'attacker-sub-agent',
+    });
+    const headers = getA2AClientHeaders();
+    expect(headers?.['x-inkeep-sub-agent-id']).toBe('sub-1');
+  });
+
+  it('blocks case-insensitive override attempts', async () => {
+    await executeWithForwardedHeaders({
+      authorization: 'Bearer attacker-token',
+      'X-INKEEP-TENANT-ID': 'attacker-tenant',
+      'X-Inkeep-Project-Id': 'attacker-project',
+    });
+    const headers = getA2AClientHeaders();
+    expect(headers?.Authorization).toBe('Bearer mock-service-token');
+    expect(headers?.['x-inkeep-tenant-id']).toBe('test-tenant');
+    expect(headers?.['x-inkeep-project-id']).toBe('test-project');
+  });
+
+  it('passes through non-conflicting forwarded headers', async () => {
+    await executeWithForwardedHeaders({
+      'x-forwarded-cookie': 'session=abc123',
+      'x-inkeep-client-timezone': 'America/New_York',
+      'x-custom-header': 'allowed-value',
+    });
+    const headers = getA2AClientHeaders();
+    expect(headers?.['x-forwarded-cookie']).toBe('session=abc123');
+    expect(headers?.['x-inkeep-client-timezone']).toBe('America/New_York');
+    expect(headers?.['x-custom-header']).toBe('allowed-value');
+  });
+
+  it('blocks all trusted headers simultaneously while allowing legitimate ones', async () => {
+    await executeWithForwardedHeaders({
+      Authorization: 'Bearer attacker-token',
+      'x-inkeep-tenant-id': 'attacker-tenant',
+      'x-inkeep-project-id': 'attacker-project',
+      'x-inkeep-agent-id': 'attacker-agent',
+      'x-inkeep-sub-agent-id': 'attacker-sub-agent',
+      'x-inkeep-run-as-user-id': 'attacker-user',
+      'x-forwarded-cookie': 'session=legit',
+    });
+    const headers = getA2AClientHeaders();
+    expect(headers?.Authorization).toBe('Bearer mock-service-token');
+    expect(headers?.['x-inkeep-tenant-id']).toBe('test-tenant');
+    expect(headers?.['x-inkeep-project-id']).toBe('test-project');
+    expect(headers?.['x-inkeep-agent-id']).toBe('test-agent');
+    expect(headers?.['x-inkeep-sub-agent-id']).toBe('sub-1');
+    expect(headers?.['x-inkeep-run-as-user-id']).toBe('user_abc123');
+    expect(headers?.['x-forwarded-cookie']).toBe('session=legit');
+  });
+});
