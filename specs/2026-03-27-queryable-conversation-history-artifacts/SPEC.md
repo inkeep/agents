@@ -16,12 +16,12 @@
 |---|----------|--------|------|
 | D1 | Use existing `contextId` on `ledgerArtifacts` (already FKs to conversations) — no new columns needed. Add `agentId` column only. | LOCKED | Technical |
 | D2 | Update conversation search index every user+AI turn | LOCKED | Technical |
-| D3 | Search tools default for all agents | LOCKED | Product |
+| D3 | Search implemented as a built-in MCP module (`mcp/builtin/search/`), scoped per execution context, auto-loaded for all agents via `loadBuiltInMcps()` in tool-loading pipeline | LOCKED | Product/Technical |
 | D4 | Postgres full-text search (tsvector) — no embeddings in Phase 1 | LOCKED | Technical |
 | D5 | Two search indexes: conversation-level + artifact-level | LOCKED | Technical |
 | D6 | Scope: strict `tenantId + projectId + agentId + userId` equality. NULL userId conversations are NOT searchable (they must have a userId to appear in results). | LOCKED | Product |
 | D7 | tsvector keyword search + recency weighting (RRF) | LOCKED | Technical |
-| D8 | Two-tier indexing: synchronous UPSERT with concatenated text (fast path), async LLM summary upgrade for long conversations | LOCKED | Technical |
+| D8 | Synchronous UPSERT with concatenated text. No LLM calls in the API server — summaries are passed in by callers (agent execution, compression pipeline, or API clients). | LOCKED | Technical |
 | D9 | Conversation summarization uses agent's configured summarization model (for long convos) | LOCKED | Technical |
 | D10 | `get_conversation_messages` returns user-facing + user messages + tool results | LOCKED | Product |
 | D11 | Tables designed with nullable `embedding` column for future pgvector upgrade | LOCKED | Technical |
@@ -209,9 +209,9 @@ CREATE INDEX ... USING hnsw (embedding vector_cosine_ops);
 
 | Event | What gets updated | Mechanism |
 |-------|-------------------|-----------|
-| User+AI turn completes | Conversation search index (UPSERT) | Synchronous with concatenated text (fast) |
-| Long conversation detected (>~2000 tokens) | Conversation search index (UPSERT with LLM summary) | Async after response sent |
-| ConversationCompressor fires | Conversation search index (UPSERT with richer summary) | Synchronous after compression completes |
+| User+AI turn completes | Conversation search index (UPSERT) | Synchronous with concatenated text (no LLM) |
+| ConversationCompressor fires | Conversation search index (UPSERT with richer summary) | Synchronous — LLM already ran as part of compression |
+| Caller provides summary via API | Conversation search index (UPSERT) | Synchronous — caller did the LLM work |
 | Artifact created | Artifact search index (INSERT) | Synchronous during artifact save |
 | Conversation title updated | Conversation search index (UPDATE) | Synchronous on title change |
 
@@ -219,7 +219,9 @@ CREATE INDEX ... USING hnsw (embedding vector_cosine_ops);
 
 ### 4.2 Conversation index update flow
 
-**Two-tier approach (D8): fast sync write + async LLM upgrade**
+**No LLM calls in the API server (D8).** The search index stores whatever text it's given. Three sources provide searchText:
+
+**Source 1: Concatenated (automatic, every turn)**
 
 ```
 User sends message → Agent responds → Response streamed to user
@@ -231,23 +233,17 @@ User sends message → Agent responds → Response streamed to user
                                            search_vector = to_tsvector('english', $searchText),
                                            summary_source = 'concatenated',
                                            ...metadata fields
-                                    (Single SQL statement — fast, no LLM call)
-
-                                    4. IF total user message text > ~2000 tokens:
-                                       Fire-and-forget via getWaitUntil() from @inkeep/agents-core
-                                       (uses Vercel waitUntil in production, Promise.resolve() locally)
-                                         ↓ (async, non-blocking, after response)
-                                       LLM summary generated via agent's summarization model
-                                       UPSERT with summary_source = 'llm_summary'
-                                       On failure: log error, fast-path concatenated text remains valid
+                                    (Single SQL statement — fast, no LLM call, pure DB)
 ```
 
-**On ConversationCompressor event (richer, structured summary):**
+**Source 2: Compression summary (automatic, when ConversationCompressor fires)**
 
-When `ConversationCompressor` fires (between turns, for full conversation history), it produces a `ConversationSummarySchema` with structured fields. This is richer than concatenated user messages. MidGenerationCompressor does NOT trigger a search index update — it is a tactical mid-generation context eviction scoped to a single sub-agent, not a holistic conversation summary.
+When `ConversationCompressor` fires (between turns), it already runs an LLM to produce a `ConversationSummarySchema`. The search index captures this output — no additional LLM call needed.
+
+MidGenerationCompressor does NOT trigger a search index update — it is a tactical mid-generation context eviction scoped to a single sub-agent, not a holistic conversation summary.
 
 ```
-Compression fires → Structured summary produced
+Compression fires → Structured summary already produced (LLM ran as part of compression)
                          ↓ (synchronous, within compression flow)
                     1. Build searchText from summary fields:
                        searchText = [
@@ -259,13 +255,22 @@ Compression fires → Structured summary produced
                          ...(summary.context_for_continuation?.important_context || []),
                        ].filter(Boolean).join('\n')
                     2. UPSERT with summary_source = 'compression_summary'
-                       (overwrites previous concatenated/llm_summary version)
+                       (overwrites previous concatenated version)
 ```
 
-**Priority order for searchText source:**
-1. `compression_summary` — richest, structured, produced by compression pipeline
-2. `llm_summary` — generated async when user messages exceed ~2000 tokens
-3. `concatenated` — title + raw user messages (default, always written first synchronously)
+**Source 3: Caller-provided (via API)**
+
+API clients, SDK users, or the agent execution pipeline can pass a custom summary when updating the search index. This enables callers with LLM access to provide richer summaries without the API server running inference.
+
+```
+PUT /conversations/{conversationId}/search-index  (or inline in existing endpoints)
+  Body: { searchText: "custom summary", summarySource: "provided" }
+```
+
+**Priority order for searchText source (higher overwrites lower):**
+1. `compression_summary` — richest, structured, produced by compression pipeline (LLM already ran)
+2. `provided` — caller-supplied summary (e.g., agent execution passes a summary)
+3. `concatenated` — title + raw user messages (default, automatic, no LLM)
 
 ### 4.3 UPSERT with application-managed tsvector (D12)
 
@@ -514,197 +519,303 @@ When semantic search is needed, the DAL adds a third CTE with vector similarity 
 
 ---
 
-## 6. LLM Tools
+## 6. Built-in MCP Modules
 
-All three tools are registered in `getDefaultTools()` in `default-tools.ts`, available to all agents by default.
+Search tools are implemented as a **built-in MCP module** — a scoped factory that lives in `agents-api` and gets initialized with the execution context. This is a new pattern that extends to future built-in capabilities.
 
-### 6.1 `search_conversation_history`
+### 6.1 Architecture: Built-in MCP pattern
 
-```typescript
-search_conversation_history: tool({
-  description:
-    'Search your other past conversations with this user to find relevant context. ' +
-    'Returns conversation summaries ranked by relevance. Does NOT search the current conversation. ' +
-    'Use when the user references something from a prior conversation, ' +
-    'or when you need background context not in the current conversation.',
-  inputSchema: z.object({
-    query: z.string().describe(
-      'Search keywords. Be specific about what you are looking for.'
-    ),
-    limit: z.number().min(1).max(20).default(5).optional().describe(
-      'Maximum number of conversations to return. Default: 5.'
-    ),
-  }),
-  execute: async ({ query, limit = 5 }) => {
-    // 1. Call searchConversations DAL with strict userId + agentId scoping
-    //    Passes currentConversationId to exclude from results
-    // 2. Return ranked results
-    return {
-      results: [
-        {
-          conversationId: string,
-          title: string | null,
-          summary: string,
-          lastUserMessage: string | null,
-          messageCount: number,
-          updatedAt: string,
-          relevanceScore: number,
-        }
-      ],
-      hint: 'Use get_conversation_messages(conversationId) to load messages from a specific conversation.',
-    };
-  },
-}),
+```
+agents-api/src/domains/run/mcp/
+  builtin/
+    index.ts                -- loadBuiltInMcps(context) → ToolSet
+    types.ts                -- BuiltInMcpContext type
+    search/
+      index.ts              -- createSearchMcp(context) → ToolSet
+      conversation.ts       -- search_conversation_history tool definition
+      artifacts.ts          -- search_artifacts tool definition
+      messages.ts           -- get_conversation_messages tool definition
+    // future built-in MCPs:
+    // analytics/
+    // memory/
 ```
 
-### 6.2 `search_artifacts`
+**What a built-in MCP is:** A scoped module that:
+1. Accepts an execution context on init (`tenantId`, `projectId`, `agentId`, `userId`, `conversationId`, `db`)
+2. Returns pre-scoped AI SDK `tool()` definitions — all authorization baked in at init time
+3. Is consumed identically by the tool loading pipeline (LLM agents) and the external MCP route (external clients)
 
-```typescript
-search_artifacts: tool({
-  description:
-    'Search tool results and artifacts from all your conversations with this user ' +
-    '(including the current conversation). Returns artifact metadata ranked by relevance. ' +
-    'Use when you need to find specific data from past tool executions.',
-  inputSchema: z.object({
-    query: z.string().describe(
-      'Search keywords describing the data you need.'
-    ),
-    toolName: z.string().optional().describe(
-      'Optional: filter to artifacts from a specific tool.'
-    ),
-    conversationId: z.string().optional().describe(
-      'Optional: limit search to a specific conversation.'
-    ),
-    limit: z.number().min(1).max(20).default(5).optional().describe(
-      'Maximum number of artifacts to return. Default: 5.'
-    ),
-  }),
-  execute: async ({ query, toolName, conversationId, limit = 5 }) => {
-    return {
-      results: [
-        {
-          artifactId: string,
-          toolCallId: string | null,  // from artifact_search_index
-          conversationId: string,
-          name: string | null,
-          toolName: string | null,
-          description: string | null,
-          estimatedTokens: number | null,
-          isOversized: boolean,
-          createdAt: string,
-          relevanceScore: number,
-        }
-      ],
-      hint: 'Use get_reference_artifact(artifactId, toolCallId) to load full artifact data.',
-    };
-  },
-}),
+**How it differs from external MCP tools:** External MCPs are user-configured, connect over network via `mcpManager`, and go through discovery. Built-in MCPs are platform-provided, locally instantiated, and always available.
+
+**How it differs from default tools:** Default tools (in `default-tools.ts`) are tightly coupled to agent internals (session manager, compressor). Built-in MCPs are self-contained modules with clear context boundaries — easier to test, reuse across access layers, and extend.
+
+```
+Tool Loading Pipeline (tool-loading.ts)
+  ├── getMcpTools()          -- external MCP servers (user-configured)
+  ├── getFunctionTools()     -- DB-configured function tools
+  ├── getRelationTools()     -- transfer_to / delegate_to
+  ├── getDefaultTools()      -- get_reference_artifact, load_skill, compress_context
+  └── getBuiltInMcpTools()   -- NEW: built-in MCP modules (search, future...)
 ```
 
-### 6.3 `get_conversation_messages`
-
-Supports two modes: **recent messages** (no query) and **search within conversation** (with query). When a query is provided, returns contextual message windows around matches — coherent conversation snippets, not isolated messages.
+### 6.2 Context type
 
 ```typescript
-get_conversation_messages: tool({
-  description:
-    'Load messages from a specific past conversation. Two modes:\n' +
-    '- Without query: returns the most recent messages.\n' +
-    '- With query: searches within the conversation and returns message windows ' +
-    'around each match (a few messages before and after for context).\n' +
-    'Use after search_conversation_history to read relevant parts of a prior conversation.',
-  inputSchema: z.object({
-    conversationId: z.string().describe('The conversation ID to load messages from.'),
-    query: z.string().optional().describe(
-      'Optional: search keywords to find specific parts of the conversation. ' +
-      'Returns message windows around matches instead of most recent messages.'
-    ),
-    limit: z.number().min(1).max(50).default(20).optional().describe(
-      'Max messages to return (across all windows). Default: 20.'
-    ),
-    contextWindow: z.number().min(1).max(10).default(3).optional().describe(
-      'Number of messages before/after each match to include for context. Default: 3.'
-    ),
-  }),
-  execute: async ({ conversationId, query, limit = 20, contextWindow = 3 }) => {
-    // Authorization: DB-level WHERE clause enforces scoping (D6)
-    const conversation = await db.query.conversations.findFirst({
-      where: and(
-        projectScopedWhere(conversations, scopes),
-        eq(conversations.agentId, currentAgentId),
-        eq(conversations.userId, currentUserId),  // CRITICAL: strict userId check
-        eq(conversations.id, conversationId),
+// agents-api/src/domains/run/mcp/builtin/types.ts
+
+export interface BuiltInMcpContext {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  userId: string;              // required — built-in MCPs only work for identified users (D6)
+  currentConversationId?: string;
+  db: AgentsRunDatabaseClient;
+}
+```
+
+### 6.3 Module loader
+
+```typescript
+// agents-api/src/domains/run/mcp/builtin/index.ts
+
+import type { ToolSet } from 'ai';
+import type { BuiltInMcpContext } from './types';
+import { createSearchMcp } from './search';
+
+export function loadBuiltInMcps(context: BuiltInMcpContext): ToolSet {
+  if (!context.userId) {
+    // No userId = no searchable history (D6). Return empty tools.
+    return {};
+  }
+
+  return {
+    ...createSearchMcp(context),
+    // Future built-in MCPs:
+    // ...createAnalyticsMcp(context),
+    // ...createMemoryMcp(context),
+  };
+}
+```
+
+### 6.4 Search MCP module
+
+```typescript
+// agents-api/src/domains/run/mcp/builtin/search/index.ts
+
+import type { ToolSet } from 'ai';
+import type { BuiltInMcpContext } from '../types';
+import { createSearchConversationHistoryTool } from './conversation';
+import { createSearchArtifactsTool } from './artifacts';
+import { createGetConversationMessagesTool } from './messages';
+
+export function createSearchMcp(context: BuiltInMcpContext): ToolSet {
+  return {
+    search_conversation_history: createSearchConversationHistoryTool(context),
+    search_artifacts: createSearchArtifactsTool(context),
+    get_conversation_messages: createGetConversationMessagesTool(context),
+  };
+}
+```
+
+```typescript
+// agents-api/src/domains/run/mcp/builtin/search/conversation.ts
+
+import { z } from 'zod';
+import { tool } from 'ai';
+import { searchConversations } from '@inkeep/agents-core';
+import type { BuiltInMcpContext } from '../types';
+
+export function createSearchConversationHistoryTool(ctx: BuiltInMcpContext) {
+  return tool({
+    description:
+      'Search your other past conversations with this user to find relevant context. ' +
+      'Returns conversation summaries ranked by relevance. Does NOT search the current conversation. ' +
+      'Use when the user references something from a prior conversation, ' +
+      'or when you need background context not in the current conversation.',
+    inputSchema: z.object({
+      query: z.string().describe('Search keywords. Be specific about what you are looking for.'),
+      limit: z.number().min(1).max(20).default(5).optional()
+        .describe('Maximum number of conversations to return. Default: 5.'),
+    }),
+    execute: async ({ query, limit = 5 }) => {
+      // Scoping is baked in from context — no per-call auth needed
+      const results = await searchConversations(ctx.db)({
+        scopes: { tenantId: ctx.tenantId, projectId: ctx.projectId },
+        agentId: ctx.agentId,
+        userId: ctx.userId,
+        currentConversationId: ctx.currentConversationId || '',
+        query,
+        limit,
+      });
+      return {
+        results,
+        hint: 'Use get_conversation_messages(conversationId) to load messages from a specific conversation.',
+      };
+    },
+  });
+}
+```
+
+```typescript
+// agents-api/src/domains/run/mcp/builtin/search/artifacts.ts
+
+export function createSearchArtifactsTool(ctx: BuiltInMcpContext) {
+  return tool({
+    description:
+      'Search tool results and artifacts from all your conversations with this user ' +
+      '(including the current conversation). Returns artifact metadata ranked by relevance. ' +
+      'Use when you need to find specific data from past tool executions.',
+    inputSchema: z.object({
+      query: z.string().describe('Search keywords describing the data you need.'),
+      toolName: z.string().optional().describe('Optional: filter to artifacts from a specific tool.'),
+      conversationId: z.string().optional().describe('Optional: limit search to a specific conversation.'),
+      limit: z.number().min(1).max(20).default(5).optional()
+        .describe('Maximum number of artifacts to return. Default: 5.'),
+    }),
+    execute: async ({ query, toolName, conversationId, limit = 5 }) => {
+      const results = await searchArtifacts(ctx.db)({
+        scopes: { tenantId: ctx.tenantId, projectId: ctx.projectId },
+        agentId: ctx.agentId,
+        userId: ctx.userId,
+        conversationId,
+        query,
+        toolName,
+        limit,
+      });
+      return {
+        results,
+        hint: 'Use get_reference_artifact(artifactId, toolCallId) to load full artifact data.',
+      };
+    },
+  });
+}
+```
+
+```typescript
+// agents-api/src/domains/run/mcp/builtin/search/messages.ts
+
+export function createGetConversationMessagesTool(ctx: BuiltInMcpContext) {
+  return tool({
+    description:
+      'Load messages from a specific past conversation. Two modes:\n' +
+      '- Without query: returns the most recent messages.\n' +
+      '- With query: searches within the conversation and returns message windows ' +
+      'around each match (a few messages before and after for context).\n' +
+      'Use after search_conversation_history to read relevant parts of a prior conversation.',
+    inputSchema: z.object({
+      conversationId: z.string().describe('The conversation ID to load messages from.'),
+      query: z.string().optional().describe(
+        'Optional: search keywords to find specific parts of the conversation. ' +
+        'Returns message windows around matches instead of most recent messages.'
       ),
-    });
-    if (!conversation) throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+      limit: z.number().min(1).max(50).default(20).optional()
+        .describe('Max messages to return (across all windows). Default: 20.'),
+      contextWindow: z.number().min(1).max(10).default(3).optional()
+        .describe('Number of messages before/after each match to include for context. Default: 3.'),
+    }),
+    execute: async ({ conversationId, query, limit = 20, contextWindow = 3 }) => {
+      // Authorization: DB-level scoping (D6) — verify ownership
+      const conversation = await ctx.db.query.conversations.findFirst({
+        where: and(
+          projectScopedWhere(conversations, { tenantId: ctx.tenantId, projectId: ctx.projectId }),
+          eq(conversations.agentId, ctx.agentId),
+          eq(conversations.userId, ctx.userId),  // strict userId check
+          eq(conversations.id, conversationId),
+        ),
+      });
+      if (!conversation) {
+        throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+      }
 
-    if (query) {
-      // SEARCH MODE: find matching messages, return with context windows
-      // See Section 5.5 for the windowed search query
-      return {
-        conversationId,
-        mode: 'search',
-        segments: [
-          {
-            matchedMessageId: string,
-            messages: [
-              {
-                id: string,
-                role: 'user' | 'assistant',
-                content: string,
-                messageType: 'chat' | 'tool-result',
-                fromSubAgentId: string | null,
-                toolName: string | null,
-                createdAt: string,
-                isMatch: boolean,  // true for the message(s) that matched the query
-              }
-            ],
-          }
-        ],
-        totalMatches: number,
-      };
-    } else {
-      // RECENT MODE: return most recent messages
-      const messageList = await db
-        .select()
-        .from(messages)
-        .where(and(
-          projectScopedWhere(messages, scopes),
-          eq(messages.conversationId, conversationId),
-          or(
-            eq(messages.visibility, 'user-facing'),
-            eq(messages.messageType, 'tool-result'),
-          ),
-        ))
-        .orderBy(desc(messages.createdAt))
-        .limit(limit);
-
-      return {
-        conversationId,
-        mode: 'recent',
-        messages: messageList.reverse().map(msg => ({
-          id: msg.id,
-          role: msg.role === 'agent' ? 'assistant' : msg.role,
-          content: extractText(msg.content),
-          messageType: msg.messageType,
-          fromSubAgentId: msg.fromSubAgentId,
-          toolName: msg.metadata?.a2a_metadata?.toolName || null,
-          createdAt: msg.createdAt,
-        })),
-        hasMore: messageList.length === limit,
-      };
-    }
-  },
-}),
+      if (query) {
+        // SEARCH MODE: windowed search (see Section 5.3)
+        const segments = await searchMessagesWindowed(ctx.db)({
+          scopes: { tenantId: ctx.tenantId, projectId: ctx.projectId },
+          conversationId,
+          query,
+          contextWindow,
+          limit,
+        });
+        return { conversationId, mode: 'search', segments };
+      } else {
+        // RECENT MODE
+        const messages = await getVisibleMessages(ctx.db)({
+          scopes: { tenantId: ctx.tenantId, projectId: ctx.projectId },
+          conversationId,
+          visibility: ['user-facing'],
+          pagination: { page: 1, limit },
+        });
+        return { conversationId, mode: 'recent', messages, hasMore: messages.length === limit };
+      }
+    },
+  });
+}
 ```
 
-**Caveat: keyword search within conversations has the same limitation as conversation-level search — it only matches exact keywords, not semantics.** If the user discussed pricing without using the word "pricing" (e.g., "how much should we charge?"), keyword search won't find it. This is an important motivation for the pgvector Phase 2 upgrade — semantic search over message embeddings would match on meaning, not just keywords. For Phase 1, this is an accepted trade-off: keyword matching covers the majority of retrieval cases, and the compression summary (which uses semantically richer language) helps bridge some gaps at the conversation level.
+**Keyword search limitation:** `plainto_tsquery` matches stemmed keywords only. Searching "pricing" won't find "how much should we charge?". This is the key motivation for pgvector Phase 2 — message-level embeddings enable semantic matching. Accepted trade-off for Phase 1.
+
+### 6.5 Integration into tool loading pipeline
+
+```typescript
+// agents-api/src/domains/run/agents/generation/tool-loading.ts
+
+import { loadBuiltInMcps } from '../../mcp/builtin';
+
+export async function loadToolsAndPrompts(ctx, sessionId, streamRequestId, runtimeContext) {
+  const [mcpToolsResult, functionTools, relationTools, defaultTools] = await Promise.all([
+    getMcpTools(ctx, sessionId, streamRequestId),
+    getFunctionTools(ctx, sessionId, streamRequestId),
+    Promise.resolve(getRelationTools(ctx, runtimeContext, sessionId)),
+    getDefaultTools(ctx, streamRequestId),
+  ]);
+
+  // NEW: load built-in MCP modules, scoped to this execution
+  const builtInMcpTools = loadBuiltInMcps({
+    tenantId: ctx.executionContext.tenantId,
+    projectId: ctx.executionContext.projectId,
+    agentId: ctx.executionContext.agentId,
+    userId: ctx.executionContext.metadata?.endUserId,
+    currentConversationId: ctx.conversationId,
+    db: runDbClient,
+  });
+
+  const allTools = {
+    ...mcpTools,
+    ...functionTools,
+    ...relationTools,
+    ...defaultTools,
+    ...builtInMcpTools,  // NEW
+  };
+
+  // ... rest unchanged
+}
+```
+
+### 6.6 Integration into external MCP route
+
+The same tool factories are used in `mcp.ts` so external MCP clients get search tools:
+
+```typescript
+// In agents-api/src/domains/run/routes/mcp.ts, within getServer():
+
+import { createSearchMcp } from '../../mcp/builtin/search';
+
+const searchTools = createSearchMcp({
+  tenantId, projectId, agentId,
+  userId: executionContext.metadata?.endUserId,
+  currentConversationId: conversationId,
+  db: runDbClient,
+});
+
+// Register each tool on the McpServer
+for (const [name, toolDef] of Object.entries(searchTools)) {
+  server.tool(name, toolDef.description, toolDef.inputSchema, toolDef.execute);
+}
+```
 
 ### 6.4 Extend `get_reference_artifact` for cross-conversation retrieval (D13)
 
-The existing `get_reference_artifact` tool is session-scoped (uses `agentSessionManager.getArtifactService`). For artifacts from prior conversations, it won't find them in the session cache.
-
-**Fix:** Add a direct DB fallback when the session cache misses:
+The existing `get_reference_artifact` tool (in `default-tools.ts`) is session-scoped. For artifacts from prior conversations found via `search_artifacts`, it needs a DB fallback.
 
 ```typescript
 // In default-tools.ts, modify get_reference_artifact execute():
@@ -761,23 +872,129 @@ No prompt template changes in Phase 1.
 
 ## 8. Files to Modify
 
-### New files:
+### File structure overview
+
+```
+packages/agents-core/
+  src/
+    db/runtime/
+      runtime-schema.ts              # MODIFIED: add conversationSearchIndex, artifactSearchIndex tables; add agentId to ledgerArtifacts
+      custom-types.ts                # NEW: shared Drizzle custom types (tsvectorColumn, future vectorColumn)
+    data-access/runtime/
+      conversations.ts               # EXISTING: list, get, create conversations (unchanged)
+      messages.ts                    # EXISTING: message CRUD (unchanged)
+      ledgerArtifacts.ts             # MODIFIED: pass agentId on insert; coordinated deletes for search index
+      conversationSearchIndex.ts     # NEW: UPSERT/delete for conversation_search_index table
+      artifactSearchIndex.ts         # NEW: INSERT/delete for artifact_search_index table
+      conversationSearch.ts          # NEW: searchConversations() — keyword + recency RRF query
+      artifactSearch.ts              # NEW: searchArtifacts() — keyword + recency RRF query
+      messageSearch.ts               # NEW: searchMessagesWindowed() — within-conversation windowed search
+    validation/
+      search-schemas.ts              # NEW: shared Zod schemas (ConversationSearchResult, ArtifactSearchResult, MessageWindow)
+
+agents-api/
+  src/
+    domains/
+      run/
+        routes/
+          conversations.ts           # MODIFIED (Phase 1): add GET /conversations/search endpoint
+          artifacts.ts               # NEW (Phase 1): end-user runtime artifact endpoints
+                                     #   GET /artifacts/search, GET /artifacts/{artifactId}
+          mcp.ts                     # MODIFIED (Phase 2): register search tools on external MCP server
+        mcp/
+          builtin/                   # NEW (Phase 3): built-in MCP module pattern
+            types.ts                 #   BuiltInMcpContext type
+            index.ts                 #   loadBuiltInMcps(context) → ToolSet
+            search/
+              index.ts               #   createSearchMcp(context) → ToolSet
+              conversation.ts        #   search_conversation_history tool
+              artifacts.ts           #   search_artifacts tool
+              messages.ts            #   get_conversation_messages tool
+        agents/
+          generation/
+            tool-loading.ts          # MODIFIED (Phase 3): add loadBuiltInMcps() as 5th tool category
+          tools/
+            default-tools.ts         # MODIFIED (Phase 3): extend get_reference_artifact with DB fallback (D13)
+        handlers/
+          executionHandler.ts        # MODIFIED (Phase 1): UPSERT conversation search index after turn
+        compression/
+          ConversationCompressor.ts  # MODIFIED (Phase 1): UPSERT search index with compression summary
+      manage/
+        routes/
+          conversations.ts           # MODIFIED (Phase 1): add search + message search endpoints
+          runtimeArtifacts.ts        # NEW (Phase 1): admin runtime artifact endpoints
+                                     #   (separate from artifactComponents.ts which manages type definitions)
+
+packages/agents-sdk/
+  src/
+    conversations.ts                 # MODIFIED (Phase 1): add search() and searchMessages() methods
+    artifacts.ts                     # MODIFIED (Phase 1): add search() method
+```
+
+**Conventions followed:**
+- Search endpoints added to EXISTING route files for conversations (not separate files)
+- Runtime artifact routes get NEW files (`artifacts.ts` for run, `runtimeArtifacts.ts` for manage) to distinguish from `artifactComponents.ts` (which manages artifact type *definitions*, not runtime instances)
+- DAL files sit alongside existing `conversations.ts`, `messages.ts`, `ledgerArtifacts.ts` in `data-access/runtime/`
+- Built-in MCP modules (Phase 3) get their own directory under `run/mcp/builtin/` — clearly separate from routes and handlers
+- Each file is annotated with which phase it belongs to
+
+### Files by phase:
+
+#### Phase 1: Data model + DAL + API endpoints
+
+**New files:**
 | File | Purpose |
 |------|---------|
-| `packages/agents-core/src/db/runtime/custom-types.ts` | Shared Drizzle custom types (`tsvectorColumn`, and future `vectorColumn` for pgvector Phase 2) |
+| `packages/agents-core/src/db/runtime/custom-types.ts` | Shared Drizzle custom types (`tsvectorColumn`, future `vectorColumn`) |
 | `packages/agents-core/src/data-access/runtime/conversationSearchIndex.ts` | CRUD for conversation_search_index (UPSERT with tsvector) |
 | `packages/agents-core/src/data-access/runtime/artifactSearchIndex.ts` | CRUD for artifact_search_index (INSERT with tsvector) |
-| `packages/agents-core/src/data-access/runtime/conversationSearch.ts` | Search DAL (keyword + recency RRF) |
-| `packages/agents-core/src/data-access/runtime/artifactSearch.ts` | Artifact search DAL |
+| `packages/agents-core/src/data-access/runtime/conversationSearch.ts` | `searchConversations()` — keyword + recency RRF |
+| `packages/agents-core/src/data-access/runtime/artifactSearch.ts` | `searchArtifacts()` — keyword + recency RRF |
+| `packages/agents-core/src/data-access/runtime/messageSearch.ts` | `searchMessagesWindowed()` — within-conversation windowed search |
+| `packages/agents-core/src/validation/search-schemas.ts` | Shared Zod schemas (used by API, MCP, SDK, and agent tools) |
+| `agents-api/src/domains/run/routes/artifacts.ts` | End-user runtime artifact endpoints (search, get by ID) |
+| `agents-api/src/domains/manage/routes/runtimeArtifacts.ts` | Admin runtime artifact endpoints (search, get by ID) |
 
-### Modified files:
+**Modified files:**
 | File | Change |
 |------|--------|
-| `packages/agents-core/src/db/runtime/runtime-schema.ts` | Add `conversationSearchIndex`, `artifactSearchIndex` tables; add `agentId` column to `ledgerArtifacts` |
-| `agents-api/src/domains/run/agents/tools/default-tools.ts` | Add `search_conversation_history`, `search_artifacts`, `get_conversation_messages`; extend `get_reference_artifact` with DB fallback (D13) |
-| `packages/agents-core/src/data-access/runtime/ledgerArtifacts.ts` | Pass `agentId` on insert; insert into `artifactSearchIndex` on creation; add coordinated deletes to `deleteLedgerArtifactsByTask` and `deleteLedgerArtifactsByContext` to also delete from `artifact_search_index` |
-| `agents-api/src/domains/run/handlers/executionHandler.ts` | UPSERT conversation search index after turn completes (sync fast path + async LLM summary) |
-| `agents-api/src/domains/run/compression/ConversationCompressor.ts` | UPSERT conversation search index with compression summary (MidGenerationCompressor is NOT modified — it doesn't touch the search index) |
+| `packages/agents-core/src/db/runtime/runtime-schema.ts` | Add `conversationSearchIndex`, `artifactSearchIndex` tables; add `agentId` to `ledgerArtifacts` |
+| `packages/agents-core/src/data-access/runtime/ledgerArtifacts.ts` | Pass `agentId` on insert; insert into `artifactSearchIndex` on creation; coordinated deletes |
+| `agents-api/src/domains/run/routes/conversations.ts` | Add `GET /conversations/search` endpoint |
+| `agents-api/src/domains/manage/routes/conversations.ts` | Add `GET /projects/{projectId}/conversations/search` and `GET /projects/{projectId}/conversations/{id}/messages/search` |
+| `agents-api/src/domains/run/handlers/executionHandler.ts` | UPSERT conversation search index after turn (sync, concatenated text, no LLM) |
+| `agents-api/src/domains/run/compression/ConversationCompressor.ts` | UPSERT conversation search index with compression summary |
+| `packages/agents-sdk/src/conversations.ts` | Add `search()` and `searchMessages()` methods |
+| `packages/agents-sdk/src/artifacts.ts` | Add `search()` method |
+
+#### Phase 2: MCP exposure
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `agents-api/src/domains/run/routes/mcp.ts` | Register search tools on external MCP server via `createSearchMcp()` |
+
+**New files (shared with Phase 3):**
+| File | Purpose |
+|------|---------|
+| `agents-api/src/domains/run/mcp/builtin/search/index.ts` | `createSearchMcp(context)` — search module factory (used by both MCP route and agent tool loading) |
+
+#### Phase 3: Built-in MCP tools for agents
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `agents-api/src/domains/run/mcp/builtin/types.ts` | `BuiltInMcpContext` type |
+| `agents-api/src/domains/run/mcp/builtin/index.ts` | `loadBuiltInMcps(context)` — module loader |
+| `agents-api/src/domains/run/mcp/builtin/search/conversation.ts` | `search_conversation_history` tool |
+| `agents-api/src/domains/run/mcp/builtin/search/artifacts.ts` | `search_artifacts` tool |
+| `agents-api/src/domains/run/mcp/builtin/search/messages.ts` | `get_conversation_messages` tool |
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `agents-api/src/domains/run/agents/generation/tool-loading.ts` | Add `loadBuiltInMcps()` as 5th tool category |
+| `agents-api/src/domains/run/agents/tools/default-tools.ts` | Extend `get_reference_artifact` with DB fallback (D13) |
 
 ### Migration files:
 | Migration | Content |
@@ -790,31 +1007,235 @@ No prompt template changes in Phase 1.
 
 ## 9. Phasing
 
-### Phase 1 (this spec): Full-text search tools
-- Create search index tables with application-managed tsvector + GIN indexes
-- Two-tier indexing: sync concatenated text + async LLM summary for long conversations
-- Compression summaries enrich search index (additive)
-- Add 3 new LLM tools + extend `get_reference_artifact` for cross-conversation
-- Add `agentId` to `ledgerArtifacts` (use existing `contextId` as conversationId)
-- Keyword + recency search via RRF
-- Zero new infrastructure dependencies
+### Phase 1: Data model + DAL + API endpoints
+The foundation. Testable independently, follows existing patterns, gives manage UI + SDK immediate access.
 
-### Phase 2 (future): pgvector semantic search upgrade
+**Step 1.1: Schema + migrations**
+- Add `tsvectorColumn` custom type to `custom-types.ts`
+- Add `conversationSearchIndex` and `artifactSearchIndex` tables to `runtime-schema.ts`
+- Add `agentId` column to `ledgerArtifacts`
+- Generate and apply migrations (0028, 0029, 0030)
+
+**Step 1.2: Shared schemas**
+- Add `ConversationSearchResultSchema`, `ArtifactSearchResultSchema`, `MessageWindowSchema` to `validation/search-schemas.ts`
+- These are used by every access layer (API, MCP, SDK, agent tools)
+
+**Step 1.3: Data access layer**
+- `conversationSearchIndex.ts` — UPSERT/delete for conversation_search_index (with application-managed tsvector)
+- `artifactSearchIndex.ts` — INSERT/delete for artifact_search_index
+- `conversationSearch.ts` — `searchConversations()` with keyword + recency RRF
+- `artifactSearch.ts` — `searchArtifacts()` with keyword + recency RRF
+- `messageSearch.ts` — `searchMessagesWindowed()` for within-conversation windowed search
+- Modify `ledgerArtifacts.ts` — pass `agentId` on insert, insert into `artifactSearchIndex`, coordinated deletes
+
+**Step 1.4: Write pipeline (indexing)**
+- Modify `executionHandler.ts` — UPSERT conversation search index after every turn (sync, concatenated text, no LLM)
+- Modify `ConversationCompressor.ts` — UPSERT search index with compression summary when compression fires
+- Modify `ledgerArtifacts.ts` — insert into artifact search index on artifact creation
+
+**Step 1.5: API endpoints (conversations)**
+- Add `GET /conversations/search` to `run/routes/conversations.ts` (same auth as existing list/get)
+- Add `GET /projects/{projectId}/conversations/search` to `manage/routes/conversations.ts`
+- Add `GET /projects/{projectId}/conversations/{id}/messages/search` to `manage/routes/conversations.ts`
+
+**Step 1.6: API endpoints (runtime artifacts — new, mirrors conversations)**
+- Create `run/routes/artifacts.ts` — end-user artifact list, get by ID, search
+- Create `manage/routes/runtimeArtifacts.ts` — admin artifact list, get by ID, search
+- Same auth patterns as conversation endpoints
+
+**Step 1.7: SDK methods**
+- Add `client.conversations.search()` and `client.conversations.searchMessages()`
+- Add `client.artifacts.search()`
+
+### Phase 2: MCP exposure
+Thin layer on top of Phase 1 DAL. One new file, one modified file.
+
+**Step 2.1: Search MCP tool factory**
+- Create `mcp/builtin/search/index.ts` — `createSearchMcp(context)` returns tool definitions backed by the Phase 1 DAL
+
+**Step 2.2: Register on external MCP server**
+- Modify `mcp.ts` — call `createSearchMcp()` and register tools alongside `send-query-to-agent`
+- Same `runAuth` middleware, same scoping. External MCP clients (Cursor, Claude Code, etc.) get search automatically.
+
+### Phase 3: Built-in MCP tools for agents
+Wire search into the agent tool loading pipeline so LLM agents can search their own history during execution.
+
+**Step 3.1: Built-in MCP module pattern**
+- Create `mcp/builtin/types.ts` — `BuiltInMcpContext` type
+- Create `mcp/builtin/index.ts` — `loadBuiltInMcps(context)` aggregates all built-in modules
+- Create `mcp/builtin/search/conversation.ts`, `artifacts.ts`, `messages.ts` — individual tool definitions
+
+**Step 3.2: Integration into tool loading**
+- Modify `tool-loading.ts` — add `loadBuiltInMcps()` as 5th tool category
+- Built-in MCP tools loaded in parallel alongside MCP, function, relation, and default tools
+
+**Step 3.3: Cross-conversation artifact retrieval**
+- Modify `default-tools.ts` — extend `get_reference_artifact` with DB fallback (D13)
+- Authorization via conversation ownership check (D6)
+
+#### Auth model: follows existing conversation API patterns exactly
+
+Search endpoints use the **same auth middleware, same scoping, and same access patterns** as the existing conversation list/get endpoints. No new auth mechanism needed.
+
+| Domain | Existing pattern | Search follows same pattern |
+|---|---|---|
+| **Run API** | `GET /conversations` — API key (project) + JWT (`sub` = endUserId) | `GET /conversations/search` — same API key + JWT |
+| **Manage API** | `GET /projects/{projectId}/conversations` — session/bearer + `requireProjectPermission('view')` | `GET /projects/{projectId}/conversations/search` — same permissions |
+| **MCP** | `mcp.ts` route — goes through `runAuth` middleware (API key + JWT) | Search tools registered on same server, same auth |
+| **Built-in MCP tools** | Tool loading pipeline — execution context carries `tenantId`, `projectId`, `agentId`, `userId` | `loadBuiltInMcps(context)` — same execution context |
+
+**For external tools (Cursor, Claude Code, etc.):** They connect to the MCP endpoint the same way a chat widget connects — API key + JWT. The MCP server goes through `runAuth` middleware. Search results are automatically scoped by the JWT's `sub` claim. No special auth flow needed.
+
+#### Manage API endpoints (admin/builder access)
+
+These go in `agents-api/src/domains/manage/routes/` and require project-level permissions. Thin wrappers over the same search DAL. Same auth as existing `GET /projects/{projectId}/conversations`.
+
+```
+GET /projects/{projectId}/conversations/search
+  Query params: query (required), agentId?, userId?, limit?
+  Auth: requireProjectPermission('view')
+  Returns: { data: ConversationSearchResult[], pagination }
+  Notes: Admin can search across all users within a project. Optional userId filter.
+
+GET /projects/{projectId}/artifacts/search
+  Query params: query (required), agentId?, userId?, toolName?, conversationId?, limit?
+  Auth: requireProjectPermission('view')
+  Returns: { data: ArtifactSearchResult[], pagination }
+
+GET /projects/{projectId}/conversations/{id}/messages/search
+  Query params: query (required), contextWindow?, limit?
+  Auth: requireProjectPermission('view')
+  Returns: { data: { segments: MessageWindow[] }, totalMatches }
+```
+
+#### Run API endpoints (end-user access)
+
+These go in `agents-api/src/domains/run/routes/` — same auth as existing `GET /conversations` and `GET /conversations/{conversationId}`. API key + JWT, auto-scoped by the JWT `sub` claim.
+
+```
+GET /conversations/search
+  Query params: query (required), limit?
+  Auth: inheritedRunApiKeyAuth() + JWT sub claim for userId
+  Scoping: Automatic — tenantId + projectId from API key, userId from JWT, agentId from context
+  Returns: { data: ConversationSearchResult[], pagination }
+
+GET /artifacts/search
+  Query params: query (required), toolName?, conversationId?, limit?
+  Auth: inheritedRunApiKeyAuth() + JWT
+  Returns: { data: ArtifactSearchResult[], pagination }
+
+GET /conversations/{conversationId}/messages/search
+  Query params: query (required), contextWindow?, limit?
+  Auth: inheritedRunApiKeyAuth() + JWT
+  Returns: { data: { segments: MessageWindow[] }, totalMatches }
+```
+
+#### SDK methods
+
+```typescript
+const client = new InkeepAgentsClient({ apiKey, baseUrl });
+
+const results = await client.conversations.search({ query: 'pricing discussion', limit: 5 });
+const artifacts = await client.artifacts.search({ query: 'user engagement metrics', toolName: 'analytics_query' });
+const messages = await client.conversations.searchMessages({ conversationId: 'conv-123', query: 'pricing tiers', contextWindow: 3 });
+```
+
+#### Shared response schemas (used by ALL access layers — MCP, API, SDK)
+
+```typescript
+// packages/agents-core/src/validation/search-schemas.ts
+
+const ConversationSearchResultSchema = z.object({
+  conversationId: z.string(),
+  title: z.string().nullable(),
+  summary: z.string(),
+  lastUserMessage: z.string().nullable(),
+  messageCount: z.number(),
+  updatedAt: z.string(),
+  relevanceScore: z.number(),
+});
+
+const ArtifactSearchResultSchema = z.object({
+  artifactId: z.string(),
+  toolCallId: z.string().nullable(),
+  conversationId: z.string(),
+  name: z.string().nullable(),
+  toolName: z.string().nullable(),
+  description: z.string().nullable(),
+  estimatedTokens: z.number().nullable(),
+  isOversized: z.boolean(),
+  createdAt: z.string(),
+  relevanceScore: z.number(),
+});
+
+const MessageWindowSchema = z.object({
+  matchedMessageId: z.string(),
+  messages: z.array(z.object({
+    id: z.string(),
+    role: z.string(),
+    content: z.string(),
+    messageType: z.string(),
+    fromSubAgentId: z.string().nullable(),
+    toolName: z.string().nullable(),
+    createdAt: z.string(),
+    isMatch: z.boolean(),
+  })),
+});
+```
+
+#### Authorization matrix
+
+| Access layer | Scope | Who can access |
+|---|---|---|
+| **Internal MCP (Phase 1)** | Own agent + own user, across conversations | The agent itself during execution |
+| **External MCP (Phase 1)** | Scoped by MCP session context | External agents/clients with MCP access |
+| **Run API (Phase 1.5)** | Own user (JWT), across conversations for that agent | End-users via authenticated chat sessions |
+| **Manage API (Phase 1.5)** | Any user in project (admin) | Builders/admins via manage UI or API key |
+| **SDK (Phase 1.5)** | Depends on auth method (API key = manage scope, JWT = end-user scope) | Developers building on the platform |
+
+#### Files for Phase 1.5
+
+| File | Change |
+|------|--------|
+| `agents-api/src/domains/run/routes/conversations.ts` | MODIFIED: add `GET /conversations/search` endpoint (same auth pattern as existing list/get) |
+| `agents-api/src/domains/run/routes/artifacts.ts` | NEW: end-user runtime artifact endpoints mirroring conversations pattern (`GET /artifacts/search`, `GET /artifacts/{artifactId}`) |
+| `agents-api/src/domains/manage/routes/conversations.ts` | MODIFIED: add `GET /projects/{projectId}/conversations/search` and `GET /projects/{projectId}/conversations/{id}/messages/search` |
+| `agents-api/src/domains/manage/routes/runtimeArtifacts.ts` | NEW: admin runtime artifact endpoints mirroring conversations pattern (separate from `artifactComponents.ts` which manages type definitions) |
+| `packages/agents-sdk/src/conversations.ts` | MODIFIED: add `search()` and `searchMessages()` methods |
+| `packages/agents-sdk/src/artifacts.ts` | MODIFIED: add `search()` method |
+
+### Phase 4 (future): Consolidate internal artifact access
+Shift internal agent code to use the search/retrieval API as the canonical path for artifact access, replacing the current mix of session cache + direct DAL calls.
+
+- `ArtifactService` session cache becomes a performance layer in front of the API, not a separate access pattern
+- `get_reference_artifact` routes through the artifact API instead of direct `getLedgerArtifacts()` calls
+- Authorization enforced in one place (the API route) instead of duplicated across access points
+- Internal calls use `getInProcessFetch()` for same-instance routing
+- Simplifies the execution handler and session manager artifact code
+
+### Phase 5 (future): pgvector semantic search upgrade
 - Enable pgvector extension
 - Add `embedding vector(1536)` column to both search index tables
 - Add HNSW indexes, async embedding pipeline, embedding service
 - Upgrade search DAL to include vector similarity in RRF scoring
-- **Message-level embeddings** for semantic search within conversations — addresses the keyword-only limitation in `get_conversation_messages` windowed search. This is the most impactful upgrade: enables matching on meaning ("how much should we charge?" matches a search for "pricing").
+- **Message-level embeddings** for semantic search within conversations — addresses the keyword-only limitation in `get_conversation_messages` windowed search. Most impactful upgrade: enables matching on meaning ("how much should we charge?" matches "pricing").
 
-### Phase 3 (future): Prompt optimization + granular fact search
+### Phase 6 (future): Prompt optimization + granular fact search
 - Replace artifact dump with compact manifest for current-conversation artifacts
 - Reduce injected conversation history to recent N messages only
 - Auto-inject top-K relevant context from prior conversations
 - Consider `conversation_summary_facts` table for granular fact search (OQ6)
 
-### Phase 4 (future): Advanced retrieval
+### Phase 7 (future): Advanced retrieval
 - Cross-agent search (opt-in)
 - Graph-based memory (entity relationships)
+
+### Phase 8 (future): Artifact storage optimization
+- Move large artifact data from `ledger_artifacts.parts` JSONB column to blob storage (S3/Vercel)
+- Store blob URI reference in `parts` instead of inline data
+- Reuse existing blob storage infrastructure (`agents-api/src/domains/run/services/blob-storage/`)
+- Benefits: reduced DB bloat, faster table scans, no JSONB size limits
+- Orthogonal to search — search indexes metadata only, not full artifact data
 
 ---
 
@@ -827,8 +1248,8 @@ No prompt template changes in Phase 1.
 
 2. **Conversation search index stays current:**
    - After every user+AI turn, a fast synchronous UPSERT writes concatenated title + user messages
-   - Long conversations (>~2000 tokens) trigger async LLM summary upgrade
-   - Compression events overwrite with richer structured summary
+   - Compression events overwrite with richer structured summary (LLM already ran as part of compression)
+   - Callers can provide custom summaries via API (no LLM in the API server)
    - Index scoped by tenantId + projectId + agentId + userId (strict equality)
 
 3. **Artifact search index is populated:**
@@ -849,7 +1270,7 @@ No prompt template changes in Phase 1.
    - Existing conversation history + compression unchanged
    - Existing artifact creation/retrieval unchanged
    - Synchronous index UPSERT adds minimal latency (<10ms for single SQL statement)
-   - LLM summarization is async only — no hot-path latency for long conversations
+   - Zero LLM calls in the API server — no hot-path latency for any conversation length
 
 ---
 
@@ -874,7 +1295,7 @@ No prompt template changes in Phase 1.
 | LLM doesn't use search tools effectively | Good tool descriptions; monitor tool usage patterns |
 | Synchronous index UPSERT adds latency | Single SQL statement; measure; move fully async if >50ms |
 | Cross-tenant data leakage via search | Strict userId equality (D6); DB-level WHERE clause in all queries |
-| Long conversations: async LLM summary fails | Fast-path concatenated text always available; LLM summary is upgrade |
+| Long conversations have lower search quality with concatenated text only | Compression summary overwrites with richer text when it fires; callers can provide summaries via API |
 | Orphaned artifact_search_index rows | Coordinated deletes in `deleteLedgerArtifactsByTask` and `deleteLedgerArtifactsByContext`; conversation cascade deletes handle `conversation_search_index` via FK |
 | Nullable `agentId` on existing ledgerArtifacts rows | New rows get agentId; pre-migration artifacts excluded from search (agentId is NULL). Backfill derivable: `contextId` → `conversations.agentId`. Deferred to OQ3. |
 | pglite test compatibility with tsvector/GIN | pglite supports `to_tsvector` and `plainto_tsquery` but GIN index behavior may differ. Add integration test against real Postgres for search functionality; unit tests can mock the search DAL. |
