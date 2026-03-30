@@ -144,9 +144,10 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   const { screenToFlowPosition, fitView } = useReactFlow();
   const form = useFullAgentFormContext();
-  const { nodes, edges } = useAgentStore((state) => ({
+  const { nodes, edges, dirty } = useAgentStore((state) => ({
     nodes: state.nodes,
     edges: state.edges,
+    dirty: state.dirty,
   }));
   const {
     setNodes,
@@ -734,7 +735,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           />
         </ResizablePanel>
       </Activity>
-      <UnsavedChangesDialog onSubmit={onSubmit} />
+      <UnsavedChangesDialog dirty={dirty} onSubmit={onSubmit} control={form.control} />
     </ResizablePanelGroup>
   );
 };

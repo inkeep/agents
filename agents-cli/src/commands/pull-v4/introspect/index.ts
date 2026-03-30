@@ -25,7 +25,7 @@ import { initializeCommand } from '../../../utils/cli-pipeline';
 import { loadProject } from '../../../utils/project-loader';
 import { readProjectState, writeProjectState } from '../../../utils/state';
 import { withLocalStateBranch } from '../../../utils/temp-branch';
-import { introspectGenerate } from '../introspect-generator';
+import { introspectGenerate, type ProjectPaths } from '../introspect-generator';
 
 export interface PullV3Options {
   project?: string;
@@ -36,7 +36,6 @@ export interface PullV3Options {
   debug?: boolean;
   verbose?: boolean;
   force?: boolean;
-  introspect?: boolean;
   all?: boolean;
   tag?: string;
   quiet?: boolean;
@@ -58,20 +57,6 @@ interface BatchPullResult {
   targetDir: string;
   success: boolean;
   error?: string;
-}
-
-interface ProjectPaths {
-  projectRoot: string;
-  agentsDir: string;
-  toolsDir: string;
-  dataComponentsDir: string;
-  artifactComponentsDir: string;
-  statusComponentsDir: string;
-  environmentsDir: string;
-  credentialsDir: string;
-  contextConfigsDir: string;
-  externalAgentsDir: string;
-  skillsDir: string;
 }
 
 /**
@@ -164,13 +149,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
   }
 
   console.log(styleText('blue', '\nInkeep Pull:'));
-  if (options.introspect) {
-    console.log(
-      styleText('gray', '  Introspect mode • Complete regeneration • No comparison needed')
-    );
-  } else {
-    console.log(styleText('gray', '  Smart comparison • Detect all changes • Targeted updates'));
-  }
+  console.log(styleText('gray', '  Smart comparison • Detect all changes • Targeted updates'));
 
   try {
     // Step 1: Load configuration (same as push command)
@@ -449,8 +428,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     // Step 5: Set up project structure
     const paths = createProjectStructure(projectDir);
 
-    await generateProjectSkillsIfPresent(remoteProject, paths.skillsDir);
-
     console.log(styleText('gray', 'Generating files...'));
     await introspectGenerate({
       // @ts-expect-error -- ignore Types of property 'models' are incompatible.
@@ -719,7 +696,6 @@ export async function pullSingleProject(
     const remoteProject = await apiClient.getFullProject(projectId);
     // Create project structure
     const paths = createProjectStructure(targetDir);
-    await generateProjectSkillsIfPresent(remoteProject, paths.skillsDir);
 
     // Generate all files using introspect mode for new projects
     await introspectGenerate({
@@ -745,17 +721,4 @@ export async function pullSingleProject(
       error: error instanceof Error ? error.message : String(error),
     };
   }
-}
-
-async function generateProjectSkillsIfPresent(
-  remoteProject: any,
-  skillsDir: string
-): Promise<void> {
-  const skills = remoteProject.skills ?? {};
-  if (!Object.keys(skills).length) {
-    return;
-  }
-
-  const { generateSkills } = await import('../skill');
-  await generateSkills(skills, skillsDir);
 }
