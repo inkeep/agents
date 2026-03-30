@@ -4,7 +4,7 @@ export const salesSignalType = z
   .union([
     z.literal('requested_sales_contact').describe(`
     The user has explicitly asked to speak with a sales representative or sales team.
-
+    
     Examples:
     • "Can I talk to someone from sales?"
     • "How do I contact your sales team?"
@@ -13,7 +13,7 @@ export const salesSignalType = z
   `),
     z.literal('pricing_inquiry').describe(`
     The user has asked about pricing, costs, billing, or payment options.
-
+    
     Examples:
     • "How much does this service cost?"
     • "What's the pricing for the enterprise plan?"
@@ -22,7 +22,7 @@ export const salesSignalType = z
   `),
     z.literal('enterprise_features').describe(`
     The user has inquired about enterprise-specific features, capabilities, or requirements.
-
+    
     Examples:
     • "Do you support SSO integration?"
     • "What security certifications do you have?"
@@ -31,7 +31,7 @@ export const salesSignalType = z
   `),
     z.literal('upgrade_inquiry').describe(`
     The user has asked about upgrading their current plan or moving to a higher tier.
-
+    
     Examples:
     • "How do I upgrade to the Pro plan?"
     • "What's involved in moving from Basic to Enterprise?"
@@ -52,7 +52,7 @@ export const salesSignalType = z
       .literal('comparison_competitive')
       .describe(`
     The user is comparing the product with competitors or alternatives.
-
+    
     Examples:
     • "How do you compare to [Competitor]?"
     • "What makes your solution better than [Alternative]?"
@@ -61,7 +61,7 @@ export const salesSignalType = z
   `),
     z.literal('trial_demo_request').describe(`
     The user has requested a product demo or trial.
-
+    
     Examples:
     • "Can I get a demo of your product?"
     • "How do I sign up for a trial?"

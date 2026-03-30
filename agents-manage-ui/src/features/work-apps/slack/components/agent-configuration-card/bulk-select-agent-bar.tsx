@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown, Loader2, RotateCcw, X } from 'lucide-react';
-import { type FC, useState } from 'react';
+import { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -25,7 +25,7 @@ interface BulkSelectAgentBarProps {
   onClearSelection: () => void;
 }
 
-export const BulkSelectAgentBar: FC<BulkSelectAgentBarProps> = ({
+export const BulkSelectAgentBar = memo(function BulkSelectAgentBar({
   selectedCount,
   agents,
   bulkSaving,
@@ -33,7 +33,7 @@ export const BulkSelectAgentBar: FC<BulkSelectAgentBarProps> = ({
   onBulkSetAgent,
   onBulkResetToDefault,
   onClearSelection,
-}) => {
+}: BulkSelectAgentBarProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   return (
@@ -104,4 +104,4 @@ export const BulkSelectAgentBar: FC<BulkSelectAgentBarProps> = ({
       </div>
     </div>
   );
-};
+});

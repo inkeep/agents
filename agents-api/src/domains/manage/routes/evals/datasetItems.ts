@@ -65,7 +65,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, datasetId }, 'Failed to list dataset items');
+      logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset items');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -121,7 +121,7 @@ app.openapi(
 
       return c.json({ data: item as any }) as any;
     } catch (error) {
-      logger.error({ error, itemId }, 'Failed to get dataset item');
+      logger.error({ error, tenantId, projectId, itemId }, 'Failed to get dataset item');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to get dataset item' }),
         500
@@ -175,10 +175,13 @@ app.openapi(
         datasetId,
       } as any);
 
-      logger.info({ datasetId, itemId: id }, 'Dataset item created');
+      logger.info({ tenantId, projectId, datasetId, itemId: id }, 'Dataset item created');
       return c.json({ data: created as any }, 201) as any;
     } catch (error) {
-      logger.error({ error, datasetId, itemData }, 'Failed to create dataset item');
+      logger.error(
+        { error, tenantId, projectId, datasetId, itemData },
+        'Failed to create dataset item'
+      );
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -236,7 +239,10 @@ app.openapi(
 
       const created = await createDatasetItems(db)(items as any);
 
-      logger.info({ datasetId, count: created.length }, 'Dataset items created');
+      logger.info(
+        { tenantId, projectId, datasetId, count: created.length },
+        'Dataset items created'
+      );
       return c.json(
         {
           data: created as any,
@@ -250,7 +256,7 @@ app.openapi(
         201
       ) as any;
     } catch (error) {
-      logger.error({ error, datasetId }, 'Failed to create dataset items');
+      logger.error({ error, tenantId, projectId, datasetId }, 'Failed to create dataset items');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -313,10 +319,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ itemId }, 'Dataset item updated');
+      logger.info({ tenantId, projectId, itemId }, 'Dataset item updated');
       return c.json({ data: updated as any }) as any;
     } catch (error) {
-      logger.error({ error, itemId }, 'Failed to update dataset item');
+      logger.error({ error, tenantId, projectId, itemId }, 'Failed to update dataset item');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to update dataset item' }),
         500
@@ -362,10 +368,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ itemId }, 'Dataset item deleted');
+      logger.info({ tenantId, projectId, itemId }, 'Dataset item deleted');
       return c.body(null, 204) as any;
     } catch (error) {
-      logger.error({ error, itemId }, 'Failed to delete dataset item');
+      logger.error({ error, tenantId, projectId, itemId }, 'Failed to delete dataset item');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to delete dataset item' }),
         500

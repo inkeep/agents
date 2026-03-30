@@ -5,7 +5,6 @@
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "knip": "knip --directory .. --workspace agents-ui-demo --dependencies",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "biome lint --error-on-warnings",
@@ -16,7 +15,8 @@
     "test": "echo 'No tests configured for chat-widget'"
   },
   "dependencies": {
-    "@inkeep/agents-ui": "^0.15.30",
+    "@inkeep/agents-ui": "^0.15.18",
+    "lucide-react": "^0.539.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

@@ -3,10 +3,7 @@
 !/**/*.ts
 !/**/*.js
 !/**/*.mjs
-!/package.json
-!/jsr.json
-!/dist/**/*.json
-!/esm/**/*.json
+!/**/*.json
 !/**/*.map
 
 /eslint.config.mjs

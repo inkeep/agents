@@ -12,7 +12,6 @@ import type {
   ToolApiSelect,
 } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import type { SkillData } from '../agents/types';
 import { generateDescriptionWithRelationData } from '../data/agents';
 
 const logger = getLogger('project-helper');
@@ -94,7 +93,7 @@ export type TeamRelation = {
   targetAgent: {
     id: string;
     name: string;
-    description?: string | null;
+    description: string | null;
   };
   targetAgentId: string;
   headers?: Record<string, string> | null;
@@ -131,7 +130,7 @@ export function extractTransferRelations(params: {
       }
       return null;
     })
-    .filter((r) => !!r);
+    .filter((r): r is NonNullable<typeof r> => r !== null);
 }
 
 /**
@@ -278,7 +277,7 @@ export function getToolsForSubAgent(params: {
         relationshipId: canUseItem.agentToolRelationId,
       };
     })
-    .filter((item) => !!item);
+    .filter((item): item is ToolForAgent => item !== null);
 }
 
 // Types for data/artifact components - using types from @inkeep/agents-core
@@ -319,25 +318,10 @@ interface SubAgentWithSkills extends FullAgentSubAgentSelectWithRelationIds {
   skills?: Array<SubAgentSkillWithIndex>;
 }
 
-interface ProjectWithSkills extends FullProjectSelectWithRelationIds {
-  skills?: Record<
-    string,
-    {
-      files?: NonNullable<SkillData['files']>;
-    }
-  >;
-}
-
 export function getSkillsForSubAgent(params: {
-  project: ProjectWithSkills;
   subAgent: SubAgentWithSkills;
-}): SkillData[] {
-  const projectSkills = params.project.skills ?? {};
-
-  return (params.subAgent.skills ?? []).map((skill) => ({
-    ...skill,
-    files: projectSkills[skill.id]?.files ?? [],
-  }));
+}): SubAgentSkillWithIndex[] {
+  return params.subAgent.skills ?? [];
 }
 
 // Types for target sub-agent relation lookups
@@ -378,7 +362,7 @@ export function getTransferRelationsForTargetSubAgent(params: {
           }
         : null;
     })
-    .filter((r) => !!r);
+    .filter((r): r is TargetTransferRelation => r !== null);
 }
 
 /**
@@ -413,7 +397,7 @@ export function getExternalAgentRelationsForTargetSubAgent(params: {
           }
         : null;
     })
-    .filter((r) => !!r);
+    .filter((r): r is NonNullable<typeof r> => r !== null);
 }
 
 // Types for description enhancement
@@ -431,7 +415,7 @@ export type ExternalRelationForDescription = {
 };
 
 export type TeamRelationForDescription = {
-  targetAgent: { id: string; name: string; description?: string | null };
+  targetAgent: { id: string; name: string; description: string | null };
   targetAgentId: string;
   relationId: string;
 };
@@ -470,7 +454,7 @@ export function buildRelationsForDescription(params: {
           }
         : null;
     })
-    .filter((r) => !!r);
+    .filter((r): r is NonNullable<typeof r> => r !== null);
 
   // Build external and team relations from canDelegateTo
   const externalRelations: ExternalRelationForDescription[] = [];

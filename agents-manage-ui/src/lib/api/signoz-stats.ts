@@ -1,3 +1,5 @@
+import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import { z } from 'zod';
 import {
   AI_OPERATIONS,
@@ -17,7 +19,6 @@ import {
   UNKNOWN_VALUE,
   USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
-import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 
 // ---------- String Constants for Type Safety
 
@@ -224,6 +225,11 @@ const datesRange = (startMs: number, endMs: number) => {
 
 // ---------- Client
 
+axiosRetry(axios, {
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay,
+});
+
 const CRITICAL_ERROR_SPAN_NAMES = [
   'execution_handler.execute',
   'agent.load_tools',
@@ -256,21 +262,21 @@ class SigNozStatsAPI {
       ...(projectId && { projectId }),
     };
 
-    const response = await fetchWithRetry(`/api/traces?tenantId=${this.tenantId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestPayload),
-      credentials: 'include',
+    const response = await axios.post<T>(`/api/traces?tenantId=${this.tenantId}`, requestPayload, {
       timeout: 30000,
-      maxAttempts: 3,
-      label: 'signoz-stats-query',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
-    }
-
-    return response.json() as Promise<T>;
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+      'axios-retry': {
+        retries: 3,
+        retryDelay: axiosRetry.exponentialDelay,
+        retryCondition: (error: import('axios').AxiosError) =>
+          axiosRetry.isNetworkError(error) ||
+          (error.response !== undefined && error.response.status >= 500),
+      },
+    } as any);
+    return response.data;
   }
 
   private async makePipelineRequest(
@@ -281,21 +287,23 @@ class SigNozStatsAPI {
       throw new Error('TenantId not set. Call setTenantId() before making requests.');
     }
 
-    const response = await fetchWithRetry(`/api/traces?tenantId=${this.tenantId}&mode=batch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paginationPayload, detailPayloadTemplate }),
-      credentials: 'include',
-      timeout: 60000,
-      maxAttempts: 3,
-      label: 'signoz-stats-batch-query',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
-    }
-
-    return response.json();
+    const response = await axios.post(
+      `/api/traces?tenantId=${this.tenantId}&mode=batch`,
+      { paginationPayload, detailPayloadTemplate },
+      {
+        timeout: 60000,
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true,
+        'axios-retry': {
+          retries: 3,
+          retryDelay: axiosRetry.exponentialDelay,
+          retryCondition: (error: import('axios').AxiosError) =>
+            axiosRetry.isNetworkError(error) ||
+            (error.response !== undefined && error.response.status >= 500),
+        },
+      } as any
+    );
+    return response.data;
   }
 
   // --- Helpers to read SigNoz response
@@ -2589,7 +2597,7 @@ class SigNozStatsAPI {
   async getUsageCostSummary(
     startTime: number,
     endTime: number,
-    groupBy: 'model' | 'agent' | 'generation_type' | 'conversation' | 'provider',
+    groupBy: 'model' | 'agent' | 'generation_type' | 'conversation',
     projectId?: string
   ): Promise<
     Array<{
@@ -2621,9 +2629,7 @@ class SigNozStatsAPI {
               ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
               : groupBy === 'conversation'
                 ? SPAN_KEYS.CONVERSATION_ID
-                : groupBy === 'provider'
-                  ? SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER
-                  : 'timestamp';
+                : 'timestamp';
 
       const stats = new Map<
         string,
@@ -2752,7 +2758,6 @@ class SigNozStatsAPI {
                   sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attrCtx),
                   sf(SPAN_KEYS.AI_MODEL_ID, str, attrCtx),
                   sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attrCtx),
-                  sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attrCtx),
                   sf(SPAN_KEYS.AGENT_ID, str, attrCtx),
                   sf(SPAN_KEYS.SUB_AGENT_ID, str, attrCtx),
                   sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attrCtx),
@@ -2796,7 +2801,7 @@ class SigNozStatsAPI {
           timestamp: ts,
           generationType: d[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE] || 'unknown',
           model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
-          provider: d[SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER] || d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
+          provider: d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
           agentId: d[SPAN_KEYS.AGENT_ID] || '',
           subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
           conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
@@ -2811,84 +2816,6 @@ class SigNozStatsAPI {
     } catch (e) {
       console.error('getUsageEventsList error:', e);
       return [];
-    }
-  }
-
-  async getUsageCostPerDay(
-    startTime: number,
-    endTime: number,
-    projectId?: string
-  ): Promise<Array<{ date: string; cost: number }>> {
-    try {
-      const filterItems = buildScopedFilterItems('all-usage', projectId);
-
-      const traceIdGroupBy = [
-        {
-          name: SPAN_KEYS.TRACE_ID,
-          fieldDataType: FIELD_DATA_TYPES.STRING,
-          fieldContext: FIELD_CONTEXTS.SPAN,
-        },
-      ];
-
-      const makeQuery = (name: string, expression: string) => ({
-        type: QUERY_TYPES.BUILDER_QUERY,
-        spec: {
-          name,
-          signal: SIGNALS.TRACES,
-          aggregations: [{ expression }],
-          filter: { expression: buildFilterExpression(filterItems) },
-          groupBy: traceIdGroupBy,
-          order: [],
-          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-          limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          disabled: QUERY_DEFAULTS.DISABLED,
-        },
-      });
-
-      const payload = {
-        start: startTime,
-        end: endTime,
-        requestType: REQUEST_TYPES.SCALAR,
-        ...(projectId && { projectId }),
-        compositeQuery: {
-          queries: [
-            makeQuery('costByTrace', `sum(${SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD})`),
-            makeQuery('timestampByTrace', `min(${SPAN_KEYS.TIMESTAMP})`),
-          ],
-        },
-      };
-
-      const resp = await this.makeRequest(payload, projectId);
-      const costSeries = this.extractSeries(resp, 'costByTrace');
-      const tsSeries = this.extractSeries(resp, 'timestampByTrace');
-
-      const tsByTraceId = new Map<string, number>();
-      for (const s of tsSeries) {
-        const id = s.labels?.[SPAN_KEYS.TRACE_ID];
-        if (!id) continue;
-        const ms = timestampMsFromSeries(s);
-        if (ms) tsByTraceId.set(id, ms);
-      }
-
-      const buckets = new Map<string, number>();
-      for (const s of costSeries) {
-        const id = s.labels?.[SPAN_KEYS.TRACE_ID];
-        if (!id) continue;
-        const ms = tsByTraceId.get(id);
-        if (!ms) continue;
-        const cost = numberFromSeries(s);
-        const d = new Date(ms);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        buckets.set(key, (buckets.get(key) ?? 0) + cost);
-      }
-
-      return datesRange(startTime, endTime).map((date) => ({
-        date,
-        cost: buckets.get(date) ?? 0,
-      }));
-    } catch (e) {
-      console.error('getUsageCostPerDay error:', { startTime, endTime, projectId, error: e });
-      return datesRange(startTime, endTime).map((date) => ({ date, cost: 0 }));
     }
   }
 
@@ -2916,9 +2843,7 @@ class SigNozStatsAPI {
             ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
             : groupBy === 'conversation'
               ? SPAN_KEYS.CONVERSATION_ID
-              : groupBy === 'provider'
-                ? SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER
-                : SPAN_KEYS.TIMESTAMP;
+              : SPAN_KEYS.TIMESTAMP;
 
     const groupByFieldContext = FIELD_CONTEXTS.ATTRIBUTE;
 

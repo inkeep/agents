@@ -1,8 +1,7 @@
 'use client';
 
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { AlertCircle, ArrowUpRight, Check, Copy, Mail } from 'lucide-react';
-import Link from 'next/link';
+import { AlertCircle, Check, Copy, Mail } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -33,7 +32,6 @@ interface InvitationResult {
   status: 'success' | 'error';
   link?: string;
   error?: string;
-  errorCode?: string;
   emailSent?: boolean;
   emailError?: string;
 }
@@ -109,7 +107,6 @@ export function InviteMemberDialog({
             email,
             status: 'error',
             error: result.error.message || 'Failed to add member',
-            errorCode: result.error.code,
           });
         } else if ('data' in result && result.data && 'id' in result.data) {
           const invitationId = result.data.id;
@@ -306,21 +303,6 @@ export function InviteMemberDialog({
                   {result.status === 'error' && result.error && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-2 ml-6">
                       {result.error}
-                      {result.errorCode === 'ENTITLEMENT_LIMIT_REACHED' && isOrgAdmin && (
-                        <>
-                          {'. '}
-                          <Link
-                            href={`/${organizationId}/billing`}
-                            className="inline-flex items-center gap-0.5 underline hover:text-red-700 dark:hover:text-red-300"
-                          >
-                            See usage
-                            <ArrowUpRight className="h-3 w-3" />
-                          </Link>
-                        </>
-                      )}
-                      {result.errorCode === 'ENTITLEMENT_LIMIT_REACHED' && !isOrgAdmin && (
-                        <>. Contact your organization admin.</>
-                      )}
                     </p>
                   )}
                 </div>

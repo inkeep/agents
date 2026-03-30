@@ -14,7 +14,6 @@ generation:
     securityFeb2025: true
     sharedErrorComponentsApr2025: true
     sharedNestedComponentsJan2026: true
-    nameOverrideFeb2026: false
   auth:
     oAuth2ClientCredentialsEnabled: true
     oAuth2PasswordEnabled: true
@@ -24,7 +23,6 @@ generation:
   schemas:
     allOfMergeStrategy: shallowMerge
   requestBodyFieldName: body
-  versioningStrategy: automatic
   persistentEdits:
     enabled: "true"
   tests:
@@ -32,7 +30,7 @@ generation:
     generateNewTests: true
     skipResponseBodyAssertions: false
 mcp-typescript:
-  version: 0.0.2
+  version: 0.0.1
   additionalDependencies:
     dependencies: {}
     devDependencies: {}
@@ -43,7 +41,6 @@ mcp-typescript:
   cloudflareEnabled: false
   defaultErrorName: InkeepAgentsDefaultError
   envVarPrefix: INKEEPAGENTS
-  fixEnumNameSanitization: false
   formStringArrayEncodeMode: array
   gramEnabled: false
   inferUnionDiscriminators: true
@@ -53,4 +50,3 @@ mcp-typescript:
   outputModelSuffix: output
   packageName: '@inkeep/agents-mcp'
   responseFormat: envelope
-  validateResponse: false

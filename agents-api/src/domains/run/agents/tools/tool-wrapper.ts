@@ -1,42 +1,15 @@
-import {
-  createMessage,
-  DELEGATE_TOOL_PREFIX,
-  DURABLE_APPROVAL_ARTIFACT_TYPE,
-  generateId,
-  LOAD_SKILL_TOOL,
-  parseEmbeddedJson,
-  SAVE_TOOL_RESULT_TOOL,
-  SESSION_EVENT_TOOL_CALL,
-  SESSION_EVENT_TOOL_RESULT,
-  TRANSFER_TOOL_PREFIX,
-  unwrapError,
-} from '@inkeep/agents-core';
+import { createMessage, generateId, parseEmbeddedJson, unwrapError } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
-import { stripBinaryDataForObservability } from '../../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
-import { stripInternalFields } from '../../utils/select-filter';
 import { isToolResultDenied } from '../../utils/tool-result';
 import type { AgentRunContext, AiSdkToolDefinition, ToolType } from '../agent-types';
 import { buildToolResultForConversationHistory } from '../generation/tool-result-for-conversation-history';
 import { buildToolResultForModelInput } from '../generation/tool-result-for-model-input';
 import { getRelationshipIdForTool } from './tool-utils';
-
-interface DurableApprovalData {
-  type: string;
-  toolCallId: string;
-  toolName: string;
-  args: unknown;
-  delegatedApproval?: {
-    toolCallId: string;
-    toolName: string;
-    args: unknown;
-    subAgentId: string;
-  };
-}
 
 const logger = getLogger('Agent');
 
@@ -88,12 +61,7 @@ export function wrapToolWithStreaming(
   toolDefinition: ToolSet[string],
   streamRequestId?: string,
   toolType?: ToolType,
-  options?: {
-    needsApproval?: boolean;
-    mcpServerId?: string;
-    mcpServerName?: string;
-    skipArtifactCreation?: boolean;
-  }
+  options?: { needsApproval?: boolean; mcpServerId?: string; mcpServerName?: string }
 ): ToolSet[string] {
   if (
     !toolDefinition ||
@@ -135,54 +103,34 @@ export function wrapToolWithStreaming(
       }
 
       const isInternalTool =
-        toolName.includes(SAVE_TOOL_RESULT_TOOL) || toolName.startsWith(TRANSFER_TOOL_PREFIX);
-      const hideToolFromUiStream =
-        isInternalTool ||
-        toolName.startsWith(DELEGATE_TOOL_PREFIX) ||
-        toolName === LOAD_SKILL_TOOL ||
-        toolName === 'get_reference_artifact';
-      const hideToolFromTraceEvents =
-        isInternalTool || toolName.startsWith(DELEGATE_TOOL_PREFIX) || toolName === LOAD_SKILL_TOOL;
-
-      // In durable workflows, delegate_to_ tool results must be stored in
-      // conversation history so the next callLlmStep sees the delegation outcome
-      // and doesn't re-delegate in a loop.
-      const isDurableDelegation =
-        !!ctx.durableWorkflowRunId && toolName.startsWith(DELEGATE_TOOL_PREFIX);
-      const hideToolFromConversationHistory = hideToolFromTraceEvents && !isDurableDelegation;
+        toolName.includes('save_tool_result') || toolName.startsWith('transfer_to_');
+      const isInternalToolForUi =
+        isInternalTool || toolName.startsWith('delegate_to_') || toolName === 'load_skill';
 
       const needsApproval = options?.needsApproval || false;
 
-      const preApprovedEntry = ctx.durableWorkflowRunId
-        ? ctx.approvedToolCalls?.[toolCallId]
-        : undefined;
-      const isPreApproved = !!preApprovedEntry;
-
-      if (streamRequestId && streamHelper && !hideToolFromUiStream && !isPreApproved) {
+      if (streamRequestId && streamHelper && !isInternalToolForUi) {
         const inputText = JSON.stringify(args ?? {});
 
-        await streamHelper.writeToolInputStart({ toolCallId: toolCallId, toolName });
+        await streamHelper.writeToolInputStart({ toolCallId, toolName });
 
         for (const part of chunkString(inputText, 16)) {
-          await streamHelper.writeToolInputDelta({
-            toolCallId: toolCallId,
-            inputTextDelta: part,
-          });
+          await streamHelper.writeToolInputDelta({ toolCallId, inputTextDelta: part });
         }
 
         await streamHelper.writeToolInputAvailable({
-          toolCallId: toolCallId,
+          toolCallId,
           toolName,
           input: args ?? {},
           providerMetadata: context?.providerMetadata,
         });
       }
 
-      if (streamRequestId && !hideToolFromTraceEvents) {
+      if (streamRequestId && !isInternalToolForUi) {
         const toolCallData: ToolCallData = {
           toolName,
           input: args,
-          toolCallId: toolCallId,
+          toolCallId,
           relationshipId,
           inDelegatedAgent: ctx.isDelegatedAgent,
         };
@@ -194,7 +142,7 @@ export function wrapToolWithStreaming(
 
         await agentSessionManager.recordEvent(
           streamRequestId,
-          SESSION_EVENT_TOOL_CALL,
+          'tool_call',
           ctx.config.id,
           toolCallData
         );
@@ -209,121 +157,28 @@ export function wrapToolWithStreaming(
           ? await artifactParser.resolveArgs(parsedArgsForResolution)
           : args;
 
-        const aiToolDef = toolDefinition as AiSdkToolDefinition;
-        const validationSchema = aiToolDef.baseInputSchema ?? aiToolDef.parameters;
-        const resolvedChanged =
-          JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
-
-        if (artifactParser && validationSchema?.safeParse && resolvedChanged) {
-          const validation = validationSchema.safeParse(resolvedArgs);
-          if (!validation.success) {
-            const mismatchDetails =
-              resolvedArgs && typeof resolvedArgs === 'object' && !Array.isArray(resolvedArgs)
-                ? Object.entries(resolvedArgs as Record<string, unknown>)
-                    .map(([key, val]) => {
-                      const actualType =
-                        val === null ? 'null' : Array.isArray(val) ? 'array' : typeof val;
-                      return `"${key}" resolved to ${actualType}`;
-                    })
-                    .join(', ')
-                : `resolved to ${Array.isArray(resolvedArgs) ? 'array' : typeof resolvedArgs}`;
-            throw new Error(
-              `Tool chaining $select resolved to the wrong type for '${toolName}'. ` +
-                `${mismatchDetails}. ${validation.error.message}. ` +
-                `Your $select expression likely returns an object or array where the tool expects a primitive (string/number/boolean). ` +
-                `Drill deeper in your $select path — e.g. add ".text", ".name", or ".id" to extract the specific field. ` +
-                `Check _structureHints.terminalPaths in the source tool result for leaf fields.`
-            );
+        const parameters = (toolDefinition as AiSdkToolDefinition).parameters;
+        if (artifactParser && parameters?.safeParse) {
+          const resolvedChanged =
+            JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
+          if (resolvedChanged) {
+            const validation = parameters.safeParse(resolvedArgs);
+            if (!validation.success) {
+              throw new Error(
+                `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
+              );
+            }
           }
         }
 
         const result = await originalExecute(resolvedArgs, context);
         const duration = Date.now() - startTime;
 
-        if (ctx.durableWorkflowRunId && result && typeof result === 'object') {
-          const resultObj = result as Record<string, unknown>;
-          const taskResult = resultObj?.result as Record<string, unknown> | undefined;
-
-          const findApprovalRequired = (
-            parts: Array<Record<string, unknown>> | undefined
-          ): Record<string, unknown> | undefined => {
-            if (!Array.isArray(parts)) return undefined;
-            for (const part of parts) {
-              if (part?.kind === 'data') {
-                const data = part.data as Record<string, unknown> | undefined;
-                if (data?.type === DURABLE_APPROVAL_ARTIFACT_TYPE) return data;
-              }
-            }
-            return undefined;
-          };
-
-          const findApprovalInArtifacts = (
-            artifacts: Array<Record<string, unknown>> | undefined
-          ): Record<string, unknown> | undefined => {
-            if (!Array.isArray(artifacts)) return undefined;
-            for (const artifact of artifacts) {
-              const found = findApprovalRequired(
-                artifact?.parts as Array<Record<string, unknown>> | undefined
-              );
-              if (found) return found;
-            }
-            return undefined;
-          };
-
-          const approvalDataRaw =
-            findApprovalRequired(taskResult?.parts as Array<Record<string, unknown>> | undefined) ??
-            findApprovalInArtifacts(
-              taskResult?.artifacts as Array<Record<string, unknown>> | undefined
-            );
-
-          if (approvalDataRaw) {
-            const approvalData = approvalDataRaw as unknown as DurableApprovalData;
-            const delegatedToolCallId = approvalData.toolCallId;
-            const delegatedToolName = approvalData.toolName;
-
-            if (typeof delegatedToolCallId !== 'string' || !delegatedToolCallId) {
-              logger.error(
-                { approvalData, parentToolName: toolName },
-                'Malformed durable-approval-required artifact: invalid toolCallId'
-              );
-              return result;
-            }
-            if (typeof delegatedToolName !== 'string' || !delegatedToolName) {
-              logger.error(
-                { approvalData, parentToolName: toolName },
-                'Malformed durable-approval-required artifact: invalid toolName'
-              );
-              return result;
-            }
-
-            ctx.pendingDurableApproval = {
-              toolCallId: toolCallId,
-              toolName,
-              args: resolvedArgs,
-              delegatedApproval: {
-                toolCallId: delegatedToolCallId,
-                toolName: delegatedToolName,
-                args: approvalData.args,
-                subAgentId: toolName.replace(DELEGATE_TOOL_PREFIX, ''),
-              },
-            };
-            return result;
-          }
-        }
-
-        if (ctx.pendingDurableApproval) {
-          return result;
-        }
-
         const toolResultConversationId = ctx.conversationId;
 
-        if (streamRequestId && !hideToolFromConversationHistory && toolResultConversationId) {
+        if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
           try {
-            const session = agentSessionManager.getSession(streamRequestId);
             const messageId = generateId();
-            const taskId = session
-              ? `task_${toolResultConversationId}-${session.messageId}`
-              : `tool_result_${messageId}`;
             const messageContent = await buildToolResultForConversationHistory(
               ctx,
               toolName,
@@ -331,16 +186,13 @@ export function wrapToolWithStreaming(
               result,
               toolCallId,
               toolResultConversationId,
-              messageId,
-              taskId,
-              { skipArtifactCreation: options?.skipArtifactCreation }
+              messageId
             );
             await createMessage(runDbClient)({
               scopes: { tenantId: ctx.config.tenantId, projectId: ctx.config.projectId },
               data: {
                 id: messageId,
                 conversationId: toolResultConversationId,
-                taskId,
                 role: 'assistant',
                 content: messageContent,
                 visibility: 'internal',
@@ -349,9 +201,9 @@ export function wrapToolWithStreaming(
                 metadata: {
                   a2a_metadata: {
                     toolName,
-                    toolCallId: toolCallId,
+                    toolCallId,
                     toolArgs: args,
-                    toolOutput: stripBinaryDataForObservability(result),
+                    toolOutput: result,
                     timestamp: Date.now(),
                     delegationId: ctx.delegationId,
                     isDelegated: ctx.isDelegatedAgent,
@@ -361,44 +213,31 @@ export function wrapToolWithStreaming(
             });
           } catch (error) {
             logger.warn(
-              {
-                error,
-                toolName,
-                toolCallId: toolCallId,
-                conversationId: toolResultConversationId,
-              },
+              { error, toolName, toolCallId, conversationId: toolResultConversationId },
               'Failed to store tool result in conversation history'
             );
           }
         }
 
-        if (streamRequestId && !hideToolFromTraceEvents) {
-          agentSessionManager.recordEvent(
-            streamRequestId,
-            SESSION_EVENT_TOOL_RESULT,
-            ctx.config.id,
-            {
-              toolName,
-              output: stripBinaryDataForObservability(stripInternalFields(result)),
-              toolCallId: toolCallId,
-              duration,
-              relationshipId,
-              needsApproval,
-              inDelegatedAgent: ctx.isDelegatedAgent,
-            }
-          );
+        if (streamRequestId && !isInternalToolForUi) {
+          agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
+            toolName,
+            output: result,
+            toolCallId,
+            duration,
+            relationshipId,
+            needsApproval,
+            inDelegatedAgent: ctx.isDelegatedAgent,
+          });
         }
 
         const isDeniedResult = isToolResultDenied(result);
 
-        if (streamRequestId && streamHelper && !hideToolFromUiStream) {
+        if (streamRequestId && streamHelper && !isInternalToolForUi) {
           if (isDeniedResult) {
-            await streamHelper.writeToolOutputDenied({ toolCallId: toolCallId });
+            await streamHelper.writeToolOutputDenied({ toolCallId });
           } else {
-            await streamHelper.writeToolOutputAvailable({
-              toolCallId: toolCallId,
-              output: result,
-            });
+            await streamHelper.writeToolOutputAvailable({ toolCallId, output: result });
           }
         }
 
@@ -412,29 +251,21 @@ export function wrapToolWithStreaming(
         const rootCause = unwrapError(error);
         const errorMessage = rootCause.message;
 
-        if (streamRequestId && !hideToolFromTraceEvents) {
-          agentSessionManager.recordEvent(
-            streamRequestId,
-            SESSION_EVENT_TOOL_RESULT,
-            ctx.config.id,
-            {
-              toolName,
-              output: null,
-              toolCallId: toolCallId,
-              duration,
-              error: errorMessage,
-              relationshipId,
-              needsApproval,
-              inDelegatedAgent: ctx.isDelegatedAgent,
-            }
-          );
+        if (streamRequestId && !isInternalToolForUi) {
+          agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
+            toolName,
+            output: null,
+            toolCallId,
+            duration,
+            error: errorMessage,
+            relationshipId,
+            needsApproval,
+            inDelegatedAgent: ctx.isDelegatedAgent,
+          });
         }
 
-        if (streamRequestId && streamHelper && !hideToolFromUiStream) {
-          await streamHelper.writeToolOutputError({
-            toolCallId: toolCallId,
-            errorText: errorMessage,
-          });
+        if (streamRequestId && streamHelper && !isInternalToolForUi) {
+          await streamHelper.writeToolOutputError({ toolCallId, errorText: errorMessage });
         }
 
         throw rootCause;

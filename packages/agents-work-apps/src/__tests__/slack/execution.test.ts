@@ -1,4 +1,3 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockStreamAgentResponse = vi.fn();
@@ -7,7 +6,14 @@ vi.mock('../../slack/services/events/streaming', () => ({
   streamAgentResponse: (...args: unknown[]) => mockStreamAgentResponse(...args),
 }));
 
-vi.mock('../../logger', () => createMockLoggerModule().module);
+vi.mock('../../logger', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 import { executeAgentPublicly } from '../../slack/services/events/execution';
 

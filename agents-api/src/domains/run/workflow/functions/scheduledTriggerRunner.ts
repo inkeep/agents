@@ -1,75 +1,160 @@
 /**
- * One-shot workflow for executing a single scheduled trigger invocation.
+ * Workflow for running scheduled triggers using daisy-chaining.
  *
- * Dispatched by the trigger dispatcher. Each invocation is independent:
- * 1. Checks if the trigger is still enabled
- * 2. Creates an invocation record (idempotent)
- * 3. Executes the agent with retries
- * 4. Marks completed or failed
+ * Each run executes a single iteration:
+ * 1. Checks if the trigger is still enabled (with adoption for chained runs)
+ * 2. Gets or creates the next pending invocation
+ * 3. Sleeps until its scheduled time
+ * 4. Executes the agent with retries
+ * 5. For cron triggers, starts a fresh workflow for the next iteration (daisy-chain)
  *
  */
 
+import {
+  getProjectScopedRef,
+  getScheduledWorkflowByTriggerId,
+  resolveRef,
+  updateScheduledWorkflowRunId,
+  withRef,
+} from '@inkeep/agents-core';
 import { getWorkflowMetadata, sleep } from 'workflow';
+import { start } from 'workflow/api';
+import { manageDbClient } from '../../../../data/db';
+import manageDbPool from '../../../../data/db/manageDbPool';
+import { getLogger } from '../../../../logger';
 import {
   addConversationIdStep,
+  calculateNextExecutionStep,
   checkInvocationCancelledStep,
   checkTriggerEnabledStep,
+  computeSleepDurationStep,
   createInvocationIdempotentStep,
-  disableOneTimeTriggerStep,
   executeScheduledTriggerStep,
+  getNextPendingInvocationStep,
   incrementAttemptStep,
   logStep,
   markCompletedStep,
   markFailedStep,
   markRunningStep,
+  resetInvocationToPendingStep,
 } from '../steps/scheduledTriggerSteps';
 
-export type TriggerPayload = {
+const logger = getLogger('workflow-scheduled-trigger-runner');
+
+export type ScheduledTriggerRunnerPayload = {
   tenantId: string;
   projectId: string;
   agentId: string;
   scheduledTriggerId: string;
-  scheduledFor: string;
-  ref: string;
-  runAsUserId?: string;
-  delayBeforeExecutionMs?: number;
+  lastScheduledFor?: string | null;
+  parentRunId?: string | null;
 };
 
-function generateIdempotencyKey(
-  scheduledTriggerId: string,
-  scheduledFor: string,
-  userId?: string
-): string {
-  if (userId) {
-    return `sched_${scheduledTriggerId}_${userId}_${scheduledFor}`;
-  }
+/**
+ * Generate idempotency key for a scheduled execution.
+ */
+function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string): string {
   return `sched_${scheduledTriggerId}_${scheduledFor}`;
 }
 
-async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
+async function startNextIterationStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  lastScheduledFor: string;
+  currentRunId: string;
+}): Promise<string> {
+  'use step';
+
+  const newPayload: ScheduledTriggerRunnerPayload = {
+    tenantId: params.tenantId,
+    projectId: params.projectId,
+    agentId: params.agentId,
+    scheduledTriggerId: params.scheduledTriggerId,
+    lastScheduledFor: params.lastScheduledFor,
+    parentRunId: params.currentRunId,
+  };
+
+  const run = await start(scheduledTriggerRunnerWorkflow, [newPayload]);
+
+  const scopes = {
+    tenantId: params.tenantId,
+    projectId: params.projectId,
+    agentId: params.agentId,
+  };
+  const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
+  const resolvedRef = await resolveRef(manageDbClient)(ref);
+
+  if (resolvedRef) {
+    await withRef(manageDbPool, resolvedRef, async (db) => {
+      const workflow = await getScheduledWorkflowByTriggerId(db)({
+        scopes,
+        scheduledTriggerId: params.scheduledTriggerId,
+      });
+      if (workflow) {
+        await updateScheduledWorkflowRunId(db)({
+          scopes,
+          scheduledWorkflowId: workflow.id,
+          workflowRunId: run.runId,
+          status: 'running',
+        });
+      } else {
+        logger.warn(
+          {
+            scheduledTriggerId: params.scheduledTriggerId,
+            childRunId: run.runId,
+          },
+          'Scheduled workflow record not found — child workflow untrackable'
+        );
+      }
+    });
+  } else {
+    // Child is already running (start() succeeded above) but we can't update
+    // the DB with its runId. The child's adoption path will recover.
+    logger.warn(
+      {
+        scheduledTriggerId: params.scheduledTriggerId,
+        childRunId: run.runId,
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+      },
+      'Failed to resolve ref after chaining — child will self-adopt via parentRunId'
+    );
+  }
+
+  logger.info(
+    {
+      scheduledTriggerId: params.scheduledTriggerId,
+      parentRunId: params.currentRunId,
+      childRunId: run.runId,
+    },
+    'Chained to next scheduled trigger workflow iteration'
+  );
+
+  return run.runId;
+}
+
+/**
+ * Main workflow function - runs a single iteration of a scheduled trigger.
+ * For cron triggers, chains to a fresh workflow run for the next iteration.
+ * For one-time triggers, it executes once and completes.
+ */
+async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPayload) {
   'use workflow';
 
-  const {
-    tenantId,
-    projectId,
-    agentId,
-    scheduledTriggerId,
-    scheduledFor,
-    ref,
-    runAsUserId: payloadRunAsUserId,
-    delayBeforeExecutionMs,
-  } = payload;
+  const { tenantId, projectId, agentId, scheduledTriggerId, lastScheduledFor, parentRunId } =
+    payload;
   const metadata = getWorkflowMetadata();
   const runnerId = metadata.workflowRunId;
 
-  await logStep('Starting scheduled trigger workflow', {
+  await logStep('Starting scheduled trigger runner workflow', {
     tenantId,
     projectId,
     agentId,
     scheduledTriggerId,
-    scheduledFor,
-    ref,
     runnerId,
+    parentRunId,
   });
 
   const enabledCheck = await checkTriggerEnabledStep({
@@ -78,46 +163,219 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
     agentId,
     scheduledTriggerId,
     runnerId,
+    parentRunId,
   });
 
   if (!enabledCheck.shouldContinue || !enabledCheck.trigger) {
+    await logStep('Scheduled trigger workflow stopping', {
+      scheduledTriggerId,
+      reason: enabledCheck.reason,
+    });
     return { status: 'stopped', reason: enabledCheck.reason };
   }
 
   const trigger = enabledCheck.trigger;
-  const resolvedRunAsUserId = payloadRunAsUserId ?? trigger.runAsUserId ?? undefined;
-
-  const idempotencyKey = generateIdempotencyKey(
-    scheduledTriggerId,
-    scheduledFor,
-    payloadRunAsUserId
-  );
-  const { invocation, alreadyExists } = await createInvocationIdempotentStep({
+  const isOneTime = !!trigger.runAt;
+  let invocation = await getNextPendingInvocationStep({
     tenantId,
     projectId,
     agentId,
     scheduledTriggerId,
-    scheduledFor,
-    payload: trigger.payload ?? null,
-    idempotencyKey,
-    ref,
-    runAsUserId: resolvedRunAsUserId,
   });
 
-  if (alreadyExists && invocation.status !== 'pending') {
-    return { status: 'already_executed', invocationId: invocation.id };
+  if (!invocation) {
+    let scheduledFor: string;
+
+    if (isOneTime) {
+      if (!trigger.runAt) {
+        await logStep('One-time trigger missing runAt', { scheduledTriggerId });
+        return { status: 'error', reason: 'one-time trigger missing runAt' };
+      }
+      scheduledFor = trigger.runAt;
+    } else if (trigger.cronExpression) {
+      const { nextExecutionTime } = await calculateNextExecutionStep({
+        cronExpression: trigger.cronExpression,
+        cronTimezone: trigger.cronTimezone,
+        lastScheduledFor: lastScheduledFor ?? null,
+      });
+      scheduledFor = nextExecutionTime;
+    } else {
+      await logStep('Trigger missing both cronExpression and runAt', { scheduledTriggerId });
+      return { status: 'error', reason: 'trigger missing cronExpression and runAt' };
+    }
+
+    const idempotencyKey = generateIdempotencyKey(scheduledTriggerId, scheduledFor);
+    const result = await createInvocationIdempotentStep({
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      scheduledFor,
+      payload: trigger.payload ?? null,
+      idempotencyKey,
+    });
+    invocation = result.invocation;
+
+    if (
+      isOneTime &&
+      result.alreadyExists &&
+      invocation.status !== 'pending' &&
+      invocation.status !== 'cancelled'
+    ) {
+      await logStep('One-time trigger already executed', {
+        scheduledTriggerId,
+        invocationId: invocation.id,
+        status: invocation.status,
+      });
+      return { status: 'already_executed', invocationId: invocation.id };
+    }
+
+    if (result.alreadyExists && invocation.status === 'cancelled') {
+      const scheduledTime = new Date(scheduledFor).getTime();
+      const now = Date.now();
+
+      if (scheduledTime > now) {
+        await logStep('Cancelled idempotent invocation still in future, resetting to pending', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          scheduledFor,
+        });
+        let resetResult: Awaited<ReturnType<typeof resetInvocationToPendingStep>> | undefined;
+        try {
+          resetResult = await resetInvocationToPendingStep({
+            tenantId,
+            projectId,
+            agentId,
+            scheduledTriggerId,
+            invocationId: invocation.id,
+          });
+        } catch (err) {
+          await logStep('Failed to reset cancelled invocation to pending', {
+            scheduledTriggerId,
+            invocationId: invocation.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          throw err;
+        }
+
+        if (!resetResult) {
+          await logStep('Reset skipped — invocation status changed concurrently, exiting', {
+            scheduledTriggerId,
+            invocationId: invocation.id,
+          });
+          return { status: 'skipped' as const, reason: 'concurrent_status_change' };
+        }
+        invocation = { ...invocation, status: 'pending' };
+      } else {
+        await logStep('Cancelled idempotent invocation in the past, skipping to next iteration', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          scheduledFor,
+        });
+
+        if (!isOneTime) {
+          try {
+            await startNextIterationStep({
+              tenantId,
+              projectId,
+              agentId,
+              scheduledTriggerId,
+              lastScheduledFor: scheduledFor,
+              currentRunId: runnerId,
+            });
+          } catch (err) {
+            await logStep('Failed to chain after cancelled idempotent invocation', {
+              scheduledTriggerId,
+              invocationId: invocation.id,
+              error: err instanceof Error ? err.message : String(err),
+            });
+            throw err;
+          }
+        }
+
+        return { status: 'skipped_cancelled', invocationId: invocation.id };
+      }
+    }
   }
 
-  if (delayBeforeExecutionMs && delayBeforeExecutionMs > 0) {
-    await sleep(delayBeforeExecutionMs);
+  await logStep('Got next pending invocation', {
+    scheduledTriggerId,
+    invocationId: invocation.id,
+    scheduledFor: invocation.scheduledFor,
+  });
+
+  const sleepMs = await computeSleepDurationStep(invocation.scheduledFor);
+
+  await logStep('Sleeping until scheduled time', {
+    scheduledTriggerId,
+    invocationId: invocation.id,
+    scheduledFor: invocation.scheduledFor,
+    sleepMs,
+  });
+
+  await sleep(sleepMs);
+
+  const postSleepCheck = await checkTriggerEnabledStep({
+    tenantId,
+    projectId,
+    agentId,
+    scheduledTriggerId,
+    runnerId,
+  });
+
+  if (!postSleepCheck.shouldContinue || !postSleepCheck.trigger) {
+    await logStep('Trigger disabled/deleted during sleep, stopping', {
+      scheduledTriggerId,
+      reason: postSleepCheck.reason,
+    });
+    return { status: 'stopped', reason: postSleepCheck.reason };
+  }
+
+  const currentTrigger = postSleepCheck.trigger;
+
+  const cancelCheck = await checkInvocationCancelledStep({
+    tenantId,
+    projectId,
+    agentId,
+    scheduledTriggerId,
+    invocationId: invocation.id,
+  });
+
+  if (cancelCheck.cancelled) {
+    await logStep('Invocation was cancelled, skipping execution', {
+      scheduledTriggerId,
+      invocationId: invocation.id,
+    });
+
+    if (!isOneTime) {
+      try {
+        await startNextIterationStep({
+          tenantId,
+          projectId,
+          agentId,
+          scheduledTriggerId,
+          lastScheduledFor: invocation.scheduledFor,
+          currentRunId: runnerId,
+        });
+      } catch (err) {
+        await logStep('Failed to chain to next iteration after cancellation', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
+      }
+    }
+
+    return { status: 'cancelled', invocationId: invocation.id };
   }
 
   let attemptNumber = invocation.attemptNumber;
   let lastError: string | null = null;
-  const maxAttempts = trigger.maxRetries + 1;
 
+  const maxAttempts = currentTrigger.maxRetries + 1;
   while (attemptNumber <= maxAttempts) {
-    const cancelCheck = await checkInvocationCancelledStep({
+    const retryCancel = await checkInvocationCancelledStep({
       tenantId,
       projectId,
       agentId,
@@ -125,8 +383,13 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
       invocationId: invocation.id,
     });
 
-    if (cancelCheck.cancelled) {
-      return { status: 'cancelled', invocationId: invocation.id };
+    if (retryCancel.cancelled) {
+      await logStep('Invocation cancelled during retry loop', {
+        scheduledTriggerId,
+        invocationId: invocation.id,
+      });
+      lastError = null;
+      break;
     }
 
     await markRunningStep({
@@ -143,12 +406,11 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
       agentId,
       scheduledTriggerId,
       invocationId: invocation.id,
-      messageTemplate: trigger.messageTemplate,
-      payload: trigger.payload ?? null,
-      timeoutSeconds: trigger.timeoutSeconds,
-      runAsUserId: resolvedRunAsUserId,
-      cronTimezone: trigger.cronTimezone,
-      ref,
+      messageTemplate: currentTrigger.messageTemplate,
+      payload: currentTrigger.payload ?? null,
+      timeoutSeconds: currentTrigger.timeoutSeconds,
+      runAsUserId: currentTrigger.runAsUserId,
+      cronTimezone: currentTrigger.cronTimezone,
     });
 
     if (result.conversationId) {
@@ -170,15 +432,20 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
         scheduledTriggerId,
         invocationId: invocation.id,
       });
-      if (!trigger.cronExpression) {
-        await disableOneTimeTriggerStep({ tenantId, projectId, agentId, scheduledTriggerId });
-      }
-      return { status: 'completed', invocationId: invocation.id };
+
+      await logStep('Scheduled trigger execution completed', {
+        scheduledTriggerId,
+        invocationId: invocation.id,
+        conversationId: result.conversationId,
+      });
+
+      lastError = null;
+      break;
     }
 
     lastError = result.error || 'Unknown error';
 
-    await logStep('Execution attempt failed', {
+    await logStep('Scheduled trigger execution failed', {
       scheduledTriggerId,
       invocationId: invocation.id,
       attemptNumber,
@@ -194,27 +461,64 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
         invocationId: invocation.id,
         currentAttempt: attemptNumber,
       });
+
       attemptNumber++;
-      const backoffMultiplier = 2 ** (attemptNumber - 1);
       const jitter = Math.random() * 0.3;
-      await sleep(trigger.retryDelaySeconds * 1000 * backoffMultiplier * (1 + jitter));
+      await sleep(currentTrigger.retryDelaySeconds * 1000 * (1 + jitter));
     } else {
       break;
     }
   }
 
-  await markFailedStep({
+  if (lastError) {
+    await markFailedStep({
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      invocationId: invocation.id,
+    });
+  }
+
+  if (isOneTime) {
+    return { status: lastError ? 'failed' : 'completed', invocationId: invocation.id };
+  }
+
+  const preChainCheck = await checkTriggerEnabledStep({
     tenantId,
     projectId,
     agentId,
     scheduledTriggerId,
-    invocationId: invocation.id,
+    runnerId,
   });
-  if (!trigger.cronExpression) {
-    await disableOneTimeTriggerStep({ tenantId, projectId, agentId, scheduledTriggerId });
+
+  if (!preChainCheck.shouldContinue) {
+    await logStep('Pre-chain check failed, not chaining', {
+      scheduledTriggerId,
+      reason: preChainCheck.reason,
+    });
+    return { status: 'stopped', reason: preChainCheck.reason };
   }
 
-  return { status: 'failed', invocationId: invocation.id };
+  try {
+    await startNextIterationStep({
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      lastScheduledFor: invocation.scheduledFor,
+      currentRunId: runnerId,
+    });
+  } catch (err) {
+    await logStep('Failed to chain to next iteration', {
+      scheduledTriggerId,
+      invocationId: invocation.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
+
+  return { status: 'chained', invocationId: invocation.id };
 }
 
 // Export with workflowId for the build system

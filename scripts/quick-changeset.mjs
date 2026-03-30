@@ -2,16 +2,27 @@
 
 // Usage: node scripts/quick-changeset.mjs <patch|minor|major> --pkg <package> [--pkg <package>...] "<message>"
 // Example: node scripts/quick-changeset.mjs patch --pkg agents-core "Fix race condition"
-// Example: node scripts/quick-changeset.mjs minor --pkg @inkeep/agents-sdk --pkg agents-core "Add streaming support"
+// Example: node scripts/quick-changeset.mjs minor --pkg agents-sdk --pkg agents-core "Add streaming support"
 
 import fs from 'fs';
 import path from 'path';
 import { adjectives, animals, colors, uniqueNamesGenerator } from 'unique-names-generator';
 import { fileURLToPath } from 'url';
-import { getWorkspacePackages } from './workspace-packages.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Valid package short names mapped to full package names
+const VALID_PACKAGES = {
+  'agents-api': '@inkeep/agents-api',
+  'agents-cli': '@inkeep/agents-cli',
+  'agents-core': '@inkeep/agents-core',
+  'agents-manage-ui': '@inkeep/agents-manage-ui',
+  'agents-sdk': '@inkeep/agents-sdk',
+  'create-agents': '@inkeep/create-agents',
+  'ai-sdk-provider': '@inkeep/ai-sdk-provider',
+  'agents-work-apps': '@inkeep/agents-work-apps',
+};
 
 function generateRandomFilename() {
   const name = uniqueNamesGenerator({
@@ -54,16 +65,16 @@ function parseArgs(args) {
 }
 
 function validatePackages(packages) {
-  const { shortToScoped } = getWorkspacePackages();
-  const invalid = packages.filter((pkg) => !shortToScoped.has(pkg));
+  const validNames = Object.keys(VALID_PACKAGES);
+  const invalid = packages.filter((pkg) => !validNames.includes(pkg));
 
   if (invalid.length > 0) {
     console.error(`Error: Invalid package name(s): ${invalid.join(', ')}`);
-    console.error(`Valid packages: ${[...shortToScoped.keys()].sort().join(', ')}`);
+    console.error(`Valid packages: ${validNames.join(', ')}`);
     process.exit(1);
   }
 
-  return packages.map((pkg) => shortToScoped.get(pkg));
+  return packages.map((pkg) => VALID_PACKAGES[pkg]);
 }
 
 function createChangesetFile(bumpType, fullPackageNames, message) {
@@ -91,7 +102,6 @@ function createChangesetFile(bumpType, fullPackageNames, message) {
 }
 
 function printUsage() {
-  const { shortToScoped } = getWorkspacePackages();
   console.error(`
 Usage: pnpm bump <patch|minor|major> --pkg <package> [--pkg <package>...] "<message>"
 
@@ -100,12 +110,12 @@ Arguments:
   --pkg, -p            Package to include (can be repeated for multiple packages)
   message              Changelog message (should be the last argument, in quotes)
 
-Valid packages (short name or scoped name):
-  ${[...shortToScoped.keys()].sort().join(', ')}
+Valid packages:
+  ${Object.keys(VALID_PACKAGES).join(', ')}
 
 Examples:
   pnpm bump patch --pkg agents-core "Fix race condition in message queue"
-  pnpm bump minor --pkg @inkeep/agents-sdk --pkg agents-core "Add streaming response support"
+  pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response support"
 `);
 }
 

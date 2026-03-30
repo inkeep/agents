@@ -1,4 +1,4 @@
-import { getDatabaseErrorLogContext, handleApiError } from '@inkeep/agents-core';
+import { handleApiError } from '@inkeep/agents-core';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { StatusCode } from 'hono/utils/http-status';
@@ -32,6 +32,7 @@ function extractZodIssues(err: unknown): ZodIssue[] | undefined {
 function formatZodValidationError(c: Context, zodIssues: ZodIssue[]) {
   c.status(400);
   c.header('Content-Type', 'application/problem+json');
+  c.header('X-Content-Type-Options', 'nosniff');
   return c.json({
     type: 'https://docs.inkeep.com/agents-api/errors#bad_request',
     title: 'Validation Failed',
@@ -62,7 +63,6 @@ function logServerError(
     logger.error(
       {
         error: err,
-        ...getDatabaseErrorLogContext(err),
         message: errorMessage,
         stack: errorStack,
         path,
@@ -74,7 +74,6 @@ function logServerError(
     logger.error(
       {
         error: err,
-        ...getDatabaseErrorLogContext(err),
         path,
         requestId,
         status,
@@ -113,27 +112,17 @@ export async function errorHandler(err: Error, c: Context): Promise<Response> {
   const errorResponse = await handleApiError(err, requestId);
   c.status(errorResponse.status as StatusCode);
 
-  const {
-    code,
-    title,
-    status: responseStatus,
-    detail,
-    instance,
-    requestId: _reqId,
-    error: errorObj,
-    ...extensions
-  } = errorResponse;
   const responseBody = {
-    ...(code && { code }),
-    title,
-    status: responseStatus,
-    detail,
-    ...(instance && { instance }),
-    ...(errorObj && { error: errorObj }),
-    ...extensions,
+    ...(errorResponse.code && { code: errorResponse.code }),
+    title: errorResponse.title,
+    status: errorResponse.status,
+    detail: errorResponse.detail,
+    ...(errorResponse.instance && { instance: errorResponse.instance }),
+    ...(errorResponse.error && { error: errorResponse.error }),
   };
 
   c.header('Content-Type', 'application/problem+json');
+  c.header('X-Content-Type-Options', 'nosniff');
 
   return c.body(JSON.stringify(responseBody));
 }

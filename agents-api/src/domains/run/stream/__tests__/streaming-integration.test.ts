@@ -1,4 +1,3 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactParser } from '../../artifacts/ArtifactParser';
 import { IncrementalStreamParser } from '../IncrementalStreamParser';
@@ -8,10 +7,17 @@ import type { StreamHelper } from '../stream-helpers';
 vi.mock('../../artifacts/ArtifactParser');
 vi.mock('../../session/AgentSession', () => ({
   agentSessionManager: {
-    getArtifactParser: vi.fn().mockReturnValue(null),
+    getArtifactParser: vi.fn().mockReturnValue(null), // Return null to force fallback to new parser
   },
 }));
-vi.mock('../../../../logger', () => createMockLoggerModule().module);
+vi.mock('../../../../logger', () => ({
+  getLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 describe('Streaming Integration Tests', () => {
   let parser: IncrementalStreamParser;

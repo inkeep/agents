@@ -27,6 +27,7 @@ export type ComponentType =
   | 'models'
   | 'skills'
   | 'triggers'
+  | 'scheduledTriggers'
   | 'project';
 
 export interface ComponentInfo {

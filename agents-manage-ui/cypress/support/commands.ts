@@ -47,7 +47,7 @@ Cypress.Commands.add('login', (email?: string, password?: string) => {
       cy.log(`🔐 Performing login for ${loginEmail}`);
       cy.visit('/login');
 
-      cy.get('#email', { timeout: 10_000 }).should('be.visible').type(loginEmail, { delay: 0 });
+      cy.get('#email', { timeout: 10000 }).should('be.visible').type(loginEmail, { delay: 0 });
       cy.get('button[type="submit"]').contains('Continue').click();
 
       cy.contains('button', 'Continue with email and password', { timeout: 10000 })
@@ -60,10 +60,10 @@ Cypress.Commands.add('login', (email?: string, password?: string) => {
       cy.get('button[type="submit"]').contains('Sign in').click();
 
       // Wait for redirect after successful login to a projects page
-      cy.url({ timeout: 15_000 }).should('include', '/default/projects');
+      cy.url({ timeout: 15000 }).should('match', /\/default\/projects/);
 
       // Wait for the page to fully load by checking for a stable element
-      cy.get('body', { timeout: 10_000 }).should('be.visible');
+      cy.get('body', { timeout: 10000 }).should('be.visible');
 
       cy.log('✅ Login successful - session established and cached');
     },
@@ -103,23 +103,22 @@ Cypress.Commands.add('deleteAgent', (tenantId: string, projectId: string, agentI
 
 Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
   return cy
-    .get(`[data-uri$="${uri}"] textarea`, { timeout: 10_000 })
+    .get(`[data-uri="file:///${uri}"] textarea`, { timeout: 20_000 })
     .type('{selectall}{del}', { force: true })
     .type(value, {
       parseSpecialCharSequences: false,
-      // Delay: 0 don't trigger RHF isDirty state change
-      delay: 0.001,
+      delay: 0,
     });
 });
 
 Cypress.Commands.add(
   'assertMonacoContent',
-  (uri: string, expected: string | ((content: string) => void)) => {
+  ($uri: string, expected: string | ((content: string) => void)) => {
     cy.window().should('have.property', 'monaco');
     cy.window().should((win) => {
-      const { editor } = win.monaco;
-      const models = editor.getModels();
-      const model = models.find((model) => model.uri.path.endsWith(uri));
+      const { Uri, editor } = win.monaco;
+      const uri = Uri.file($uri);
+      const model = editor.getModel(uri);
 
       const value = model.getValue();
 

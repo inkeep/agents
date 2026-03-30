@@ -1,4 +1,3 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactParser } from '../ArtifactParser';
 import type { ArtifactService } from '../ArtifactService';
@@ -11,7 +10,14 @@ vi.mock('../ArtifactService', () => ({
   })),
 }));
 
-vi.mock('../../../../logger', () => createMockLoggerModule().module);
+vi.mock('../../../../logger', () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
+}));
 
 const mockExecutionContext = {
   tenantId: 'test-tenant',

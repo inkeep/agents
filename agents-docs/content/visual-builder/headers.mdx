@@ -28,20 +28,16 @@ Here is an example of a valid headers schema:
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "user-id": {
+    "userId": {
       "type": "string"
     }
   },
   "required": [
-    "user-id"
+    "userId"
   ],
   "additionalProperties": {}
 }
 ```
-
-<Warning>
-  Header keys are converted to **lowercase** before validation — for example, `Auth-Token` becomes `auth-token`. No other transformation is applied. A mismatch will cause a `Context validation failed` error.
-</Warning>
 
 You can generate custom schemas using this [JSON Schema generator](https://transform.tools/json-to-json-schema).
 
@@ -65,22 +61,5 @@ When you enter custom headers in the playground, they are validated in real-time
 
 Here is an example of a valid prompt:
 ```text
-You are a helpful assistant for {{headers.user-id}}!.
+You are a helpful assistant for {{headers.user_id}}!.
 ```
-
-## Forwarding Headers to MCP Servers
-
-You can forward header values to MCP servers using `{{headers.*}}` templates. These templates are resolved at runtime from the incoming request headers before each tool call.
-
-1. Define the header in your agent's [headers schema](#configuring-headers) (use lowercase keys)
-2. [Register the MCP server](/visual-builder/tools/mcp-servers) — leave the Credential field blank if auth comes entirely from forwarded headers
-3. Connect the MCP server to a Sub Agent, then click on the connection. In the **Headers** field, reference the schema properties:
-
-```json
-{
-  "Authorization": "Bearer {{headers.auth-token}}",
-  "Tenant-Id": "{{headers.tenant-id}}"
-}
-```
-
-See [MCP Servers — Dynamic credential pass-through](/visual-builder/tools/mcp-servers#dynamic-credential-pass-through) for more on authentication.

@@ -2,9 +2,8 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
-import { useController, useForm, useWatch } from 'react-hook-form';
+import { useController, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
@@ -21,17 +20,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import {
-  addEvaluatorAgentAction,
-  fetchEvaluatorAgentsAction,
-  removeEvaluatorAgentAction,
-} from '@/lib/actions/agent-relations';
 import { createEvaluatorAction, updateEvaluatorAction } from '@/lib/actions/evaluators';
 import type { ActionResult } from '@/lib/actions/types';
 import type { Evaluator } from '@/lib/api/evaluators';
-import { useAgentsQuery } from '@/lib/query/agents';
 import { evaluatorSchemaTemplate, providerOptionsTemplate } from '@/lib/templates';
-import { createLookup } from '@/lib/utils';
 import { PassCriteriaBuilder } from './pass-criteria-builder';
 import { type EvaluatorFormData, evaluatorSchema } from './validation';
 
@@ -90,39 +82,26 @@ export function EvaluatorFormDialog({
     defaultValues: formatFormData(initialData),
   });
 
-  const { data: agents, isFetching: loadingAgents } = useAgentsQuery();
-  const agentLookup = createLookup(agents);
-  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
-  const [initialAgentIds, setInitialAgentIds] = useState<string[]>([]);
-
   useEffect(() => {
     if (isOpen) {
       form.reset(formatFormData(initialData));
-      if (evaluatorId) {
-        fetchEvaluatorAgentsAction(tenantId, projectId, evaluatorId).then((result) => {
-          if (result.success && result.data) {
-            const ids = result.data.map((r) => r.agentId);
-            setSelectedAgentIds(ids);
-            setInitialAgentIds(ids);
-          }
-        });
-      } else {
-        setSelectedAgentIds([]);
-        setInitialAgentIds([]);
-      }
     }
-  }, [isOpen, initialData, form, evaluatorId, tenantId, projectId]);
+  }, [isOpen, initialData, form]);
 
   const { isSubmitting } = form.formState;
-  const { control } = form;
 
   const { field: providerOptionsField } = useController({
-    control,
+    control: form.control,
     name: 'model.providerOptions',
     defaultValue: undefined,
   });
-  const passCriteriaValue = useWatch({ control, name: 'passCriteria' });
-  const { field: schemaField } = useController({ control, name: 'schema' });
+
+  const passCriteriaValue = form.watch('passCriteria');
+
+  const { field: schemaField } = useController({
+    control: form.control,
+    name: 'schema',
+  });
 
   const onInvalid = (errors: Record<string, unknown>) => {
     const errorMessages: string[] = [];
@@ -191,18 +170,6 @@ export function EvaluatorFormDialog({
         }
       }
 
-      const savedId = evaluatorId ?? result.data?.id;
-      if (savedId) {
-        const added = selectedAgentIds.filter((id) => !initialAgentIds.includes(id));
-        const removed = initialAgentIds.filter((id) => !selectedAgentIds.includes(id));
-        await Promise.all([
-          ...added.map((agentId) => addEvaluatorAgentAction(tenantId, projectId, savedId, agentId)),
-          ...removed.map((agentId) =>
-            removeEvaluatorAgentAction(tenantId, projectId, savedId, agentId)
-          ),
-        ]);
-      }
-
       setIsOpen(false);
       form.reset();
     } catch (error) {
@@ -227,7 +194,7 @@ export function EvaluatorFormDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
             <GenericInput
-              control={control}
+              control={form.control}
               name="name"
               label="Name"
               placeholder="e.g., Quality Check Evaluator"
@@ -235,13 +202,13 @@ export function EvaluatorFormDialog({
             />
 
             <GenericTextarea
-              control={control}
+              control={form.control}
               name="description"
               label="Description"
               placeholder="Describe what this evaluator measures..."
             />
             <GenericTextarea
-              control={control}
+              control={form.control}
               name="prompt"
               label="Prompt"
               description="Instructions for the evaluator LLM on how to evaluate conversations"
@@ -250,7 +217,7 @@ export function EvaluatorFormDialog({
             />
 
             <GenericJsonSchemaEditor
-              control={control}
+              control={form.control}
               name="schema"
               label="Output Schema"
               description="JSON Schema defining the structure of the evaluation output. All properties are required for structured outputs."
@@ -261,7 +228,7 @@ export function EvaluatorFormDialog({
 
             <div className="space-y-4">
               <FormFieldWrapper
-                control={control}
+                control={form.control}
                 name="model.model"
                 label="Model"
                 description="AI model to use for the evaluator"
@@ -316,28 +283,6 @@ export function EvaluatorFormDialog({
               })()}
               disabled={isSubmitting}
             />
-
-            <div className="space-y-2">
-              <span className="text-sm font-medium">Agent Scope</span>
-              {loadingAgents ? (
-                <p className="text-sm text-muted-foreground">Loading agents...</p>
-              ) : (
-                <ComponentSelector
-                  componentLookup={agentLookup}
-                  selectedComponents={selectedAgentIds}
-                  onSelectionChange={setSelectedAgentIds}
-                  emptyStateMessage="No agents available."
-                  emptyStateActionText="Create agent"
-                  emptyStateActionHref={`/${tenantId}/projects/${projectId}/agents`}
-                  placeholder="Select agents..."
-                />
-              )}
-              <p className="text-xs text-muted-foreground">
-                {selectedAgentIds.length === 0
-                  ? 'No agents selected — this evaluator applies to all agents in the project.'
-                  : 'This evaluator is scoped to the selected agents only.'}
-              </p>
-            </div>
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>

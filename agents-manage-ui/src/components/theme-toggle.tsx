@@ -2,7 +2,8 @@
 
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import type { ComponentProps, FC, MouseEvent } from 'react';
+import type { ComponentProps, FC, MouseEventHandler } from 'react';
+import { useCallback } from 'react';
 import type { ToasterProps } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,10 +24,10 @@ export const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
 export const ThemeToggle: FC = () => {
   const { setTheme } = useTheme();
 
-  function handleTheme(event: MouseEvent<HTMLDivElement>) {
+  const handleTheme = useCallback<MouseEventHandler<HTMLDivElement>>((event) => {
     const newTheme = event.currentTarget.dataset.theme as ThemeValue;
     setTheme(newTheme);
-  }
+  }, []);
 
   return (
     <DropdownMenu>

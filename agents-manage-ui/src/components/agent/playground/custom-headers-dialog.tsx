@@ -4,8 +4,8 @@ import type { FC } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
-import { ErrorIndicator } from '@/components/agent/error-display/error-indicator';
-import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,29 +16,31 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, flatNestedFieldMessage } from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { customHeadersTemplate } from '@/lib/templates';
-import { cn } from '@/lib/utils';
 
 type DefaultHeaders = z.infer<typeof StringRecordSchema>;
 
 interface CustomHeadersDialogProps {
   customHeaders?: DefaultHeaders;
   setCustomHeaders: (headers?: DefaultHeaders) => void;
-  form: UseFormReturn<{ headers: string }, unknown, { headers: DefaultHeaders }>;
+  form: UseFormReturn<any, any, { headers: DefaultHeaders }>;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   headersTemplate?: string;
 }
 
 export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
-  customHeaders = {},
+  customHeaders,
   setCustomHeaders,
   form,
   isOpen,
   setIsOpen,
   headersTemplate,
 }) => {
+  'use memo';
+  const numHeaders = Object.keys(customHeaders ?? {}).length;
+
   const onSubmit = form.handleSubmit(({ headers }) => {
     setCustomHeaders(headers);
     toast.success('Custom headers applied, you can now use them in the chat.');
@@ -51,31 +53,19 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
     setIsOpen(false);
     toast.success('Custom headers removed.');
   }
-  const { isSubmitting, errors } = form.formState;
-  const fieldErrors = errors.headers ?? {};
-
-  const processedErrors = Object.entries(fieldErrors).map(([key, value]) => ({
-    field: key,
-    message: flatNestedFieldMessage(value),
-  }));
-  const numHeaders = Object.keys(customHeaders).length;
-
-  const hasErrors = processedErrors.length > 0;
-  const hasHeaders = numHeaders > 0;
-  const IconToUse = hasHeaders ? Pencil : Plus;
+  const hasHeadersError = !!form.formState.errors.headers?.message;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
+          variant={hasHeadersError ? 'destructive-outline' : 'ghost'}
           size="sm"
-          className={cn('h-6 relative', hasErrors && 'ring-2 text-red-300! border-current! border')}
+          className="h-6"
         >
-          <IconToUse />
+          {numHeaders > 0 ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           Custom Headers
-          {hasHeaders && <Badge variant="code">{numHeaders}</Badge>}
-          {hasErrors && <ErrorIndicator errors={processedErrors} />}
+          {numHeaders > 0 && <Badge variant="code">{numHeaders}</Badge>}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
@@ -85,20 +75,22 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-8">
-            <GenericJsonEditor
-              control={form.control}
-              name="headers"
-              label="Custom headers"
-              placeholder={headersTemplate ?? customHeadersTemplate}
-              customTemplate={headersTemplate ?? customHeadersTemplate}
-            />
+            <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
+              {(field) => (
+                <StandaloneJsonEditor
+                  placeholder={headersTemplate ?? customHeadersTemplate}
+                  customTemplate={headersTemplate ?? customHeadersTemplate}
+                  {...field}
+                />
+              )}
+            </FormFieldWrapper>
             <div className="flex justify-end gap-2">
-              {hasHeaders && (
+              {numHeaders > 0 && (
                 <Button type="button" variant="outline" onClick={onRemoveHeaders}>
                   Remove headers
                 </Button>
               )}
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
                 Apply
               </Button>
             </div>

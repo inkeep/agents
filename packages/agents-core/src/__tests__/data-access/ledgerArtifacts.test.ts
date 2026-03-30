@@ -6,7 +6,6 @@ import {
   deleteLedgerArtifactsByTask,
   getLedgerArtifacts,
   getLedgerArtifactsByContext,
-  updateLedgerArtifactParts,
 } from '../../data-access/runtime/ledgerArtifacts';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { testRunDbClient } from '../setup';
@@ -638,57 +637,6 @@ describe('Ledger Artifacts Data Access', () => {
       });
 
       expect(result).toBe(0);
-    });
-  });
-
-  describe('updateLedgerArtifactParts', () => {
-    it('should return true when artifact is successfully updated', async () => {
-      const mockReturning = vi.fn().mockResolvedValue([{ id: testArtifactId }]);
-      const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
-      const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
-      const mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
-
-      const mockDb = {
-        ...db,
-        update: mockUpdate,
-      } as any;
-
-      const newParts = [{ kind: 'data' as const, data: { summary: { key_findings: ['a', 'b'] } } }];
-
-      const result = await updateLedgerArtifactParts(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        artifactId: testArtifactId,
-        parts: newParts,
-      });
-
-      expect(result).toBe(true);
-      expect(mockUpdate).toHaveBeenCalled();
-      expect(mockSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          parts: newParts,
-          updatedAt: expect.any(String),
-        })
-      );
-    });
-
-    it('should return false when no artifact matches', async () => {
-      const mockReturning = vi.fn().mockResolvedValue([]);
-      const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
-      const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
-      const mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
-
-      const mockDb = {
-        ...db,
-        update: mockUpdate,
-      } as any;
-
-      const result = await updateLedgerArtifactParts(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        artifactId: 'non-existent-artifact',
-        parts: [{ kind: 'text' as const, text: 'test' }],
-      });
-
-      expect(result).toBe(false);
     });
   });
 });

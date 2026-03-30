@@ -1,4 +1,3 @@
-import { DELEGATE_TOOL_PREFIX, TRANSFER_TOOL_PREFIX } from '@inkeep/agents-core';
 import type { AgentRunContext, ToolType } from '../agent-types';
 
 export function getRelationshipIdForTool(
@@ -33,8 +32,7 @@ export function getRelationshipIdForTool(
   if (toolType === 'delegation') {
     const relation = ctx.config.delegateRelations.find(
       (relation) =>
-        `${DELEGATE_TOOL_PREFIX}${relation.config.id.toLowerCase().replace(/\s+/g, '_')}` ===
-        toolName
+        `delegate_to_${relation.config.id.toLowerCase().replace(/\s+/g, '_')}` === toolName
     );
 
     return relation?.config.relationId;
@@ -42,8 +40,7 @@ export function getRelationshipIdForTool(
 
   if (toolType === 'transfer') {
     const relation = ctx.config.transferRelations.find(
-      (relation) =>
-        `${TRANSFER_TOOL_PREFIX}${relation.id.toLowerCase().replace(/\s+/g, '_')}` === toolName
+      (relation) => `transfer_to_${relation.id.toLowerCase().replace(/\s+/g, '_')}` === toolName
     );
 
     return relation?.relationId;

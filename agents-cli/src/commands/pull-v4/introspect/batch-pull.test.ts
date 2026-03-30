@@ -22,6 +22,7 @@ describe('pullSingleProject', () => {
     );
     fs.mkdirSync(testDir, { recursive: true });
     vi.spyOn(process, 'cwd').mockReturnValue(testDir);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -37,7 +38,6 @@ describe('pullSingleProject', () => {
           name: 'general-gameplan',
           description: 'Generate a general gameplan.',
           content: 'Use this skill for general planning.',
-          files: [],
         },
       },
     };
@@ -56,9 +56,13 @@ describe('pullSingleProject', () => {
         agentsApiKey: 'test-key',
       }
     );
-    expect(result.error).toBeUndefined();
+
+    expect(result.success).toBe(true);
+
     const skillFilePath = join(testDir, remoteProject.id, 'skills', 'general-gameplan', 'SKILL.md');
-    const { default: raw } = await import(`${skillFilePath}?raw`);
-    expect(raw).toContain('Use this skill for general planning.');
+    expect(fs.existsSync(skillFilePath)).toBe(true);
+    expect(fs.readFileSync(skillFilePath, 'utf8')).toContain(
+      'Use this skill for general planning.'
+    );
   });
 });

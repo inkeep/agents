@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 
-# Pre-push hook: Format check + changeset validation
+# Pre-push hook: Format check only
 # Full validation runs in CI
 
 pnpm format
-pnpm check:changeset-packages

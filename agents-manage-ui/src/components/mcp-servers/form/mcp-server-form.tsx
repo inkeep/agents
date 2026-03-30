@@ -3,8 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
@@ -69,7 +69,7 @@ export function MCPServerForm({
 }: MCPServerFormProps) {
   const router = useRouter();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isDeleting, startDeleting] = useTransition();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(mcpToolSchema),
@@ -87,11 +87,6 @@ export function MCPServerForm({
   const invalidateMcpToolCache = useMcpToolInvalidation(tenantId, projectId);
 
   const { isSubmitting } = form.formState;
-  const { control } = form;
-  const [credentialScope, toolOverrides = {}] = useWatch({
-    control,
-    name: ['credentialScope', 'config.mcp.toolOverrides'],
-  });
 
   // Helper function to filter active tools against available tools
   const getActiveTools = (toolsConfig: MCPToolFormData['config']['mcp']['toolsConfig']) => {
@@ -101,7 +96,7 @@ export function MCPServerForm({
     return toolsConfig.tools.filter((toolName) => availableToolNames.includes(toolName));
   };
 
-  const onSubmit = form.handleSubmit(async (data) => {
+  const onSubmit = async (data: MCPToolFormData) => {
     const mode = tool ? 'update' : 'create';
     try {
       const mcpServerName = data.name;
@@ -238,12 +233,13 @@ export function MCPServerForm({
       console.error(`Failed to ${mode} MCP tool:`, error);
       toast.error(`Failed to ${mode} MCP server. Please try again.`);
     }
-  });
+  };
 
-  function handleDelete() {
+  const handleDelete = async () => {
     if (!tool) return;
 
-    startDeleting(async () => {
+    setIsDeleting(true);
+    try {
       // Don't revalidate to avoid Next.js trying to refetch the deleted resource on current page
       const result = await deleteToolAction(tenantId, projectId, tool.id, false);
       if (result.success) {
@@ -253,22 +249,24 @@ export function MCPServerForm({
       } else {
         toast.error(result.error || 'Failed to delete MCP server.');
       }
-    });
-  }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
           <GenericInput
-            control={control}
+            control={form.control}
             name="name"
             label="Name"
             placeholder="MCP server"
             isRequired
           />
           <GenericInput
-            control={control}
+            control={form.control}
             name="config.mcp.server.url"
             label="URL"
             placeholder="https://api.example.com/mcp"
@@ -276,7 +274,7 @@ export function MCPServerForm({
             disabled={tool?.isWorkApp}
           />
           <GenericSelect
-            control={control}
+            control={form.control}
             selectTriggerClassName="w-full"
             name="config.mcp.transport.type"
             label="Transport type"
@@ -290,13 +288,13 @@ export function MCPServerForm({
             ]}
           />
           <GenericInput
-            control={control}
+            control={form.control}
             name="imageUrl"
             label="Image URL (optional)"
             placeholder="https://example.com/icon.png or data:image/png;base64,..."
           />
           <GenericTextarea
-            control={control}
+            control={form.control}
             name="config.mcp.prompt"
             label="Prompt (optional)"
             placeholder={
@@ -311,7 +309,7 @@ export function MCPServerForm({
             <>
               <div className="space-y-3">
                 <GenericSelect
-                  control={control}
+                  control={form.control}
                   selectTriggerClassName="w-full"
                   name="credentialScope"
                   label="Credential Scope"
@@ -342,10 +340,10 @@ export function MCPServerForm({
                 </InfoCard>
               </div>
 
-              {credentialScope === CredentialScopeEnum.project && (
+              {form.watch('credentialScope') === CredentialScopeEnum.project && (
                 <div className="space-y-3">
                   <GenericSelect
-                    control={control}
+                    control={form.control}
                     selectTriggerClassName="w-full"
                     name="credentialReferenceId"
                     label="Credential"
@@ -394,14 +392,15 @@ export function MCPServerForm({
           {tool && (
             <>
               <ActiveToolsSelector
-                control={control}
+                control={form.control}
                 name="config.mcp.toolsConfig"
                 label="Tools"
                 availableTools={tool?.availableTools || []}
                 description="Select which tools should be enabled for this MCP server"
-                toolOverrides={toolOverrides}
+                toolOverrides={form.watch('config.mcp.toolOverrides') || {}}
                 onToolOverrideChange={(toolName, override) => {
-                  const newOverrides = { ...toolOverrides };
+                  const currentOverrides = form.watch('config.mcp.toolOverrides') || {};
+                  const newOverrides = { ...currentOverrides };
 
                   if (Object.keys(override).length === 0) {
                     // Remove override if empty
@@ -410,10 +409,8 @@ export function MCPServerForm({
                     newOverrides[toolName] = override;
                   }
 
-                  form.setValue('config.mcp.toolOverrides', newOverrides, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
+                  form.setValue('config.mcp.toolOverrides', newOverrides);
+                  form.trigger('config.mcp.toolOverrides');
                 }}
               />
             </>

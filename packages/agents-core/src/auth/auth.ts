@@ -22,7 +22,6 @@ import {
 import type { BetterAuthConfig } from './auth-types';
 import { type OrgRole, OrgRoles } from './authz/types';
 import { setEmailSendStatus } from './email-send-status-store';
-import { DEFAULT_MEMBERSHIP_LIMIT } from './entitlement-constants';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
@@ -245,15 +244,8 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
           owner: ownerRole,
         },
         creatorRole: OrgRoles.ADMIN,
-        membershipLimit: async (_user, org) => {
-          const { resolveTotalMembershipLimit } = await import('./entitlements');
-          const { dalGetServiceAccountUserId } = await import(
-            '../data-access/runtime/entitlements'
-          );
-          const serviceAccountUserId = await dalGetServiceAccountUserId(config.dbClient, org.id);
-          return resolveTotalMembershipLimit(config.dbClient, org.id, !!serviceAccountUserId);
-        },
-        invitationLimit: DEFAULT_MEMBERSHIP_LIMIT,
+        membershipLimit: 300,
+        invitationLimit: 300,
         invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)
         async sendInvitationEmail(data) {
           if (config.emailService?.isConfigured) {
@@ -318,14 +310,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
           },
         },
         organizationHooks: {
-          beforeCreateInvitation: async ({ invitation, organization: org }) => {
-            const { enforcePerRoleSeatLimit } = await import('./entitlements');
-            await enforcePerRoleSeatLimit(config.dbClient, org.id, invitation.role);
-          },
           beforeAddMember: async ({ member, user, organization: org }) => {
-            const { enforcePerRoleSeatLimit } = await import('./entitlements');
-            await enforcePerRoleSeatLimit(config.dbClient, org.id, member.role);
-
             try {
               const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
               await syncOrgMemberToSpiceDb({
@@ -345,9 +330,6 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             }
           },
           beforeAcceptInvitation: async ({ invitation, user, organization: org }) => {
-            const { enforcePerRoleSeatLimit } = await import('./entitlements');
-            await enforcePerRoleSeatLimit(config.dbClient, org.id, invitation.role);
-
             try {
               const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
               await syncOrgMemberToSpiceDb({
@@ -373,30 +355,16 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {
-            const { roleMatchesAdminBucket, enforcePerRoleSeatLimit } = await import(
-              './entitlements'
-            );
+            const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
             const oldRole = member.role as OrgRole;
             const targetRole = newRole as OrgRole;
 
-            const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
-
-            const doRoleChange = async () => {
-              await changeOrgRole({
-                tenantId: org.id,
-                userId: member.userId,
-                oldRole,
-                newRole: targetRole,
-              });
-            };
-
-            const oldBucketIsAdmin = roleMatchesAdminBucket(oldRole);
-            const newBucketIsAdmin = roleMatchesAdminBucket(targetRole);
-            if (oldBucketIsAdmin !== newBucketIsAdmin) {
-              await enforcePerRoleSeatLimit(config.dbClient, org.id, targetRole, doRoleChange);
-            } else {
-              await doRoleChange();
-            }
+            await changeOrgRole({
+              tenantId: org.id,
+              userId: member.userId,
+              oldRole,
+              newRole: targetRole,
+            });
             console.log(
               `🔐 SpiceDB: Updated member ${member.userId} role from ${oldRole} to ${targetRole} in org ${org.name}`
             );

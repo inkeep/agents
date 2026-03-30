@@ -1,27 +1,15 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import {
-  AuthKeysSection,
-  type PendingKey,
-  type PublicKeyDisplay,
-} from '@/components/apps/auth-keys-section';
 import { GenericComboBox } from '@/components/form/generic-combo-box';
 import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import {
-  addAppAuthKeyAction,
-  deleteAppAuthKeyAction,
-  fetchAppAuthKeysAction,
-} from '@/lib/actions/app-auth-keys';
 import { updateAppAction } from '@/lib/actions/apps';
 import type { App } from '@/lib/api/apps';
 import { type AppUpdateFormInput, AppUpdateFormSchema } from './validation';
@@ -36,8 +24,6 @@ interface AppUpdateFormProps {
 
 interface WebClientConfigShape {
   allowedDomains?: string[];
-  audience?: string;
-  allowAnonymous?: boolean;
 }
 
 export function AppUpdateForm({
@@ -52,24 +38,6 @@ export function AppUpdateForm({
       ? (((app.config as Record<string, unknown>)?.webClient as WebClientConfigShape) ?? null)
       : null;
 
-  const [serverKeys, setServerKeys] = useState<PublicKeyDisplay[]>([]);
-  const [pendingKeysToAdd, setPendingKeysToAdd] = useState<PendingKey[]>([]);
-  const [kidsToDelete, setKidsToDelete] = useState<string[]>([]);
-  const [requireAuth, setRequireAuth] = useState(webConfig?.allowAnonymous !== true);
-  const [isLoadingKeys, setIsLoadingKeys] = useState(app.type === 'web_client');
-
-  useEffect(() => {
-    async function loadKeys() {
-      if (app.type !== 'web_client') return;
-      const result = await fetchAppAuthKeysAction(tenantId, projectId, app.id);
-      if (result.success && result.data) {
-        setServerKeys(result.data);
-      }
-      setIsLoadingKeys(false);
-    }
-    loadKeys();
-  }, [tenantId, projectId, app.type, app.id]);
-
   const form = useForm<AppUpdateFormInput>({
     resolver: zodResolver(AppUpdateFormSchema),
     defaultValues: {
@@ -81,7 +49,6 @@ export function AppUpdateForm({
       ...(app.type === 'web_client' && webConfig
         ? {
             allowedDomains: webConfig.allowedDomains?.join(', ') ?? '',
-            audience: webConfig?.audience ?? '',
           }
         : {}),
     },
@@ -102,20 +69,14 @@ export function AppUpdateForm({
       };
 
       if (app.type === 'web_client' && data.allowedDomains !== undefined) {
-        const webClientConfig: Record<string, unknown> = {
-          allowedDomains: data.allowedDomains
-            .split(',')
-            .map((d: string) => d.trim())
-            .filter(Boolean),
-        };
-
-        webClientConfig.audience = data.audience?.trim() || undefined;
-        const allowAnonymous = !requireAuth;
-        webClientConfig.allowAnonymous = allowAnonymous;
-
         payload.config = {
           type: 'web_client',
-          webClient: webClientConfig,
+          webClient: {
+            allowedDomains: data.allowedDomains
+              .split(',')
+              .map((d: string) => d.trim())
+              .filter(Boolean),
+          },
         };
       }
 
@@ -124,32 +85,7 @@ export function AppUpdateForm({
         toast.error(result.error || 'Failed to update app');
         return;
       }
-
-      let hasKeyFailure = false;
-
-      for (const kid of kidsToDelete) {
-        const deleteResult = await deleteAppAuthKeyAction(tenantId, projectId, app.id, kid);
-        if (!deleteResult.success) {
-          toast.error(deleteResult.error || `Failed to delete key ${kid}`);
-          hasKeyFailure = true;
-          break;
-        }
-      }
-
-      if (!hasKeyFailure) {
-        for (const key of pendingKeysToAdd) {
-          const addResult = await addAppAuthKeyAction(tenantId, projectId, app.id, key);
-          if (!addResult.success) {
-            toast.error(addResult.error || `Failed to add key ${key.kid}`);
-            hasKeyFailure = true;
-            break;
-          }
-        }
-      }
-
-      if (!hasKeyFailure) {
-        toast.success('App updated successfully');
-      }
+      toast.success('App updated successfully');
       onAppUpdated();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -194,7 +130,7 @@ export function AppUpdateForm({
           options={agentOptions}
           placeholder="Select a default agent"
           searchPlaceholder="Search agents..."
-          isRequired
+          clearable
         />
 
         {app.type === 'web_client' && (
@@ -213,34 +149,11 @@ export function AppUpdateForm({
           placeholder="Add supplemental instructions for this app deployment..."
           description="Optional instructions that customize the agent's behavior when accessed through this app. These are added to the agent's existing instructions."
           rows={4}
-          className="max-h-96"
         />
-
-        {app.type === 'web_client' && !isLoadingKeys && (
-          <>
-            <Separator />
-            <AuthKeysSection
-              keys={serverKeys}
-              requireAuth={requireAuth}
-              onRequireAuthChange={setRequireAuth}
-              pendingKeysToAdd={pendingKeysToAdd}
-              onPendingKeysToAddChange={setPendingKeysToAdd}
-              kidsToDelete={kidsToDelete}
-              onKidsToDeleteChange={setKidsToDelete}
-            />
-            <GenericInput
-              control={form.control}
-              name="audience"
-              label="Audience (aud)"
-              placeholder="https://your-app.example.com"
-              description="Optional. When set, tokens must include a matching aud claim."
-            />
-          </>
-        )}
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Updating...' : 'Update App'}
+            Update App
           </Button>
         </div>
       </form>

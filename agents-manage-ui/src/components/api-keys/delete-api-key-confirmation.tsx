@@ -24,20 +24,23 @@ export function DeleteApiKeyConfirmation({
     projectId: string;
   }>();
 
-  async function handleDelete() {
+  const handleDelete = async () => {
     setIsSubmitting(true);
-    const result = await deleteApiKeyAction(tenantId, projectId, apiKeyId);
-    if (result.success) {
-      setIsOpen(false);
-      toast.success('API key deleted.');
-    } else {
-      toast.error(result.error);
+    try {
+      const result = await deleteApiKeyAction(tenantId, projectId, apiKeyId);
+      if (result.success) {
+        setIsOpen(false);
+        toast.success('API key deleted.');
+      } else {
+        toast.error(result.error);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-  }
+  };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && setIsOpen(false)}>
+    <Dialog open={true} onOpenChange={(open) => !open && setIsOpen(false)}>
       <DeleteConfirmation
         itemName={apiKeyName || 'this API key'}
         isSubmitting={isSubmitting}

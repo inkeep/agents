@@ -7,7 +7,6 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { applySelector } from '../utils/select-filter';
 import {
   type ArtifactCreateRequest,
   ArtifactService,
@@ -243,11 +242,7 @@ export class ArtifactParser {
             { artifactId: args[SENTINEL_KEY.ARTIFACT], toolCallId: args[SENTINEL_KEY.TOOL] },
             'Resolved artifact ref in tool arg'
           );
-          let data = fullData.data;
-          if (typeof args[SENTINEL_KEY.SELECT] === 'string') {
-            data = applySelector(data, args[SENTINEL_KEY.SELECT], args[SENTINEL_KEY.TOOL]);
-          }
-          return data;
+          return fullData.data;
         }
         throw new ToolChainResolutionError(
           args[SENTINEL_KEY.TOOL],
@@ -256,20 +251,13 @@ export class ArtifactParser {
       }
 
       if (typeof args[SENTINEL_KEY.TOOL] === 'string' && !(SENTINEL_KEY.ARTIFACT in args)) {
-        const hasSelect = typeof args[SENTINEL_KEY.SELECT] === 'string';
-        const raw = hasSelect
-          ? this.artifactService.getToolResultFull(args[SENTINEL_KEY.TOOL])
-          : this.artifactService.getToolResultRaw(args[SENTINEL_KEY.TOOL]);
+        const raw = this.artifactService.getToolResultRaw(args[SENTINEL_KEY.TOOL]);
         if (raw !== undefined) {
           logger.debug(
             { toolCallId: args[SENTINEL_KEY.TOOL] },
             'Resolved ephemeral tool result ref in tool arg'
           );
-          let data: unknown = raw;
-          if (hasSelect) {
-            data = applySelector(data, args[SENTINEL_KEY.SELECT], args[SENTINEL_KEY.TOOL]);
-          }
-          return data;
+          return raw;
         }
         throw new ToolChainResolutionError(
           args[SENTINEL_KEY.TOOL],

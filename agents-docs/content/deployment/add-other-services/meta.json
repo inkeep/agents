@@ -1,5 +1,5 @@
 {
   "title": "Add Services",
   "icon": "LuPackage",
-  "pages": ["s3-blob-storage", "sentry", "datadog-apm", "..."]
+  "pages": ["sentry", "datadog-apm", "..."]
 }

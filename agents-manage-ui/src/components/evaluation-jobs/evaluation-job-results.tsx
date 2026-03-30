@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
@@ -16,7 +16,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
+import { fetchDatasetRun } from '@/lib/api/dataset-runs';
+import type {
+  EvaluationJobConfig,
+  EvaluationJobFilterCriteria,
+} from '@/lib/api/evaluation-job-configs';
+import { fetchEvaluationJobConfigEvaluators } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
@@ -57,7 +62,7 @@ export function EvaluationJobResults({
     isRunning: boolean;
   }>({ total: 0, completed: 0, isRunning: false });
 
-  async function loadProgress() {
+  const loadProgress = useCallback(async () => {
     try {
       // Fetch latest results
       const latestResults = await fetchEvaluationResultsByJobConfig(
@@ -67,27 +72,58 @@ export function EvaluationJobResults({
       );
       setResults(latestResults.data || []);
 
-      const totalCount = latestResults.data?.length || 0;
+      // Get evaluator relations for this job
+      const evaluatorRelations = await fetchEvaluationJobConfigEvaluators(
+        tenantId,
+        projectId,
+        jobConfig.id
+      );
+      const evaluatorCount = evaluatorRelations.data?.length || 0;
+
+      // Get conversation count from dataset run if available
+      let conversationCount = 0;
+      const criteria = jobConfig.jobFilters as EvaluationJobFilterCriteria;
+      if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
+        try {
+          const datasetRun = await fetchDatasetRun(tenantId, projectId, criteria.datasetRunIds[0]);
+          conversationCount =
+            datasetRun.data?.items?.reduce(
+              (acc, item) => acc + (item.conversations?.length || 0),
+              0
+            ) || 0;
+        } catch {
+          // If we can't get dataset run, estimate from unique conversations in results
+          const uniqueConversations = new Set(
+            latestResults.data?.map((r) => r.conversationId) || []
+          );
+          conversationCount = uniqueConversations.size;
+        }
+      } else {
+        // For non-dataset-run jobs, estimate from unique conversations
+        const uniqueConversations = new Set(latestResults.data?.map((r) => r.conversationId) || []);
+        conversationCount = uniqueConversations.size;
+      }
+
+      // Expected = conversations × evaluators
+      const expectedTotal = conversationCount * evaluatorCount;
+      // Only count results with output as completed
       const completedCount =
         latestResults.data?.filter((r) => r.output !== null && r.output !== undefined).length || 0;
 
       setProgress({
-        total: totalCount,
+        total: expectedTotal,
         completed: completedCount,
-        isRunning: completedCount < totalCount && totalCount > 0,
+        isRunning: completedCount < expectedTotal && expectedTotal > 0,
       });
     } catch (err) {
       console.error('Error loading evaluation progress:', err);
     }
-  }
+  }, [tenantId, projectId, jobConfig.id, jobConfig.jobFilters]);
 
   // Initial progress load
   useEffect(() => {
     loadProgress();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadProgress,
-  ]);
+  }, [loadProgress]);
 
   // Auto-refresh when evaluations are in progress
   useEffect(() => {
@@ -98,11 +134,7 @@ export function EvaluationJobResults({
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [
-    progress.isRunning,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadProgress,
-  ]);
+  }, [progress.isRunning, loadProgress]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {
@@ -119,33 +151,40 @@ export function EvaluationJobResults({
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;
 
-  const filteredResults = filterEvaluationResults(results, filters, evaluators);
+  const filteredResults = useMemo(
+    () => filterEvaluationResults(results, filters, evaluators),
+    [results, filters, evaluators]
+  );
 
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
-  const uniqueAgents = new Map<string, string>();
-  for (const result of results) {
-    if (result.agentId && !uniqueAgents.has(result.agentId)) {
-      uniqueAgents.set(result.agentId, result.agentId);
-    }
-  }
-  const agentOptions = Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
+  const agentOptions = useMemo(() => {
+    const uniqueAgents = new Map<string, string>();
+    results.forEach((result) => {
+      if (result.agentId && !uniqueAgents.has(result.agentId)) {
+        uniqueAgents.set(result.agentId, result.agentId);
+      }
+    });
+    return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
+  }, [results]);
 
   // Extract unique output schema keys from results for filtering dropdown
-  function collect(obj: unknown, prefix = ''): string[] {
-    if (!isPlainObject(obj)) return [];
+  const availableOutputKeys = useMemo(() => {
+    const collect = (obj: unknown, prefix = ''): string[] => {
+      if (!isPlainObject(obj)) return [];
 
-    return Object.entries(obj).flatMap(([k, v]) => {
-      const p = prefix ? `${prefix}.${k}` : k;
-      if (Array.isArray(v)) {
-        const first = v[0];
-        return isPlainObject(first) ? [p, ...collect(first, p)] : [p];
-      }
-      return isPlainObject(v) ? [p, ...collect(v, p)] : [p];
-    });
-  }
+      return Object.entries(obj).flatMap(([k, v]) => {
+        const p = prefix ? `${prefix}.${k}` : k;
+        if (Array.isArray(v)) {
+          const first = v[0];
+          return isPlainObject(first) ? [p, ...collect(first, p)] : [p];
+        }
+        return isPlainObject(v) ? [p, ...collect(v, p)] : [p];
+      });
+    };
 
-  const keys = results.flatMap((r) => collect(r.output));
-  const availableOutputKeys = [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
+    const keys = results.flatMap((r) => collect(r.output));
+    return [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
+  }, [results]);
 
   return (
     <div className="space-y-6">
@@ -234,7 +273,7 @@ export function EvaluationJobResults({
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {result.conversationCreatedAt
-                        ? formatDateTimeTable(result.conversationCreatedAt, { local: true })
+                        ? formatDateTimeTable(result.conversationCreatedAt)
                         : '-'}
                     </TableCell>
                     <TableCell>
@@ -305,8 +344,6 @@ export function EvaluationJobResults({
 
       {selectedEvaluator && (
         <EvaluatorViewDialog
-          tenantId={tenantId}
-          projectId={projectId}
           evaluator={selectedEvaluator}
           isOpen={selectedEvaluator !== undefined}
           onOpenChange={(open) => !open && setSelectedEvaluatorId(null)}

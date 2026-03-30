@@ -61,7 +61,7 @@ export function AuthMethodConfiguration({
 
   const isLastMethod = enabledMethodCount <= 1;
 
-  async function persistMethods(methods: AllowedAuthMethod[]) {
+  const persistMethods = async (methods: AllowedAuthMethod[]) => {
     setIsSubmitting(true);
     try {
       await authClient.organization.update({
@@ -71,9 +71,10 @@ export function AuthMethodConfiguration({
       onAuthMethodChanged?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update authentication methods');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-  }
+  };
 
   const handleToggleEmailPassword = async () => {
     if (isEmailPasswordEnabled) {

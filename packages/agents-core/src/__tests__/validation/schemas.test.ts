@@ -6,13 +6,14 @@ import {
   PaginationSchema,
   ResourceIdSchema,
   ScheduledTriggerApiUpdateSchema,
+  ScheduledWorkflowApiUpdateSchema,
   SubAgentApiInsertSchema,
   SubAgentApiUpdateSchema,
   SubAgentInsertSchema,
   TaskInsertSchema,
   TriggerApiUpdateSchema,
   TriggerInsertSchema,
-} from '../../validation';
+} from '../../validation/schemas';
 
 describe('Validation Schemas', () => {
   describe('ResourceIdSchema', () => {
@@ -155,6 +156,21 @@ describe('Validation Schemas', () => {
       expect(result).not.toHaveProperty('projectId');
       expect(result).not.toHaveProperty('agentId');
       expect(result).toHaveProperty('name', 'Updated Scheduled Trigger');
+    });
+  });
+
+  describe('ScheduledWorkflowApiUpdateSchema', () => {
+    it('should strip tenantId, projectId, and agentId from updates', () => {
+      const result = ScheduledWorkflowApiUpdateSchema.parse({
+        tenantId: 'malicious-tenant',
+        projectId: 'malicious-project',
+        agentId: 'malicious-agent',
+        name: 'Updated Workflow',
+      });
+      expect(result).not.toHaveProperty('tenantId');
+      expect(result).not.toHaveProperty('projectId');
+      expect(result).not.toHaveProperty('agentId');
+      expect(result).toHaveProperty('name', 'Updated Workflow');
     });
   });
 

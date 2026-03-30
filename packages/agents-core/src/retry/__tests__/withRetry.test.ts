@@ -1,14 +1,21 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockLogger, module: loggerModule, clearAll } = createMockLoggerModule();
-vi.mock('../../utils/logger', () => loggerModule);
+const mockLogger = vi.hoisted(() => ({
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+}));
+
+vi.mock('../../utils/logger', () => ({
+  getLogger: () => mockLogger,
+}));
 
 const { withRetry, withRetryTransaction } = await import('../withRetry');
 
 describe('withRetry', () => {
   beforeEach(() => {
-    clearAll();
+    vi.clearAllMocks();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     vi.useFakeTimers();
   });
@@ -153,7 +160,7 @@ describe('withRetry', () => {
 
 describe('withRetryTransaction', () => {
   beforeEach(() => {
-    clearAll();
+    vi.clearAllMocks();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     vi.useFakeTimers();
   });

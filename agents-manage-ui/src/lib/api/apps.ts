@@ -3,6 +3,7 @@
 import type { AppApiCreationResponse, AppApiSelect } from '@inkeep/agents-core/client-exports';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
+import { validateProjectId, validateTenantId } from './resource-validation';
 
 export type App = Omit<AppApiSelect, 'lastUsedAt'> & {
   lastUsedAt?: string;
@@ -13,6 +14,9 @@ export type AppCreateResponse = {
 };
 
 export async function fetchApps(tenantId: string, projectId: string): Promise<ListResponse<App>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<ListResponse<AppApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/apps?limit=100`
   );
@@ -31,6 +35,9 @@ export async function createApp(
   projectId: string,
   appData: Record<string, unknown>
 ): Promise<AppCreateResponse> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<AppApiCreationResponse>(
     `tenants/${tenantId}/projects/${projectId}/apps`,
     {
@@ -54,6 +61,9 @@ export async function updateApp(
   appId: string,
   appData: Record<string, unknown>
 ): Promise<App> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   const response = await makeManagementApiRequest<SingleResponse<AppApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/apps/${appId}`,
     {
@@ -69,6 +79,9 @@ export async function updateApp(
 }
 
 export async function deleteApp(tenantId: string, projectId: string, appId: string): Promise<void> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   await makeManagementApiRequest(`tenants/${tenantId}/projects/${projectId}/apps/${appId}`, {
     method: 'DELETE',
   });

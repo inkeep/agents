@@ -61,7 +61,6 @@ export function getRelationTools(
             },
             sessionId,
             credentialStoreRegistry: ctx.credentialStoreRegistry,
-            agentRunContext: ctx,
           }),
           runtimeContext?.metadata?.streamRequestId,
           'delegation'

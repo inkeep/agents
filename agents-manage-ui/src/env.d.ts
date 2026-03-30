@@ -5,7 +5,7 @@ declare namespace globalThis {
   var monaco: Monaco;
 }
 
-declare module '*.svg?react' {
+declare module '*.svg?svgr' {
   import type { FC, SVGProps } from 'react';
   const ReactComponent: FC<SVGProps<SVGElement>>;
 

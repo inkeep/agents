@@ -475,7 +475,7 @@ export async function revokeSlackToken(token: string): Promise<boolean> {
     const result = await client.auth.revoke();
 
     if (result.ok) {
-      logger.info('Successfully revoked Slack token');
+      logger.info({}, 'Successfully revoked Slack token');
       return true;
     }
 
@@ -484,7 +484,7 @@ export async function revokeSlackToken(token: string): Promise<boolean> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes('token_revoked') || errorMessage.includes('invalid_auth')) {
-      logger.info('Token already revoked or invalid');
+      logger.info({}, 'Token already revoked or invalid');
       return true;
     }
     logger.error({ error }, 'Failed to revoke Slack token');

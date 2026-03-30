@@ -1,16 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import type { ModelSettings, Part } from '@inkeep/agents-core';
+import type { ModelSettings } from '@inkeep/agents-core';
 import {
   estimateTokens as estimateTokensUtil,
   GENERATION_TYPES,
   getLedgerArtifacts,
-  LOAD_SKILL_TOOL,
-  SAVE_TOOL_RESULT_TOOL,
-  SESSION_EVENT_ARTIFACT_SAVED,
-  SESSION_EVENT_COMPRESSION,
   SPAN_KEYS,
-  TRANSFER_TOOL_PREFIX,
-  updateLedgerArtifactParts,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
@@ -38,33 +32,6 @@ function stripStructureHints(value: unknown): unknown {
     return rest;
   }
   return value;
-}
-
-function sanitizeBinaryPayloadsForTokenEstimation(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => sanitizeBinaryPayloadsForTokenEstimation(item));
-  }
-
-  if (!value || typeof value !== 'object') {
-    return value;
-  }
-
-  const record = value as Record<string, unknown>;
-  const sanitized: Record<string, unknown> = {};
-
-  for (const [key, nestedValue] of Object.entries(record)) {
-    sanitized[key] = sanitizeBinaryPayloadsForTokenEstimation(nestedValue);
-  }
-
-  const type = record.type;
-  if (
-    (type === 'image-data' || type === 'image' || type === 'file' || type === 'file-data') &&
-    typeof record.data === 'string'
-  ) {
-    sanitized.data = '[binary payload omitted for compression token estimation]';
-  }
-
-  return sanitized;
 }
 
 export interface CompressionConfig {
@@ -125,32 +92,26 @@ export abstract class BaseCompressor {
             total += this.estimateTokens(block.text || '');
           } else if (block.type === 'tool-call') {
             total += this.estimateTokens(
-              JSON.stringify(
-                sanitizeBinaryPayloadsForTokenEstimation({
-                  toolCallId: block.toolCallId,
-                  toolName: block.toolName,
-                  input: block.input,
-                })
-              )
+              JSON.stringify({
+                toolCallId: block.toolCallId,
+                toolName: block.toolName,
+                input: block.input,
+              })
             );
           } else if (block.type === 'tool-result') {
             total += this.estimateTokens(
-              JSON.stringify(
-                sanitizeBinaryPayloadsForTokenEstimation({
-                  toolCallId: block.toolCallId,
-                  toolName: block.toolName,
-                  output: block.output,
-                })
-              )
+              JSON.stringify({
+                toolCallId: block.toolCallId,
+                toolName: block.toolName,
+                output: block.output,
+              })
             );
           }
         }
       } else if (typeof msg.content === 'string') {
         total += this.estimateTokens(msg.content);
       } else if (msg.content) {
-        total += this.estimateTokens(
-          JSON.stringify(sanitizeBinaryPayloadsForTokenEstimation(msg.content))
-        );
+        total += this.estimateTokens(JSON.stringify(msg.content));
       }
       return total;
     }, 0);
@@ -181,7 +142,6 @@ export abstract class BaseCompressor {
     const toolCallIds = this.extractToolCallIds(messagesToProcess);
     const existingArtifacts = await this.findExistingArtifacts([...new Set(toolCallIds)]);
     const toolCallToArtifactMap: Record<string, CompressedArtifactInfo> = {};
-    let createdArtifacts = false;
 
     for (const message of messagesToProcess) {
       this.convertDatabaseFormatMessage(message);
@@ -191,23 +151,9 @@ export abstract class BaseCompressor {
             const artifactInfo = await this.processToolResult(block, session, existingArtifacts);
             if (artifactInfo) {
               toolCallToArtifactMap[block.toolCallId] = artifactInfo;
-              if (!existingArtifacts.has(block.toolCallId)) {
-                createdArtifacts = true;
-              }
             }
           }
         }
-      }
-    }
-
-    if (createdArtifacts) {
-      await session.waitForPendingArtifacts();
-
-      const refreshedArtifacts = await this.findExistingArtifacts(
-        Object.keys(toolCallToArtifactMap)
-      );
-      for (const [toolCallId, artifactInfo] of refreshedArtifacts.entries()) {
-        toolCallToArtifactMap[toolCallId] = artifactInfo;
       }
     }
 
@@ -220,12 +166,11 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: Record<string, unknown>;
+        toolArgs?: unknown;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
-        artifactType?: string;
       }
     >
   > {
@@ -234,12 +179,11 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: Record<string, unknown>;
+        toolArgs?: unknown;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
-        artifactType?: string;
       }
     >();
 
@@ -252,22 +196,21 @@ export abstract class BaseCompressor {
       });
 
       for (const artifact of artifacts) {
-        const toolCallId = artifact.toolCallId;
-        if (!toolCallId || result.has(toolCallId)) continue;
-
-        const dataPart = artifact.parts?.find(
-          (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> => p.kind === 'data'
-        );
-        result.set(toolCallId, {
-          artifactId: artifact.artifactId,
-          isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
-          toolArgs: artifact.metadata?.toolArgs,
-          toolName: artifact.metadata?.toolName as string | undefined,
-          summaryData: dataPart?.data?.summary ?? dataPart?.data,
-          name: artifact.name,
-          description: artifact.description,
-          artifactType: artifact.type,
-        });
+        if (artifact.toolCallId) {
+          const dataPart = artifact.parts?.find(
+            (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
+              p.kind === 'data'
+          );
+          result.set(artifact.toolCallId, {
+            artifactId: artifact.artifactId,
+            isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
+            toolArgs: artifact.metadata?.toolArgs,
+            toolName: artifact.metadata?.toolName as string | undefined,
+            summaryData: dataPart?.data?.summary ?? dataPart?.data,
+            name: artifact.name,
+            description: artifact.description,
+          });
+        }
       }
     } catch (error) {
       logger.warn(
@@ -315,12 +258,11 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: Record<string, unknown>;
+        toolArgs?: unknown;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
-        artifactType?: string;
       }
     >
   ): Promise<CompressedArtifactInfo | null> {
@@ -338,11 +280,9 @@ export abstract class BaseCompressor {
         artifactId: existing.artifactId,
         isOversized: existing.isOversized,
         toolArgs: existing.toolArgs as Record<string, unknown> | undefined,
-        toolName: existing.toolName,
         summaryData: existing.summaryData,
         name: existing.name,
         description: existing.description,
-        artifactType: existing.artifactType,
       };
     }
 
@@ -352,10 +292,10 @@ export abstract class BaseCompressor {
   private shouldSkipToolCall(toolName: string): boolean {
     return (
       toolName === 'get_reference_artifact' ||
-      toolName === LOAD_SKILL_TOOL ||
+      toolName === 'load_skill' ||
       toolName === 'thinking_complete' ||
-      toolName?.includes(SAVE_TOOL_RESULT_TOOL) ||
-      toolName?.startsWith(TRANSFER_TOOL_PREFIX)
+      toolName?.includes('save_tool_result') ||
+      toolName?.startsWith('transfer_to_')
     );
   }
 
@@ -452,18 +392,16 @@ export abstract class BaseCompressor {
 
     const artifactData = this.buildArtifactData(artifactId, block, toolResultData);
 
-    session.recordEvent(SESSION_EVENT_ARTIFACT_SAVED, this.sessionId, artifactData);
+    session.recordEvent('artifact_saved', this.sessionId, artifactData);
     this.processedToolCalls.add(block.toolCallId);
 
     return {
       artifactId,
       isOversized: artifactData.metadata.isOversized,
-      toolName: block.toolName,
       toolArgs: artifactData.metadata.toolArgs ?? undefined,
       structureInfo: artifactData.summaryData._structureInfo,
       oversizedWarning: artifactData.summaryData._oversizedWarning,
       summaryData: artifactData.summaryData,
-      artifactType: artifactData.artifactType,
     };
   }
 
@@ -485,11 +423,8 @@ export abstract class BaseCompressor {
           } else if (block.type === 'tool-call') {
             nonToolResultChars +=
               JSON.stringify(block.input || {}).length + (block.toolName || '').length;
-          } else if (block.type === 'tool-result') {
-            const info = toolCallToArtifactMap?.[block.toolCallId];
-            if (info && info.artifactType !== 'binary_attachment') {
-              numToolResults++;
-            }
+          } else if (block.type === 'tool-result' && toolCallToArtifactMap?.[block.toolCallId]) {
+            numToolResults++;
           }
         }
       } else if (msg.content?.text) {
@@ -521,36 +456,20 @@ export abstract class BaseCompressor {
               // Intentionally skip tool results without artifact mappings (skipped/internal tools).
               // Only artifact-backed results are included so the distillation prompt stays compact.
               if (artifactInfo) {
-                if (artifactInfo.artifactType === 'binary_attachment') {
-                  const header = artifactInfo.name
-                    ? `[BINARY ATTACHMENT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
-                    : `[BINARY ATTACHMENT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
-                  const descriptionLine = artifactInfo.description
-                    ? `Description: ${artifactInfo.description}\n`
-                    : '';
-                  const sd = artifactInfo.summaryData;
-                  const metaParts: string[] = [];
-                  if (sd?.mimeType) metaParts.push(`mimeType: ${sd.mimeType}`);
-                  if (sd?.binaryType) metaParts.push(`binaryType: ${sd.binaryType}`);
-                  if (sd?.filename) metaParts.push(`filename: ${sd.filename}`);
-                  const metaLine = metaParts.length > 0 ? `${metaParts.join(', ')}\n` : '';
-                  parts.push(`${header}\n${descriptionLine}${metaLine}`.trimEnd());
-                } else {
-                  const header = artifactInfo.name
-                    ? `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
-                    : `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
-                  const descriptionLine = artifactInfo.description
-                    ? `Description: ${artifactInfo.description}\n`
-                    : '';
-                  const summary = artifactInfo.summaryData
-                    ? JSON.stringify(artifactInfo.summaryData)
-                    : '';
-                  const truncated =
-                    perResultLimit && summary.length > perResultLimit
-                      ? `${summary.slice(0, perResultLimit)}...`
-                      : summary;
-                  parts.push(`${header}\n${descriptionLine}${truncated}`);
-                }
+                const header = artifactInfo.name
+                  ? `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
+                  : `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
+                const descriptionLine = artifactInfo.description
+                  ? `Description: ${artifactInfo.description}\n`
+                  : '';
+                const summary = artifactInfo.summaryData
+                  ? JSON.stringify(artifactInfo.summaryData)
+                  : '';
+                const truncated =
+                  perResultLimit && summary.length > perResultLimit
+                    ? `${summary.slice(0, perResultLimit)}...`
+                    : summary;
+                parts.push(`${header}\n${descriptionLine}${truncated}`);
               } else {
                 logger.debug(
                   { toolCallId: block.toolCallId, toolName: block.toolName },
@@ -620,26 +539,6 @@ export abstract class BaseCompressor {
     );
 
     this.cumulativeSummary = summary;
-
-    if (summary.related_artifacts?.length) {
-      try {
-        const persistResult = await this.persistArtifactKeyFindings(summary.related_artifacts);
-        logger.debug(
-          { ...persistResult, conversationId: this.conversationId },
-          'Artifact key_findings persistence completed'
-        );
-      } catch (err) {
-        logger.warn(
-          {
-            conversationId: this.conversationId,
-            artifactIds: summary.related_artifacts.map((a) => a.id),
-            err: err instanceof Error ? err.message : String(err),
-          },
-          'Failed to persist key_findings to artifacts'
-        );
-      }
-    }
-
     return summary;
   }
 
@@ -660,16 +559,16 @@ export abstract class BaseCompressor {
 
       if (!artifacts.length) return this.cumulativeSummary;
 
-      const artifactIdMap = new Map<string, { name?: string; description?: string }>(
+      const nameMap = new Map<string, { name?: string; description?: string }>(
         artifacts
-          .filter((a) => a.artifactId && (a.name || a.description))
-          .map((a) => [a.artifactId, { name: a.name, description: a.description }])
+          .filter((a) => a.toolCallId && (a.name || a.description))
+          .map((a) => [a.toolCallId as string, { name: a.name, description: a.description }])
       );
 
       const refreshed = {
         ...this.cumulativeSummary,
         related_artifacts: this.cumulativeSummary.related_artifacts.map((a) => {
-          const db = artifactIdMap.get(a.id);
+          const db = nameMap.get(a.tool_call_id);
           return db
             ? {
                 ...a,
@@ -708,117 +607,12 @@ export abstract class BaseCompressor {
   protected recordCompressionEvent(eventData: CompressionEventData): void {
     const session = agentSessionManager.getSession(this.sessionId);
     if (session) {
-      session.recordEvent(SESSION_EVENT_COMPRESSION, this.sessionId, eventData);
+      session.recordEvent('compression', this.sessionId, eventData);
     }
   }
 
   getCompressionSummary(): ConversationSummary | null {
     return this.cumulativeSummary;
-  }
-
-  hasSummarizedArtifact(artifactId: string): boolean {
-    return this.cumulativeSummary?.related_artifacts?.some((a) => a.id === artifactId) ?? false;
-  }
-
-  getSummarizedArtifact(
-    artifactId: string
-  ): { key_findings: string[]; tool_call_id: string } | null {
-    const artifact = this.cumulativeSummary?.related_artifacts?.find((a) => a.id === artifactId);
-    if (!artifact) return null;
-    return {
-      key_findings: artifact.key_findings,
-      tool_call_id: artifact.tool_call_id,
-    };
-  }
-
-  protected async persistArtifactKeyFindings(
-    relatedArtifacts: NonNullable<ConversationSummary['related_artifacts']>
-  ): Promise<{ persisted: number; skipped: number; failed: number }> {
-    const result = { persisted: 0, skipped: 0, failed: 0 };
-    const scopes = { tenantId: this.tenantId, projectId: this.projectId };
-
-    const artifactsWithFindings = relatedArtifacts.filter((a) => a.key_findings?.length);
-    result.skipped += relatedArtifacts.length - artifactsWithFindings.length;
-
-    if (artifactsWithFindings.length === 0) return result;
-
-    const fetchResults = await Promise.allSettled(
-      artifactsWithFindings.map((artifact) =>
-        getLedgerArtifacts(runDbClient)({ scopes, artifactId: artifact.id }).then((existing) => ({
-          artifact,
-          existing,
-        }))
-      )
-    );
-
-    const updates: Array<{ artifact: (typeof artifactsWithFindings)[number]; parts: Part[] }> = [];
-
-    for (const settled of fetchResults) {
-      if (settled.status === 'rejected') {
-        result.failed++;
-        logger.warn(
-          { conversationId: this.conversationId, error: String(settled.reason) },
-          'Failed to fetch artifact for key_findings persistence'
-        );
-        continue;
-      }
-
-      const { artifact, existing } = settled.value;
-      if (existing.length === 0) {
-        logger.debug(
-          { artifactId: artifact.id },
-          'Artifact not found in DB, skipping key_findings persistence'
-        );
-        result.skipped++;
-        continue;
-      }
-
-      const parts = structuredClone(existing[0].parts ?? []) as Part[];
-      const firstPart = parts[0];
-      if (!firstPart || firstPart.kind !== 'data' || !firstPart.data?.summary) {
-        logger.debug(
-          { artifactId: artifact.id, hasParts: parts.length > 0 },
-          'Artifact has no data part with summary structure, skipping key_findings persistence'
-        );
-        result.skipped++;
-        continue;
-      }
-
-      firstPart.data.summary = {
-        ...firstPart.data.summary,
-        key_findings: artifact.key_findings,
-      };
-
-      updates.push({ artifact, parts });
-    }
-
-    const updateResults = await Promise.allSettled(
-      updates.map(({ artifact, parts }) =>
-        updateLedgerArtifactParts(runDbClient)({ scopes, artifactId: artifact.id, parts }).then(
-          (updated) => ({ artifact, updated })
-        )
-      )
-    );
-
-    for (const settled of updateResults) {
-      if (settled.status === 'rejected') {
-        result.failed++;
-        logger.warn(
-          { conversationId: this.conversationId, error: String(settled.reason) },
-          'Failed to persist key_findings to artifact'
-        );
-        continue;
-      }
-      const { artifact, updated } = settled.value;
-      if (updated) {
-        result.persisted++;
-      } else {
-        logger.warn({ artifactId: artifact.id }, 'updateLedgerArtifactParts matched no rows');
-        result.failed++;
-      }
-    }
-
-    return result;
   }
 
   cleanup(options: { resetSummary?: boolean; keepRecentToolCalls?: number } = {}): void {

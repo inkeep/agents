@@ -11,10 +11,6 @@
     "ENVIRONMENT",
     "INKEEP_AGENTS_MANAGE_DATABASE_URL",
     "INKEEP_AGENTS_RUN_DATABASE_URL",
-    "INKEEP_AGENTS_API_URL",
-    "PUBLIC_INKEEP_AGENTS_API_URL",
-    "NEXT_PUBLIC_INKEEP_AGENTS_API_URL",
-    "INKEEP_AGENTS_MANAGE_UI_URL",
     "PORT",
     "AGENTS_API_PORT",
     "MANAGE_UI_PORT",
@@ -63,7 +59,6 @@
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "env": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"],
-      "passThroughEnv": ["PW_TEST_CONNECT_WS_ENDPOINT"],
       "outputs": ["coverage/**"]
     },
     "@inkeep/agents-mcp#build": {

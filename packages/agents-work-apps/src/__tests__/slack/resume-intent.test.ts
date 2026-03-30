@@ -1,5 +1,4 @@
 import type { SlackLinkIntent } from '@inkeep/agents-core';
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resumeSmartLinkIntent } from '../../slack/services/resume-intent';
 
@@ -63,7 +62,14 @@ vi.mock('../../env', () => ({
   },
 }));
 
-vi.mock('../../logger', () => createMockLoggerModule().module);
+vi.mock('../../logger', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
 
 const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
 const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');

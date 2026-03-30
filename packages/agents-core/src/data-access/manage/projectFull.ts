@@ -41,10 +41,12 @@ import { deleteDataComponent, listDataComponents, upsertDataComponent } from './
 import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { deleteFunction, listFunctions, upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
-import { listSkillsWithFiles, upsertSkill } from './skills';
+import { listSkills, upsertSkill } from './skills';
 import { deleteTool, listTools, upsertTool } from './tools';
 
-const logger = getLogger('projectFull');
+const defaultLogger = getLogger('projectFull');
+
+export type ProjectLogger = ReturnType<typeof getLogger>;
 
 /**
  * Validate and type the project data
@@ -58,7 +60,7 @@ function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
  * This function creates a complete project with all agent and their nested resources.
  */
 export const createFullProjectServerSide =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -96,7 +98,7 @@ export const createFullProjectServerSide =
           'Creating project skills'
         );
 
-        for (const [skillId, skill] of Object.entries(typed.skills)) {
+        const skillPromises = Object.entries(typed.skills).map(async ([skillId, skill]) => {
           try {
             await upsertSkill(db)({
               ...skill,
@@ -108,7 +110,9 @@ export const createFullProjectServerSide =
             logger.error({ projectId: typed.id, skillId, error }, 'Failed to create skill');
             throw error;
           }
-        }
+        });
+
+        await Promise.all(skillPromises);
         logger.info(
           { projectId: typed.id, count: Object.keys(typed.skills).length },
           'All project skills created successfully'
@@ -412,7 +416,7 @@ export const createFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await createFullAgentServerSide(db)(
+            await createFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
               agentDataWithoutSubAgents
             );
@@ -430,19 +434,7 @@ export const createFullProjectServerSide =
           }
         });
 
-        const phase1Results = await Promise.allSettled(agentPromises);
-        const phase1Errors = phase1Results
-          .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-          .map((r) => r.reason);
-
-        if (phase1Errors.length > 0) {
-          logger.error(
-            { projectId: typed.id, errorCount: phase1Errors.length },
-            `Some agents failed to create in phase 1: ${phase1Errors.join(', ')}`
-          );
-          throw phase1Errors[0];
-        }
-
+        await Promise.all(agentPromises);
         logger.info(
           {
             projectId: typed.id,
@@ -472,7 +464,7 @@ export const createFullProjectServerSide =
                 subAgents: agentData.subAgents, // Include all sub-agents with their relationships
               };
 
-              await updateFullAgentServerSide(db)(
+              await updateFullAgentServerSide(db, logger)(
                 { tenantId, projectId: typed.id },
                 updateData as any
               );
@@ -490,19 +482,7 @@ export const createFullProjectServerSide =
             }
           });
 
-        const phase2Results = await Promise.allSettled(updatePromises);
-        const phase2Errors = phase2Results
-          .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-          .map((r) => r.reason);
-
-        if (phase2Errors.length > 0) {
-          logger.error(
-            { projectId: typed.id, errorCount: phase2Errors.length },
-            `Some agents failed to add sub-agents in phase 2: ${phase2Errors.join(', ')}`
-          );
-          throw phase2Errors[0];
-        }
-
+        await Promise.all(updatePromises);
         logger.info(
           {
             projectId: typed.id,
@@ -514,7 +494,10 @@ export const createFullProjectServerSide =
 
       logger.info({ projectId: typed.id }, 'Full project created successfully');
 
-      const fullProject = await getFullProject(db)({
+      const fullProject = await getFullProject(
+        db,
+        logger
+      )({
         scopes: { tenantId, projectId: typed.id },
       });
 
@@ -541,7 +524,7 @@ export const createFullProjectServerSide =
  * This function updates a complete project with all agent and their nested resources.
  */
 export const updateFullProjectServerSide =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -570,7 +553,10 @@ export const updateFullProjectServerSide =
 
       if (!existingProject) {
         logger.info({ projectId: typed.id }, 'Project not found, creating new project');
-        return await createFullProjectServerSide(db)({
+        return await createFullProjectServerSide(
+          db,
+          logger
+        )({
           scopes: { tenantId, projectId: typed.id },
           projectData,
         });
@@ -596,7 +582,7 @@ export const updateFullProjectServerSide =
           'Updating project skills'
         );
 
-        for (const [skillId, skill] of Object.entries(typed.skills)) {
+        const skillPromises = Object.entries(typed.skills).map(async ([skillId, skill]) => {
           try {
             await upsertSkill(db)({
               ...skill,
@@ -608,7 +594,9 @@ export const updateFullProjectServerSide =
             logger.error({ projectId: typed.id, skillId, error }, 'Failed to update skill');
             throw error;
           }
-        }
+        });
+
+        await Promise.all(skillPromises);
         logger.info(
           { projectId: typed.id, count: Object.keys(typed.skills).length },
           'All project skills updated successfully'
@@ -1110,7 +1098,10 @@ export const updateFullProjectServerSide =
       for (const agent of existingAgents) {
         if (!incomingAgentIds.has(agent.id)) {
           try {
-            await deleteFullAgent(db)({
+            await deleteFullAgent(
+              db,
+              logger
+            )({
               scopes: { tenantId, projectId: typed.id, agentId: agent.id },
             });
             deletedAgentCount++;
@@ -1157,7 +1148,7 @@ export const updateFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await updateFullAgentServerSide(db)(
+            await updateFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
               agentDataWithProjectResources
             );
@@ -1165,30 +1156,14 @@ export const updateFullProjectServerSide =
             logger.info({ projectId: typed.id, agentId }, 'Agent updated successfully in project');
           } catch (error) {
             logger.error(
-              {
-                projectId: typed.id,
-                agentId,
-                error,
-              },
+              { projectId: typed.id, agentId, error },
               'Failed to update agent in project'
             );
             throw error;
           }
         });
 
-        const agentResults = await Promise.allSettled(agentPromises);
-        const agentErrors = agentResults
-          .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-          .map((r) => r.reason);
-
-        if (agentErrors.length > 0) {
-          logger.error(
-            { projectId: typed.id, errorCount: agentErrors.length },
-            `Some agents failed to update in project: ${agentErrors.join(', ')}`
-          );
-          throw agentErrors[0];
-        }
-
+        await Promise.all(agentPromises);
         logger.info(
           {
             projectId: typed.id,
@@ -1200,7 +1175,10 @@ export const updateFullProjectServerSide =
 
       logger.info({ projectId: typed.id }, 'Full project updated successfully');
 
-      const fullProject = await getFullProject(db)({
+      const fullProject = await getFullProject(
+        db,
+        logger
+      )({
         scopes: { tenantId, projectId: typed.id },
       });
 
@@ -1226,7 +1204,7 @@ export const updateFullProjectServerSide =
  * Get a complete project definition with all nested resources
  */
 const getFullProjectInternal =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
     includeRelationIds?: boolean;
@@ -1380,7 +1358,7 @@ const getFullProjectInternal =
 
       const projectSkills: Record<string, any> = {};
       try {
-        const skillsList = await listSkillsWithFiles(db)({
+        const skillsList = await listSkills(db)({
           scopes: { tenantId, projectId },
           pagination: { page: 1, limit: 1000 },
         });
@@ -1392,10 +1370,6 @@ const getFullProjectInternal =
             description: skill.description,
             content: skill.content,
             metadata: skill.metadata,
-            files: skill.files.map((file) => ({
-              filePath: file.filePath,
-              content: file.content,
-            })),
             createdAt: skill.createdAt,
             updatedAt: skill.updatedAt,
           };
@@ -1508,32 +1482,32 @@ const getFullProjectInternal =
   };
 
 export const getFullProject =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectSelect | null> => {
     const { scopes } = params;
-    return getFullProjectInternal(db)({
-      scopes,
-      includeRelationIds: false,
-    }) as Promise<FullProjectSelect | null>;
+    return getFullProjectInternal(
+      db,
+      logger
+    )({ scopes, includeRelationIds: false }) as Promise<FullProjectSelect | null>;
   };
 
 export const getFullProjectWithRelationIds =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
   }): Promise<FullProjectSelectWithRelationIds | null> => {
     const { scopes } = params;
-    return getFullProjectInternal(db)({
-      scopes,
-      includeRelationIds: true,
-    }) as Promise<FullProjectSelectWithRelationIds | null>;
+    return getFullProjectInternal(
+      db,
+      logger
+    )({ scopes, includeRelationIds: true }) as Promise<FullProjectSelectWithRelationIds | null>;
   };
 
 /**
  * Delete a complete project and cascade to all related entities
  */
 export const deleteFullProject =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -1541,7 +1515,10 @@ export const deleteFullProject =
     logger.info({ tenantId, projectId }, 'Deleting full project and related entities');
 
     try {
-      const project = await getFullProject(db)({
+      const project = await getFullProject(
+        db,
+        logger
+      )({
         scopes: { tenantId, projectId },
       });
 
@@ -1564,7 +1541,10 @@ export const deleteFullProject =
           try {
             logger.info({ tenantId, projectId, agentId }, 'Deleting agent from project');
 
-            await deleteFullAgent(db)({
+            await deleteFullAgent(
+              db,
+              logger
+            )({
               scopes: { tenantId, projectId, agentId },
             });
 

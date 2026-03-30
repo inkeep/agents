@@ -21,8 +21,6 @@ export interface ServiceTokenPayload {
   projectId: string;
   /** Original initiator of the request (propagated through delegation chain) */
   initiatedBy?: { type: 'user' | 'api_key'; id: string };
-  /** App ID - propagated through delegation chain for app-scoped requests */
-  appId?: string;
   /** Issued at timestamp */
   iat: number;
   /** Expiration timestamp (5 minutes from issue) */
@@ -38,7 +36,6 @@ export interface GenerateServiceTokenParams {
   originAgentId: string;
   targetAgentId: string;
   initiatedBy?: { type: 'user' | 'api_key'; id: string };
-  appId?: string;
 }
 
 /**
@@ -61,7 +58,6 @@ export async function generateServiceToken(params: GenerateServiceTokenParams): 
         tenantId: params.tenantId,
         projectId: params.projectId,
         ...(params.initiatedBy ? { initiatedBy: params.initiatedBy } : {}),
-        ...(params.appId ? { appId: params.appId } : {}),
       },
     });
 
@@ -111,16 +107,7 @@ export async function verifyServiceToken(token: string): Promise<VerifyServiceTo
     };
   }
 
-  const initiatedBy =
-    payload.initiatedBy &&
-    typeof payload.initiatedBy === 'object' &&
-    'type' in payload.initiatedBy &&
-    'id' in payload.initiatedBy &&
-    (payload.initiatedBy.type === 'user' || payload.initiatedBy.type === 'api_key') &&
-    typeof payload.initiatedBy.id === 'string'
-      ? (payload.initiatedBy as { type: 'user' | 'api_key'; id: string })
-      : undefined;
-  const appId = typeof payload.appId === 'string' ? payload.appId : undefined;
+  const initiatedBy = payload.initiatedBy as { type: 'user' | 'api_key'; id: string } | undefined;
 
   const validPayload: ServiceTokenPayload = {
     iss: payload.iss as string,
@@ -129,7 +116,6 @@ export async function verifyServiceToken(token: string): Promise<VerifyServiceTo
     tenantId: payload.tenantId as string,
     projectId: payload.projectId as string,
     ...(initiatedBy ? { initiatedBy } : {}),
-    ...(appId ? { appId } : {}),
     iat: payload.iat as number,
     exp: payload.exp as number,
   };

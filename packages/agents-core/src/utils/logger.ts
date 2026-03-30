@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import type {
   LoggerOptions,
   Logger as PinoLoggerInstance,
@@ -25,20 +24,6 @@ function shouldColorize(): boolean {
   return process.stdout.isTTY ?? false;
 }
 
-const loggerStorage = new AsyncLocalStorage<PinoLoggerInstance>();
-
-export function runWithLogContext<T>(bindings: Record<string, unknown>, fn: () => T): T {
-  const parent = loggerStorage.getStore() ?? basePinoInstance;
-  const child = parent.child(bindings);
-  return loggerStorage.run(child, fn);
-}
-
-let basePinoInstance: PinoLoggerInstance = pino({ level: 'silent' });
-
-function setBasePinoInstance(instance: PinoLoggerInstance): void {
-  basePinoInstance = instance;
-}
-
 /**
  * Configuration options for PinoLogger
  */
@@ -47,10 +32,6 @@ export interface PinoLoggerConfig {
   options?: LoggerOptions;
   /** Pino transport configuration */
   transportConfigs?: TransportSingleOptions[];
-  /** Pre-built pino instance (used internally by .with()) */
-  fromInstance?: PinoLoggerInstance;
-  /** When true, disables ALS proxying (used by .with() for snapshot semantics) */
-  snapshot?: boolean;
 }
 
 /**
@@ -61,30 +42,15 @@ export class PinoLogger {
 
   private pinoInstance: PinoLoggerInstance;
   private options: LoggerOptions;
-  private alsChildCache = new WeakMap<PinoLoggerInstance, PinoLoggerInstance>();
-  private isSnapshot: boolean;
 
   constructor(
     private name: string,
     config: PinoLoggerConfig = {}
   ) {
-    if (config.fromInstance) {
-      this.pinoInstance = config.fromInstance;
-      this.options = {};
-      this.isSnapshot = config.snapshot ?? false;
-      if (!this.isSnapshot) {
-        setBasePinoInstance(this.pinoInstance);
-      }
-      return;
-    }
-
-    this.isSnapshot = false;
     this.options = {
       name: this.name,
       level: process.env.LOG_LEVEL || (process.env.ENVIRONMENT === 'test' ? 'silent' : 'info'),
       serializers: {
-        err: pino.stdSerializers.err,
-        error: pino.stdSerializers.err,
         obj: (value: any) => ({ ...value }),
       },
       redact: [
@@ -119,8 +85,6 @@ export class PinoLogger {
         this.pinoInstance = pino(this.options);
       }
     }
-
-    setBasePinoInstance(this.pinoInstance);
   }
 
   /**
@@ -130,8 +94,6 @@ export class PinoLogger {
     if (this.pinoInstance && typeof this.pinoInstance.flush === 'function') {
       this.pinoInstance.flush();
     }
-
-    this.alsChildCache = new WeakMap();
 
     if (this.transportConfigs.length === 0) {
       // Use pino-pretty stream directly instead of transport (same as constructor)
@@ -198,74 +160,20 @@ export class PinoLogger {
     return this.pinoInstance;
   }
 
-  private resolveInstance(): PinoLoggerInstance {
-    if (this.isSnapshot) return this.pinoInstance;
-    const alsInstance = loggerStorage.getStore();
-    if (!alsInstance) return this.pinoInstance;
-
-    let cached = this.alsChildCache.get(alsInstance);
-    if (!cached) {
-      cached = alsInstance.child({ module: this.name });
-      this.alsChildCache.set(alsInstance, cached);
-    }
-    return cached;
+  error(data: any, message: string): void {
+    this.pinoInstance.error(data, message);
   }
 
-  /**
-   * Creates a new PinoLogger with the given bindings baked in (snapshot semantics).
-   * Captures the current ALS context at call time. The returned logger does NOT
-   * pick up subsequent ALS context changes — use for class member loggers that
-   * are constructed once and reused within a request scope.
-   */
-  with(bindings: Record<string, unknown>): PinoLogger {
-    return new PinoLogger(this.name, {
-      fromInstance: this.resolveInstance().child(bindings),
-      snapshot: true,
-    });
+  warn(data: any, message: string): void {
+    this.pinoInstance.warn(data, message);
   }
 
-  child(bindings: Record<string, unknown>): PinoLogger {
-    return this.with(bindings);
+  info(data: any, message: string): void {
+    this.pinoInstance.info(data, message);
   }
 
-  error(message: string): void;
-  error(data: any, message: string): void;
-  error(dataOrMessage: any, message?: string): void {
-    if (message === undefined) {
-      this.resolveInstance().error(dataOrMessage);
-    } else {
-      this.resolveInstance().error(dataOrMessage, message);
-    }
-  }
-
-  warn(message: string): void;
-  warn(data: any, message: string): void;
-  warn(dataOrMessage: any, message?: string): void {
-    if (message === undefined) {
-      this.resolveInstance().warn(dataOrMessage);
-    } else {
-      this.resolveInstance().warn(dataOrMessage, message);
-    }
-  }
-
-  info(message: string): void;
-  info(data: any, message: string): void;
-  info(dataOrMessage: any, message?: string): void {
-    if (message === undefined) {
-      this.resolveInstance().info(dataOrMessage);
-    } else {
-      this.resolveInstance().info(dataOrMessage, message);
-    }
-  }
-
-  debug(message: string): void;
-  debug(data: any, message: string): void;
-  debug(dataOrMessage: any, message?: string): void {
-    if (message === undefined) {
-      this.resolveInstance().debug(dataOrMessage);
-    } else {
-      this.resolveInstance().debug(dataOrMessage, message);
-    }
+  debug(data: any, message: string): void {
+    this.pinoInstance.debug(data, message);
   }
 }
 

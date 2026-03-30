@@ -65,35 +65,17 @@ const serializeData = (data: ProjectFormData) => {
       base: {
         model: data.models.base.model,
         providerOptions: cleanProviderOptions(data.models.base.providerOptions),
-        ...(data.models.base.fallbackModels?.length && {
-          fallbackModels: data.models.base.fallbackModels.filter(Boolean),
-        }),
-        ...(data.models.base.allowedProviders?.length && {
-          allowedProviders: data.models.base.allowedProviders.filter(Boolean),
-        }),
       },
       structuredOutput: data.models?.structuredOutput?.model
         ? {
             model: data.models.structuredOutput.model,
             providerOptions: cleanProviderOptions(data.models.structuredOutput.providerOptions),
-            ...(data.models.structuredOutput.fallbackModels?.length && {
-              fallbackModels: data.models.structuredOutput.fallbackModels.filter(Boolean),
-            }),
-            ...(data.models.structuredOutput.allowedProviders?.length && {
-              allowedProviders: data.models.structuredOutput.allowedProviders.filter(Boolean),
-            }),
           }
         : undefined,
       summarizer: data.models?.summarizer?.model
         ? {
             model: data.models.summarizer.model,
             providerOptions: cleanProviderOptions(data.models.summarizer.providerOptions),
-            ...(data.models.summarizer.fallbackModels?.length && {
-              fallbackModels: data.models.summarizer.fallbackModels.filter(Boolean),
-            }),
-            ...(data.models.summarizer.allowedProviders?.length && {
-              allowedProviders: data.models.summarizer.allowedProviders.filter(Boolean),
-            }),
           }
         : undefined,
     },
@@ -135,7 +117,7 @@ export function ProjectForm({
     isEditing: !!projectId,
   });
 
-  const onSubmit = form.handleSubmit(async (data) => {
+  const onSubmit = async (data: ProjectFormData) => {
     const serializedData = serializeData(data);
 
     try {
@@ -152,17 +134,7 @@ export function ProjectForm({
       } else {
         const res = await createProjectAction(tenantId, serializedData);
         if (!res.success) {
-          const isEntitlementError = res.code === 'payment_required';
-          toast.error(res.error || 'Failed to create project', {
-            ...(isEntitlementError && {
-              action: {
-                label: 'See usage',
-                onClick: () => {
-                  window.location.href = `/${tenantId}/billing`;
-                },
-              },
-            }),
-          });
+          toast.error(res.error || 'Failed to create project');
           return;
         }
         toast.success('Project created successfully');
@@ -179,11 +151,11 @@ export function ProjectForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  }, console.error);
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
         <GenericInput
           control={form.control}
           name="name"

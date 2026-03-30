@@ -1,7 +1,6 @@
 // Import the mocked functions for testing
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { ModelFactory, type ModelSettings } from '@inkeep/agents-core';
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -70,7 +69,15 @@ vi.mock('@ai-sdk/google', () => {
   };
 });
 
-vi.mock('../../../logger.js', () => createMockLoggerModule().module);
+// Mock logger
+vi.mock('../../../logger.js', () => ({
+  getLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
 
 describe('ModelFactory', () => {
   beforeEach(() => {

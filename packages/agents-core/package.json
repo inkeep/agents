@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.67.2",
+  "version": "0.59.4",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -78,10 +78,6 @@
       "types": "./dist/utils/schema-conversion.d.ts",
       "import": "./dist/utils/schema-conversion.js"
     },
-    "./utils/retry": {
-      "types": "./dist/utils/retry-client.d.ts",
-      "import": "./dist/utils/retry-client.js"
-    },
     "./utils/signature-validation": {
       "types": "./dist/utils/signature-validation.d.ts",
       "import": "./dist/utils/signature-validation.js"
@@ -122,10 +118,6 @@
       "types": "./dist/setup/index.d.ts",
       "import": "./dist/setup/index.js"
     },
-    "./test-utils": {
-      "types": "./dist/test-utils/index.d.ts",
-      "import": "./dist/test-utils/index.js"
-    },
     "./drizzle": "./drizzle/",
     "./package.json": "./package.json"
   },
@@ -152,9 +144,7 @@
     "db:studio": "echo 'Use db:manage:studio or db:run:studio'",
     "db:check": "pnpm db:manage:check && pnpm db:run:check",
     "db:manage:generate": "drizzle-kit generate --config=drizzle.manage.config.ts",
-    "db:manage:backfill-skill-files": "tsx scripts/backfill-skill-files.ts",
     "db:manage:migrate": "tsx src/dolt/migrate-dolt.ts",
-    "db:manage:run-backfill-all-branches": "tsx scripts/run-manage-backfill-on-all-branches.ts",
     "db:manage:sync-all-branches": "tsx src/dolt/migrate-all-branches.ts",
     "db:manage:drop": "drizzle-kit drop --config=drizzle.manage.config.ts",
     "db:manage:studio": "drizzle-kit studio --config=drizzle.manage.config.ts",
@@ -167,7 +157,6 @@
     "db:auth:init": "tsx src/auth/init.ts"
   },
   "dependencies": {
-    "simplematter": "^1.0.1",
     "@ai-sdk/anthropic": "3.0.7",
     "@ai-sdk/azure": "^3.0.4",
     "@ai-sdk/gateway": "3.0.9",
@@ -184,6 +173,7 @@
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@nangohq/node": "^0.69.41",
     "@nangohq/types": "^0.69.41",
+    "@napi-rs/keyring": "^1.2.0",
     "@openrouter/ai-sdk-provider": "^2.1.0",
     "@opentelemetry/api": "^1.9.0",
     "@vercel/functions": "^1.6.0",
@@ -191,7 +181,6 @@
     "ajv": "^8.18.0",
     "altcha-lib": "^1.4.1",
     "better-auth": "catalog:",
-    "cron-parser": "^5.5.0",
     "destr": "^2.0.3",
     "dotenv": "^17.2.1",
     "dotenv-expand": "^12.0.3",
@@ -209,15 +198,13 @@
     "pino-pretty": "^13.1.1",
     "postgres": "^3.4.8",
     "traverse": "^0.6.10",
-    "ts-pattern": "^5.7.1",
-    "yaml": "^2.8.2"
+    "ts-pattern": "^5.7.1"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
-    "@napi-rs/keyring": "^1.2.0",
     "@opentelemetry/auto-instrumentations-node": "^0.62.0",
     "@opentelemetry/baggage-span-processor": "^0.4.0",
     "@opentelemetry/exporter-jaeger": "^2.0.1",

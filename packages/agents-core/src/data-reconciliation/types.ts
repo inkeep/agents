@@ -7,8 +7,10 @@ import type {
   ToolSelect,
 } from '../types/entities';
 import type { PinoLogger } from '../utils/logger';
+import type { ScheduledTrigger } from '../validation/schemas';
 
 export type EntityRowByTable = {
+  scheduled_triggers: ScheduledTrigger;
   tools: ToolSelect;
   context_configs: ContextConfigSelect;
   agent: AgentSelect;
@@ -105,6 +107,19 @@ export type AuditReport = {
   entries: EntityAuditEntry[];
   checkedEntities: string[];
   skippedEntities: string[];
+};
+
+export type ScheduledTriggerAuditResult = {
+  missingWorkflows: Array<{ triggerId: string; triggerName: string }>;
+  orphanedWorkflows: Array<{ workflowRunId: string; scheduledTriggerId: string }>;
+  staleWorkflows: Array<{ triggerId: string; triggerName: string; workflowId: string }>;
+  deadWorkflows: Array<{
+    triggerId: string;
+    triggerName: string;
+    workflowRunId: string;
+    runStatus: string;
+  }>;
+  verificationFailures: Array<{ workflowRunId: string; error: string }>;
 };
 
 export type OrphanedRuntimeRowsResult = {

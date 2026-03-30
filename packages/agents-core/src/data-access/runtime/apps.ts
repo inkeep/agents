@@ -196,38 +196,6 @@ export const clearAppDefaultsByAgent =
     return result.length;
   };
 
-// ── Auth key access helpers ──────────────────────────────────────────────────
-
-export const getAppAuthKeysForProject =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    id: string;
-  }): Promise<{ config: AppSelect['config']; type: AppSelect['type'] } | undefined> => {
-    const result = await db
-      .select({ config: apps.config, type: apps.type })
-      .from(apps)
-      .where(and(eq(apps.id, params.id), projectScopedWhere(apps, params.scopes)))
-      .limit(1);
-    return result[0];
-  };
-
-export const updateAppAuthKeysForProject =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    id: string;
-    config: AppSelect['config'];
-  }): Promise<AppSelect | undefined> => {
-    const now = new Date().toISOString();
-    const [updated] = await db
-      .update(apps)
-      .set({ config: params.config, updatedAt: now })
-      .where(and(eq(apps.id, params.id), projectScopedWhere(apps, params.scopes)))
-      .returning();
-    return updated;
-  };
-
 // ── Deprecated unscoped variants (kept for backward compat, prefer scoped) ──
 
 export const updateApp =

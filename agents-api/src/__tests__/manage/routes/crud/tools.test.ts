@@ -73,12 +73,12 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await createTestTool({ tenantId });
 
       const res = await makeRequest(
-        `/manage/tenants/${tenantId}/projects/${projectId}/tools?status=unavailable`
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools?status=unhealthy`
       );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data).toHaveLength(1);
-      expect(body.data[0].status).toBe('unavailable');
+      expect(body.data[0].status).toBe('unhealthy');
     });
   });
 
@@ -95,7 +95,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data.id).toBe(toolId);
       expect(body.data.name).toBe(toolData.name);
-      expect(body.data.status).toBe('unavailable');
+      expect(body.data.status).toBe('unhealthy');
     });
 
     it('should return 404 when tool not found', async () => {
@@ -123,7 +123,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data.name).toBe(toolData.name);
       expect(body.data.tenantId).toBe(tenantId);
-      expect(body.data.status).toBe('unavailable');
+      expect(body.data.status).toBe('unhealthy');
     });
 
     it('should validate required fields', async () => {

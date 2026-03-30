@@ -11,7 +11,6 @@ import type { SandboxConfig } from '../../types/executionContext';
 import type { AgentRunContext } from '../agent-types';
 import { enhanceToolResultWithStructureHints } from '../generation/tool-result';
 import { toolSessionManager } from '../services/ToolSessionManager';
-import { makeBaseInputSchema, makeRefAwareJsonSchema } from './ref-aware-schema';
 import { parseAndCheckApproval } from './tool-approval';
 import { wrapToolWithStreaming } from './tool-wrapper';
 
@@ -25,7 +24,6 @@ export async function getFunctionTools(
   const functionTools: ToolSet = {};
   const project = ctx.executionContext.project;
   try {
-    const withRefStart = Date.now();
     const functionToolsForAgent = await withRef(
       manageDbPool,
       ctx.executionContext.resolvedRef,
@@ -40,13 +38,6 @@ export async function getFunctionTools(
         });
       }
     );
-    const withRefMs = Date.now() - withRefStart;
-    if (withRefMs > 5_000) {
-      logger.info(
-        { ref: ctx.executionContext.resolvedRef.name, withRefMs, subAgentId: ctx.config.id },
-        'Slow withRef in getFunctionTools'
-      );
-    }
 
     const functionToolsData = functionToolsForAgent.data ?? [];
 
@@ -84,41 +75,17 @@ export async function getFunctionTools(
         continue;
       }
 
-      let baseInputSchema: ReturnType<typeof z.fromJSONSchema> | undefined;
-      let refAwareInputSchema: ReturnType<typeof z.fromJSONSchema> = z.string();
-      if (functionData.inputSchema) {
-        try {
-          baseInputSchema = makeBaseInputSchema(functionData.inputSchema);
-        } catch (schemaError) {
-          logger.warn(
-            {
-              functionToolName: functionToolDef.name,
-              schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
-            },
-            'Failed to build base input schema; post-resolution validation will be skipped'
-          );
-        }
-        try {
-          refAwareInputSchema = z.fromJSONSchema(makeRefAwareJsonSchema(functionData.inputSchema));
-        } catch (schemaError) {
-          logger.warn(
-            {
-              functionToolName: functionToolDef.name,
-              schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
-            },
-            'Failed to build ref-aware schema; falling back to base schema'
-          );
-          refAwareInputSchema = z.fromJSONSchema(functionData.inputSchema);
-        }
-      }
+      const zodSchema = functionData.inputSchema
+        ? z.fromJSONSchema(functionData.inputSchema)
+        : z.string();
       const toolPolicies = functionToolDef.toolPolicies;
       const needsApproval =
         !!toolPolicies?.['*']?.needsApproval ||
         !!toolPolicies?.[functionToolDef.name]?.needsApproval;
 
-      const baseTool = tool({
+      const aiTool = tool({
         description: functionToolDef.description || functionToolDef.name,
-        inputSchema: refAwareInputSchema,
+        inputSchema: zodSchema,
         execute: async (args, { toolCallId, providerMetadata }: any) => {
           const parsed = await parseAndCheckApproval(
             ctx,
@@ -130,9 +97,6 @@ export async function getFunctionTools(
           );
           if (parsed.denied) {
             return parsed.result;
-          }
-          if (parsed.pendingApproval) {
-            return null;
           }
           const finalArgs = parsed.args;
 
@@ -187,7 +151,6 @@ export async function getFunctionTools(
           }
         },
       });
-      const aiTool = baseInputSchema ? Object.assign(baseTool, { baseInputSchema }) : baseTool;
 
       functionTools[functionToolDef.name] = wrapToolWithStreaming(
         ctx,

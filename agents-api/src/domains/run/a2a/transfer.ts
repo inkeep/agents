@@ -28,6 +28,8 @@ export async function executeTransfer({
     {
       targetAgent: targetSubAgentId,
       threadId,
+      tenantId,
+      projectId,
     },
     'Executing transfer - calling setActiveAgentForThread'
   );
