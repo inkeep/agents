@@ -79,6 +79,57 @@ describe('Conversation media route', () => {
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
 
+  it('serves XHTML media as plain text attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([60, 104, 116, 109, 108, 62]),
+      contentType: 'application/xhtml+xml',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.xhtml'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('serves SVG media as plain text attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([60, 115, 118, 103, 62]),
+      contentType: 'image/svg+xml',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.svg'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('serves non-image media as plain text attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([123, 125]),
+      contentType: 'application/json',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.json'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
   it('rejects traversal media keys', async () => {
     const app = createTestApp();
 

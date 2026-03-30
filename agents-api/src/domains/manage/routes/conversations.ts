@@ -9,7 +9,10 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
-import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  normalizeMimeType,
+} from '@inkeep/agents-core/constants/allowed-file-formats';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -34,6 +37,10 @@ function isMediaNotFoundError(error: unknown): boolean {
   );
 }
 
+const SAFE_PASSTHROUGH_MIME_TYPES = new Set(
+  [...ALLOWED_IMAGE_MIME_TYPES].filter((t) => t !== 'image/svg+xml')
+);
+
 function getSafeMediaResponseHeaders({
   contentType,
   contentLength,
@@ -42,13 +49,12 @@ function getSafeMediaResponseHeaders({
   contentLength: number;
 }): Record<string, string> {
   const normalizedContentType = normalizeMimeType(contentType);
-  const isHtmlDocument =
-    normalizedContentType === 'text/html' || normalizedContentType === 'application/xhtml+xml';
+  const isSafePassthrough = SAFE_PASSTHROUGH_MIME_TYPES.has(normalizedContentType);
 
   return {
-    'Content-Type': isHtmlDocument ? 'text/plain; charset=utf-8' : contentType,
+    'Content-Type': isSafePassthrough ? contentType : 'text/plain; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',
-    ...(isHtmlDocument ? { 'Content-Disposition': 'attachment' } : {}),
+    ...(isSafePassthrough ? {} : { 'Content-Disposition': 'attachment' }),
     'Cache-Control': 'private, max-age=31536000, immutable',
     'Content-Length': contentLength.toString(),
   };
