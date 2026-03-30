@@ -179,7 +179,7 @@ export class AgentMcpManager {
 
     if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
       serverConfig.headers = mergeHeadersWithoutOverrides(
-        serverConfig.headers as Record<string, string> | undefined,
+        serverConfig.headers,
         this.config.forwardedHeaders
       );
     }
