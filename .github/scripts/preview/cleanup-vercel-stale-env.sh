@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Removes all branch-scoped preview env vars from Vercel projects.
-# Safe to run at any time — open PRs will re-create their env vars on the next push.
+# Removes branch-scoped preview env vars for closed/merged PRs from Vercel projects.
+# Requires: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_API_PROJECT_ID, VERCEL_MANAGE_UI_PROJECT_ID
+# Optional: GH_REPO (default: auto-detected by gh), DRY_RUN=true (default: false)
+# Requires `gh` CLI authenticated with repo read access.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,7 +17,19 @@ require_env_vars \
 
 DRY_RUN="${DRY_RUN:-false}"
 
-delete_all_branch_scoped_env_vars() {
+if ! command -v gh &>/dev/null; then
+  echo "Error: gh CLI is required. Install from https://cli.github.com" >&2
+  exit 1
+fi
+
+branch_has_open_pr() {
+  local branch="$1"
+  local count=""
+  count="$(gh pr list --head "${branch}" --state open --json number --jq 'length' 2>/dev/null || echo "0")"
+  [ "${count}" -gt 0 ]
+}
+
+delete_stale_branch_env_vars() {
   local project_id="$1"
   local envs_json=""
   local entries=""
@@ -30,7 +44,7 @@ delete_all_branch_scoped_env_vars() {
 
   count="$(printf '%s' "${entries}" | jq 'length')"
   if [ "${count}" -eq 0 ]; then
-    echo "No branch-scoped env vars found for project ${project_id}."
+    echo "No branch-scoped preview env vars found for project ${project_id}."
     return 0
   fi
 
@@ -39,11 +53,44 @@ delete_all_branch_scoped_env_vars() {
   local branch_count=""
   branch_count="$(printf '%s' "${branches}" | grep -c . || true)"
 
-  echo "Found ${count} branch-scoped env var(s) across ${branch_count} branch(es) for project ${project_id}:"
-  printf '%s\n' "${branches}" | sed 's/^/  - /'
+  echo "Found ${count} branch-scoped env var(s) across ${branch_count} branch(es) for project ${project_id}."
+  echo "Checking each branch for open PRs..."
+
+  local stale_branches=()
+  local open_branches=()
+  local branch=""
+  while IFS= read -r branch; do
+    [ -z "${branch}" ] && continue
+    if branch_has_open_pr "${branch}"; then
+      open_branches+=("${branch}")
+    else
+      stale_branches+=("${branch}")
+    fi
+  done <<< "${branches}"
+
+  if [ "${#open_branches[@]}" -gt 0 ]; then
+    echo "Skipping ${#open_branches[@]} branch(es) with open PRs:"
+    printf '  - %s\n' "${open_branches[@]}"
+  fi
+
+  if [ "${#stale_branches[@]}" -eq 0 ]; then
+    echo "No stale branches found — all branch-scoped env vars belong to open PRs."
+    return 0
+  fi
+
+  local stale_entries=""
+  stale_entries="$(printf '%s' "${entries}" | jq -c \
+    --argjson stale "$(printf '%s\n' "${stale_branches[@]}" | jq -R . | jq -sc .)" \
+    '[.[] | select(.gitBranch as $b | $stale | index($b))]')"
+
+  local stale_count=""
+  stale_count="$(printf '%s' "${stale_entries}" | jq 'length')"
+
+  echo "Will delete ${stale_count} env var(s) across ${#stale_branches[@]} stale branch(es):"
+  printf '  - %s\n' "${stale_branches[@]}"
 
   if [ "${DRY_RUN}" = "true" ]; then
-    echo "[DRY RUN] Would delete ${count} env var(s). Set DRY_RUN=false to execute."
+    echo "[DRY RUN] Would delete ${stale_count} env var(s). Set DRY_RUN=false to execute."
     return 0
   fi
 
@@ -53,7 +100,7 @@ delete_all_branch_scoped_env_vars() {
   local env_key=""
   local env_branch=""
 
-  for row in $(printf '%s' "${entries}" | jq -r '.[] | @base64'); do
+  for row in $(printf '%s' "${stale_entries}" | jq -r '.[] | @base64'); do
     env_id="$(printf '%s' "${row}" | base64 -d | jq -r '.id')"
     env_key="$(printf '%s' "${row}" | base64 -d | jq -r '.key')"
     env_branch="$(printf '%s' "${row}" | base64 -d | jq -r '.gitBranch')"
@@ -72,15 +119,15 @@ delete_all_branch_scoped_env_vars() {
     fi
   done
 
-  echo "Deleted ${deleted}/${count} env var(s) for project ${project_id}."
+  echo "Deleted ${deleted}/${stale_count} env var(s) for project ${project_id}."
   if [ "${failed}" -gt 0 ]; then
     echo "  ${failed} deletion(s) failed." >&2
   fi
 }
 
 echo "=== Manage UI project ==="
-delete_all_branch_scoped_env_vars "${VERCEL_MANAGE_UI_PROJECT_ID}"
+delete_stale_branch_env_vars "${VERCEL_MANAGE_UI_PROJECT_ID}"
 
 echo ""
 echo "=== API project ==="
-delete_all_branch_scoped_env_vars "${VERCEL_API_PROJECT_ID}"
+delete_stale_branch_env_vars "${VERCEL_API_PROJECT_ID}"
