@@ -109,8 +109,8 @@ export async function createInvocationIdempotentStep(params: {
     return { invocation: existing, alreadyExists: true };
   }
 
-  const ref = getProjectScopedRef(params.tenantId, params.projectId, params.ref);
-  const resolvedRef = await resolveRef(manageDbClient)(ref);
+  const projectScopedRef = getProjectScopedRef(params.tenantId, params.projectId, params.ref);
+  const resolvedRef = await resolveRef(manageDbClient)(projectScopedRef);
 
   if (!resolvedRef) {
     logger.warn(

@@ -8,6 +8,7 @@ import {
   type ScheduledTrigger,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
+import { user } from '@inkeep/agents-core/db/run-schema';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
@@ -16,6 +17,20 @@ import { isEntityChanged } from '../../../../utils/entityDiff';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
+
+async function seedTestUser(userId: string): Promise<void> {
+  await runDbClient
+    .insert(user)
+    .values({
+      id: userId,
+      name: `Test User ${userId}`,
+      email: `${userId}@test.local`,
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+}
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -76,6 +91,12 @@ describe('User-Scoped Scheduled Triggers', () => {
     runAsUserId?: string;
   }) => {
     const { tenantId, projectId, agentId, runAsUserId } = params;
+
+    await seedTestUser('anonymous');
+    if (runAsUserId && runAsUserId !== 'anonymous') {
+      await seedTestUser(runAsUserId);
+    }
+
     const createData: Record<string, unknown> = {
       name: 'User-scoped trigger',
       cronExpression: '0 * * * *',
@@ -224,6 +245,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       const tenantId = await createTestTenantWithOrg('us-update-uid');
       const { agentId, projectId } = await createTestAgent(tenantId);
       canUseProjectStrictMock.mockResolvedValue(true);
+      await seedTestUser('new-user-456');
 
       const createRes = await createTriggerWithUserId({
         tenantId,

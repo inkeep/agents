@@ -7191,7 +7191,6 @@
             "type": "object"
           },
           "ref": {
-            "default": "main",
             "description": "Branch ref to run the agent from",
             "maxLength": 256,
             "type": "string"

@@ -1026,6 +1026,7 @@ export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.ext
     .nullable()
     .optional()
     .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
+  ref: z.string().max(256).optional().describe('Branch ref to run the agent from'),
   maxRetries: z.number().int().min(0).max(10).optional(),
   retryDelaySeconds: z.number().int().min(10).max(3600).optional(),
   timeoutSeconds: z.number().int().min(30).max(780).optional(),
