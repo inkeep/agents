@@ -163,7 +163,7 @@ describe('enforcePerRoleSeatLimit', () => {
     await seedMember('admin-1', 'admin');
 
     await expect(enforcePerRoleSeatLimit(testRunDbClient, ORG_ID, 'admin')).rejects.toThrow(
-      'admin seat limit reached (1/1)'
+      'Admin seat limit reached (1/1)'
     );
   });
 
@@ -202,7 +202,7 @@ describe('enforcePerRoleSeatLimit', () => {
     await seedMember('owner-1', 'owner');
 
     await expect(enforcePerRoleSeatLimit(testRunDbClient, ORG_ID, 'admin')).rejects.toThrow(
-      'admin seat limit reached (1/1)'
+      'Admin seat limit reached (1/1)'
     );
   });
 
