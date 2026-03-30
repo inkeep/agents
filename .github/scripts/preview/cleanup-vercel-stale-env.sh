@@ -1,11 +1,29 @@
 #!/usr/bin/env bash
-# Removes branch-scoped preview env vars for closed/merged PRs from Vercel projects.
+#
+# ONE-TIME CLEANUP SCRIPT
+#
+# Created to resolve the Vercel envs_size_too_large error that blocked all
+# preview deployments (March 2026). Branch-scoped preview env vars were never
+# cleaned up on PR close, accumulating ~1,500+ stale vars across two Vercel
+# projects until hitting Vercel's 64KB storage limit.
+#
+# Going forward, the teardown-vercel-preview-env.sh script (triggered by the
+# teardown-vercel job in preview-environments.yml on PR close) prevents
+# re-accumulation. This script only needs to be run once to clear the backlog,
+# or again if stale vars accumulate due to teardown failures.
+#
+# Usage:
+#   # Dry run (preview what would be deleted)
+#   DRY_RUN=true VERCEL_ORG_ID=inkeep VERCEL_API_PROJECT_ID=agents-api \
+#     VERCEL_MANAGE_UI_PROJECT_ID=agents-manage-ui bash cleanup-vercel-stale-env.sh
+#
+#   # Execute
+#   VERCEL_ORG_ID=inkeep VERCEL_API_PROJECT_ID=agents-api \
+#     VERCEL_MANAGE_UI_PROJECT_ID=agents-manage-ui bash cleanup-vercel-stale-env.sh
 #
 # Auto-detects VERCEL_TOKEN from local Vercel CLI auth if not set.
-# Requires: VERCEL_ORG_ID, VERCEL_API_PROJECT_ID, VERCEL_MANAGE_UI_PROJECT_ID
-#   (or pass all four via env vars to skip auto-detection)
-# Optional: DRY_RUN=true (default: false)
 # Requires `gh` CLI authenticated with repo read access.
+#
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,6 +50,7 @@ require_env_vars \
   VERCEL_MANAGE_UI_PROJECT_ID
 
 DRY_RUN="${DRY_RUN:-false}"
+MAX_RETRIES="${MAX_RETRIES:-3}"
 
 if ! command -v gh &>/dev/null; then
   echo "Error: gh CLI is required. Install from https://cli.github.com" >&2
@@ -43,6 +62,45 @@ branch_has_open_pr() {
   local count=""
   count="$(gh pr list --head "${branch}" --state open --json number --jq 'length' 2>/dev/null || echo "0")"
   [ "${count}" -gt 0 ]
+}
+
+delete_env_var_with_retry() {
+  local project_id="$1"
+  local env_id="$2"
+  local attempt=""
+  local response=""
+  local http_code=""
+
+  for attempt in $(seq 1 "${MAX_RETRIES}"); do
+    http_code="$(curl -sS -o /dev/null -w '%{http_code}' \
+      --connect-timeout 10 \
+      --max-time 60 \
+      -X DELETE \
+      -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+      "https://api.vercel.com/v10/projects/${project_id}/env/${env_id}?teamId=${VERCEL_ORG_ID}" \
+      2>/dev/null)" || http_code="000"
+
+    case "${http_code}" in
+      200|204)
+        return 0
+        ;;
+      429)
+        if [ "${attempt}" -lt "${MAX_RETRIES}" ]; then
+          local backoff=$(( attempt * 2 ))
+          echo "  Rate limited, waiting ${backoff}s before retry ${attempt}/${MAX_RETRIES}..." >&2
+          sleep "${backoff}"
+          continue
+        fi
+        ;;
+      *)
+        if [ "${attempt}" -lt "${MAX_RETRIES}" ]; then
+          sleep 1
+          continue
+        fi
+        ;;
+    esac
+  done
+  return 1
 }
 
 delete_stale_branch_env_vars() {
@@ -121,16 +179,10 @@ delete_stale_branch_env_vars() {
     env_key="$(printf '%s' "${row}" | base64 -d | jq -r '.key')"
     env_branch="$(printf '%s' "${row}" | base64 -d | jq -r '.gitBranch')"
 
-    if curl --fail-with-body -sS \
-      --connect-timeout 10 \
-      --max-time 60 \
-      -X DELETE \
-      -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-      "https://api.vercel.com/v10/projects/${project_id}/env/${env_id}?teamId=${VERCEL_ORG_ID}" \
-      >/dev/null 2>&1; then
+    if delete_env_var_with_retry "${project_id}" "${env_id}"; then
       deleted=$((deleted + 1))
     else
-      echo "  Warning: failed to delete ${env_key} (branch: ${env_branch})" >&2
+      echo "  Warning: failed to delete ${env_key} (branch: ${env_branch}) after ${MAX_RETRIES} attempts" >&2
       failed=$((failed + 1))
     fi
   done
