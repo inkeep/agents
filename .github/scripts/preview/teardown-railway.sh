@@ -15,22 +15,29 @@ require_env_vars \
 
 RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
 
-railway_link_service "${RAILWAY_PROJECT_ID}" "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_TEMPLATE_ENVIRONMENT}"
-
 ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
 if [ "${ENV_EXISTS}" = "0" ]; then
   echo "Railway environment ${RAILWAY_ENV_NAME} does not exist; nothing to teardown."
   exit 0
 fi
 
-if ! railway_cli_with_retry railway environment delete "${RAILWAY_ENV_NAME}" --yes; then
+if ! RAILWAY_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2)"; then
+  if [ "$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")" = "0" ]; then
+    echo "Railway environment ${RAILWAY_ENV_NAME} disappeared before teardown; nothing to do."
+    exit 0
+  fi
+  echo "Failed to resolve Railway environment ID for ${RAILWAY_ENV_NAME} during teardown." >&2
+  exit 1
+fi
+
+if ! railway_environment_delete_by_id "${RAILWAY_ENV_ID}" >/dev/null; then
   echo "Failed to delete Railway environment ${RAILWAY_ENV_NAME}." >&2
   exit 1
 fi
 
 POST_EXISTS="1"
 for attempt in $(seq 1 10); do
-  POST_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" /tmp/railway-projects-post.json)"
+  POST_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
   if [ "${POST_EXISTS}" = "0" ]; then
     break
   fi
