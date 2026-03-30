@@ -57,6 +57,34 @@ vi.mock(
 
 import { makeRequest } from '../../../utils/testRequest';
 
+const buildDataUri = (mimeType: string, bytes: Buffer): string => {
+  return `data:${mimeType};base64,${bytes.toString('base64')}`;
+};
+
+const TEXT_DOCUMENT_LIMIT_BYTES = 256 * 1024;
+
+const buildVercelTextAttachmentBody = (options: {
+  url: string;
+  mediaType?: string;
+  filename?: string;
+}) => ({
+  messages: [
+    {
+      role: 'user',
+      content: 'Summarize this text file',
+      parts: [
+        { type: 'text', text: 'Summarize this text file' },
+        {
+          type: 'file',
+          url: options.url,
+          mediaType: options.mediaType ?? 'text/plain',
+          ...(options.filename === undefined ? {} : { filename: options.filename }),
+        },
+      ],
+    },
+  ],
+});
+
 // Mock context exports used by the chat data stream routes
 vi.mock('../../../../domains/run/context', () => ({
   handleContextResolution: vi.fn().mockResolvedValue({}),
@@ -148,6 +176,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     getConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue({ id: 'conv-123' })),
+    getWorkflowExecutionByConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(null)),
   };
 });
 
@@ -281,6 +310,219 @@ describe('Chat Data Stream Route', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline text document file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this markdown file',
+          parts: [
+            { type: 'text', text: 'Summarize this markdown file' },
+            {
+              type: 'file',
+              url: 'data:text/markdown;base64,IyBUaXRsZQoKLSBpdGVt',
+              mediaType: 'text/markdown',
+              filename: 'doc.md',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline CSV file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this CSV file',
+          parts: [
+            { type: 'text', text: 'Summarize this CSV file' },
+            {
+              type: 'file',
+              url: 'data:text/csv;base64,bmFtZSxjb3VudAphbHBoYSwxCg==',
+              mediaType: 'text/csv',
+              filename: 'data.csv',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline log file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this log file',
+          parts: [
+            { type: 'text', text: 'Summarize this log file' },
+            {
+              type: 'file',
+              url: 'data:text/x-log;base64,W2luZm9dIGJvb3QKW2Vycm9yXSBmYWlsdXJlCg==',
+              mediaType: 'text/x-log',
+              filename: 'server.log',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline JSON file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this JSON file',
+          parts: [
+            { type: 'text', text: 'Summarize this JSON file' },
+            {
+              type: 'file',
+              url: 'data:application/json;base64,eyJuYW1lIjoiYWxwaGEiLCJjb3VudCI6MX0=',
+              mediaType: 'application/json',
+              filename: 'data.json',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline text document file part without filename in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: buildDataUri('text/plain', Buffer.from('hello world', 'utf8')),
+        })
+      ),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline text document file part exactly at the 256 KB limit in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: buildDataUri('text/plain', Buffer.alloc(TEXT_DOCUMENT_LIMIT_BYTES, 0x61)),
+          filename: 'boundary.txt',
+        })
+      ),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should reject malformed base64 text document file part in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: 'data:text/plain;base64,!!!not-base64!!!',
+          filename: 'bad.txt',
+        })
+      ),
+      expectError: true,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('should reject oversized text document file part in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: buildDataUri('text/plain', Buffer.alloc(TEXT_DOCUMENT_LIMIT_BYTES + 1, 0x61)),
+          filename: 'too-large.txt',
+        })
+      ),
+      expectError: true,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('should reject binary payload masquerading as text/plain in Vercel messages format', async () => {
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(
+        buildVercelTextAttachmentBody({
+          url: buildDataUri('text/plain', Buffer.from([0x00, 0x9f, 0x92, 0x96, 0xff, 0x00])),
+          filename: 'binary.txt',
+        })
+      ),
+      expectError: true,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('should reject remote URLs for text document file parts in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this markdown file',
+          parts: [
+            { type: 'text', text: 'Summarize this markdown file' },
+            {
+              type: 'file',
+              url: 'https://example.com/doc.md',
+              mediaType: 'text/markdown',
+              filename: 'doc.md',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(400);
   });
 
   it('should accept inline image file part using Vercel FileUIPart shape', async () => {

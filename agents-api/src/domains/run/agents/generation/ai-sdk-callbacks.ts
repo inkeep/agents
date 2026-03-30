@@ -9,6 +9,7 @@ const logger = getLogger('Agent');
 
 export async function handlePrepareStepCompression(
   stepMessages: any[],
+  steps: Array<{ usage: { inputTokens?: number; outputTokens?: number } }>,
   compressor: MidGenerationCompressor | null,
   originalMessageCount: number
 ): Promise<{ messages?: any[] }> {
@@ -22,31 +23,54 @@ export async function handlePrepareStepCompression(
       compressor.effectiveBaseline(originalMessageCount)
     );
 
-    const compressionNeeded = compressor.isCompressionNeeded([
-      ...originalMessages,
-      ...generatedMessages,
-    ]);
+    let compressionNeeded: boolean;
+    let totalTokens: number;
+
+    const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
+    const actualInputTokens = lastStep?.usage.inputTokens;
+    const actualOutputTokens = lastStep?.usage.outputTokens;
+    const hasReliableUsage = actualInputTokens != null && actualInputTokens > 0;
+
+    let usageSource: 'actual_sdk_usage' | 'estimated';
+
+    if (hasReliableUsage) {
+      // Use actual token counts from the last completed step
+      // Next step's context ≈ last step's input + last step's output (assistant response appended)
+      totalTokens = actualInputTokens + (actualOutputTokens ?? 0);
+      compressionNeeded = compressor.isCompressionNeededFromActualUsage(totalTokens);
+      usageSource = 'actual_sdk_usage';
+    } else {
+      // No reliable usage data — fall back to estimate-based check
+      logger.warn(
+        {
+          stepCount: steps.length,
+          actualInputTokens,
+          actualOutputTokens,
+        },
+        'No reliable token usage from AI SDK, falling back to estimate-based compression check'
+      );
+      const allMessages = [...originalMessages, ...generatedMessages];
+      compressionNeeded = compressor.isCompressionNeeded(allMessages);
+      totalTokens = compressor.calculateContextSize(allMessages);
+      usageSource = 'estimated';
+    }
 
     if (compressionNeeded) {
       const state = compressor.getState();
       const hardLimit = compressor.getHardLimit();
       const { safetyBuffer } = state.config;
-      const baseContextTokens = compressor.calculateContextSize(originalMessages);
-      const accumulatedTokens = compressor.calculateContextSize(generatedMessages);
-      const totalTokens = baseContextTokens + accumulatedTokens;
       const triggerAt = hardLimit - safetyBuffer;
 
       logger.info(
         {
           compressorState: state,
           contextBreakdown: {
-            baseContextTokens,
-            accumulatedTokens,
             totalTokens,
             hardLimit,
             safetyBuffer,
             triggerAt,
             remaining: hardLimit - totalTokens,
+            source: usageSource,
           },
         },
         'Triggering layered mid-generation compression'
@@ -169,6 +193,10 @@ export async function handleStopWhenConditions(
   ctx: AgentRunContext,
   steps: any[]
 ): Promise<boolean> {
+  if (ctx.pendingDurableApproval) {
+    return true;
+  }
+
   const last = steps.at(-1);
   if (last && 'text' in last && last.text) {
     try {

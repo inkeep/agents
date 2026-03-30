@@ -32,7 +32,6 @@ function extractZodIssues(err: unknown): ZodIssue[] | undefined {
 function formatZodValidationError(c: Context, zodIssues: ZodIssue[]) {
   c.status(400);
   c.header('Content-Type', 'application/problem+json');
-  c.header('X-Content-Type-Options', 'nosniff');
   return c.json({
     type: 'https://docs.inkeep.com/agents-api/errors#bad_request',
     title: 'Validation Failed',
@@ -122,7 +121,6 @@ export async function errorHandler(err: Error, c: Context): Promise<Response> {
   };
 
   c.header('Content-Type', 'application/problem+json');
-  c.header('X-Content-Type-Options', 'nosniff');
 
   return c.body(JSON.stringify(responseBody));
 }

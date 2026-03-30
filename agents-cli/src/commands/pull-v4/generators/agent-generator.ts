@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
+import { AgentWithinContextOfProjectSchemaBase } from '@inkeep/agents-core';
 import type { ObjectLiteralExpression, SourceFile } from 'ts-morph';
 import { z } from 'zod';
 import { asRecord, collectTemplateVariablesFromValues } from '../collector-common';
@@ -43,7 +43,7 @@ const SubAgentReferenceSchema = z.object({
   local: z.boolean().optional(),
 });
 
-const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.omit({
+const MySchema = AgentWithinContextOfProjectSchemaBase.omit({
   id: true,
 });
 

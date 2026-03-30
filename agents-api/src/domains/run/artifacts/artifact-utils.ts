@@ -1,5 +1,5 @@
+import { estimateTokens } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import { estimateTokens } from '../utils/token-estimator';
 
 const logger = getLogger('artifact-utils');
 

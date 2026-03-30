@@ -1,7 +1,10 @@
 import type { FilePart, TextPart } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadExternalFile } from '../blob-storage/external-file-downloader';
-import { PdfUrlIngestionError } from '../blob-storage/file-security-errors';
+import {
+  BlockedInlineFileExceedingError,
+  PdfUrlIngestionError,
+} from '../blob-storage/file-security-errors';
 import {
   hasFileParts,
   makeMessageContentParts,
@@ -67,6 +70,19 @@ describe('buildPersistedMessageContent', () => {
     const inputFilePart: FilePart = { kind: 'file', file: { uri: 'https://example.com/img.png' } };
     const result = await buildPersistedMessageContent('hello', [inputFilePart], ctx);
     expect(result).toEqual({ text: 'hello' });
+  });
+
+  it('rethrows file validation errors from uploadPartsFiles', async () => {
+    vi.mocked(hasFileParts).mockReturnValueOnce(true);
+    vi.mocked(uploadPartsFiles).mockRejectedValueOnce(
+      new BlockedInlineFileExceedingError(256 * 1024)
+    );
+
+    const inputFilePart: FilePart = { kind: 'file', file: { uri: 'https://example.com/img.png' } };
+
+    await expect(
+      buildPersistedMessageContent('hello', [inputFilePart], ctx)
+    ).rejects.toBeInstanceOf(BlockedInlineFileExceedingError);
   });
 });
 

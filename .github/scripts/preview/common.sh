@@ -185,6 +185,55 @@ EOF
   jq -r --arg service_name "${service_name}" '.data.environment.serviceInstances.edges[] | select(.node.serviceName == $service_name) | .node.serviceId' <<< "${response}"
 }
 
+railway_wait_for_environment_id() {
+  local project_id="$1"
+  local env_name="$2"
+  local max_attempts="${3:-30}"
+  local sleep_seconds="${4:-2}"
+  local attempt=""
+  local env_id=""
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    env_id="$(railway_environment_id "${project_id}" "${env_name}")"
+    if [ -n "${env_id}" ]; then
+      printf '%s' "${env_id}"
+      return 0
+    fi
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      sleep_with_jitter "${sleep_seconds}"
+    fi
+  done
+
+  echo "Unable to resolve Railway environment ID for ${env_name}." >&2
+  return 1
+}
+
+railway_wait_for_service_id_for_env() {
+  local env_id="$1"
+  local service_name="$2"
+  local env_name="$3"
+  local max_attempts="${4:-30}"
+  local sleep_seconds="${5:-2}"
+  local attempt=""
+  local service_id=""
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    service_id="$(railway_service_id_for_env "${env_id}" "${service_name}")"
+    if [ -n "${service_id}" ]; then
+      printf '%s' "${service_id}"
+      return 0
+    fi
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      sleep_with_jitter "${sleep_seconds}"
+    fi
+  done
+
+  echo "Unable to resolve Railway service ID for ${service_name} in ${env_name}." >&2
+  return 1
+}
+
 railway_ensure_tcp_proxy() {
   local project_id="$1"
   local env_name="$2"
@@ -199,17 +248,8 @@ railway_ensure_tcp_proxy() {
   local active=""
   local attempt=""
 
-  env_id="$(railway_environment_id "${project_id}" "${env_name}")"
-  if [ -z "${env_id}" ]; then
-    echo "Unable to resolve Railway environment ID for ${env_name}." >&2
-    return 1
-  fi
-
-  service_id="$(railway_service_id_for_env "${env_id}" "${service_name}")"
-  if [ -z "${service_id}" ]; then
-    echo "Unable to resolve Railway service ID for ${service_name} in ${env_name}." >&2
-    return 1
-  fi
+  env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" "${max_attempts}" "${sleep_seconds}")" || return 1
+  service_id="$(railway_wait_for_service_id_for_env "${env_id}" "${service_name}" "${env_name}" "${max_attempts}" "${sleep_seconds}")" || return 1
 
   response="$(
     railway_graphql "$(cat <<EOF

@@ -4,6 +4,7 @@ import { getExtensionFromMimeType } from '@inkeep/agents-core/constants/allowed-
 import { getLogger } from '../../../../logger';
 import { downloadExternalFile } from './external-file-downloader';
 import { normalizeInlineFileBytes } from './file-content-security';
+import { FileSecurityError } from './file-security-errors';
 import { makeSanitizedSourceUrl } from './file-url-security';
 import { getBlobStorageProvider, toBlobUri } from './index';
 import { buildStorageKey } from './storage-keys';
@@ -115,6 +116,9 @@ export async function uploadPartsFiles(parts: Part[], ctx: UploadContext): Promi
         const uploaded = await uploadFilePart(part, ctx, index);
         results[index] = uploaded;
       } catch (error) {
+        if (error instanceof FileSecurityError) {
+          throw error;
+        }
         const file =
           part.kind === 'file'
             ? {

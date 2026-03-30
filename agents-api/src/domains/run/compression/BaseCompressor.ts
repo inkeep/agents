@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import type { ModelSettings } from '@inkeep/agents-core';
-import { getLedgerArtifacts, SPAN_KEYS } from '@inkeep/agents-core';
+import type { ModelSettings, Part } from '@inkeep/agents-core';
+import {
+  estimateTokens as estimateTokensUtil,
+  GENERATION_TYPES,
+  getLedgerArtifacts,
+  SPAN_KEYS,
+  updateLedgerArtifactParts,
+} from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -9,7 +15,6 @@ import { type CompressedArtifactInfo, detectOversizedArtifact } from '../artifac
 import { agentSessionManager } from '../session/AgentSession';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
 import { getCompressionConfigForModel, getModelContextWindow } from '../utils/model-context-utils';
-import { estimateTokens as estimateTokensUtil } from '../utils/token-estimator';
 import { tracer } from '../utils/tracer';
 
 const logger = getLogger('BaseCompressor');
@@ -88,6 +93,7 @@ export abstract class BaseCompressor {
     protected conversationId: string,
     protected tenantId: string,
     protected projectId: string,
+    protected agentId: string,
     protected config: CompressionConfig,
     protected summarizerModel?: ModelSettings,
     protected baseModel?: ModelSettings
@@ -605,6 +611,12 @@ export abstract class BaseCompressor {
       messageFormatter: (maxChars) =>
         this.formatMessagesForDistillation(messages, toolCallToArtifactMap, maxChars),
       compressionCycle,
+      usageContext: {
+        tenantId: this.tenantId,
+        projectId: this.projectId,
+        agentId: this.agentId,
+        generationType: GENERATION_TYPES.MID_GENERATION_COMPRESSION,
+      },
     });
 
     logger.info(
@@ -622,6 +634,26 @@ export abstract class BaseCompressor {
     );
 
     this.cumulativeSummary = summary;
+
+    if (summary.related_artifacts?.length) {
+      try {
+        const persistResult = await this.persistArtifactKeyFindings(summary.related_artifacts);
+        logger.debug(
+          { ...persistResult, conversationId: this.conversationId },
+          'Artifact key_findings persistence completed'
+        );
+      } catch (err) {
+        logger.warn(
+          {
+            conversationId: this.conversationId,
+            artifactIds: summary.related_artifacts.map((a) => a.id),
+            err: err instanceof Error ? err.message : String(err),
+          },
+          'Failed to persist key_findings to artifacts'
+        );
+      }
+    }
+
     return summary;
   }
 
@@ -696,6 +728,111 @@ export abstract class BaseCompressor {
 
   getCompressionSummary(): ConversationSummary | null {
     return this.cumulativeSummary;
+  }
+
+  hasSummarizedArtifact(artifactId: string): boolean {
+    return this.cumulativeSummary?.related_artifacts?.some((a) => a.id === artifactId) ?? false;
+  }
+
+  getSummarizedArtifact(
+    artifactId: string
+  ): { key_findings: string[]; tool_call_id: string } | null {
+    const artifact = this.cumulativeSummary?.related_artifacts?.find((a) => a.id === artifactId);
+    if (!artifact) return null;
+    return {
+      key_findings: artifact.key_findings,
+      tool_call_id: artifact.tool_call_id,
+    };
+  }
+
+  protected async persistArtifactKeyFindings(
+    relatedArtifacts: NonNullable<ConversationSummary['related_artifacts']>
+  ): Promise<{ persisted: number; skipped: number; failed: number }> {
+    const result = { persisted: 0, skipped: 0, failed: 0 };
+    const scopes = { tenantId: this.tenantId, projectId: this.projectId };
+
+    const artifactsWithFindings = relatedArtifacts.filter((a) => a.key_findings?.length);
+    result.skipped += relatedArtifacts.length - artifactsWithFindings.length;
+
+    if (artifactsWithFindings.length === 0) return result;
+
+    const fetchResults = await Promise.allSettled(
+      artifactsWithFindings.map((artifact) =>
+        getLedgerArtifacts(runDbClient)({ scopes, artifactId: artifact.id }).then((existing) => ({
+          artifact,
+          existing,
+        }))
+      )
+    );
+
+    const updates: Array<{ artifact: (typeof artifactsWithFindings)[number]; parts: Part[] }> = [];
+
+    for (const settled of fetchResults) {
+      if (settled.status === 'rejected') {
+        result.failed++;
+        logger.warn(
+          { conversationId: this.conversationId, error: String(settled.reason) },
+          'Failed to fetch artifact for key_findings persistence'
+        );
+        continue;
+      }
+
+      const { artifact, existing } = settled.value;
+      if (existing.length === 0) {
+        logger.debug(
+          { artifactId: artifact.id },
+          'Artifact not found in DB, skipping key_findings persistence'
+        );
+        result.skipped++;
+        continue;
+      }
+
+      const parts = structuredClone(existing[0].parts ?? []) as Part[];
+      const firstPart = parts[0];
+      if (!firstPart || firstPart.kind !== 'data' || !firstPart.data?.summary) {
+        logger.debug(
+          { artifactId: artifact.id, hasParts: parts.length > 0 },
+          'Artifact has no data part with summary structure, skipping key_findings persistence'
+        );
+        result.skipped++;
+        continue;
+      }
+
+      firstPart.data.summary = {
+        ...firstPart.data.summary,
+        key_findings: artifact.key_findings,
+      };
+
+      updates.push({ artifact, parts });
+    }
+
+    const updateResults = await Promise.allSettled(
+      updates.map(({ artifact, parts }) =>
+        updateLedgerArtifactParts(runDbClient)({ scopes, artifactId: artifact.id, parts }).then(
+          (updated) => ({ artifact, updated })
+        )
+      )
+    );
+
+    for (const settled of updateResults) {
+      if (settled.status === 'rejected') {
+        result.failed++;
+        logger.warn(
+          { conversationId: this.conversationId, error: String(settled.reason) },
+          'Failed to persist key_findings to artifact'
+        );
+        continue;
+      }
+      const { artifact, updated } = settled.value;
+      if (updated) {
+        result.persisted++;
+      } else {
+        logger.warn({ artifactId: artifact.id }, 'updateLedgerArtifactParts matched no rows');
+        result.failed++;
+      }
+    }
+
+    return result;
   }
 
   cleanup(options: { resetSummary?: boolean; keepRecentToolCalls?: number } = {}): void {

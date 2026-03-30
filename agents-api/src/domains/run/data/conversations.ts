@@ -370,7 +370,7 @@ export async function getFormattedConversationHistory({
     });
   }
 
-  return formatMessagesAsConversationHistory(finalMessagesToFormat);
+  return await formatMessagesAsConversationHistory(finalMessagesToFormat);
 }
 
 /**
@@ -592,6 +592,7 @@ async function performActualCompression(
     conversationId: string;
     tenantId: string;
     projectId: string;
+    agentId?: string;
     summarizerModel: any;
     baseModel?: any;
     streamRequestId?: string;
@@ -603,6 +604,7 @@ async function performActualCompression(
     conversationId,
     tenantId,
     projectId,
+    agentId,
     summarizerModel,
     baseModel,
     priorSummary,
@@ -616,6 +618,7 @@ async function performActualCompression(
     conversationId,
     tenantId,
     projectId,
+    agentId ?? 'unknown',
     { summarizerModel, baseModel, priorSummary }
   );
 
@@ -899,13 +902,15 @@ export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): str
   return fromParts || textFallback;
 }
 
-export function formatMessagesAsConversationHistory(messages: MessageSelect[]): string {
+export async function formatMessagesAsConversationHistory(
+  messages: MessageSelect[]
+): Promise<string> {
   if (messages.length === 0) {
     return '';
   }
 
-  const formattedHistory = messages
-    .map((msg: MessageSelect) => {
+  const formattedHistoryParts = await Promise.all(
+    messages.map(async (msg: MessageSelect) => {
       let roleLabel: string;
 
       if (msg.role === 'user') {
@@ -936,6 +941,9 @@ export function formatMessagesAsConversationHistory(messages: MessageSelect[]): 
       }
       return `${roleLabel}: """${reconstructedMessage}"""`; // TODO: add timestamp?
     })
+  );
+
+  const formattedHistory = formattedHistoryParts
     .filter((line): line is string => line !== null)
     .join('\n');
 
