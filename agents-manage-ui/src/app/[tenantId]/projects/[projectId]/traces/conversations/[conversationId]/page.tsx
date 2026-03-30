@@ -17,7 +17,10 @@ import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
-import type { ConversationDetail as ConversationDetailType } from '@/components/traces/timeline/types';
+import {
+  ACTIVITY_TYPES,
+  type ConversationDetail as ConversationDetailType,
+} from '@/components/traces/timeline/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -452,7 +455,7 @@ export default function ConversationDetail({
               const warnings = conversation.warningCount ?? 0;
               const total = errors + warnings;
               const streamTimeoutActivity = conversation.activities?.find(
-                (a) => a.type === 'stream_lifetime_exceeded'
+                (a) => a.type === ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED
               );
 
               return (
