@@ -27,6 +27,25 @@ import type { AiSdkToolDefinition } from '../agent-types';
 
 const logger = getLogger('AgentMcpManager');
 
+function mergeHeadersWithoutOverrides(
+  existingHeaders: Record<string, string> | undefined,
+  forwardedHeaders: Record<string, string>
+): Record<string, string> {
+  const mergedHeaders = { ...(existingHeaders || {}) };
+  const existingHeaderNames = new Set(
+    Object.keys(mergedHeaders).map((header) => header.toLowerCase())
+  );
+
+  for (const [headerName, headerValue] of Object.entries(forwardedHeaders)) {
+    if (existingHeaderNames.has(headerName.toLowerCase())) {
+      continue;
+    }
+    mergedHeaders[headerName] = headerValue;
+  }
+
+  return mergedHeaders;
+}
+
 export type McpToolSet = {
   tools: Record<string, any>;
   toolPolicies: Record<string, any>;
@@ -177,10 +196,10 @@ export class AgentMcpManager {
     }
 
     if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
-      serverConfig.headers = {
-        ...serverConfig.headers,
-        ...this.config.forwardedHeaders,
-      };
+      serverConfig.headers = mergeHeadersWithoutOverrides(
+        serverConfig.headers as Record<string, string> | undefined,
+        this.config.forwardedHeaders
+      );
     }
 
     logger.info(
