@@ -305,7 +305,7 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
             Configure default models
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-6  mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
+        <CollapsibleContent className="space-y-6 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
           {/* Base Model */}
           <BaseModelSection control={control} disabled={disabled} />
 

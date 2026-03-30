@@ -1,21 +1,14 @@
 'use client';
 
 import { ReactFlowProvider } from '@xyflow/react';
-import { type FC, useEffect } from 'react';
+import type { FC } from 'react';
 import { CopilotProvider } from '@/contexts/copilot';
-import { useAgentActions } from '@/features/agent/state/use-agent-store';
+import { useInitialCollapsedSidebar } from '@/hooks/use-initial-collapsed-sidebar';
 
 const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents/[agentId]'>> = ({
   children,
 }) => {
-  const { setSidebarOpen } = useAgentActions();
-
-  useEffect(() => {
-    setSidebarOpen({ isSidebarSessionOpen: false });
-    return () => {
-      setSidebarOpen({ isSidebarSessionOpen: true });
-    };
-  }, []);
+  useInitialCollapsedSidebar();
 
   return (
     <ReactFlowProvider>

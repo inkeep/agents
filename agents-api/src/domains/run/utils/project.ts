@@ -12,6 +12,7 @@ import type {
   ToolApiSelect,
 } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
+import type { SkillData } from '../agents/types';
 import { generateDescriptionWithRelationData } from '../data/agents';
 
 const logger = getLogger('project-helper');
@@ -318,10 +319,25 @@ interface SubAgentWithSkills extends FullAgentSubAgentSelectWithRelationIds {
   skills?: Array<SubAgentSkillWithIndex>;
 }
 
+interface ProjectWithSkills extends FullProjectSelectWithRelationIds {
+  skills?: Record<
+    string,
+    {
+      files?: NonNullable<SkillData['files']>;
+    }
+  >;
+}
+
 export function getSkillsForSubAgent(params: {
+  project: ProjectWithSkills;
   subAgent: SubAgentWithSkills;
-}): SubAgentSkillWithIndex[] {
-  return params.subAgent.skills ?? [];
+}): SkillData[] {
+  const projectSkills = params.project.skills ?? {};
+
+  return (params.subAgent.skills ?? []).map((skill) => ({
+    ...skill,
+    files: projectSkills[skill.id]?.files ?? [],
+  }));
 }
 
 // Types for target sub-agent relation lookups

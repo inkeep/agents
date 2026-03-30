@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.63.1",
+  "version": "0.63.2",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -157,6 +157,7 @@
     "db:auth:init": "tsx src/auth/init.ts"
   },
   "dependencies": {
+    "simplematter": "^1.0.1",
     "@ai-sdk/anthropic": "3.0.7",
     "@ai-sdk/azure": "^3.0.4",
     "@ai-sdk/gateway": "3.0.9",
@@ -199,7 +200,8 @@
     "pino-pretty": "^13.1.1",
     "postgres": "^3.4.8",
     "traverse": "^0.6.10",
-    "ts-pattern": "^5.7.1"
+    "ts-pattern": "^5.7.1",
+    "yaml": "^2.8.2"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
