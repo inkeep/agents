@@ -57,8 +57,128 @@ describe('Conversation media route', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('image/png');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(response.headers.get('Content-Length')).toBe('3');
     expect(response.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable');
+  });
+
+  it('serves HTML media as plain text attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([60, 104, 49, 62]),
+      contentType: 'text/html; charset=utf-8',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.html'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('serves XHTML media as octet-stream attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([60, 104, 116, 109, 108, 62]),
+      contentType: 'application/xhtml+xml',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.xhtml'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('application/octet-stream');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('serves SVG media as octet-stream attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([60, 115, 118, 103, 62]),
+      contentType: 'image/svg+xml',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.svg'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('application/octet-stream');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('serves text document media as plain text attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([123, 125]),
+      contentType: 'application/json',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.json'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('serves PDF media with application/pdf and attachment disposition', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      contentType: 'application/pdf',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.pdf'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('application/pdf');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('serves markdown media as plain text attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([35, 32, 72, 105]),
+      contentType: 'text/markdown',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.md'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('serves unknown MIME types as octet-stream attachment', async () => {
+    downloadMock.mockResolvedValue({
+      data: new Uint8Array([0, 1, 2]),
+      contentType: 'application/octet-stream',
+    });
+    const app = createTestApp();
+
+    const response = await app.request(
+      '/tenants/default/projects/test-project/conversations/conv-1/media/m_msg001%2Fsha256-abc.bin'
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('application/octet-stream');
+    expect(response.headers.get('Content-Disposition')).toBe('attachment');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
 
   it('rejects traversal media keys', async () => {
