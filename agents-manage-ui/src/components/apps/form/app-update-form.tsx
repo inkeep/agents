@@ -84,13 +84,8 @@ export function AppUpdateForm({
         };
 
         if (data.audience !== undefined) {
-          const {
-            allowAnonymous: _,
-            publicKeys: __,
-            ...restAuth
-          } = (webConfig?.auth as Record<string, unknown>) ?? {};
           webClientConfig.auth = {
-            ...restAuth,
+            ...((webConfig?.auth as Record<string, unknown>) ?? {}),
             audience: data.audience.trim() || undefined,
           };
         }
