@@ -37,8 +37,6 @@ const makeWebClientApp = (overrides?: Partial<AppInsert>): AppInsert => ({
     type: 'web_client',
     webClient: {
       allowedDomains: ['help.customer.com'],
-      publicKeys: [],
-      allowAnonymous: true,
     },
   },
   ...overrides,
@@ -97,8 +95,6 @@ describe('apps data access', () => {
         type: 'web_client',
         webClient: {
           allowedDomains: ['help.customer.com'],
-          publicKeys: [],
-          allowAnonymous: true,
         },
       });
     });
@@ -303,8 +299,6 @@ describe('apps data access', () => {
             type: 'web_client',
             webClient: {
               allowedDomains: ['new.customer.com'],
-              publicKeys: [],
-              allowAnonymous: true,
             },
           },
         },
@@ -314,8 +308,6 @@ describe('apps data access', () => {
         type: 'web_client',
         webClient: {
           allowedDomains: ['new.customer.com'],
-          publicKeys: [],
-          allowAnonymous: true,
         },
       });
     });

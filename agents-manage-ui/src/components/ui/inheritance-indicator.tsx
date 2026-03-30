@@ -3,7 +3,6 @@
 import { ArrowDown, Check, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 interface InheritanceIndicatorProps {
   /** Whether this value is explicitly set (not inherited) */
@@ -31,12 +30,12 @@ export function InheritanceIndicator({
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className={cn(
-              size === 'sm' ? 'h-5 px-1.5 text-xs' : 'h-6 px-2 text-sm',
-              position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex',
-              'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800',
-              'text-green-800 dark:text-green-200 items-center gap-1'
-            )}
+            className={`
+                ${size === 'sm' ? 'h-5 px-1.5 text-xs' : 'h-6 px-2 text-sm'}
+                ${position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex'}
+                bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 
+                text-green-800 dark:text-green-200 items-center gap-1
+              `}
           >
             <Check className={size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
             {size === 'md' && 'Explicit'}
@@ -55,12 +54,12 @@ export function InheritanceIndicator({
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className={cn(
-              size === 'sm' ? 'h-5 px-1.5 text-xs' : 'h-6 px-2 text-sm',
-              position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex',
-              'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800',
-              'text-blue-800 dark:text-blue-200 items-center gap-1'
-            )}
+            className={`
+                ${size === 'sm' ? 'h-5 px-1.5 text-xs' : 'h-6 px-2 text-sm'}
+                ${position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex'}
+                bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 
+                text-blue-800 dark:text-blue-200 items-center gap-1
+              `}
           >
             <ArrowDown className={size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
             {size === 'md' && `From ${inheritedFrom}`}
@@ -79,12 +78,12 @@ export function InheritanceIndicator({
       <TooltipTrigger asChild>
         <Badge
           variant="outline"
-          className={cn(
-            size === 'sm' ? 'h-5 px-1.5 text-xs' : 'h-6 px-2 text-sm',
-            position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex',
-            'bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800',
-            'text-gray-600 dark:text-gray-400 items-center gap-1'
-          )}
+          className={`
+              ${size === 'sm' ? 'h-5 px-1.5 text-xs' : 'h-6 px-2 text-sm'}
+              ${position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex'}
+              bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800 
+              text-gray-600 dark:text-gray-400 items-center gap-1
+            `}
         >
           <Info className={size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
           {size === 'md' && 'Default'}

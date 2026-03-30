@@ -31,15 +31,12 @@ function formatToolResultForConversationHistory(
 
   if (isToolResultDenied(result)) {
     return [
-      `## Tool: ${toolName} [DENIED BY USER]`,
+      `## Tool: ${toolName}`,
       '',
-      `### TOOL_CALL_ID: ${toolCallId}`,
+      `### 🔧 TOOL_CALL_ID: ${toolCallId}`,
       '',
-      `### Input`,
-      input,
-      '',
-      `### Denial Reason`,
-      result.reason ?? 'Tool call was denied by the user.',
+      `### Output`,
+      result.reason,
     ].join('\n');
   }
 
@@ -102,6 +99,9 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
         bytes: item.data,
         ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
       },
+      metadata: {
+        type: 'image',
+      },
     };
   }
 
@@ -112,28 +112,9 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
         uri: item.url,
         ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
       },
-    };
-  }
-
-  if (item.type === 'file' && typeof item.data === 'string') {
-    return {
-      kind: 'file',
-      file: {
-        bytes: item.data,
-        ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+      metadata: {
+        type: 'image',
       },
-      ...(typeof item.filename === 'string' ? { metadata: { filename: item.filename } } : {}),
-    };
-  }
-
-  if (item.type === 'file' && typeof item.url === 'string') {
-    return {
-      kind: 'file',
-      file: {
-        uri: item.url,
-        ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
-      },
-      ...(typeof item.filename === 'string' ? { metadata: { filename: item.filename } } : {}),
     };
   }
 
@@ -162,9 +143,7 @@ export async function buildToolResultForConversationHistory(
   result: any,
   toolCallId: string,
   conversationId: string,
-  messageId: string,
-  taskId: string,
-  opts?: { skipArtifactCreation?: boolean }
+  messageId: string
 ): Promise<MessageContent> {
   const text = formatToolResultForConversationHistory(toolName, args, result, toolCallId);
   const parts = getToolResultPartsForConversationHistory(result);
@@ -183,9 +162,5 @@ export async function buildToolResultForConversationHistory(
     projectId: ctx.config.projectId,
     conversationId,
     messageId,
-    taskId,
-    toolCallId,
-    source: 'tool-result',
-    skipArtifactCreation: opts?.skipArtifactCreation,
   });
 }

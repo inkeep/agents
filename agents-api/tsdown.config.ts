@@ -26,6 +26,6 @@ export default defineConfig({
   ],
   unbundle: true,
   format: 'esm',
-  external: ['@sentry/node', '@napi-rs/keyring'],
+  external: ['@sentry/node'],
   plugins: [rawQueryPlugin],
 });

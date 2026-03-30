@@ -1,7 +1,7 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
 import { ChevronDown, Plus } from 'lucide-react';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ChangePasswordDialog } from '@/components/members/change-password-dialog';
 import { InviteMemberDialog } from '@/components/members/invite-member-dialog';
@@ -25,7 +25,6 @@ import {
 import { useAuthClient } from '@/contexts/auth-client';
 import { createPasswordResetLink } from '@/lib/actions/password-reset';
 import type { UserProvider } from '@/lib/actions/user-accounts';
-
 import { InvitationActionsMenu } from './components/invitation-actions-menu';
 import { MemberActionsMenu } from './components/member-actions-menu';
 import { MemberConfirmationModals } from './components/member-confirmation-modals';
@@ -86,6 +85,15 @@ export function MembersTable({
     },
   });
 
+  // Sort members alphabetically by name (A→Z)
+  const sortedMembers = useMemo(() => {
+    return [...members].sort((a, b) => {
+      const nameA = (a.user.name || a.user.email).toLowerCase();
+      const nameB = (b.user.name || b.user.email).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  }, [members]);
+
   const handleRoleChange = async (member: Member, newRole: OrgRole) => {
     if (!isOrgAdmin) return;
 
@@ -109,22 +117,8 @@ export function MembersTable({
       });
 
       if (error) {
-        const isEntitlementError = error.code === 'ENTITLEMENT_LIMIT_REACHED';
         toast.error('Failed to update role', {
-          description: isEntitlementError
-            ? isOrgAdmin
-              ? error.message
-              : `${error.message}. Contact your organization admin.`
-            : error.message || 'An error occurred while updating the role.',
-          ...(isEntitlementError &&
-            isOrgAdmin && {
-              action: {
-                label: 'See usage',
-                onClick: () => {
-                  window.location.href = `/${organizationId}/billing`;
-                },
-              },
-            }),
+          description: error.message || 'An error occurred while updating the role.',
         });
         return;
       }
@@ -150,8 +144,9 @@ export function MembersTable({
       toast.error('Failed to update role', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
+    } finally {
+      setUpdatingMemberId(null);
     }
-    setUpdatingMemberId(null);
   };
 
   const handleProjectAccessComplete = () => {
@@ -198,8 +193,9 @@ export function MembersTable({
       toast.error('Failed to create reset link', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
+    } finally {
+      setResettingMemberId(null);
     }
-    setResettingMemberId(null);
   };
 
   const handleRevokeInvitation = async (invitation: Invitation) => {
@@ -224,8 +220,9 @@ export function MembersTable({
       toast.error('Failed to revoke invitation', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
+    } finally {
+      setRevokingInvitation(null);
     }
-    setRevokingInvitation(null);
   };
 
   const handleDeleteMember = async (member: Member) => {
@@ -256,8 +253,9 @@ export function MembersTable({
       toast.error('Failed to delete member', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
+    } finally {
+      setDeletingMemberId(null);
     }
-    setDeletingMemberId(null);
   };
 
   return (
@@ -295,111 +293,102 @@ export function MembersTable({
               </TableRow>
             ) : (
               <>
-                {members
-                  // Sort members alphabetically by name (A→Z)
-                  .toSorted((a, b) => {
-                    const nameA = (a.user.name || a.user.email).toLowerCase();
-                    const nameB = (b.user.name || b.user.email).toLowerCase();
-                    return nameA.localeCompare(nameB);
-                  })
-                  .map((member) => {
-                    const { id, user, role } = member;
-                    const isCurrentUser = currentMember?.id === id;
-                    const isEditable = canEditMember(member);
-                    const isUpdating = updatingMemberId === id;
-                    return (
-                      <TableRow key={id} noHover>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-foreground">
-                              {user.name || user.email}
-                              {isCurrentUser && (
-                                <span className="ml-2 text-xs text-muted-foreground">(you)</span>
-                              )}
-                            </span>
-                            <span className="text-sm text-muted-foreground">{user.email}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {isEditable ? (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-1 normal-case text-xs h-7"
-                                  disabled={isUpdating}
-                                >
-                                  {getDisplayRole(role)}
-                                  <ChevronDown className="size-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {ROLE_OPTIONS.map((r) => {
-                                  return (
-                                    <DropdownMenuItem
-                                      key={r.value}
-                                      onClick={() => handleRoleChange(member, r.value)}
-                                      className={role === r.value ? 'bg-muted' : ''}
-                                    >
-                                      <div className="flex flex-col">
-                                        <span>{r.label}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                          {r.description}
-                                        </span>
-                                      </div>
-                                    </DropdownMenuItem>
-                                  );
-                                })}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          ) : (
-                            role && (
-                              <Badge
-                                variant="code"
-                                className="h-7 px-3 text-xs inline-flex items-center"
+                {sortedMembers.map((member: Member) => {
+                  const { id, user, role } = member;
+                  const isCurrentUser = currentMember?.id === id;
+                  const isEditable = canEditMember(member);
+                  const isUpdating = updatingMemberId === id;
+                  return (
+                    <TableRow key={id} noHover>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-foreground">
+                            {user.name || user.email}
+                            {isCurrentUser && (
+                              <span className="ml-2 text-xs text-muted-foreground">(you)</span>
+                            )}
+                          </span>
+                          <span className="text-sm text-muted-foreground">{user.email}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {isEditable ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 normal-case text-xs h-7"
+                                disabled={isUpdating}
                               >
                                 {getDisplayRole(role)}
-                              </Badge>
-                            )
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {isAdminOrOwner(role) ? (
+                                <ChevronDown className="size-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {ROLE_OPTIONS.map((r) => (
+                                <DropdownMenuItem
+                                  key={r.value}
+                                  onClick={() => handleRoleChange(member, r.value)}
+                                  className={role === r.value ? 'bg-muted' : ''}
+                                >
+                                  <div className="flex flex-col">
+                                    <span>{r.label}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {r.description}
+                                    </span>
+                                  </div>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          role && (
                             <Badge
                               variant="code"
                               className="h-7 px-3 text-xs inline-flex items-center"
                             >
-                              All projects
+                              {getDisplayRole(role)}
                             </Badge>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="text-xs h-7 normal-case"
-                              onClick={() => openManageProjectAccess(member)}
-                            >
-                              {isOrgAdmin ? 'Manage' : 'View'}
-                            </Button>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <MemberActionsMenu
-                            member={member}
-                            currentMember={currentMember}
-                            isOrgAdmin={isOrgAdmin}
-                            memberProviders={memberProviders}
-                            onResetPassword={handleResetPassword}
-                            onChangePassword={() => setChangePasswordDialogOpen(true)}
-                            onDeleteMember={(member) => deleteModal.openModal(member)}
-                            resettingMemberId={resettingMemberId}
-                            deletingMemberId={deletingMemberId}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          )
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isAdminOrOwner(role) ? (
+                          <Badge
+                            variant="code"
+                            className="h-7 px-3 text-xs inline-flex items-center"
+                          >
+                            All projects
+                          </Badge>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7 normal-case"
+                            onClick={() => openManageProjectAccess(member)}
+                          >
+                            {isOrgAdmin ? 'Manage' : 'View'}
+                          </Button>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <MemberActionsMenu
+                          member={member}
+                          currentMember={currentMember}
+                          isOrgAdmin={isOrgAdmin}
+                          memberProviders={memberProviders}
+                          onResetPassword={handleResetPassword}
+                          onChangePassword={() => setChangePasswordDialogOpen(true)}
+                          onDeleteMember={(member) => deleteModal.openModal(member)}
+                          resettingMemberId={resettingMemberId}
+                          deletingMemberId={deletingMemberId}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {pendingInvitations.map((invitation) => (
                   <TableRow key={invitation.id} noHover className="bg-muted/30">
                     <TableCell>

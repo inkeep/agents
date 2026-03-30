@@ -46,6 +46,7 @@ export function ComponentDropdown<T extends ComponentItem>({
   placeholder = 'Select components...',
   commandInputPlaceholder = 'Search components...',
 }: ComponentDropdownProps<T>) {
+  'use memo';
   const [open, setOpen] = useState(false);
 
   return (

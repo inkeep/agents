@@ -2,12 +2,11 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   cascadeDeleteByProject,
   commonGetErrorResponses,
-  countProjectsInRuntime,
   createApiError,
   createProject,
   createProjectMetadataAndBranch,
   deleteProject,
-  deleteProjectAndBranches,
+  deleteProjectWithBranch,
   doltCheckout,
   ErrorResponseSchema,
   getProject,
@@ -20,7 +19,6 @@ import {
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
-  QUOTA_RESOURCE_TYPES,
   type ResolvedRef,
   removeProjectFromSpiceDb,
   syncProjectToSpiceDb,
@@ -33,7 +31,6 @@ import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
-import { requireEntitlement } from '../../../middleware/requireEntitlement';
 import { requirePermission } from '../../../middleware/requirePermission';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
@@ -166,11 +163,6 @@ app.openapi(
     operationId: 'create-project',
     tags: ['Projects'],
     permission: requirePermission({ project: ['create'] }),
-    entitlement: requireEntitlement({
-      resourceType: QUOTA_RESOURCE_TYPES.PROJECT,
-      countFn: (tenantId) => countProjectsInRuntime(runDbClient)({ tenantId }),
-      label: 'Project',
-    }),
     request: {
       params: TenantParamsSchema,
       body: {
@@ -368,9 +360,10 @@ app.openapi(
     }
 
     try {
-      // 1. Delete runtime entities for this project (across all branches)
+      // 1. Delete runtime entities for this project
       await cascadeDeleteByProject(runDbClient)({
         scopes: { tenantId, projectId: id },
+        fullBranchName: resolvedRef.name,
       });
 
       // 2. Delete project config from config DB (on current branch)
@@ -382,7 +375,7 @@ app.openapi(
       await doltCheckout(configDb)({ branch: 'main' });
 
       // 3. Delete project from runtime DB and delete project branch
-      const deleted = await deleteProjectAndBranches(
+      const deleted = await deleteProjectWithBranch(
         runDbClient,
         manageDbClient
       )({

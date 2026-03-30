@@ -14,7 +14,6 @@ import {
   type McpServerConfig,
   type McpTool,
   resolveSlackUserContext,
-  SESSION_EVENT_ERROR,
   TRUSTED_WORK_APP_MCP_PATHS,
 } from '@inkeep/agents-core';
 import { jsonSchema, tool } from 'ai';
@@ -22,7 +21,6 @@ import runDbClient from '../../../../data/db/runDbClient';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
-import { mergeHeadersWithoutOverrides } from '../../utils/merge-headers';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentConfig } from '../Agent';
 import type { AiSdkToolDefinition } from '../agent-types';
@@ -179,10 +177,10 @@ export class AgentMcpManager {
     }
 
     if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
-      serverConfig.headers = mergeHeadersWithoutOverrides(
-        serverConfig.headers,
-        this.config.forwardedHeaders
-      );
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        ...this.config.forwardedHeaders,
+      };
     }
 
     logger.info(
@@ -289,7 +287,7 @@ export class AgentMcpManager {
       (span) => {
         setSpanWithError(span, new Error(`0 effective tools available for ${mcpTool.name}`));
         const relationshipId = this.getRelationshipIdForTool(mcpTool.name, 'mcp');
-        agentSessionManager.recordEvent(streamRequestId, SESSION_EVENT_ERROR, this.config.id, {
+        agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
           message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
           code: 'no_tools_available',
           severity: 'error',

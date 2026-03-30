@@ -4,7 +4,6 @@ import { conversations, messages } from '../../db/runtime/runtime-schema';
 import type {
   ConversationHistoryConfig,
   ConversationInsert,
-  ConversationMetadata,
   ConversationSelect,
   ConversationUpdate,
   MessageContent,
@@ -355,7 +354,6 @@ export const setActiveAgentForConversation =
     agentId: string;
     ref: ResolvedRef;
     userId?: string;
-    metadata?: ConversationMetadata;
   }): Promise<void> => {
     await db
       .insert(conversations)
@@ -367,7 +365,6 @@ export const setActiveAgentForConversation =
         agentId: params.agentId,
         ref: params.ref,
         userId: params.userId,
-        metadata: params.metadata,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })

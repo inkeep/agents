@@ -9,11 +9,6 @@ import type {
 // Re-export for convenience
 export type { BreakdownComponentDef };
 
-export interface SkillFileData {
-  filePath: string;
-  content: string;
-}
-
 // Base interfaces for version-agnostic system prompt building
 export interface VersionConfig<TConfig> {
   loadTemplates(): Map<string, string>;
@@ -31,7 +26,6 @@ export interface SkillData {
   metadata: Record<string, unknown> | null;
   index: number;
   alwaysLoaded: boolean;
-  files?: SkillFileData[];
 }
 
 export interface SystemPromptV1 {

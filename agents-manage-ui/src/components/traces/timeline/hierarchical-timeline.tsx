@@ -6,7 +6,6 @@ interface HierarchicalTimelineProps {
   activities: ActivityItem[];
   onSelect: (a: ActivityItem) => void;
   selectedActivityId?: string | null;
-  highlightMessageId?: string | null;
   collapsedAiMessages?: Set<string>;
   onToggleAiMessageCollapse?: (activityId: string) => void;
   collapsedNodes: Set<string>;
@@ -18,7 +17,6 @@ interface TreeNodeItemProps {
   isLast: boolean;
   onSelect: (a: ActivityItem) => void;
   selectedActivityId?: string | null;
-  highlightMessageId?: string | null;
   collapsedAiMessages?: Set<string>;
   onToggleAiMessageCollapse?: (activityId: string) => void;
   collapsedNodes: Set<string>;
@@ -30,7 +28,6 @@ function TreeNodeItem({
   isLast,
   onSelect,
   selectedActivityId,
-  highlightMessageId,
   collapsedAiMessages,
   onToggleAiMessageCollapse,
   collapsedNodes,
@@ -79,7 +76,6 @@ function TreeNodeItem({
               isLast={isLast && (node.children.length === 0 || isCollapsed)}
               onSelect={() => onSelect(node.activity)}
               isSelected={selectedActivityId === node.activity.id}
-              isHighlighted={!!highlightMessageId && highlightMessageId === node.activity.messageId}
               isAiMessageCollapsed={collapsedAiMessages?.has(node.activity.id) || false}
               onToggleAiMessageCollapse={onToggleAiMessageCollapse}
               hasChildren={hasChildren}
@@ -99,7 +95,6 @@ function TreeNodeItem({
               isLast={index === node.children.length - 1}
               onSelect={onSelect}
               selectedActivityId={selectedActivityId}
-              highlightMessageId={highlightMessageId}
               collapsedAiMessages={collapsedAiMessages}
               onToggleAiMessageCollapse={onToggleAiMessageCollapse}
               collapsedNodes={collapsedNodes}
@@ -116,7 +111,6 @@ export function HierarchicalTimeline({
   activities,
   onSelect,
   selectedActivityId,
-  highlightMessageId,
   collapsedAiMessages,
   onToggleAiMessageCollapse,
   collapsedNodes,
@@ -134,7 +128,6 @@ export function HierarchicalTimeline({
             isLast={index === tree.length - 1}
             onSelect={onSelect}
             selectedActivityId={selectedActivityId}
-            highlightMessageId={highlightMessageId}
             collapsedAiMessages={collapsedAiMessages}
             onToggleAiMessageCollapse={onToggleAiMessageCollapse}
             collapsedNodes={collapsedNodes}

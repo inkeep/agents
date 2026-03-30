@@ -17,7 +17,7 @@ interface MCPServerItemProps {
 export function MCPServerItem({ mcp: skeletonMcp, onClick }: MCPServerItemProps) {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
-  const { data: liveToolData, isFetching: isLoadingStatus } = useMcpToolStatusQuery({
+  const { data: liveToolData, isLoading: isLoadingStatus } = useMcpToolStatusQuery({
     tenantId,
     projectId,
     toolId: skeletonMcp.id,

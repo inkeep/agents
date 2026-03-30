@@ -68,14 +68,10 @@ export function isValidReturnUrl(returnUrl: string | null | undefined): returnUr
     return false;
   }
 
-  if (returnUrl.includes('\\')) {
-    return false;
-  }
-
   // Reject URLs that try to break out with encoded characters
   try {
     const decoded = decodeURIComponent(returnUrl);
-    if (decoded.startsWith('//') || decoded.includes('://') || decoded.includes('\\')) {
+    if (decoded.startsWith('//') || decoded.includes('://')) {
       return false;
     }
   } catch {

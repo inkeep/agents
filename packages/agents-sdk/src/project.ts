@@ -541,14 +541,8 @@ export class Project implements ProjectInterface {
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
     const externalAgentsObject: Record<string, ExternalAgentApiInsert> = {};
-    const skillsObject: Record<string, any> = Object.fromEntries(
-      this.skills.map((skill) => {
-        if (!skill.id) {
-          throw new Error('Invalid skill: missing required "id" field.');
-        }
-        return [skill.id, { files: skill.files }];
-      })
-    );
+    const skillsObject: Record<string, any> = {};
+    const skillTimestamp = new Date().toISOString();
     // Track which resources use each credential
     const credentialUsageMap: Record<
       string,
@@ -896,6 +890,19 @@ export class Project implements ProjectInterface {
     }
     logger.info({ externalAgentsObject }, 'External agents object');
 
+    for (const skill of this.skills) {
+      if (!skill.id) continue;
+      skillsObject[skill.id] = {
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        content: skill.content,
+        metadata: skill.metadata ?? null,
+        createdAt: skill.createdAt ?? skillTimestamp,
+        updatedAt: skill.updatedAt ?? skillTimestamp,
+      };
+    }
+
     // Add project-level tools, dataComponents, and artifactComponents
     for (const tool of this.projectTools) {
       const toolId = tool.getId();
@@ -995,17 +1002,17 @@ export class Project implements ProjectInterface {
       stopWhen: this.stopWhen,
       agents: agentsObject,
       tools: toolsObject,
-      functionTools: Object.keys(functionToolsObject).length ? functionToolsObject : undefined,
-      functions: Object.keys(functionsObject).length ? functionsObject : undefined,
-      dataComponents: Object.keys(dataComponentsObject).length ? dataComponentsObject : undefined,
-      artifactComponents: Object.keys(artifactComponentsObject).length
-        ? artifactComponentsObject
-        : undefined,
-      externalAgents: Object.keys(externalAgentsObject).length ? externalAgentsObject : undefined,
-      credentialReferences: Object.keys(credentialReferencesObject).length
-        ? credentialReferencesObject
-        : undefined,
-      skills: Object.keys(skillsObject).length ? skillsObject : undefined,
+      functionTools: Object.keys(functionToolsObject).length > 0 ? functionToolsObject : undefined,
+      functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,
+      dataComponents:
+        Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
+      artifactComponents:
+        Object.keys(artifactComponentsObject).length > 0 ? artifactComponentsObject : undefined,
+      externalAgents:
+        Object.keys(externalAgentsObject).length > 0 ? externalAgentsObject : undefined,
+      credentialReferences:
+        Object.keys(credentialReferencesObject).length > 0 ? credentialReferencesObject : undefined,
+      skills: Object.keys(skillsObject).length > 0 ? skillsObject : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

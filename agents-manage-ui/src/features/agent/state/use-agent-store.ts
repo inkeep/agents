@@ -2,10 +2,14 @@
 
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
+import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
+import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
+import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
+import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
@@ -13,9 +17,12 @@ type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
+  metadata: AgentMetadata;
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
+  errors: AgentErrorSummary | null;
+  showErrors: boolean;
   /**
    * Temporary state used to control whether the sidebar is open on the agents page.
    */
@@ -39,19 +46,27 @@ interface AgentPersistedStateData {
 }
 
 interface AgentActions {
-  setInitial(nodes: Node[], edges: Edge[]): void;
+  setInitial(nodes: Node[], edges: Edge[], metadata: AgentMetadata): void;
   reset(): void;
   setNodes(updater: (prev: Node[]) => Node[]): void;
   setEdges(updater: (prev: Edge[]) => Edge[]): void;
   onNodesChange(changes: NodeChange[]): void;
   onEdgesChange(changes: EdgeChange[]): void;
   onConnect(connection: Connection): void;
+  setMetadata<K extends keyof AgentMetadata>(field: K, value: AgentMetadata[K]): void;
   push(nodes: Node[], edges: Edge[]): void;
   undo(): void;
   redo(): void;
   markSaved(): void;
   markUnsaved(): void;
   clearSelection(): void;
+  deleteSelected(): void;
+  setErrors(errors: AgentErrorSummary | null): void;
+  clearErrors(): void;
+  setShowErrors(show: boolean): void;
+  hasErrors(): boolean;
+  getNodeErrors(nodeId: string): AgentErrorSummary['allErrors'];
+  getEdgeErrors(edgeId: string): AgentErrorSummary['allErrors'];
   /**
    * Setter for `jsonSchemaMode` field.
    */
@@ -82,9 +97,24 @@ interface AgentState extends AllAgentStateData {
 const initialAgentState: AgentStateData = {
   nodes: [],
   edges: [],
+  metadata: {
+    id: undefined,
+    name: '',
+    description: '',
+    contextConfig: {
+      contextVariables: '',
+      headersSchema: '',
+    },
+    models: undefined,
+    stopWhen: undefined,
+    prompt: undefined,
+    statusUpdates: undefined,
+  },
   dirty: false,
   history: [],
   future: [],
+  errors: null,
+  showErrors: false,
   isSidebarSessionOpen: true,
   variableSuggestions: [],
   hasOpenModelConfig: false,
@@ -92,32 +122,6 @@ const initialAgentState: AgentStateData = {
 };
 
 const NODE_MODIFIED_CHANGE = new Set<NodeChange['type']>(['remove', 'add', 'replace']);
-
-function deepShallow(a: any, b: any) {
-  if (Object.is(a, b)) return true;
-
-  if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false;
-
-  // first level shallow check
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-
-  if (keysA.length !== keysB.length) return false;
-
-  for (const key of keysA) {
-    const valA = a[key];
-    const valB = b[key];
-
-    if (typeof valA === 'object' && typeof valB === 'object') {
-      // 👇 recursive shallow
-      if (!deepShallow(valA, valB)) return false;
-    } else {
-      if (!Object.is(valA, valB)) return false;
-    }
-  }
-
-  return true;
-}
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
@@ -127,8 +131,17 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   variableSuggestions: [],
   // Separate "namespace" for actions
   actions: {
-    setInitial(nodes, edges) {
-      set({ nodes, edges, dirty: false, history: [], future: [] });
+    setInitial(nodes, edges, metadata) {
+      set({
+        nodes,
+        edges,
+        metadata,
+        dirty: false,
+        history: [],
+        future: [],
+        errors: null,
+        showErrors: false,
+      });
     },
     reset() {
       // Exclude `isSidebarSessionOpen` from the initial state.
@@ -138,18 +151,10 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       set({ ...state, playgroundConversationId: generateId() });
     },
     setNodes(updater) {
-      set((state) => {
-        const newNodes = updater(state.nodes);
-        const isEqual = deepShallow(newNodes, state.nodes);
-        return isEqual ? state : { nodes: newNodes };
-      });
+      set((state) => ({ nodes: updater(state.nodes) }));
     },
     setEdges(updater) {
-      set((state) => {
-        const newEdges = updater(state.edges);
-        const isEqual = deepShallow(newEdges, state.edges);
-        return isEqual ? state : { edges: newEdges };
-      });
+      set((state) => ({ edges: updater(state.edges) }));
     },
     push(nodes, edges) {
       set((state) => ({
@@ -173,9 +178,28 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       const hasModifyingChange = changes.some((change) => NODE_MODIFIED_CHANGE.has(change.type));
 
       set((state) => {
+        // Check for edge removals that disconnect agent from MCP node
+        const removeChanges = changes.filter((change) => change.type === 'remove');
+        let updatedNodes = state.nodes;
+
+        for (const removeChange of removeChanges) {
+          const edgeToRemove = state.edges.find((e) => e.id === removeChange.id);
+          if (edgeToRemove && edgeToRemove.targetHandle === mcpNodeHandleId) {
+            // Find the target MCP node and clear its subAgentId
+            const mcpNode = state.nodes.find((n) => n.id === edgeToRemove.target);
+            if (mcpNode && mcpNode.type === NodeType.MCP) {
+              updatedNodes = updatedNodes.map((n) =>
+                n.id === mcpNode.id
+                  ? { ...n, data: { ...n.data, subAgentId: null, relationshipId: null } }
+                  : n
+              );
+            }
+          }
+        }
+
         return {
           history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-          nodes: state.nodes,
+          nodes: updatedNodes,
           edges: applyEdgeChanges(changes, state.edges),
           dirty: hasModifyingChange ? true : state.dirty,
         };
@@ -183,6 +207,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     onConnect(connection) {
       set((state) => ({ edges: addEdge(connection, state.edges) }));
+    },
+    setMetadata(field, value) {
+      set((state) => ({ metadata: { ...state.metadata, [field]: value } }));
     },
     undo() {
       const { history } = get();
@@ -220,6 +247,55 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         edges: state.edges.map((e) => ({ ...e, selected: false })),
         dirty: state.dirty,
       }));
+    },
+    deleteSelected() {
+      set((state) => {
+        const nodesToDelete = new Set(
+          state.nodes.filter((n) => n.selected && (n.deletable ?? true)).map((n) => n.id)
+        );
+
+        const unDeletableNodes = state.nodes.filter((n) => n.selected && !n.deletable);
+        if (unDeletableNodes.length) {
+          const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
+          toast.error(
+            `Cannot delete default subagent ${formatter.format(unDeletableNodes.map((n) => n.id))}`
+          );
+        }
+
+        const edgesRemaining = state.edges.filter(
+          (e) => !e.selected && !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target)
+        );
+        const nodesRemaining = state.nodes.filter((n) => !nodesToDelete.has(n.id));
+        return {
+          history: [...state.history, { nodes: state.nodes, edges: state.edges }],
+          nodes: nodesRemaining,
+          edges: edgesRemaining,
+          dirty: true,
+        };
+      });
+    },
+    setErrors(errors) {
+      set({ errors, showErrors: errors !== null });
+    },
+    clearErrors() {
+      set({ errors: null, showErrors: false });
+    },
+    setShowErrors(show) {
+      set({ showErrors: show });
+    },
+    hasErrors() {
+      const { errors } = get();
+      return errors !== null && errors.totalErrors > 0;
+    },
+    getNodeErrors(nodeId) {
+      const { errors } = get();
+      if (!errors || !errors.nodeErrors[nodeId]) return [];
+      return errors.nodeErrors[nodeId];
+    },
+    getEdgeErrors(edgeId) {
+      const { errors } = get();
+      if (!errors || !errors.edgeErrors[edgeId]) return [];
+      return errors.edgeErrors[edgeId];
     },
     setJsonSchemaMode(jsonSchemaMode) {
       set({ jsonSchemaMode });

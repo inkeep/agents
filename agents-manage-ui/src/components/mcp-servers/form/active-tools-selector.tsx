@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, X } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { type Control, type FieldPath, useController } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -68,7 +68,7 @@ export function ActiveToolsSelector<
   });
 
   // Safe accessor for toolsConfig with fallback
-  const safeToolsConfig: ToolsConfig = (() => {
+  const safeToolsConfig: ToolsConfig = useMemo(() => {
     if (typeof toolsConfig !== 'object' || toolsConfig === null || !('type' in toolsConfig)) {
       return { type: 'selective', tools: [] };
     }
@@ -84,7 +84,7 @@ export function ActiveToolsSelector<
     }
 
     return { type: 'selective', tools: [] };
-  })();
+  }, [toolsConfig]);
 
   const handleSelectAll = () => {
     setToolsConfig({ type: 'all' });
@@ -94,28 +94,35 @@ export function ActiveToolsSelector<
     setToolsConfig({ type: 'selective', tools: [] });
   };
 
-  function handleToolToggle(toolName: string, checked: boolean) {
-    if (safeToolsConfig.type === 'all') {
-      // When in "all" mode, unchecking creates selective list without that tool
-      const allToolsExceptThis = availableTools
-        .map((t) => t.name)
-        .filter((name) => name !== toolName);
-      setToolsConfig({
-        type: 'selective',
-        tools: checked ? [...allToolsExceptThis, toolName] : allToolsExceptThis,
-      });
-    } else {
-      // Standard selective mode logic
-      const newTools = checked
-        ? [...safeToolsConfig.tools.filter((name) => name !== toolName), toolName]
-        : safeToolsConfig.tools.filter((name) => name !== toolName);
-      setToolsConfig({ type: 'selective', tools: newTools });
-    }
-  }
+  const handleToolToggle = useCallback(
+    (toolName: string, checked: boolean) => {
+      if (safeToolsConfig.type === 'all') {
+        // When in "all" mode, unchecking creates selective list without that tool
+        const allToolsExceptThis = availableTools
+          .map((t) => t.name)
+          .filter((name) => name !== toolName);
+        setToolsConfig({
+          type: 'selective',
+          tools: checked ? [...allToolsExceptThis, toolName] : allToolsExceptThis,
+        });
+      } else {
+        // Standard selective mode logic
+        const newTools = checked
+          ? [...safeToolsConfig.tools.filter((name) => name !== toolName), toolName]
+          : safeToolsConfig.tools.filter((name) => name !== toolName);
+        setToolsConfig({ type: 'selective', tools: newTools });
+      }
+    },
+    [availableTools, safeToolsConfig, setToolsConfig]
+  );
 
-  function handleRemoveOverride(toolName: string) {
-    onToolOverrideChange?.(toolName, {});
-  }
+  const handleRemoveOverride = useCallback(
+    (toolName: string) => {
+      onToolOverrideChange?.(toolName, {});
+    },
+    [onToolOverrideChange]
+  );
+
   const isToolSelected = (toolName: string): boolean => {
     switch (safeToolsConfig.type) {
       case 'all':

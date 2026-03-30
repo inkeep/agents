@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, type ReactNode, use } from 'react';
+import { createContext, type ReactNode, use, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useSlackUninstallWorkspaceMutation, useSlackWorkspacesQuery } from '../api/queries';
@@ -45,19 +45,22 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
   const workspacesQuery = useSlackWorkspacesQuery();
   const uninstallMutation = useSlackUninstallWorkspaceMutation();
 
-  function handleInstallClick() {
+  const handleInstallClick = useCallback(() => {
     window.location.href = slackApi.getInstallUrl(tenantId);
-  }
+  }, [tenantId]);
 
-  async function uninstallWorkspace(connectionId: string) {
-    try {
-      await uninstallMutation.mutateAsync(connectionId);
-      toast.success('Workspace uninstalled successfully');
-    } catch (error) {
-      console.error('Failed to uninstall workspace:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to uninstall workspace');
-    }
-  }
+  const uninstallWorkspace = useCallback(
+    async (connectionId: string) => {
+      try {
+        await uninstallMutation.mutateAsync(connectionId);
+        toast.success('Workspace uninstalled successfully');
+      } catch (error) {
+        console.error('Failed to uninstall workspace:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to uninstall workspace');
+      }
+    },
+    [uninstallMutation]
+  );
 
   const value: SlackContextValue = {
     user: user

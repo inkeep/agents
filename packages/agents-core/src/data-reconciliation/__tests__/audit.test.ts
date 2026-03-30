@@ -12,9 +12,9 @@ const mockCtx = {
 
 describe('audit', () => {
   it('captures check function result in entries', async () => {
-    const checkResult = { orphanedRows: [] };
+    const checkResult = { missingWorkflows: [], orphanedWorkflows: [] };
     const registry: EntityEffectRegistry = {
-      tools: {
+      scheduled_triggers: {
         check: vi.fn().mockResolvedValue(checkResult),
       },
     };
@@ -22,8 +22,8 @@ describe('audit', () => {
     const report = await audit(registry, mockCtx);
 
     expect(report.entries).toHaveLength(1);
-    expect(report.entries[0]).toEqual({ table: 'tools', result: checkResult });
-    expect(report.checkedEntities).toEqual(['tools']);
+    expect(report.entries[0]).toEqual({ table: 'scheduled_triggers', result: checkResult });
+    expect(report.checkedEntities).toEqual(['scheduled_triggers']);
   });
 
   it('puts entities without check function in skippedEntities', async () => {
@@ -40,7 +40,7 @@ describe('audit', () => {
 
   it('captures check function errors without throwing', async () => {
     const registry: EntityEffectRegistry = {
-      agent: {
+      scheduled_triggers: {
         check: vi.fn().mockRejectedValue(new Error('db connection failed')),
       },
       tools: {
@@ -52,13 +52,13 @@ describe('audit', () => {
 
     expect(report.entries).toHaveLength(2);
 
-    const agentEntry = report.entries.find((e) => e.table === 'agent');
-    expect(agentEntry?.error).toBe('db connection failed');
-    expect(agentEntry?.result).toBeNull();
+    const triggerEntry = report.entries.find((e) => e.table === 'scheduled_triggers');
+    expect(triggerEntry?.error).toBe('db connection failed');
+    expect(triggerEntry?.result).toBeNull();
 
     const toolsEntry = report.entries.find((e) => e.table === 'tools');
     expect(toolsEntry?.error).toBeUndefined();
-    expect(report.checkedEntities).toContain('agent');
+    expect(report.checkedEntities).toContain('scheduled_triggers');
     expect(report.checkedEntities).toContain('tools');
   });
 

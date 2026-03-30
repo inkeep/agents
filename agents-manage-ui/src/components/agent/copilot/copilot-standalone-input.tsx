@@ -40,24 +40,24 @@ export default function CopilotStandaloneInput() {
     defaultValues,
   });
   const { isSubmitting } = form.formState;
-  const { chatFunctionsRef: chatFunctionsREF, openCopilot } = useCopilotContext();
+  const { chatFunctionsRef, openCopilot } = useCopilotContext();
 
-  const onSubmit = form.handleSubmit(({ message }) => {
-    if (chatFunctionsREF.current) {
+  const onSubmit = ({ message }: CopilotStandaloneInputFormData) => {
+    if (chatFunctionsRef?.current) {
       openCopilot();
       // todo this is a hack to ensure the message is submitted after the conversation id is set
       setTimeout(() => {
-        chatFunctionsREF.current?.submitMessage(message);
+        chatFunctionsRef?.current?.submitMessage(message);
       }, 100);
     }
-  });
+  };
 
   return (
     <>
       <Form {...form}>
         <form
           className="flex flex-col items-center border bg-background rounded-xl w-full focus-within:border-ring focus-within:ring-ring/50 shadow-sm"
-          onSubmit={onSubmit}
+          onSubmit={form.handleSubmit(onSubmit)}
         >
           <FormField
             control={form.control}

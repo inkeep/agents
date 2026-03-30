@@ -2,6 +2,7 @@
 
 import type { ProjectRole } from '@inkeep/agents-core';
 import { makeManagementApiRequest } from './api-config';
+import { validateTenantId } from './resource-validation';
 
 export interface ProjectMember {
   userId: string;
@@ -47,6 +48,8 @@ export interface RemoveProjectMemberParams {
 export async function listProjectMembers(
   params: ListProjectMembersParams
 ): Promise<{ data: ProjectMember[] }> {
+  validateTenantId(params.tenantId);
+
   const response = await makeManagementApiRequest<{ data: ProjectMember[] }>(
     `tenants/${params.tenantId}/projects/${params.projectId}/members`
   );
@@ -60,6 +63,8 @@ export async function listProjectMembers(
 export async function addProjectMember(
   params: AddProjectMemberParams
 ): Promise<{ data: ProjectMember }> {
+  validateTenantId(params.tenantId);
+
   const response = await makeManagementApiRequest<{ data: ProjectMember }>(
     `tenants/${params.tenantId}/projects/${params.projectId}/members`,
     {
@@ -80,6 +85,8 @@ export async function addProjectMember(
 export async function updateProjectMember(
   params: UpdateProjectMemberParams
 ): Promise<{ data: ProjectMember }> {
+  validateTenantId(params.tenantId);
+
   const response = await makeManagementApiRequest<{ data: ProjectMember }>(
     `tenants/${params.tenantId}/projects/${params.projectId}/members/${params.userId}`,
     {
@@ -98,6 +105,8 @@ export async function updateProjectMember(
  * Remove a user from a project.
  */
 export async function removeProjectMember(params: RemoveProjectMemberParams): Promise<void> {
+  validateTenantId(params.tenantId);
+
   await makeManagementApiRequest<void>(
     `tenants/${params.tenantId}/projects/${params.projectId}/members/${params.userId}?role=${params.role}`,
     {
@@ -118,6 +127,8 @@ export interface ListUserProjectMembershipsParams {
 export async function listUserProjectMemberships(
   params: ListUserProjectMembershipsParams
 ): Promise<{ data: UserProjectMembership[] }> {
+  validateTenantId(params.tenantId);
+
   const response = await makeManagementApiRequest<{ data: UserProjectMembership[] }>(
     `tenants/${params.tenantId}/users/${params.userId}/project-memberships`
   );

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   createProjectMetadataAndBranch,
-  deleteProjectAndBranches,
+  deleteProjectWithBranch,
   getProjectMainBranchName,
 } from '../../../data-access/manage/projectLifecycle';
 import {
@@ -152,7 +152,7 @@ describe('Project Lifecycle - Integration Tests', () => {
     });
   });
 
-  describe('deleteProjectAndBranches', () => {
+  describe('deleteProjectWithBranch', () => {
     it('should delete project metadata and branch', async () => {
       const tenantId = getTestId('tenant-delete');
       const projectId = getTestId('project-delete');
@@ -179,7 +179,7 @@ describe('Project Lifecycle - Integration Tests', () => {
       expect(branches.find((b) => b.name === branchName)).toBeDefined();
 
       // Delete it
-      const result = await deleteProjectAndBranches(
+      const result = await deleteProjectWithBranch(
         runDb,
         configDb
       )({
@@ -210,7 +210,7 @@ describe('Project Lifecycle - Integration Tests', () => {
       const tenantId = getTestId('tenant-nonexistent');
       const projectId = getTestId('project-nonexistent');
 
-      const result = await deleteProjectAndBranches(
+      const result = await deleteProjectWithBranch(
         runDb,
         configDb
       )({
@@ -241,7 +241,7 @@ describe('Project Lifecycle - Integration Tests', () => {
       expect(projectMetadata).not.toBeNull();
 
       // Delete - should succeed even though branch doesn't exist
-      const result = await deleteProjectAndBranches(
+      const result = await deleteProjectWithBranch(
         runDb,
         configDb
       )({

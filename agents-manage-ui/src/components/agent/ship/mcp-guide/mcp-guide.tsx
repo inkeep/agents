@@ -1,5 +1,4 @@
 import type { LucideProps } from 'lucide-react';
-import { useWatch } from 'react-hook-form';
 import { Streamdown } from 'streamdown';
 import { ClaudeIcon } from '@/components/icons/claude';
 import { CursorIcon } from '@/components/icons/cursor';
@@ -7,8 +6,8 @@ import { VSCodeIcon } from '@/components/icons/vs-code';
 import { WindsurfIcon } from '@/components/icons/windsurf';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DOCS_BASE_URL } from '@/constants/theme';
-import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { DocsLink, Header } from '../guide-header';
 import { replaceTemplatePlaceholders, toCamelCase } from '../utils';
 import { claudeCodeTemplate, cursorTemplate, vscodeTemplate, windsurfTemplate } from './snippets';
@@ -59,9 +58,8 @@ const tabItems: TabItem[] = [
 export function McpGuide() {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const mcpServerUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/v1/mcp`;
-  const form = useFullAgentFormContext();
-  const name = useWatch({ control: form.control, name: 'name' });
-  const agentName = toCamelCase(name || 'agentName');
+  const metadata = useAgentStore((state) => state.metadata);
+  const agentName = toCamelCase(metadata?.name || 'agentName');
 
   return (
     <div>

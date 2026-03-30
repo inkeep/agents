@@ -553,52 +553,5 @@ describe('Project', () => {
 
       expect(fullProjectDef.description).toBe('');
     });
-
-    it('should include nested skill files in the full project definition', async () => {
-      const project = new Project({
-        ...projectConfig,
-        skills: () => [
-          {
-            id: 'weather-safety-guardrails',
-            files: [
-              {
-                filePath: 'SKILL.md',
-                content: `---
-name: weather-safety-guardrails
-description: Safety rules.
-metadata:
-  author: acme
----
-Always check the weather.`,
-              },
-              {
-                filePath: 'reference/safety-checklist.txt',
-                content: 'Check weather alerts',
-              },
-            ],
-          },
-        ],
-      });
-      const fullProjectDef = await (project as any).toFullProjectDefinition();
-
-      expect(fullProjectDef.skills?.['weather-safety-guardrails']).toMatchObject({
-        files: [
-          {
-            filePath: 'SKILL.md',
-            content: `---
-name: weather-safety-guardrails
-description: Safety rules.
-metadata:
-  author: acme
----
-Always check the weather.`,
-          },
-          {
-            filePath: 'reference/safety-checklist.txt',
-            content: 'Check weather alerts',
-          },
-        ],
-      });
-    });
   });
 });

@@ -135,6 +135,7 @@ describe('agentFull update - function tool toolPolicies', () => {
           name: 'My tool',
           description: '',
           executeCode: 'return 1',
+          inputSchema: {},
           dependencies: {},
         },
       },

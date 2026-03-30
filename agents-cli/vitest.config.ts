@@ -11,7 +11,6 @@ export default defineProject({
       ENVIRONMENT: 'test',
       INKEEP_AGENTS_API_URL: 'http://localhost:3002',
     },
-    exclude: ['node_modules', 'dist', '**/integration/**'],
     testTimeout: 120000, // 120 second timeout for CLI tests
     hookTimeout: 30000, // 30 second timeout for setup/teardown hooks
     // Use thread pool to prevent worker timeout issues

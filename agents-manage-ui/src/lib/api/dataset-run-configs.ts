@@ -2,6 +2,7 @@
 
 import type { SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
+import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface DatasetRunConfig {
   id: string;
@@ -34,32 +35,14 @@ export async function createDatasetRunConfig(
   projectId: string,
   data: DatasetRunConfigInsert
 ): Promise<SingleResponse<DatasetRunConfig>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs`,
     {
       method: 'POST',
       body: JSON.stringify(data),
-    }
-  );
-}
-
-export interface TriggerDatasetRunResponse {
-  datasetRunId: string;
-  status: 'pending';
-  totalItems: number;
-}
-
-export async function triggerDatasetRun(
-  tenantId: string,
-  projectId: string,
-  runConfigId: string,
-  data?: { evaluatorIds?: string[] }
-): Promise<TriggerDatasetRunResponse> {
-  return makeManagementApiRequest<TriggerDatasetRunResponse>(
-    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}/run`,
-    {
-      method: 'POST',
-      body: JSON.stringify(data ?? {}),
     }
   );
 }
@@ -70,6 +53,9 @@ export async function updateDatasetRunConfig(
   runConfigId: string,
   data: DatasetRunConfigUpdate
 ): Promise<SingleResponse<DatasetRunConfig>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
   return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}`,
     {

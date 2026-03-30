@@ -1,8 +1,7 @@
 'use client';
 
 import type { AIChatFunctions } from '@inkeep/agents-ui/types';
-import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
-import { createContext, use, useRef, useState } from 'react';
+import { createContext, type ReactNode, type RefObject, use, useRef, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 interface CopilotContextHeaders {
@@ -12,13 +11,13 @@ interface CopilotContextHeaders {
 
 interface CopilotContextValue {
   isOpen: boolean;
-  setIsOpen: Dispatch<SetStateAction<boolean>>;
+  setIsOpen: (open: boolean) => void;
   isStreaming: boolean;
-  setIsStreaming: Dispatch<SetStateAction<boolean>>;
-  chatFunctionsRef: RefObject<AIChatFunctions | null>;
+  setIsStreaming: (streaming: boolean) => void;
+  chatFunctionsRef?: RefObject<AIChatFunctions | null>;
   openCopilot: () => void;
   dynamicHeaders: CopilotContextHeaders;
-  setDynamicHeaders: Dispatch<SetStateAction<CopilotContextHeaders>>;
+  setDynamicHeaders: (headers: CopilotContextHeaders) => void;
   isCopilotConfigured: boolean;
 }
 
@@ -30,12 +29,22 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
   const chatFunctionsRef = useRef<AIChatFunctions | null>(null);
   const [dynamicHeaders, setDynamicHeaders] = useState<CopilotContextHeaders>({});
 
-  const { PUBLIC_INKEEP_COPILOT_APP_ID: copilotAppId } = useRuntimeConfig();
-  const isCopilotConfigured = !!copilotAppId;
+  const {
+    PUBLIC_INKEEP_COPILOT_AGENT_ID,
+    PUBLIC_INKEEP_COPILOT_PROJECT_ID,
+    PUBLIC_INKEEP_COPILOT_TENANT_ID,
+  } = useRuntimeConfig();
+  const isCopilotConfigured = !!(
+    PUBLIC_INKEEP_COPILOT_AGENT_ID &&
+    PUBLIC_INKEEP_COPILOT_PROJECT_ID &&
+    PUBLIC_INKEEP_COPILOT_TENANT_ID
+  );
 
   if (!isCopilotConfigured) {
     console.warn('Copilot is not configured.');
   }
+
+  const openCopilot = () => setIsOpen(true);
 
   return (
     <CopilotContext
@@ -45,7 +54,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
         isStreaming,
         setIsStreaming,
         chatFunctionsRef,
-        openCopilot: () => setIsOpen(true),
+        openCopilot,
         dynamicHeaders,
         setDynamicHeaders,
         isCopilotConfigured,

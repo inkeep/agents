@@ -11,7 +11,7 @@ export const activitiesPlannerAdvanced = project({
   name: 'Activities planner advanced',
   description: 'Activities planner project template',
   agents: () => [activitiesPlannerAdvancedAgent],
-  skills: () => loadSkills(path.join('activities-planner-advanced', 'skills')),
+  skills: () => loadSkills(path.join('activities-planner-advanced/skills')),
   models: {
     base: {
       model: 'openai/gpt-4o-mini',

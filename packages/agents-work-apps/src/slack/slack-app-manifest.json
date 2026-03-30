@@ -49,6 +49,7 @@
         "app_mentions:read",
         "channels:history",
         "channels:read",
+        "channels:join",
         "chat:write",
         "chat:write.public",
         "commands",
@@ -64,21 +65,17 @@
         "mpim:write",
         "team:read",
         "users:read",
-        "users:read.email"
+        "users:read.email",
+        "search:read.public",
+        "search:read.files",
+        "search:read.users"
       ]
     }
   },
   "settings": {
     "event_subscriptions": {
       "request_url": "https://<YOUR_API_DOMAIN>/work-apps/slack/events",
-      "bot_events": [
-        "app_mention",
-        "app_uninstalled",
-        "message.channels",
-        "message.groups",
-        "message.im",
-        "tokens_revoked"
-      ]
+      "bot_events": ["app_mention", "message.channels", "message.groups", "message.im"]
     },
     "interactivity": {
       "is_enabled": true,

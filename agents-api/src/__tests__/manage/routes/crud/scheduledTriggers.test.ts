@@ -4,24 +4,12 @@ import {
   generateId,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
-
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
-  return {
-    ...actual,
-    resolveRef: vi.fn(() =>
-      vi.fn((refString: string) =>
-        Promise.resolve({ type: 'branch', name: refString, hash: 'test-hash' })
-      )
-    ),
-  };
-});
 
 describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
   const createFullAgentData = (agentId: string) => {
@@ -1358,8 +1346,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
 
         const body = await res.json();
         expect(body.success).toBe(true);
-        expect(body.invocationIds).toBeDefined();
-        expect(body.invocationIds.length).toBeGreaterThan(0);
+        expect(body.invocationId).toBeDefined();
       });
 
       it('should return 404 for non-existent trigger', async () => {
@@ -1385,18 +1372,17 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
         );
         expect(runRes.status).toBe(200);
         const runBody = await runRes.json();
-        const invocationId = runBody.invocationIds[0];
 
         // Small delay for the invocation to be created
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         const invRes = await makeRequest(
-          `${basePath(tenantId, projectId, agentId)}/${trigger.id}/invocations/${invocationId}`
+          `${basePath(tenantId, projectId, agentId)}/${trigger.id}/invocations/${runBody.invocationId}`
         );
         expect(invRes.status).toBe(200);
 
         const invBody = await invRes.json();
-        expect(invBody.data.id).toBe(invocationId);
+        expect(invBody.data.id).toBe(runBody.invocationId);
         expect(invBody.data.scheduledTriggerId).toBe(trigger.id);
       });
     });

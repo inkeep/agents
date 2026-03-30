@@ -6,8 +6,11 @@ import type { ProjectFormData } from '@/components/projects/form/validation';
 import type { Project } from '../types/project';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
+import { validateTenantId } from './resource-validation';
 
 async function $fetchProjects(tenantId: string): Promise<ListResponse<Project>> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<ListResponse<any>>(
     `tenants/${tenantId}/projects?limit=100`
   );
@@ -27,6 +30,8 @@ async function $fetchProject(
   tenantId: string,
   projectId: string
 ): Promise<SingleResponse<Project>> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<SingleResponse<any>>(
     `tenants/${tenantId}/projects/${projectId}`
   );
@@ -46,6 +51,8 @@ export async function createProject(
   tenantId: string,
   project: ProjectFormData
 ): Promise<SingleResponse<Project>> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<SingleResponse<any>>(
     `tenants/${tenantId}/projects`,
     {
@@ -69,6 +76,8 @@ export async function updateProject(
   projectId: string,
   project: ProjectFormData
 ): Promise<SingleResponse<Project>> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<SingleResponse<any>>(
     `tenants/${tenantId}/projects/${projectId}`,
     {
@@ -87,6 +96,8 @@ export async function updateProject(
 }
 
 export async function deleteProject(tenantId: string, projectId: string): Promise<void> {
+  validateTenantId(tenantId);
+
   await makeManagementApiRequest<void>(`tenants/${tenantId}/projects/${projectId}`, {
     method: 'DELETE',
   });
@@ -100,6 +111,8 @@ async function $fetchProjectPermissions(
   tenantId: string,
   projectId: string
 ): Promise<ProjectPermissions> {
+  validateTenantId(tenantId);
+
   const response = await makeManagementApiRequest<{ data: ProjectPermissions }>(
     `tenants/${tenantId}/projects/${projectId}/permissions`
   );

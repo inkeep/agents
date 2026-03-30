@@ -8,14 +8,12 @@ import {
   createEvaluationJobConfig,
   createEvaluationJobConfigEvaluatorRelation,
   createEvaluationRun,
-  createScheduledTriggerInvocation,
   DatasetRunConfigApiInsertSchema,
   DatasetRunConfigApiSelectSchema,
   DatasetRunConfigApiUpdateSchema,
   deleteDatasetRunConfig,
   deleteDatasetRunConfigAgentRelation,
   generateId,
-  getAgentDatasetRelationsByDataset,
   getDatasetRunConfigAgentRelations,
   getDatasetRunConfigById,
   ListResponseSchema,
@@ -31,7 +29,6 @@ import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
-import type { DatasetRunQueueItem } from '../../../evals/services/datasetRun';
 import { queueDatasetRunItems } from '../../../evals/services/datasetRun';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -67,7 +64,7 @@ app.openapi(
     try {
       const configs = await listDatasetRunConfigs(db)({ scopes: { tenantId, projectId } });
       const filteredConfigs = configs.filter(
-        (config) => config.datasetId === c.req.valid('param').datasetId
+        (config) => (config as any).datasetId === c.req.valid('param').datasetId
       );
       return c.json({
         data: filteredConfigs as any,
@@ -79,7 +76,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error }, 'Failed to list dataset run configs');
+      logger.error({ error, tenantId, projectId }, 'Failed to list dataset run configs');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -134,7 +131,7 @@ app.openapi(
         data: config,
       }) as any;
     } catch (error) {
-      logger.error({ error, runConfigId }, 'Failed to get dataset run config');
+      logger.error({ error, tenantId, projectId, runConfigId }, 'Failed to get dataset run config');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -184,7 +181,23 @@ app.openapi(
     const db = c.get('db');
     const configData = c.req.valid('json') as any;
 
-    const { agentIds, evaluatorIds: _evaluatorIds, ...runConfigData } = configData;
+    const { agentIds, evaluatorIds, ...runConfigData } = configData;
+
+    logger.info(
+      {
+        tenantId,
+        projectId,
+        agentIds,
+        evaluatorIds,
+        evaluatorIdsType: typeof evaluatorIds,
+        evaluatorIdsIsArray: Array.isArray(evaluatorIds),
+        evaluatorIdsLength: Array.isArray(evaluatorIds) ? evaluatorIds.length : 0,
+        hasEvaluators: evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0,
+        configDataKeys: Object.keys(configData),
+        runConfigDataKeys: Object.keys(runConfigData),
+      },
+      'Creating dataset run config with evaluators'
+    );
 
     try {
       const id = runConfigData.id || generateId();
@@ -195,6 +208,7 @@ app.openapi(
         projectId,
       });
 
+      // Create agent relations if provided
       if (agentIds && Array.isArray(agentIds) && agentIds.length > 0) {
         await Promise.all(
           agentIds.map((agentId: string) =>
@@ -209,253 +223,182 @@ app.openapi(
         );
       }
 
-      logger.info({ runConfigId: id }, 'Dataset run config created');
-      return c.json({ data: created as any }, 201) as any;
-    } catch (error) {
-      logger.error({ error, configData }, 'Failed to create dataset run config');
-      return c.json(
-        createApiError({
-          code: 'internal_server_error',
-          message: error instanceof Error ? error.message : 'Failed to create dataset run config',
-        }),
-        500
-      );
-    }
-  }
-);
+      logger.info({ tenantId, projectId, runConfigId: id }, 'Dataset run config created');
 
-app.openapi(
-  createProtectedRoute({
-    method: 'post',
-    path: '/{runConfigId}/run',
-    summary: 'Trigger Dataset Run',
-    operationId: 'trigger-dataset-run',
-    tags: ['Evaluations'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
-      body: {
-        content: {
-          'application/json': {
-            schema: z.object({
-              branchName: z.string().optional(),
-              evaluatorIds: z.array(z.string()).optional(),
-            }),
-          },
-        },
-      },
-    },
-    responses: {
-      202: {
-        description: 'Dataset run triggered',
-        content: {
-          'application/json': {
-            schema: z.object({
-              datasetRunId: z.string(),
-              status: z.literal('pending'),
-              totalItems: z.number(),
-            }),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, runConfigId } = c.req.valid('param');
-    const db = c.get('db');
-    const { evaluatorIds, branchName } = c.req.valid('json');
+      // Create dataset run immediately and process items asynchronously
+      try {
+        const datasetRunId = generateId();
 
-    try {
-      const config = await getDatasetRunConfigById(db)({
-        scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
-      });
-
-      if (!config) {
-        return c.json(
-          createApiError({ code: 'not_found', message: 'Dataset run config not found' }),
-          404
-        ) as any;
-      }
-
-      const datasetId = config.datasetId;
-      const [datasetItems, allAgentRelations, datasetAgentRelations] = await Promise.all([
-        listDatasetItems(db)({
-          scopes: { tenantId, projectId, datasetId },
-        }),
-        getDatasetRunConfigAgentRelations(db)({
-          scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
-        }),
-        getAgentDatasetRelationsByDataset(db)({
-          scopes: { tenantId, projectId, datasetId },
-        }),
-      ]);
-
-      if (datasetItems.length === 0) {
-        return c.json(
-          createApiError({
-            code: 'bad_request',
-            message: 'Dataset has no items. Add items to the dataset before triggering a run.',
-          }),
-          400
-        ) as any;
-      }
-
-      if (allAgentRelations.length === 0) {
-        return c.json(
-          createApiError({
-            code: 'bad_request',
-            message:
-              'No agents configured for this run config. Add agents to the run configuration.',
-          }),
-          400
-        ) as any;
-      }
-
-      let agentRelations = allAgentRelations;
-      if (datasetAgentRelations.length > 0) {
-        const allowedAgentIds = new Set(datasetAgentRelations.map((r) => r.agentId));
-        agentRelations = allAgentRelations.filter((r) => allowedAgentIds.has(r.agentId));
-
-        if (agentRelations.length < allAgentRelations.length) {
-          const excluded = allAgentRelations
-            .filter((r) => !allowedAgentIds.has(r.agentId))
-            .map((r) => r.agentId);
-          logger.info(
-            { runConfigId, datasetId, excludedAgents: excluded },
-            'Excluded agents not scoped to this dataset'
-          );
-        }
-
-        if (agentRelations.length === 0) {
-          return c.json(
-            createApiError({
-              code: 'bad_request',
-              message:
-                'None of the configured agents are scoped to this dataset. Update the dataset agent scope or run config agents.',
-            }),
-            400
-          ) as any;
-        }
-      }
-
-      const datasetRunId = generateId();
-
-      await createDatasetRun(runDbClient)({
-        id: datasetRunId,
-        tenantId,
-        projectId,
-        datasetId: config.datasetId,
-        datasetRunConfigId: runConfigId,
-        evaluationJobConfigId: undefined,
-        ref: c.get('resolvedRef'),
-      });
-
-      let evaluationRunId: string | undefined;
-      if (evaluatorIds && evaluatorIds.length > 0) {
-        const jobConfigId = generateId();
-        await createEvaluationJobConfig(db)({
-          id: jobConfigId,
+        // Create dataset run first (without eval job config)
+        await createDatasetRun(runDbClient)({
+          id: datasetRunId,
           tenantId,
           projectId,
-          jobFilters: { datasetRunIds: [datasetRunId] },
-        });
-        await Promise.all(
-          evaluatorIds.map((evaluatorId: string) =>
-            createEvaluationJobConfigEvaluatorRelation(db)({
-              tenantId,
-              projectId,
-              id: generateId(),
-              evaluationJobConfigId: jobConfigId,
-              evaluatorId,
-            })
-          )
-        );
-        await linkDatasetRunToEvaluationJobConfig(runDbClient)({
-          scopes: { tenantId, projectId, datasetRunId },
-          evaluationJobConfigId: jobConfigId,
-        });
-        evaluationRunId = generateId();
-        await createEvaluationRun(runDbClient)({
-          id: evaluationRunId,
-          tenantId,
-          projectId,
-          evaluationJobConfigId: jobConfigId,
+          datasetId: runConfigData.datasetId,
+          datasetRunConfigId: id,
+          evaluationJobConfigId: undefined, // Will be linked after conversations exist
           ref: c.get('resolvedRef'),
         });
-      }
 
-      const invocationPairs = agentRelations.flatMap((agentRelation) =>
-        datasetItems.map((datasetItem) => ({
-          agentId: agentRelation.agentId,
-          datasetItem,
-        }))
-      );
-
-      const invocations = await Promise.all(
-        invocationPairs.map(({ agentId, datasetItem }) =>
-          createScheduledTriggerInvocation(runDbClient)({
-            id: generateId(),
+        logger.info(
+          {
             tenantId,
             projectId,
-            agentId,
-            scheduledTriggerId: datasetRunId,
-            status: 'pending',
-            scheduledFor: new Date().toISOString(),
-            resolvedPayload: {
-              datasetItemId: datasetItem.id,
-              datasetRunId,
-              messages: datasetItem.input.messages,
+            runConfigId: id,
+            datasetRunId,
+            hasEvaluators: !!(
+              evaluatorIds &&
+              Array.isArray(evaluatorIds) &&
+              evaluatorIds.length > 0
+            ),
+          },
+          'Dataset run created, processing items'
+        );
+
+        // Process dataset items (evaluations will be queued via workflow)
+        logger.info(
+          {
+            tenantId,
+            projectId,
+            datasetRunId,
+            runConfigId: id,
+            evaluatorIds,
+            evaluatorIdsType: typeof evaluatorIds,
+            evaluatorIdsIsArray: Array.isArray(evaluatorIds),
+            evaluatorIdsLength: Array.isArray(evaluatorIds) ? evaluatorIds.length : 0,
+            hasEvaluators: evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0,
+          },
+          'Starting dataset run processing with evaluators'
+        );
+
+        // Queue all dataset items via workflow system (fire-and-forget)
+        // Get all dataset items and agents
+        const datasetItems = await listDatasetItems(db)({
+          scopes: { tenantId, projectId, datasetId: runConfigData.datasetId },
+        });
+
+        const agentRelations = await getDatasetRunConfigAgentRelations(db)({
+          scopes: { tenantId, projectId, datasetRunConfigId: id },
+        });
+
+        // Create evaluation run if evaluators are configured
+        let evaluationRunId: string | undefined;
+        let evalJobConfigId: string | undefined;
+        if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
+          // Create evaluation job config first
+          const jobConfigId = generateId();
+          evalJobConfigId = jobConfigId;
+          await createEvaluationJobConfig(db)({
+            id: jobConfigId,
+            tenantId,
+            projectId,
+            jobFilters: {
+              datasetRunIds: [datasetRunId],
             },
-            idempotencyKey: `${datasetRunId}-${agentId}-${datasetItem.id}`,
-            attemptNumber: 1,
-          })
-        )
-      );
+          });
 
-      const invocationMap = new Map<string, (typeof invocations)[number]>();
-      for (let idx = 0; idx < invocationPairs.length; idx++) {
-        const pair = invocationPairs[idx];
-        invocationMap.set(`${pair.agentId}:${pair.datasetItem.id}`, invocations[idx]);
-      }
+          // Create evaluator relations
+          await Promise.all(
+            evaluatorIds.map((evaluatorId: string) =>
+              createEvaluationJobConfigEvaluatorRelation(db)({
+                tenantId,
+                projectId,
+                id: generateId(),
+                evaluationJobConfigId: jobConfigId,
+                evaluatorId,
+              })
+            )
+          );
 
-      const items: DatasetRunQueueItem[] = agentRelations.flatMap((agentRelation) =>
-        datasetItems.map((datasetItem) => {
-          const inv = invocationMap.get(`${agentRelation.agentId}:${datasetItem.id}`);
-          if (!inv) {
-            throw new Error(
-              `Missing invocation for agent ${agentRelation.agentId} and dataset item ${datasetItem.id}`
-            );
-          }
-          return {
+          // Update dataset run to link the eval job config
+          await linkDatasetRunToEvaluationJobConfig(runDbClient)({
+            scopes: { tenantId, projectId, datasetRunId },
+            evaluationJobConfigId: evalJobConfigId,
+          });
+
+          // Create evaluation run linked to the job config
+          evaluationRunId = generateId();
+          await createEvaluationRun(runDbClient)({
+            id: evaluationRunId,
+            tenantId,
+            projectId,
+            evaluationJobConfigId: evalJobConfigId,
+            ref: c.get('resolvedRef'),
+          });
+        }
+
+        // Build items array (cartesian product of agents × datasetItems)
+        const items = agentRelations.flatMap((agentRelation) =>
+          datasetItems.map((datasetItem) => ({
             agentId: agentRelation.agentId,
             id: datasetItem.id,
             input: datasetItem.input,
             expectedOutput: datasetItem.expectedOutput,
-            scheduledTriggerInvocationId: inv.id,
-          };
-        })
-      );
+            simulationAgent: datasetItem.simulationAgent,
+          }))
+        );
 
-      await queueDatasetRunItems({
-        tenantId,
-        projectId,
-        datasetRunId,
-        items,
-        evaluatorIds,
-        evaluationRunId,
-        ref: branchName,
-      });
+        const result = await queueDatasetRunItems({
+          tenantId,
+          projectId,
+          datasetRunId,
+          items,
+          evaluatorIds,
+          evaluationRunId,
+        });
 
-      logger.info({ runConfigId, datasetRunId, totalItems: items.length }, 'Dataset run triggered');
+        logger.info(
+          {
+            tenantId,
+            projectId,
+            runConfigId: id,
+            datasetRunId,
+            itemsQueued: result.queued,
+            itemsFailed: result.failed,
+            agentsUsed: agentRelations.length,
+            datasetItemCount: datasetItems.length,
+            hasEvaluators: !!(
+              evaluatorIds &&
+              Array.isArray(evaluatorIds) &&
+              evaluatorIds.length > 0
+            ),
+          },
+          'Dataset run items queued via eval API'
+        );
 
-      return c.json({ datasetRunId, status: 'pending' as const, totalItems: items.length }, 202);
+        // If all items failed, throw an error
+        if (result.queued === 0 && result.failed > 0) {
+          throw new Error(`All ${result.failed} workflow items failed to queue`);
+        }
+      } catch (runError) {
+        // Log error but don't fail the config creation
+        logger.error(
+          {
+            error: runError,
+            tenantId,
+            projectId,
+            runConfigId: id,
+          },
+          'Failed to create/execute dataset run, but config was created'
+        );
+      }
+
+      return c.json({ data: created as any }, 201) as any;
     } catch (error) {
-      logger.error({ error, runConfigId }, 'Failed to trigger dataset run');
+      logger.error(
+        { error, tenantId, projectId, configData },
+        'Failed to create dataset run config'
+      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error !== null && 'message' in error
+            ? String(error.message)
+            : 'Failed to create dataset run config';
       return c.json(
         createApiError({
           code: 'internal_server_error',
-          message: error instanceof Error ? error.message : 'Failed to trigger dataset run',
+          message: errorMessage,
         }),
         500
       );
@@ -553,10 +496,13 @@ app.openapi(
       // Note: evaluatorIds are only used when creating a new dataset run,
       // not when updating an existing config. Updates don't trigger new runs.
 
-      logger.info({ runConfigId }, 'Dataset run config updated');
+      logger.info({ tenantId, projectId, runConfigId }, 'Dataset run config updated');
       return c.json({ data: updated as any }) as any;
     } catch (error) {
-      logger.error({ error, runConfigId, configData }, 'Failed to update dataset run config');
+      logger.error(
+        { error, tenantId, projectId, runConfigId, configData },
+        'Failed to update dataset run config'
+      );
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -602,7 +548,7 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ runConfigId }, 'Dataset run config deleted');
+      logger.info({ tenantId, projectId, runConfigId }, 'Dataset run config deleted');
       return c.body(null, 204) as any;
     } catch (error: any) {
       logger.error(
@@ -612,6 +558,8 @@ app.openapi(
           errorCode: error?.cause?.code,
           errorDetail: error?.cause?.detail,
           errorConstraint: error?.cause?.constraint,
+          tenantId,
+          projectId,
           runConfigId,
         },
         'Failed to delete dataset run config'

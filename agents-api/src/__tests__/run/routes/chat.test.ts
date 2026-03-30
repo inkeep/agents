@@ -4,32 +4,6 @@ import * as execModule from '../../../domains/run/handlers/executionHandler';
 import { PdfUrlIngestionError } from '../../../domains/run/services/blob-storage/file-security-errors';
 import { makeRequest } from '../../utils/testRequest';
 
-const buildDataUri = (mimeType: string, bytes: Buffer): string => {
-  return `data:${mimeType};base64,${bytes.toString('base64')}`;
-};
-
-const TEXT_DOCUMENT_LIMIT_BYTES = 256 * 1024;
-
-const buildOpenAiTextAttachmentRequest = (options: { fileData: string; filename?: string }) => ({
-  model: 'claude-3-sonnet',
-  messages: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'Summarize this document' },
-        {
-          type: 'file',
-          file: {
-            file_data: options.fileData,
-            ...(options.filename === undefined ? {} : { filename: options.filename }),
-          },
-        },
-      ],
-    },
-  ],
-  conversationId: 'conv-123',
-});
-
 // Mock context exports used by the chat route (routes/chat.ts imports from ../context)
 vi.mock('../../../domains/run/context', () => ({
   handleContextResolution: vi.fn().mockResolvedValue({}),
@@ -176,7 +150,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 vi.mock('@opentelemetry/api', () => ({
   trace: {
     getActiveSpan: vi.fn().mockReturnValue({
-      setAttribute: vi.fn(),
       setAttributes: vi.fn(),
       addEvent: vi.fn(),
     }),
@@ -315,151 +288,6 @@ describe('Chat Routes', () => {
                   file: {
                     file_data: 'data:application/pdf;base64,JVBERi0xLjQK',
                     filename: 'document.pdf',
-                  },
-                },
-              ],
-            },
-          ],
-          conversationId: 'conv-123',
-        }),
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toBe('text/event-stream');
-    });
-
-    it('should accept inline text document content item in OpenAI-style messages', async () => {
-      const response = await makeRequest('/run/v1/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify(
-          buildOpenAiTextAttachmentRequest({
-            fileData: 'data:text/plain;base64,aGVsbG8gd29ybGQ=',
-            filename: 'notes.txt',
-          })
-        ),
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toBe('text/event-stream');
-    });
-
-    it('should accept inline text document content item without filename in OpenAI-style messages', async () => {
-      const response = await makeRequest('/run/v1/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify(
-          buildOpenAiTextAttachmentRequest({
-            fileData: buildDataUri('text/plain', Buffer.from('hello world', 'utf8')),
-          })
-        ),
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toBe('text/event-stream');
-    });
-
-    it('should accept inline text document content item exactly at the 256 KB limit in OpenAI-style messages', async () => {
-      const response = await makeRequest('/run/v1/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify(
-          buildOpenAiTextAttachmentRequest({
-            fileData: buildDataUri('text/plain', Buffer.alloc(TEXT_DOCUMENT_LIMIT_BYTES, 0x61)),
-            filename: 'boundary.txt',
-          })
-        ),
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toBe('text/event-stream');
-    });
-
-    it('should reject malformed base64 text document content item in OpenAI-style messages', async () => {
-      const response = await makeRequest('/run/v1/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify(
-          buildOpenAiTextAttachmentRequest({
-            fileData: 'data:text/plain;base64,!!!not-base64!!!',
-            filename: 'bad.txt',
-          })
-        ),
-        expectError: true,
-      });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('should reject oversized text document content item in OpenAI-style messages', async () => {
-      const response = await makeRequest('/run/v1/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify(
-          buildOpenAiTextAttachmentRequest({
-            fileData: buildDataUri('text/plain', Buffer.alloc(TEXT_DOCUMENT_LIMIT_BYTES + 1, 0x61)),
-            filename: 'too-large.txt',
-          })
-        ),
-        expectError: true,
-      });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('should reject binary payload masquerading as text/plain in OpenAI-style messages', async () => {
-      const response = await makeRequest('/run/v1/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify(
-          buildOpenAiTextAttachmentRequest({
-            fileData: buildDataUri('text/plain', Buffer.from([0x00, 0x9f, 0x92, 0x96, 0xff, 0x00])),
-            filename: 'binary.txt',
-          })
-        ),
-        expectError: true,
-      });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('should accept inline HTML content item in OpenAI-style messages', async () => {
-      const response = await makeRequest('/run/v1/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify({
-          model: 'claude-3-sonnet',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: 'Summarize this HTML file' },
-                {
-                  type: 'file',
-                  file: {
-                    file_data: 'data:text/html;base64,PGgxPkhlbGxvPC9oMT4=',
-                    filename: 'page.html',
-                  },
-                },
-              ],
-            },
-          ],
-          conversationId: 'conv-123',
-        }),
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toBe('text/event-stream');
-    });
-
-    it('should accept inline JSON content item in OpenAI-style messages', async () => {
-      const response = await makeRequest('/run/v1/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify({
-          model: 'claude-3-sonnet',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: 'Summarize this JSON file' },
-                {
-                  type: 'file',
-                  file: {
-                    file_data: 'data:application/json;base64,eyJoZWxsbyI6IndvcmxkIn0=',
-                    filename: 'payload.json',
                   },
                 },
               ],
@@ -647,7 +475,8 @@ describe('Chat Routes', () => {
 
       expect(response.status).toBe(500);
       const body = await response.json();
-      expect(body.detail).toBe('An internal server error occurred. Please try again later.');
+      expect(body.detail).toBe('Failed to process chat completion');
+      expect(body.detail).not.toContain('ECONNREFUSED');
     });
   });
 });

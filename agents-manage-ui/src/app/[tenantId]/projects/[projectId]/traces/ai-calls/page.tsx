@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -49,16 +49,17 @@ export default function AICallsBreakdown({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/traces/ai-calls'>) {
   const { tenantId, projectId } = use(params);
-  const [CURRENT_TIME] = useState(() => Date.now());
   const searchParams = useSearchParams();
 
-  // Preserve the current search params when going back to traces
-  const current = new URLSearchParams(searchParams.toString());
-  const queryString = current.toString();
+  const backLink = useMemo(() => {
+    // Preserve the current search params when going back to traces
+    const current = new URLSearchParams(searchParams.toString());
+    const queryString = current.toString();
 
-  const backLink = queryString
-    ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
-    : `/${tenantId}/projects/${projectId}/traces`;
+    return queryString
+      ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
+      : `/${tenantId}/projects/${projectId}/traces`;
+  }, [projectId, tenantId, searchParams]);
 
   // Use nuqs for type-safe query state management
   const {
@@ -102,8 +103,8 @@ export default function AICallsBreakdown({
   };
 
   // Calculate time range based on selection
-  const { startTime, endTime } = (() => {
-    const currentEndTime = CURRENT_TIME;
+  const { startTime, endTime } = useMemo(() => {
+    const currentEndTime = Date.now();
 
     if (timeRange === 'custom') {
       // Use custom dates if provided
@@ -115,7 +116,7 @@ export default function AICallsBreakdown({
         const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
 
         // Clamp end to now-1ms to satisfy backend validation (end cannot be in the future)
-        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
+        const clampedEndMs = Math.min(endDate.getTime(), Date.now() - 1);
 
         return {
           startTime: startDate.getTime(),
@@ -135,11 +136,11 @@ export default function AICallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  })();
+  }, [timeRange, customStartDate, customEndDate]);
 
   // Fetch AI calls by agent and model
   useEffect(() => {
-    async function fetchData() {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -166,9 +167,10 @@ export default function AICallsBreakdown({
       } catch (err) {
         console.error('Error fetching AI calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch AI calls data');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }
+    };
 
     fetchData();
   }, [selectedAgent, selectedModel, startTime, endTime, projectId, tenantId]);

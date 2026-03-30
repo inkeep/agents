@@ -1,34 +1,25 @@
 /**
- * Workflow for running dataset items via direct agent execution.
+ * Workflow for running dataset items through the chat API.
  *
- * Each item is queued independently and processed in parallel by the workflow
- * system. Execution calls executeAgentAsync directly — dataset runs bypass
- * the scheduled trigger step and own their own timeout + ref resolution.
+ * This makes dataset run processing fire-and-forget - each item is queued
+ * independently and processed in parallel by the workflow system.
  */
-import type { DatasetItemInput } from '@inkeep/agents-core';
 import {
-  addConversationIdToInvocation,
   createDatasetRunConversationRelation,
   createEvaluationResult,
   generateId,
-  getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorById,
   getProjectScopedRef,
   isForeignKeyViolation,
-  markScheduledTriggerInvocationCompleted,
-  markScheduledTriggerInvocationFailed,
-  markScheduledTriggerInvocationRunning,
   resolveRef,
   updateEvaluationResult,
-  updateTriggerInvocationStatus,
   withRef,
 } from '@inkeep/agents-core';
 import { manageDbClient } from '../../../../data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
-import { executeAgentAsync } from '../../../run/services/TriggerService';
 import { EvaluationService } from '../../services/EvaluationService';
 
 const logger = getLogger('workflow-run-dataset-item');
@@ -38,239 +29,102 @@ type RunDatasetItemPayload = {
   projectId: string;
   agentId: string;
   datasetItemId: string;
-  datasetItemInput: DatasetItemInput;
+  datasetItemInput: unknown;
   datasetItemExpectedOutput?: unknown;
+  datasetItemSimulationAgent?: {
+    prompt: string;
+    model: { model: string; providerOptions?: Record<string, unknown> };
+    stopWhen?: { transferCountIs?: number; stepCountIs?: number };
+  };
   datasetRunId: string;
-  scheduledTriggerInvocationId: string;
+  // Optional: evaluator IDs to run after conversation completes
   evaluatorIds?: string[];
   evaluationRunId?: string;
-  ref?: string;
 };
 
 /**
- * Step: Execute the dataset item by calling executeAgentAsync directly
+ * Step: Call the chat API to process the dataset item
  */
-async function executeDatasetItemStep(payload: RunDatasetItemPayload) {
+async function callChatApiStep(payload: RunDatasetItemPayload) {
   'use step';
 
   const {
     tenantId,
     projectId,
     agentId,
+    datasetItemId,
     datasetItemInput,
+    datasetItemSimulationAgent,
     datasetRunId,
-    scheduledTriggerInvocationId,
   } = payload;
 
-  const conversationId = generateId();
-  const effectiveTimeout = 780;
+  const evaluationService = new EvaluationService();
 
-  try {
-    const ref = getProjectScopedRef(tenantId, projectId, payload.ref || 'main');
-    const resolvedRef = await resolveRef(manageDbClient)(ref);
+  // Reconstruct dataset item shape for the service
+  const datasetItem = {
+    id: datasetItemId,
+    input: datasetItemInput,
+    simulationAgent: datasetItemSimulationAgent,
+  };
 
-    if (!resolvedRef) {
-      return {
-        success: false,
-        conversationId,
-        error: `Failed to resolve ref for project ${projectId}`,
-      };
-    }
+  const result = await evaluationService.runDatasetItem({
+    tenantId,
+    projectId,
+    agentId,
+    datasetItem: datasetItem as any,
+    datasetRunId,
+  });
 
-    const timeoutMs = effectiveTimeout * 1000;
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(
-        () => reject(new Error(`Execution timed out after ${effectiveTimeout}s`)),
-        timeoutMs
-      );
-    });
+  logger.info(
+    {
+      tenantId,
+      projectId,
+      datasetItemId,
+      datasetRunId,
+      conversationId: result.conversationId,
+      hasError: !!result.error,
+    },
+    'Chat API call completed'
+  );
 
-    await Promise.race([
-      executeAgentAsync({
-        tenantId,
-        projectId,
-        agentId,
-        triggerId: datasetRunId,
-        invocationId: scheduledTriggerInvocationId,
-        conversationId,
-        resolvedRef,
-        messages: datasetItemInput.messages,
-        invocationType: 'scheduled_trigger',
-        datasetRunId,
-      }),
-      timeoutPromise,
-    ]);
-
-    return { success: true, conversationId };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(
-      {
-        datasetRunId,
-        invocationId: scheduledTriggerInvocationId,
-        conversationId,
-        error: errorMessage,
-      },
-      'Dataset item execution failed'
-    );
-    return { success: false, conversationId, error: errorMessage };
-  }
+  return result;
 }
 
 /**
- * Step: Record conversation relation and track on invocation
+ * Step: Create conversation relation in database
  */
-async function recordConversationStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  datasetRunId: string;
-  datasetItemId: string;
-  conversationId: string;
-  scheduledTriggerInvocationId: string;
-}) {
+async function createRelationStep(payload: RunDatasetItemPayload, conversationId: string) {
   'use step';
 
-  const {
-    tenantId,
-    projectId,
-    agentId,
-    datasetRunId,
-    datasetItemId,
-    conversationId,
-    scheduledTriggerInvocationId,
-  } = params;
+  const { tenantId, projectId, datasetItemId, datasetRunId } = payload;
+  const relationId = generateId();
 
   try {
-    await Promise.all([
-      createDatasetRunConversationRelation(runDbClient)({
-        tenantId,
-        projectId,
-        id: generateId(),
-        datasetRunId,
-        conversationId,
-        datasetItemId,
-      }),
-      addConversationIdToInvocation(runDbClient)({
-        scopes: { tenantId, projectId, agentId },
-        scheduledTriggerId: datasetRunId,
-        invocationId: scheduledTriggerInvocationId,
-        conversationId,
-      }),
-    ]);
+    await createDatasetRunConversationRelation(runDbClient)({
+      tenantId,
+      projectId,
+      id: relationId,
+      datasetRunId,
+      conversationId,
+      datasetItemId,
+    });
+
+    logger.info(
+      { tenantId, projectId, datasetItemId, datasetRunId, conversationId, relationId },
+      'Created conversation relation'
+    );
+
+    return { relationId, success: true };
   } catch (error) {
     if (isForeignKeyViolation(error)) {
       logger.warn(
-        { datasetItemId, datasetRunId, conversationId },
+        { tenantId, projectId, datasetItemId, datasetRunId, conversationId },
         'Conversation does not exist, skipping relation creation'
       );
-    } else {
-      throw error;
+      return { relationId: null, success: false, reason: 'conversation_not_found' };
     }
+    throw error;
   }
-}
-
-/**
- * Step: Mark invocation as completed
- */
-async function markCompletedStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  datasetRunId: string;
-  scheduledTriggerInvocationId: string;
-}) {
-  'use step';
-
-  await Promise.all([
-    markScheduledTriggerInvocationCompleted(runDbClient)({
-      scopes: {
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        agentId: params.agentId,
-      },
-      scheduledTriggerId: params.datasetRunId,
-      invocationId: params.scheduledTriggerInvocationId,
-    }),
-    updateTriggerInvocationStatus(runDbClient)({
-      scopes: {
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        agentId: params.agentId,
-      },
-      triggerId: params.datasetRunId,
-      invocationId: params.scheduledTriggerInvocationId,
-      data: { status: 'success' },
-    }).catch((err) =>
-      logger.warn(
-        { err, invocationId: params.scheduledTriggerInvocationId },
-        'Failed to update trigger invocation status to success'
-      )
-    ),
-  ]);
-}
-
-/**
- * Step: Mark invocation as failed
- */
-async function markFailedStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  datasetRunId: string;
-  scheduledTriggerInvocationId: string;
-}) {
-  'use step';
-
-  await Promise.all([
-    markScheduledTriggerInvocationFailed(runDbClient)({
-      scopes: {
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        agentId: params.agentId,
-      },
-      scheduledTriggerId: params.datasetRunId,
-      invocationId: params.scheduledTriggerInvocationId,
-    }),
-    updateTriggerInvocationStatus(runDbClient)({
-      scopes: {
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        agentId: params.agentId,
-      },
-      triggerId: params.datasetRunId,
-      invocationId: params.scheduledTriggerInvocationId,
-      data: { status: 'failed' },
-    }).catch((err) =>
-      logger.warn(
-        { err, invocationId: params.scheduledTriggerInvocationId },
-        'Failed to update trigger invocation status to failed'
-      )
-    ),
-  ]);
-}
-
-/**
- * Step: Mark invocation as running
- */
-async function markRunningStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  datasetRunId: string;
-  scheduledTriggerInvocationId: string;
-}) {
-  'use step';
-
-  await markScheduledTriggerInvocationRunning(runDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.datasetRunId,
-    invocationId: params.scheduledTriggerInvocationId,
-  });
 }
 
 /**
@@ -282,12 +136,11 @@ async function executeEvaluatorStep(
   conversationId: string,
   evaluatorId: string,
   evaluationRunId: string,
-  expectedOutput?: unknown,
-  branchRef?: string
+  expectedOutput?: unknown
 ) {
   'use step';
 
-  const ref = getProjectScopedRef(tenantId, projectId, branchRef || 'main');
+  const ref = getProjectScopedRef(tenantId, projectId, 'main');
   const resolvedRef = await resolveRef(manageDbClient)(ref);
 
   if (!resolvedRef) {
@@ -305,6 +158,7 @@ async function executeEvaluatorStep(
     return null;
   }
 
+  // Fetch full conversation (needed for activeSubAgentId to get agent definition)
   const conversation = await getConversation(runDbClient)({
     scopes: { tenantId, projectId },
     conversationId,
@@ -367,77 +221,13 @@ async function logStep(message: string, data: Record<string, unknown>) {
 }
 
 /**
- * Step: Filter evaluators by agent scoping.
- * Evaluators with no agent relations pass through (project-wide).
- * Evaluators scoped to specific agents are kept only if agentId matches.
- */
-async function filterEvaluatorsByAgentStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  evaluatorIds: string[];
-  ref?: string;
-}): Promise<string[]> {
-  'use step';
-
-  const { tenantId, projectId, agentId, evaluatorIds } = params;
-  const ref = getProjectScopedRef(tenantId, projectId, params.ref || 'main');
-  const resolvedRef = await resolveRef(manageDbClient)(ref);
-
-  if (!resolvedRef) {
-    logger.warn(
-      { ref: params.ref },
-      'Failed to resolve ref for evaluator agent scoping — skipping all evaluators'
-    );
-    return [];
-  }
-
-  const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
-    getAgentIdsForEvaluators(db)({
-      scopes: { tenantId, projectId },
-      evaluatorIds,
-    })
-  );
-
-  const filtered = evaluatorIds.filter((evalId) => {
-    const scopedAgents = agentIdsMap.get(evalId);
-    if (!scopedAgents || scopedAgents.length === 0) return true;
-    return scopedAgents.includes(agentId);
-  });
-
-  if (filtered.length < evaluatorIds.length) {
-    logger.info(
-      {
-        agentId,
-        originalCount: evaluatorIds.length,
-        filteredCount: filtered.length,
-        excluded: evaluatorIds.filter((id) => !filtered.includes(id)),
-      },
-      'Filtered evaluators by agent scoping in dataset run'
-    );
-  }
-
-  return filtered;
-}
-
-/**
- * Main workflow function - processes a single dataset item.
- * Calls executeAgentAsync directly for agent execution.
+ * Main workflow function - processes a single dataset item through the chat API.
  * Optionally runs evaluators on the resulting conversation.
  */
 async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
   'use workflow';
 
-  const {
-    tenantId,
-    projectId,
-    agentId,
-    datasetItemId,
-    datasetRunId,
-    scheduledTriggerInvocationId,
-    evaluatorIds,
-    evaluationRunId,
-  } = payload;
+  const { datasetItemId, datasetRunId, agentId, evaluatorIds, evaluationRunId } = payload;
 
   await logStep('Starting dataset item processing', {
     datasetItemId,
@@ -446,74 +236,36 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
     hasEvaluators: !!(evaluatorIds && evaluatorIds.length > 0),
   });
 
-  await markRunningStep({
-    tenantId,
-    projectId,
-    agentId,
-    datasetRunId,
-    scheduledTriggerInvocationId,
-  });
+  // Call chat API
+  const result = await callChatApiStep(payload);
 
-  const result = await executeDatasetItemStep(payload);
+  // Create relation if we got a conversation
+  if (result.conversationId) {
+    await createRelationStep(payload, result.conversationId);
 
-  if (result.success && result.conversationId) {
-    await recordConversationStep({
-      tenantId,
-      projectId,
-      agentId,
-      datasetRunId,
-      datasetItemId,
-      conversationId: result.conversationId,
-      scheduledTriggerInvocationId,
-    });
-
-    await markCompletedStep({
-      tenantId,
-      projectId,
-      agentId,
-      datasetRunId,
-      scheduledTriggerInvocationId,
-    });
-
+    // Run evaluations if configured
     if (evaluatorIds && evaluatorIds.length > 0 && evaluationRunId) {
-      const filteredEvaluatorIds = await filterEvaluatorsByAgentStep({
-        tenantId,
-        projectId,
-        agentId,
-        evaluatorIds,
-        ref: payload.ref,
-      });
-
-      for (const evaluatorId of filteredEvaluatorIds) {
+      for (const evaluatorId of evaluatorIds) {
         await executeEvaluatorStep(
-          tenantId,
-          projectId,
+          payload.tenantId,
+          payload.projectId,
           result.conversationId,
           evaluatorId,
           evaluationRunId,
-          payload.datasetItemExpectedOutput,
-          payload.ref
+          payload.datasetItemExpectedOutput
         );
       }
     }
   } else {
-    await logStep('Dataset item execution failed or no conversation created', {
+    await logStep('No conversation created', {
       datasetItemId,
       datasetRunId,
       error: result.error,
     });
-
-    await markFailedStep({
-      tenantId,
-      projectId,
-      agentId,
-      datasetRunId,
-      scheduledTriggerInvocationId,
-    });
   }
 
   return {
-    success: result.success,
+    success: !result.error,
     datasetItemId,
     datasetRunId,
     conversationId: result.conversationId || null,

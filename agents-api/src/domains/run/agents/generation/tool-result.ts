@@ -1,6 +1,5 @@
 import { parseEmbeddedJson } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
-import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import type { AgentRunContext } from '../agent-types';
 
 const logger = getLogger('Agent');
@@ -222,16 +221,6 @@ export function enhanceToolResultWithStructureHints(
         deepStructureExamples: nestedContentPaths,
         maxDepthFound: Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length)),
         totalPathsFound: allPaths.length,
-        toolChainingGuidance: {
-          how: `🔗 To chain this data into parameter "<paramName>" of another tool: set "<paramName>": null and add "${SENTINEL_KEY.REFS}": { "<paramName>": { "${SENTINEL_KEY.TOOL}": "${toolCallId}", "${SENTINEL_KEY.SELECT}": "<JMESPath>" } }. Never copy tool output inline — always tool-chain.`,
-          fullPassthrough: `To pass ALL data: set "<paramName>": null + "${SENTINEL_KEY.REFS}": { "<paramName>": { "${SENTINEL_KEY.TOOL}": "${toolCallId}" } }`,
-          filteredPassthrough: `To pass a SUBSET: set "<paramName>": null + "${SENTINEL_KEY.REFS}": { "<paramName>": { "${SENTINEL_KEY.TOOL}": "${toolCallId}", "${SENTINEL_KEY.SELECT}": "<path from exampleSelectors>" } }`,
-          selectors: `exampleSelectors above are ready-to-use ${SENTINEL_KEY.SELECT} paths — pick one and use it directly. The "result." prefix is auto-stripped. terminalPaths show every leaf field with its type (string, number, boolean).`,
-          primitives: `If the next tool expects a string/number, use ${SENTINEL_KEY.SELECT} to pick the leaf field from terminalPaths. Example: "<paramName>": null, "${SENTINEL_KEY.REFS}": { "<paramName>": { "${SENTINEL_KEY.TOOL}": "${toolCallId}", "${SENTINEL_KEY.SELECT}": "data.items[0].content.text" } }`,
-          sequencing:
-            'Tool chaining requires SEQUENTIAL calls. You must wait for this result before calling the next tool. Never batch dependent tools in the same turn.',
-          forbidden: `❌ Never copy tool output inline — always tool-chain via "${SENTINEL_KEY.REFS}". ❌ Do not use get_reference_artifact to pass data to another tool — tool-chain instead.`,
-        },
         artifactGuidance: {
           toolCallId:
             '🔧 CRITICAL: Use the _toolCallId field from this result object. This is the exact tool call ID you must use in your artifact:create tag. NEVER generate or make up a tool call ID.',

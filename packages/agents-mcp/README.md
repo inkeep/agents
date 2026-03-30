@@ -21,7 +21,6 @@ Inkeep Agents API: REST API for the Inkeep Agent Framework.
 <!-- $toc-max-depth=2 -->
 * [@inkeep/agents-mcp](#inkeepagents-mcp)
   * [Installation](#installation)
-  * [Progressive Discovery](#progressive-discovery)
   * [Development](#development)
   * [Publishing to Anthropic MCP Registry](#publishing-to-anthropic-mcp-registry)
   * [Contributions](#contributions)
@@ -34,7 +33,7 @@ Inkeep Agents API: REST API for the Inkeep Agent Framework.
 > [!TIP]
 > To finish publishing your MCP Server to npm and others you must [run your first generation action](https://www.speakeasy.com/docs/github-setup#step-by-step-guide).
 <details>
-<summary>Claude Desktop</summary>
+<summary>MCP Bundle (Desktop Extension)</summary>
 
 Install the MCP server as a Desktop Extension using the pre-built [`mcp-server.mcpb`](./mcp-server.mcpb) file:
 
@@ -50,7 +49,7 @@ The MCP bundle package includes the MCP server and all necessary configuration. 
 <details>
 <summary>Cursor</summary>
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=InkeepAgents&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyJAaW5rZWVwL2FnZW50cy1tY3AiLCJzdGFydCIsIi0tY29va2llLWF1dGgiLCIiLCItLWJlYXJlci1hdXRoIiwiIl19)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=InkeepAgents&config=eyJtY3BTZXJ2ZXJzIjp7Iklua2VlcEFnZW50cyI6eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyJAaW5rZWVwL2FnZW50cy1tY3AiLCJzdGFydCIsIi0tY29va2llLWF1dGgiLCIuLi4iLCItLWJlYXJlci1hdXRoIiwiLi4uIl19fX0=)
 
 Or manually:
 
@@ -61,15 +60,19 @@ Or manually:
 
 ```json
 {
-  "command": "npx",
-  "args": [
-    "@inkeep/agents-mcp",
-    "start",
-    "--cookie-auth",
-    "",
-    "--bearer-auth",
-    ""
-  ]
+  "mcpServers": {
+    "InkeepAgents": {
+      "command": "npx",
+      "args": [
+        "@inkeep/agents-mcp",
+        "start",
+        "--cookie-auth",
+        "...",
+        "--bearer-auth",
+        "..."
+      ]
+    }
+  }
 }
 ```
 
@@ -79,15 +82,7 @@ Or manually:
 <summary>Claude Code CLI</summary>
 
 ```bash
-claude mcp add InkeepAgents -- npx -y @inkeep/agents-mcp start --cookie-auth  --bearer-auth 
-```
-
-</details>
-<details>
-<summary>Gemini</summary>
-
-```bash
-gemini mcp add InkeepAgents -- npx -y @inkeep/agents-mcp start --cookie-auth  --bearer-auth 
+claude mcp add @inkeep/agents-mcp npx @inkeep/agents-mcp start -- --cookie-auth ... --bearer-auth ...
 ```
 
 </details>
@@ -101,55 +96,90 @@ Refer to [Official Windsurf documentation](https://docs.windsurf.com/windsurf/ca
 3. Click on `Manage MCPs`. (To Manage MCPs you should be signed in with a Windsurf Account)
 4. Click on `View raw config` to open up the mcp configuration file.
 5. If the configuration file is empty paste the full json
-
-```bash
+```
 {
-  "command": "npx",
-  "args": [
-    "@inkeep/agents-mcp",
-    "start",
-    "--cookie-auth",
-    "",
-    "--bearer-auth",
-    ""
-  ]
+  "mcpServers": {
+    "InkeepAgents": {
+      "command": "npx",
+      "args": [
+        "@inkeep/agents-mcp",
+        "start",
+        "--cookie-auth",
+        "...",
+        "--bearer-auth",
+        "..."
+      ]
+    }
+  }
 }
 ```
 </details>
 <details>
 <summary>VS Code</summary>
 
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-VS_Code?style=flat-square&label=Install%20InkeepAgents%20MCP&color=0098FF)](vscode://ms-vscode.vscode-mcp/install?name=InkeepAgents&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyJAaW5rZWVwL2FnZW50cy1tY3AiLCJzdGFydCIsIi0tY29va2llLWF1dGgiLCIiLCItLWJlYXJlci1hdXRoIiwiIl19)
-
-Or manually:
-
 Refer to [Official VS Code documentation](https://code.visualstudio.com/api/extension-guides/ai/mcp) for latest information
 
 1. Open [Command Palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette)
 1. Search and open `MCP: Open User Configuration`. This should open mcp.json file
 2. If the configuration file is empty paste the full json
-
-```bash
+```
 {
-  "command": "npx",
-  "args": [
-    "@inkeep/agents-mcp",
-    "start",
-    "--cookie-auth",
-    "",
-    "--bearer-auth",
-    ""
-  ]
+  "mcpServers": {
+    "InkeepAgents": {
+      "command": "npx",
+      "args": [
+        "@inkeep/agents-mcp",
+        "start",
+        "--cookie-auth",
+        "...",
+        "--bearer-auth",
+        "..."
+      ]
+    }
+  }
 }
 ```
 
 </details>
 <details>
+<summary>Claude Desktop</summary>
+Claude Desktop doesn't yet support SSE/remote MCP servers.
+
+You need to do the following
+1. Open claude Desktop
+2. Open left hand side pane, then click on your Username
+3. Go to `Settings`
+4. Go to `Developer` tab (on the left hand side)
+5. Click on `Edit Config`
+Paste the following config in the configuration
+
+```json
+{
+  "mcpServers": {
+    "InkeepAgents": {
+      "command": "npx",
+      "args": [
+        "@inkeep/agents-mcp",
+        "start",
+        "--cookie-auth",
+        "...",
+        "--bearer-auth",
+        "..."
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+
+<details>
 <summary> Stdio installation via npm </summary>
 To start the MCP server, run:
 
 ```bash
-npx @inkeep/agents-mcp start --cookie-auth  --bearer-auth 
+npx @inkeep/agents-mcp start --cookie-auth ... --bearer-auth ...
 ```
 
 For a full list of server arguments, run:
@@ -160,34 +190,6 @@ npx @inkeep/agents-mcp --help
 
 </details>
 <!-- End Installation [installation] -->
-
-<!-- Start Progressive Discovery [dynamic-mode] -->
-## Progressive Discovery
-
-MCP servers with many tools can bloat LLM context windows, leading to increased token usage and tool confusion. Dynamic mode solves this by exposing only a small set of meta-tools that let agents progressively discover and invoke tools on demand.
-
-To enable dynamic mode, pass the `--mode dynamic` flag when starting your server:
-
-```jsonc
-{
-  "mcpServers": {
-    "InkeepAgents": {
-      "command": "npx",
-      "args": ["@inkeep/agents-mcp", "start", "--mode", "dynamic"],
-      // ... other server arguments
-    }
-  }
-}
-```
-
-In dynamic mode, the server registers only the following meta-tools instead of every individual tool:
-
-- **`list_tools`**: Lists all available tools with their names and descriptions.
-- **`describe_tool`**: Returns the input schema for one or more tools by name.
-- **`execute_tool`**: Executes a tool by name with the provided input parameters.
-
-This approach significantly reduces the number of tokens sent to the LLM on each request, which is especially useful for servers with a large number of tools.
-<!-- End Progressive Discovery [dynamic-mode] -->
 
 <!-- Placeholder for Future Speakeasy SDK Sections -->
 

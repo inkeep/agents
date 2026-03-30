@@ -111,7 +111,7 @@ const ApprovalButtons = ({
   approveLabel = 'Approve',
   approveVariant = 'default' as 'default' | 'destructive',
   rejectLabel = 'Reject',
-  approveIcon,
+  approveIcon = <CheckIcon className="size-3" />,
 }: {
   state: string;
   approve: (approved?: boolean) => Promise<void>;
@@ -126,7 +126,7 @@ const ApprovalButtons = ({
         {rejectLabel}
       </Button>
       <Button variant={approveVariant} size="xs" type="button" onClick={() => approve(true)}>
-        {approveIcon ?? <CheckIcon className="size-3" />}
+        {approveIcon}
         {approveLabel}
       </Button>
     </div>
@@ -173,8 +173,9 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
       } catch (err) {
         console.error('Failed to compute diff:', err);
         setError(err instanceof Error ? err.message : 'Failed to load entity state');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchAndComputeDiff();

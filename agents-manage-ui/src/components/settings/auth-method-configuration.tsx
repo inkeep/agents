@@ -15,7 +15,6 @@ import { Switch } from '@/components/ui/switch';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { GoogleColorIcon } from '../icons/google';
-import { MicrosoftColorIcon } from '../icons/microsoft';
 
 interface SSOProviderRow {
   providerId: string;
@@ -47,26 +46,22 @@ export function AuthMethodConfiguration({
   onAddSSO,
 }: AuthMethodConfigurationProps) {
   const authClient = useAuthClient();
-  const { PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_MICROSOFT_CLIENT_ID } = useRuntimeConfig();
+  const { PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEmailPasswordEnabled = allowedAuthMethods.some((m) => m.method === 'email-password');
   const isGoogleEnabled = allowedAuthMethods.some((m) => m.method === 'google');
-  const isMicrosoftEnabled = allowedAuthMethods.some((m) => m.method === 'microsoft');
 
   const enabledSSOCount = allowedAuthMethods.filter(
     (m): m is Extract<AllowedAuthMethod, { method: 'sso' }> => m.method === 'sso' && m.enabled
   ).length;
 
   const enabledMethodCount =
-    (isEmailPasswordEnabled ? 1 : 0) +
-    (isGoogleEnabled ? 1 : 0) +
-    (isMicrosoftEnabled ? 1 : 0) +
-    enabledSSOCount;
+    (isEmailPasswordEnabled ? 1 : 0) + (isGoogleEnabled ? 1 : 0) + enabledSSOCount;
 
   const isLastMethod = enabledMethodCount <= 1;
 
-  async function persistMethods(methods: AllowedAuthMethod[]) {
+  const persistMethods = async (methods: AllowedAuthMethod[]) => {
     setIsSubmitting(true);
     try {
       await authClient.organization.update({
@@ -76,9 +71,10 @@ export function AuthMethodConfiguration({
       onAuthMethodChanged?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update authentication methods');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-  }
+  };
 
   const handleToggleEmailPassword = async () => {
     if (isEmailPasswordEnabled) {
@@ -109,22 +105,6 @@ export function AuthMethodConfiguration({
       const updated = [...allowedAuthMethods, { method: 'google' as const }];
       await persistMethods(updated);
       toast.success('Google sign-in enabled');
-    }
-  };
-
-  const handleToggleMicrosoft = async () => {
-    if (isMicrosoftEnabled) {
-      if (isLastMethod) {
-        toast.error('At least one sign-in method must remain enabled.');
-        return;
-      }
-      const updated = allowedAuthMethods.filter((m) => m.method !== 'microsoft');
-      await persistMethods(updated);
-      toast.success('Microsoft sign-in disabled');
-    } else {
-      const updated = [...allowedAuthMethods, { method: 'microsoft' as const }];
-      await persistMethods(updated);
-      toast.success('Microsoft sign-in enabled');
     }
   };
 
@@ -203,26 +183,6 @@ export function AuthMethodConfiguration({
             onCheckedChange={handleToggleGoogle}
             disabled={isSubmitting}
             aria-label="Toggle Google sign-in"
-          />
-        </div>
-      )}
-
-      {PUBLIC_MICROSOFT_CLIENT_ID && (
-        <div className="flex items-center justify-between rounded-lg border p-3">
-          <div className="flex items-center gap-3">
-            <MicrosoftColorIcon className="h-5 w-5 shrink-0" />
-            <div className="space-y-0.5">
-              <p className="text-sm font-medium">Microsoft</p>
-              <p className="text-xs text-muted-foreground">
-                Members can sign in with their Microsoft account.
-              </p>
-            </div>
-          </div>
-          <Switch
-            checked={isMicrosoftEnabled}
-            onCheckedChange={handleToggleMicrosoft}
-            disabled={isSubmitting}
-            aria-label="Toggle Microsoft sign-in"
           />
         </div>
       )}

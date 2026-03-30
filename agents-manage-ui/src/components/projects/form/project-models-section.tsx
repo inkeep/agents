@@ -3,12 +3,12 @@
 import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
-import { SectionHeader } from '@/components/agent/sidepane/section';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
+import { Label } from '@/components/ui/label';
 import {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
@@ -33,14 +33,6 @@ function BaseModelSection({
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.base.providerOptions',
-  });
-  const { field: fallbackModelsField } = useController({
-    control,
-    name: 'models.base.fallbackModels',
-  });
-  const { field: allowedProvidersField } = useController({
-    control,
-    name: 'models.base.allowedProviders',
   });
 
   return (
@@ -77,14 +69,6 @@ function BaseModelSection({
             }}
             editorNamePrefix="project-base"
             disabled={disabled}
-            fallbackModels={fallbackModelsField.value ?? undefined}
-            onFallbackModelsChange={(models) => {
-              fallbackModelsField.onChange(models.length ? models : undefined);
-            }}
-            allowedProviders={allowedProvidersField.value ?? undefined}
-            onAllowedProvidersChange={(providers) => {
-              allowedProvidersField.onChange(providers.length ? providers : undefined);
-            }}
           />
         )}
       </FormFieldWrapper>
@@ -103,19 +87,9 @@ function StructuredOutputModelSection({
     control,
     name: 'models.structuredOutput.providerOptions',
   });
-  const { field: fallbackModelsField } = useController({
-    control,
-    name: 'models.structuredOutput.fallbackModels',
-  });
-  const { field: allowedProvidersField } = useController({
-    control,
-    name: 'models.structuredOutput.allowedProviders',
-  });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
-  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
-  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
 
   return (
     <div className="space-y-4">
@@ -159,16 +133,6 @@ function StructuredOutputModelSection({
               return structuredOutputModelProviderOptionsTemplate;
             }}
             disabled={disabled}
-            fallbackModels={fallbackModelsField.value ?? undefined}
-            inheritedFallbackModels={baseFallbackModels ?? undefined}
-            onFallbackModelsChange={(models) => {
-              fallbackModelsField.onChange(models.length ? models : undefined);
-            }}
-            allowedProviders={allowedProvidersField.value ?? undefined}
-            inheritedAllowedProviders={baseAllowedProviders ?? undefined}
-            onAllowedProvidersChange={(providers) => {
-              allowedProvidersField.onChange(providers.length ? providers : undefined);
-            }}
           />
         )}
       </FormFieldWrapper>
@@ -187,19 +151,9 @@ function SummarizerModelSection({
     control,
     name: 'models.summarizer.providerOptions',
   });
-  const { field: fallbackModelsField } = useController({
-    control,
-    name: 'models.summarizer.fallbackModels',
-  });
-  const { field: allowedProvidersField } = useController({
-    control,
-    name: 'models.summarizer.allowedProviders',
-  });
 
   const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
-  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
-  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
 
   return (
     <div className="space-y-4">
@@ -243,16 +197,6 @@ function SummarizerModelSection({
               return summarizerModelProviderOptionsTemplate;
             }}
             disabled={disabled}
-            fallbackModels={fallbackModelsField.value ?? undefined}
-            inheritedFallbackModels={baseFallbackModels ?? undefined}
-            onFallbackModelsChange={(models) => {
-              fallbackModelsField.onChange(models.length ? models : undefined);
-            }}
-            allowedProviders={allowedProvidersField.value ?? undefined}
-            inheritedAllowedProviders={baseAllowedProviders ?? undefined}
-            onAllowedProvidersChange={(providers) => {
-              allowedProvidersField.onChange(providers.length ? providers : undefined);
-            }}
           />
         )}
       </FormFieldWrapper>
@@ -263,7 +207,15 @@ function SummarizerModelSection({
 export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { errors } = useFormState({ control });
-  const hasModelsErrors = !!errors.models;
+
+  const hasModelsErrors = !!(
+    errors.models?.base?.model ||
+    errors.models?.base?.providerOptions ||
+    errors.models?.structuredOutput?.model ||
+    errors.models?.structuredOutput?.providerOptions ||
+    errors.models?.summarizer?.model ||
+    errors.models?.summarizer?.providerOptions
+  );
 
   // Auto-open the collapsible when there are errors in the models section
   useEffect(() => {
@@ -274,10 +226,12 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
 
   return (
     <div className="space-y-4">
-      <SectionHeader
-        title="Default models"
-        description="Set default models that will be inherited by agents and sub agents in this project."
-      />
+      <div>
+        <Label className="text-sm font-medium">Default models</Label>
+        <p className="text-sm text-muted-foreground mt-1">
+          Set default models that will be inherited by agents and sub agents in this project.
+        </p>
+      </div>
 
       <Collapsible
         open={isOpen}
@@ -295,7 +249,7 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
             Configure default models
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-6 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
+        <CollapsibleContent className="space-y-6  mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
           {/* Base Model */}
           <BaseModelSection control={control} disabled={disabled} />
 

@@ -67,7 +67,6 @@ describe('BaseCompressor', () => {
     // Setup mock session
     mockSession = {
       recordEvent: vi.fn(),
-      waitForPendingArtifacts: vi.fn().mockResolvedValue(undefined),
     };
     vi.mocked(agentSessionManager.getSession).mockReturnValue(mockSession);
 
@@ -177,15 +176,10 @@ describe('BaseCompressor', () => {
 
       await compressor.saveToolResultsAsArtifacts(messages);
 
-      // Should use batched lookups before and after async artifact processing
-      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(2);
-      const firstMockFn = mockGetLedgerArtifacts.mock.results[0].value;
-      expect(firstMockFn).toHaveBeenCalledWith({
-        scopes: { tenantId: 'tenant-789', projectId: 'project-abc' },
-        toolCallIds: ['call-1', 'call-2', 'call-3'],
-      });
-      const secondMockFn = mockGetLedgerArtifacts.mock.results[1].value;
-      expect(secondMockFn).toHaveBeenCalledWith({
+      // Should call getLedgerArtifacts with batch toolCallIds
+      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(1);
+      const mockFn = mockGetLedgerArtifacts.mock.results[0].value;
+      expect(mockFn).toHaveBeenCalledWith({
         scopes: { tenantId: 'tenant-789', projectId: 'project-abc' },
         toolCallIds: ['call-1', 'call-2', 'call-3'],
       });
@@ -343,71 +337,6 @@ describe('BaseCompressor', () => {
 
       expect(contextSize).toBeGreaterThan(0);
       expect(typeof contextSize).toBe('number');
-    });
-
-    it('should ignore inline binary base64 data when estimating compression size', () => {
-      const base64Data = 'A'.repeat(20_000);
-      const messagesWithBinary = [
-        {
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'binary-call',
-              toolName: 'read_ticket',
-              output: {
-                content: [
-                  { type: 'text', text: 'ticket attachment payload' },
-                  {
-                    type: 'file-data',
-                    mediaType: 'image/jpeg',
-                    data: base64Data,
-                    filename: 'attachment.jpg',
-                  },
-                  {
-                    type: 'image-data',
-                    data: base64Data,
-                    mediaType: 'image/jpeg',
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      ];
-      const messagesWithPlaceholders = [
-        {
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'binary-call',
-              toolName: 'read_ticket',
-              output: {
-                content: [
-                  { type: 'text', text: 'ticket attachment payload' },
-                  {
-                    type: 'file-data',
-                    mediaType: 'image/jpeg',
-                    data: '[binary payload omitted for compression token estimation]',
-                    filename: 'attachment.jpg',
-                  },
-                  {
-                    type: 'image-data',
-                    data: '[binary payload omitted for compression token estimation]',
-                    mediaType: 'image/jpeg',
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      ];
-
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
-      const binaryContextSize = compressor['calculateContextSize'](messagesWithBinary);
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
-      const placeholderContextSize = compressor['calculateContextSize'](messagesWithPlaceholders);
-
-      expect(binaryContextSize).toBe(placeholderContextSize);
     });
 
     it('should handle edge cases in context calculation', () => {
@@ -707,42 +636,6 @@ describe('BaseCompressor', () => {
   });
 
   describe('Integration Scenarios', () => {
-    it('refreshes saved artifacts after async processing', async () => {
-      const messages = [
-        {
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'call-after-save',
-              toolName: 'read_ticket',
-              input: { ticket_id: 6662 },
-              output: { content: [{ type: 'image', data: 'base64', mimeType: 'image/png' }] },
-            },
-          ],
-        },
-      ];
-
-      const { getLedgerArtifacts } = await import('@inkeep/agents-core');
-      const mockGetLedgerArtifacts = vi.mocked(getLedgerArtifacts);
-      mockGetLedgerArtifacts.mockReturnValueOnce(vi.fn().mockResolvedValue([])).mockReturnValueOnce(
-        vi.fn().mockResolvedValue([
-          {
-            artifactId: 'saved-artifact',
-            toolCallId: 'call-after-save',
-            name: 'Saved artifact',
-            description: 'Saved',
-            metadata: { toolName: 'read_ticket', isOversized: true, toolArgs: { ticket_id: 6662 } },
-            parts: [{ kind: 'data', data: { summary: { toolCallId: 'call-after-save' } } }],
-          },
-        ])
-      );
-
-      const result = await compressor.saveToolResultsAsArtifacts(messages);
-
-      expect(mockSession.waitForPendingArtifacts).toHaveBeenCalled();
-      expect(result['call-after-save']?.artifactId).toBe('saved-artifact');
-    });
-
     it('should handle large conversations with many tool calls efficiently', async () => {
       // Simulate a large conversation
       const messages = [];
@@ -772,8 +665,8 @@ describe('BaseCompressor', () => {
       expect(duration).toBeLessThan(1000); // Less than 1 second
       expect(Object.keys(result)).toHaveLength(100);
 
-      // Should still avoid N+1 queries by using batched lookups only
-      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(2);
+      // Should still only make one batch query
+      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(1);
     });
 
     it('should maintain state consistency during cleanup cycles', () => {
@@ -796,282 +689,6 @@ describe('BaseCompressor', () => {
       expect(compressor['processedToolCalls'].size).toBeLessThan(100);
       // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       expect(compressor['processedToolCalls'].size).toBeGreaterThan(0);
-    });
-  });
-
-  describe('hasSummarizedArtifact', () => {
-    it('should return false when cumulativeSummary is null', () => {
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
-      compressor['cumulativeSummary'] = null;
-      expect(compressor.hasSummarizedArtifact('artifact-1')).toBe(false);
-    });
-
-    it('should return false when related_artifacts is null', () => {
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
-      compressor['cumulativeSummary'] = {
-        type: 'conversation_summary_v1',
-        session_id: null,
-        _fallback: null,
-        high_level: 'summary',
-        user_intent: 'test',
-        decisions: [],
-        open_questions: [],
-        next_steps: { for_agent: [], for_user: [] },
-        related_artifacts: null,
-      };
-      expect(compressor.hasSummarizedArtifact('artifact-1')).toBe(false);
-    });
-
-    it('should return false when artifact is not in related_artifacts', () => {
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
-      compressor['cumulativeSummary'] = {
-        type: 'conversation_summary_v1',
-        session_id: null,
-        _fallback: null,
-        high_level: 'summary',
-        user_intent: 'test',
-        decisions: [],
-        open_questions: [],
-        next_steps: { for_agent: [], for_user: [] },
-        related_artifacts: [
-          {
-            id: 'other-artifact',
-            name: 'Other',
-            tool_name: 'tool',
-            tool_call_id: 'tc-1',
-            content_type: 'text',
-            key_findings: ['finding'],
-          },
-        ],
-      };
-      expect(compressor.hasSummarizedArtifact('artifact-1')).toBe(false);
-    });
-
-    it('should return true when artifact exists in related_artifacts', () => {
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
-      compressor['cumulativeSummary'] = {
-        type: 'conversation_summary_v1',
-        session_id: null,
-        _fallback: null,
-        high_level: 'summary',
-        user_intent: 'test',
-        decisions: [],
-        open_questions: [],
-        next_steps: { for_agent: [], for_user: [] },
-        related_artifacts: [
-          {
-            id: 'artifact-1',
-            name: 'Test Artifact',
-            tool_name: 'tool',
-            tool_call_id: 'tc-1',
-            content_type: 'text',
-            key_findings: ['finding'],
-          },
-        ],
-      };
-      expect(compressor.hasSummarizedArtifact('artifact-1')).toBe(true);
-    });
-  });
-
-  describe('Binary Attachment Handling in formatMessagesForDistillation', () => {
-    function makeToolResultMessage(toolCallId: string, toolName: string) {
-      return {
-        role: 'tool',
-        content: [{ type: 'tool-result', toolCallId, toolName, output: 'data' }],
-      };
-    }
-
-    it('emits name, description, and metadata for binary_attachment artifacts', () => {
-      const messages = [makeToolResultMessage('call-bin', 'read_image')];
-      const artifactMap = {
-        'call-bin': {
-          artifactId: 'attachment_msg1_abc123',
-          isOversized: false,
-          toolName: 'read_image',
-          artifactType: 'binary_attachment',
-          name: 'Tool attachment 1',
-          description: 'Binary file produced by tool (image/png)',
-          summaryData: { mimeType: 'image/png', binaryType: 'image', filename: 'photo.png' },
-        },
-      };
-
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private method for testing
-      const formatted = compressor['formatMessagesForDistillation'](messages, artifactMap);
-
-      expect(formatted).toContain('[BINARY ATTACHMENT]');
-      expect(formatted).toContain('attachment_msg1_abc123');
-      expect(formatted).toContain('Tool attachment 1');
-      expect(formatted).toContain('Binary file produced by tool (image/png)');
-      expect(formatted).toContain('image/png');
-      expect(formatted).toContain('photo.png');
-      expect(formatted).not.toContain('[TOOL RESULT]');
-    });
-
-    it('preserves the artifact ID so the distillation LLM can reference it', () => {
-      const messages = [makeToolResultMessage('call-bin', 'screenshot_tool')];
-      const artifactMap = {
-        'call-bin': {
-          artifactId: 'attachment_msg2_def456',
-          isOversized: false,
-          toolName: 'screenshot_tool',
-          artifactType: 'binary_attachment',
-        },
-      };
-
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private method for testing
-      const formatted = compressor['formatMessagesForDistillation'](messages, artifactMap);
-
-      expect(formatted).toContain('attachment_msg2_def456');
-    });
-
-    it('still uses name/description block for non-binary artifacts', () => {
-      const messages = [makeToolResultMessage('call-text', 'search_tool')];
-      const artifactMap = {
-        'call-text': {
-          artifactId: 'compress_search_tool_call-text_abc',
-          isOversized: false,
-          toolName: 'search_tool',
-          artifactType: 'tool_result',
-          name: 'Search results for React hooks',
-          description: 'Top 5 docs on useEffect patterns',
-          summaryData: { toolName: 'search_tool', resultPreview: 'article list' },
-        },
-      };
-
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private method for testing
-      const formatted = compressor['formatMessagesForDistillation'](messages, artifactMap);
-
-      expect(formatted).toContain('[TOOL RESULT]');
-      expect(formatted).toContain('Search results for React hooks');
-      expect(formatted).toContain('compress_search_tool_call-text_abc');
-      expect(formatted).not.toContain('[BINARY ATTACHMENT]');
-    });
-
-    it('handles mixed binary and regular artifacts in the same message list', () => {
-      const messages = [
-        makeToolResultMessage('call-bin', 'read_file'),
-        makeToolResultMessage('call-text', 'search_tool'),
-      ];
-      const artifactMap = {
-        'call-bin': {
-          artifactId: 'attachment_msg3_ghi789',
-          isOversized: false,
-          toolName: 'read_file',
-          artifactType: 'binary_attachment',
-          name: 'Tool attachment 1',
-          description: 'Binary file produced by tool (application/pdf)',
-        },
-        'call-text': {
-          artifactId: 'compress_search_abc',
-          isOversized: false,
-          toolName: 'search_tool',
-          artifactType: 'tool_result',
-          name: 'API documentation results',
-          summaryData: { toolName: 'search_tool' },
-        },
-      };
-
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private method for testing
-      const formatted = compressor['formatMessagesForDistillation'](messages, artifactMap);
-
-      expect(formatted).toContain('[BINARY ATTACHMENT]');
-      expect(formatted).toContain('attachment_msg3_ghi789');
-      expect(formatted).toContain('[TOOL RESULT]');
-      expect(formatted).toContain('API documentation results');
-      expect(formatted).toContain(artifactMap['call-bin'].description);
-    });
-
-    it('does not count binary attachments toward the per-result char budget', () => {
-      const manyMessages = Array.from({ length: 3 }, (_, i) =>
-        makeToolResultMessage(`call-bin-${i}`, 'read_file')
-      );
-      manyMessages.push(makeToolResultMessage('call-text', 'search_tool'));
-
-      const artifactMap: Record<string, any> = {};
-      for (let i = 0; i < 3; i++) {
-        artifactMap[`call-bin-${i}`] = {
-          artifactId: `attachment_${i}`,
-          isOversized: false,
-          artifactType: 'binary_attachment',
-        };
-      }
-      artifactMap['call-text'] = {
-        artifactId: 'compress_search_abc',
-        isOversized: false,
-        artifactType: 'tool_result',
-        name: 'Result',
-        summaryData: { data: 'x'.repeat(500) },
-      };
-
-      // With a tight char budget, binary attachments should not consume quota from the text result
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private method for testing
-      const formatted = compressor['formatMessagesForDistillation'](manyMessages, artifactMap, 600);
-
-      // The text result should still appear with meaningful content (full 500 char summary fits)
-      expect(formatted).toContain('compress_search_abc');
-      expect(formatted).toContain('x'.repeat(500));
-    });
-  });
-
-  describe('getSummarizedArtifact', () => {
-    it('should return null when cumulativeSummary is null', () => {
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
-      compressor['cumulativeSummary'] = null;
-      expect(compressor.getSummarizedArtifact('artifact-1')).toBeNull();
-    });
-
-    it('should return null when artifact is not found', () => {
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
-      compressor['cumulativeSummary'] = {
-        type: 'conversation_summary_v1',
-        session_id: null,
-        _fallback: null,
-        high_level: 'summary',
-        user_intent: 'test',
-        decisions: [],
-        open_questions: [],
-        next_steps: { for_agent: [], for_user: [] },
-        related_artifacts: [],
-      };
-      expect(compressor.getSummarizedArtifact('artifact-1')).toBeNull();
-    });
-
-    it('should return key_findings and tool_call_id for matching artifact', () => {
-      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
-      compressor['cumulativeSummary'] = {
-        type: 'conversation_summary_v1',
-        session_id: null,
-        _fallback: null,
-        high_level: 'summary',
-        user_intent: 'test',
-        decisions: [],
-        open_questions: [],
-        next_steps: { for_agent: [], for_user: [] },
-        related_artifacts: [
-          {
-            id: 'artifact-1',
-            name: 'Test Artifact',
-            tool_name: 'tool',
-            tool_call_id: 'tc-42',
-            content_type: 'text',
-            key_findings: ['finding-a', 'finding-b'],
-          },
-          {
-            id: 'artifact-2',
-            name: 'Other Artifact',
-            tool_name: 'tool',
-            tool_call_id: 'tc-99',
-            content_type: 'text',
-            key_findings: ['other-finding'],
-          },
-        ],
-      };
-
-      const result = compressor.getSummarizedArtifact('artifact-1');
-      expect(result).toEqual({
-        key_findings: ['finding-a', 'finding-b'],
-        tool_call_id: 'tc-42',
-      });
     });
   });
 });

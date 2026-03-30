@@ -1,3 +1,3 @@
-import { getLogger, runWithLogContext } from '@inkeep/agents-core';
+import { getLogger } from '@inkeep/agents-core';
 
-export { getLogger, runWithLogContext };
+export { getLogger };

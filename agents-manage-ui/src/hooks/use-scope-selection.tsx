@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { CredentialScope } from '@/components/mcp-servers/form/validation';
 import { ScopeSelectionDialog } from '@/components/mcp-servers/selection/scope-selection-dialog';
 
@@ -69,24 +69,27 @@ export function useScopeSelection<T = void>(
   const [pendingName, setPendingName] = useState('');
   const [pendingContext, setPendingContext] = useState<T | null>(null);
 
-  function requestScopeSelection(name: string, context: T) {
+  const requestScopeSelection = useCallback((name: string, context: T) => {
     setPendingName(name);
     setPendingContext(context);
     setIsOpen(true);
-  }
+  }, []);
 
-  function close() {
+  const close = useCallback(() => {
     setIsOpen(false);
     setPendingName('');
     setPendingContext(null);
-  }
+  }, []);
 
-  async function handleConfirm(scope: CredentialScope) {
-    if (pendingContext !== null) {
-      await options.onConfirm(scope, pendingContext);
-    }
-    close();
-  }
+  const handleConfirm = useCallback(
+    async (scope: CredentialScope) => {
+      if (pendingContext !== null) {
+        await options.onConfirm(scope, pendingContext);
+      }
+      close();
+    },
+    [options, pendingContext, close]
+  );
 
   const ScopeDialog = (
     <ScopeSelectionDialog

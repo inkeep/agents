@@ -30,7 +30,7 @@ export function getGitHubAppConfig(): GitHubAppConfig {
   if (!result.success) {
     const missingVars = result.error.issues.map((issue) => issue.message);
     const errorMessage = `GitHub App credentials are not configured. ${missingVars.join('. ')}. Please set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY environment variables.`;
-    logger.error(errorMessage);
+    logger.error({}, errorMessage);
     throw new Error(errorMessage);
   }
 

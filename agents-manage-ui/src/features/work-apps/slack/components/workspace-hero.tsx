@@ -10,7 +10,7 @@ import {
   SlackIcon,
   Trash2,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import EmptyState from '@/components/layout/empty-state';
 import {
@@ -85,7 +85,7 @@ export function WorkspaceHero() {
   const [showUninstallDialog, setShowUninstallDialog] = useState(false);
   const [health, setHealth] = useState<HealthStatus>({ healthy: true, checking: false });
   const [showTestMessageDialog, setShowTestMessageDialog] = useState(false);
-  const [selectedChannel, setSelectedChannel] = useState('');
+  const [selectedChannel, setSelectedChannel] = useState<string>('');
   const [sendingTestMessage, setSendingTestMessage] = useState(false);
 
   const workspace = installedWorkspaces.data[0];
@@ -96,7 +96,7 @@ export function WorkspaceHero() {
     setMounted(true);
   }, []);
 
-  async function checkHealth() {
+  const checkHealth = useCallback(async () => {
     if (!workspace?.teamId) return;
 
     setHealth((h) => ({ ...h, checking: true }));
@@ -111,7 +111,7 @@ export function WorkspaceHero() {
     } catch {
       setHealth({ healthy: false, error: 'Failed to check health', checking: false });
     }
-  }
+  }, [workspace?.teamId]);
 
   useEffect(() => {
     if (!workspace?.teamId) return;
@@ -146,8 +146,9 @@ export function WorkspaceHero() {
         });
       } catch (error) {
         console.error('Failed to fetch stats:', error);
+      } finally {
+        setLoadingStats(false);
       }
-      setLoadingStats(false);
     };
 
     fetchStats();
@@ -167,17 +168,21 @@ export function WorkspaceHero() {
       }
     } catch {
       toast.error('Failed to send test message');
+    } finally {
+      setSendingTestMessage(false);
     }
-    setSendingTestMessage(false);
   };
 
   const handleUninstall = async () => {
     if (!workspace?.connectionId) return;
 
     setUninstalling(true);
-    await uninstallWorkspace(workspace.connectionId);
-    setShowUninstallDialog(false);
-    setUninstalling(false);
+    try {
+      await uninstallWorkspace(workspace.connectionId);
+      setShowUninstallDialog(false);
+    } finally {
+      setUninstalling(false);
+    }
   };
 
   if (!mounted || isLoading) {
@@ -378,9 +383,12 @@ export function WorkspaceHero() {
       </AlertDialog>
 
       <Dialog open={showTestMessageDialog} onOpenChange={setShowTestMessageDialog}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">Send Test Message</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5" />
+              Send Test Message
+            </DialogTitle>
             <DialogDescription>
               Send a test message to verify your Slack integration is working correctly.
             </DialogDescription>
@@ -390,7 +398,7 @@ export function WorkspaceHero() {
               Select Channel
             </label>
             <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-              <SelectTrigger className="w-full" id="channel-select">
+              <SelectTrigger id="channel-select">
                 <SelectValue placeholder="Choose a channel..." />
               </SelectTrigger>
               <SelectContent>

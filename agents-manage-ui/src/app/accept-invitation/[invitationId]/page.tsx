@@ -1,19 +1,22 @@
 'use client';
 
-import { Loader2, XCircle } from 'lucide-react';
+import { AlertCircleIcon, CheckCircle2, Globe, Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
-import { Card, CardContent } from '@/components/ui/card';
+import { GoogleColorIcon } from '@/components/icons/google';
+import { InkeepIcon } from '@/components/icons/inkeep';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { type InvitationVerification, verifyInvitation } from '@/lib/actions/invitations';
 import { updateUserProfileTimezone } from '@/lib/actions/user-profile';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
-import { AcceptDecline } from './components/accept-decline';
-import { AuthMethodPicker } from './components/auth-method-picker';
-import { InvitationSuccess } from './components/invitation-success';
 
 export default function AcceptInvitationPage({
   params,
@@ -25,18 +28,26 @@ export default function AcceptInvitationPage({
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const { invitationId } = use(params);
   const authClient = useAuthClient();
-  const { PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_MICROSOFT_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED } =
-    useRuntimeConfig();
+  const { PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
 
   const [invitationVerification, setInvitationVerification] =
     useState<InvitationVerification | null>(null);
+  // Full invitation (fetched with auth)
   const [invitation, setInvitation] = useState<typeof authClient.$Infer.Invitation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  function getFullCallbackURL() {
+  // Signup form state
+  const [formData, setFormData] = useState({
+    name: '',
+    password: '',
+  });
+
+  // For OAuth, build a callback URL that redirects back to this page after auth
+  const getFullCallbackURL = useCallback(() => {
+    if (typeof window === 'undefined') return '/';
     const baseURL = window.location.origin;
     const params = new URLSearchParams();
     params.set('invitation', invitationId);
@@ -44,43 +55,19 @@ export default function AcceptInvitationPage({
       params.set('returnUrl', returnUrl);
     }
     return `${baseURL}/?${params.toString()}`;
-  }
+  }, [invitationId, returnUrl]);
 
-  // Redirect after successful acceptance
-  function onSuccess(orgId?: string) {
-    setSuccess(true);
-    setTimeout(() => {
-      router.push(getSafeReturnUrl(returnUrl, orgId ? `/${orgId}/projects` : '/'));
-    }, 2000);
-  }
-
-  // Accept invitation + set org active (shared by all auth flows)
-  async function acceptAndActivate(orgId?: string) {
-    const acceptResult = await authClient.organization.acceptInvitation({ invitationId });
-    if ('error' in acceptResult && acceptResult.error) {
-      throw new Error(acceptResult.error.message || 'Failed to accept invitation');
-    }
-    const resolvedOrgId =
-      orgId ??
-      (acceptResult.data as { organizationId?: string })?.organizationId ??
-      invitation?.organizationId;
-    if (resolvedOrgId) {
-      await authClient.organization.setActive({ organizationId: resolvedOrgId });
-    }
-    onSuccess(resolvedOrgId);
-  }
-
-  // --- Data fetching ---
-
-  // Unauthenticated: verify invitation
+  // Fetch invitation verification (unauthenticated) when email is provided in URL
   useEffect(() => {
     async function fetchInvitationVerification() {
       if (!invitationId || !emailFromUrl) {
         setIsLoading(false);
         return;
       }
+
       try {
         const result = await verifyInvitation(invitationId, emailFromUrl);
+
         if (result.valid) {
           setInvitationVerification(result);
         } else {
@@ -88,19 +75,22 @@ export default function AcceptInvitationPage({
         }
       } catch {
         setError('Failed to validate invitation');
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
 
+    // Only fetch verification if not authenticated
     if (!user && !isAuthLoading) {
       fetchInvitationVerification();
     }
   }, [invitationId, emailFromUrl, user, isAuthLoading]);
 
-  // Authenticated: fetch full invitation
+  // Fetch full invitation details when authenticated
   useEffect(() => {
     async function fetchInvitation() {
       if (!invitationId || !user) return;
+
       if (isSubmitting || success) return;
 
       setIsLoading(true);
@@ -108,18 +98,21 @@ export default function AcceptInvitationPage({
         const result = await authClient.organization.getInvitation({
           query: { id: invitationId },
         });
+
         if ('error' in result && result.error) {
           setError(result.error.message || 'Invitation not found');
           setIsLoading(false);
           return;
         }
+
         if ('data' in result && result.data) {
           setInvitation(result.data);
         }
       } catch {
         setError('Failed to load invitation');
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
 
     if (user) {
@@ -127,101 +120,103 @@ export default function AcceptInvitationPage({
     }
   }, [invitationId, user, authClient, isSubmitting, success]);
 
-  // --- Handlers ---
+  // Handle signup + accept invitation
+  const handleSignupAndAccept = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const handleSignup = async (name: string, password: string) => {
     if (!invitationVerification || !emailFromUrl) return;
+
     setIsSubmitting(true);
     setError(null);
 
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     try {
+      // Step 1: Sign up with email/password
       const signupResult = await authClient.signUp.email({
         email: emailFromUrl,
-        password,
-        name,
+        password: formData.password,
+        name: formData.name,
       });
+
       if (signupResult?.error) {
         setError(signupResult.error.message || 'Failed to create account');
         setIsSubmitting(false);
         return;
       }
 
+      // Step 1b: Set timezone on the new user's profile
       const newUserId = signupResult.data?.user?.id;
       if (newUserId) {
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         try {
           await updateUserProfileTimezone(newUserId, timezone);
         } catch {
-          // Best-effort
+          // Silently ignore — timezone update is best-effort
         }
       }
 
-      await acceptAndActivate(invitationVerification.organizationId);
+      // Step 2: Accept the invitation (user is now signed in due to autoSignIn: true)
+      const acceptResult = await authClient.organization.acceptInvitation({
+        invitationId,
+      });
+
+      if ('error' in acceptResult && acceptResult.error) {
+        setError(acceptResult.error.message || 'Failed to accept invitation');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 3: Set the organization as active
+      const orgId = invitationVerification.organizationId;
+      if (orgId) {
+        await authClient.organization.setActive({
+          organizationId: orgId,
+        });
+      }
+
+      setSuccess(true);
+
+      setTimeout(() => {
+        router.push(getSafeReturnUrl(returnUrl, orgId ? `/${orgId}/projects` : '/'));
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
       setIsSubmitting(false);
     }
   };
 
-  const handleLogin = async (password: string) => {
-    if (!invitationVerification || !emailFromUrl) return;
+  // Handle accept (for authenticated users)
+  const handleAccept = async () => {
+    if (!user) return;
+
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const signinResult = await authClient.signIn.email({
-        email: emailFromUrl,
-        password,
+      const result = await authClient.organization.acceptInvitation({
+        invitationId,
       });
-      if (signinResult?.error) {
-        setError(signinResult.error.message || 'Failed to sign in');
+
+      if ('error' in result && result.error) {
+        setError(result.error.message || 'Failed to accept invitation');
         setIsSubmitting(false);
         return;
       }
 
-      await acceptAndActivate(invitationVerification.organizationId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign in');
-      setIsSubmitting(false);
-    }
-  };
+      const orgId =
+        (result.data as { organizationId?: string })?.organizationId ?? invitation?.organizationId;
 
-  const handleExternalSignIn = async (
-    method: 'social' | 'sso',
-    identifier: string,
-    fallbackError: string
-  ) => {
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      const result =
-        method === 'social'
-          ? await authClient.signIn.social({
-              provider: identifier as 'google' | 'microsoft',
-              callbackURL: getFullCallbackURL(),
-              ...(emailFromUrl && { loginHint: emailFromUrl }),
-            })
-          : await authClient.signIn.sso({
-              providerId: identifier,
-              callbackURL: getFullCallbackURL(),
-              ...(emailFromUrl && { loginHint: emailFromUrl }),
-            });
-      if (result?.error) {
-        setError(result.error.message || fallbackError);
-        setIsSubmitting(false);
+      if (orgId) {
+        await authClient.organization.setActive({
+          organizationId: orgId,
+        });
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : fallbackError);
-      setIsSubmitting(false);
-    }
-  };
 
-  const handleAccept = async () => {
-    if (!user) return;
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await acceptAndActivate();
+      setSuccess(true);
+
+      setTimeout(() => {
+        router.push(getSafeReturnUrl(returnUrl, orgId ? `/${orgId}/projects` : '/'));
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept invitation');
       setIsSubmitting(false);
@@ -231,16 +226,17 @@ export default function AcceptInvitationPage({
   const handleReject = async () => {
     setIsSubmitting(true);
     setError(null);
+
     try {
-      await authClient.organization.rejectInvitation({ invitationId });
+      await authClient.organization.rejectInvitation({
+        invitationId,
+      });
       router.push('/');
     } catch {
       setError('Failed to reject invitation');
       setIsSubmitting(false);
     }
   };
-
-  // --- Render ---
 
   if (isLoading || isAuthLoading) {
     return (
@@ -255,10 +251,7 @@ export default function AcceptInvitationPage({
     );
   }
 
-  if (success) {
-    return <InvitationSuccess />;
-  }
-
+  // Error state (no invitation found)
   if (error && !invitation && !invitationVerification) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -277,6 +270,227 @@ export default function AcceptInvitationPage({
     );
   }
 
+  if (success) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-none border-none bg-transparent">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-6 w-6 text-emerald-500 dark:text-emerald-400" />
+              <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+                Welcome!
+              </CardTitle>
+            </div>
+            <CardDescription>
+              You've successfully joined the organization. Redirecting...
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle external sign-in (Google / SSO) for unauthenticated invitation flow
+  const handleExternalSignIn = async (
+    method: 'social' | 'sso',
+    identifier: string,
+    fallbackError: string
+  ) => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const result =
+        method === 'social'
+          ? await authClient.signIn.social({
+              provider: identifier as 'google',
+              callbackURL: getFullCallbackURL(),
+              ...(emailFromUrl && { loginHint: emailFromUrl }),
+            })
+          : await authClient.signIn.sso({
+              providerId: identifier,
+              callbackURL: getFullCallbackURL(),
+              ...(emailFromUrl && { loginHint: emailFromUrl }),
+            });
+
+      if (result?.error) {
+        setError(result.error.message || fallbackError);
+        setIsSubmitting(false);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : fallbackError;
+      setError(errorMessage);
+      setIsSubmitting(false);
+    }
+  };
+
+  // Unauthenticated: Show all org-allowed sign-in methods
+  if (!user && invitationVerification) {
+    const orgName = invitationVerification.organizationName;
+    const allowedMethods = invitationVerification.allowedAuthMethods ?? [];
+    const hasGoogle = allowedMethods.some((m) => m.method === 'google');
+    const ssoMethods = allowedMethods.filter((m) => m.method === 'sso');
+    const hasEmailPassword = allowedMethods.some((m) => m.method === 'email-password');
+    const hasExternalMethods = hasGoogle || ssoMethods.length > 0;
+    const hasNoMethods = !hasGoogle && ssoMethods.length === 0 && !hasEmailPassword;
+
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
+          <div className="px-6">
+            <InkeepIcon size={48} />
+          </div>
+          <CardHeader>
+            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+              {orgName ? `Join ${orgName}` : 'Accept invitation'}
+            </CardTitle>
+            <CardDescription>
+              {hasNoMethods ? (
+                <>
+                  No sign-in methods are available for your email domain. Contact the administrator
+                  of <span className="font-medium">{orgName ?? 'the organization'}</span> for help.
+                </>
+              ) : orgName ? (
+                <>
+                  You've been invited to join <span className="font-medium">{orgName}</span>. Choose
+                  how you'd like to sign in.
+                </>
+              ) : (
+                <>You've been invited to join an organization. Choose how you'd like to sign in.</>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {error && (
+              <Alert variant="destructive" className="border-destructive/10 dark:border-border">
+                <AlertCircleIcon aria-hidden className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {hasGoogle && PUBLIC_GOOGLE_CLIENT_ID && (
+              <Button
+                variant="gray-outline"
+                onClick={() => handleExternalSignIn('social', 'google', 'Google sign in failed')}
+                disabled={isSubmitting}
+                className="w-full"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
+                    Redirecting...
+                  </>
+                ) : (
+                  <>
+                    <GoogleColorIcon aria-hidden />
+                    Continue with Google
+                  </>
+                )}
+              </Button>
+            )}
+
+            {ssoMethods.map((sso) => (
+              <Button
+                key={sso.providerId}
+                variant="gray-outline"
+                onClick={() =>
+                  sso.providerId
+                    ? handleExternalSignIn('sso', sso.providerId, 'SSO sign in failed')
+                    : undefined
+                }
+                disabled={isSubmitting || !sso.providerId}
+                className="w-full"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
+                    Redirecting...
+                  </>
+                ) : (
+                  <>
+                    <Globe aria-hidden />
+                    {sso.displayName ? `Continue with ${sso.displayName}` : 'Continue with SSO'}
+                  </>
+                )}
+              </Button>
+            ))}
+
+            {hasExternalMethods && hasEmailPassword && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
+            )}
+
+            {hasEmailPassword && (
+              <form onSubmit={handleSignupAndAccept} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={emailFromUrl || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    disabled={isSubmitting}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Create a password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    disabled={isSubmitting}
+                    minLength={8}
+                  />
+                  <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting || !formData.name || !formData.password}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    'Create Account & Join'
+                  )}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Unauthenticated without email in URL: Show error
   if (!user && !invitationVerification && !emailFromUrl) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -292,33 +506,64 @@ export default function AcceptInvitationPage({
     );
   }
 
-  // Unauthenticated with verification: show auth methods
-  if (!user && invitationVerification && emailFromUrl) {
-    return (
-      <AuthMethodPicker
-        invitationVerification={invitationVerification}
-        email={emailFromUrl}
-        googleClientId={PUBLIC_GOOGLE_CLIENT_ID}
-        microsoftClientId={PUBLIC_MICROSOFT_CLIENT_ID}
-        isSmtpConfigured={!!PUBLIC_IS_SMTP_CONFIGURED}
-        isSubmitting={isSubmitting}
-        error={error}
-        onSignup={handleSignup}
-        onLogin={handleLogin}
-        onExternalSignIn={handleExternalSignIn}
-      />
-    );
-  }
-
-  // Authenticated: accept/decline
+  // Authenticated: Show accept/decline buttons
   return (
-    <AcceptDecline
-      invitationVerification={invitationVerification}
-      hasInvitation={!!invitation}
-      isSubmitting={isSubmitting}
-      error={error}
-      onAccept={handleAccept}
-      onReject={handleReject}
-    />
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
+        <div className="px-6">
+          <InkeepIcon size={48} />
+        </div>
+        <CardHeader>
+          <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+            {invitationVerification?.organizationName
+              ? `Join ${invitationVerification.organizationName}`
+              : 'Accept invitation'}
+          </CardTitle>
+          <CardDescription>
+            {invitationVerification?.organizationName ? (
+              <>
+                You've been invited to join{' '}
+                <span className="font-medium">{invitationVerification.organizationName}</span>.
+              </>
+            ) : (
+              "You've been invited to join an organization."
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive" className="border-destructive/10 dark:border-border">
+              <AlertCircleIcon aria-hidden className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              onClick={handleAccept}
+              disabled={isSubmitting || !invitation}
+              className="flex-1"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Accepting...
+                </>
+              ) : (
+                'Accept Invitation'
+              )}
+            </Button>
+            <Button
+              onClick={handleReject}
+              variant="outline"
+              disabled={isSubmitting || !invitation}
+              className="flex-1"
+            >
+              Decline
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

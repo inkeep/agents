@@ -16,7 +16,6 @@ import {
   type DelegateRelation,
   type ExternalAgentRelationConfig,
   hasToolCallWithPrefix,
-  type PendingDurableApproval,
   type ResolvedGenerationResponse,
   resolveGenerationResponse,
   type TeamAgentRelationConfig,
@@ -147,20 +146,6 @@ export class Agent {
     this.ctx.delegationId = delegationId;
   }
 
-  setDurableWorkflowRunId(runId: string | undefined) {
-    this.ctx.durableWorkflowRunId = runId;
-  }
-
-  setApprovedToolCalls(
-    approvedToolCalls: Record<string, { approved: boolean; reason?: string }> | undefined
-  ) {
-    this.ctx.approvedToolCalls = approvedToolCalls;
-  }
-
-  getPendingDurableApproval(): PendingDurableApproval | undefined {
-    return this.ctx.pendingDurableApproval;
-  }
-
   getTaskDenialRedirects(): Array<{ toolName: string; toolCallId: string; reason: string }> {
     return this.ctx.taskDenialRedirects;
   }
@@ -171,10 +156,6 @@ export class Agent {
 
   async getFunctionTools(sessionId?: string, streamRequestId?: string): Promise<ToolSet> {
     return getFunctionTools(this.ctx, sessionId, streamRequestId);
-  }
-
-  get runContext(): AgentRunContext {
-    return this.ctx;
   }
 
   async generate(
@@ -188,10 +169,9 @@ export class Agent {
         streamRequestId: string;
         apiKey?: string;
       };
-    },
-    options?: { schemaOnlyTools?: boolean }
+    }
   ): Promise<ResolvedGenerationResponse> {
-    return runGenerate(this.ctx, userParts, runtimeContext, options);
+    return runGenerate(this.ctx, userParts, runtimeContext);
   }
 
   getRelationTools(
@@ -229,7 +209,6 @@ export type {
   ExternalAgentRelationConfig,
   TeamAgentRelationConfig,
   DelegateRelation,
-  PendingDurableApproval,
   ToolType,
   ResolvedGenerationResponse,
   AgentRunContext,

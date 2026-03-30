@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Combobox } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
@@ -90,11 +90,13 @@ const TIMEZONE_OPTIONS = (() => {
 })();
 
 function TimezoneCombobox({ value, onChange }: { value: string; onChange: (tz: string) => void }) {
-  const hasValue = TIMEZONE_OPTIONS.some((o) => o.value === value);
-  const options =
-    !hasValue && value
-      ? [{ value, label: value.replace(/_/g, ' ') }, ...TIMEZONE_OPTIONS]
-      : TIMEZONE_OPTIONS;
+  const options = useMemo(() => {
+    const hasValue = TIMEZONE_OPTIONS.some((o) => o.value === value);
+    if (!hasValue && value) {
+      return [{ value, label: value.replace(/_/g, ' ') }, ...TIMEZONE_OPTIONS];
+    }
+    return TIMEZONE_OPTIONS;
+  }, [value]);
 
   return (
     <Combobox
@@ -118,32 +120,33 @@ export function FriendlyScheduleBuilder({
 }: FriendlyScheduleBuilderProps) {
   const parsed = parseCronExpression(value);
 
-  const [frequency, setFrequency] = useState(parsed.frequency);
+  const [frequency, setFrequency] = useState<FrequencyType>(parsed.frequency);
   const [minuteInterval, setMinuteInterval] = useState(parsed.minuteInterval || '15');
   const [minute, setMinute] = useState(parsed.minute || '0');
   const [hour, setHour] = useState(parsed.hour || '9');
-  const [daysOfWeek, setDaysOfWeek] = useState(parsed.daysOfWeek || ['1']);
+  const [daysOfWeek, setDaysOfWeek] = useState<string[]>(parsed.daysOfWeek || ['1']);
   const [dayOfMonth, setDayOfMonth] = useState(parsed.dayOfMonth || '1');
   const [customCron, setCustomCron] = useState(parsed.frequency === 'custom' ? value : '');
 
-  useEffect(() => {
-    function updateCronExpression() {
-      if (frequency === 'custom') {
-        return;
-      }
-      const newCron = generateCronExpression(frequency, {
-        minuteInterval,
-        minute,
-        hour,
-        daysOfWeek,
-        dayOfMonth,
-      });
-      if (newCron !== value) {
-        onChange(newCron);
-      }
+  const updateCronExpression = useCallback(() => {
+    if (frequency === 'custom') {
+      return;
     }
-    updateCronExpression();
+    const newCron = generateCronExpression(frequency, {
+      minuteInterval,
+      minute,
+      hour,
+      daysOfWeek,
+      dayOfMonth,
+    });
+    if (newCron !== value) {
+      onChange(newCron);
+    }
   }, [frequency, minuteInterval, minute, hour, daysOfWeek, dayOfMonth, value, onChange]);
+
+  useEffect(() => {
+    updateCronExpression();
+  }, [updateCronExpression]);
 
   const handleFrequencyChange = (newFrequency: FrequencyType) => {
     setFrequency(newFrequency);

@@ -1,4 +1,3 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChangedFile, Comment, PullRequest } from '../../../github/mcp/schemas';
 import type { LLMUpdateOperation } from '../../../github/mcp/utils';
@@ -10,7 +9,14 @@ vi.mock('../../../env', () => ({
   },
 }));
 
-vi.mock('../../../logger', () => createMockLoggerModule().module);
+vi.mock('../../../logger', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
 
 describe('github mcp utils', () => {
   describe('validateLineNumbers', () => {

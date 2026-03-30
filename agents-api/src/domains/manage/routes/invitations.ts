@@ -1,11 +1,8 @@
 import {
-  countSeatsByRole,
   createApiError,
   getEmailSendStatus,
   getFilteredAuthMethodsForEmail,
   getPendingInvitationsByEmail,
-  getUserByEmail,
-  resolveEntitlement,
 } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
@@ -86,27 +83,10 @@ invitationsRoutes.get('/verify', async (c) => {
       });
     }
 
-    const [filteredMethods, existingUser] = await Promise.all([
-      getFilteredAuthMethodsForEmail(runDbClient)(invitation.organizationId, email),
-      getUserByEmail(runDbClient)(email),
-    ]);
-
-    let seatLimitReached: string | null = null;
-    try {
-      const role = invitation.role;
-      const isAdmin = role === 'admin' || role === 'owner';
-      const resourceType = isAdmin ? 'seat:admin' : 'seat:member';
-      const limit = await resolveEntitlement(runDbClient, invitation.organizationId, resourceType);
-      if (limit !== null) {
-        const current = await countSeatsByRole(runDbClient, invitation.organizationId, role);
-        if (current >= limit) {
-          const bucket = isAdmin ? 'Admin' : 'Member';
-          seatLimitReached = `${bucket} seat limit reached (${current}/${limit})`;
-        }
-      }
-    } catch {
-      // Best-effort — don't block the invitation verification
-    }
+    const filteredMethods = await getFilteredAuthMethodsForEmail(runDbClient)(
+      invitation.organizationId,
+      email
+    );
 
     return c.json({
       valid: true,
@@ -117,8 +97,6 @@ invitationsRoutes.get('/verify', async (c) => {
       expiresAt: invitation.expiresAt,
       authMethod: invitation.authMethod || null,
       allowedAuthMethods: filteredMethods,
-      userExists: !!existingUser,
-      seatLimitReached,
     });
   } catch (error) {
     // Re-throw API errors (HTTPExceptions from createApiError)

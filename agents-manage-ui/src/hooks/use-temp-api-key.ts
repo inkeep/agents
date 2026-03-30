@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { throwError } from '@/lib/utils';
 
 interface UseTempApiKeyParams {
   tenantId: string;
@@ -11,10 +10,9 @@ interface UseTempApiKeyParams {
 
 interface UseTempApiKeyResult {
   apiKey: string | null;
-  appId: string | null;
   isLoading: boolean;
   error: Error | null;
-  refresh: () => Promise<string | null>;
+  refresh: () => Promise<void>;
 }
 
 export function useTempApiKey({
@@ -25,12 +23,11 @@ export function useTempApiKey({
 }: UseTempApiKeyParams): UseTempApiKeyResult {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [appId, setAppId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  async function fetchToken(): Promise<string | null> {
+  const fetchToken = useCallback(async () => {
     try {
       const response = await fetch(
         `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/tenants/${tenantId}/playground/token`,
@@ -48,22 +45,19 @@ export function useTempApiKey({
       );
 
       if (!response.ok) {
-        throwError('Failed to fetch temporary API key');
+        throw new Error('Failed to fetch temporary API key');
       }
 
       const data = await response.json();
       setApiKey(data.apiKey);
-      setAppId(data.appId ?? null);
       setExpiresAt(data.expiresAt);
       setError(null);
-      setIsLoading(false);
-      return data.apiKey;
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));
+    } finally {
       setIsLoading(false);
-      return null;
     }
-  }
+  }, [tenantId, projectId, agentId, PUBLIC_INKEEP_AGENTS_API_URL]);
 
   // Initial fetch
   useEffect(() => {
@@ -73,12 +67,7 @@ export function useTempApiKey({
       // If not enabled or no agentId, set loading to false immediately
       setIsLoading(false);
     }
-  }, [
-    enabled,
-    agentId,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    fetchToken,
-  ]);
+  }, [enabled, agentId, fetchToken]);
 
   // Auto-refresh before expiry
   useEffect(() => {
@@ -91,14 +80,12 @@ export function useTempApiKey({
     // Refresh 5 minutes before expiry (or immediately if already expired)
     const refreshTime = Math.max(0, timeUntilExpiry - 5 * 60 * 1000);
 
-    const timer = setTimeout(fetchToken, refreshTime);
+    const timer = setTimeout(() => {
+      fetchToken();
+    }, refreshTime);
 
     return () => clearTimeout(timer);
-  }, [
-    expiresAt,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    fetchToken,
-  ]);
+  }, [expiresAt, fetchToken]);
 
-  return { apiKey, appId, isLoading, error, refresh: fetchToken };
+  return { apiKey, isLoading, error, refresh: fetchToken };
 }

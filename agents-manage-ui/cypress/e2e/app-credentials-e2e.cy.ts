@@ -173,7 +173,7 @@ describe(
           defaultAgentId: AGENT_ID,
           config: {
             type: 'web_client',
-            webClient: { allowedDomains: ['*.example.com'], allowAnonymous: true },
+            webClient: { allowedDomains: ['*.example.com'] },
           },
         },
       }).then((res) => {

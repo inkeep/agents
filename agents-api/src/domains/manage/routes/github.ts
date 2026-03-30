@@ -28,7 +28,7 @@ import {
 import { HTTPException } from 'hono/http-exception';
 import { SignJWT } from 'jose';
 import runDbClient from '../../../data/db/runDbClient';
-import { getLogger, runWithLogContext } from '../../../logger';
+import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
 
 const logger = getLogger('github-manage');
@@ -92,7 +92,7 @@ app.openapi(
     const { tenantId } = c.req.valid('param');
 
     if (!isStateSigningConfigured()) {
-      logger.error('GITHUB_STATE_SIGNING_SECRET is not configured');
+      logger.error({}, 'GITHUB_STATE_SIGNING_SECRET is not configured');
       throw createApiError({
         code: 'internal_server_error',
         message: 'GitHub App installation is not configured',
@@ -100,7 +100,7 @@ app.openapi(
     }
 
     if (!isGitHubAppNameConfigured()) {
-      logger.error('GITHUB_APP_NAME is not configured');
+      logger.error({}, 'GITHUB_APP_NAME is not configured');
       throw createApiError({
         code: 'internal_server_error',
         message: 'GitHub App installation is not configured',
@@ -109,13 +109,13 @@ app.openapi(
 
     const appName = getGitHubAppName();
 
-    logger.info('Generating GitHub App installation URL');
+    logger.info({ tenantId }, 'Generating GitHub App installation URL');
 
     const state = await signStateToken(tenantId);
 
     const installUrl = `https://github.com/apps/${appName}/installations/new?state=${encodeURIComponent(state)}`;
 
-    logger.info('GitHub App installation URL generated');
+    logger.info({ tenantId }, 'GitHub App installation URL generated');
 
     return c.json({ url: installUrl }, 200);
   }
@@ -171,7 +171,7 @@ app.openapi(
     const { tenantId } = c.req.valid('param');
     const { includeDisconnected } = c.req.valid('query');
 
-    logger.info({ includeDisconnected }, 'Listing GitHub App installations');
+    logger.info({ tenantId, includeDisconnected }, 'Listing GitHub App installations');
 
     const [installations, repositoryCounts] = await Promise.all([
       getInstallationsByTenantId(runDbClient)({
@@ -196,7 +196,10 @@ app.openapi(
       updatedAt: installation.updatedAt,
     }));
 
-    logger.info({ count: installationsWithCounts.length }, 'Listed GitHub App installations');
+    logger.info(
+      { tenantId, count: installationsWithCounts.length },
+      'Listed GitHub App installations'
+    );
 
     return c.json({ installations: installationsWithCounts }, 200);
   }
@@ -240,44 +243,45 @@ app.openapi(
   async (c) => {
     const { tenantId, installationId } = c.req.valid('param');
 
-    return runWithLogContext({ installationId }, async () => {
-      logger.info('Getting GitHub App installation details');
+    logger.info({ tenantId, installationId }, 'Getting GitHub App installation details');
 
-      const [installation, repositories] = await Promise.all([
-        getInstallationById(runDbClient)({
-          tenantId,
-          id: installationId,
-        }),
-        getRepositoriesByInstallationId(runDbClient)(installationId),
-      ]);
+    const [installation, repositories] = await Promise.all([
+      getInstallationById(runDbClient)({
+        tenantId,
+        id: installationId,
+      }),
+      getRepositoriesByInstallationId(runDbClient)(installationId),
+    ]);
 
-      if (!installation) {
-        logger.warn('Installation not found');
-        throw createApiError({
-          code: 'not_found',
-          message: 'Installation not found',
-        });
-      }
+    if (!installation) {
+      logger.warn({ tenantId, installationId }, 'Installation not found');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
 
-      logger.info({ repositoryCount: repositories.length }, 'Got GitHub App installation details');
+    logger.info(
+      { tenantId, installationId, repositoryCount: repositories.length },
+      'Got GitHub App installation details'
+    );
 
-      return c.json(
-        {
-          installation: {
-            id: installation.id,
-            installationId: installation.installationId,
-            accountLogin: installation.accountLogin,
-            accountId: installation.accountId,
-            accountType: installation.accountType,
-            status: installation.status,
-            createdAt: installation.createdAt,
-            updatedAt: installation.updatedAt,
-          },
-          repositories,
+    return c.json(
+      {
+        installation: {
+          id: installation.id,
+          installationId: installation.installationId,
+          accountLogin: installation.accountLogin,
+          accountId: installation.accountId,
+          accountType: installation.accountType,
+          status: installation.status,
+          createdAt: installation.createdAt,
+          updatedAt: installation.updatedAt,
         },
-        200
-      );
-    });
+        repositories,
+      },
+      200
+    );
   }
 );
 
@@ -316,47 +320,45 @@ app.openapi(
   async (c) => {
     const { tenantId, installationId } = c.req.valid('param');
 
-    return runWithLogContext({ installationId }, async () => {
-      logger.info('Disconnecting GitHub App installation');
+    logger.info({ tenantId, installationId }, 'Disconnecting GitHub App installation');
 
-      const installation = await getInstallationById(runDbClient)({
-        tenantId,
-        id: installationId,
-      });
-
-      if (!installation) {
-        logger.warn('Installation not found');
-        throw createApiError({
-          code: 'not_found',
-          message: 'Installation not found',
-        });
-      }
-
-      if (installation.status === 'disconnected') {
-        logger.warn('Installation already disconnected');
-        throw createApiError({
-          code: 'bad_request',
-          message: 'Installation is already disconnected',
-        });
-      }
-
-      const disconnected = await disconnectInstallation(runDbClient)({
-        tenantId,
-        id: installationId,
-      });
-
-      if (!disconnected) {
-        logger.error('Failed to disconnect installation');
-        throw createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to disconnect installation',
-        });
-      }
-
-      logger.info('GitHub App installation disconnected');
-
-      return c.json({ success: true as const }, 200);
+    const installation = await getInstallationById(runDbClient)({
+      tenantId,
+      id: installationId,
     });
+
+    if (!installation) {
+      logger.warn({ tenantId, installationId }, 'Installation not found');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
+
+    if (installation.status === 'disconnected') {
+      logger.warn({ tenantId, installationId }, 'Installation already disconnected');
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Installation is already disconnected',
+      });
+    }
+
+    const disconnected = await disconnectInstallation(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!disconnected) {
+      logger.error({ tenantId, installationId }, 'Failed to disconnect installation');
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to disconnect installation',
+      });
+    }
+
+    logger.info({ tenantId, installationId }, 'GitHub App installation disconnected');
+
+    return c.json({ success: true as const }, 200);
   }
 );
 
@@ -444,91 +446,100 @@ app.openapi(
   async (c) => {
     const { tenantId, installationId } = c.req.valid('param');
 
-    return runWithLogContext({ installationId }, async () => {
-      logger.info('Reconnecting GitHub App installation');
+    logger.info({ tenantId, installationId }, 'Reconnecting GitHub App installation');
 
-      const installation = await getInstallationById(runDbClient)({
+    const installation = await getInstallationById(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!installation) {
+      logger.warn({ tenantId, installationId }, 'Installation not found');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
+
+    if (installation.status !== 'disconnected') {
+      logger.warn(
+        { tenantId, installationId, status: installation.status },
+        'Installation is not disconnected'
+      );
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Installation is not disconnected',
+      });
+    }
+
+    const updated = await updateInstallationStatus(runDbClient)({
+      tenantId,
+      id: installationId,
+      status: 'active',
+    });
+
+    if (!updated) {
+      logger.error({ tenantId, installationId }, 'Failed to reconnect installation');
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to reconnect installation',
+      });
+    }
+
+    logger.info(
+      { tenantId, installationId },
+      'GitHub App installation reconnected, syncing repositories'
+    );
+
+    let appJwt: string;
+    try {
+      appJwt = await createAppJwt();
+    } catch (error) {
+      logger.error({ error }, 'Failed to create GitHub App JWT');
+      throw createServiceUnavailableError('GitHub App not configured properly');
+    }
+
+    const reposResult = await fetchInstallationRepositories(installation.installationId, appJwt);
+    if (!reposResult.success) {
+      logger.error(
+        { error: reposResult.error, installationId },
+        'Failed to fetch repositories from GitHub'
+      );
+      throw createServiceUnavailableError('Failed to fetch repositories from GitHub API');
+    }
+
+    const syncResult = await syncRepositories(runDbClient)({
+      installationId: installation.id,
+      repositories: reposResult.repositories.map((repo) => ({
+        repositoryId: String(repo.id),
+        repositoryName: repo.name,
+        repositoryFullName: repo.full_name,
+        private: repo.private,
+      })),
+    });
+
+    logger.info(
+      {
         tenantId,
-        id: installationId,
-      });
+        installationId,
+        added: syncResult.added,
+        removed: syncResult.removed,
+        updated: syncResult.updated,
+      },
+      'GitHub App installation reconnected and repositories synced'
+    );
 
-      if (!installation) {
-        logger.warn('Installation not found');
-        throw createApiError({
-          code: 'not_found',
-          message: 'Installation not found',
-        });
-      }
-
-      if (installation.status !== 'disconnected') {
-        logger.warn({ status: installation.status }, 'Installation is not disconnected');
-        throw createApiError({
-          code: 'bad_request',
-          message: 'Installation is not disconnected',
-        });
-      }
-
-      const updated = await updateInstallationStatus(runDbClient)({
-        tenantId,
-        id: installationId,
-        status: 'active',
-      });
-
-      if (!updated) {
-        logger.error('Failed to reconnect installation');
-        throw createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to reconnect installation',
-        });
-      }
-
-      logger.info('GitHub App installation reconnected, syncing repositories');
-
-      let appJwt: string;
-      try {
-        appJwt = await createAppJwt();
-      } catch (error) {
-        logger.error({ error }, 'Failed to create GitHub App JWT');
-        throw createServiceUnavailableError('GitHub App not configured properly');
-      }
-
-      const reposResult = await fetchInstallationRepositories(installation.installationId, appJwt);
-      if (!reposResult.success) {
-        logger.error({ error: reposResult.error }, 'Failed to fetch repositories from GitHub');
-        throw createServiceUnavailableError('Failed to fetch repositories from GitHub API');
-      }
-
-      const syncResult = await syncRepositories(runDbClient)({
-        installationId: installation.id,
-        repositories: reposResult.repositories.map((repo) => ({
-          repositoryId: String(repo.id),
-          repositoryName: repo.name,
-          repositoryFullName: repo.full_name,
-          private: repo.private,
-        })),
-      });
-
-      logger.info(
-        {
+    return c.json(
+      {
+        success: true as const,
+        syncResult: {
           added: syncResult.added,
           removed: syncResult.removed,
           updated: syncResult.updated,
         },
-        'GitHub App installation reconnected and repositories synced'
-      );
-
-      return c.json(
-        {
-          success: true as const,
-          syncResult: {
-            added: syncResult.added,
-            removed: syncResult.removed,
-            updated: syncResult.updated,
-          },
-        },
-        200
-      );
-    });
+      },
+      200
+    );
   }
 );
 
@@ -565,25 +576,23 @@ app.openapi(
   async (c) => {
     const { tenantId, installationId } = c.req.valid('param');
 
-    return runWithLogContext({ installationId }, async () => {
-      logger.info('Deleting GitHub App installation permanently');
+    logger.info({ tenantId, installationId }, 'Deleting GitHub App installation permanently');
 
-      const deleted = await deleteInstallation(runDbClient)({
-        tenantId,
-        id: installationId,
-      });
-
-      if (!deleted) {
-        throw createApiError({
-          code: 'not_found',
-          message: 'Installation not found',
-        });
-      }
-
-      logger.info('GitHub App installation deleted permanently');
-
-      return c.json({ success: true as const }, 200);
+    const deleted = await deleteInstallation(runDbClient)({
+      tenantId,
+      id: installationId,
     });
+
+    if (!deleted) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
+
+    logger.info({ tenantId, installationId }, 'GitHub App installation deleted permanently');
+
+    return c.json({ success: true as const }, 200);
   }
 );
 
@@ -628,71 +637,72 @@ app.openapi(
   async (c) => {
     const { tenantId, installationId } = c.req.valid('param');
 
-    return runWithLogContext({ installationId }, async () => {
-      logger.info('Syncing repositories for GitHub App installation');
+    logger.info({ tenantId, installationId }, 'Syncing repositories for GitHub App installation');
 
-      const installation = await getInstallationById(runDbClient)({
+    const installation = await getInstallationById(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!installation) {
+      logger.warn({ tenantId, installationId }, 'Installation not found');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
+
+    let appJwt: string;
+    try {
+      appJwt = await createAppJwt();
+    } catch (error) {
+      logger.error({ error }, 'Failed to create GitHub App JWT');
+      throw createServiceUnavailableError('GitHub App not configured properly');
+    }
+
+    const reposResult = await fetchInstallationRepositories(installation.installationId, appJwt);
+    if (!reposResult.success) {
+      logger.error(
+        { error: reposResult.error, installationId },
+        'Failed to fetch repositories from GitHub'
+      );
+      throw createServiceUnavailableError('Failed to fetch repositories from GitHub API');
+    }
+
+    const syncResult = await syncRepositories(runDbClient)({
+      installationId: installation.id,
+      repositories: reposResult.repositories.map((repo) => ({
+        repositoryId: String(repo.id),
+        repositoryName: repo.name,
+        repositoryFullName: repo.full_name,
+        private: repo.private,
+      })),
+    });
+
+    logger.info(
+      {
         tenantId,
-        id: installationId,
-      });
+        installationId,
+        added: syncResult.added,
+        removed: syncResult.removed,
+        updated: syncResult.updated,
+      },
+      'Repositories synced successfully'
+    );
 
-      if (!installation) {
-        logger.warn('Installation not found');
-        throw createApiError({
-          code: 'not_found',
-          message: 'Installation not found',
-        });
-      }
+    const updatedRepositories = await getRepositoriesByInstallationId(runDbClient)(installation.id);
 
-      let appJwt: string;
-      try {
-        appJwt = await createAppJwt();
-      } catch (error) {
-        logger.error({ error }, 'Failed to create GitHub App JWT');
-        throw createServiceUnavailableError('GitHub App not configured properly');
-      }
-
-      const reposResult = await fetchInstallationRepositories(installation.installationId, appJwt);
-      if (!reposResult.success) {
-        logger.error({ error: reposResult.error }, 'Failed to fetch repositories from GitHub');
-        throw createServiceUnavailableError('Failed to fetch repositories from GitHub API');
-      }
-
-      const syncResult = await syncRepositories(runDbClient)({
-        installationId: installation.id,
-        repositories: reposResult.repositories.map((repo) => ({
-          repositoryId: String(repo.id),
-          repositoryName: repo.name,
-          repositoryFullName: repo.full_name,
-          private: repo.private,
-        })),
-      });
-
-      logger.info(
-        {
+    return c.json(
+      {
+        repositories: updatedRepositories,
+        syncResult: {
           added: syncResult.added,
           removed: syncResult.removed,
           updated: syncResult.updated,
         },
-        'Repositories synced successfully'
-      );
-
-      const updatedRepositories = await getRepositoriesByInstallationId(runDbClient)(
-        installation.id
-      );
-
-      return c.json(
-        {
-          repositories: updatedRepositories,
-          syncResult: {
-            added: syncResult.added,
-            removed: syncResult.removed,
-            updated: syncResult.updated,
-          },
-        },
-        200
-      );
-    });
+      },
+      200
+    );
   }
 );
 

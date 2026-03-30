@@ -7,7 +7,6 @@ import {
   createScheduledTrigger,
   deleteScheduledTrigger,
   fetchScheduledTriggerInvocations,
-  getScheduledTriggerUsers,
   rerunScheduledTriggerInvocation,
   runScheduledTriggerNow,
   type ScheduledTrigger,
@@ -256,7 +255,7 @@ export async function runScheduledTriggerNowAction(
   projectId: string,
   agentId: string,
   scheduledTriggerId: string
-): Promise<ActionResult<{ invocationIds: string[] }>> {
+): Promise<ActionResult<{ invocationId: string }>> {
   try {
     const result = await runScheduledTriggerNow(tenantId, projectId, agentId, scheduledTriggerId);
     revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
@@ -265,7 +264,7 @@ export async function runScheduledTriggerNowAction(
     );
     return {
       success: result.success,
-      data: { invocationIds: result.invocationIds },
+      data: { invocationId: result.invocationId },
     };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -279,32 +278,6 @@ export async function runScheduledTriggerNowAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to run trigger',
-      code: 'unknown_error',
-    };
-  }
-}
-
-export async function getScheduledTriggerUsersAction(
-  tenantId: string,
-  projectId: string,
-  agentId: string,
-  scheduledTriggerId: string
-): Promise<ActionResult<string[]>> {
-  try {
-    const userIds = await getScheduledTriggerUsers(
-      tenantId,
-      projectId,
-      agentId,
-      scheduledTriggerId
-    );
-    return { success: true, data: userIds };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return { success: false, error: error.message, code: error.error.code };
-    }
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch trigger users',
       code: 'unknown_error',
     };
   }

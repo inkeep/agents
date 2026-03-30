@@ -10,7 +10,7 @@ import type { MCPTool } from '@/lib/types/tools';
 /**
  * Parameters for initiating OAuth login for an MCP tool
  */
-interface OAuthLoginParams {
+export interface OAuthLoginParams {
   toolId: string;
   mcpServerUrl: string;
   toolName: string;
@@ -21,7 +21,7 @@ interface OAuthLoginParams {
 /**
  * Handler function for OAuth login
  */
-export type OAuthLoginHandler = (params: OAuthLoginParams) => void;
+export type OAuthLoginHandler = (params: OAuthLoginParams) => Promise<void>;
 
 interface ConnectToolCardProps {
   toolId: string;
@@ -41,7 +41,7 @@ export function ConnectToolCard({
   const [status, setStatus] = useState<'idle' | 'loading' | 'connecting' | 'success' | 'error'>(
     'loading'
   );
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [toolDetails, setToolDetails] = useState<{
     name: string;
     imageUrl?: string;

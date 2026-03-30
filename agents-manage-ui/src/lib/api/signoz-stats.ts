@@ -1,3 +1,5 @@
+import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import { z } from 'zod';
 import {
   AI_OPERATIONS,
@@ -17,7 +19,6 @@ import {
   UNKNOWN_VALUE,
   USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
-import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 
 // ---------- String Constants for Type Safety
 
@@ -208,135 +209,6 @@ type Series = {
 const countFromSeries = (s: Series) => parseInt(s.values?.[0]?.value ?? '0', 10) || 0;
 const numberFromSeries = (s: Series) => Number(s.values?.[0]?.value ?? 0) || 0;
 
-const DAY_IN_SECONDS = 86400;
-
-const dateKeyFromMs = (ms: number) => {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
-const timestampMsFromValue = (raw: unknown): number => {
-  if (raw == null) return 0;
-  if (typeof raw === 'number') {
-    if (raw > 1e15) return nsToMs(raw);
-    if (raw > 1e12) return raw;
-    if (raw > 0) return raw * 1000;
-    return 0;
-  }
-  if (typeof raw === 'string') {
-    const num = Number(raw);
-    if (!Number.isNaN(num)) return timestampMsFromValue(num);
-    const parsed = new Date(raw).getTime();
-    return Number.isNaN(parsed) ? 0 : parsed;
-  }
-  return 0;
-};
-
-const extractTimeSeriesBuckets = (resp: any, name: string): Map<string, number> => {
-  const buckets = new Map<string, number>();
-  const addToBucket = (ms: number, value: number) => {
-    if (!ms) return;
-    buckets.set(dateKeyFromMs(ms), (buckets.get(dateKeyFromMs(ms)) ?? 0) + value);
-  };
-
-  const results = resp?.data?.data?.results ?? resp?.data?.results;
-  if (!Array.isArray(results)) return buckets;
-  const result = results.find((r: any) => r?.queryName === name);
-  if (!result) return buckets;
-
-  const seriesList: any[] = result.aggregations
-    ? result.aggregations.flatMap((agg: any) => agg.series ?? [])
-    : (result.series ?? []);
-
-  if (seriesList.length > 0) {
-    for (const s of seriesList) {
-      for (const v of s.values ?? []) {
-        addToBucket(timestampMsFromValue(v.timestamp ?? v.ts ?? v.time), Number(v.value ?? 0) || 0);
-      }
-    }
-    return buckets;
-  }
-
-  const columns: Array<{ name: string; columnType: string }> = result.columns ?? [];
-  const rows: unknown[][] = result.data ?? [];
-  if (columns.length === 0 || rows.length === 0) return buckets;
-  const tsIdx = columns.findIndex((c) => /time|timestamp/i.test(c.name));
-  const valIdx = columns.findIndex((c) => c.columnType === 'aggregation');
-  if (tsIdx < 0 || valIdx < 0) return buckets;
-  for (const row of rows) {
-    addToBucket(timestampMsFromValue(row[tsIdx]), Number(row[valIdx] ?? 0) || 0);
-  }
-  return buckets;
-};
-
-type UsageCostGroupBy = 'model' | 'agent' | 'generation_type' | 'conversation' | 'provider';
-
-interface UsageCostSummaryRow {
-  groupKey: string;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  totalTokens: number;
-  totalEstimatedCostUsd: number;
-  eventCount: number;
-}
-
-// Single source of truth for cost-summary aggregations: the expression list
-// sent to SigNoz and the response-column indices used to parse it are both
-// derived from this array, so reordering it keeps them in sync.
-const USAGE_COST_AGGREGATION_ORDER = [
-  { key: 'inputTokens', expression: `sum(${SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS})` },
-  { key: 'outputTokens', expression: `sum(${SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS})` },
-  { key: 'cost', expression: `sum(${SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD})` },
-  { key: 'eventCount', expression: 'count()' },
-] as const;
-
-type UsageCostAggregationKey = (typeof USAGE_COST_AGGREGATION_ORDER)[number]['key'];
-
-const USAGE_COST_AGGREGATIONS = USAGE_COST_AGGREGATION_ORDER.map((a) => a.expression);
-
-const USAGE_COST_AGGREGATION_INDEX = Object.fromEntries(
-  USAGE_COST_AGGREGATION_ORDER.map((a, i) => [a.key, i])
-) as Record<UsageCostAggregationKey, number>;
-
-const usageCostQueryName = (groupBy: UsageCostGroupBy): string => `usageCost_${groupBy}`;
-
-const usageCostGroupByKey = (groupBy: UsageCostGroupBy): string => {
-  switch (groupBy) {
-    case 'model':
-      return SPAN_KEYS.AI_MODEL_ID;
-    case 'agent':
-      return SPAN_KEYS.AGENT_ID;
-    case 'generation_type':
-      return SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE;
-    case 'conversation':
-      return SPAN_KEYS.CONVERSATION_ID;
-    case 'provider':
-      return SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER;
-  }
-};
-
-const seriesToUsageSummaryRows = (series: Series[], groupByKey: string): UsageCostSummaryRow[] => {
-  const readNumber = (s: Series, key: UsageCostAggregationKey) =>
-    Number(s.values?.[USAGE_COST_AGGREGATION_INDEX[key]]?.value ?? 0) || 0;
-  const readInt = (s: Series, key: UsageCostAggregationKey) =>
-    parseInt(s.values?.[USAGE_COST_AGGREGATION_INDEX[key]]?.value ?? '0', 10) || 0;
-
-  return series
-    .map((s) => {
-      const totalInputTokens = readNumber(s, 'inputTokens');
-      const totalOutputTokens = readNumber(s, 'outputTokens');
-      return {
-        groupKey: s.labels?.[groupByKey] || UNKNOWN_VALUE,
-        totalInputTokens,
-        totalOutputTokens,
-        totalTokens: totalInputTokens + totalOutputTokens,
-        totalEstimatedCostUsd: readNumber(s, 'cost'),
-        eventCount: readInt(s, 'eventCount'),
-      };
-    })
-    .sort((a, b) => b.totalTokens - a.totalTokens);
-};
-
 const datesRange = (startMs: number, endMs: number) => {
   const start = new Date(startMs);
   start.setHours(0, 0, 0, 0);
@@ -352,6 +224,11 @@ const datesRange = (startMs: number, endMs: number) => {
 };
 
 // ---------- Client
+
+axiosRetry(axios, {
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay,
+});
 
 const CRITICAL_ERROR_SPAN_NAMES = [
   'execution_handler.execute',
@@ -385,21 +262,21 @@ class SigNozStatsAPI {
       ...(projectId && { projectId }),
     };
 
-    const response = await fetchWithRetry(`/api/traces?tenantId=${this.tenantId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestPayload),
-      credentials: 'include',
+    const response = await axios.post<T>(`/api/traces?tenantId=${this.tenantId}`, requestPayload, {
       timeout: 30000,
-      maxAttempts: 3,
-      label: 'signoz-stats-query',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
-    }
-
-    return response.json() as Promise<T>;
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+      'axios-retry': {
+        retries: 3,
+        retryDelay: axiosRetry.exponentialDelay,
+        retryCondition: (error: import('axios').AxiosError) =>
+          axiosRetry.isNetworkError(error) ||
+          (error.response !== undefined && error.response.status >= 500),
+      },
+    } as any);
+    return response.data;
   }
 
   private async makePipelineRequest(
@@ -410,21 +287,23 @@ class SigNozStatsAPI {
       throw new Error('TenantId not set. Call setTenantId() before making requests.');
     }
 
-    const response = await fetchWithRetry(`/api/traces?tenantId=${this.tenantId}&mode=batch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paginationPayload, detailPayloadTemplate }),
-      credentials: 'include',
-      timeout: 60000,
-      maxAttempts: 3,
-      label: 'signoz-stats-batch-query',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
-    }
-
-    return response.json();
+    const response = await axios.post(
+      `/api/traces?tenantId=${this.tenantId}&mode=batch`,
+      { paginationPayload, detailPayloadTemplate },
+      {
+        timeout: 60000,
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true,
+        'axios-retry': {
+          retries: 3,
+          retryDelay: axiosRetry.exponentialDelay,
+          retryCondition: (error: import('axios').AxiosError) =>
+            axiosRetry.isNetworkError(error) ||
+            (error.response !== undefined && error.response.status >= 500),
+        },
+      } as any
+    );
+    return response.data;
   }
 
   // --- Helpers to read SigNoz response
@@ -2718,40 +2597,87 @@ class SigNozStatsAPI {
   async getUsageCostSummary(
     startTime: number,
     endTime: number,
-    groupBy: UsageCostGroupBy,
+    groupBy: 'model' | 'agent' | 'generation_type' | 'conversation',
     projectId?: string
-  ): Promise<UsageCostSummaryRow[]> {
-    const result = await this.getUsageCostSummaries(startTime, endTime, [groupBy], projectId);
-    return result[groupBy];
-  }
-
-  async getUsageCostSummaries<G extends UsageCostGroupBy>(
-    startTime: number,
-    endTime: number,
-    groupings: readonly G[],
-    projectId?: string
-  ): Promise<Record<G, UsageCostSummaryRow[]>> {
-    const empty = Object.fromEntries(
-      groupings.map((g) => [g, [] as UsageCostSummaryRow[]])
-    ) as Record<G, UsageCostSummaryRow[]>;
-    if (groupings.length === 0) return empty;
-
+  ): Promise<
+    Array<{
+      groupKey: string;
+      totalInputTokens: number;
+      totalOutputTokens: number;
+      totalTokens: number;
+      totalEstimatedCostUsd: number;
+      eventCount: number;
+    }>
+  > {
     try {
       const resp = await this.makeRequest(
-        this.buildUsageCostMultiGroupPayload(startTime, endTime, groupings, projectId),
+        this.buildUsageCostPayload(startTime, endTime, groupBy, projectId),
         projectId
       );
 
-      const out = { ...empty };
-      for (const g of groupings) {
-        const series = this.extractSeries(resp, usageCostQueryName(g));
-        const groupByKey = usageCostGroupByKey(g);
-        out[g] = seriesToUsageSummaryRows(series, groupByKey);
+      const inputSeries = this.extractSeries(resp, 'inputTokens');
+      const outputSeries = this.extractSeries(resp, 'outputTokens');
+      const costSeries = this.extractSeries(resp, 'cost');
+      const countSeries = this.extractSeries(resp, 'eventCount');
+
+      const groupByKey =
+        groupBy === 'model'
+          ? SPAN_KEYS.AI_MODEL_ID
+          : groupBy === 'agent'
+            ? SPAN_KEYS.AGENT_ID
+            : groupBy === 'generation_type'
+              ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
+              : groupBy === 'conversation'
+                ? SPAN_KEYS.CONVERSATION_ID
+                : 'timestamp';
+
+      const stats = new Map<
+        string,
+        { inputTokens: number; outputTokens: number; cost: number; count: number }
+      >();
+
+      for (const s of inputSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.inputTokens += val;
+        stats.set(key, existing);
       }
-      return out;
+      for (const s of outputSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.outputTokens += val;
+        stats.set(key, existing);
+      }
+      for (const s of costSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.cost += val;
+        stats.set(key, existing);
+      }
+      for (const s of countSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = countFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.count += val;
+        stats.set(key, existing);
+      }
+
+      return [...stats.entries()]
+        .map(([groupKey, data]) => ({
+          groupKey,
+          totalInputTokens: data.inputTokens,
+          totalOutputTokens: data.outputTokens,
+          totalTokens: data.inputTokens + data.outputTokens,
+          totalEstimatedCostUsd: data.cost,
+          eventCount: data.count,
+        }))
+        .sort((a, b) => b.totalTokens - a.totalTokens);
     } catch (e) {
-      console.error('getUsageCostSummaries error:', e);
-      return empty;
+      console.error('getUsageCostSummary error:', e);
+      return [];
     }
   }
 
@@ -2832,7 +2758,6 @@ class SigNozStatsAPI {
                   sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attrCtx),
                   sf(SPAN_KEYS.AI_MODEL_ID, str, attrCtx),
                   sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attrCtx),
-                  sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attrCtx),
                   sf(SPAN_KEYS.AGENT_ID, str, attrCtx),
                   sf(SPAN_KEYS.SUB_AGENT_ID, str, attrCtx),
                   sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attrCtx),
@@ -2876,7 +2801,7 @@ class SigNozStatsAPI {
           timestamp: ts,
           generationType: d[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE] || 'unknown',
           model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
-          provider: d[SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER] || d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
+          provider: d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
           agentId: d[SPAN_KEYS.AGENT_ID] || '',
           subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
           conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
@@ -2894,57 +2819,7 @@ class SigNozStatsAPI {
     }
   }
 
-  async getUsageCostPerDay(
-    startTime: number,
-    endTime: number,
-    projectId?: string
-  ): Promise<Array<{ date: string; cost: number }>> {
-    try {
-      const filterItems = buildScopedFilterItems('all-usage', projectId);
-
-      const payload = {
-        start: startTime,
-        end: endTime,
-        requestType: REQUEST_TYPES.TIME_SERIES,
-        ...(projectId && { projectId }),
-        compositeQuery: {
-          queries: [
-            {
-              type: QUERY_TYPES.BUILDER_QUERY,
-              spec: {
-                name: 'costPerDay',
-                signal: SIGNALS.TRACES,
-                aggregations: [{ expression: `sum(${SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD})` }],
-                filter: { expression: buildFilterExpression(filterItems) },
-                groupBy: [],
-                order: [],
-                stepInterval: DAY_IN_SECONDS,
-                disabled: QUERY_DEFAULTS.DISABLED,
-              },
-            },
-          ],
-        },
-      };
-
-      const resp = await this.makeRequest(payload, projectId);
-      const buckets = extractTimeSeriesBuckets(resp, 'costPerDay');
-
-      return datesRange(startTime, endTime).map((date) => ({
-        date,
-        cost: buckets.get(date) ?? 0,
-      }));
-    } catch (e) {
-      console.error('getUsageCostPerDay error:', { startTime, endTime, projectId, error: e });
-      return datesRange(startTime, endTime).map((date) => ({ date, cost: 0 }));
-    }
-  }
-
-  private buildUsageCostMultiGroupPayload(
-    start: number,
-    end: number,
-    groupings: readonly UsageCostGroupBy[],
-    projectId?: string
-  ) {
+  private buildUsageCostPayload(start: number, end: number, groupBy: string, projectId?: string) {
     const baseItems: Array<{ key: string; op: string; value: unknown }> = [
       {
         key: SPAN_KEYS.AI_OPERATION_ID,
@@ -2958,20 +2833,32 @@ class SigNozStatsAPI {
       },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
-    const filterExpression = buildFilterExpression(baseItems);
 
-    const queries = groupings.map((g) => ({
+    const groupByKey =
+      groupBy === 'model'
+        ? SPAN_KEYS.AI_MODEL_ID
+        : groupBy === 'agent'
+          ? SPAN_KEYS.AGENT_ID
+          : groupBy === 'generation_type'
+            ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
+            : groupBy === 'conversation'
+              ? SPAN_KEYS.CONVERSATION_ID
+              : SPAN_KEYS.TIMESTAMP;
+
+    const groupByFieldContext = FIELD_CONTEXTS.ATTRIBUTE;
+
+    const makeAggQuery = (queryName: string, aggregateKey: string) => ({
       type: QUERY_TYPES.BUILDER_QUERY,
       spec: {
-        name: usageCostQueryName(g),
+        name: queryName,
         signal: SIGNALS.TRACES,
-        aggregations: USAGE_COST_AGGREGATIONS.map((expression) => ({ expression })),
-        filter: { expression: filterExpression },
+        aggregations: [{ expression: `sum(${aggregateKey})` }],
+        filter: { expression: buildFilterExpression(baseItems) },
         groupBy: [
           {
-            name: usageCostGroupByKey(g),
+            name: groupByKey,
             fieldDataType: FIELD_DATA_TYPES.STRING,
-            fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            fieldContext: groupByFieldContext,
           },
         ],
         order: [],
@@ -2979,14 +2866,42 @@ class SigNozStatsAPI {
         limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
         disabled: QUERY_DEFAULTS.DISABLED,
       },
-    }));
+    });
+
+    const makeCountQuery = (queryName: string) => ({
+      type: QUERY_TYPES.BUILDER_QUERY,
+      spec: {
+        name: queryName,
+        signal: SIGNALS.TRACES,
+        aggregations: [{ expression: 'count()' }],
+        filter: { expression: buildFilterExpression(baseItems) },
+        groupBy: [
+          {
+            name: groupByKey,
+            fieldDataType: FIELD_DATA_TYPES.STRING,
+            fieldContext: groupByFieldContext,
+          },
+        ],
+        order: [],
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+        disabled: QUERY_DEFAULTS.DISABLED,
+      },
+    });
 
     return {
       start,
       end,
       requestType: REQUEST_TYPES.SCALAR,
       ...(projectId && { projectId }),
-      compositeQuery: { queries },
+      compositeQuery: {
+        queries: [
+          makeAggQuery('inputTokens', SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS),
+          makeAggQuery('outputTokens', SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS),
+          makeAggQuery('cost', SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD),
+          makeCountQuery('eventCount'),
+        ],
+      },
     };
   }
 

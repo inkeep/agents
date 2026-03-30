@@ -1,15 +1,12 @@
-import { createRequire } from 'node:module';
 import { env } from './env';
 
 type SentryModule = typeof import('@sentry/node');
-
-const require = createRequire(import.meta.url);
 
 let sentryModule: SentryModule | null = null;
 
 if (env.SENTRY_DSN) {
   try {
-    const Sentry = require('@sentry/node') as SentryModule;
+    const Sentry = await import('@sentry/node');
     Sentry.init({
       dsn: env.SENTRY_DSN,
       environment: env.ENVIRONMENT || 'development',

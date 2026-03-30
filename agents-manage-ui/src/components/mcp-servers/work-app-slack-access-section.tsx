@@ -1,7 +1,7 @@
 'use client';
 
 import { Hash, MessageSquare, Settings, Slack } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,12 +25,12 @@ export function WorkAppSlackAccessSection({
   canEdit,
 }: WorkAppSlackAccessSectionProps) {
   const [accessConfig, setAccessConfig] = useState<SlackMcpAccessConfig | null>(null);
-  const [channelNameMap, setChannelNameMap] = useState(new Map<string, string>());
+  const [channelNameMap, setChannelNameMap] = useState<Map<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  async function loadAccessConfig() {
+  const loadAccessConfig = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -56,16 +56,18 @@ export function WorkAppSlackAccessSection({
     } catch (err) {
       console.error('Failed to load Slack access config:', err);
       setError('Failed to load Slack access configuration');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }
+  }, [tenantId, projectId, tool.id]);
 
   useEffect(() => {
     loadAccessConfig();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadAccessConfig,
-  ]);
+  }, [loadAccessConfig]);
+
+  const handleEditSuccess = () => {
+    loadAccessConfig();
+  };
 
   if (isLoading) {
     return (
@@ -170,7 +172,7 @@ export function WorkAppSlackAccessSection({
         projectId={projectId}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onSuccess={loadAccessConfig}
+        onSuccess={handleEditSuccess}
       />
     </>
   );

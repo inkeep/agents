@@ -21,6 +21,7 @@ export function getJwtSecret(): Uint8Array {
     }
 
     logger.warn(
+      {},
       'INKEEP_AGENTS_JWT_SIGNING_SECRET not set, using insecure default. DO NOT USE IN PRODUCTION!'
     );
     return new TextEncoder().encode(DEV_SECRET);
@@ -161,17 +162,4 @@ export function decodeJwtPayload(token: string): Record<string, unknown> | null 
 export function hasIssuer(token: string, issuer: string): boolean {
   const payload = decodeJwtPayload(token);
   return payload?.iss === issuer;
-}
-
-/**
- * Derive a deterministic kid from a PEM-encoded public key.
- * The kid is a truncated SHA-256 hash prefixed with 'pg-'.
- */
-export async function deriveKidFromPublicKey(publicKeyPem: string): Promise<string> {
-  const data = new TextEncoder().encode(publicKeyPem);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashHex = Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-  return `pg-${hashHex.substring(0, 12)}`;
 }
