@@ -762,6 +762,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             apiKeyId: `app:${app.id}`,
             metadata: {
               endUserId,
+              initiatedBy: { type: 'user' as const, id: endUserId },
               authMethod,
               ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
             },
@@ -830,6 +831,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       apiKeyId: `app:${app.id}`,
       metadata: {
         endUserId,
+        ...(endUserId ? { initiatedBy: { type: 'user' as const, id: endUserId } } : {}),
         authMethod,
         appPrompt: app.prompt || undefined,
       },
