@@ -4,22 +4,19 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 function buildCsp() {
+  // PostHog Cloud may use multiple changing subdomains; keep CSP aligned with:
+  // https://posthog.com/docs/advanced/content-security-policy
+  const posthogHost = process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST;
+  const sentryDsn = process.env.PUBLIC_SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+
   const connectSrcDomains = [
     "'self'",
     process.env.PUBLIC_INKEEP_AGENTS_API_URL || process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL,
-    process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    posthogHost ? 'https://*.posthog.com' : null,
+    sentryDsn ? 'https://*.sentry.io' : null,
     process.env.PUBLIC_SIGNOZ_URL || process.env.NEXT_PUBLIC_SIGNOZ_URL,
     process.env.PUBLIC_NANGO_SERVER_URL || process.env.NEXT_PUBLIC_NANGO_SERVER_URL,
     process.env.PUBLIC_NANGO_CONNECT_BASE_URL || process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL,
-    process.env.NEXT_PUBLIC_SENTRY_DSN
-      ? (() => {
-          try {
-            return new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).origin;
-          } catch {
-            return null;
-          }
-        })()
-      : null,
   ]
     .filter(Boolean)
     .join(' ');
@@ -32,14 +29,18 @@ function buildCsp() {
     .filter(Boolean)
     .join(' ');
 
-  const scriptSrc =
-    process.env.NODE_ENV === 'production'
-      ? "'self' 'unsafe-inline'"
-      : "'self' 'unsafe-inline' 'unsafe-eval'";
+  const scriptSrcDomains = [
+    "'self'",
+    "'unsafe-inline'",
+    process.env.NODE_ENV === 'production' ? null : "'unsafe-eval'",
+    posthogHost ? 'https://*.posthog.com' : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return [
     `default-src 'self'`,
-    `script-src ${scriptSrc}`,
+    `script-src ${scriptSrcDomains}`,
     `style-src 'self' 'unsafe-inline'`,
     `font-src 'self'`,
     `img-src 'self' https: data:`,
