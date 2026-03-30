@@ -45,17 +45,21 @@ const logger = getLogger('relationships Tools');
 // Re-export A2A_RETRY_STATUS_CODES from agents-core for compatibility
 const A2A_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
 
+const delegationMetadataSchema = z.object({
+  conversationId: z.string(),
+  threadId: z.string(),
+  streamRequestId: z.string().optional(),
+  streamBaseUrl: z.string().optional(),
+  apiKey: z.string().optional(),
+});
+
+type DelegationMetadata = z.infer<typeof delegationMetadataSchema>;
+
 function getDelegationMetadata(params: {
   isInternal: boolean;
   callingAgentId: string;
   delegationId: string;
-  metadata: {
-    conversationId: string;
-    threadId: string;
-    streamRequestId?: string;
-    streamBaseUrl?: string;
-    apiKey?: string;
-  };
+  metadata: DelegationMetadata;
 }) {
   const { isInternal, callingAgentId, delegationId, metadata } = params;
   const { apiKey: _apiKey, ...safeMetadata } = metadata;
@@ -289,13 +293,7 @@ export function createDelegateToAgentTool({
   callingAgentId: string;
   executionContext: FullExecutionContext;
   contextId: string;
-  metadata: {
-    conversationId: string;
-    threadId: string;
-    streamRequestId?: string;
-    streamBaseUrl?: string;
-    apiKey?: string;
-  };
+  metadata: DelegationMetadata;
   sessionId?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
 }) {
