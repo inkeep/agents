@@ -22,8 +22,6 @@ export async function fetchDatasetAgents(
   projectId: string,
   datasetId: string
 ): Promise<AgentRelation[]> {
-
-
   const res = await makeManagementApiRequest<{ data: AgentRelation[] }>(
     `${evalsPath(tenantId, projectId)}/datasets/${datasetId}/agents`
   );
@@ -36,8 +34,6 @@ export async function addDatasetAgent(
   datasetId: string,
   agentId: string
 ): Promise<AgentRelation> {
-
-
   const res = await makeManagementApiRequest<{ data: AgentRelation }>(
     `${evalsPath(tenantId, projectId)}/datasets/${datasetId}/agents/${agentId}`,
     { method: 'POST' }
@@ -51,8 +47,6 @@ export async function removeDatasetAgent(
   datasetId: string,
   agentId: string
 ): Promise<void> {
-
-
   await makeManagementApiRequest(
     `${evalsPath(tenantId, projectId)}/datasets/${datasetId}/agents/${agentId}`,
     { method: 'DELETE' }
@@ -64,8 +58,6 @@ export async function fetchEvaluatorAgents(
   projectId: string,
   evaluatorId: string
 ): Promise<AgentRelation[]> {
-
-
   const res = await makeManagementApiRequest<{ data: AgentRelation[] }>(
     `${evalsPath(tenantId, projectId)}/evaluators/${evaluatorId}/agents`
   );
@@ -78,8 +70,6 @@ export async function addEvaluatorAgent(
   evaluatorId: string,
   agentId: string
 ): Promise<AgentRelation> {
-
-
   const res = await makeManagementApiRequest<{ data: AgentRelation }>(
     `${evalsPath(tenantId, projectId)}/evaluators/${evaluatorId}/agents/${agentId}`,
     { method: 'POST' }
@@ -93,8 +83,6 @@ export async function removeEvaluatorAgent(
   evaluatorId: string,
   agentId: string
 ): Promise<void> {
-
-
   await makeManagementApiRequest(
     `${evalsPath(tenantId, projectId)}/evaluators/${evaluatorId}/agents/${agentId}`,
     { method: 'DELETE' }
