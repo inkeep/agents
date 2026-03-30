@@ -27,7 +27,6 @@ import { ArtifactService } from '../artifacts/ArtifactService';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
   ARTIFACT_GENERATION_BACKOFF_MAX_MS,
-  ARTIFACT_SAVE_MAX_RETRIES,
   ARTIFACT_SAVE_RETRY_DELAY_MS,
   ARTIFACT_SESSION_MAX_PENDING,
   ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES,
@@ -221,8 +220,6 @@ export class AgentSession {
   private isTextStreaming: boolean = false;
   private isGeneratingUpdate: boolean = false;
   private pendingArtifacts = new Set<string>(); // Track pending artifact processing
-  private artifactProcessingErrors = new Map<string, number>(); // Track errors per artifact
-  private readonly MAX_SAVE_RETRIES = ARTIFACT_SAVE_MAX_RETRIES;
   private readonly MAX_PENDING_ARTIFACTS = ARTIFACT_SESSION_MAX_PENDING; // Prevent unbounded growth
   private scheduledTimeouts?: Set<ReturnType<typeof setTimeout>>; // Track scheduled timeouts for cleanup
   private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
@@ -454,57 +451,34 @@ export class AgentSession {
           this.processArtifact(artifactDataWithAgent)
             .then(() => {
               this.pendingArtifacts.delete(artifactId);
-              this.artifactProcessingErrors.delete(artifactId);
             })
             .catch((error) => {
-              const errorCount = (this.artifactProcessingErrors.get(artifactId) || 0) + 1;
-              this.artifactProcessingErrors.set(artifactId, errorCount);
-
-              if (errorCount > this.MAX_SAVE_RETRIES) {
-                this.pendingArtifacts.delete(artifactId);
-                logger.error(
-                  {
-                    sessionId: this.sessionId,
-                    artifactId,
-                    errorCount,
-                    maxRetries: this.MAX_SAVE_RETRIES,
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                    stack: error instanceof Error ? error.stack : undefined,
-                  },
-                  'Artifact processing failed after retry, giving up'
-                );
-              } else {
-                logger.warn(
-                  {
-                    sessionId: this.sessionId,
-                    artifactId,
-                    errorCount,
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                  },
-                  'Artifact processing failed, retrying'
-                );
-                setTimeout(() => {
-                  this.processArtifact(artifactDataWithAgent)
-                    .then(() => {
-                      this.pendingArtifacts.delete(artifactId);
-                      this.artifactProcessingErrors.delete(artifactId);
-                    })
-                    .catch((retryError) => {
-                      this.pendingArtifacts.delete(artifactId);
-                      logger.error(
-                        {
-                          sessionId: this.sessionId,
-                          artifactId,
-                          errorCount: errorCount + 1,
-                          maxRetries: this.MAX_SAVE_RETRIES,
-                          error: retryError instanceof Error ? retryError.message : 'Unknown error',
-                          stack: retryError instanceof Error ? retryError.stack : undefined,
-                        },
-                        'Artifact processing failed after retry, giving up'
-                      );
-                    });
-                }, ARTIFACT_SAVE_RETRY_DELAY_MS);
-              }
+              logger.warn(
+                {
+                  sessionId: this.sessionId,
+                  artifactId,
+                  error: error instanceof Error ? error.message : 'Unknown error',
+                },
+                'Artifact processing failed, retrying'
+              );
+              setTimeout(() => {
+                this.processArtifact(artifactDataWithAgent)
+                  .then(() => {
+                    this.pendingArtifacts.delete(artifactId);
+                  })
+                  .catch((retryError) => {
+                    this.pendingArtifacts.delete(artifactId);
+                    logger.error(
+                      {
+                        sessionId: this.sessionId,
+                        artifactId,
+                        error: retryError instanceof Error ? retryError.message : 'Unknown error',
+                        stack: retryError instanceof Error ? retryError.stack : undefined,
+                      },
+                      'Artifact processing failed after retry, giving up'
+                    );
+                  });
+              }, ARTIFACT_SAVE_RETRY_DELAY_MS);
             });
         });
       }
@@ -694,7 +668,6 @@ export class AgentSession {
 
     // Clean up artifact tracking maps to prevent memory leaks
     this.pendingArtifacts.clear();
-    this.artifactProcessingErrors.clear();
 
     // Clear artifact cache for this session
     this.artifactCache.clear();

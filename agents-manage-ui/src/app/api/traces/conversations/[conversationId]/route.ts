@@ -1105,6 +1105,7 @@ export async function GET(
       const retrievalBlocked = getField(span, SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED) === true;
       const originalTokenSize = getNumber(span, SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE, 0);
       const contextWindowSize = getNumber(span, SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE, 0);
+
       const artifactProcessing = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
         id: artifactProcessing,

@@ -39,7 +39,6 @@ vi.mock('@inkeep/agents-core', () => ({
   })),
   setSpanWithError: vi.fn(),
   upsertLedgerArtifact: vi.fn(() => vi.fn()),
-  bulkInsertLedgerArtifacts: vi.fn(() => vi.fn()),
   generateId: vi.fn(() => 'mock-id'),
 }));
 

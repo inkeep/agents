@@ -197,51 +197,6 @@ export const upsertLedgerArtifact =
   };
 
 /**
- * Insert multiple artifacts, skipping any that already exist (by primary key).
- * Used for binary child artifacts where deduplication is handled in-memory and
- * a single atomic statement is preferred over per-row upserts.
- */
-export const bulkInsertLedgerArtifacts =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    contextId: string;
-    taskId: string;
-    toolCallId?: string | null;
-    artifacts: Artifact[];
-  }): Promise<void> => {
-    const { scopes, contextId, taskId, toolCallId = null, artifacts } = params;
-    if (artifacts.length === 0) return;
-
-    const now = new Date().toISOString();
-    const rows = artifacts.map((artifact) => {
-      const sanitizedArt = sanitizeArtifactForDatabase(artifact);
-      return {
-        id: sanitizedArt.artifactId ?? generateId(),
-        tenantId: scopes.tenantId,
-        projectId: scopes.projectId,
-        taskId,
-        toolCallId,
-        contextId,
-        type: sanitizedArt.type ?? 'source',
-        name: sanitizedArt.name,
-        description: sanitizedArt.description,
-        parts: sanitizedArt.parts,
-        metadata: sanitizedArt.metadata,
-        summary: sanitizedArt.description?.slice(0, 200) ?? null,
-        mime: determineMimeTypes(sanitizedArt),
-        visibility: (sanitizedArt.metadata as any)?.visibility ?? 'context',
-        allowedAgents: (sanitizedArt.metadata as any)?.allowedAgents ?? [],
-        derivedFrom: (sanitizedArt.metadata as any)?.derivedFrom ?? null,
-        createdAt: now,
-        updatedAt: now,
-      };
-    });
-
-    await db.insert(ledgerArtifacts).values(rows).onConflictDoNothing();
-  };
-
-/**
  * Save one or more artifacts to the ledger
  */
 export const addLedgerArtifacts =
