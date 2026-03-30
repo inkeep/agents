@@ -1,5 +1,32 @@
 # @inkeep/agents-api
 
+## 0.63.0
+
+### Minor Changes
+
+- 0f77d00: Add scheduler workflow with centralized trigger dispatch and deploy restart endpoint
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+  - @inkeep/agents-work-apps@0.63.0
+  - @inkeep/agents-email@0.63.0
+  - @inkeep/agents-mcp@0.63.0
+
+## 0.62.2
+
+### Patch Changes
+
+- f614c56: Add environment-aware domain verification for the playground app
+- ccedaca: Harden media download route to allowlist only safe image MIME types instead of blocklisting HTML
+- Updated dependencies [f614c56]
+- Updated dependencies [6332134]
+  - @inkeep/agents-core@0.62.2
+  - @inkeep/agents-email@0.62.2
+  - @inkeep/agents-work-apps@0.62.2
+  - @inkeep/agents-mcp@0.62.2
+
 ## 0.62.1
 
 ### Patch Changes

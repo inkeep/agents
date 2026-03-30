@@ -1,5 +1,28 @@
 # @inkeep/agents-manage-ui
 
+## 0.63.0
+
+### Minor Changes
+
+- 0f77d00: Add scheduler workflow with centralized trigger dispatch and deploy restart endpoint
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+
+## 0.62.2
+
+### Patch Changes
+
+- fe4b442: Prevent sidebar links rerenders on query param changes
+- c799d92: Fix ExternalLink icon shrinking in flex containers
+- 9ee6ab7: Remove redundant client-side `validateProjectId` and `validateTenantId` calls that duplicated server-side Zod validation
+- 9bba8fc: Fix CSP policy for PostHog and Sentry to use wildcard subdomains instead of exact host URLs
+- ea88f5f: Fix local login CSP defaults so auth requests reach the API without extra public env vars.
+- Updated dependencies [f614c56]
+  - @inkeep/agents-core@0.62.2
+
 ## 0.62.1
 
 ### Patch Changes

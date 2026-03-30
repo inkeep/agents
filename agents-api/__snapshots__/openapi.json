@@ -534,12 +534,6 @@
                 "maxLength": 5000,
                 "type": "string"
               },
-              "scheduledTriggers": {
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/ScheduledTriggerInsertBase"
-                },
-                "type": "object"
-              },
               "statusUpdates": {
                 "$ref": "#/components/schemas/StatusUpdate"
               },
@@ -637,13 +631,6 @@
                   }
                 ]
               },
-              "scheduledTriggers": {
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/ScheduledTrigger"
-                },
-                "nullable": true,
-                "type": "object"
-              },
               "statusUpdates": {
                 "allOf": [
                   {
@@ -692,7 +679,6 @@
               "teamAgents",
               "functionTools",
               "functions",
-              "scheduledTriggers",
               "contextConfig"
             ],
             "type": "object"
@@ -6837,9 +6823,9 @@
             "type": "string"
           },
           "maxRetries": {
-            "maximum": 9007199254740991,
-            "minimum": -9007199254740991,
-            "type": "number"
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "type": "integer"
           },
           "messageTemplate": {
             "nullable": true,
@@ -6849,6 +6835,10 @@
             "maxLength": 256,
             "type": "string"
           },
+          "nextRunAt": {
+            "nullable": true,
+            "type": "string"
+          },
           "payload": {
             "additionalProperties": {
               "nullable": true
@@ -6856,10 +6846,14 @@
             "nullable": true,
             "type": "object"
           },
+          "ref": {
+            "maxLength": 256,
+            "type": "string"
+          },
           "retryDelaySeconds": {
-            "maximum": 9007199254740991,
-            "minimum": -9007199254740991,
-            "type": "number"
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "type": "integer"
           },
           "runAsUserId": {
             "allOf": [
@@ -6877,9 +6871,9 @@
             "type": "string"
           },
           "timeoutSeconds": {
-            "maximum": 9007199254740991,
-            "minimum": -9007199254740991,
-            "type": "number"
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "type": "integer"
           },
           "updatedAt": {
             "type": "string"
@@ -6899,6 +6893,8 @@
           "timeoutSeconds",
           "runAsUserId",
           "createdBy",
+          "nextRunAt",
+          "ref",
           "createdAt",
           "updatedAt"
         ],
@@ -6960,90 +6956,11 @@
             "nullable": true,
             "type": "object"
           },
-          "retryDelaySeconds": {
-            "default": 60,
-            "maximum": 3600,
-            "minimum": 10,
-            "type": "integer"
-          },
-          "runAsUserId": {
+          "ref": {
+            "default": "main",
+            "description": "Branch ref to run the agent from",
             "maxLength": 256,
-            "nullable": true,
             "type": "string"
-          },
-          "runAt": {
-            "description": "One-time execution timestamp",
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "timeoutSeconds": {
-            "default": 780,
-            "maximum": 780,
-            "minimum": 30,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "type": "object"
-      },
-      "ScheduledTriggerInsertBase": {
-        "properties": {
-          "createdBy": {
-            "description": "User ID of the user who created this trigger",
-            "example": "user_123",
-            "nullable": true,
-            "type": "string"
-          },
-          "cronExpression": {
-            "$ref": "#/components/schemas/CronExpression"
-          },
-          "cronTimezone": {
-            "default": "UTC",
-            "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
-            "maxLength": 64,
-            "nullable": true,
-            "type": "string"
-          },
-          "description": {
-            "description": "Scheduled trigger description",
-            "nullable": true,
-            "type": "string"
-          },
-          "enabled": {
-            "default": true,
-            "description": "Whether the trigger is enabled",
-            "type": "boolean"
-          },
-          "id": {
-            "$ref": "#/components/schemas/ResourceId"
-          },
-          "maxRetries": {
-            "default": 1,
-            "maximum": 10,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "messageTemplate": {
-            "description": "Message template with {{placeholder}} syntax",
-            "minLength": 1,
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "description": "Scheduled trigger name",
-            "minLength": 1,
-            "type": "string"
-          },
-          "payload": {
-            "additionalProperties": {
-              "nullable": true
-            },
-            "description": "Static payload for agent execution",
-            "nullable": true,
-            "type": "object"
           },
           "retryDelaySeconds": {
             "default": 60,
@@ -7273,6 +7190,11 @@
             "nullable": true,
             "type": "object"
           },
+          "ref": {
+            "description": "Branch ref to run the agent from",
+            "maxLength": 256,
+            "type": "string"
+          },
           "retryDelaySeconds": {
             "maximum": 3600,
             "minimum": 10,
@@ -7336,8 +7258,7 @@
             "required": [
               "lastRunAt",
               "lastRunStatus",
-              "lastRunConversationIds",
-              "nextRunAt"
+              "lastRunConversationIds"
             ],
             "type": "object"
           }
@@ -10762,6 +10683,27 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/deploy/restart-scheduler": {
+      "post": {
+        "description": "Called by CI after deploy to restart the scheduler workflow on the latest deployment. Auth via INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
+        "responses": {
+          "200": {
+            "description": "Scheduler workflow restarted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "503": {
+            "description": "Endpoint not available"
+          }
+        },
+        "security": [],
+        "summary": "Restart scheduler workflow on new deployment",
+        "tags": [
+          "Workflows"
+        ]
+      }
+    },
     "/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversation": {
       "post": {
         "operationId": "evaluate-conversation",

@@ -28,11 +28,9 @@ import {
   toTriggerReferenceName,
 } from '../utils';
 import {
-  addScheduledTriggerImports,
   addStatusComponentImports,
   addTriggerImports,
   createReferenceNameMap,
-  createScheduledTriggerReferenceMaps,
   createTriggerReferenceMaps,
   extractIds,
   type ReferenceNameMap,
@@ -158,7 +156,6 @@ interface AgentReferenceNames {
   contextConfig?: string;
   contextHeaders?: string;
   triggers: ReferenceNameMap;
-  scheduledTriggers: ReferenceNameMap;
   statusComponents: ReferenceNameMap;
 }
 
@@ -248,16 +245,6 @@ export function generateAgentDefinition({
         createTriggerReferenceMaps(parsed.triggers, reservedReferenceNames);
       addTriggerImports(sourceFile, triggerReferenceNames, triggerImportRefs);
 
-      const {
-        referenceNames: scheduledTriggerReferenceNames,
-        importRefs: scheduledTriggerImportRefs,
-      } = createScheduledTriggerReferenceMaps(parsed.scheduledTriggers, reservedReferenceNames);
-      addScheduledTriggerImports(
-        sourceFile,
-        scheduledTriggerReferenceNames,
-        scheduledTriggerImportRefs
-      );
-
       const statusComponentReferenceNames = createReferenceNameMap(
         parsed.normalizedStatusComponentIds,
         reservedReferenceNames,
@@ -270,7 +257,6 @@ export function generateAgentDefinition({
         contextConfig: contextConfigReferenceName,
         contextHeaders: contextHeadersReferenceName,
         triggers: triggerReferenceNames,
-        scheduledTriggers: scheduledTriggerReferenceNames,
         statusComponents: statusComponentReferenceNames,
       });
     },
@@ -317,15 +303,6 @@ function writeAgentConfig(
   if (triggerIds.length) {
     agentConfig.triggers = createReferenceGetterValue(
       triggerIds.map((id) => referenceNames.triggers.get(id) ?? toTriggerReferenceName(id))
-    );
-  }
-
-  const scheduledTriggerIds = data.scheduledTriggers ? extractIds(data.scheduledTriggers) : [];
-  if (scheduledTriggerIds.length) {
-    agentConfig.scheduledTriggers = createReferenceGetterValue(
-      scheduledTriggerIds.map(
-        (id) => referenceNames.scheduledTriggers.get(id) ?? toTriggerReferenceName(id)
-      )
     );
   }
 
