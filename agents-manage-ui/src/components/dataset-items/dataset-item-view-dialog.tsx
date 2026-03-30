@@ -60,9 +60,7 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
           <div className="space-y-4">
             <div>
               <Label className="text-sm font-medium">Input</Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                Messages sent to the agent
-              </p>
+              <p className="text-sm text-muted-foreground mt-1">Messages sent to the agent</p>
             </div>
 
             {!hasInput || inputMessages.length === 0 ? (
@@ -88,7 +86,6 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
                 ))}
               </div>
             )}
-
           </div>
 
           {/* Expected Output */}

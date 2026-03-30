@@ -12,9 +12,7 @@ const {
   generateIdMock: vi.fn(() => 'test-generated-id'),
   getConversationHistoryMock: vi.fn(() => vi.fn()),
   resolveRefMock: vi.fn(() => vi.fn(async () => ({ hash: 'test-ref-hash' }))),
-  withRefMock: vi.fn(
-    async (_pool: unknown, _ref: unknown, fn: (db: unknown) => unknown) => fn({})
-  ),
+  withRefMock: vi.fn(async (_pool: unknown, _ref: unknown, fn: (db: unknown) => unknown) => fn({})),
   getProjectScopedRefMock: vi.fn(() => ({ tenantId: 't', projectId: 'p', branch: 'main' })),
   getFullAgentMock: vi.fn(() => vi.fn()),
   ModelFactoryMock: {

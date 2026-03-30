@@ -20,13 +20,10 @@ describe('Agent-Dataset Relations CRUD Routes', () => {
 
   const createTestAgent = async ({ tenantId }: { tenantId: string }) => {
     const id = generateId();
-    const res = await makeRequest(
-      `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ id, name: id, contextConfigId: null }),
-      }
-    );
+    const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents`, {
+      method: 'POST',
+      body: JSON.stringify({ id, name: id, contextConfigId: null }),
+    });
     expect(res.status).toBe(201);
     const body = await res.json();
     return body.data.id as string;

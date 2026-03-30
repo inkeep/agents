@@ -414,7 +414,10 @@ export type DatasetItemInput = {
   messages: Array<{ role: DatasetMessageRole; content: MessageContent }>;
 };
 
-export type DatasetItemExpectedOutput = Array<{ role: DatasetMessageRole; content: MessageContent }>;
+export type DatasetItemExpectedOutput = Array<{
+  role: DatasetMessageRole;
+  content: MessageContent;
+}>;
 
 /**
  * GitHub App installation status.

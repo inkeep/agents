@@ -26,7 +26,11 @@ export async function queueDatasetRunItems(params: {
           tenantId,
           projectId,
           agentId: item.agentId,
-          datasetItemId: item.id ?? (() => { throw new Error(`Dataset item missing id for agent ${item.agentId}`); })(),
+          datasetItemId:
+            item.id ??
+            (() => {
+              throw new Error(`Dataset item missing id for agent ${item.agentId}`);
+            })(),
           datasetItemInput: item.input as DatasetItemInput,
           datasetItemExpectedOutput: item.expectedOutput,
           datasetRunId,

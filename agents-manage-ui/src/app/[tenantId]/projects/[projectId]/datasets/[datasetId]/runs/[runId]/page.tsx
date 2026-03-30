@@ -429,7 +429,10 @@ export default function Page({
                     const isRunning = inv?.status === 'running';
 
                     return (
-                      <TableRow key={item.id} className={isFailed ? 'bg-red-50 dark:bg-red-950/20' : ''}>
+                      <TableRow
+                        key={item.id}
+                        className={isFailed ? 'bg-red-50 dark:bg-red-950/20' : ''}
+                      >
                         <TableCell>
                           <button
                             type="button"
@@ -469,7 +472,7 @@ export default function Page({
                             <span className="text-sm text-red-600 dark:text-red-400">
                               Execution failed
                             </span>
-                          ) : (isPending || isRunning) ? (
+                          ) : isPending || isRunning ? (
                             <span className="text-sm text-muted-foreground">Pending...</span>
                           ) : (
                             <span className="text-sm text-muted-foreground">No conversation</span>
