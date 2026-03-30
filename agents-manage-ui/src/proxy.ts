@@ -2,6 +2,9 @@ import { isSessionCookie } from '@inkeep/agents-core/auth/cookie-names';
 import { isDevelopment } from '@inkeep/agents-core/utils/env-detection';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
+
+const runtimeConfig = getRuntimeConfig();
 
 function buildCsp() {
   // PostHog Cloud may use multiple changing subdomains; keep CSP aligned with:
@@ -11,19 +14,19 @@ function buildCsp() {
 
   const connectSrcDomains = [
     "'self'",
-    process.env.PUBLIC_INKEEP_AGENTS_API_URL || process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL,
+    runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL,
     posthogHost ? 'https://*.posthog.com' : null,
     sentryDsn ? 'https://*.sentry.io' : null,
-    process.env.PUBLIC_SIGNOZ_URL || process.env.NEXT_PUBLIC_SIGNOZ_URL,
-    process.env.PUBLIC_NANGO_SERVER_URL || process.env.NEXT_PUBLIC_NANGO_SERVER_URL,
-    process.env.PUBLIC_NANGO_CONNECT_BASE_URL || process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL,
+    runtimeConfig.PUBLIC_SIGNOZ_URL,
+    runtimeConfig.PUBLIC_NANGO_SERVER_URL,
+    runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
   ]
     .filter(Boolean)
     .join(' ');
 
   const frameSrcDomains = [
     "'self'",
-    process.env.PUBLIC_NANGO_CONNECT_BASE_URL || process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL,
+    runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
     'https://accounts.google.com',
   ]
     .filter(Boolean)
@@ -138,7 +141,7 @@ export async function proxy(request: NextRequest) {
 }
 
 async function tryDevAutoLogin(): Promise<string | null> {
-  const apiUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+  const apiUrl = runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL;
   const bypassSecret = process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
 
   if (!bypassSecret) {
