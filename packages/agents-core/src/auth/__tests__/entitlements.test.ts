@@ -122,21 +122,11 @@ describe('countSeatsByRole', () => {
     expect(count).toBe(2);
   });
 
-  it('includes pending invitations in count', async () => {
+  it('does not count pending invitations', async () => {
     await seedOrg();
     await seedUser('inviter-user');
     await seedMember('member-1', 'member');
     await seedInvitation('new@test.com', 'member', 'pending');
-
-    const count = await countSeatsByRole(testRunDbClient, ORG_ID, 'member');
-    expect(count).toBe(2);
-  });
-
-  it('excludes non-pending invitations', async () => {
-    await seedOrg();
-    await seedUser('inviter-user');
-    await seedMember('member-1', 'member');
-    await seedInvitation('accepted@test.com', 'member', 'accepted');
 
     const count = await countSeatsByRole(testRunDbClient, ORG_ID, 'member');
     expect(count).toBe(1);
@@ -216,16 +206,16 @@ describe('enforcePerRoleSeatLimit', () => {
     );
   });
 
-  it('pending invitations count toward limit', async () => {
+  it('pending invitations do not count toward limit', async () => {
     await seedOrg();
     await seedUser('inviter-user');
     await seedEntitlement(SEAT_RESOURCE_TYPES.MEMBER, 2);
     await seedMember('member-1', 'member');
     await seedInvitation('pending@test.com', 'member', 'pending');
 
-    await expect(enforcePerRoleSeatLimit(testRunDbClient, ORG_ID, 'member')).rejects.toThrow(
-      'member seat limit reached (2/2)'
-    );
+    await expect(
+      enforcePerRoleSeatLimit(testRunDbClient, ORG_ID, 'member')
+    ).resolves.toBeUndefined();
   });
 });
 

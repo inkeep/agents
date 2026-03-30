@@ -6,13 +6,11 @@ import { MembersTable } from '@/components/members/members-table';
 import { OrgRoles } from '@/constants/signoz';
 import { useAuthClient } from '@/contexts/auth-client';
 import { getUserProviders, type UserProvider } from '@/lib/actions/user-accounts';
-import { fetchEntitlements, type OrgEntitlement } from '@/lib/api/entitlements';
 import MembersLoadingSkeleton from './loading';
 
 export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>) {
   const authClient = useAuthClient();
   const { tenantId } = use(params);
-  const [entitlements, setEntitlements] = useState<OrgEntitlement[]>([]);
   const [organization, setOrganization] = useState<
     typeof authClient.$Infer.ActiveOrganization | null
   >();
@@ -28,7 +26,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
     if (!tenantId) return;
 
     try {
-      const [orgResult, memberResult, invitationsResult, entitlementsResult] = await Promise.all([
+      const [orgResult, memberResult, invitationsResult] = await Promise.all([
         authClient.organization.getFullOrganization({
           query: {
             organizationId: tenantId,
@@ -39,10 +37,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
         authClient.organization.listInvitations({
           query: { organizationId: tenantId },
         }),
-        fetchEntitlements(tenantId).catch(() => [] as OrgEntitlement[]),
       ]);
-
-      setEntitlements(entitlementsResult);
 
       if (orgResult.error) {
         setError(orgResult.error.message || 'Failed to fetch organization');
@@ -103,7 +98,6 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
       onMemberUpdated={fetchData}
       isOrgAdmin={isOrgAdmin}
       memberProviders={memberProviders}
-      entitlements={entitlements}
     />
   );
 }

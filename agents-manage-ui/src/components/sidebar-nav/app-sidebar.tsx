@@ -21,7 +21,14 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, type Dispatch, type FC, useCallback } from 'react';
+import {
+  type ComponentProps,
+  type Dispatch,
+  type FC,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import { MCPIcon } from '@/components/icons/mcp-icon';
 import { NavGroup } from '@/components/sidebar-nav/nav-group';
 import { ProjectSwitcher } from '@/components/sidebar-nav/project-switcher';
@@ -35,6 +42,7 @@ import {
 import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
+import { fetchEntitlements } from '@/lib/api/entitlements';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
 import type { NavItemProps } from './nav-item';
@@ -49,6 +57,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const { user } = useAuthSession();
 
   const isWorkAppsEnabled = process.env.NEXT_PUBLIC_ENABLE_WORK_APPS === 'true';
+  const [hasEntitlements, setHasEntitlements] = useState(false);
+
+  useEffect(() => {
+    if (tenantId) {
+      fetchEntitlements(tenantId)
+        .then((entitlements) => setHasEntitlements(entitlements.length > 0))
+        .catch(() => setHasEntitlements(false));
+    }
+  }, [tenantId]);
 
   const topNavItems: NavItemProps[] = projectId
     ? []
@@ -80,11 +97,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       url: `/${tenantId}/members`,
       icon: Users,
     },
-    {
-      title: STATIC_LABELS.billing,
-      url: `/${tenantId}/billing`,
-      icon: CreditCard,
-    },
+    ...(hasEntitlements
+      ? [
+          {
+            title: STATIC_LABELS.billing,
+            url: `/${tenantId}/billing`,
+            icon: CreditCard,
+          },
+        ]
+      : []),
     {
       title: STATIC_LABELS.settings,
       url: `/${tenantId}/settings`,

@@ -1,4 +1,4 @@
-import { type OrgRole, OrgRoles, SEAT_RESOURCE_TYPES } from '@inkeep/agents-core/client-exports';
+import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
 import { ChevronDown, Plus } from 'lucide-react';
 
 import { useMemo, useState } from 'react';
@@ -25,7 +25,7 @@ import {
 import { useAuthClient } from '@/contexts/auth-client';
 import { createPasswordResetLink } from '@/lib/actions/password-reset';
 import type { UserProvider } from '@/lib/actions/user-accounts';
-import type { OrgEntitlement } from '@/lib/api/entitlements';
+
 import { InvitationActionsMenu } from './components/invitation-actions-menu';
 import { MemberActionsMenu } from './components/member-actions-menu';
 import { MemberConfirmationModals } from './components/member-confirmation-modals';
@@ -41,7 +41,6 @@ interface MembersTableProps {
   onMemberUpdated?: () => void;
   isOrgAdmin: boolean;
   memberProviders?: UserProvider[];
-  entitlements?: OrgEntitlement[];
 }
 
 export function MembersTable({
@@ -52,7 +51,6 @@ export function MembersTable({
   onMemberUpdated,
   isOrgAdmin,
   memberProviders = [],
-  entitlements = [],
 }: MembersTableProps) {
   const authClient = useAuthClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -97,28 +95,6 @@ export function MembersTable({
     });
   }, [members]);
 
-  const seatUsage = useMemo(() => {
-    if (entitlements.length === 0) return null;
-
-    const isAdminRole = (role: string) => role === 'owner' || role === 'admin';
-    const adminEntitlement = entitlements.find((e) => e.resourceType === SEAT_RESOURCE_TYPES.ADMIN);
-    const memberEntitlement = entitlements.find(
-      (e) => e.resourceType === SEAT_RESOURCE_TYPES.MEMBER
-    );
-
-    const adminCount =
-      members.filter((m) => isAdminRole(m.role)).length +
-      pendingInvitations.filter((i) => isAdminRole(i.role)).length;
-    const memberCount =
-      members.filter((m) => m.role === 'member').length +
-      pendingInvitations.filter((i) => i.role === 'member').length;
-
-    return {
-      admin: adminEntitlement ? { used: adminCount, max: adminEntitlement.maxValue } : null,
-      member: memberEntitlement ? { used: memberCount, max: memberEntitlement.maxValue } : null,
-    };
-  }, [members, pendingInvitations, entitlements]);
-
   const handleRoleChange = async (member: Member, newRole: OrgRole) => {
     if (!isOrgAdmin) return;
 
@@ -142,8 +118,22 @@ export function MembersTable({
       });
 
       if (error) {
+        const isEntitlementError = error.code === 'ENTITLEMENT_LIMIT_REACHED';
         toast.error('Failed to update role', {
-          description: error.message || 'An error occurred while updating the role.',
+          description: isEntitlementError
+            ? isOrgAdmin
+              ? error.message
+              : `${error.message}. Contact your organization admin.`
+            : error.message || 'An error occurred while updating the role.',
+          ...(isEntitlementError &&
+            isOrgAdmin && {
+              action: {
+                label: 'See usage',
+                onClick: () => {
+                  window.location.href = `/${organizationId}/billing`;
+                },
+              },
+            }),
         });
         return;
       }
@@ -298,20 +288,6 @@ export function MembersTable({
             </Button>
           )}
         </div>
-        {seatUsage && (
-          <div className="flex gap-4 px-4 pb-3 text-sm text-muted-foreground">
-            {seatUsage.admin && (
-              <span>
-                {seatUsage.admin.used}/{seatUsage.admin.max} admin seats
-              </span>
-            )}
-            {seatUsage.member && (
-              <span>
-                {seatUsage.member.used}/{seatUsage.member.max} member seats
-              </span>
-            )}
-          </div>
-        )}
         <Table>
           <TableHeader>
             <TableRow noHover>
@@ -366,30 +342,14 @@ export function MembersTable({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {ROLE_OPTIONS.map((r) => {
-                                const isTargetFull = (() => {
-                                  if (!seatUsage || role === r.value) return false;
-                                  const isAdminTarget = r.value === 'admin' || r.value === 'owner';
-                                  const info = isAdminTarget ? seatUsage.admin : seatUsage.member;
-                                  return info ? info.used >= info.max : false;
-                                })();
                                 return (
                                   <DropdownMenuItem
                                     key={r.value}
-                                    onClick={() =>
-                                      !isTargetFull && handleRoleChange(member, r.value)
-                                    }
-                                    className={`${role === r.value ? 'bg-muted' : ''} ${isTargetFull ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    disabled={isTargetFull}
+                                    onClick={() => handleRoleChange(member, r.value)}
+                                    className={role === r.value ? 'bg-muted' : ''}
                                   >
                                     <div className="flex flex-col">
-                                      <div className="flex items-center gap-2">
-                                        <span>{r.label}</span>
-                                        {isTargetFull && (
-                                          <span className="text-[10px] text-destructive font-medium">
-                                            Seat limit reached
-                                          </span>
-                                        )}
-                                      </div>
+                                      <span>{r.label}</span>
                                       <span className="text-xs text-muted-foreground">
                                         {r.description}
                                       </span>
@@ -489,7 +449,6 @@ export function MembersTable({
         onOpenChange={setInviteDialogOpen}
         isOrgAdmin={isOrgAdmin}
         onInvitationsSent={onMemberUpdated}
-        seatUsage={seatUsage}
       />
 
       <ChangePasswordDialog

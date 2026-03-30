@@ -59,7 +59,8 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
       setEntitlements(entitlementsResult);
 
       if (orgResult.data?.members) {
-        const members = orgResult.data.members;
+        const serviceAccountUserId = (orgResult.data as any).serviceAccountUserId;
+        const members = orgResult.data.members.filter((m) => m.user.id !== serviceAccountUserId);
         const adminCount = members.filter((m) => m.role === 'admin' || m.role === 'owner').length;
         const memberCount = members.filter((m) => m.role === 'member').length;
         setSeatCounts({ admin: adminCount, member: memberCount });

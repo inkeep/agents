@@ -1,9 +1,10 @@
 'use client';
 
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { AlertCircle, Check, Copy, Mail } from 'lucide-react';
+import { AlertCircle, ArrowUpRight, Check, Copy, Mail } from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,17 +21,11 @@ import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { OrgRoleSelector } from './org-role-selector';
 
-interface SeatUsageByRole {
-  admin: { used: number; max: number } | null;
-  member: { used: number; max: number } | null;
-}
-
 interface InviteMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isOrgAdmin: boolean;
   onInvitationsSent?: () => void;
-  seatUsage?: SeatUsageByRole | null;
 }
 
 interface InvitationResult {
@@ -38,6 +33,7 @@ interface InvitationResult {
   status: 'success' | 'error';
   link?: string;
   error?: string;
+  errorCode?: string;
   emailSent?: boolean;
   emailError?: string;
 }
@@ -47,7 +43,6 @@ export function InviteMemberDialog({
   onOpenChange,
   isOrgAdmin,
   onInvitationsSent,
-  seatUsage,
 }: InviteMemberDialogProps) {
   const params = useParams();
   const organizationId = params.tenantId as string;
@@ -59,28 +54,6 @@ export function InviteMemberDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationResults, setInvitationResults] = useState<InvitationResult[]>([]);
-
-  const getSeatInfoForRole = useCallback(
-    (role: OrgRole) => {
-      if (!seatUsage) return null;
-      const isAdmin = role === OrgRoles.ADMIN || role === OrgRoles.OWNER;
-      return isAdmin ? seatUsage.admin : seatUsage.member;
-    },
-    [seatUsage]
-  );
-
-  const isRoleDisabled = useCallback(
-    (role: OrgRole) => {
-      const info = getSeatInfoForRole(role);
-      return info ? info.used >= info.max : false;
-    },
-    [getSeatInfoForRole]
-  );
-
-  const selectedSeatInfo = getSeatInfoForRole(selectedRole);
-  const isSelectedRoleAtCapacity = selectedSeatInfo
-    ? selectedSeatInfo.used >= selectedSeatInfo.max
-    : false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,6 +109,7 @@ export function InviteMemberDialog({
             email,
             status: 'error',
             error: result.error.message || 'Failed to add member',
+            errorCode: result.error.code,
           });
         } else if ('data' in result && result.data && 'id' in result.data) {
           const invitationId = result.data.id;
@@ -259,17 +233,7 @@ export function InviteMemberDialog({
                   onChange={setSelectedRole}
                   disabled={isSubmitting}
                   triggerClassName="w-full h-auto py-2"
-                  isRoleDisabled={isRoleDisabled}
                 />
-                {selectedSeatInfo && (
-                  <p
-                    className={`text-xs ${isSelectedRoleAtCapacity ? 'text-destructive' : 'text-muted-foreground'}`}
-                  >
-                    {isSelectedRoleAtCapacity
-                      ? `No ${selectedRole === OrgRoles.MEMBER ? 'member' : 'admin'} seats remaining`
-                      : `${selectedSeatInfo.max - selectedSeatInfo.used} of ${selectedSeatInfo.max} ${selectedRole === OrgRoles.MEMBER ? 'member' : 'admin'} seats remaining`}
-                  </p>
-                )}
               </div>
 
               {error && (
@@ -287,10 +251,7 @@ export function InviteMemberDialog({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !emails.trim() || isSelectedRoleAtCapacity}
-              >
+              <Button type="submit" disabled={isSubmitting || !emails.trim()}>
                 {isSubmitting ? 'Adding...' : 'Add Members'}
               </Button>
             </DialogFooter>
@@ -345,6 +306,21 @@ export function InviteMemberDialog({
                   {result.status === 'error' && result.error && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-2 ml-6">
                       {result.error}
+                      {result.errorCode === 'ENTITLEMENT_LIMIT_REACHED' && isOrgAdmin && (
+                        <>
+                          {'. '}
+                          <Link
+                            href={`/${organizationId}/billing`}
+                            className="inline-flex items-center gap-0.5 underline hover:text-red-700 dark:hover:text-red-300"
+                          >
+                            See usage
+                            <ArrowUpRight className="h-3 w-3" />
+                          </Link>
+                        </>
+                      )}
+                      {result.errorCode === 'ENTITLEMENT_LIMIT_REACHED' && !isOrgAdmin && (
+                        <>. Contact your organization admin.</>
+                      )}
                     </p>
                   )}
                 </div>

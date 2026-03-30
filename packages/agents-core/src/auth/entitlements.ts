@@ -1,7 +1,6 @@
 import { APIError } from 'better-auth/api';
 import {
   dalCountMembersByRoleBucket,
-  dalCountPendingInvitationsByRoleBucket,
   dalGetServiceAccountUserId,
   dalResolveEntitlement,
   dalSumSeatEntitlements,
@@ -37,9 +36,7 @@ export async function countSeatsByRole(
 ): Promise<number> {
   const isAdmin = roleMatchesAdminBucket(role);
   const serviceAccountUserId = await dalGetServiceAccountUserId(db, orgId);
-  const memberCount = await dalCountMembersByRoleBucket(db, orgId, isAdmin, serviceAccountUserId);
-  const invitationCount = await dalCountPendingInvitationsByRoleBucket(db, orgId, isAdmin);
-  return memberCount + invitationCount;
+  return dalCountMembersByRoleBucket(db, orgId, isAdmin, serviceAccountUserId);
 }
 
 export async function enforcePerRoleSeatLimit(
@@ -53,7 +50,7 @@ export async function enforcePerRoleSeatLimit(
 
   const current = await countSeatsByRole(db, orgId, role);
   if (current >= limit) {
-    const bucket = roleMatchesAdminBucket(role) ? 'admin' : 'member';
+    const bucket = roleMatchesAdminBucket(role) ? 'Admin' : 'Member';
     logger.info(
       { orgId, role, bucket, currentCount: current, maxValue: limit, action: 'enforce' },
       `${bucket} seat limit reached (${current}/${limit})`
