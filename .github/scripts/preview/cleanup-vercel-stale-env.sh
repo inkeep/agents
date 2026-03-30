@@ -1,13 +1,29 @@
 #!/usr/bin/env bash
 # Removes branch-scoped preview env vars for closed/merged PRs from Vercel projects.
-# Requires: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_API_PROJECT_ID, VERCEL_MANAGE_UI_PROJECT_ID
-# Optional: GH_REPO (default: auto-detected by gh), DRY_RUN=true (default: false)
+#
+# Auto-detects VERCEL_TOKEN from local Vercel CLI auth if not set.
+# Requires: VERCEL_ORG_ID, VERCEL_API_PROJECT_ID, VERCEL_MANAGE_UI_PROJECT_ID
+#   (or pass all four via env vars to skip auto-detection)
+# Optional: DRY_RUN=true (default: false)
 # Requires `gh` CLI authenticated with repo read access.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=.github/scripts/preview/common.sh
 source "${SCRIPT_DIR}/common.sh"
+
+if [ -z "${VERCEL_TOKEN:-}" ]; then
+  VERCEL_AUTH_FILE="${HOME}/Library/Application Support/com.vercel.cli/auth.json"
+  if [ ! -f "${VERCEL_AUTH_FILE}" ]; then
+    VERCEL_AUTH_FILE="${HOME}/.local/share/com.vercel.cli/auth.json"
+  fi
+  if [ -f "${VERCEL_AUTH_FILE}" ]; then
+    VERCEL_TOKEN="$(jq -r '.token // empty' "${VERCEL_AUTH_FILE}")"
+    if [ -n "${VERCEL_TOKEN}" ]; then
+      echo "Using VERCEL_TOKEN from local Vercel CLI auth."
+    fi
+  fi
+fi
 
 require_env_vars \
   VERCEL_TOKEN \
