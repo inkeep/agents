@@ -4,7 +4,7 @@ import {
   normalizeInlineImageBytes,
   resolveDownloadedFileMimeType,
 } from '../blob-storage/file-content-security';
-import { MAX_FILE_BYTES } from '../blob-storage/file-security-constants';
+import { MAX_FILE_BYTES, TEXT_DOCUMENT_MAX_BYTES } from '../blob-storage/file-security-constants';
 import {
   BlockedInlineFileExceedingError,
   BlockedInlineUnsupportedFileBytesError,
@@ -116,6 +116,103 @@ describe('file-content-security', () => {
           mimeType: 'application/pdf',
         })
       ).rejects.toBeInstanceOf(BlockedInlineUnsupportedFileBytesError);
+    });
+
+    it('accepts inline text/plain bytes when they are valid UTF-8 text', async () => {
+      const textBytes = Buffer.from('hello\nworld', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: textBytes.toString('base64'),
+        mimeType: 'text/plain',
+      });
+
+      expect(result.mimeType).toBe('text/plain');
+      expect(Buffer.from(result.data).toString('utf8')).toBe('hello\nworld');
+    });
+
+    it('accepts inline text/markdown bytes when they are valid UTF-8 text', async () => {
+      const markdownBytes = Buffer.from('# Title\n\n- item', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: markdownBytes.toString('base64'),
+        mimeType: 'text/markdown',
+      });
+
+      expect(result.mimeType).toBe('text/markdown');
+      expect(Buffer.from(result.data).toString('utf8')).toBe('# Title\n\n- item');
+    });
+
+    it('accepts inline text/html bytes as raw text source', async () => {
+      const htmlBytes = Buffer.from(
+        '<!doctype html><html><body><h1>Hello</h1></body></html>',
+        'utf8'
+      );
+
+      const result = await normalizeInlineFileBytes({
+        bytes: htmlBytes.toString('base64'),
+        mimeType: 'text/html',
+      });
+
+      expect(result.mimeType).toBe('text/html');
+      expect(Buffer.from(result.data).toString('utf8')).toContain('<h1>Hello</h1>');
+    });
+
+    it('accepts inline text/csv bytes when they are valid UTF-8 text', async () => {
+      const csvBytes = Buffer.from('name,count\nalpha,1\nbeta,2\n', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: csvBytes.toString('base64'),
+        mimeType: 'text/csv',
+      });
+
+      expect(result.mimeType).toBe('text/csv');
+      expect(Buffer.from(result.data).toString('utf8')).toContain('name,count');
+    });
+
+    it('accepts inline text/x-log bytes when they are valid UTF-8 text', async () => {
+      const logBytes = Buffer.from('[info] server started\n[warn] retrying\n', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: logBytes.toString('base64'),
+        mimeType: 'text/x-log',
+      });
+
+      expect(result.mimeType).toBe('text/x-log');
+      expect(Buffer.from(result.data).toString('utf8')).toContain('[warn] retrying');
+    });
+
+    it('accepts inline application/json bytes when they are valid UTF-8 text', async () => {
+      const jsonBytes = Buffer.from('{"name":"alpha","count":1}\n', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: jsonBytes.toString('base64'),
+        mimeType: 'application/json',
+      });
+
+      expect(result.mimeType).toBe('application/json');
+      expect(Buffer.from(result.data).toString('utf8')).toContain('"count":1');
+    });
+
+    it('rejects binary bytes masquerading as text/plain', async () => {
+      const binaryBytes = Buffer.from([0x00, 0x9f, 0x92, 0x96, 0xff, 0x00]);
+
+      await expect(
+        normalizeInlineFileBytes({
+          bytes: binaryBytes.toString('base64'),
+          mimeType: 'text/plain',
+        })
+      ).rejects.toBeInstanceOf(BlockedInlineUnsupportedFileBytesError);
+    });
+
+    it('enforces the smaller inline text document size limit', async () => {
+      const oversizedText = Buffer.alloc(TEXT_DOCUMENT_MAX_BYTES + 1, 0x61);
+
+      await expect(
+        normalizeInlineFileBytes({
+          bytes: oversizedText.toString('base64'),
+          mimeType: 'text/plain',
+        })
+      ).rejects.toBeInstanceOf(BlockedInlineFileExceedingError);
     });
   });
 

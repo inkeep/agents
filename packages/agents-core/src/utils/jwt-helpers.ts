@@ -163,3 +163,17 @@ export function hasIssuer(token: string, issuer: string): boolean {
   const payload = decodeJwtPayload(token);
   return payload?.iss === issuer;
 }
+
+/**
+ * Derive a deterministic kid from a PEM-encoded public key.
+ * Used for playground app key registration and token signing.
+ * The kid is a truncated SHA-256 hash prefixed with 'pg-'.
+ */
+export async function derivePlaygroundKid(publicKeyPem: string): Promise<string> {
+  const data = new TextEncoder().encode(publicKeyPem);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashHex = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  return `pg-${hashHex.substring(0, 12)}`;
+}

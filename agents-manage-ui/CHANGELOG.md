@@ -1,5 +1,32 @@
 # @inkeep/agents-manage-ui
 
+## 0.62.2
+
+### Patch Changes
+
+- fe4b442: Prevent sidebar links rerenders on query param changes
+- c799d92: Fix ExternalLink icon shrinking in flex containers
+- 9ee6ab7: Remove redundant client-side `validateProjectId` and `validateTenantId` calls that duplicated server-side Zod validation
+- 9bba8fc: Fix CSP policy for PostHog and Sentry to use wildcard subdomains instead of exact host URLs
+- ea88f5f: Fix local login CSP defaults so auth requests reach the API without extra public env vars.
+- Updated dependencies [f614c56]
+  - @inkeep/agents-core@0.62.2
+
+## 0.62.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.62.1
+
+## 0.62.0
+
+### Patch Changes
+
+- b1507d1: Fix evaluation scoring returning null and display evaluation results in local time
+- ce9c516: Update @inkeep/agents-ui to support getAuthToken, remove max keys limit, add public key hover/copy
+- Updated dependencies [ce9c516]
+  - @inkeep/agents-core@0.62.0
+
 ## 0.61.0
 
 ### Patch Changes

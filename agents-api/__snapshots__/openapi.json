@@ -10606,7 +10606,6 @@
             "items": {
               "$ref": "#/components/schemas/PublicKeyConfig"
             },
-            "maxItems": 5,
             "type": "array"
           },
           "validateScopeClaims": {
@@ -41217,6 +41216,10 @@
                                               },
                                               {
                                                 "format": "uri",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "pattern": "^data:(text\\/(plain|markdown|html|csv|x-log)|application\\/json);base64,",
                                                 "type": "string"
                                               }
                                             ]

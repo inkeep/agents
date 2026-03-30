@@ -1,5 +1,19 @@
 # @inkeep/agents-core
 
+## 0.62.2
+
+### Patch Changes
+
+- f614c56: Add environment-aware domain verification for the playground app
+
+## 0.62.1
+
+## 0.62.0
+
+### Minor Changes
+
+- ce9c516: Add migration to seed global playground app for authenticated chat sessions
+
 ## 0.61.0
 
 ### Patch Changes

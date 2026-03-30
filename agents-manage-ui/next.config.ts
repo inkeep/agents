@@ -41,15 +41,6 @@ const nextConfig: NextConfig = {
     // Fail the build on any compiler diagnostic
     panicThreshold: 'all_errors',
   },
-  redirects() {
-    return [
-      {
-        source: '/:tenantId/projects/:projectId',
-        destination: '/:tenantId/projects/:projectId/agents',
-        permanent: false,
-      },
-    ];
-  },
   turbopack: {
     rules: {
       './**/icons/*.svg': {

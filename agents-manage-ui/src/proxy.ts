@@ -2,6 +2,70 @@ import { isSessionCookie } from '@inkeep/agents-core/auth/cookie-names';
 import { isDevelopment } from '@inkeep/agents-core/utils/env-detection';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
+
+const runtimeConfig = getRuntimeConfig();
+
+function buildCsp() {
+  // PostHog Cloud may use multiple changing subdomains; keep CSP aligned with:
+  // https://posthog.com/docs/advanced/content-security-policy
+  const posthogHost = runtimeConfig.PUBLIC_POSTHOG_HOST ? 'https://*.posthog.com' : null;
+
+  const connectSrcDomains = [
+    "'self'",
+    runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL,
+    posthogHost,
+    process.env.NEXT_PUBLIC_SENTRY_DSN ? 'https://*.sentry.io' : null,
+    runtimeConfig.PUBLIC_SIGNOZ_URL,
+    runtimeConfig.PUBLIC_NANGO_SERVER_URL,
+    runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const frameSrcDomains = [
+    "'self'",
+    runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
+    'https://accounts.google.com',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const scriptSrcDomains = [
+    "'self'",
+    "'unsafe-inline'",
+    process.env.NODE_ENV === 'production' ? null : "'unsafe-eval'",
+    posthogHost,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return [
+    `default-src 'self'`,
+    `script-src ${scriptSrcDomains}`,
+    `style-src 'self' 'unsafe-inline'`,
+    `font-src 'self'`,
+    `img-src 'self' https: data:`,
+    `connect-src ${connectSrcDomains}`,
+    `frame-src ${frameSrcDomains}`,
+    `frame-ancestors 'none'`,
+    `form-action 'self'`,
+    `base-uri 'self'`,
+    `object-src 'none'`,
+    `worker-src 'self' blob:`,
+  ].join('; ');
+}
+
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('Content-Security-Policy', buildCsp());
+  response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('X-XSS-Protection', '0');
+  return response;
+}
 
 const LOGGED_OUT_COOKIE = 'dev-logged-out';
 
@@ -35,8 +99,17 @@ function redirectToLogin(request: NextRequest): NextResponse {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Redirect /:tenantId/projects/:projectId → /:tenantId/projects/:projectId/agents
+  // Handled here instead of next.config.ts redirects() so security headers are applied.
+  const projectRedirectMatch = pathname.match(/^\/([^/]+)\/projects\/([^/]+)$/);
+  if (projectRedirectMatch && !pathname.endsWith('/agents')) {
+    const redirectUrl = new URL(`${pathname}/agents`, request.url);
+    redirectUrl.search = request.nextUrl.search;
+    return applySecurityHeaders(NextResponse.redirect(redirectUrl, 307));
+  }
+
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const hasSession = request.cookies.getAll().some((c) => isSessionCookie(c.name));
@@ -45,29 +118,29 @@ export async function proxy(request: NextRequest) {
     if (request.cookies.has(LOGGED_OUT_COOKIE)) {
       const response = NextResponse.next();
       response.cookies.delete(LOGGED_OUT_COOKIE);
-      return response;
+      return applySecurityHeaders(response);
     }
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   if (isDevelopment()) {
     if (request.cookies.has(LOGGED_OUT_COOKIE)) {
-      return redirectToLogin(request);
+      return applySecurityHeaders(redirectToLogin(request));
     }
 
     const session = await tryDevAutoLogin();
     if (session) {
       const response = NextResponse.next();
       response.headers.set('set-cookie', session);
-      return response;
+      return applySecurityHeaders(response);
     }
   }
 
-  return redirectToLogin(request);
+  return applySecurityHeaders(redirectToLogin(request));
 }
 
 async function tryDevAutoLogin(): Promise<string | null> {
-  const apiUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+  const apiUrl = runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL;
   const bypassSecret = process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
 
   if (!bypassSecret) {

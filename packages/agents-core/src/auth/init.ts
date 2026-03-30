@@ -164,6 +164,25 @@ async function init() {
 
   console.log(`\n🎮 Checking/creating playground app: ${playgroundAppId}`);
 
+  // Derive allowed domains from INKEEP_AGENTS_MANAGE_UI_URL
+  let allowedDomains: string[] = ['localhost', '127.0.0.1'];
+  const manageUiUrl = process.env.INKEEP_AGENTS_MANAGE_UI_URL;
+  if (manageUiUrl) {
+    try {
+      const url = new URL(manageUiUrl);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        allowedDomains = ['localhost', '127.0.0.1'];
+      } else {
+        allowedDomains = [url.hostname];
+      }
+    } catch {
+      console.log(
+        `   ⚠️  Invalid INKEEP_AGENTS_MANAGE_UI_URL: ${manageUiUrl}, using localhost defaults`
+      );
+    }
+  }
+  console.log(`   📋 Playground allowed domains: ${JSON.stringify(allowedDomains)}`);
+
   const existingApp = await getAppById(dbClient)(playgroundAppId);
 
   if (existingApp) {
@@ -172,9 +191,11 @@ async function init() {
     const publicKeys: PublicKeyConfig[] = [];
 
     if (tempJwtPublicKeyB64) {
+      const { derivePlaygroundKid } = await import('../utils/jwt-helpers');
       const publicKeyPem = Buffer.from(tempJwtPublicKeyB64, 'base64').toString('utf-8');
+      const kid = await derivePlaygroundKid(publicKeyPem);
       publicKeys.push({
-        kid: 'playground-rsa',
+        kid,
         publicKey: publicKeyPem,
         algorithm: 'RS256',
         addedAt: new Date().toISOString(),
@@ -188,7 +209,7 @@ async function init() {
     const config: AppConfig = {
       type: 'web_client',
       webClient: {
-        allowedDomains: ['*'],
+        allowedDomains,
         ...(publicKeys.length > 0 ? { auth: { publicKeys, validateScopeClaims: true } } : {}),
       },
     };
@@ -206,7 +227,9 @@ async function init() {
       config,
     });
 
-    console.log(`   ✅ Playground app created: ${playgroundAppId}`);
+    console.log(
+      `   ✅ Playground app created: ${playgroundAppId} (domains: ${JSON.stringify(allowedDomains)})`
+    );
     if (publicKeys.length > 0) {
       console.log(`   ✅ RSA public key configured (kid: playground-rsa)`);
     }
