@@ -167,7 +167,7 @@ export const triggers = pgTable(
   ]
 );
 
-export const scheduledTriggers = pgTable(
+const scheduledTriggers = pgTable(
   'scheduled_triggers',
   {
     ...agentScoped,
@@ -1066,7 +1066,7 @@ export const agentRelations = relations(agents, ({ one, many }) => ({
   scheduledTriggers: many(scheduledTriggers),
 }));
 
-export const scheduledTriggersRelations = relations(scheduledTriggers, ({ one }) => ({
+const _scheduledTriggersRelations = relations(scheduledTriggers, ({ one }) => ({
   agent: one(agents, {
     fields: [scheduledTriggers.tenantId, scheduledTriggers.projectId, scheduledTriggers.agentId],
     references: [agents.tenantId, agents.projectId, agents.id],

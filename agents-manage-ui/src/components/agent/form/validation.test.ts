@@ -110,9 +110,9 @@ describe('FullAgentFormSchema', () => {
       expect(result.data.stopWhen?.transferCountIs).toBe(undefined);
       expect(result.data.contextConfig.contextVariables).toBe(null);
       expect(result.data.contextConfig.headersSchema).toBe(null);
-      expect(result.data.models.base.providerOptions).toBe(undefined);
-      expect(result.data.models.structuredOutput.providerOptions).toBe(undefined);
-      expect(result.data.models.summarizer.providerOptions).toBe(undefined);
+      expect(result.data.models.base?.providerOptions).toBe(undefined);
+      expect(result.data.models.structuredOutput?.providerOptions).toBe(undefined);
+      expect(result.data.models.summarizer?.providerOptions).toBe(undefined);
     }
   });
 
