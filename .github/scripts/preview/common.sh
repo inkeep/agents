@@ -84,6 +84,28 @@ mask_env_vars() {
   done
 }
 
+railway_graphql_has_errors() {
+  local response="$1"
+
+  jq -e '.errors and (.errors | length > 0)' >/dev/null 2>&1 <<< "${response}"
+}
+
+railway_graphql_first_error_message() {
+  local response="$1"
+
+  jq -r '.errors[0].message // "unknown GraphQL error"' <<< "${response}"
+}
+
+railway_require_graphql_success() {
+  local response="$1"
+  local context="$2"
+
+  if railway_graphql_has_errors "${response}"; then
+    echo "${context}: $(railway_graphql_first_error_message "${response}")" >&2
+    return 1
+  fi
+}
+
 railway_graphql() {
   local query="$1"
   local variables_json="${2:-}"
@@ -136,7 +158,7 @@ railway_graphql() {
     )"
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
-      if [ -n "${retry_after}" ] && [[ "${retry_after}" =~ ^[0-9]+$ ]]; then
+      if [ -n "${retry_after}" ] && [[ "${retry_after}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
         sleep_with_jitter "${retry_after}"
       elif [ "${exit_code}" != "0" ] || [[ "${status}" =~ ^(429|5[0-9]{2}|000)$ ]]; then
         sleep_with_backoff_and_jitter "${sleep_seconds}" "${attempt}" "${max_sleep_seconds}"
@@ -193,6 +215,7 @@ railway_project_service_id() {
   response="$(
     railway_graphql 'query($projectId: String!) { project(id: $projectId) { services { edges { node { id name } } } } }' "${variables_json}"
   )"
+  railway_require_graphql_success "${response}" "GraphQL error querying Railway services" || return 1
 
   jq -r --arg service_ref "${service_ref}" '
     .data.project.services.edges[]
@@ -220,6 +243,7 @@ railway_variables_json() {
   response="$(
     railway_graphql 'query($projectId: String!, $environmentId: String!, $serviceId: String!, $unrendered: Boolean) { variables(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, unrendered: $unrendered) }' "${variables_json}"
   )"
+  railway_require_graphql_success "${response}" "GraphQL error fetching Railway variables" || return 1
 
   jq -c '.data.variables // {}' <<< "${response}"
 }
@@ -263,6 +287,7 @@ railway_environment_id() {
   }
 }' "${variables_json}"
   )"
+  railway_require_graphql_success "${response}" "GraphQL error querying Railway environments" || return 1
 
   jq -r --arg env_name "${env_name}" '.data.environments.edges[] | select(.node.name == $env_name) | .node.id' <<< "${response}"
 }
@@ -322,9 +347,18 @@ railway_ensure_tcp_proxy() {
   }
 }' "$(jq -nc --arg environment_id "${env_id}" --arg service_id "${service_id}" '{environmentId: $environment_id, serviceId: $service_id}')"
     )"
+    if railway_graphql_has_errors "${response}"; then
+      create_error="$(railway_graphql_first_error_message "${response}")"
+      if [ "${attempt}" -lt "${max_attempts}" ]; then
+        sleep_with_jitter "${sleep_seconds}"
+        continue
+      fi
+      echo "Failed to query TCP proxies for ${service_name} in ${env_name}: ${create_error}" >&2
+      return 1
+    fi
 
-    count="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port)] | length' <<< "${response}")"
-    active="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port and .syncStatus == "ACTIVE")] | length' <<< "${response}")"
+    count="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies // [] | .[] | select(.applicationPort == $application_port)] | length' <<< "${response}")"
+    active="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies // [] | .[] | select(.applicationPort == $application_port and .syncStatus == "ACTIVE")] | length' <<< "${response}")"
     if [ "${active}" != "0" ]; then
       return 0
     fi
@@ -342,8 +376,8 @@ railway_ensure_tcp_proxy() {
 }' "$(jq -nc --arg environment_id "${env_id}" --arg service_id "${service_id}" --argjson application_port "${application_port}" '{environmentId: $environment_id, serviceId: $service_id, applicationPort: $application_port}')"
       )"
 
-      if echo "${response}" | jq -e '.errors' >/dev/null 2>&1; then
-        create_error="$(echo "${response}" | jq -r '.errors[0].message // "unknown error"')"
+      if railway_graphql_has_errors "${response}"; then
+        create_error="$(railway_graphql_first_error_message "${response}")"
       else
         create_error=""
       fi
