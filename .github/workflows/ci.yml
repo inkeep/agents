@@ -34,7 +34,7 @@ jobs:
       - uses: ./.github/composite-actions/changeset-check
         id: check
 
-  ci:
+  ci-run:
     needs: changeset-check
     if: needs.changeset-check.outputs.is_changeset != 'true'
     runs-on: ubuntu-32gb
@@ -247,11 +247,11 @@ jobs:
             echo "Run \`pnpm check\` locally to reproduce the CI checks." >> $GITHUB_STEP_SUMMARY
           fi
 
-  create-agents-e2e:
+  create-agents-e2e-run:
     needs: changeset-check
     if: needs.changeset-check.outputs.is_changeset != 'true'
     runs-on: ubuntu-32gb
-    name: Create Agents E2E Tests
+    name: Create Agents E2E Tests (run)
 
     services:
       doltgres:
@@ -399,3 +399,29 @@ jobs:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           SPICEDB_PRESHARED_KEY: dev-secret-key
+
+  # Gate jobs: satisfy required branch-protection checks even when the heavy
+  # jobs are skipped on changeset PRs. These always run on a cheap runner and
+  # only fail if the real job failed.
+  ci:
+    needs: [changeset-check, ci-run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [ "${{ needs.ci-run.result }}" = "failure" ] || [ "${{ needs.ci-run.result }}" = "cancelled" ]; then
+            exit 1
+          fi
+
+  create-agents-e2e:
+    name: Create Agents E2E Tests
+    needs: [changeset-check, create-agents-e2e-run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [ "${{ needs.create-agents-e2e-run.result }}" = "failure" ] || [ "${{ needs.create-agents-e2e-run.result }}" = "cancelled" ]; then
+            exit 1
+          fi
