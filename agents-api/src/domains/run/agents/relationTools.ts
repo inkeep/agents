@@ -45,6 +45,31 @@ const logger = getLogger('relationships Tools');
 // Re-export A2A_RETRY_STATUS_CODES from agents-core for compatibility
 const A2A_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
 
+function getDelegationMetadata(params: {
+  isInternal: boolean;
+  callingAgentId: string;
+  delegationId: string;
+  metadata: {
+    conversationId: string;
+    threadId: string;
+    streamRequestId?: string;
+    streamBaseUrl?: string;
+    apiKey?: string;
+  };
+}) {
+  const { isInternal, callingAgentId, delegationId, metadata } = params;
+  const { apiKey: _apiKey, ...safeMetadata } = metadata;
+
+  return {
+    ...(isInternal ? metadata : safeMetadata),
+    isDelegation: true,
+    delegationId,
+    ...(isInternal
+      ? { fromSubAgentId: callingAgentId }
+      : { fromExternalAgentId: callingAgentId }),
+  };
+}
+
 const generateTransferToolDescription = (config: AgentConfig): string => {
   // Generate tools section from the agent's available tools
   let toolsSection = '';
@@ -407,14 +432,12 @@ export function createDelegateToAgentTool({
         messageId: generateId(),
         kind: 'message' as const,
         contextId,
-        metadata: {
-          ...metadata, // Keep all metadata including streamRequestId
-          isDelegation: true, // Flag to prevent streaming in delegated agents
-          delegationId, // Include delegation ID for tracking
-          ...(isInternal
-            ? { fromSubAgentId: callingAgentId }
-            : { fromExternalAgentId: callingAgentId }),
-        },
+        metadata: getDelegationMetadata({
+          isInternal,
+          callingAgentId,
+          delegationId,
+          metadata,
+        }),
       };
       logger.info({ messageToSend }, 'messageToSend');
 

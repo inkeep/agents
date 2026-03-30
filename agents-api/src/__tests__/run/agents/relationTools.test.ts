@@ -505,12 +505,31 @@ describe('Relationship Tools', () => {
           metadata: {
             conversationId: 'test-conversation',
             threadId: 'test-thread',
-            apiKey: 'test-api-key',
             fromExternalAgentId: 'test-calling-agent',
             isDelegation: true,
             delegationId: 'del_test-nanoid-123',
           },
         },
+      });
+    });
+
+    it('should not forward apiKey metadata to external delegates', async () => {
+      mockSendMessage.mockResolvedValue({ result: 'external success', error: null });
+
+      const tool = createDelegateToAgentTool(getExternalDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Test external delegation message' }, mockToolCallOptions);
+
+      expect(mockSendMessage).toHaveBeenCalledWith({
+        message: expect.objectContaining({
+          metadata: expect.not.objectContaining({
+            apiKey: expect.any(String),
+          }),
+        }),
       });
     });
 
