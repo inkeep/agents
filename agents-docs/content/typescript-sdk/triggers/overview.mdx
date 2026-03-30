@@ -1,11 +1,15 @@
 ---
-title: Triggers Overview
-sidebarTitle: Overview
+title: Webhook Triggers
+sidebarTitle: Webhooks
 description: Create webhook endpoints that allow external services to invoke your agents
 icon: LuSparkles
 ---
 
 Triggers create webhook endpoints that allow external services (like GitHub, Slack, Stripe, or custom applications) to invoke your agents. When a webhook is received, the payload is validated, transformed, and used to start a new conversation with the agent.
+
+<Note>
+The TypeScript SDK supports **webhook triggers** only. Scheduled triggers (cron or one-time execution) are managed exclusively through the [dashboard](/visual-builder/triggers/scheduled) or API.
+</Note>
 
 ## Message Format
 
