@@ -102,7 +102,7 @@ describe('Agent-Evaluator Relations CRUD Routes', () => {
       expect(body.data.projectId).toBe(projectId);
     });
 
-    it('should return 500 when creating duplicate relation', async () => {
+    it('should return 200 with existing record when creating duplicate relation', async () => {
       const tenantId = await createTestTenantWithOrg('aer-create-dup');
       await createTestProject(manageDbClient, tenantId, projectId);
       const evaluatorId = await createTestEvaluator({ tenantId });
@@ -118,7 +118,10 @@ describe('Agent-Evaluator Relations CRUD Routes', () => {
         `/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}/agents/${agentId}`,
         { method: 'POST' }
       );
-      expect(res2.status).toBe(500);
+      expect(res2.status).toBe(200);
+      const body = await res2.json();
+      expect(body.data.agentId).toBe(agentId);
+      expect(body.data.evaluatorId).toBe(evaluatorId);
     });
   });
 

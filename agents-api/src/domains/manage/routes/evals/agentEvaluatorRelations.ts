@@ -7,6 +7,7 @@ import {
   deleteAgentEvaluatorRelation,
   generateId,
   getAgentEvaluatorRelationsByEvaluator,
+  isUniqueConstraintError,
   ListResponseSchema,
   SingleResponseSchema,
   TenantProjectParamsSchema,
@@ -110,6 +111,16 @@ app.openapi(
       );
       return c.json({ data: created }, 201) as any;
     } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        const existing = await getAgentEvaluatorRelationsByEvaluator(db)({
+          scopes: { tenantId, projectId, evaluatorId },
+        });
+        const match = existing.find((r) => r.agentId === agentId);
+        if (match) {
+          return c.json({ data: match }, 200) as any;
+        }
+      }
+
       logger.error(
         { error, tenantId, projectId, evaluatorId, agentId },
         'Failed to create agent-evaluator relation'

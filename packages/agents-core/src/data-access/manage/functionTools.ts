@@ -267,28 +267,18 @@ export const upsertSubAgentFunctionToolRelation =
         )
         .limit(1);
 
-      // If relation exists, update toolPolicies if provided, then return
+      // If relation exists, return it instead of creating a new one
       if (existingRelations.length > 0) {
-        const existingId = existingRelations[0].id;
-
-        if (toolPolicies !== undefined) {
-          await db
-            .update(subAgentFunctionToolRelations)
-            .set({ toolPolicies })
-            .where(eq(subAgentFunctionToolRelations.id, existingId));
-        }
-
         logger.info(
           {
             ...scopes,
             subAgentId,
             functionToolId,
-            relationId: existingId,
-            toolPoliciesUpdated: toolPolicies !== undefined,
+            relationId: existingRelations[0].id,
           },
-          'Sub_agent-function tool relation already exists, updated and returning'
+          'Sub_agent-function tool relation already exists, returning existing relation'
         );
-        return { id: existingId };
+        return { id: existingRelations[0].id };
       }
 
       // Relation doesn't exist, create a new one

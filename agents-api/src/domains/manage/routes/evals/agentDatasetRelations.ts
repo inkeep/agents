@@ -7,6 +7,7 @@ import {
   deleteAgentDatasetRelation,
   generateId,
   getAgentDatasetRelationsByDataset,
+  isUniqueConstraintError,
   ListResponseSchema,
   SingleResponseSchema,
   TenantProjectParamsSchema,
@@ -107,6 +108,16 @@ app.openapi(
       logger.info({ tenantId, projectId, datasetId, agentId }, 'Agent-dataset relation created');
       return c.json({ data: created }, 201) as any;
     } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        const existing = await getAgentDatasetRelationsByDataset(db)({
+          scopes: { tenantId, projectId, datasetId },
+        });
+        const match = existing.find((r) => r.agentId === agentId);
+        if (match) {
+          return c.json({ data: match }, 200) as any;
+        }
+      }
+
       logger.error(
         { error, tenantId, projectId, datasetId, agentId },
         'Failed to create agent-dataset relation'
