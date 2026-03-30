@@ -225,6 +225,8 @@ describe('AgentMcpManager', () => {
         forwardedHeaders: {
           Authorization: 'Bearer attacker-token',
           'x-inkeep-tenant-id': 'attacker-tenant',
+          'x-inkeep-project-id': 'attacker-project',
+          'x-inkeep-tool-id': 'attacker-tool',
           'x-custom-forwarded': 'allowed',
         },
       }).getToolSet(trustedSlackTool);
@@ -232,7 +234,36 @@ describe('AgentMcpManager', () => {
       const headers = vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers;
       expect(headers?.Authorization).toBe('Bearer test-slack-key');
       expect(headers?.['x-inkeep-tenant-id']).toBe('tenant-1');
+      expect(headers?.['x-inkeep-project-id']).toBe('project-1');
+      expect(headers?.['x-inkeep-tool-id']).toBe('test-tool-id');
       expect(headers?.['x-custom-forwarded']).toBe('allowed');
+    });
+
+    test('blocks case-insensitive header override attempts on Slack headers', async () => {
+      const { isSlackWorkAppTool } = await import('@inkeep/agents-core');
+      vi.mocked(isSlackWorkAppTool).mockReturnValue(true);
+
+      const trustedSlackTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.inkeep.example/work-apps/slack/mcp' },
+          },
+        },
+      });
+
+      await createManager({
+        forwardedHeaders: {
+          authorization: 'Bearer attacker-token',
+          'X-INKEEP-TENANT-ID': 'attacker-tenant',
+          'X-Inkeep-Project-Id': 'attacker-project',
+        },
+      }).getToolSet(trustedSlackTool);
+
+      const headers = vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers;
+      expect(headers?.Authorization).toBe('Bearer test-slack-key');
+      expect(headers?.['x-inkeep-tenant-id']).toBe('tenant-1');
+      expect(headers?.['x-inkeep-project-id']).toBe('project-1');
     });
   });
 
@@ -268,6 +299,37 @@ describe('AgentMcpManager', () => {
       expect(vi.mocked(McpClient).mock.calls[1]?.[0]?.server?.headers?.Authorization).toBe(
         undefined
       );
+    });
+
+    test('does not allow forwarded headers to override trusted GitHub auth headers', async () => {
+      const { isGithubWorkAppTool } = await import('@inkeep/agents-core');
+      vi.mocked(isGithubWorkAppTool).mockReturnValue(true);
+
+      const trustedGithubTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.inkeep.example/work-apps/github/mcp' },
+          },
+        },
+      });
+
+      await createManager({
+        forwardedHeaders: {
+          Authorization: 'Bearer attacker-token',
+          'x-inkeep-tenant-id': 'attacker-tenant',
+          'x-inkeep-project-id': 'attacker-project',
+          'x-inkeep-tool-id': 'attacker-tool',
+          'x-custom-forwarded': 'allowed',
+        },
+      }).getToolSet(trustedGithubTool);
+
+      const headers = vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers;
+      expect(headers?.Authorization).toBe('Bearer test-github-key');
+      expect(headers?.['x-inkeep-tenant-id']).toBe('tenant-1');
+      expect(headers?.['x-inkeep-project-id']).toBe('project-1');
+      expect(headers?.['x-inkeep-tool-id']).toBe('test-tool-id');
+      expect(headers?.['x-custom-forwarded']).toBe('allowed');
     });
   });
 

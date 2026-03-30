@@ -21,30 +21,12 @@ import runDbClient from '../../../../data/db/runDbClient';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
+import { mergeHeadersWithoutOverrides } from '../../utils/merge-headers';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentConfig } from '../Agent';
 import type { AiSdkToolDefinition } from '../agent-types';
 
 const logger = getLogger('AgentMcpManager');
-
-function mergeHeadersWithoutOverrides(
-  existingHeaders: Record<string, string> | undefined,
-  forwardedHeaders: Record<string, string>
-): Record<string, string> {
-  const mergedHeaders = { ...(existingHeaders || {}) };
-  const existingHeaderNames = new Set(
-    Object.keys(mergedHeaders).map((header) => header.toLowerCase())
-  );
-
-  for (const [headerName, headerValue] of Object.entries(forwardedHeaders)) {
-    if (existingHeaderNames.has(headerName.toLowerCase())) {
-      continue;
-    }
-    mergedHeaders[headerName] = headerValue;
-  }
-
-  return mergedHeaders;
-}
 
 export type McpToolSet = {
   tools: Record<string, any>;
