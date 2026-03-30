@@ -31228,9 +31228,6 @@
                   "branchName": {
                     "type": "string"
                   },
-                  "evaluationRunConfigId": {
-                    "type": "string"
-                  },
                   "evaluatorIds": {
                     "items": {
                       "type": "string"
@@ -31518,44 +31515,6 @@
                         },
                         {
                           "properties": {
-                            "conversations": {
-                              "items": {
-                                "properties": {
-                                  "agentId": {
-                                    "nullable": true,
-                                    "type": "string"
-                                  },
-                                  "conversationId": {
-                                    "type": "string"
-                                  },
-                                  "createdAt": {
-                                    "type": "string"
-                                  },
-                                  "datasetRunId": {
-                                    "type": "string"
-                                  },
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "output": {
-                                    "nullable": true,
-                                    "type": "string"
-                                  },
-                                  "updatedAt": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "conversationId",
-                                  "datasetRunId",
-                                  "createdAt",
-                                  "updatedAt"
-                                ],
-                                "type": "object"
-                              },
-                              "type": "array"
-                            },
                             "items": {
                               "items": {
                                 "properties": {
@@ -31637,7 +31596,6 @@
                             }
                           },
                           "required": [
-                            "conversations",
                             "items"
                           ],
                           "type": "object"
@@ -36381,8 +36339,8 @@
           "Evaluations"
         ],
         "x-authz": {
-          "description": "Requires project edit permission (project_admin, or org admin/owner)",
-          "permission": "edit",
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
           "resource": "project"
         }
       }
