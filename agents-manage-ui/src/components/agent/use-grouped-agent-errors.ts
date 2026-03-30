@@ -69,8 +69,17 @@ export function useGroupedAgentErrors() {
     })
   );
 
+  const firstSubAgentNode = nodes.find((node) => isNodeType(node, NodeType.SubAgent));
+  const firstSubAgentKey = firstSubAgentNode ? (getNodeGraphKey(firstSubAgentNode) ?? '') : '';
+  const defaultSubAgentErrors: ErrorGroup = defaultSubAgentNodeId
+    ? { [firstSubAgentKey]: { defaultSubAgentNodeId } }
+    : EMPTY_GROUP;
+
   return {
-    subAgents: remapErrorGroup(subAgents, (nodeId) => nodeGraphKeysByNodeId.get(nodeId)),
+    subAgents: {
+      ...remapErrorGroup(subAgents, (nodeId) => nodeGraphKeysByNodeId.get(nodeId)),
+      ...defaultSubAgentErrors,
+    },
     functionTools: {
       ...remapErrorGroup(functionTools ?? EMPTY_GROUP, (toolId) =>
         functionToolGraphKeysByToolId.get(toolId)
@@ -88,6 +97,6 @@ export function useGroupedAgentErrors() {
       ...remapErrorGroup(mcpRelations, (nodeId) => nodeGraphKeysByNodeId.get(nodeId)),
     },
     agentSettings,
-    other: defaultSubAgentNodeId ? { defaultSubAgentNodeId } : EMPTY_GROUP,
+    other: EMPTY_GROUP,
   };
 }
