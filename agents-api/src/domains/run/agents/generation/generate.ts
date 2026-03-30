@@ -236,7 +236,7 @@ export async function runGenerate(
             )
           : sanitizedTools;
 
-        const messages = buildInitialMessages(
+        const messages = await buildInitialMessages(
           systemPrompt,
           conversationHistory,
           userMessage,

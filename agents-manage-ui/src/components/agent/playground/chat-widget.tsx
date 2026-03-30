@@ -87,6 +87,7 @@ export function ChatWidget({
     apiKey: tempApiKey,
     appId: playgroundAppId,
     isLoading: isLoadingKey,
+    refresh: refreshToken,
   } = useTempApiKey({
     tenantId,
     projectId,
@@ -152,6 +153,14 @@ export function ChatWidget({
         <InkeepEmbeddedChat
           baseSettings={{
             shouldBypassCaptcha: true,
+            ...(playgroundAppId && tempApiKey
+              ? {
+                  getAuthToken: async () => {
+                    const token = await refreshToken();
+                    return token ?? tempApiKey;
+                  },
+                }
+              : {}),
             async onEvent(event) {
               posthog?.capture(event.eventName, {
                 ...event.properties,
@@ -234,12 +243,10 @@ export function ChatWidget({
             isViewOnly: hasHeadersError,
             conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
+            ...(playgroundAppId ? { appId: playgroundAppId } : {}),
             headers: {
               ...(playgroundAppId
-                ? {
-                    'x-inkeep-app-id': playgroundAppId,
-                    Authorization: `Bearer ${tempApiKey}`,
-                  }
+                ? {}
                 : {
                     'x-inkeep-tenant-id': tenantId,
                     'x-inkeep-project-id': projectId,

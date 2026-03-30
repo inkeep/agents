@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   actions: read
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,6 +25,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
+      pull-requests: read
     env:
       TURBO_TELEMETRY_DISABLED: 1
       TURBO_CACHE_DIR: .turbo
@@ -36,14 +38,59 @@ jobs:
       - name: Check if changeset PR
         id: changeset-check
         run: |
+          IS_CHANGESET=false
+
+          # Pull request: check branch name directly
           if [ "$HEAD_REF" = "changeset-release/main" ]; then
-            echo "is_changeset=true" >> $GITHUB_OUTPUT
-            echo "Changeset PR detected — skipping CI checks"
-          else
-            echo "is_changeset=false" >> $GITHUB_OUTPUT
+            IS_CHANGESET=true
+            echo "Changeset PR detected via branch name"
+          fi
+
+          # Merge group: extract PR number from ref and check branch via API
+          if [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ "$IS_CHANGESET" = "false" ]; then
+            PR_NUM=$(echo "$MERGE_GROUP_HEAD_REF" | sed -n 's|.*/pr-\([0-9]*\)-.*|\1|p')
+            if [ -n "$PR_NUM" ]; then
+              BRANCH=$(gh pr view "$PR_NUM" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName 2>/dev/null || echo "")
+              if [ "$BRANCH" = "changeset-release/main" ]; then
+                IS_CHANGESET=true
+                echo "Changeset PR detected via merge group (PR #$PR_NUM)"
+              fi
+            fi
+          fi
+
+          # Check if PR only contains .changeset/ file changes
+          if [ "$IS_CHANGESET" = "false" ] && [ "$GITHUB_EVENT_NAME" != "push" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -n "$PR_NUMBER" ]; then
+              if ! CHANGED_FILES=$(gh pr diff "$PR_NUMBER" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
+                echo "::warning::Failed to fetch PR diff for #$PR_NUMBER: $CHANGED_FILES"
+                CHANGED_FILES=""
+              fi
+            elif [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ -n "$PR_NUM" ]; then
+              if ! CHANGED_FILES=$(gh pr diff "$PR_NUM" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
+                echo "::warning::Failed to fetch PR diff for #$PR_NUM: $CHANGED_FILES"
+                CHANGED_FILES=""
+              fi
+            fi
+
+            if [ -n "$CHANGED_FILES" ]; then
+              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/' || true)
+              if [ -z "$NON_CHANGESET" ]; then
+                IS_CHANGESET=true
+                echo "Only .changeset/ files changed — skipping CI checks"
+              fi
+            fi
+          fi
+
+          echo "is_changeset=$IS_CHANGESET" >> $GITHUB_OUTPUT
+          if [ "$IS_CHANGESET" = "true" ]; then
+            echo "Changeset PR — skipping CI checks"
           fi
         env:
           HEAD_REF: ${{ github.head_ref }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          MERGE_GROUP_HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Checkout code
         if: steps.changeset-check.outputs.is_changeset != 'true'
@@ -107,6 +154,20 @@ jobs:
         env:
           HUSKY: 0
 
+      # Generate a GitHub App token so that auto-commits trigger downstream CI
+      # workflows. The default GITHUB_TOKEN's commits are ignored by GitHub to
+      # prevent infinite loops.
+      - name: Generate GitHub App Token
+        id: app-token
+        if: |
+          steps.changeset-check.outputs.is_changeset != 'true' &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+
       # Auto-update OpenAPI snapshot on PRs (skip fork PRs since GITHUB_TOKEN is read-only)
       # Gate: only run when files that affect the OpenAPI spec changed.
       # These paths mirror the pre-commit hook in package.json lint-staged config.
@@ -143,7 +204,14 @@ jobs:
       - name: Commit OpenAPI snapshot if changed
         if: steps.changeset-check.outputs.is_changeset != 'true' && steps.openapi-changes.outputs.changed == 'true'
         run: |
+          # Use GitHub App token so the push triggers downstream CI workflows.
+          # The default GITHUB_TOKEN's commits are ignored by GitHub to prevent loops.
+          if [ -n "$APP_TOKEN" ]; then
+            git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
           scripts/ci-commit-and-push.sh agents-api/__snapshots__/openapi.json "chore: update OpenAPI snapshot" "${{ github.head_ref }}"
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Install Playwright
         if: steps.changeset-check.outputs.is_changeset != 'true'
@@ -279,14 +347,57 @@ jobs:
       - name: Check if changeset PR
         id: changeset-check
         run: |
+          IS_CHANGESET=false
+
           if [ "$HEAD_REF" = "changeset-release/main" ]; then
-            echo "is_changeset=true" >> $GITHUB_OUTPUT
-            echo "Changeset PR detected — skipping E2E tests"
-          else
-            echo "is_changeset=false" >> $GITHUB_OUTPUT
+            IS_CHANGESET=true
+            echo "Changeset PR detected via branch name"
+          fi
+
+          if [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ "$IS_CHANGESET" = "false" ]; then
+            PR_NUM=$(echo "$MERGE_GROUP_HEAD_REF" | sed -n 's|.*/pr-\([0-9]*\)-.*|\1|p')
+            if [ -n "$PR_NUM" ]; then
+              BRANCH=$(gh pr view "$PR_NUM" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName 2>/dev/null || echo "")
+              if [ "$BRANCH" = "changeset-release/main" ]; then
+                IS_CHANGESET=true
+                echo "Changeset PR detected via merge group (PR #$PR_NUM)"
+              fi
+            fi
+          fi
+
+          # Check if PR only contains .changeset/ file changes
+          if [ "$IS_CHANGESET" = "false" ] && [ "$GITHUB_EVENT_NAME" != "push" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -n "$PR_NUMBER" ]; then
+              if ! CHANGED_FILES=$(gh pr diff "$PR_NUMBER" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
+                echo "::warning::Failed to fetch PR diff for #$PR_NUMBER: $CHANGED_FILES"
+                CHANGED_FILES=""
+              fi
+            elif [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ -n "$PR_NUM" ]; then
+              if ! CHANGED_FILES=$(gh pr diff "$PR_NUM" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
+                echo "::warning::Failed to fetch PR diff for #$PR_NUM: $CHANGED_FILES"
+                CHANGED_FILES=""
+              fi
+            fi
+
+            if [ -n "$CHANGED_FILES" ]; then
+              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/' || true)
+              if [ -z "$NON_CHANGESET" ]; then
+                IS_CHANGESET=true
+                echo "Only .changeset/ files changed — skipping E2E tests"
+              fi
+            fi
+          fi
+
+          echo "is_changeset=$IS_CHANGESET" >> $GITHUB_OUTPUT
+          if [ "$IS_CHANGESET" = "true" ]; then
+            echo "Changeset PR — skipping E2E tests"
           fi
         env:
           HEAD_REF: ${{ github.head_ref }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          MERGE_GROUP_HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Checkout code
         if: steps.changeset-check.outputs.is_changeset != 'true'

@@ -70,14 +70,13 @@ function toVercelMessage(msg: {
   const text = extractText(msg.content);
   const parts: Array<Record<string, unknown>> = [];
 
-  if (text) {
-    parts.push({ type: 'text', text });
-  }
-
   if (msg.content.parts) {
     for (const p of msg.content.parts) {
       const kind = getPartKind(p);
       if (kind === 'text') {
+        if (p.text) {
+          parts.push({ type: 'text', text: p.text });
+        }
       } else if (kind === 'data') {
         let parsed = p.data;
         if (typeof parsed === 'string') {
@@ -110,6 +109,8 @@ function toVercelMessage(msg: {
         });
       }
     }
+  } else if (text) {
+    parts.push({ type: 'text', text });
   }
 
   if (msg.content.tool_calls) {

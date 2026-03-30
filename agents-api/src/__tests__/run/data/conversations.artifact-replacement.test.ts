@@ -20,6 +20,16 @@ vi.mock('../../../domains/run/compression/ConversationCompressor', () => ({
   ConversationCompressor: vi.fn(),
 }));
 
+const mockBlobDownload = vi.fn();
+
+vi.mock('../../../domains/run/services/blob-storage', () => ({
+  isBlobUri: (value: string) => value.startsWith('blob://'),
+  fromBlobUri: (value: string) => value.slice('blob://'.length),
+  getBlobStorageProvider: () => ({
+    download: mockBlobDownload,
+  }),
+}));
+
 import { getConversationHistory, getLedgerArtifacts } from '@inkeep/agents-core';
 import { getConversationHistoryWithCompression } from '../../../domains/run/data/conversations';
 
@@ -66,6 +76,7 @@ describe('getConversationHistoryWithCompression — artifact replacement', () =>
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetConversationHistory.mockReturnValue(vi.fn().mockResolvedValue([]));
+    mockBlobDownload.mockReset();
   });
 
   it('replaces tool-result content with compact artifact reference', async () => {

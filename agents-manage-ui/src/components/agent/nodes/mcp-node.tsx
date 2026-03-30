@@ -23,6 +23,7 @@ import { Handle } from './handle';
 const TOOLS_SHOWN_LIMIT = 4;
 
 export const TruncateBadge: FC<{ children: ReactNode }> = ({ children }) => {
+  'use memo';
   return (
     <Badge
       variant="code"
@@ -41,6 +42,7 @@ const TruncateToolBadge: FC<{
   label: string;
   needsApproval?: boolean;
 }> = ({ label, needsApproval }) => {
+  'use memo';
   if (!needsApproval) {
     return <TruncateBadge>{label}</TruncateBadge>;
   }
