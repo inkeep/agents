@@ -6,6 +6,28 @@ import { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
 
 const runtimeConfig = getRuntimeConfig();
 
+function toWebSocketOrigin(origin: string | null | undefined): string | null {
+  if (!origin) return null;
+
+  try {
+    const url = new URL(origin);
+
+    if (url.protocol === 'https:') {
+      url.protocol = 'wss:';
+      return url.origin;
+    }
+
+    if (url.protocol === 'http:') {
+      url.protocol = 'ws:';
+      return url.origin;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function buildCsp() {
   // PostHog Cloud may use multiple changing subdomains; keep CSP aligned with:
   // https://posthog.com/docs/advanced/content-security-policy
@@ -18,6 +40,7 @@ function buildCsp() {
     process.env.NEXT_PUBLIC_SENTRY_DSN ? 'https://*.sentry.io' : null,
     runtimeConfig.PUBLIC_SIGNOZ_URL,
     runtimeConfig.PUBLIC_NANGO_SERVER_URL,
+    toWebSocketOrigin(runtimeConfig.PUBLIC_NANGO_SERVER_URL),
     runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
   ]
     .filter(Boolean)
