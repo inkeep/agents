@@ -84,6 +84,23 @@ export class AgentMcpManager {
             credentialStoreId: userCredRef.credentialStoreId,
             retrievalParams: userCredRef.retrievalParams || {},
           };
+        } else if (credentialReferenceId) {
+          const credRef = project.credentialReferences?.[credentialReferenceId];
+          if (credRef) {
+            storeReference = {
+              credentialStoreId: credRef.credentialStoreId,
+              retrievalParams: credRef.retrievalParams || {},
+            };
+            logger.info(
+              { toolId: tool.id, userId, credentialReferenceId },
+              'User-scoped tool falling back to project credential'
+            );
+          } else {
+            logger.warn(
+              { toolId: tool.id, userId, credentialReferenceId },
+              'User-scoped tool has no user or project credential'
+            );
+          }
         } else {
           logger.warn(
             { toolId: tool.id, userId },
