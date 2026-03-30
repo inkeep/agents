@@ -7,8 +7,8 @@ import {
   OrgRoles,
   type ScheduledTrigger,
 } from '@inkeep/agents-core';
-import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { user } from '@inkeep/agents-core/db/run-schema';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
