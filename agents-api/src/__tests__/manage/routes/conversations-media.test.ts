@@ -79,7 +79,7 @@ describe('Conversation media route', () => {
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
 
-  it('serves XHTML media as plain text attachment', async () => {
+  it('serves XHTML media as octet-stream attachment', async () => {
     downloadMock.mockResolvedValue({
       data: new Uint8Array([60, 104, 116, 109, 108, 62]),
       contentType: 'application/xhtml+xml',
@@ -91,12 +91,12 @@ describe('Conversation media route', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Type')).toBe('application/octet-stream');
     expect(response.headers.get('Content-Disposition')).toBe('attachment');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
 
-  it('serves SVG media as plain text attachment', async () => {
+  it('serves SVG media as octet-stream attachment', async () => {
     downloadMock.mockResolvedValue({
       data: new Uint8Array([60, 115, 118, 103, 62]),
       contentType: 'image/svg+xml',
@@ -108,7 +108,7 @@ describe('Conversation media route', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Type')).toBe('application/octet-stream');
     expect(response.headers.get('Content-Disposition')).toBe('attachment');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
@@ -164,7 +164,7 @@ describe('Conversation media route', () => {
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
 
-  it('serves unknown MIME types as plain text attachment', async () => {
+  it('serves unknown MIME types as octet-stream attachment', async () => {
     downloadMock.mockResolvedValue({
       data: new Uint8Array([0, 1, 2]),
       contentType: 'application/octet-stream',
@@ -176,7 +176,7 @@ describe('Conversation media route', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(response.headers.get('Content-Type')).toBe('application/octet-stream');
     expect(response.headers.get('Content-Disposition')).toBe('attachment');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });

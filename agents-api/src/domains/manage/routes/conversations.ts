@@ -83,7 +83,7 @@ function getSafeMediaResponseHeaders({
   }
 
   return {
-    'Content-Type': 'text/plain; charset=utf-8',
+    'Content-Type': 'application/octet-stream',
     'Content-Disposition': 'attachment',
     'X-Content-Type-Options': 'nosniff',
     'Cache-Control': 'private, max-age=31536000, immutable',
