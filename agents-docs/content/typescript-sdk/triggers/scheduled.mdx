@@ -1,162 +1,25 @@
 ---
-title: Scheduled Triggers in TypeScript SDK
+title: Scheduled Triggers
 sidebarTitle: Scheduled
-description: Define scheduled triggers in the TypeScript SDK to run agents on a cron schedule or one-time execution
+description: Scheduled triggers are managed through the dashboard and API — they are no longer defined in the TypeScript SDK
 icon: LuClock
 ---
 
-Scheduled triggers run agents on a time-based schedule using cron expressions or at a one-time future timestamp. See [Scheduled Triggers](/visual-builder/triggers/scheduled) for the dashboard configuration walkthrough.
+<Warning>
+Scheduled triggers are no longer defined in the TypeScript SDK. The `scheduledTrigger()` builder function, the `ScheduledTrigger` class, and the `scheduledTriggers` property on agents have been removed.
 
-## Creating Scheduled Triggers
+Scheduled triggers are now managed exclusively through the **dashboard** and **API**.
+</Warning>
 
-Use the `scheduledTrigger()` factory function to create both recurring and one-time scheduled triggers. The schema validation enforces that you specify either `cronExpression` or `runAt`, but not both.
+## Where to manage scheduled triggers
 
-```typescript
-import { scheduledTrigger } from "@inkeep/agents-sdk";
+Create, update, enable/disable, and delete scheduled triggers from the dashboard or via the REST API. They are no longer part of your agent's code-based configuration and are not synced with `inkeep push` or `inkeep pull`.
 
-// Recurring schedule with cron
-const dailyReport = scheduledTrigger({
-  name: "Daily Report",
-  cronExpression: "0 9 * * MON-FRI",
-  cronTimezone: "America/New_York",
-  messageTemplate: "Generate the daily status report",
-  payload: { reportType: "daily" },
-  maxRetries: 3,
-  retryDelaySeconds: 60,
-  timeoutSeconds: 300,
-});
-
-// One-time schedule
-const oneTimeTask = scheduledTrigger({
-  name: "Migration Task",
-  runAt: "2025-04-01T00:00:00Z",
-  messageTemplate: "Run the migration",
-  maxRetries: 5,
-  retryDelaySeconds: 300,
-  timeoutSeconds: 780,
-});
-```
-
-## Configuration Options
-
-| Option | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `name` | `string` | Yes | — | Human-readable name |
-| `description` | `string` | No | — | Description of the trigger's purpose |
-| `enabled` | `boolean` | No | `true` | Whether the trigger is active |
-| `cronExpression` | `string` | One of cron/runAt | — | 5-field cron expression (`minute hour day month weekday`) |
-| `cronTimezone` | `string` | No | `UTC` | IANA timezone for cron evaluation |
-| `runAt` | `string` | One of cron/runAt | — | ISO 8601 timestamp for one-time execution |
-| `messageTemplate` | `string` | No | — | Template with `{{placeholder}}` syntax |
-| `payload` | `object` | No | — | Static JSON payload passed to the agent |
-| `maxRetries` | `number` | No | `1` | Max retry attempts on failure (0–10) |
-| `retryDelaySeconds` | `number` | No | `60` | Seconds between retries (10–3600) |
-| `timeoutSeconds` | `number` | No | `780` | Execution timeout in seconds (30–780) |
-| `runAsUserId` | `string` | No | — | User ID whose identity and credentials are used during execution |
-| `createdBy` | `string` | — | — | Read-only. User ID of the trigger creator, set automatically on creation. |
-
-<Note>
-You must specify either `cronExpression` or `runAt`, but not both. The system validates this at creation time.
-</Note>
-
-## Overriding Configuration with `.with()`
-
-Use the `.with()` method to create a variant of an existing scheduled trigger:
-
-```typescript
-const dailyReport = scheduledTrigger({
-  name: "Daily Report",
-  cronExpression: "0 9 * * *",
-  messageTemplate: "Generate the daily report",
-});
-
-const disabledReport = dailyReport.with({ enabled: false });
-const weekdayReport = dailyReport.with({
-  name: "Weekday Report",
-  cronExpression: "0 9 * * MON-FRI",
-});
-```
-
-## User-Scoped Execution
-
-Set `runAsUserId` to execute the trigger with a specific user's identity, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira):
-
-```typescript
-import { scheduledTrigger } from "@inkeep/agents-sdk";
-
-const userScopedReport = scheduledTrigger({
-  name: "My Daily Report",
-  cronExpression: "0 9 * * MON-FRI",
-  messageTemplate: "Generate my daily status report",
-  runAsUserId: "user_abc123",
-});
-```
-
-When `runAsUserId` is set, agents automatically use that user's profile timezone for time-aware responses. Note that `cronTimezone` is still used for schedule calculation.
-
-See [Scheduled Triggers](/visual-builder/triggers/scheduled) for details on permissions, admin delegation, and runtime behavior.
-
-## Complete Example
-
-```typescript
-import { agent, subAgent, scheduledTrigger } from "@inkeep/agents-sdk";
-
-// Recurring schedule with cron
-const dailySummary = scheduledTrigger({
-  name: "Daily Summary",
-  cronExpression: "0 9 * * MON-FRI",
-  cronTimezone: "America/New_York",
-  messageTemplate:
-    "Generate a summary of yesterday's activity. Report type: {{reportType}}",
-  payload: { reportType: "daily" },
-  maxRetries: 3,
-  retryDelaySeconds: 120,
-  timeoutSeconds: 600,
-});
-
-const hourlyHealthCheck = scheduledTrigger({
-  name: "Hourly Health Check",
-  cronExpression: "0 * * * *",
-  messageTemplate: "Run a health check on all connected services",
-  maxRetries: 2,
-  timeoutSeconds: 120,
-});
-
-// One-time schedule
-const dataMigration = scheduledTrigger({
-  name: "Q1 Data Migration",
-  runAt: "2025-04-01T00:00:00Z",
-  messageTemplate: "Migrate Q1 data to the new schema",
-  maxRetries: 5,
-  retryDelaySeconds: 300,
-  timeoutSeconds: 780,
-});
-
-const reportGenerator = subAgent({
-  id: "report-generator",
-  name: "Report Generator",
-  prompt: "You generate reports and summaries based on system activity.",
-});
-
-export default agent({
-  id: "automation-agent",
-  name: "Automation Agent",
-  defaultSubAgent: reportGenerator,
-  scheduledTriggers: () => [
-    dailySummary,
-    hourlyHealthCheck,
-    dataMigration,
-  ],
-});
-```
-
-<Note>
-Scheduled triggers are managed separately from webhook triggers via dedicated API endpoints. They are scoped to an agent and can be created, updated, enabled/disabled, and deleted through the API or Manage UI.
-</Note>
-
-## Best Practices
-
-1. **Set appropriate timeouts** - Ensure `timeoutSeconds` is long enough for the agent to complete
-2. **Configure retries for critical tasks** - Use `maxRetries` for important scheduled jobs
-3. **Monitor invocations** - Check the invocation history for failed runs
-4. **Use one-time triggers for deferred work** - Prefer `runAt` over cron for tasks that should execute exactly once
+<Cards>
+  <Card title="Dashboard" icon="LuLayoutDashboard" href="/visual-builder/triggers/scheduled">
+    Create and manage scheduled triggers from the Visual Builder.
+  </Card>
+  <Card title="API Reference" icon="LuNetwork" href="/api-reference/workflows">
+    Manage scheduled triggers programmatically via the REST API.
+  </Card>
+</Cards>
