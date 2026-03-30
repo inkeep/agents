@@ -11,6 +11,7 @@ import {
 } from '@inkeep/agents-core';
 import {
   ALLOWED_IMAGE_MIME_TYPES,
+  ALLOWED_TEXT_DOCUMENT_MIME_TYPES,
   normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -37,9 +38,11 @@ function isMediaNotFoundError(error: unknown): boolean {
   );
 }
 
-const SAFE_PASSTHROUGH_MIME_TYPES = new Set(
+const SAFE_IMAGE_PASSTHROUGH_MIME_TYPES = new Set(
   [...ALLOWED_IMAGE_MIME_TYPES].filter((t) => t !== 'image/svg+xml')
 );
+
+const TEXT_DOCUMENT_DOWNLOAD_MIME_TYPES = new Set(ALLOWED_TEXT_DOCUMENT_MIME_TYPES);
 
 function getSafeMediaResponseHeaders({
   contentType,
@@ -49,12 +52,40 @@ function getSafeMediaResponseHeaders({
   contentLength: number;
 }): Record<string, string> {
   const normalizedContentType = normalizeMimeType(contentType);
-  const isSafePassthrough = SAFE_PASSTHROUGH_MIME_TYPES.has(normalizedContentType);
+
+  if (SAFE_IMAGE_PASSTHROUGH_MIME_TYPES.has(normalizedContentType)) {
+    return {
+      'Content-Type': contentType,
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, max-age=31536000, immutable',
+      'Content-Length': contentLength.toString(),
+    };
+  }
+
+  if (normalizedContentType === 'application/pdf') {
+    return {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, max-age=31536000, immutable',
+      'Content-Length': contentLength.toString(),
+    };
+  }
+
+  if (TEXT_DOCUMENT_DOWNLOAD_MIME_TYPES.has(normalizedContentType)) {
+    return {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Content-Disposition': 'attachment',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, max-age=31536000, immutable',
+      'Content-Length': contentLength.toString(),
+    };
+  }
 
   return {
-    'Content-Type': isSafePassthrough ? contentType : 'text/plain; charset=utf-8',
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Content-Disposition': 'attachment',
     'X-Content-Type-Options': 'nosniff',
-    ...(isSafePassthrough ? {} : { 'Content-Disposition': 'attachment' }),
     'Cache-Control': 'private, max-age=31536000, immutable',
     'Content-Length': contentLength.toString(),
   };
