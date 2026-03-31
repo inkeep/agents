@@ -60,6 +60,7 @@ function makeTrigger(overrides: Partial<ScheduledTrigger> = {}): ScheduledTrigge
     timeoutSeconds: 780,
     runAsUserId: null,
     createdBy: null,
+    dispatchDelayMs: null,
     nextRunAt: '2026-03-13T10:00:00.000Z',
     enabled: true,
     ref: 'main',
