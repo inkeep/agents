@@ -210,7 +210,7 @@ export function AuthKeysSection({
 
           <div className="space-y-1.5">
             <Label htmlFor="auth-algorithm" className="text-sm">
-              Algorithm
+              Algorithm <span className="text-destructive">*</span>
             </Label>
             <Select value={algorithm} onValueChange={setAlgorithm}>
               <SelectTrigger id="auth-algorithm">
