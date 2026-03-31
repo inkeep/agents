@@ -1,2 +1,2 @@
-DROP TABLE "scheduled_triggers" CASCADE;--> statement-breakpoint
-DROP TABLE "scheduled_workflows" CASCADE;
+DROP TABLE "scheduled_workflows";--> statement-breakpoint
+DROP TABLE "scheduled_triggers";--> statement-breakpoint
