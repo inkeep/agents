@@ -103,7 +103,7 @@ const config: InkeepModalSearchAndChatProps = {
     ],
   },
   searchSettings: {
-    apiKey: '0ed8a392c5f1bd3e1c0fb91684932c932a2f6e9765e0344b',
+    apiKey,
     tabs: [['Docs', { isAlwaysVisible: true }], ['All', { isAlwaysVisible: true }], 'GitHub'],
   },
 };
