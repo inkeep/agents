@@ -230,14 +230,20 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
       if (incomingWc) {
         const existingAuth = existingWc.auth ?? {};
         const incomingAuth = (incomingWc.auth ?? {}) as Record<string, unknown>;
-        const { publicKeys: _ignoreKeys, ...incomingAuthWithoutKeys } = incomingAuth;
+        const mergedAuth = {
+          ...existingAuth,
+          ...(incomingAuth.allowAnonymous !== undefined && {
+            allowAnonymous: incomingAuth.allowAnonymous,
+          }),
+          ...(incomingAuth.audience !== undefined && { audience: incomingAuth.audience }),
+        };
         data.config = {
           type: 'web_client' as const,
           webClient: {
             ...existingWc,
             allowedDomains:
               (incomingWc.allowedDomains as string[] | undefined) ?? existingWc.allowedDomains,
-            auth: { ...existingAuth, ...incomingAuthWithoutKeys },
+            auth: mergedAuth,
           } as typeof existingWc,
         };
       }
