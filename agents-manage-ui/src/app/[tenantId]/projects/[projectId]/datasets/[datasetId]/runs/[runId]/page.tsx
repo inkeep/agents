@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/table';
 import type { DatasetRunInvocation, DatasetRunWithConversations } from '@/lib/api/dataset-runs';
 import { fetchDatasetRun, fetchDatasetRunItems } from '@/lib/api/dataset-runs';
-import { fetchEvaluationJobConfigEvaluators } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
 
@@ -58,39 +57,22 @@ export default function Page({
 
         // If there's an evaluation job, fetch evaluation progress
         if (response.data?.evaluationJobConfigId) {
-          const [evaluatorRelations, evalResults] = await Promise.all([
-            fetchEvaluationJobConfigEvaluators(
-              tenantId,
-              projectId,
-              response.data.evaluationJobConfigId
-            ),
-            fetchEvaluationResultsByJobConfig(
-              tenantId,
-              projectId,
-              response.data.evaluationJobConfigId
-            ),
-          ]);
+          const evalResults = await fetchEvaluationResultsByJobConfig(
+            tenantId,
+            projectId,
+            response.data.evaluationJobConfigId
+          );
 
-          // Count conversations that have been created
-          const conversationCount =
-            response.data.items?.reduce(
-              (acc, item) => acc + (item.conversations?.length || 0),
-              0
-            ) || 0;
-
-          // Expected evaluations = conversations × evaluators
-          const evaluatorCount = evaluatorRelations.data?.length || 0;
-          const expectedEvaluations = conversationCount * evaluatorCount;
-          // Only count evaluations that have output (completed evaluations)
+          const totalEvaluations = evalResults.data?.length || 0;
           const completedEvaluations =
             evalResults.data?.filter(
               (result) => result.output !== null && result.output !== undefined
             ).length || 0;
 
           setEvaluationProgress({
-            total: expectedEvaluations,
+            total: totalEvaluations,
             completed: completedEvaluations,
-            isRunning: completedEvaluations < expectedEvaluations && expectedEvaluations > 0,
+            isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
           });
         } else {
           setEvaluationProgress(null);

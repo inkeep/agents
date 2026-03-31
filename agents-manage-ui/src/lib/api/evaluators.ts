@@ -64,10 +64,14 @@ export interface EvaluatorUpdate {
  */
 export async function fetchEvaluators(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  { agentId }: { agentId?: string } = {}
 ): Promise<ListResponse<Evaluator>> {
+  const params = new URLSearchParams();
+  if (agentId) params.set('agentId', agentId);
+  const qs = params.toString();
   return makeManagementApiRequest<ListResponse<Evaluator>>(
-    `tenants/${tenantId}/projects/${projectId}/evals/evaluators`
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluators${qs ? `?${qs}` : ''}`
   );
 }
 

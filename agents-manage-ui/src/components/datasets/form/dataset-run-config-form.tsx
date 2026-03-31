@@ -144,7 +144,27 @@ export function DatasetRunConfigForm({
 
   const onSubmit = async (data: DatasetRunConfigFormData) => {
     try {
-      // Ensure evaluatorIds is always included, even if empty
+      const selectedAgents = data.agentIds || [];
+      const selectedEvalIds = data.evaluatorIds || [];
+
+      if (selectedAgents.length > 0 && selectedEvalIds.length > 0) {
+        const unscopedEvaluators = selectedEvalIds.filter((evId) => {
+          const scopedAgents = evaluatorAgentMap.get(evId);
+          if (!scopedAgents || scopedAgents.length === 0) return false;
+          return !scopedAgents.some((aId) => selectedAgents.includes(aId));
+        });
+
+        if (unscopedEvaluators.length > 0) {
+          const names = unscopedEvaluators
+            .map((id) => evaluators.find((e) => e.id === id)?.name ?? id)
+            .join(', ');
+          toast.error(
+            `The following evaluators are not scoped to the selected agents: ${names}`
+          );
+          return;
+        }
+      }
+
       const payload = {
         name: data.name,
         description: data.description,

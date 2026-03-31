@@ -156,10 +156,30 @@ export function EvaluationRunConfigFormDialog({
     });
   }, [isOpen, initialData, form, suiteConfigForm]);
 
-  const evaluatorLookup = createLookup(evaluators);
   const agentLookup = createLookup(agents);
 
   const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
+  const selectedEvaluatorIds = useWatch({
+    control: suiteConfigForm.control,
+    name: 'evaluatorIds',
+  });
+  const filterAgentId = suiteAgentIds.length === 1 ? suiteAgentIds[0] : undefined;
+  const { data: filteredEvaluators } = useEvaluatorsQuery({
+    enabled: isOpen,
+    agentId: filterAgentId,
+  });
+  const displayEvaluators = filterAgentId ? filteredEvaluators : evaluators;
+  const displayEvaluatorLookup = createLookup(displayEvaluators);
+
+  useEffect(() => {
+    if (!displayEvaluators.length) return;
+    const validIds = new Set(displayEvaluators.map((e) => e.id));
+    const filtered = selectedEvaluatorIds.filter((id) => validIds.has(id));
+    if (filtered.length !== selectedEvaluatorIds.length) {
+      suiteConfigForm.setValue('evaluatorIds', filtered);
+    }
+  }, [displayEvaluators, selectedEvaluatorIds, suiteConfigForm]);
+
   const { isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -339,14 +359,19 @@ export function EvaluationRunConfigFormDialog({
                       </Link>
                     </div>
                     <ComponentSelector
-                      componentLookup={evaluatorLookup}
+                      componentLookup={displayEvaluatorLookup}
                       selectedComponents={field.value}
                       onSelectionChange={field.onChange}
-                      emptyStateMessage="No evaluators available."
+                      emptyStateMessage="No evaluators available for the selected agent."
                       emptyStateActionText="Create evaluator"
                       emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
                       placeholder="Select evaluators..."
                     />
+                    {filterAgentId && (
+                      <div className="text-xs text-muted-foreground">
+                        Showing evaluators scoped to the selected agent.
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
