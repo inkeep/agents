@@ -184,7 +184,10 @@ export function FeedbackTable({
             </div>
 
             <div className="relative w-full md:w-[260px]">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/40" aria-hidden="true" />
+              <Search
+                className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/40"
+                aria-hidden="true"
+              />
               <Input
                 aria-label="Filter by conversation ID"
                 value={conversationId}
