@@ -382,8 +382,8 @@ keyword_results AS (
   FROM artifact_search_index
   WHERE tenant_id = $2
     AND project_id = $3
-    AND agent_id = $4
-    AND user_id = $5                                    -- strict equality (D6)
+    AND ($4::varchar IS NULL OR agent_id = $4)          -- optional agent filter (D6)
+    AND ($5::varchar IS NULL OR user_id = $5)           -- optional user filter (D6)
     AND ($6::varchar IS NULL OR tool_name = $6)         -- optional tool filter
     AND ($7::varchar IS NULL OR conversation_id = $7)   -- optional conversation filter
     AND search_vector @@ (SELECT query FROM text_query)
@@ -396,8 +396,8 @@ recency_results AS (
   FROM artifact_search_index
   WHERE tenant_id = $2
     AND project_id = $3
-    AND agent_id = $4
-    AND user_id = $5
+    AND ($4::varchar IS NULL OR agent_id = $4)
+    AND ($5::varchar IS NULL OR user_id = $5)
     AND ($6::varchar IS NULL OR tool_name = $6)
     AND ($7::varchar IS NULL OR conversation_id = $7)
   LIMIT 50
@@ -875,7 +875,7 @@ External MCP clients connecting without a user-scoped JWT will not have search t
 
 If the client later authenticates with a JWT (e.g., via session upgrade), the tools become available on subsequent connections.
 
-### 6.4 Extend `get_reference_artifact` for cross-conversation retrieval (D13)
+### 6.8 Extend `get_reference_artifact` for cross-conversation retrieval (D13)
 
 The existing `get_reference_artifact` tool (in `default-tools.ts`) is session-scoped. For artifacts from prior conversations found via `search_artifacts`, it needs a DB fallback.
 
@@ -1242,8 +1242,8 @@ const MessageWindowSchema = z.object({
 
 | Access layer | Scope | Who can access |
 |---|---|---|
-| **Internal MCP (Phase 1)** | Own agent + own user, across conversations | The agent itself during execution |
-| **External MCP (Phase 1)** | Scoped by MCP session context | External agents/clients with MCP access |
+| **Platform tools (Phase 2)** | Own agent + own user, across conversations | The agent itself during execution |
+| **External MCP (Phase 2)** | Scoped by API key (project) + JWT sub claim (userId). AgentId from MCP endpoint path. | External agents/clients with MCP access |
 | **Run API (Phase 1)** | Own user (JWT), across conversations for that agent | End-users via authenticated chat sessions |
 | **Manage API (Phase 1)** | Any user in project (admin) | Builders/admins via manage UI or API key |
 | **SDK (Phase 1)** | Depends on auth method (API key = manage scope, JWT = end-user scope) | Developers building on the platform |
@@ -1305,7 +1305,7 @@ Shift internal agent code to use the search/retrieval API as the canonical path 
    - After every user+AI turn, a fast synchronous UPSERT writes concatenated title + user messages
    - Compression events overwrite with richer structured summary (LLM already ran as part of compression)
    - Callers can provide custom summaries via API (no LLM in the API server)
-   - Index scoped by tenantId + projectId + agentId + userId (strict equality)
+   - Index scoped by tenantId + projectId (always required); agentId + userId conditionally applied by caller
 
 3. **Artifact search index is populated:**
    - Every new artifact gets a row in `artifact_search_index` at creation time
@@ -1318,7 +1318,7 @@ Shift internal agent code to use the search/retrieval API as the canonical path 
    - `search_artifacts(query)` returns relevant artifacts with `toolCallId`
    - `get_conversation_messages(conversationId)` returns paginated messages with DB-level auth
    - `get_reference_artifact` works for both current-session and cross-conversation artifacts
-   - All tools enforce strict tenant + project + agent + user scoping (no NULL userId leakage)
+   - All tools enforce tenant + project scoping. Run API/platform tools always pass userId from JWT. Manage API allows optional agentId/userId for admin queries.
 
 5. **No regression:**
    - Existing `get_reference_artifact` session-cache path unchanged (DB fallback is additive)
