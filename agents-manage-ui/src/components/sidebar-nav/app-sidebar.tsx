@@ -16,6 +16,7 @@ import {
   Library,
   Lock,
   LucideHexagon,
+  MessageSquare,
   Settings,
   Users,
   Workflow,
@@ -212,6 +213,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.traces,
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
+        },
+        {
+          title: STATIC_LABELS.feedback,
+          url: `/${tenantId}/projects/${projectId}/feedback`,
+          icon: MessageSquare,
         },
         {
           title: 'Test Suites',

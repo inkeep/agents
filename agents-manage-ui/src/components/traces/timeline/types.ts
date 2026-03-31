@@ -49,6 +49,7 @@ type ActivityStatus = (typeof ACTIVITY_STATUS)[keyof typeof ACTIVITY_STATUS];
 
 export interface ActivityItem {
   id: string;
+  messageId?: string;
   type: ActivityKind;
   name?: string;
   description: string;

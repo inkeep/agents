@@ -6,11 +6,12 @@ import {
   ArrowLeft,
   Coins,
   ExternalLink as ExternalLinkIcon,
+  MessageSquare,
   Timer,
   TriangleAlert,
 } from 'lucide-react';
 import NextLink from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
@@ -27,6 +28,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GENERATION_TYPES } from '@/constants/signoz';
+import { FeedbackDialog } from '@/components/agent/playground/feedback-dialog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
@@ -45,6 +47,8 @@ export default function ConversationDetail({
   const backLink = `/${tenantId}/projects/${projectId}/traces` as const;
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightMessageId = searchParams.get('messageId');
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
   const [usageEvents, setUsageEvents] = useState<
     Array<{
@@ -61,6 +65,10 @@ export default function ConversationDetail({
   const [error, setError] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
   const [isRerunning, setIsRerunning] = useState(false);
+  const [feedbackDialog, setFeedbackDialog] = useState<{
+    open: boolean;
+    messageId?: string;
+  }>({ open: false });
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
 
@@ -308,6 +316,14 @@ export default function ConversationDetail({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFeedbackDialog({ open: true })}
+          >
+            <MessageSquare className="h-4 w-4 mr-1.5" />
+            Leave Feedback
+          </Button>
           {(conversation.agentId || conversation.agentName) && (
             <ExternalLink
               href={`/${tenantId}/projects/${projectId}/agents/${conversation.agentId}`}
@@ -548,6 +564,10 @@ export default function ConversationDetail({
             conversationId={conversationId}
             tenantId={tenantId}
             projectId={projectId}
+            highlightMessageId={highlightMessageId}
+            onLeaveFeedback={(_activityId, messageId) => {
+              setFeedbackDialog({ open: true, messageId });
+            }}
             onCopyFullTrace={handleCopyFullTrace}
             onCopySummarizedTrace={handleCopySummarizedTrace}
             isCopying={isCopying}
@@ -557,6 +577,15 @@ export default function ConversationDetail({
           />
         </ResizablePanelGroup>
       </div>
+
+      <FeedbackDialog
+        isOpen={feedbackDialog.open}
+        onOpenChange={(open) => setFeedbackDialog((prev) => ({ ...prev, open }))}
+        tenantId={tenantId}
+        projectId={projectId}
+        conversationId={conversationId}
+        messageId={feedbackDialog.messageId}
+      />
     </div>
   );
 }

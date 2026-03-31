@@ -79,7 +79,7 @@ export function ChatWidget({
   'use memo';
 
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-  const { isCopilotConfigured } = useCopilotContext();
+  const copilotCtx = useCopilotContext();
   const { data: dataComponents } = useDataComponentsQuery();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
@@ -256,21 +256,19 @@ export function ChatWidget({
               'x-emit-operations': 'true',
               ...customHeaders,
             },
-            messageActions: isCopilotConfigured
-              ? [
-                  {
-                    label: 'Improve with AI',
-                    icon: { builtIn: 'LuSparkles' },
-                    action: {
-                      type: 'invoke_message_callback',
-                      callback({ messageId }) {
-                        setMessageId(messageId);
-                        setIsFeedbackDialogOpen(true);
-                      },
-                    },
+            messageActions: [
+              {
+                label: 'Leave Feedback',
+                icon: { builtIn: 'LuSparkles' },
+                action: {
+                  type: 'invoke_message_callback',
+                  callback({ messageId }) {
+                    setMessageId(messageId);
+                    setIsFeedbackDialogOpen(true);
                   },
-                ]
-              : undefined,
+                },
+              },
+            ],
             components: new Proxy(
               {},
               {
@@ -303,9 +301,21 @@ export function ChatWidget({
         <FeedbackDialog
           isOpen={isFeedbackDialogOpen}
           onOpenChange={setIsFeedbackDialogOpen}
+          tenantId={tenantId}
+          projectId={projectId}
           conversationId={conversationId}
           messageId={messageId}
-          setShowTraces={setShowTraces}
+          onNegativeFeedbackSubmit={(feedback) => {
+            const { chatFunctionsRef, openCopilot, setDynamicHeaders } = copilotCtx;
+            if (chatFunctionsRef?.current) {
+              openCopilot();
+              setShowTraces(false);
+              setDynamicHeaders({ conversationId, messageId });
+              setTimeout(() => {
+                chatFunctionsRef?.current?.submitMessage(feedback);
+              }, 100);
+            }
+          }}
         />
       )}
     </div>
