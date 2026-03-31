@@ -126,7 +126,7 @@ function makeWebClientApp(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', () => {
+describe('appId in executionContext.metadata', () => {
   let app: Hono;
   const originalEnv = process.env.ENVIRONMENT;
 
@@ -147,26 +147,8 @@ describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', (
     process.env.ENVIRONMENT = originalEnv;
   });
 
-  describe('API key auth (production path)', () => {
-    it('should set metadata.appPrompt from x-inkeep-app-prompt header', async () => {
-      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
-
-      app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.json((c as any).get('executionContext')));
-
-      const res = await app.request('/', {
-        headers: {
-          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
-          'x-inkeep-app-prompt': 'Be concise and link to documentation pages.',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.metadata.appPrompt).toBe('Be concise and link to documentation pages.');
-    });
-
-    it('should not set metadata.appPrompt when header is absent', async () => {
+  describe('API key auth without app', () => {
+    it('should not set metadata.appId when x-inkeep-app-id header is absent', async () => {
       validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
 
       app.use('*', apiKeyAuth());
@@ -180,12 +162,12 @@ describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', (
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.metadata?.appPrompt).toBeUndefined();
+      expect(body.metadata?.appId).toBeUndefined();
     });
   });
 
-  describe('app credential auth (appPrompt from DB takes precedence)', () => {
-    it('should not override DB-sourced appPrompt with header value', async () => {
+  describe('app credential auth sets appId from DB', () => {
+    it('should set metadata.appId from the app record', async () => {
       const appRecord = makeWebClientApp({ prompt: 'Prompt from database' });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
@@ -208,23 +190,22 @@ describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', (
           'x-inkeep-app-id': 'app-id-1',
           'x-inkeep-agent-id': 'agent-1',
           Origin: 'https://help.customer.com',
-          'x-inkeep-app-prompt': 'Header prompt that should be ignored',
         },
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.metadata.appPrompt).toBe('Prompt from database');
+      expect(body.metadata.appId).toBe('app-id-1');
     });
 
-    it('should use header appPrompt when app has no prompt in DB', async () => {
-      const appRecord = makeWebClientApp({ prompt: null });
+    it('should not override DB-sourced appId with header value', async () => {
+      const appRecord = makeWebClientApp({ id: 'app-from-db' });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
       jwtVerifyMock.mockResolvedValueOnce({
         payload: {
           sub: 'anon_test-uuid',
-          app: 'app-id-1',
+          app: 'app-from-db',
           tid: 'tenant_1',
           pid: 'project_1',
           type: 'anonymous',
@@ -237,16 +218,15 @@ describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', (
       const res = await app.request('/', {
         headers: {
           Authorization: `Bearer ${VALID_ANON_JWT}`,
-          'x-inkeep-app-id': 'app-id-1',
+          'x-inkeep-app-id': 'app-from-db',
           'x-inkeep-agent-id': 'agent-1',
           Origin: 'https://help.customer.com',
-          'x-inkeep-app-prompt': 'Forwarded from parent agent',
         },
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.metadata.appPrompt).toBe('Forwarded from parent agent');
+      expect(body.metadata.appId).toBe('app-from-db');
     });
   });
 });

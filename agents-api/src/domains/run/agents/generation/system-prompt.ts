@@ -1,6 +1,7 @@
 import type { Artifact, ArtifactComponentApiInsert, AssembleResult } from '@inkeep/agents-core';
-import { TemplateEngine } from '@inkeep/agents-core';
+import { getAppById, TemplateEngine } from '@inkeep/agents-core';
 import type { ToolSet } from 'ai';
+import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
 import {
@@ -328,7 +329,8 @@ export async function buildSystemPrompt(
   );
   const clientCurrentTime = getClientCurrentTime(ctx);
 
-  const appPrompt = ctx.executionContext.metadata?.appPrompt;
+  const appId = ctx.executionContext.metadata?.appId;
+  const appPrompt = appId ? (await getAppById(runDbClient)(appId))?.prompt || undefined : undefined;
 
   const config: SystemPromptV1 = {
     corePrompt: processedPrompt,
