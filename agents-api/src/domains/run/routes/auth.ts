@@ -227,9 +227,7 @@ app.openapi(
     }
 
     const tenantId = isRefresh ? (refreshTenantId ?? appRecord.tenantId) : appRecord.tenantId;
-    const projectId = isRefresh
-      ? (refreshProjectId ?? appRecord.projectId)
-      : appRecord.projectId;
+    const projectId = isRefresh ? (refreshProjectId ?? appRecord.projectId) : appRecord.projectId;
 
     const lifetimeSeconds = env.INKEEP_ANON_SESSION_LIFETIME_SECONDS;
     const now = Math.floor(Date.now() / 1000);
