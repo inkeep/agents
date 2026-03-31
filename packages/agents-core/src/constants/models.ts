@@ -89,4 +89,8 @@ export type OpenAIModel = (typeof OPENAI_MODELS)[keyof typeof OPENAI_MODELS];
 export type GoogleModel = (typeof GOOGLE_MODELS)[keyof typeof GOOGLE_MODELS];
 export type ModelName = AnthropicModel | OpenAIModel | GoogleModel;
 
-export const GATEWAY_ROUTABLE_PROVIDERS = ['anthropic', 'openai', 'google'] as const;
+export const GATEWAY_ROUTABLE_PROVIDERS_SET: ReadonlySet<string> = new Set([
+  'anthropic',
+  'openai',
+  'google',
+]);

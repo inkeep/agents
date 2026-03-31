@@ -1,6 +1,6 @@
 'use client';
 
-import { GATEWAY_ROUTABLE_PROVIDERS } from '@inkeep/agents-core/client-exports';
+import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, useEffect, useRef, useState } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
@@ -43,7 +43,8 @@ const AllowedProvidersSection: FC<{
   const isInherited = !allowedProviders && !!inheritedAllowedProviders;
   const isSpecific = specificMode || effectiveProviders.length > 0;
 
-  const availableToAdd = AVAILABLE_PROVIDERS.filter((p) => !effectiveProviders.includes(p.value));
+  const effectiveSet = new Set(effectiveProviders);
+  const availableToAdd = AVAILABLE_PROVIDERS.filter((p) => !effectiveSet.has(p.value));
 
   function handleReorder(fromId: string, toId: string) {
     if (fromId === toId || !allowedProviders) return;
@@ -428,8 +429,7 @@ export function ModelConfiguration({
 
   const modelProvider = effectiveModel?.split('/')[0] ?? '';
   const isGatewayRoutable =
-    (GATEWAY_ROUTABLE_PROVIDERS as readonly string[]).includes(modelProvider) ||
-    modelProvider === 'gateway';
+    GATEWAY_ROUTABLE_PROVIDERS_SET.has(modelProvider) || modelProvider === 'gateway';
 
   const jsonPlaceholder = getJsonPlaceholder
     ? getJsonPlaceholder(effectiveModel)

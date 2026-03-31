@@ -16,7 +16,7 @@ import { gatewayCostMiddleware } from './usage-cost-middleware';
 
 const logger = getLogger('ModelFactory');
 
-import { GATEWAY_ROUTABLE_PROVIDERS } from '../constants/models.js';
+import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '../constants/models.js';
 
 // NVIDIA NIM default provider instance
 const nimDefault = createOpenAICompatible({
@@ -206,7 +206,7 @@ export class ModelFactory {
 
     const shouldRouteViaGateway =
       !!process.env.AI_GATEWAY_API_KEY &&
-      (GATEWAY_ROUTABLE_PROVIDERS as readonly string[]).includes(provider) &&
+      GATEWAY_ROUTABLE_PROVIDERS_SET.has(provider) &&
       Object.keys(providerConfig).length === 0;
 
     let model: LanguageModel;

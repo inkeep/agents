@@ -1,6 +1,6 @@
 import { trace } from '@opentelemetry/api';
 import type { LanguageModelMiddleware } from 'ai';
-import { GATEWAY_ROUTABLE_PROVIDERS } from '../constants/models.js';
+import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '../constants/models.js';
 import { SPAN_KEYS } from '../constants/otel-attributes';
 import { getLogger } from './logger';
 
@@ -48,7 +48,7 @@ export function normalizeModelId(modelId: string): string {
   const slashIndex = modelId.indexOf('/');
   if (slashIndex === -1) return modelId;
   const prefix = modelId.slice(0, slashIndex);
-  if ((GATEWAY_ROUTABLE_PROVIDERS as readonly string[]).includes(prefix)) {
+  if (GATEWAY_ROUTABLE_PROVIDERS_SET.has(prefix)) {
     return modelId.slice(slashIndex + 1);
   }
   return modelId;

@@ -1,6 +1,6 @@
 'use client';
 
-import { GATEWAY_ROUTABLE_PROVIDERS } from '@inkeep/agents-core/constants/models';
+import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/constants/models';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { type FC, useEffect, useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
@@ -230,9 +230,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               {/* Predefined models */}
               {Object.entries(modelOptions)
                 .filter(
-                  ([provider]) =>
-                    !gatewayOnly ||
-                    (GATEWAY_ROUTABLE_PROVIDERS as readonly string[]).includes(provider)
+                  ([provider]) => !gatewayOnly || GATEWAY_ROUTABLE_PROVIDERS_SET.has(provider)
                 )
                 .map(([provider, models]) => (
                   <CommandGroup key={provider} heading={provider}>
