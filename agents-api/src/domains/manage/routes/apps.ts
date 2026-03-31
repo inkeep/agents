@@ -18,6 +18,7 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAppForProject,
+  WebClientConfigSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -218,35 +219,37 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
   }
 
   if (data.config && data.config.type === 'web_client') {
+    const parsed = WebClientConfigSchema.safeParse(data.config);
+    if (!parsed.success) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Invalid web client config: ${parsed.error.issues.map((i) => i.message).join(', ')}`,
+      });
+    }
     const existingApp = await getAppByIdForProject(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });
     if (existingApp?.config?.type === 'web_client') {
       const existingWc = existingApp.config.webClient;
-      const incomingWc = (data.config as Record<string, unknown>).webClient as
-        | Record<string, unknown>
-        | undefined;
-      if (incomingWc) {
-        const existingAuth = existingWc.auth ?? {};
-        const incomingAuth = (incomingWc.auth ?? {}) as Record<string, unknown>;
-        const mergedAuth = {
-          ...existingAuth,
-          ...(incomingAuth.allowAnonymous !== undefined && {
-            allowAnonymous: incomingAuth.allowAnonymous,
-          }),
-          ...(incomingAuth.audience !== undefined && { audience: incomingAuth.audience }),
-        };
-        data.config = {
-          type: 'web_client' as const,
-          webClient: {
-            ...existingWc,
-            allowedDomains:
-              (incomingWc.allowedDomains as string[] | undefined) ?? existingWc.allowedDomains,
-            auth: mergedAuth,
-          } as typeof existingWc,
-        };
-      }
+      const incomingWc = parsed.data.webClient;
+      const existingAuth = existingWc.auth ?? {};
+      const incomingAuth = incomingWc.auth;
+      const mergedAuth = {
+        ...existingAuth,
+        ...(incomingAuth?.allowAnonymous !== undefined && {
+          allowAnonymous: incomingAuth.allowAnonymous,
+        }),
+        ...(incomingAuth?.audience !== undefined && { audience: incomingAuth.audience }),
+      };
+      data.config = {
+        type: 'web_client' as const,
+        webClient: {
+          ...existingWc,
+          allowedDomains: incomingWc.allowedDomains ?? existingWc.allowedDomains,
+          auth: mergedAuth,
+        } as typeof existingWc,
+      };
     }
   }
 
