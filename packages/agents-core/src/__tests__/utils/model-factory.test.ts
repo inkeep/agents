@@ -628,7 +628,7 @@ describe('ModelFactory', () => {
       };
 
       const result = ModelFactory.prepareGenerationConfig(config);
-      expect(result.model.modelId).toBe('claude-sonnet-4-5');
+      expect((result.model as any).modelId).toBe('claude-sonnet-4-5');
     });
 
     test('should normalize provider prefix from gateway model when allowedProviders is not set', () => {
@@ -639,7 +639,7 @@ describe('ModelFactory', () => {
       };
 
       const result = ModelFactory.prepareGenerationConfig(config);
-      expect(result.model.modelId).toBe('claude-sonnet-4-5');
+      expect((result.model as any).modelId).toBe('claude-sonnet-4-5');
     });
 
     test('allowedProviders should override existing gateway order/only from providerOptions', () => {
