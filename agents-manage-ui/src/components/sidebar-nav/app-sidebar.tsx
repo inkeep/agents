@@ -55,11 +55,21 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const [hasEntitlements, setHasEntitlements] = useState(false);
 
   useEffect(() => {
-    if (tenantId) {
-      fetchEntitlements(tenantId)
-        .then((entitlements) => setHasEntitlements(entitlements.length > 0))
-        .catch(() => setHasEntitlements(false));
-    }
+    setHasEntitlements(false);
+    if (!tenantId) return;
+
+    let cancelled = false;
+    fetchEntitlements(tenantId)
+      .then((entitlements) => {
+        if (!cancelled) setHasEntitlements(entitlements.length > 0);
+      })
+      .catch(() => {
+        if (!cancelled) setHasEntitlements(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [tenantId]);
 
   const topNavItems: NavItemProps[] = projectId

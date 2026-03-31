@@ -63,7 +63,7 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
       setEntitlements(entitlementsResult);
 
       if (orgResult.data?.members) {
-        const serviceAccountUserId = (orgResult.data as any).serviceAccountUserId;
+        const serviceAccountUserId = orgResult.data.serviceAccountUserId;
         const members = orgResult.data.members.filter((m) => m.user.id !== serviceAccountUserId);
         const adminCount = members.filter((m) => m.role === 'admin' || m.role === 'owner').length;
         const memberCount = members.filter((m) => m.role === 'member').length;
@@ -103,7 +103,14 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
   const hasAnyEntitlements = entitlements.length > 0;
 
   if (!hasAnyEntitlements) {
-    return null;
+    return (
+      <Card className="shadow-none">
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Billing</CardTitle>
+          <CardDescription>No entitlements configured for this organization.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
   }
 
   return (

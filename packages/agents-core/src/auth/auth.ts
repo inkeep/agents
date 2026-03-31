@@ -379,20 +379,24 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             const oldRole = member.role as OrgRole;
             const targetRole = newRole as OrgRole;
 
+            const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
+
+            const doRoleChange = async () => {
+              await changeOrgRole({
+                tenantId: org.id,
+                userId: member.userId,
+                oldRole,
+                newRole: targetRole,
+              });
+            };
+
             const oldBucketIsAdmin = roleMatchesAdminBucket(oldRole);
             const newBucketIsAdmin = roleMatchesAdminBucket(targetRole);
             if (oldBucketIsAdmin !== newBucketIsAdmin) {
-              await enforcePerRoleSeatLimit(config.dbClient, org.id, targetRole);
+              await enforcePerRoleSeatLimit(config.dbClient, org.id, targetRole, doRoleChange);
+            } else {
+              await doRoleChange();
             }
-
-            const { changeOrgRole, revokeAllProjectMemberships } = await import('./authz/sync');
-
-            await changeOrgRole({
-              tenantId: org.id,
-              userId: member.userId,
-              oldRole,
-              newRole: targetRole,
-            });
             console.log(
               `🔐 SpiceDB: Updated member ${member.userId} role from ${oldRole} to ${targetRole} in org ${org.name}`
             );
