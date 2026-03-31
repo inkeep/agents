@@ -25,7 +25,9 @@ vi.mock('@opentelemetry/api', async (importOriginal) => {
   };
 });
 
-const { gatewayCostMiddleware, extractUsageTokens } = await import('../usage-cost-middleware');
+const { gatewayCostMiddleware, extractUsageTokens, normalizeModelId } = await import(
+  '../usage-cost-middleware'
+);
 
 describe('gatewayCostMiddleware', () => {
   beforeEach(() => {
@@ -244,6 +246,41 @@ describe('gatewayCostMiddleware', () => {
 
       expect(mockSetAttribute).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('normalizeModelId', () => {
+  it('strips known provider prefix from model ID', () => {
+    expect(normalizeModelId('openai/gpt-5.4')).toBe('gpt-5.4');
+    expect(normalizeModelId('anthropic/claude-sonnet-4-6')).toBe('claude-sonnet-4-6');
+    expect(normalizeModelId('google/gemini-2.5-flash')).toBe('gemini-2.5-flash');
+  });
+
+  it('returns model ID unchanged when no provider prefix', () => {
+    expect(normalizeModelId('claude-sonnet-4-6')).toBe('claude-sonnet-4-6');
+    expect(normalizeModelId('gpt-5.4')).toBe('gpt-5.4');
+  });
+
+  it('preserves non-gateway-routable provider prefixes', () => {
+    expect(normalizeModelId('custom/my-model')).toBe('custom/my-model');
+    expect(normalizeModelId('nim/nvidia/llama-3.3')).toBe('nim/nvidia/llama-3.3');
+    expect(normalizeModelId('openrouter/anthropic/claude-sonnet-4')).toBe(
+      'openrouter/anthropic/claude-sonnet-4'
+    );
+  });
+});
+
+describe('overrideModelId', () => {
+  it('normalizes gateway model IDs with provider prefix', () => {
+    const model = { modelId: 'openai/gpt-5.4', provider: 'gateway' };
+    const result = gatewayCostMiddleware.overrideModelId?.({ model: model as any });
+    expect(result).toBe('gpt-5.4');
+  });
+
+  it('passes through model IDs without provider prefix', () => {
+    const model = { modelId: 'claude-sonnet-4-6', provider: 'anthropic.messages' };
+    const result = gatewayCostMiddleware.overrideModelId?.({ model: model as any });
+    expect(result).toBe('claude-sonnet-4-6');
   });
 });
 

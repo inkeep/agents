@@ -148,6 +148,20 @@ export const MetadataEditor: FC = () => {
             form.setValue('models.base.providerOptions', value, { shouldDirty: true });
           }}
           editorNamePrefix="agent-base"
+          fallbackModels={models.base.fallbackModels ?? undefined}
+          inheritedFallbackModels={project?.models.base?.fallbackModels ?? undefined}
+          onFallbackModelsChange={(value) => {
+            form.setValue('models.base.fallbackModels', value.length ? value : undefined, {
+              shouldDirty: true,
+            });
+          }}
+          allowedProviders={models.base.allowedProviders ?? undefined}
+          inheritedAllowedProviders={project?.models.base?.allowedProviders ?? undefined}
+          onAllowedProvidersChange={(value) => {
+            form.setValue('models.base.allowedProviders', value.length ? value : undefined, {
+              shouldDirty: true,
+            });
+          }}
         />
 
         <CollapsibleSettings
@@ -197,6 +211,34 @@ export const MetadataEditor: FC = () => {
               }
               return structuredOutputModelProviderOptionsTemplate;
             }}
+            fallbackModels={models.structuredOutput?.fallbackModels ?? undefined}
+            inheritedFallbackModels={
+              project?.models.structuredOutput?.fallbackModels ??
+              models.base.fallbackModels ??
+              project?.models.base?.fallbackModels ??
+              undefined
+            }
+            onFallbackModelsChange={(value) => {
+              form.setValue(
+                'models.structuredOutput.fallbackModels',
+                value.length ? value : undefined,
+                { shouldDirty: true }
+              );
+            }}
+            allowedProviders={models.structuredOutput?.allowedProviders ?? undefined}
+            inheritedAllowedProviders={
+              project?.models.structuredOutput?.allowedProviders ??
+              models.base.allowedProviders ??
+              project?.models.base?.allowedProviders ??
+              undefined
+            }
+            onAllowedProvidersChange={(value) => {
+              form.setValue(
+                'models.structuredOutput.allowedProviders',
+                value.length ? value : undefined,
+                { shouldDirty: true }
+              );
+            }}
           />
 
           <ModelConfiguration
@@ -237,6 +279,32 @@ export const MetadataEditor: FC = () => {
                 return azureModelSummarizerProviderOptionsTemplate;
               }
               return summarizerModelProviderOptionsTemplate;
+            }}
+            fallbackModels={models.summarizer?.fallbackModels ?? undefined}
+            inheritedFallbackModels={
+              project?.models.summarizer?.fallbackModels ??
+              models.base.fallbackModels ??
+              project?.models.base?.fallbackModels ??
+              undefined
+            }
+            onFallbackModelsChange={(value) => {
+              form.setValue('models.summarizer.fallbackModels', value.length ? value : undefined, {
+                shouldDirty: true,
+              });
+            }}
+            allowedProviders={models.summarizer?.allowedProviders ?? undefined}
+            inheritedAllowedProviders={
+              project?.models.summarizer?.allowedProviders ??
+              models.base.allowedProviders ??
+              project?.models.base?.allowedProviders ??
+              undefined
+            }
+            onAllowedProvidersChange={(value) => {
+              form.setValue(
+                'models.summarizer.allowedProviders',
+                value.length ? value : undefined,
+                { shouldDirty: true }
+              );
             }}
           />
         </CollapsibleSettings>
