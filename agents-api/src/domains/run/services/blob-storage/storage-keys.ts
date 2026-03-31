@@ -10,40 +10,19 @@ export type ConversationMediaKeyInput = {
   ext: string;
 };
 
-export type ArtifactDataKeyInput = {
-  category: 'artifact-data';
-  tenantId: string;
-  projectId: string;
-  artifactId: string;
-  contentHash: string;
-  ext: string;
-};
-
-export type StorageKeyInput = ConversationMediaKeyInput | ArtifactDataKeyInput;
+export type StorageKeyInput = ConversationMediaKeyInput;
 
 export function buildStorageKey(input: StorageKeyInput): string {
-  switch (input.category) {
-    case 'media':
-      return [
-        STORAGE_KEY_VERSION,
-        `t_${input.tenantId}`,
-        input.category,
-        `p_${input.projectId}`,
-        'conv',
-        `c_${input.conversationId}`,
-        `m_${input.messageId}`,
-        `sha256-${input.contentHash}.${input.ext}`,
-      ].join('/');
-    case 'artifact-data':
-      return [
-        STORAGE_KEY_VERSION,
-        `t_${input.tenantId}`,
-        input.category,
-        `p_${input.projectId}`,
-        `a_${input.artifactId}`,
-        `sha256-${input.contentHash}.${input.ext}`,
-      ].join('/');
-  }
+  return [
+    STORAGE_KEY_VERSION,
+    `t_${input.tenantId}`,
+    input.category,
+    `p_${input.projectId}`,
+    'conv',
+    `c_${input.conversationId}`,
+    `m_${input.messageId}`,
+    `sha256-${input.contentHash}.${input.ext}`,
+  ].join('/');
 }
 
 export interface ParsedMediaStorageKey {

@@ -10,7 +10,6 @@ import jmespath from 'jmespath';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/services/ToolSessionManager';
-import { sanitizeArtifactBinaryData } from '../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager } from '../session/AgentSession';
 import {
   type ExtendedJsonSchema,
@@ -887,23 +886,9 @@ export class ArtifactService {
     metadata?: Record<string, any>;
     toolCallId?: string;
   }): Promise<void> {
+    let summaryData = artifact.summaryData || artifact.data;
+    let fullData = artifact.data;
     const { tenantId, projectId } = this.context.executionContext;
-
-    const sanitizedData = (await sanitizeArtifactBinaryData(artifact.data, {
-      tenantId,
-      projectId,
-      artifactId: artifact.artifactId,
-    })) as Record<string, any>;
-    const sanitizedSummaryData = artifact.summaryData
-      ? ((await sanitizeArtifactBinaryData(artifact.summaryData, {
-          tenantId,
-          projectId,
-          artifactId: artifact.artifactId,
-        })) as Record<string, any>)
-      : undefined;
-
-    let fullData = sanitizedData as Record<string, any>;
-    let summaryData = (sanitizedSummaryData || fullData) as Record<string, any>;
 
     if (this.context.artifactComponents) {
       const artifactComponent = this.context.artifactComponents.find(
@@ -915,8 +900,8 @@ export class ArtifactService {
           const previewSchema = extractPreviewFields(schema);
           const fullSchema = extractFullFields(schema);
 
-          summaryData = this.filterBySchema(summaryData, previewSchema);
-          fullData = this.filterBySchema(fullData, fullSchema);
+          summaryData = this.filterBySchema(artifact.data, previewSchema);
+          fullData = this.filterBySchema(artifact.data, fullSchema);
         } catch (error) {
           logger.warn(
             {

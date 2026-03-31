@@ -1,6 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import { type Tool, type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
+import type { ArtifactFullData } from '../../artifacts/ArtifactService';
 import { formatOversizedRetrievalReason } from '../../artifacts/artifact-utils';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
 import { SENTINEL_KEY } from '../../constants/artifact-syntax';
@@ -17,14 +18,6 @@ type BlobBackedArtifactData = {
   binaryType?: string;
 };
 
-type ArtifactToolResult = {
-  artifactId: string;
-  name: string;
-  description: string;
-  type?: string;
-  data: unknown;
-};
-
 function isBlobBackedArtifactData(value: unknown): value is BlobBackedArtifactData {
   if (!value || typeof value !== 'object') {
     return false;
@@ -34,7 +27,7 @@ function isBlobBackedArtifactData(value: unknown): value is BlobBackedArtifactDa
   return typeof record.blobUri === 'string' && isBlobUri(record.blobUri);
 }
 
-async function buildHydratedReferenceArtifactResult(artifactData: ArtifactToolResult) {
+async function makeHydratedReferenceArtifactResult(artifactData: ArtifactFullData) {
   const metadataContent = {
     artifactId: artifactData.artifactId,
     name: artifactData.name,
@@ -192,7 +185,7 @@ export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {
         };
       }
 
-      return buildHydratedReferenceArtifactResult(artifactData);
+      return makeHydratedReferenceArtifactResult(artifactData);
     },
   });
 }

@@ -27,6 +27,7 @@ import { ArtifactService } from '../artifacts/ArtifactService';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
   ARTIFACT_GENERATION_BACKOFF_MAX_MS,
+  ARTIFACT_PENDING_MAX_WAIT_MS,
   ARTIFACT_SAVE_RETRY_DELAY_MS,
   ARTIFACT_SESSION_MAX_PENDING,
   ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES,
@@ -630,7 +631,7 @@ export class AgentSession {
     return this.isTextStreaming;
   }
 
-  async waitForPendingArtifacts(maxWaitTime = 10000): Promise<void> {
+  async waitForPendingArtifacts(maxWaitTime = ARTIFACT_PENDING_MAX_WAIT_MS): Promise<void> {
     if (this.pendingArtifacts.size === 0) return;
 
     const startTime = Date.now();

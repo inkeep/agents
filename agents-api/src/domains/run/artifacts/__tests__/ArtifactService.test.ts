@@ -14,30 +14,26 @@ const {
   upsertLedgerArtifactMock,
   toolSessionManagerMock,
   agentSessionManagerMock,
-  sanitizeArtifactBinaryDataMock,
-} = vi.hoisted(() => {
-  return {
-    listTaskIdsByContextIdMock: vi.fn(),
-    getTaskMock: vi.fn(),
-    getLedgerArtifactsMock: vi.fn(),
-    upsertLedgerArtifactMock: vi.fn(),
-    toolSessionManagerMock: {
-      getSession: vi.fn(),
-      createSession: vi.fn(),
-      updateSession: vi.fn(),
-      getToolResult: vi.fn(),
-    },
-    agentSessionManagerMock: {
-      getAgentSession: vi.fn(),
-      ensureAgentSession: vi.fn(),
-      updateArtifactComponents: vi.fn(),
-      recordEvent: vi.fn(),
-      setArtifactCache: vi.fn(),
-      getArtifactCache: vi.fn(),
-    },
-    sanitizeArtifactBinaryDataMock: vi.fn(async (value: unknown) => value),
-  };
-});
+} = vi.hoisted(() => ({
+  listTaskIdsByContextIdMock: vi.fn(),
+  getTaskMock: vi.fn(),
+  getLedgerArtifactsMock: vi.fn(),
+  upsertLedgerArtifactMock: vi.fn(),
+  toolSessionManagerMock: {
+    getSession: vi.fn(),
+    createSession: vi.fn(),
+    updateSession: vi.fn(),
+    getToolResult: vi.fn(),
+  },
+  agentSessionManagerMock: {
+    getAgentSession: vi.fn(),
+    ensureAgentSession: vi.fn(),
+    updateArtifactComponents: vi.fn(),
+    recordEvent: vi.fn(),
+    setArtifactCache: vi.fn(),
+    getArtifactCache: vi.fn(),
+  },
+}));
 
 // Mock @inkeep/agents-core WITHOUT importOriginal to avoid loading the heavy module
 vi.mock('@inkeep/agents-core', () => ({
@@ -64,11 +60,6 @@ vi.mock('../../agents/services/ToolSessionManager', () => ({
 
 vi.mock('../../session/AgentSession', () => ({
   agentSessionManager: agentSessionManagerMock,
-}));
-
-vi.mock('../../services/blob-storage/artifact-binary-sanitizer', () => ({
-  sanitizeArtifactBinaryData: sanitizeArtifactBinaryDataMock,
-  stripBinaryDataForObservability: vi.fn((value: unknown) => value),
 }));
 
 // Mock runDbClient to prevent it from loading @inkeep/agents-core (path from test file to src/data/db)

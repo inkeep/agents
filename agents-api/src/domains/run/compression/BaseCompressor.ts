@@ -195,14 +195,8 @@ export abstract class BaseCompressor {
       }
     }
 
-    if (
-      createdArtifacts &&
-      typeof (session as { waitForPendingArtifacts?: (maxWaitTime?: number) => Promise<void> })
-        .waitForPendingArtifacts === 'function'
-    ) {
-      await (
-        session as { waitForPendingArtifacts: (maxWaitTime?: number) => Promise<void> }
-      ).waitForPendingArtifacts();
+    if (createdArtifacts) {
+      await session.waitForPendingArtifacts();
 
       const refreshedArtifacts = await this.findExistingArtifacts(
         Object.keys(toolCallToArtifactMap)

@@ -58,19 +58,6 @@ describe('storage-keys', () => {
     ).toBeNull();
   });
 
-  it('builds versioned artifact-data storage key', () => {
-    const key = buildStorageKey({
-      category: 'artifact-data',
-      tenantId: 'tenant-1',
-      projectId: 'project-1',
-      artifactId: 'artifact-1',
-      contentHash: 'abc123',
-      ext: 'png',
-    });
-
-    expect(key).toBe('v1/t_tenant-1/artifact-data/p_project-1/a_artifact-1/sha256-abc123.png');
-  });
-
   it('builds media storage key prefix', () => {
     expect(
       buildMediaStorageKeyPrefix({
