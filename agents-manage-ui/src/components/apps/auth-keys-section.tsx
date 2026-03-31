@@ -219,24 +219,22 @@ export function AuthKeysSection({
         </TooltipProvider>
       )}
 
-      {keys.length > 0 && (
-        <div className="flex items-center justify-between rounded-md border p-3">
-          <div className="space-y-0.5">
-            <Label htmlFor="require-auth" className="text-sm">
-              Require Authentication
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              When enabled, all users must present a valid signed JWT. Anonymous access is blocked.
-            </p>
-          </div>
-          <Switch
-            id="require-auth"
-            checked={requireAuth}
-            onCheckedChange={handleToggleRequireAuth}
-            disabled={isUpdatingAuth}
-          />
+      <div className="flex items-center justify-between rounded-md border p-3">
+        <div className="space-y-0.5">
+          <Label htmlFor="require-auth" className="text-sm">
+            Require Authentication
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            When enabled, all users must present a valid signed JWT. Anonymous access is blocked.
+          </p>
         </div>
-      )}
+        <Switch
+          id="require-auth"
+          checked={requireAuth}
+          onCheckedChange={handleToggleRequireAuth}
+          disabled={isUpdatingAuth}
+        />
+      </div>
 
       {showAddForm && (
         <div className="space-y-3 rounded-md border p-3">
