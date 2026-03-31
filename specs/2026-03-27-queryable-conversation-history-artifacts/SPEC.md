@@ -16,10 +16,10 @@
 |---|----------|--------|------|
 | D1 | Use existing `contextId` on `ledgerArtifacts` (already FKs to conversations) — no new columns needed. Add `agentId` column only. | LOCKED | Technical |
 | D2 | Update conversation search index every user+AI turn | LOCKED | Technical |
-| D3 | Search implemented as a built-in MCP module (`mcp/builtin/search/`), scoped per execution context, auto-loaded for all agents via `loadBuiltInMcps()` in tool-loading pipeline | LOCKED | Product/Technical |
+| D3 | Search implemented as a platform tool module (`platform-tools/search/`), scoped per execution context, auto-loaded for all agents via `loadPlatformTools()` in tool-loading pipeline. Adapted to MCP protocol for external clients. | LOCKED | Product/Technical |
 | D4 | Postgres full-text search (tsvector) — no embeddings in Phase 1 | LOCKED | Technical |
 | D5 | Two search indexes: conversation-level + artifact-level | LOCKED | Technical |
-| D6 | Scope: strict `tenantId + projectId + agentId + userId` equality. NULL userId conversations are NOT searchable (they must have a userId to appear in results). | LOCKED | Product |
+| D6 | Scope: `tenantId + projectId` always required. `agentId` and `userId` are optional filters (consistent with existing `listConversations` pattern). Run API/platform tools always pass `userId` from JWT. Manage API allows cross-user/cross-agent search. NULL userId rows in search index are excluded from results. | LOCKED | Product |
 | D7 | tsvector keyword search + recency weighting (RRF) | LOCKED | Technical |
 | D8 | Synchronous UPSERT with concatenated text. No LLM calls in the API server — summaries are passed in by callers (agent execution, compression pipeline, or API clients). | LOCKED | Technical |
 | D9 | Conversation summarization uses agent's configured summarization model (for long convos) | LOCKED | Technical |
@@ -320,7 +320,7 @@ Tool executes → Artifact saved to ledger_artifacts (with contextId = conversat
 
 ```sql
 -- Search conversations: full-text keyword match + recency ranking via RRF
--- D6: strict userId equality — NULL userId conversations are NOT searchable
+-- D6: agentId and userId are optional filters (conditionally applied by caller)
 WITH text_query AS (
   SELECT plainto_tsquery('english', $1) AS query
 ),
@@ -334,9 +334,9 @@ keyword_results AS (
   FROM conversation_search_index
   WHERE tenant_id = $2
     AND project_id = $3
-    AND agent_id = $4
-    AND user_id = $5              -- strict equality, no OR NULL (D6)
-    AND conversation_id != $6     -- exclude current conversation (D14)
+    AND ($4::varchar IS NULL OR agent_id = $4)          -- optional agent filter
+    AND ($5::varchar IS NULL OR user_id = $5)           -- optional user filter
+    AND ($6::varchar IS NULL OR conversation_id != $6)  -- optional exclude current
     AND search_vector @@ (SELECT query FROM text_query)
   LIMIT 50
 ),
@@ -347,9 +347,9 @@ recency_results AS (
   FROM conversation_search_index
   WHERE tenant_id = $2
     AND project_id = $3
-    AND agent_id = $4
-    AND user_id = $5              -- strict equality
-    AND conversation_id != $6     -- exclude current conversation
+    AND ($4::varchar IS NULL OR agent_id = $4)
+    AND ($5::varchar IS NULL OR user_id = $5)
+    AND ($6::varchar IS NULL OR conversation_id != $6)
   LIMIT 50
 )
 SELECT
@@ -361,6 +361,8 @@ FULL JOIN recency_results r USING (conversation_id)
 ORDER BY rrf_score DESC
 LIMIT $7;
 ```
+
+**Note:** In practice, the DAL uses Drizzle's query builder with conditional `whereConditions.push()` (same as `listConversations`), not raw SQL with IS NULL. The SQL above illustrates the logical query.
 
 ### 5.2 Artifact search query
 
@@ -414,16 +416,18 @@ LIMIT $8;
 
 ### 5.3 Data access layer
 
+One DAL function per search type with optional `agentId`/`userId` — callers enforce scoping (consistent with `listConversations` pattern where `userId?` is optional and conditionally applied).
+
 ```typescript
 // packages/agents-core/src/data-access/runtime/conversationSearch.ts
 
 export const searchConversations =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
-    scopes: ProjectScopeConfig;
-    agentId: string;
-    userId: string;                // required, not optional (D6)
-    currentConversationId: string; // excluded from results (D14)
+    scopes: ProjectScopeConfig;         // tenantId + projectId always required
+    agentId?: string;                   // optional — Run API/platform tools pass it, Manage API may omit
+    userId?: string;                    // optional — Run API/platform tools pass from JWT, Manage API may omit
+    excludeConversationId?: string;     // optional — exclude current conversation (D14)
     query: string;
     limit?: number;
   }): Promise<Array<{
@@ -434,7 +438,14 @@ export const searchConversations =
     messageCount: number;
     score: number;
     updatedAt: string;
-  }>> => { ... };
+  }>> => {
+    // Builds WHERE conditions using conditional pattern (same as listConversations):
+    const whereConditions = [projectScopedWhere(conversationSearchIndex, params.scopes)];
+    if (params.agentId) whereConditions.push(eq(conversationSearchIndex.agentId, params.agentId));
+    if (params.userId) whereConditions.push(eq(conversationSearchIndex.userId, params.userId));
+    if (params.excludeConversationId) whereConditions.push(ne(conversationSearchIndex.conversationId, params.excludeConversationId));
+    // ... keyword + recency RRF query with these conditions
+  };
 
 // packages/agents-core/src/data-access/runtime/artifactSearch.ts
 
@@ -442,16 +453,16 @@ export const searchArtifacts =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
-    agentId: string;
-    userId: string;                // required (D6)
-    conversationId?: string;       // optional: scope to specific conversation
+    agentId?: string;                   // optional — same pattern
+    userId?: string;                    // optional — same pattern
+    conversationId?: string;            // optional: scope to specific conversation
     query: string;
     toolName?: string;
     artifactType?: string;
     limit?: number;
   }): Promise<Array<{
     artifactId: string;
-    toolCallId: string | null;     // included for retrieval workflow
+    toolCallId: string | null;          // included for retrieval workflow
     conversationId: string;
     artifactName: string | null;
     toolName: string | null;
@@ -463,7 +474,13 @@ export const searchArtifacts =
   }>> => { ... };
 ```
 
-### 5.3 Windowed message search within a conversation
+**Scoping enforcement is at the caller level, not the DAL:**
+- **Run API routes:** Always pass `userId` from JWT `sub` claim. Pass `agentId` if available from execution context, otherwise omit (cross-agent search).
+- **Manage API routes:** Pass whatever the admin provides (both optional for cross-user/cross-agent).
+- **Platform tools (agent execution):** Always pass both `userId` and `agentId` from execution context.
+- **External MCP:** Pass `userId` from JWT if available. If no JWT → no userId → tools return empty results (see Section 6.9).
+
+### 5.4 Windowed message search within a conversation
 
 When `get_conversation_messages` is called with a `query`, search within that conversation's messages and return contextual windows around matches:
 
@@ -513,102 +530,105 @@ LIMIT $6;
 
 **Keyword search limitation:** This uses `plainto_tsquery` which matches stemmed keywords only. Searching "pricing" won't find messages that discuss pricing conceptually without using the word (e.g., "how much should we charge?"). The pgvector Phase 2 upgrade addresses this — message-level embeddings would enable semantic search within conversations, matching on meaning rather than keywords. For Phase 1, this is an accepted trade-off.
 
-### 5.4 Future pgvector upgrade path
+### 5.5 Future pgvector upgrade path
 
 When semantic search is needed, the DAL adds a third CTE with vector similarity to the RRF query. The DAL signature gains an optional `queryEmbedding?: number[]` parameter. Fully backward compatible.
 
 ---
 
-## 6. Built-in MCP Modules
+## 6. Platform Tools
 
-Search tools are implemented as a **built-in MCP module** — a scoped factory that lives in `agents-api` and gets initialized with the execution context. This is a new pattern that extends to future built-in capabilities.
+Search tools are implemented as **platform tool modules** — scoped factories that live in `agents-api` and get initialized with the execution context. These are NOT MCP protocol implementations. They return AI SDK `tool()` definitions consumed directly by the agent tool loading pipeline. For external MCP clients, a thin adapter registers these tools on the `McpServer` (see Section 6.9).
 
-### 6.1 Architecture: Built-in MCP pattern
+### 6.1 Architecture
 
 ```
-agents-api/src/domains/run/mcp/
-  builtin/
-    index.ts                -- loadBuiltInMcps(context) → ToolSet
-    types.ts                -- BuiltInMcpContext type
+agents-api/src/domains/run/platform-tools/
+    index.ts                -- loadPlatformTools(context) → ToolSet
+    types.ts                -- PlatformToolContext type
     search/
-      index.ts              -- createSearchMcp(context) → ToolSet
+      index.ts              -- createSearchTools(context) → ToolSet
       conversation.ts       -- search_conversation_history tool definition
       artifacts.ts          -- search_artifacts tool definition
       messages.ts           -- get_conversation_messages tool definition
-    // future built-in MCPs:
+    // future platform tools:
     // analytics/
     // memory/
 ```
 
-**What a built-in MCP is:** A scoped module that:
-1. Accepts an execution context on init (`tenantId`, `projectId`, `agentId`, `userId`, `conversationId`, `db`)
-2. Returns pre-scoped AI SDK `tool()` definitions — all authorization baked in at init time
-3. Is consumed identically by the tool loading pipeline (LLM agents) and the external MCP route (external clients)
+### 6.1.1 When to use each tool pattern
 
-**How it differs from external MCP tools:** External MCPs are user-configured, connect over network via `mcpManager`, and go through discovery. Built-in MCPs are platform-provided, locally instantiated, and always available.
-
-**How it differs from default tools:** Default tools (in `default-tools.ts`) are tightly coupled to agent internals (session manager, compressor). Built-in MCPs are self-contained modules with clear context boundaries — easier to test, reuse across access layers, and extend.
+| Pattern | When to use | Examples |
+|---|---|---|
+| **Default tools** (`default-tools.ts`) | Tight coupling with session internals (session manager, compressor, artifact cache) | `get_reference_artifact`, `compress_context`, `load_skill` |
+| **Platform tools** (`platform-tools/`) | Self-contained capabilities with clear context boundaries. Backed by DAL, no session state dependency. Reusable across agent execution, MCP, and API. | `search_conversation_history`, `search_artifacts`, `get_conversation_messages` |
+| **External MCP tools** (user-configured) | User-configured, network-connected, discovered via `mcpManager` | Custom MCP servers, third-party integrations |
+| **Function tools** (DB-configured) | User-defined functions with sandboxed execution | Custom code tools |
+| **Relation tools** (auto-generated) | Agent-to-agent transfer/delegation | `transfer_to_*`, `delegate_to_*` |
 
 ```
 Tool Loading Pipeline (tool-loading.ts)
   ├── getMcpTools()          -- external MCP servers (user-configured)
   ├── getFunctionTools()     -- DB-configured function tools
   ├── getRelationTools()     -- transfer_to / delegate_to
-  ├── getDefaultTools()      -- get_reference_artifact, load_skill, compress_context
-  └── getBuiltInMcpTools()   -- NEW: built-in MCP modules (search, future...)
+  ├── getDefaultTools()      -- session-coupled tools (artifact cache, compressor, skills)
+  └── getPlatformTools()     -- NEW: platform tool modules (search, future...)
 ```
 
 ### 6.2 Context type
 
 ```typescript
-// agents-api/src/domains/run/mcp/builtin/types.ts
+// agents-api/src/domains/run/platform-tools/types.ts
 
-export interface BuiltInMcpContext {
+export interface PlatformToolContext {
   tenantId: string;
   projectId: string;
   agentId: string;
-  userId: string;              // required — built-in MCPs only work for identified users (D6)
+  userId?: string;             // optional — undefined for non-JWT flows (agent-to-agent, triggers, playground)
   currentConversationId?: string;
   db: AgentsRunDatabaseClient;
 }
 ```
 
+**When userId is undefined:** `loadPlatformTools()` returns an empty ToolSet. Search tools require user identity for scoping (D6). Non-JWT flows (agent-to-agent internal calls, trigger-initiated executions, playground without JWT) silently get no search tools. This is intentional and documented.
+
 ### 6.3 Module loader
 
 ```typescript
-// agents-api/src/domains/run/mcp/builtin/index.ts
+// agents-api/src/domains/run/platform-tools/index.ts
 
 import type { ToolSet } from 'ai';
-import type { BuiltInMcpContext } from './types';
-import { createSearchMcp } from './search';
+import type { PlatformToolContext } from './types';
+import { createSearchTools } from './search';
 
-export function loadBuiltInMcps(context: BuiltInMcpContext): ToolSet {
+export function loadPlatformTools(context: PlatformToolContext): ToolSet {
   if (!context.userId) {
     // No userId = no searchable history (D6). Return empty tools.
+    // This is intentional for non-JWT flows (agent-to-agent, triggers, playground).
     return {};
   }
 
   return {
-    ...createSearchMcp(context),
-    // Future built-in MCPs:
-    // ...createAnalyticsMcp(context),
-    // ...createMemoryMcp(context),
+    ...createSearchTools(context),
+    // Future platform tools:
+    // ...createAnalyticsTools(context),
+    // ...createMemoryTools(context),
   };
 }
 ```
 
-### 6.4 Search MCP module
+### 6.4 Search platform tools module
 
 ```typescript
-// agents-api/src/domains/run/mcp/builtin/search/index.ts
+// agents-api/src/domains/run/platform-tools/search/index.ts
 
 import type { ToolSet } from 'ai';
-import type { BuiltInMcpContext } from '../types';
+import type { PlatformToolContext } from '../types';
 import { createSearchConversationHistoryTool } from './conversation';
 import { createSearchArtifactsTool } from './artifacts';
 import { createGetConversationMessagesTool } from './messages';
 
-export function createSearchMcp(context: BuiltInMcpContext): ToolSet {
+export function createSearchTools(context: PlatformToolContext): ToolSet {
   return {
     search_conversation_history: createSearchConversationHistoryTool(context),
     search_artifacts: createSearchArtifactsTool(context),
@@ -618,14 +638,14 @@ export function createSearchMcp(context: BuiltInMcpContext): ToolSet {
 ```
 
 ```typescript
-// agents-api/src/domains/run/mcp/builtin/search/conversation.ts
+// agents-api/src/domains/run/platform-tools/search/conversation.ts
 
 import { z } from 'zod';
 import { tool } from 'ai';
 import { searchConversations } from '@inkeep/agents-core';
-import type { BuiltInMcpContext } from '../types';
+import type { PlatformToolContext } from '../types';
 
-export function createSearchConversationHistoryTool(ctx: BuiltInMcpContext) {
+export function createSearchConversationHistoryTool(ctx: PlatformToolContext) {
   return tool({
     description:
       'Search your other past conversations with this user to find relevant context. ' +
@@ -657,9 +677,9 @@ export function createSearchConversationHistoryTool(ctx: BuiltInMcpContext) {
 ```
 
 ```typescript
-// agents-api/src/domains/run/mcp/builtin/search/artifacts.ts
+// agents-api/src/domains/run/platform-tools/search/artifacts.ts
 
-export function createSearchArtifactsTool(ctx: BuiltInMcpContext) {
+export function createSearchArtifactsTool(ctx: PlatformToolContext) {
   return tool({
     description:
       'Search tool results and artifacts from all your conversations with this user ' +
@@ -692,9 +712,9 @@ export function createSearchArtifactsTool(ctx: BuiltInMcpContext) {
 ```
 
 ```typescript
-// agents-api/src/domains/run/mcp/builtin/search/messages.ts
+// agents-api/src/domains/run/platform-tools/search/messages.ts
 
-export function createGetConversationMessagesTool(ctx: BuiltInMcpContext) {
+export function createGetConversationMessagesTool(ctx: PlatformToolContext) {
   return tool({
     description:
       'Load messages from a specific past conversation. Two modes:\n' +
@@ -728,7 +748,7 @@ export function createGetConversationMessagesTool(ctx: BuiltInMcpContext) {
       }
 
       if (query) {
-        // SEARCH MODE: windowed search (see Section 5.3)
+        // SEARCH MODE: windowed search (see Section 5.4)
         const segments = await searchMessagesWindowed(ctx.db)({
           scopes: { tenantId: ctx.tenantId, projectId: ctx.projectId },
           conversationId,
@@ -759,7 +779,7 @@ export function createGetConversationMessagesTool(ctx: BuiltInMcpContext) {
 ```typescript
 // agents-api/src/domains/run/agents/generation/tool-loading.ts
 
-import { loadBuiltInMcps } from '../../mcp/builtin';
+import { loadPlatformTools } from '../../platform-tools';
 
 export async function loadToolsAndPrompts(ctx, sessionId, streamRequestId, runtimeContext) {
   const [mcpToolsResult, functionTools, relationTools, defaultTools] = await Promise.all([
@@ -769,12 +789,13 @@ export async function loadToolsAndPrompts(ctx, sessionId, streamRequestId, runti
     getDefaultTools(ctx, streamRequestId),
   ]);
 
-  // NEW: load built-in MCP modules, scoped to this execution
-  const builtInMcpTools = loadBuiltInMcps({
+  // NEW: load platform tool modules, scoped to this execution
+  // userId may be undefined for non-JWT flows — loadPlatformTools returns {} in that case
+  const platformTools = loadPlatformTools({
     tenantId: ctx.executionContext.tenantId,
     projectId: ctx.executionContext.projectId,
     agentId: ctx.executionContext.agentId,
-    userId: ctx.executionContext.metadata?.endUserId,
+    userId: ctx.executionContext.metadata?.endUserId,  // string | undefined
     currentConversationId: ctx.conversationId,
     db: runDbClient,
   });
@@ -784,7 +805,7 @@ export async function loadToolsAndPrompts(ctx, sessionId, streamRequestId, runti
     ...functionTools,
     ...relationTools,
     ...defaultTools,
-    ...builtInMcpTools,  // NEW
+    ...platformTools,  // NEW
   };
 
   // ... rest unchanged
@@ -793,25 +814,66 @@ export async function loadToolsAndPrompts(ctx, sessionId, streamRequestId, runti
 
 ### 6.6 Integration into external MCP route
 
-The same tool factories are used in `mcp.ts` so external MCP clients get search tools:
+The same tool factories are used in `mcp.ts`, but need an **adapter** because `McpServer.tool()` expects `(name, description, paramsSchema, handler) → CallToolResult` while platform tools return AI SDK `tool()` definitions with `{ description, inputSchema, execute } → ToolResult`.
 
 ```typescript
 // In agents-api/src/domains/run/routes/mcp.ts, within getServer():
 
-import { createSearchMcp } from '../../mcp/builtin/search';
+import { createSearchTools } from '../../platform-tools/search';
+import { adaptToolForMcp } from '../../platform-tools/mcp-adapter';
 
-const searchTools = createSearchMcp({
-  tenantId, projectId, agentId,
-  userId: executionContext.metadata?.endUserId,
-  currentConversationId: conversationId,
-  db: runDbClient,
-});
+const userId = executionContext.metadata?.endUserId;
 
-// Register each tool on the McpServer
-for (const [name, toolDef] of Object.entries(searchTools)) {
-  server.tool(name, toolDef.description, toolDef.inputSchema, toolDef.execute);
+if (userId) {
+  // NOTE: userId is required for search tools (D6). External MCP clients
+  // connecting without a user-scoped JWT will not have search tools available.
+  // This is intentional — search requires user identity for scoping.
+  const searchTools = createSearchTools({
+    tenantId, projectId, agentId,
+    userId,
+    currentConversationId: conversationId,
+    db: runDbClient,
+  });
+
+  // Adapt AI SDK tools to MCP protocol format
+  for (const [name, toolDef] of Object.entries(searchTools)) {
+    adaptToolForMcp(server, name, toolDef);
+  }
 }
 ```
+
+```typescript
+// agents-api/src/domains/run/platform-tools/mcp-adapter.ts
+// Adapts an AI SDK tool() definition to McpServer.tool() registration
+
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Tool } from 'ai';
+
+export function adaptToolForMcp(server: McpServer, name: string, toolDef: Tool<any, any>) {
+  server.tool(
+    name,
+    toolDef.description,
+    toolDef.parameters,  // AI SDK uses 'parameters', MCP uses paramsSchema — both are Zod
+    async (params): Promise<CallToolResult> => {
+      try {
+        const result = await toolDef.execute(params, {} as any);
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      } catch (error) {
+        return { content: [{ type: 'text', text: error.message }], isError: true };
+      }
+    }
+  );
+}
+```
+
+### 6.7 External MCP client behavior when userId is unavailable
+
+External MCP clients connecting without a user-scoped JWT will not have search tools registered on their server. This means:
+- `tool/list` response will NOT include search tools
+- The client cannot call search tools (they don't exist in that session)
+- This is intentional per D6 — not an error, just an absence
+
+If the client later authenticates with a JWT (e.g., via session upgrade), the tools become available on subsequent connections.
 
 ### 6.4 Extend `get_reference_artifact` for cross-conversation retrieval (D13)
 
@@ -901,20 +963,20 @@ agents-api/
           artifacts.ts               # NEW (Phase 1): end-user runtime artifact endpoints
                                      #   GET /artifacts/search, GET /artifacts/{artifactId}
           mcp.ts                     # MODIFIED (Phase 2): register search tools on external MCP server
-        mcp/
-          builtin/                   # NEW (Phase 3): built-in MCP module pattern
-            types.ts                 #   BuiltInMcpContext type
-            index.ts                 #   loadBuiltInMcps(context) → ToolSet
+        platform-tools/              # NEW (Phase 2): platform tool modules
+            types.ts                 #   PlatformToolContext type
+            index.ts                 #   loadPlatformTools(context) → ToolSet
+            mcp-adapter.ts           #   adaptToolForMcp() — AI SDK → McpServer format
             search/
-              index.ts               #   createSearchMcp(context) → ToolSet
+              index.ts               #   createSearchTools(context) → ToolSet
               conversation.ts        #   search_conversation_history tool
               artifacts.ts           #   search_artifacts tool
               messages.ts            #   get_conversation_messages tool
         agents/
           generation/
-            tool-loading.ts          # MODIFIED (Phase 3): add loadBuiltInMcps() as 5th tool category
+            tool-loading.ts          # MODIFIED (Phase 2): add loadPlatformTools() as 5th tool category
           tools/
-            default-tools.ts         # MODIFIED (Phase 3): extend get_reference_artifact with DB fallback (D13)
+            default-tools.ts         # MODIFIED (Phase 2): extend get_reference_artifact with DB fallback (D13)
         handlers/
           executionHandler.ts        # MODIFIED (Phase 1): UPSERT conversation search index after turn
         compression/
@@ -935,7 +997,7 @@ packages/agents-sdk/
 - Search endpoints added to EXISTING route files for conversations (not separate files)
 - Runtime artifact routes get NEW files (`artifacts.ts` for run, `runtimeArtifacts.ts` for manage) to distinguish from `artifactComponents.ts` (which manages artifact type *definitions*, not runtime instances)
 - DAL files sit alongside existing `conversations.ts`, `messages.ts`, `ledgerArtifacts.ts` in `data-access/runtime/`
-- Built-in MCP modules (Phase 3) get their own directory under `run/mcp/builtin/` — clearly separate from routes and handlers
+- Platform tools (Phase 2) get their own directory under `run/platform-tools/` — clearly separate from routes, handlers, and default tools
 - Each file is annotated with which phase it belongs to
 
 ### Files by phase:
@@ -967,33 +1029,24 @@ packages/agents-sdk/
 | `packages/agents-sdk/src/conversations.ts` | Add `search()` and `searchMessages()` methods |
 | `packages/agents-sdk/src/artifacts.ts` | Add `search()` method |
 
-#### Phase 2: MCP exposure
-
-**Modified files:**
-| File | Change |
-|------|--------|
-| `agents-api/src/domains/run/routes/mcp.ts` | Register search tools on external MCP server via `createSearchMcp()` |
-
-**New files (shared with Phase 3):**
-| File | Purpose |
-|------|---------|
-| `agents-api/src/domains/run/mcp/builtin/search/index.ts` | `createSearchMcp(context)` — search module factory (used by both MCP route and agent tool loading) |
-
-#### Phase 3: Built-in MCP tools for agents
+#### Phase 2: Platform tools + MCP exposure
 
 **New files:**
 | File | Purpose |
 |------|---------|
-| `agents-api/src/domains/run/mcp/builtin/types.ts` | `BuiltInMcpContext` type |
-| `agents-api/src/domains/run/mcp/builtin/index.ts` | `loadBuiltInMcps(context)` — module loader |
-| `agents-api/src/domains/run/mcp/builtin/search/conversation.ts` | `search_conversation_history` tool |
-| `agents-api/src/domains/run/mcp/builtin/search/artifacts.ts` | `search_artifacts` tool |
-| `agents-api/src/domains/run/mcp/builtin/search/messages.ts` | `get_conversation_messages` tool |
+| `agents-api/src/domains/run/platform-tools/types.ts` | `PlatformToolContext` type |
+| `agents-api/src/domains/run/platform-tools/index.ts` | `loadPlatformTools(context)` — module loader |
+| `agents-api/src/domains/run/platform-tools/search/index.ts` | `createSearchTools(context)` — search tool factory |
+| `agents-api/src/domains/run/platform-tools/search/conversation.ts` | `search_conversation_history` tool |
+| `agents-api/src/domains/run/platform-tools/search/artifacts.ts` | `search_artifacts` tool |
+| `agents-api/src/domains/run/platform-tools/search/messages.ts` | `get_conversation_messages` tool |
+| `agents-api/src/domains/run/platform-tools/mcp-adapter.ts` | `adaptToolForMcp()` — converts AI SDK tools to McpServer format |
 
 **Modified files:**
 | File | Change |
 |------|--------|
-| `agents-api/src/domains/run/agents/generation/tool-loading.ts` | Add `loadBuiltInMcps()` as 5th tool category |
+| `agents-api/src/domains/run/agents/generation/tool-loading.ts` | Add `loadPlatformTools()` as 5th tool category |
+| `agents-api/src/domains/run/routes/mcp.ts` | Register search tools on external MCP server via adapter |
 | `agents-api/src/domains/run/agents/tools/default-tools.ts` | Extend `get_reference_artifact` with DB fallback (D13) |
 
 ### Migration files:
@@ -1047,31 +1100,29 @@ The foundation. Testable independently, follows existing patterns, gives manage 
 - Add `client.conversations.search()` and `client.conversations.searchMessages()`
 - Add `client.artifacts.search()`
 
-### Phase 2: MCP exposure
-Thin layer on top of Phase 1 DAL. One new file, one modified file.
+### Phase 2: Platform tools + MCP exposure
+Platform tool modules for agent execution AND MCP adapter for external clients. Ships together — the tool definitions, the agent loading, and the MCP registration are all one unit.
 
-**Step 2.1: Search MCP tool factory**
-- Create `mcp/builtin/search/index.ts` — `createSearchMcp(context)` returns tool definitions backed by the Phase 1 DAL
+**Step 2.1: Platform tool module structure**
+- Create `platform-tools/types.ts` — `PlatformToolContext` type
+- Create `platform-tools/index.ts` — `loadPlatformTools(context)` aggregates all modules
+- Create `platform-tools/search/index.ts` — `createSearchTools(context)` → ToolSet
+- Create `platform-tools/search/conversation.ts`, `artifacts.ts`, `messages.ts` — AI SDK `tool()` definitions
 
-**Step 2.2: Register on external MCP server**
-- Modify `mcp.ts` — call `createSearchMcp()` and register tools alongside `send-query-to-agent`
-- Same `runAuth` middleware, same scoping. External MCP clients (Cursor, Claude Code, etc.) get search automatically.
+**Step 2.2: MCP adapter**
+- Create `platform-tools/mcp-adapter.ts` — `adaptToolForMcp()` converts AI SDK tools to McpServer format
 
-### Phase 3: Built-in MCP tools for agents
-Wire search into the agent tool loading pipeline so LLM agents can search their own history during execution.
+**Step 2.3: Integration into agent tool loading**
+- Modify `tool-loading.ts` — add `loadPlatformTools()` as 5th tool category
+- Platform tools loaded in parallel alongside MCP, function, relation, and default tools
 
-**Step 3.1: Built-in MCP module pattern**
-- Create `mcp/builtin/types.ts` — `BuiltInMcpContext` type
-- Create `mcp/builtin/index.ts` — `loadBuiltInMcps(context)` aggregates all built-in modules
-- Create `mcp/builtin/search/conversation.ts`, `artifacts.ts`, `messages.ts` — individual tool definitions
+**Step 2.4: Register on external MCP server**
+- Modify `mcp.ts` — call `createSearchTools()` + `adaptToolForMcp()` to register
+- Same `runAuth` middleware, same scoping
+- Clients without userId JWT get no search tools (D6 — documented, not an error)
 
-**Step 3.2: Integration into tool loading**
-- Modify `tool-loading.ts` — add `loadBuiltInMcps()` as 5th tool category
-- Built-in MCP tools loaded in parallel alongside MCP, function, relation, and default tools
-
-**Step 3.3: Cross-conversation artifact retrieval**
+**Step 2.5: Cross-conversation artifact retrieval**
 - Modify `default-tools.ts` — extend `get_reference_artifact` with DB fallback (D13)
-- Authorization via conversation ownership check (D6)
 
 #### Auth model: follows existing conversation API patterns exactly
 
@@ -1081,8 +1132,8 @@ Search endpoints use the **same auth middleware, same scoping, and same access p
 |---|---|---|
 | **Run API** | `GET /conversations` — API key (project) + JWT (`sub` = endUserId) | `GET /conversations/search` — same API key + JWT |
 | **Manage API** | `GET /projects/{projectId}/conversations` — session/bearer + `requireProjectPermission('view')` | `GET /projects/{projectId}/conversations/search` — same permissions |
-| **MCP** | `mcp.ts` route — goes through `runAuth` middleware (API key + JWT) | Search tools registered on same server, same auth |
-| **Built-in MCP tools** | Tool loading pipeline — execution context carries `tenantId`, `projectId`, `agentId`, `userId` | `loadBuiltInMcps(context)` — same execution context |
+| **External MCP (Phase 2)** | `mcp.ts` route — goes through `runAuth` middleware (API key + JWT). AgentId from MCP endpoint path. UserId from JWT sub claim. | Search tools registered via adapter, same auth |
+| **Platform tools (Phase 2)** | Tool loading pipeline — execution context carries `tenantId`, `projectId`, `agentId`, `userId` | `loadPlatformTools(context)` — same execution context. No tools if userId is undefined. |
 
 **For external tools (Cursor, Claude Code, etc.):** They connect to the MCP endpoint the same way a chat widget connects — API key + JWT. The MCP server goes through `runAuth` middleware. Search results are automatically scoped by the JWT's `sub` claim. No special auth flow needed.
 
@@ -1114,19 +1165,23 @@ These go in `agents-api/src/domains/run/routes/` — same auth as existing `GET 
 
 ```
 GET /conversations/search
-  Query params: query (required), limit?
+  Query params: query (required), agentId?, limit?
   Auth: inheritedRunApiKeyAuth() + JWT sub claim for userId
-  Scoping: Automatic — tenantId + projectId from API key, userId from JWT, agentId from context
+  Scoping: tenantId + projectId from API key, userId from JWT (always applied).
+           agentId is optional — if omitted, searches across all agents (matches existing
+           GET /conversations list behavior which is cross-agent).
   Returns: { data: ConversationSearchResult[], pagination }
 
 GET /artifacts/search
-  Query params: query (required), toolName?, conversationId?, limit?
+  Query params: query (required), agentId?, toolName?, conversationId?, limit?
   Auth: inheritedRunApiKeyAuth() + JWT
+  Scoping: Same as above — userId always from JWT, agentId optional.
   Returns: { data: ArtifactSearchResult[], pagination }
 
 GET /conversations/{conversationId}/messages/search
   Query params: query (required), contextWindow?, limit?
   Auth: inheritedRunApiKeyAuth() + JWT
+  Scoping: Verifies conversation.userId matches JWT sub claim.
   Returns: { data: { segments: MessageWindow[] }, totalMatches }
 ```
 
@@ -1189,11 +1244,11 @@ const MessageWindowSchema = z.object({
 |---|---|---|
 | **Internal MCP (Phase 1)** | Own agent + own user, across conversations | The agent itself during execution |
 | **External MCP (Phase 1)** | Scoped by MCP session context | External agents/clients with MCP access |
-| **Run API (Phase 1.5)** | Own user (JWT), across conversations for that agent | End-users via authenticated chat sessions |
-| **Manage API (Phase 1.5)** | Any user in project (admin) | Builders/admins via manage UI or API key |
-| **SDK (Phase 1.5)** | Depends on auth method (API key = manage scope, JWT = end-user scope) | Developers building on the platform |
+| **Run API (Phase 1)** | Own user (JWT), across conversations for that agent | End-users via authenticated chat sessions |
+| **Manage API (Phase 1)** | Any user in project (admin) | Builders/admins via manage UI or API key |
+| **SDK (Phase 1)** | Depends on auth method (API key = manage scope, JWT = end-user scope) | Developers building on the platform |
 
-#### Files for Phase 1.5
+#### Files for Phase 1
 
 | File | Change |
 |------|--------|
@@ -1204,7 +1259,7 @@ const MessageWindowSchema = z.object({
 | `packages/agents-sdk/src/conversations.ts` | MODIFIED: add `search()` and `searchMessages()` methods |
 | `packages/agents-sdk/src/artifacts.ts` | MODIFIED: add `search()` method |
 
-### Phase 4 (future): Consolidate internal artifact access
+### Phase 3 (future): Consolidate internal artifact access
 Shift internal agent code to use the search/retrieval API as the canonical path for artifact access, replacing the current mix of session cache + direct DAL calls.
 
 - `ArtifactService` session cache becomes a performance layer in front of the API, not a separate access pattern
@@ -1213,24 +1268,24 @@ Shift internal agent code to use the search/retrieval API as the canonical path 
 - Internal calls use `getInProcessFetch()` for same-instance routing
 - Simplifies the execution handler and session manager artifact code
 
-### Phase 5 (future): pgvector semantic search upgrade
+### Phase 4 (future): pgvector semantic search upgrade
 - Enable pgvector extension
 - Add `embedding vector(1536)` column to both search index tables
 - Add HNSW indexes, async embedding pipeline, embedding service
 - Upgrade search DAL to include vector similarity in RRF scoring
 - **Message-level embeddings** for semantic search within conversations — addresses the keyword-only limitation in `get_conversation_messages` windowed search. Most impactful upgrade: enables matching on meaning ("how much should we charge?" matches "pricing").
 
-### Phase 6 (future): Prompt optimization + granular fact search
+### Phase 5 (future): Prompt optimization + granular fact search
 - Replace artifact dump with compact manifest for current-conversation artifacts
 - Reduce injected conversation history to recent N messages only
 - Auto-inject top-K relevant context from prior conversations
 - Consider `conversation_summary_facts` table for granular fact search (OQ6)
 
-### Phase 7 (future): Advanced retrieval
+### Phase 6 (future): Advanced retrieval
 - Cross-agent search (opt-in)
 - Graph-based memory (entity relationships)
 
-### Phase 8 (future): Artifact storage optimization
+### Phase 7 (future): Artifact storage optimization
 - Move large artifact data from `ledger_artifacts.parts` JSONB column to blob storage (S3/Vercel)
 - Store blob URI reference in `parts` instead of inline data
 - Reuse existing blob storage infrastructure (`agents-api/src/domains/run/services/blob-storage/`)
