@@ -217,6 +217,33 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
     data.defaultProjectId = data.defaultAgentId ? (data.defaultProjectId ?? projectId) : null;
   }
 
+  if (data.config && data.config.type === 'web_client') {
+    const existingApp = await getAppByIdForProject(runDbClient)({
+      scopes: { tenantId, projectId },
+      id,
+    });
+    if (existingApp?.config?.type === 'web_client') {
+      const existingWc = existingApp.config.webClient;
+      const incomingWc = (data.config as Record<string, unknown>).webClient as
+        | Record<string, unknown>
+        | undefined;
+      if (incomingWc) {
+        const existingAuth = existingWc.auth ?? {};
+        const incomingAuth = (incomingWc.auth ?? {}) as Record<string, unknown>;
+        const { publicKeys: _ignoreKeys, ...incomingAuthWithoutKeys } = incomingAuth;
+        data.config = {
+          type: 'web_client' as const,
+          webClient: {
+            ...existingWc,
+            allowedDomains:
+              (incomingWc.allowedDomains as string[] | undefined) ?? existingWc.allowedDomains,
+            auth: { ...existingAuth, ...incomingAuthWithoutKeys },
+          } as typeof existingWc,
+        };
+      }
+    }
+  }
+
   const updatedApp = await updateAppForProject(runDbClient)({
     scopes: { tenantId, projectId },
     id,

@@ -175,6 +175,7 @@ export function AppUpdateForm({
               projectId={projectId}
               appId={app.id}
               allowAnonymous={webConfig?.auth?.allowAnonymous}
+              allowedDomains={webConfig?.allowedDomains ?? ['*']}
             />
             <GenericInput
               control={form.control}

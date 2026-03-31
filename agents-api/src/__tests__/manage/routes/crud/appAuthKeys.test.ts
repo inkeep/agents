@@ -194,56 +194,30 @@ describe('App Auth Keys Routes', () => {
     });
   });
 
-  describe('PATCH /auth/keys/settings', () => {
-    const settingsUrl = (tenantId: string, projectId: string, appId: string) =>
-      `${keysUrl(tenantId, projectId, appId)}/settings`;
-
-    it('should update allowAnonymous to false', async () => {
-      const tenantId = await createTestTenantWithOrg('auth-settings-false');
+  describe('PATCH /apps/:id (allowAnonymous via app update)', () => {
+    it('should set allowAnonymous via app PATCH config merge', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-merge');
       const projectId = 'default-project';
       await createTestProject(manageDbClient, tenantId, projectId);
       const app = await createTestApp(tenantId, projectId);
 
-      const res = await makeRequest(settingsUrl(tenantId, projectId, app.id), {
+      const res = await makeRequest(appUrl(tenantId, projectId, app.id), {
         method: 'PATCH',
-        body: JSON.stringify({ allowAnonymous: false }),
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: ['*'], auth: { allowAnonymous: true } },
+          },
+        }),
       });
 
       expect(res.status).toBe(200);
-      const patchBody = await res.json();
-      expect(patchBody.data.allowAnonymous).toBe(false);
-
-      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
-      const appBody = await getRes.json();
-      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(false);
-    });
-
-    it('should update allowAnonymous to true', async () => {
-      const tenantId = await createTestTenantWithOrg('auth-settings-true');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-      const app = await createTestApp(tenantId, projectId);
-
-      await makeRequest(settingsUrl(tenantId, projectId, app.id), {
-        method: 'PATCH',
-        body: JSON.stringify({ allowAnonymous: false }),
-      });
-
-      const res = await makeRequest(settingsUrl(tenantId, projectId, app.id), {
-        method: 'PATCH',
-        body: JSON.stringify({ allowAnonymous: true }),
-      });
-
-      expect(res.status).toBe(200);
-      const patchBody = await res.json();
-      expect(patchBody.data.allowAnonymous).toBe(true);
-
       const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
       const appBody = await getRes.json();
       expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(true);
     });
 
-    it('should preserve existing keys when updating settings', async () => {
+    it('should preserve existing keys when updating allowAnonymous via app PATCH', async () => {
       const tenantId = await createTestTenantWithOrg('auth-settings-preserve');
       const projectId = 'default-project';
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -255,9 +229,14 @@ describe('App Auth Keys Routes', () => {
         body: JSON.stringify({ kid: 'preserved-key', publicKey: pem, algorithm: 'RS256' }),
       });
 
-      await makeRequest(settingsUrl(tenantId, projectId, app.id), {
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
         method: 'PATCH',
-        body: JSON.stringify({ allowAnonymous: false }),
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: ['*'], auth: { allowAnonymous: true } },
+          },
+        }),
       });
 
       const listRes = await makeRequest(keysUrl(tenantId, projectId, app.id));
@@ -266,7 +245,7 @@ describe('App Auth Keys Routes', () => {
       expect(body.data[0].kid).toBe('preserved-key');
     });
 
-    it('should preserve audience when updating allowAnonymous', async () => {
+    it('should preserve audience when updating allowAnonymous via app PATCH', async () => {
       const tenantId = await createTestTenantWithOrg('auth-settings-audience');
       const projectId = 'default-project';
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -285,54 +264,23 @@ describe('App Auth Keys Routes', () => {
         }),
       });
 
-      await makeRequest(settingsUrl(tenantId, projectId, app.id), {
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
         method: 'PATCH',
-        body: JSON.stringify({ allowAnonymous: false }),
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: {
+              allowedDomains: ['example.com'],
+              auth: { allowAnonymous: true },
+            },
+          },
+        }),
       });
 
       const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
       const appBody = await getRes.json();
       expect(appBody.data.config.webClient.auth.audience).toBe('https://my-app.example.com');
-      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(false);
-    });
-
-    it('should return 400 for api app type', async () => {
-      const tenantId = await createTestTenantWithOrg('auth-settings-api-app');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-
-      const createRes = await makeRequest(
-        `/manage/tenants/${tenantId}/projects/${projectId}/apps`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            name: 'API App',
-            type: 'api',
-            config: { type: 'api', api: {} },
-          }),
-        }
-      );
-      const apiApp = (await createRes.json()).data.app;
-
-      const res = await makeRequest(settingsUrl(tenantId, projectId, apiApp.id), {
-        method: 'PATCH',
-        body: JSON.stringify({ allowAnonymous: false }),
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it('should return 404 for non-existent app', async () => {
-      const tenantId = await createTestTenantWithOrg('auth-settings-404');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-
-      const res = await makeRequest(settingsUrl(tenantId, projectId, 'nonexistent-app'), {
-        method: 'PATCH',
-        body: JSON.stringify({ allowAnonymous: false }),
-      });
-
-      expect(res.status).toBe(404);
+      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(true);
     });
   });
 

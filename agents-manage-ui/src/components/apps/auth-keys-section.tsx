@@ -36,6 +36,7 @@ interface AuthKeysSectionProps {
   projectId: string;
   appId: string;
   allowAnonymous?: boolean;
+  allowedDomains: string[];
 }
 
 export function AuthKeysSection({
@@ -43,6 +44,7 @@ export function AuthKeysSection({
   projectId,
   appId,
   allowAnonymous,
+  allowedDomains,
 }: AuthKeysSectionProps) {
   const [keys, setKeys] = useState<PublicKeyConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,7 +119,13 @@ export function AuthKeysSection({
     setRequireAuth(checked);
     setIsUpdatingAuth(true);
     try {
-      const result = await updateAppAuthSettingsAction(tenantId, projectId, appId, !checked);
+      const result = await updateAppAuthSettingsAction(
+        tenantId,
+        projectId,
+        appId,
+        !checked,
+        allowedDomains
+      );
       if (result.success) {
         toast.success(
           checked ? 'Authentication required for all users' : 'Anonymous access allowed'

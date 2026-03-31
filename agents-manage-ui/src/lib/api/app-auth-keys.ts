@@ -38,21 +38,6 @@ export async function addAppAuthKey(
   return response.data;
 }
 
-export async function updateAppAuthSettings(
-  tenantId: string,
-  projectId: string,
-  appId: string,
-  body: { allowAnonymous: boolean }
-): Promise<void> {
-  await makeManagementApiRequest(
-    `tenants/${tenantId}/projects/${projectId}/apps/${appId}/auth/keys/settings`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    }
-  );
-}
-
 export async function deleteAppAuthKey(
   tenantId: string,
   projectId: string,

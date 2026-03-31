@@ -6,8 +6,8 @@ import {
   deleteAppAuthKey,
   fetchAppAuthKeys,
   type PublicKeyConfig,
-  updateAppAuthSettings,
 } from '../api/app-auth-keys';
+import { updateApp } from '../api/apps';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
@@ -57,10 +57,21 @@ export async function updateAppAuthSettingsAction(
   tenantId: string,
   projectId: string,
   appId: string,
-  allowAnonymous: boolean
+  allowAnonymous: boolean,
+  allowedDomains: string[]
 ): Promise<ActionResult<void>> {
   try {
-    await updateAppAuthSettings(tenantId, projectId, appId, { allowAnonymous });
+    await updateApp(tenantId, projectId, appId, {
+      config: {
+        type: 'web_client',
+        webClient: {
+          allowedDomains,
+          auth: {
+            allowAnonymous,
+          },
+        },
+      },
+    });
     revalidatePath(`/${tenantId}/projects/${projectId}/apps`);
     return { success: true };
   } catch (error) {
