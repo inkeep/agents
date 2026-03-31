@@ -34,6 +34,7 @@ export const STATIC_LABELS = Object.freeze({
   'ai-calls': 'AI Calls',
   conversations: 'Conversations',
   members: 'Members',
+  billing: 'Billing',
   evaluations: 'Evaluations',
   jobs: 'Batch Evaluations',
   'run-configs': 'Continuous Tests',

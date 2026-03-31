@@ -59,6 +59,11 @@ export function generateIdFromName(name: string): string {
     .slice(0, MAX_ID_LENGTH);
 }
 export { type OrgRole, OrgRoles, type ProjectRole, ProjectRoles } from './auth/authz/types';
+export {
+  DEFAULT_MEMBERSHIP_LIMIT,
+  QUOTA_RESOURCE_TYPES,
+  SEAT_RESOURCE_TYPES,
+} from './auth/entitlement-constants';
 export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';

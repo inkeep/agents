@@ -1,6 +1,7 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   foreignKey,
   index,
   integer,
@@ -1031,5 +1032,30 @@ export const workAppSlackMcpToolAccessConfig = pgTable(
       foreignColumns: [organization.id],
       name: 'work_app_slack_mcp_tool_access_config_tenant_fk',
     }).onDelete('cascade'),
+  ]
+);
+
+// ============================================================================
+// ORG ENTITLEMENTS
+// ============================================================================
+
+export const orgEntitlement = pgTable(
+  'org_entitlement',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    organizationId: varchar('organization_id', { length: 256 }).notNull(),
+    resourceType: text('resource_type').notNull(),
+    maxValue: integer('max_value').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    unique('org_entitlement_org_resource_unique').on(table.organizationId, table.resourceType),
+    index('org_entitlement_org_idx').on(table.organizationId),
+    foreignKey({
+      columns: [table.organizationId],
+      foreignColumns: [organization.id],
+      name: 'org_entitlement_organization_fk',
+    }).onDelete('cascade'),
+    check('org_entitlement_resource_type_format', sql`resource_type ~ '^[a-z]+:[a-z][a-z0-9_]*$'`),
   ]
 );
