@@ -24590,13 +24590,6 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "forwardedHeaders": {
-                    "additionalProperties": {
-                      "type": "string"
-                    },
-                    "description": "Optional headers to forward to the agent execution context (e.g. x-target-tenant-id)",
-                    "type": "object"
-                  },
                   "messageParts": {
                     "description": "Optional structured message parts (from original trace)",
                     "items": {
