@@ -347,6 +347,156 @@ describe('resolveModelConfig', () => {
     });
   });
 
+  describe('gateway field inheritance (fallbackModels, allowedProviders)', () => {
+    it('should inherit fallbackModels from project when sub-agent overrides base model', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: {
+          base: { model: 'openai/gpt-5.2' },
+        },
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          projectModels: {
+            base: {
+              model: 'anthropic/claude-sonnet-4-5',
+              fallbackModels: ['openai/gpt-5.2', 'google/gemini-2.5-flash'],
+              allowedProviders: ['bedrock', 'anthropic'],
+            },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result.base).toEqual({
+        model: 'openai/gpt-5.2',
+        fallbackModels: ['openai/gpt-5.2', 'google/gemini-2.5-flash'],
+        allowedProviders: ['bedrock', 'anthropic'],
+      });
+    });
+
+    it('should inherit from agent level before project level', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: {
+          base: { model: 'openai/gpt-5.2' },
+        },
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: {
+            base: {
+              model: 'anthropic/claude-sonnet-4-5',
+              fallbackModels: ['google/gemini-2.5-flash'],
+            },
+          },
+          projectModels: {
+            base: {
+              model: 'anthropic/claude-sonnet-4-5',
+              fallbackModels: ['openai/gpt-4.1'],
+              allowedProviders: ['anthropic', 'openai'],
+            },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result.base).toEqual({
+        model: 'openai/gpt-5.2',
+        fallbackModels: ['google/gemini-2.5-flash'],
+        allowedProviders: ['anthropic', 'openai'],
+      });
+    });
+
+    it('should not override sub-agent gateway fields when explicitly set', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: {
+          base: {
+            model: 'openai/gpt-5.2',
+            fallbackModels: ['google/gemini-2.5-flash'],
+            allowedProviders: ['openai'],
+          },
+        },
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          projectModels: {
+            base: {
+              model: 'anthropic/claude-sonnet-4-5',
+              fallbackModels: ['openai/gpt-4.1'],
+              allowedProviders: ['bedrock', 'anthropic'],
+            },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result.base).toEqual({
+        model: 'openai/gpt-5.2',
+        fallbackModels: ['google/gemini-2.5-flash'],
+        allowedProviders: ['openai'],
+      });
+    });
+
+    it('should inherit gateway fields for agent-level base model from project', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: null,
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: {
+            base: { model: 'openai/gpt-5.2' },
+          },
+          projectModels: {
+            base: {
+              model: 'anthropic/claude-sonnet-4-5',
+              fallbackModels: ['google/gemini-2.5-flash'],
+              allowedProviders: ['bedrock', 'anthropic'],
+            },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result.base).toEqual({
+        model: 'openai/gpt-5.2',
+        fallbackModels: ['google/gemini-2.5-flash'],
+        allowedProviders: ['bedrock', 'anthropic'],
+      });
+    });
+
+    it('should not inherit when no parent has gateway fields', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: {
+          base: { model: 'openai/gpt-5.2' },
+        },
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          projectModels: {
+            base: { model: 'anthropic/claude-sonnet-4-5' },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result.base).toEqual({ model: 'openai/gpt-5.2' });
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle agent models with null base model', async () => {
       const subAgent = {
