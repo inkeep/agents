@@ -4,12 +4,24 @@ import {
   generateId,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
+
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+  return {
+    ...actual,
+    resolveRef: vi.fn(() =>
+      vi.fn((refString: string) =>
+        Promise.resolve({ type: 'branch', name: refString, hash: 'test-hash' })
+      )
+    ),
+  };
+});
 
 describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
   const createFullAgentData = (agentId: string) => {

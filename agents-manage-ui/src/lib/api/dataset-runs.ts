@@ -3,7 +3,6 @@
 import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface DatasetRun {
   id: string;
@@ -58,9 +57,6 @@ export async function fetchDatasetRuns(
   projectId: string,
   datasetId: string
 ): Promise<ListResponse<DatasetRun>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<DatasetRun>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/by-dataset/${datasetId}`
   );
@@ -71,9 +67,6 @@ async function $fetchDatasetRun(
   projectId: string,
   runId: string
 ): Promise<SingleResponse<DatasetRunWithConversations>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<SingleResponse<DatasetRunWithConversations>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}`
   );

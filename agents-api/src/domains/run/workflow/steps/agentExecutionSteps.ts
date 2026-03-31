@@ -169,7 +169,7 @@ async function buildAgentForStep(params: {
       );
     })) ?? [];
 
-  const skills = getSkillsForSubAgent({ subAgent: currentSubAgent });
+  const skills = getSkillsForSubAgent({ project, subAgent: currentSubAgent });
 
   const { agentSchema } = taskHandlerConfig;
   const prompt = 'prompt' in agentSchema ? agentSchema.prompt || undefined : '';

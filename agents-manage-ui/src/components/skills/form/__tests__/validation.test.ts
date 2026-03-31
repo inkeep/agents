@@ -1,8 +1,8 @@
-import { SkillSchema } from '../validation';
+import { BaseSkillSchema } from '../validation';
 
 describe('SkillSchema', () => {
   test('validates required fields', () => {
-    const result = SkillSchema.safeParse({
+    const result = BaseSkillSchema.safeParse({
       name: 'name',
       description: 'Desc',
       content: 'Content',
@@ -11,7 +11,7 @@ describe('SkillSchema', () => {
   });
 
   test('rejects', () => {
-    const result = SkillSchema.safeParse({
+    const result = BaseSkillSchema.safeParse({
       name: '',
       description: '',
       content: '',
@@ -44,14 +44,6 @@ describe('SkillSchema', () => {
           path: ['description'],
           message: 'Too small: expected string to have >=1 characters',
         },
-        {
-          origin: 'string',
-          code: 'too_small',
-          minimum: 1,
-          inclusive: true,
-          path: ['content'],
-          message: 'Too small: expected string to have >=1 characters',
-        },
       ]);
     }
   });
@@ -63,7 +55,7 @@ describe('SkillSchema', () => {
     };
 
     test('returns null for empty metadata', () => {
-      const result = SkillSchema.safeParse({
+      const result = BaseSkillSchema.safeParse({
         ...defaultValues,
         metadata: ' ',
       });
@@ -74,7 +66,7 @@ describe('SkillSchema', () => {
     });
 
     test('parses valid JSON object', () => {
-      const result = SkillSchema.safeParse({
+      const result = BaseSkillSchema.safeParse({
         ...defaultValues,
         metadata: '{"key":"value"}',
       });
@@ -86,7 +78,7 @@ describe('SkillSchema', () => {
 
     describe('throws for non-object JSON', () => {
       test('when input is not object', () => {
-        const result = SkillSchema.safeParse({
+        const result = BaseSkillSchema.safeParse({
           ...defaultValues,
           metadata: '"text"',
         });
@@ -103,7 +95,7 @@ describe('SkillSchema', () => {
         }
       });
       test('when input object value is not string', () => {
-        const result = SkillSchema.safeParse({
+        const result = BaseSkillSchema.safeParse({
           ...defaultValues,
           metadata: '{"key":0}',
         });

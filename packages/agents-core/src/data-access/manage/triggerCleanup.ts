@@ -8,7 +8,7 @@ import { withRef } from '../../dolt/ref-scope';
 import { getLogger } from '../../utils/logger';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
 import { listProjectsMetadata } from '../runtime/projects';
-import { deleteScheduledTriggersByRunAsUserId } from './scheduledTriggers';
+import { deleteScheduledTriggersByRunAsUserId } from '../runtime/scheduledTriggers';
 import { deleteTriggersByRunAsUserId } from './triggers';
 
 const logger = getLogger('auth-cleanup');
@@ -23,6 +23,23 @@ export async function cleanupUserTriggers(params: {
 
   const projects = await listProjectsMetadata(runDb)({ tenantId });
   if (projects.length === 0) return;
+
+  await Promise.allSettled(
+    projects.map(async (project) => {
+      try {
+        await deleteScheduledTriggersByRunAsUserId(runDb)({
+          tenantId,
+          projectId: project.id,
+          runAsUserId: userId,
+        });
+      } catch (err) {
+        logger.error(
+          { tenantId, projectId: project.id, userId, error: err },
+          'Failed to clean up scheduled triggers for project'
+        );
+      }
+    })
+  );
 
   const connection = await manageDbPool.connect();
   let resolvedRefs: Array<{ projectId: string; ref: ResolvedRef }>;
@@ -42,11 +59,6 @@ export async function cleanupUserTriggers(params: {
         manageDbPool,
         ref,
         async (db) => {
-          await deleteScheduledTriggersByRunAsUserId(db)({
-            tenantId,
-            projectId,
-            runAsUserId: userId,
-          });
           await deleteTriggersByRunAsUserId(db)({ tenantId, projectId, runAsUserId: userId });
         },
         {
@@ -63,7 +75,7 @@ export async function cleanupUserTriggers(params: {
     if (result.status === 'rejected') {
       logger.error(
         { tenantId, projectId, userId, error: result.reason },
-        'Failed to clean up scheduled triggers for project'
+        'Failed to clean up webhook triggers for project'
       );
     }
   }

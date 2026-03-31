@@ -597,6 +597,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
   }
 
   let endUserId: string | undefined;
+  let anonTid: string | undefined;
+  let anonPid: string | undefined;
   let authMethod:
     | 'app_credential_web_client'
     | 'app_credential_api'
@@ -610,7 +612,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         { origin, allowedDomains: config.webClient.allowedDomains, appId: app.id },
         'App credential auth: origin not allowed'
       );
-      return { authResult: null, failureMessage: 'Origin not allowed for this app' };
+      throw createApiError({ code: 'forbidden', message: 'Origin not allowed for this app' });
     }
 
     if (!bearerToken) {
@@ -762,6 +764,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             apiKeyId: `app:${app.id}`,
             metadata: {
               endUserId,
+              initiatedBy: { type: 'user' as const, id: endUserId },
               authMethod,
               ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
             },
@@ -791,6 +794,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       }
 
       endUserId = payload.sub;
+      anonTid = typeof payload.tid === 'string' ? payload.tid : undefined;
+      anonPid = typeof payload.pid === 'string' ? payload.pid : undefined;
     } catch (err) {
       const errorType =
         err instanceof errors.JWTExpired
@@ -824,12 +829,13 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
   return {
     authResult: {
       apiKey: bearerToken || appIdHeader,
-      tenantId: app.tenantId || reqData.tenantId || '',
-      projectId: app.projectId || reqData.projectId || '',
+      tenantId: app.tenantId || anonTid || '',
+      projectId: app.projectId || anonPid || '',
       agentId,
       apiKeyId: `app:${app.id}`,
       metadata: {
         endUserId,
+        ...(endUserId ? { initiatedBy: { type: 'user' as const, id: endUserId } } : {}),
         authMethod,
         appPrompt: app.prompt || undefined,
       },

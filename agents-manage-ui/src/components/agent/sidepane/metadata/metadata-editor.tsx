@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/inheritance-indicator';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
@@ -289,8 +290,14 @@ export const MetadataEditor: FC = () => {
         <SectionHeader
           title="Execution mode"
           description="Choose how agent execution is managed. Classic streams with low latency. Durable persists execution state across workflow steps, enabling crash recovery at the cost of higher time-to-first-byte."
-          learnMoreHref="https://docs.inkeep.com/visual-builder/execution-modes"
-        />
+        >
+          <ExternalLink
+            href={`${DOCS_BASE_URL}/visual-builder/execution-modes`}
+            className="text-xs"
+          >
+            Learn more
+          </ExternalLink>
+        </SectionHeader>
         <GenericSelect
           control={form.control}
           name="executionMode"

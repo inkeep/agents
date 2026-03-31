@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Coins,
   ExternalLink as ExternalLinkIcon,
+  Timer,
   TriangleAlert,
 } from 'lucide-react';
 import NextLink from 'next/link';
@@ -16,7 +17,10 @@ import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
-import type { ConversationDetail as ConversationDetailType } from '@/components/traces/timeline/types';
+import {
+  ACTIVITY_TYPES,
+  type ConversationDetail as ConversationDetailType,
+} from '@/components/traces/timeline/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -445,14 +449,33 @@ export default function ConversationDetail({
             <CardTitle className="text-sm font-medium text-foreground">Alerts</CardTitle>
             <TriangleAlert className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 min-h-0 overflow-y-auto">
             {(() => {
               const errors = conversation.errorCount ?? 0;
               const warnings = conversation.warningCount ?? 0;
               const total = errors + warnings;
+              const streamTimeoutActivity = conversation.activities?.find(
+                (a) => a.type === ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED
+              );
 
               return (
                 <>
+                  {streamTimeoutActivity && (
+                    <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 mb-3 dark:border-red-900 dark:bg-red-950/50">
+                      <Timer className="h-4 w-4 text-red-500 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-red-700 dark:text-red-400">
+                          Stream timed out
+                        </p>
+                        {streamTimeoutActivity.streamMaxLifetimeMs &&
+                          streamTimeoutActivity.streamMaxLifetimeMs > 0 && (
+                            <p className="text-xs text-red-600/70 dark:text-red-400/70">
+                              Exceeded {streamTimeoutActivity.streamMaxLifetimeMs / 1000}s limit
+                            </p>
+                          )}
+                      </div>
+                    </div>
+                  )}
                   {total > 0 ? (
                     <div className="space-y-1">
                       {errors > 0 && (
@@ -476,12 +499,12 @@ export default function ConversationDetail({
                         </div>
                       )}
                     </div>
-                  ) : (
+                  ) : !streamTimeoutActivity ? (
                     <div>
                       <div className="text-2xl font-bold font-mono text-green-600 mb-1">0</div>
                       <p className="text-xs text-muted-foreground">No warnings or errors</p>
                     </div>
-                  )}
+                  ) : null}
                   {total > 0 && !isCloudDeployment && (
                     <Button
                       variant="outline"

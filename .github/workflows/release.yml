@@ -66,6 +66,14 @@ jobs:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
 
+      # Set the git remote URL to use the App token so that commits pushed by
+      # changesets/action trigger downstream CI workflows. Without this, the
+      # push uses the default GITHUB_TOKEN which GitHub ignores for triggering.
+      - name: Configure git remote with App token
+        run: git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+
       - name: Publish packages
         id: changesets
         uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1
