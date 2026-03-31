@@ -368,10 +368,37 @@ export const workAppSlackChannelAgentConfigs = pgTable(
   ]
 );
 
-/**
- * Scheduled trigger invocations - records each execution of a scheduled trigger.
- * NOTE: No FK to scheduled_triggers table since it's in a different database (DoltGres).
- */
+export const scheduledTriggers = pgTable(
+  'scheduled_triggers',
+  {
+    ...agentScoped,
+    name: varchar('name', { length: 256 }).notNull(),
+    description: text('description'),
+    enabled: boolean('enabled').notNull().default(true),
+    cronExpression: varchar('cron_expression', { length: 256 }),
+    cronTimezone: varchar('cron_timezone', { length: 64 }).default('UTC'),
+    runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
+    payload: jsonb('payload').$type<Record<string, unknown> | null>(),
+    messageTemplate: text('message_template'),
+    maxRetries: integer('max_retries').notNull().default(1),
+    retryDelaySeconds: integer('retry_delay_seconds').notNull().default(60),
+    timeoutSeconds: integer('timeout_seconds').notNull().default(780),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }).references(() => user.id, {
+      onDelete: 'cascade',
+    }),
+    createdBy: varchar('created_by', { length: 256 }),
+    nextRunAt: timestamp('next_run_at', { withTimezone: true, mode: 'string' }),
+    ref: varchar('ref', { length: 256 }).notNull().default('main'),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    index('scheduled_triggers_agent_idx').on(table.tenantId, table.projectId, table.agentId),
+    index('scheduled_triggers_ref_idx').on(table.ref),
+    index('scheduled_triggers_next_run_at_idx').on(table.enabled, table.nextRunAt),
+  ]
+);
+
 export const scheduledTriggerInvocations = pgTable(
   'scheduled_trigger_invocations',
   {
@@ -397,6 +424,12 @@ export const scheduledTriggerInvocations = pgTable(
     uniqueIndex('sched_invocations_idempotency_idx').on(table.idempotencyKey),
   ]
 );
+
+export const schedulerState = pgTable('scheduler_state', {
+  id: varchar('id', { length: 256 }).primaryKey(),
+  currentRunId: varchar('current_run_id', { length: 256 }),
+  ...timestamps,
+});
 
 // --- Tables with FK dependencies ---
 

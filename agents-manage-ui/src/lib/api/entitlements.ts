@@ -2,7 +2,6 @@
 
 import { cache } from 'react';
 import { makeManagementApiRequest } from './api-config';
-import { validateTenantId } from './resource-validation';
 
 export interface OrgEntitlement {
   resourceType: string;
@@ -14,8 +13,6 @@ interface EntitlementsResponse {
 }
 
 async function $fetchEntitlements(tenantId: string): Promise<OrgEntitlement[]> {
-  validateTenantId(tenantId);
-
   const response = await makeManagementApiRequest<EntitlementsResponse>(
     `tenants/${tenantId}/entitlements`
   );
