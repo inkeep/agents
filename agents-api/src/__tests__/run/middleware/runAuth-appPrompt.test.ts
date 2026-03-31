@@ -221,7 +221,8 @@ describe('app prompt resolution via appId', () => {
 
   describe('non-ASCII app prompt does not break headers', () => {
     it('should handle smart quotes and unicode in app prompt via DB without header encoding issues', async () => {
-      const unicodePrompt = 'Be helpful and concise. Use \u2018smart quotes\u2019 and emoji \ud83d\ude80';
+      const unicodePrompt =
+        'Be helpful and concise. Use \u2018smart quotes\u2019 and emoji \ud83d\ude80';
       const appRecord = makeWebClientApp({ prompt: unicodePrompt });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);

@@ -338,7 +338,10 @@ export async function buildSystemPrompt(
       appPrompt = app?.prompt || undefined;
     } catch (error) {
       logger.warn(
-        { appId: ctx.executionContext.metadata.appId, error: error instanceof Error ? error.message : 'Unknown error' },
+        {
+          appId: ctx.executionContext.metadata.appId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
         'Failed to fetch app prompt for sub-agent, continuing without it'
       );
     }
