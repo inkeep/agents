@@ -58,12 +58,6 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
 
   const [open, setOpen] = useState(defaultOpen);
 
-  useEffect(() => {
-    if (defaultOpen) {
-      setOpen(true);
-    }
-  }, [defaultOpen]);
-
   const [showCustomInput, setShowCustomInput] = useState<
     'openrouter' | 'gateway' | 'nim' | 'custom' | 'azure' | null
   >(null);
@@ -122,6 +116,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
     <div className="flex flex-col gap-2">
       {label && <FieldLabel label={label} tooltip={tooltip} isRequired={isRequired} />}
       <Popover
+        defaultOpen={defaultOpen}
         open={open}
         onOpenChange={
           disabled
