@@ -53,7 +53,7 @@ function sanitizeBinaryPayloadsForTokenEstimation(value: unknown): unknown {
 
   const type = record.type;
   if (
-    (type === 'image-data' || type === 'image' || type === 'file') &&
+    (type === 'image-data' || type === 'image' || type === 'file' || type === 'file-data') &&
     typeof record.data === 'string'
   ) {
     sanitized.data = '[binary payload omitted for compression token estimation]';

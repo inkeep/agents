@@ -99,9 +99,6 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
         bytes: item.data,
         ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
       },
-      metadata: {
-        type: 'image',
-      },
     };
   }
 
@@ -111,9 +108,6 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
       file: {
         uri: item.url,
         ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
-      },
-      metadata: {
-        type: 'image',
       },
     };
   }
@@ -125,10 +119,7 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
         bytes: item.data,
         ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
       },
-      metadata: {
-        type: 'file',
-        ...(typeof item.filename === 'string' ? { filename: item.filename } : {}),
-      },
+      ...(typeof item.filename === 'string' ? { metadata: { filename: item.filename } } : {}),
     };
   }
 
@@ -139,10 +130,7 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
         uri: item.url,
         ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
       },
-      metadata: {
-        type: 'file',
-        ...(typeof item.filename === 'string' ? { filename: item.filename } : {}),
-      },
+      ...(typeof item.filename === 'string' ? { metadata: { filename: item.filename } } : {}),
     };
   }
 
@@ -191,14 +179,8 @@ export async function buildToolResultForConversationHistory(
     projectId: ctx.config.projectId,
     conversationId,
     messageId,
-    attachmentArtifacts: {
-      tenantId: ctx.config.tenantId,
-      projectId: ctx.config.projectId,
-      conversationId,
-      messageId,
-      taskId,
-      toolCallId,
-      source: 'tool-result',
-    },
+    taskId,
+    toolCallId,
+    source: 'tool-result',
   });
 }

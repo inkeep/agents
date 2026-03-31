@@ -90,27 +90,25 @@ function mapMcpContentItemToModelInputPart(item: unknown): ToolResultModelInputC
       }
 
       return {
-        type: 'file',
-        data: `data:${mimeType};base64,${contentItem.data as string}`,
+        type: 'file-data',
+        data: contentItem.data,
         mediaType: mimeType,
         ...(typeof contentItem.filename === 'string' ? { filename: contentItem.filename } : {}),
-      } as unknown as ToolResultModelInputContentPart;
+      };
     }
 
     if (typeof contentItem.url === 'string' && contentItem.url.trim() !== '') {
       if (mimeType.startsWith('image/')) {
         return {
           type: 'image-url',
-          url: contentItem.url as string,
+          url: contentItem.url,
         };
       }
 
       return {
-        type: 'file',
-        data: contentItem.url as string,
-        mediaType: mimeType,
-        ...(typeof contentItem.filename === 'string' ? { filename: contentItem.filename } : {}),
-      } as unknown as ToolResultModelInputContentPart;
+        type: 'file-url',
+        url: contentItem.url,
+      };
     }
 
     return null;

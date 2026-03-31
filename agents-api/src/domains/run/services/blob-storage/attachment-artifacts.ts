@@ -1,21 +1,10 @@
 import { type Artifact, addLedgerArtifacts, type Part } from '@inkeep/agents-core';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import type { MessageAttachmentArtifactSource, PersistedMessageUploadContext } from './file-upload';
 import { isBlobUri } from './index';
 
 const logger = getLogger('attachment-artifacts');
-
-type AttachmentArtifactSource = 'user-message' | 'tool-result';
-
-export interface AttachmentArtifactContext {
-  tenantId: string;
-  projectId: string;
-  conversationId: string;
-  messageId: string;
-  taskId: string;
-  toolCallId: string;
-  source: AttachmentArtifactSource;
-}
 
 export type AttachmentArtifactRef = {
   artifactId: string;
@@ -32,7 +21,7 @@ function getBinaryType(mimeType: string | undefined): 'image' | 'file' {
 }
 
 function getDefaultAttachmentName(
-  source: AttachmentArtifactSource,
+  source: MessageAttachmentArtifactSource,
   index: number,
   filename?: string
 ): string {
@@ -40,11 +29,13 @@ function getDefaultAttachmentName(
     return filename;
   }
 
-  return source === 'user-message' ? `Attachment ${index + 1}` : `Tool attachment ${index + 1}`;
+  return source === 'user-message'
+    ? `User attachment ${index + 1}`
+    : `Tool attachment ${index + 1}`;
 }
 
 function buildAttachmentDescription(
-  source: AttachmentArtifactSource,
+  source: MessageAttachmentArtifactSource,
   mimeType: string | undefined
 ): string {
   const base =
@@ -58,7 +49,7 @@ export function buildMessageAttachmentToolCallId(messageId: string): string {
 
 export async function createAttachmentArtifacts(
   parts: Part[],
-  ctx: AttachmentArtifactContext
+  ctx: PersistedMessageUploadContext
 ): Promise<AttachmentArtifactRef[]> {
   const artifacts: Artifact[] = [];
   const refs: AttachmentArtifactRef[] = [];

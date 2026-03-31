@@ -30,6 +30,14 @@ export interface UploadContext {
   messageId: string;
 }
 
+export type MessageAttachmentArtifactSource = 'user-message' | 'tool-result';
+
+export interface PersistedMessageUploadContext extends UploadContext {
+  taskId: string;
+  toolCallId: string;
+  source: MessageAttachmentArtifactSource;
+}
+
 async function uploadFilePart(
   part: FilePart,
   ctx: UploadContext,

@@ -358,8 +358,8 @@ describe('BaseCompressor', () => {
                 content: [
                   { type: 'text', text: 'ticket attachment payload' },
                   {
-                    type: 'file',
-                    mimeType: 'image/jpeg',
+                    type: 'file-data',
+                    mediaType: 'image/jpeg',
                     data: base64Data,
                     filename: 'attachment.jpg',
                   },
@@ -385,8 +385,8 @@ describe('BaseCompressor', () => {
                 content: [
                   { type: 'text', text: 'ticket attachment payload' },
                   {
-                    type: 'file',
-                    mimeType: 'image/jpeg',
+                    type: 'file-data',
+                    mediaType: 'image/jpeg',
                     data: '[binary payload omitted for compression token estimation]',
                     filename: 'attachment.jpg',
                   },

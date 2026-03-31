@@ -3,6 +3,7 @@ import { trace } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { stripBinaryDataForObservability } from '../../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
 import { isToolResultDenied } from '../../utils/tool-result';
@@ -222,7 +223,7 @@ export function wrapToolWithStreaming(
                     toolName,
                     toolCallId: effectiveToolCallId,
                     toolArgs: args,
-                    toolOutput: result,
+                    toolOutput: stripBinaryDataForObservability(result),
                     timestamp: Date.now(),
                     delegationId: ctx.delegationId,
                     isDelegated: ctx.isDelegatedAgent,
@@ -246,7 +247,7 @@ export function wrapToolWithStreaming(
         if (streamRequestId && !isInternalToolForUi) {
           agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
             toolName,
-            output: result,
+            output: stripBinaryDataForObservability(result),
             toolCallId: effectiveToolCallId,
             duration,
             relationshipId,

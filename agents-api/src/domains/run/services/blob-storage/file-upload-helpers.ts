@@ -1,12 +1,12 @@
 import type { MessageContent, Part } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
-import { type AttachmentArtifactContext, createAttachmentArtifacts } from './attachment-artifacts';
+import { createAttachmentArtifacts } from './attachment-artifacts';
 import { downloadExternalFile } from './external-file-downloader';
 import { FileSecurityError, PdfUrlIngestionError } from './file-security-errors';
 import {
   hasFileParts,
   makeMessageContentParts,
-  type UploadContext,
+  type PersistedMessageUploadContext,
   uploadPartsFiles,
 } from './file-upload';
 import { makeSanitizedSourceUrl } from './file-url-security';
@@ -72,7 +72,7 @@ export async function inlineExternalPdfUrlParts(parts: Part[]): Promise<Part[]> 
 export async function buildPersistedMessageContent(
   text: string,
   parts: Part[],
-  ctx: UploadContext & { attachmentArtifacts?: AttachmentArtifactContext }
+  ctx: PersistedMessageUploadContext
 ): Promise<MessageContent> {
   if (!hasFileParts(parts)) {
     return { text };
@@ -81,9 +81,7 @@ export async function buildPersistedMessageContent(
   try {
     const uploadedParts = await uploadPartsFiles(parts, ctx);
     const contentParts = makeMessageContentParts(uploadedParts);
-    const attachmentRefs = ctx.attachmentArtifacts
-      ? await createAttachmentArtifacts(uploadedParts, ctx.attachmentArtifacts)
-      : [];
+    const attachmentRefs = await createAttachmentArtifacts(uploadedParts, ctx);
     const persistedParts = [
       ...contentParts,
       ...attachmentRefs.map((ref) => ({

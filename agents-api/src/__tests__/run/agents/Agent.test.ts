@@ -1615,7 +1615,7 @@ describe('Agent tool result persistence', () => {
         {
           kind: 'file',
           data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
-          metadata: { mimeType: 'image/webp', type: 'image' },
+          metadata: { mimeType: 'image/webp' },
         },
       ],
     });
@@ -1656,7 +1656,6 @@ describe('Agent tool result persistence', () => {
             bytes: 'base64-image-data',
             mimeType: 'image/webp',
           },
-          metadata: { type: 'image' },
         },
       ],
       {
@@ -1664,15 +1663,9 @@ describe('Agent tool result persistence', () => {
         projectId: 'test-project',
         conversationId: 'conv-123',
         messageId: 'msg-123',
-        attachmentArtifacts: {
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          conversationId: 'conv-123',
-          messageId: 'msg-123',
-          taskId: 'task_conv-123-msg-123',
-          toolCallId: 'toolu_123',
-          source: 'tool-result',
-        },
+        taskId: 'task_conv-123-msg-123',
+        toolCallId: 'toolu_123',
+        source: 'tool-result',
       }
     );
     expect(content.parts).toEqual([
@@ -1680,7 +1673,7 @@ describe('Agent tool result persistence', () => {
       {
         kind: 'file',
         data: 'blob://media/test-tenant/test-project/conv-123/msg-123/hash.webp',
-        metadata: { mimeType: 'image/webp', type: 'image' },
+        metadata: { mimeType: 'image/webp' },
       },
     ]);
   });
@@ -1743,8 +1736,8 @@ describe('Agent tool result persistence', () => {
           mediaType: 'image/webp',
         },
         {
-          type: 'file',
-          data: 'data:application/pdf;base64,JVBERi0xLjQK',
+          type: 'file-data',
+          data: 'JVBERi0xLjQK',
           mediaType: 'application/pdf',
           filename: 'doc.pdf',
         },
@@ -1817,7 +1810,7 @@ describe('Agent tool result persistence', () => {
     });
   });
 
-  test('default get_reference_artifact tool maps hydrated files to multimodal model output', async () => {
+  test('get_reference_artifact from default tools: toModelOutput maps hydrated PNG file parts to image-data', async () => {
     const artifactService = {
       getArtifactFull: vi.fn().mockResolvedValue({
         artifactId: 'art-1',

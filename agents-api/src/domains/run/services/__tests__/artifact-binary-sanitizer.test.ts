@@ -72,6 +72,32 @@ describe('stripBinaryDataForObservability', () => {
     expect(result.toolResult[1].data).toMatch(/^\[binary data/);
   });
 
+  it('strips hydrated get_reference_artifact-style file content for persisted metadata', () => {
+    const input = {
+      artifactId: 'art-1',
+      name: 'doc',
+      description: 'binary',
+      type: 'binary_attachment',
+      data: { blobUri: 'blob://v1/key', mimeType: 'image/png' },
+      content: [
+        { type: 'text', text: '{"artifactId":"art-1","mimeType":"image/png"}' },
+        {
+          type: 'file',
+          data: SAMPLE_BASE64,
+          mimeType: 'image/png',
+          filename: 'cutecat.png',
+        },
+      ],
+    };
+    const result = stripBinaryDataForObservability(input) as any;
+    expect(result.artifactId).toBe('art-1');
+    expect(result.data).toEqual(input.data);
+    expect(result.content[0]).toEqual(input.content[0]);
+    expect(result.content[1].filename).toBe('cutecat.png');
+    expect(result.content[1].mimeType).toBe('image/png');
+    expect(result.content[1].data).toMatch(/^\[binary data/);
+  });
+
   it('handles arrays at top level', () => {
     const input = [
       { type: 'text', text: 'hi' },

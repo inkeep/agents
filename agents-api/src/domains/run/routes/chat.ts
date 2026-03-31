@@ -370,19 +370,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
         projectId,
         conversationId,
         messageId: userMessageId,
-        ...(attachmentTaskId
-          ? {
-              attachmentArtifacts: {
-                tenantId,
-                projectId,
-                conversationId,
-                messageId: userMessageId,
-                taskId: attachmentTaskId,
-                toolCallId: buildMessageAttachmentToolCallId(userMessageId),
-                source: 'user-message' as const,
-              },
-            }
-          : {}),
+        taskId: `message_${userMessageId}`,
+        toolCallId: buildMessageAttachmentToolCallId(userMessageId),
+        source: 'user-message',
       });
 
       await createMessage(runDbClient)({
