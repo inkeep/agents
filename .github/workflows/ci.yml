@@ -378,6 +378,7 @@ jobs:
       - name: Write SpiceDB schema
         run: |
           go install github.com/authzed/zed/cmd/zed@latest
+          export PATH="$(go env GOPATH)/bin:${PATH}"
           zed schema write packages/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key
 
       - name: Run create-agents E2E tests
