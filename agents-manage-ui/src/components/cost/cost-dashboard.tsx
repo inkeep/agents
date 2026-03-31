@@ -51,6 +51,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
   const [summaryByModel, setSummaryByModel] = useState<UsageSummaryRow[]>([]);
   const [summaryByAgent, setSummaryByAgent] = useState<UsageSummaryRow[]>([]);
   const [summaryByType, setSummaryByType] = useState<UsageSummaryRow[]>([]);
+  const [summaryByProvider, setSummaryByProvider] = useState<UsageSummaryRow[]>([]);
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,16 +62,18 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
       const start = new Date(startTime).getTime();
       const end = new Date(endTime).getTime();
 
-      const [byModel, byAgent, byType, eventsList] = await Promise.all([
+      const [byModel, byAgent, byType, byProvider, eventsList] = await Promise.all([
         client.getUsageCostSummary(start, end, 'model', projectId),
         client.getUsageCostSummary(start, end, 'agent', projectId),
         client.getUsageCostSummary(start, end, 'generation_type', projectId),
+        client.getUsageCostSummary(start, end, 'provider', projectId),
         client.getUsageEventsList(start, end, projectId, undefined, 200),
       ]);
 
       setSummaryByModel(byModel);
       setSummaryByAgent(byAgent);
       setSummaryByType(byType);
+      setSummaryByProvider(byProvider);
       setEvents(eventsList);
     } catch (error) {
       console.error('Failed to fetch usage data:', error);
@@ -113,13 +116,19 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     <>
       <UsageStatCards totals={totals} modelCount={summaryByModel.length} isLoading={isLoading} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <UsageBreakdownTable title="Cost by Model" data={summaryByModel} isLoading={isLoading} />
         <UsageBreakdownTable
           title="Cost by Agent"
           data={summaryByAgent}
           isLoading={isLoading}
           groupLabel="Agent"
+        />
+        <UsageBreakdownTable
+          title="Cost by Provider"
+          data={summaryByProvider}
+          isLoading={isLoading}
+          groupLabel="Provider"
         />
       </div>
 
@@ -328,6 +337,7 @@ function UsageEventsTable({
                 <TableHead>Conversation</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Model</TableHead>
+                <TableHead>Provider</TableHead>
                 <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">In</TableHead>
                 <TableHead className="text-right">Out</TableHead>
@@ -363,6 +373,7 @@ function UsageEventsTable({
                     </span>
                   </TableCell>
                   <TableCell className="font-mono text-xs">{event.model}</TableCell>
+                  <TableCell className="font-mono text-xs">{event.provider || '—'}</TableCell>
                   <TableCell className="text-right font-medium">
                     {event.estimatedCostUsd ? formatCost(event.estimatedCostUsd) : '—'}
                   </TableCell>
