@@ -226,12 +226,8 @@ app.openapi(
       anonUserId = `anon_${crypto.randomUUID()}`;
     }
 
-    const tenantId = isRefresh
-      ? (refreshTenantId ?? appRecord.tenantId)
-      : appRecord.tenantId || c.req.header('x-inkeep-tenant-id') || null;
-    const projectId = isRefresh
-      ? (refreshProjectId ?? appRecord.projectId)
-      : appRecord.projectId || c.req.header('x-inkeep-project-id') || null;
+    const tenantId = isRefresh ? (refreshTenantId ?? appRecord.tenantId) : appRecord.tenantId;
+    const projectId = isRefresh ? (refreshProjectId ?? appRecord.projectId) : appRecord.projectId;
 
     const lifetimeSeconds = env.INKEEP_ANON_SESSION_LIFETIME_SECONDS;
     const now = Math.floor(Date.now() / 1000);
