@@ -6,7 +6,7 @@ VALUES (
   'Global playground app for the manage UI',
   'web_client',
   true,
-  '{"type": "web_client", "webClient": {"allowedDomains": ["*"], "auth": {"publicKeys": [], "validateScopeClaims": true}}}',
+  '{"type": "web_client", "webClient": {"allowedDomains": [], "auth": {"publicKeys": [], "validateScopeClaims": true}}}',
   now(),
   now()
 )
