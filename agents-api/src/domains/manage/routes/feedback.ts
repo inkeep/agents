@@ -39,7 +39,10 @@ app.openapi(
       query: PaginationQueryParamsSchema.extend({
         conversationId: z.string().optional().describe('Optionally filter by conversation ID'),
         messageId: z.string().optional().describe('Optionally filter by message ID'),
-        type: z.enum(['positive', 'negative']).optional().describe('Optionally filter by feedback type'),
+        type: z
+          .enum(['positive', 'negative'])
+          .optional()
+          .describe('Optionally filter by feedback type'),
       }),
     },
     responses: {

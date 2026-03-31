@@ -4,4 +4,4 @@
 "@inkeep/agents-api": patch
 ---
 
-implementing feedback
+Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages

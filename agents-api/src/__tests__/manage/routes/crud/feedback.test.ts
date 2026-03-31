@@ -68,6 +68,161 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
     expect(listBody.data[0]).not.toHaveProperty('projectId');
   });
 
+  it('should get feedback by id with all fields persisted', async () => {
+    const tenantId = await createTestTenantWithOrg('feedback-get-project');
+    await createTestProject(manageDbClient, tenantId, projectId);
+    const { conversationId } = await createTestConversation({ tenantId });
+
+    const createData = {
+      id: `feedback_${generateId(10)}`,
+      conversationId,
+      messageId: `msg_${generateId(10)}`,
+      type: 'positive',
+      details: 'Great answer!',
+    };
+
+    const createRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
+      {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      }
+    );
+    expect(createRes.status).toBe(201);
+
+    const getRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback/${createData.id}`
+    );
+    expect(getRes.status).toBe(200);
+    const getBody = await getRes.json();
+
+    expect(getBody.data).toMatchObject({
+      id: createData.id,
+      conversationId,
+      messageId: createData.messageId,
+      type: 'positive',
+      details: 'Great answer!',
+    });
+    expect(getBody.data.createdAt).toBeDefined();
+    expect(getBody.data.updatedAt).toBeDefined();
+    expect(getBody.data).not.toHaveProperty('tenantId');
+    expect(getBody.data).not.toHaveProperty('projectId');
+  });
+
+  it('should update feedback type and details via PATCH', async () => {
+    const tenantId = await createTestTenantWithOrg('feedback-update-project');
+    await createTestProject(manageDbClient, tenantId, projectId);
+    const { conversationId } = await createTestConversation({ tenantId });
+
+    const createData = {
+      id: `feedback_${generateId(10)}`,
+      conversationId,
+      type: 'negative',
+      details: 'Original details.',
+    };
+
+    await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
+      {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      }
+    );
+
+    const patchRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback/${createData.id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ type: 'positive', details: 'Updated details.' }),
+      }
+    );
+    expect(patchRes.status).toBe(200);
+    const patchBody = await patchRes.json();
+    expect(patchBody.data.type).toBe('positive');
+    expect(patchBody.data.details).toBe('Updated details.');
+
+    const getRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback/${createData.id}`
+    );
+    expect(getRes.status).toBe(200);
+    const getBody = await getRes.json();
+    expect(getBody.data.type).toBe('positive');
+    expect(getBody.data.details).toBe('Updated details.');
+    expect(getBody.data.conversationId).toBe(conversationId);
+  });
+
+  it('should filter feedback by type', async () => {
+    const tenantId = await createTestTenantWithOrg('feedback-filter-project');
+    await createTestProject(manageDbClient, tenantId, projectId);
+    const { conversationId } = await createTestConversation({ tenantId });
+
+    const positive = {
+      id: `feedback_${generateId(10)}`,
+      conversationId,
+      type: 'positive',
+      details: 'Liked it.',
+    };
+    const negative = {
+      id: `feedback_${generateId(10)}`,
+      conversationId,
+      type: 'negative',
+      details: 'Did not like it.',
+    };
+
+    await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
+      { method: 'POST', body: JSON.stringify(positive) }
+    );
+    await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
+      { method: 'POST', body: JSON.stringify(negative) }
+    );
+
+    const positiveRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback?type=positive`
+    );
+    expect(positiveRes.status).toBe(200);
+    const positiveBody = await positiveRes.json();
+    expect(positiveBody.pagination.total).toBe(1);
+    expect(positiveBody.data[0].type).toBe('positive');
+
+    const negativeRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback?type=negative`
+    );
+    expect(negativeRes.status).toBe(200);
+    const negativeBody = await negativeRes.json();
+    expect(negativeBody.pagination.total).toBe(1);
+    expect(negativeBody.data[0].type).toBe('negative');
+  });
+
+  it('should create conversation-level feedback without messageId', async () => {
+    const tenantId = await createTestTenantWithOrg('feedback-conv-project');
+    await createTestProject(manageDbClient, tenantId, projectId);
+    const { conversationId } = await createTestConversation({ tenantId });
+
+    const createData = {
+      id: `feedback_${generateId(10)}`,
+      conversationId,
+      type: 'negative',
+      details: 'Conversation-level feedback.',
+    };
+
+    const createRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
+      { method: 'POST', body: JSON.stringify(createData) }
+    );
+    expect(createRes.status).toBe(201);
+
+    const getRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/feedback/${createData.id}`
+    );
+    expect(getRes.status).toBe(200);
+    const getBody = await getRes.json();
+    expect(getBody.data.messageId).toBeNull();
+    expect(getBody.data.conversationId).toBe(conversationId);
+    expect(getBody.data.details).toBe('Conversation-level feedback.');
+  });
+
   it('should delete feedback', async () => {
     const tenantId = await createTestTenantWithOrg('feedback-delete-project');
     await createTestProject(manageDbClient, tenantId, projectId);

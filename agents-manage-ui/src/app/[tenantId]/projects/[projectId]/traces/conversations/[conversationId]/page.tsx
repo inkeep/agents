@@ -14,6 +14,7 @@ import NextLink from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { FeedbackDialog } from '@/components/agent/playground/feedback-dialog';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
@@ -316,11 +317,7 @@ export default function ConversationDetail({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setFeedbackDialog({ open: true })}
-          >
+          <Button variant="outline" size="sm" onClick={() => setFeedbackDialog({ open: true })}>
             <MessageSquare className="h-4 w-4 mr-1.5" />
             Leave Feedback
           </Button>

@@ -62,7 +62,9 @@ export function FeedbackTable({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [conversationId, setConversationId] = React.useState(filters.conversationId ?? '');
-  const [typeFilter, setTypeFilter] = React.useState<'positive' | 'negative' | undefined>(filters.type);
+  const [typeFilter, setTypeFilter] = React.useState<'positive' | 'negative' | undefined>(
+    filters.type
+  );
   const [deleteFeedbackId, setDeleteFeedbackId] = React.useState<string | null>(null);
 
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -157,7 +159,7 @@ export function FeedbackTable({
                 variant={typeFilter === 'positive' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => {
-                  const next = typeFilter === 'positive' ? undefined : 'positive' as const;
+                  const next = typeFilter === 'positive' ? undefined : ('positive' as const);
                   setTypeFilter(next);
                   updateQuery({ type: next ?? '', page: 1 });
                 }}
@@ -169,7 +171,7 @@ export function FeedbackTable({
                 variant={typeFilter === 'negative' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => {
-                  const next = typeFilter === 'negative' ? undefined : 'negative' as const;
+                  const next = typeFilter === 'negative' ? undefined : ('negative' as const);
                   setTypeFilter(next);
                   updateQuery({ type: next ?? '', page: 1 });
                 }}
@@ -241,7 +243,11 @@ export function FeedbackTable({
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <Link
-                      href={item.messageId ? `${conversationHref}?messageId=${item.messageId}` : conversationHref}
+                      href={
+                        item.messageId
+                          ? `${conversationHref}?messageId=${item.messageId}`
+                          : conversationHref
+                      }
                       className="text-sm text-primary hover:underline"
                     >
                       {item.messageId ? 'View message' : 'View conversation'}

@@ -80,11 +80,8 @@ export const FeedbackDialog = ({
       return;
     }
 
-    const feedbackId = `feedback_${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
-
     try {
       const result = await createFeedbackAction(tenantId, projectId, {
-        id: feedbackId,
         conversationId,
         messageId: scope === 'message' ? messageId : undefined,
         type,

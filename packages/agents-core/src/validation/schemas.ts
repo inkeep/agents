@@ -43,10 +43,10 @@ import {
   contextCache,
   conversations,
   datasetRun,
-  feedback,
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
+  feedback,
   ledgerArtifacts,
   messages,
   projectMetadata,
@@ -1181,8 +1181,9 @@ export const FeedbackInsertSchema = createInsertSchema(feedback).extend({
 export const FeedbackUpdateSchema = FeedbackInsertSchema.partial();
 
 export const FeedbackApiSelectSchema = createApiSchema(FeedbackSelectSchema).openapi('Feedback');
-export const FeedbackApiInsertSchema =
-  createApiInsertSchema(FeedbackInsertSchema).openapi('FeedbackCreate');
+export const FeedbackApiInsertSchema = createApiInsertSchema(FeedbackInsertSchema)
+  .extend({ id: ResourceIdSchema.optional() })
+  .openapi('FeedbackCreate');
 export const FeedbackApiUpdateSchema =
   createApiUpdateSchema(FeedbackUpdateSchema).openapi('FeedbackUpdate');
 

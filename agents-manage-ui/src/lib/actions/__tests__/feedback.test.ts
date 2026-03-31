@@ -32,7 +32,7 @@ describe('createFeedbackAction', () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data!.id).toBe('fb_1');
+      expect(result.data?.id).toBe('fb_1');
     }
   });
 

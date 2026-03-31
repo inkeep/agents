@@ -1,12 +1,7 @@
-/**
- * API Client for Feedback Operations
- */
-
-'use server';
-
-import {
+import type {
   FeedbackApiInsertSchema,
   FeedbackApiSelectSchema,
+  FeedbackListResponse as FeedbackListResponseSchema,
 } from '@inkeep/agents-core/client-exports';
 import type { z } from 'zod';
 import type { SingleResponse } from '../types/response';
@@ -14,16 +9,7 @@ import { makeManagementApiRequest } from './api-config';
 
 export type Feedback = z.infer<typeof FeedbackApiSelectSchema>;
 export type FeedbackCreate = z.infer<typeof FeedbackApiInsertSchema>;
-
-export interface FeedbackListResponse {
-  data: Feedback[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-}
+export type FeedbackListResponse = z.infer<typeof FeedbackListResponseSchema>;
 
 export async function createFeedback(
   tenantId: string,

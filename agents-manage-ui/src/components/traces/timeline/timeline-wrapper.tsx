@@ -411,7 +411,7 @@ export function TimelineWrapper({
 
     const timeoutId = setTimeout(() => {
       const el = scrollContainerRef.current?.querySelector(
-        `[data-message-id="${highlightMessageId}"]`,
+        `[data-message-id="${highlightMessageId}"]`
       );
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
