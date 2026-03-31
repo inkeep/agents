@@ -1,5 +1,47 @@
 # @inkeep/agents-manage-ui
 
+## 0.63.2
+
+### Patch Changes
+
+- 8e2f1e0: Fix Monaco Editor WebAssembly `CompileError` by adding `wasm-unsafe-eval` to CSP `script-src` directive
+- dc818c0: Add support for nested files and folders within Skills. Each skill is now a directory containing a `SKILL.md` entry file plus any number of nested reference files (templates, checklists, examples). The SDK `loadSkills()` function recursively discovers all files under each skill directory. The CLI `pull` command writes one file per skill file path. The Visual Builder shows a file-tree sidebar with per-file editing, context menus for adding and removing files, and breadcrumb navigation. The API accepts a `files` array for skill create and update, with four new file-level endpoints for individual CRUD operations. `SKILL.md` frontmatter remains the source of truth for skill name, description, and metadata.
+- Updated dependencies [dc818c0]
+- Updated dependencies [dc818c0]
+  - @inkeep/agents-core@0.63.2
+
+## 0.63.1
+
+### Patch Changes
+
+- 02eb244: Updated Cost UI
+- e222844: Omit falsy model configs in agent form to prevent empty model objects in payload
+- 4fa11aa: Making agent timeout more noticeable in trace conversation view
+  - @inkeep/agents-core@0.63.1
+
+## 0.63.0
+
+### Minor Changes
+
+- 0f77d00: Add scheduler workflow with centralized trigger dispatch and deploy restart endpoint
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+
+## 0.62.2
+
+### Patch Changes
+
+- fe4b442: Prevent sidebar links rerenders on query param changes
+- c799d92: Fix ExternalLink icon shrinking in flex containers
+- 9ee6ab7: Remove redundant client-side `validateProjectId` and `validateTenantId` calls that duplicated server-side Zod validation
+- 9bba8fc: Fix CSP policy for PostHog and Sentry to use wildcard subdomains instead of exact host URLs
+- ea88f5f: Fix local login CSP defaults so auth requests reach the API without extra public env vars.
+- Updated dependencies [f614c56]
+  - @inkeep/agents-core@0.62.2
+
 ## 0.62.1
 
 ### Patch Changes

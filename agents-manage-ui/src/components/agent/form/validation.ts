@@ -62,21 +62,30 @@ export const ContextConfigSchema = z.strictObject({
   ),
 });
 
-const MyModelsSchema = z.strictObject({
-  base: ModelsBaseSchema.extend({
-    providerOptions: StringToJsonSchema.pipe(ModelsBaseSchema.shape.providerOptions).optional(),
-  }),
-  structuredOutput: ModelsStructuredOutputSchema.extend({
-    providerOptions: StringToJsonSchema.pipe(
-      ModelsStructuredOutputSchema.shape.providerOptions
-    ).optional(),
-  }),
-  summarizer: ModelsSummarizerSchema.extend({
-    providerOptions: StringToJsonSchema.pipe(
-      ModelsSummarizerSchema.shape.providerOptions
-    ).optional(),
-  }),
-});
+const MyModelsSchema = z
+  .strictObject({
+    base: ModelsBaseSchema.extend({
+      providerOptions: StringToJsonSchema.pipe(ModelsBaseSchema.shape.providerOptions).optional(),
+    }),
+    structuredOutput: ModelsStructuredOutputSchema.extend({
+      providerOptions: StringToJsonSchema.pipe(
+        ModelsStructuredOutputSchema.shape.providerOptions
+      ).optional(),
+    }),
+    summarizer: ModelsSummarizerSchema.extend({
+      providerOptions: StringToJsonSchema.pipe(
+        ModelsSummarizerSchema.shape.providerOptions
+      ).optional(),
+    }),
+  })
+  .transform(({ base, structuredOutput, summarizer, ...value }) => {
+    return {
+      ...value,
+      ...(base.model && { base }),
+      ...(structuredOutput.model && { structuredOutput }),
+      ...(summarizer.model && { summarizer }),
+    };
+  });
 
 const StringToStringRecordSchema = z
   .string()

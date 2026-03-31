@@ -189,7 +189,7 @@ export const createTaskHandler = (
           );
         })) ?? [];
 
-      const skills = getSkillsForSubAgent({ subAgent: currentSubAgent });
+      const skills = getSkillsForSubAgent({ project, subAgent: currentSubAgent });
 
       agent = new Agent(
         {

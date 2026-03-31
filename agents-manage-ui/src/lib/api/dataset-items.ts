@@ -9,7 +9,6 @@
 
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface DatasetItem {
   id: string;
@@ -65,9 +64,6 @@ export async function fetchDatasetItems(
   projectId: string,
   datasetId: string
 ): Promise<ListResponse<DatasetItem>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}`
   );
@@ -82,9 +78,6 @@ export async function createDatasetItem(
   datasetId: string,
   item: DatasetItemInsert
 ): Promise<DatasetItem> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}/items`,
     {
@@ -106,9 +99,6 @@ export async function updateDatasetItem(
   itemId: string,
   item: DatasetItemUpdate
 ): Promise<DatasetItem> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}/items/${itemId}`,
     {
@@ -129,9 +119,6 @@ export async function deleteDatasetItem(
   datasetId: string,
   itemId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}/items/${itemId}`,
     {

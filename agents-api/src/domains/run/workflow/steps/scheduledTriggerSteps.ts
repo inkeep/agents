@@ -6,31 +6,24 @@
  */
 import {
   addConversationIdToInvocation,
+  advanceScheduledTriggerNextRunAt,
   canUseProjectStrict,
   createScheduledTriggerInvocation,
-  deletePendingInvocationsForTrigger,
   generateId,
   getProjectScopedRef,
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerInvocationByIdempotencyKey,
-  getScheduledWorkflowByTriggerId,
   interpolateTemplate,
-  listPendingScheduledTriggerInvocations,
   markScheduledTriggerInvocationCompleted,
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
   type Part,
   resetCancelledInvocationToPending,
   resolveRef,
-  type ScheduledTriggerInvocation,
   updateScheduledTriggerInvocationStatus,
-  updateScheduledWorkflowRunId,
-  withRef,
 } from '@inkeep/agents-core';
-import { CronExpressionParser } from 'cron-parser';
 import { manageDbClient } from '../../../../data/db';
-import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { buildTimezoneHeaders, executeAgentAsync } from '../../services/TriggerService';
@@ -46,111 +39,8 @@ export async function logStep(message: string, data: Record<string, unknown>) {
 }
 
 /**
- * Step: Calculate the next execution time relative to a base time.
- */
-export async function calculateNextExecutionStep(params: {
-  cronExpression?: string | null;
-  cronTimezone?: string | null;
-  runAt?: string | null;
-  lastScheduledFor?: string | null;
-}): Promise<{ nextExecutionTime: string; isOneTime: boolean }> {
-  'use step';
-
-  const { cronExpression, cronTimezone, runAt, lastScheduledFor } = params;
-
-  if (runAt) {
-    // One-time trigger - use the runAt time
-    return { nextExecutionTime: runAt, isOneTime: true };
-  }
-
-  if (cronExpression) {
-    const baseDate = lastScheduledFor ? new Date(lastScheduledFor) : new Date();
-    const interval = CronExpressionParser.parse(cronExpression, {
-      currentDate: baseDate,
-      tz: cronTimezone || 'UTC',
-    });
-    const nextDate = interval.next();
-    const nextIso = nextDate.toISOString();
-    if (!nextIso) {
-      throw new Error('Failed to calculate next execution time from cron expression');
-    }
-    return { nextExecutionTime: nextIso, isOneTime: false };
-  }
-
-  throw new Error('Trigger must have either cronExpression or runAt');
-}
-
-/**
- * Step: Compute sleep duration
- * Returns milliseconds to sleep.
- */
-export async function computeSleepDurationStep(targetTime: string): Promise<number> {
-  'use step';
-
-  const target = new Date(targetTime);
-  const now = new Date();
-  const diffMs = target.getTime() - now.getTime();
-
-  // If target is in the past or very soon, use minimum delay
-  return Math.max(diffMs, 1000);
-}
-
-/**
- * Step: Get the next pending invocation to execute (earliest scheduledFor).
- * Returns null if no pending invocations exist.
- */
-export async function getNextPendingInvocationStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  scheduledTriggerId: string;
-}): Promise<ScheduledTriggerInvocation | null> {
-  'use step';
-
-  const invocations = await listPendingScheduledTriggerInvocations(runDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.scheduledTriggerId,
-    limit: 1,
-  });
-
-  return invocations[0] || null;
-}
-
-/**
- * Step: Delete all pending invocations for a trigger.
- * Used when cron expression changes or trigger is disabled.
- */
-export async function deletePendingInvocationsStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  scheduledTriggerId: string;
-}): Promise<number> {
-  'use step';
-
-  const deletedCount = await deletePendingInvocationsForTrigger(runDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.scheduledTriggerId,
-  });
-
-  logger.info(
-    { scheduledTriggerId: params.scheduledTriggerId, deletedCount },
-    'Deleted pending invocations'
-  );
-
-  return deletedCount;
-}
-
-/**
- * Step: Check if trigger is still enabled and this runner is authoritative.
+ * Step: Check if trigger is still enabled.
+ * Reads trigger config from the runtime DB.
  */
 export async function checkTriggerEnabledStep(params: {
   tenantId: string;
@@ -158,7 +48,6 @@ export async function checkTriggerEnabledStep(params: {
   agentId: string;
   scheduledTriggerId: string;
   runnerId: string;
-  parentRunId?: string | null;
 }) {
   'use step';
 
@@ -168,82 +57,21 @@ export async function checkTriggerEnabledStep(params: {
     agentId: params.agentId,
   };
 
-  // Resolve the branch ref for this project (DoltgreS uses branch-per-project)
-  const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
-  const resolvedRef = await resolveRef(manageDbClient)(ref);
-
-  if (!resolvedRef) {
-    logger.warn(
-      { tenantId: params.tenantId, projectId: params.projectId },
-      'Failed to resolve ref for project, treating trigger as deleted'
-    );
-    return { shouldContinue: false, reason: 'deleted', trigger: null };
-  }
-
-  // Query the correct branch for the trigger and workflow
-  const [trigger, workflow] = await withRef(manageDbPool, resolvedRef, async (db) => {
-    return Promise.all([
-      getScheduledTriggerById(db)({
-        scopes,
-        scheduledTriggerId: params.scheduledTriggerId,
-      }),
-      getScheduledWorkflowByTriggerId(db)({
-        scopes,
-        scheduledTriggerId: params.scheduledTriggerId,
-      }),
-    ]);
+  const trigger = await getScheduledTriggerById(runDbClient)({
+    scopes,
+    scheduledTriggerId: params.scheduledTriggerId,
   });
 
-  // If trigger was deleted or disabled, stop the workflow
   if (!trigger || !trigger.enabled) {
     logger.info(
       { scheduledTriggerId: params.scheduledTriggerId, reason: !trigger ? 'deleted' : 'disabled' },
       'Scheduled trigger workflow stopping'
     );
-    return { shouldContinue: false, reason: !trigger ? 'deleted' : 'disabled', trigger: null };
-  }
-
-  // If workflowRunId changed in the workflow record, this runner was superseded
-  if (workflow?.workflowRunId && workflow.workflowRunId !== params.runnerId) {
-    // Adoption: parent called start() to create this child but crashed before updating
-    // the DB with the child's runId. DB still holds the parent's ID, so adopt it.
-    if (params.parentRunId && workflow.workflowRunId === params.parentRunId) {
-      try {
-        await withRef(manageDbPool, resolvedRef, async (db) => {
-          await updateScheduledWorkflowRunId(db)({
-            scopes,
-            scheduledWorkflowId: workflow.id,
-            workflowRunId: params.runnerId,
-            status: 'running',
-          });
-        });
-      } catch (err) {
-        logger.error(
-          {
-            scheduledTriggerId: params.scheduledTriggerId,
-            parentRunId: params.parentRunId,
-            runnerId: params.runnerId,
-            error: err instanceof Error ? err.message : String(err),
-          },
-          'Failed to adopt workflowRunId — step will be retried by workflow framework'
-        );
-        throw err;
-      }
-      logger.info(
-        {
-          scheduledTriggerId: params.scheduledTriggerId,
-          parentRunId: params.parentRunId,
-          newRunnerId: params.runnerId,
-        },
-        'Child workflow adopted workflowRunId from parent'
-      );
-    } else {
-      logger.info(
-        { scheduledTriggerId: params.scheduledTriggerId, reason: 'superseded' },
-        'Scheduled trigger workflow stopping'
-      );
-      return { shouldContinue: false, reason: 'superseded', trigger: null };
-    }
+    return {
+      shouldContinue: false,
+      reason: (!trigger ? 'deleted' : 'disabled') as 'deleted' | 'disabled',
+      trigger: null,
+    };
   }
 
   return {
@@ -264,6 +92,7 @@ export async function createInvocationIdempotentStep(params: {
   scheduledFor: string;
   payload: Record<string, unknown> | null;
   idempotencyKey: string;
+  ref: string;
 }) {
   'use step';
 
@@ -280,8 +109,8 @@ export async function createInvocationIdempotentStep(params: {
     return { invocation: existing, alreadyExists: true };
   }
 
-  const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
-  const resolvedRef = await resolveRef(manageDbClient)(ref);
+  const projectScopedRef = getProjectScopedRef(params.tenantId, params.projectId, params.ref);
+  const resolvedRef = await resolveRef(manageDbClient)(projectScopedRef);
 
   if (!resolvedRef) {
     logger.warn(
@@ -462,6 +291,26 @@ export async function markFailedStep(params: {
   });
 }
 
+export async function disableOneTimeTriggerStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+}) {
+  'use step';
+
+  await advanceScheduledTriggerNextRunAt(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    nextRunAt: null,
+    enabled: false,
+  });
+}
+
 /**
  * Step: Increment attempt number for retry
  */
@@ -546,6 +395,7 @@ export async function executeScheduledTriggerStep(params: {
   timeoutSeconds: number;
   runAsUserId?: string | null;
   cronTimezone?: string | null;
+  ref: string;
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
@@ -560,6 +410,7 @@ export async function executeScheduledTriggerStep(params: {
     timeoutSeconds,
     runAsUserId,
     cronTimezone,
+    ref: triggerRef,
   } = params;
 
   if (runAsUserId) {
@@ -593,23 +444,21 @@ export async function executeScheduledTriggerStep(params: {
   }
 
   logger.info(
-    { scheduledTriggerId, invocationId, runAsUserId },
+    { scheduledTriggerId, invocationId, runAsUserId, ref: triggerRef },
     'Executing scheduled trigger via executeAgentAsync'
   );
-
   // Generate conversation ID upfront so we can return it even on failure
   const conversationId = generateId();
 
   try {
-    // Resolve the project ref
-    const ref = getProjectScopedRef(tenantId, projectId, 'main');
-    const resolvedRef = await resolveRef(manageDbClient)(ref);
+    const refString = getProjectScopedRef(tenantId, projectId, triggerRef);
+    const resolvedRef = await resolveRef(manageDbClient)(refString);
 
     if (!resolvedRef) {
       return {
         success: false,
         conversationId,
-        error: `Failed to resolve ref for project ${projectId}`,
+        error: `Failed to resolve ref '${triggerRef}' for project ${projectId}`,
       };
     }
 

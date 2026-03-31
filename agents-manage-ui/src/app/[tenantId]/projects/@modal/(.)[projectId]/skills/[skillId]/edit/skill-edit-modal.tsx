@@ -18,14 +18,15 @@ export const SkillEditModal: FC = () => {
     data: { canEdit },
   } = useProjectPermissionsQuery();
 
+  const title = canEdit ? 'Edit skill' : 'View skill';
+  const description = canEdit ? 'Edit skill details.' : 'View skill details.';
+
   return (
     <Dialog open onOpenChange={router.back}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{canEdit ? 'Edit skill' : 'View skill'}</DialogTitle>
-          <DialogDescription className="sr-only">
-            {canEdit ? 'Edit skill details.' : 'View skill details.'}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="sr-only">{description}</DialogDescription>
         </DialogHeader>
         <SkillForm onSuccess={router.back} />
       </DialogContent>

@@ -7,6 +7,7 @@ import {
   OrgRoles,
   type ScheduledTrigger,
 } from '@inkeep/agents-core';
+import { user } from '@inkeep/agents-core/db/run-schema';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
@@ -16,6 +17,20 @@ import { isEntityChanged } from '../../../../utils/entityDiff';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
+
+async function seedTestUser(userId: string): Promise<void> {
+  await runDbClient
+    .insert(user)
+    .values({
+      id: userId,
+      name: `Test User ${userId}`,
+      email: `${userId}@test.local`,
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+}
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -31,6 +46,11 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
           role: 'member',
           memberId: 'mock-member',
         })
+      )
+    ),
+    resolveRef: vi.fn(() =>
+      vi.fn((refString: string) =>
+        Promise.resolve({ type: 'branch', name: refString, hash: 'test-hash' })
       )
     ),
   };
@@ -76,6 +96,12 @@ describe('User-Scoped Scheduled Triggers', () => {
     runAsUserId?: string;
   }) => {
     const { tenantId, projectId, agentId, runAsUserId } = params;
+
+    await seedTestUser('anonymous');
+    if (runAsUserId && runAsUserId !== 'anonymous') {
+      await seedTestUser(runAsUserId);
+    }
+
     const createData: Record<string, unknown> = {
       name: 'User-scoped trigger',
       cronExpression: '0 * * * *',
@@ -224,6 +250,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       const tenantId = await createTestTenantWithOrg('us-update-uid');
       const { agentId, projectId } = await createTestAgent(tenantId);
       canUseProjectStrictMock.mockResolvedValue(true);
+      await seedTestUser('new-user-456');
 
       const createRes = await createTriggerWithUserId({
         tenantId,
@@ -664,6 +691,8 @@ describe('User-Scoped Scheduled Triggers', () => {
       timeoutSeconds: 780,
       runAsUserId: 'user-a',
       createdBy: 'user-a',
+      ref: 'main',
+      nextRunAt: '2025-01-01T09:00:00Z',
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-01-01T00:00:00Z',
     };
@@ -895,18 +924,18 @@ describe('User-Scoped Scheduled Triggers', () => {
       });
       expect(resB.status).toBe(201);
 
-      const beforeList = await listScheduledTriggers(manageDbClient)({
+      const beforeList = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       expect(beforeList.length).toBe(2);
 
-      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+      await deleteScheduledTriggersByRunAsUserId(runDbClient)({
         tenantId,
         projectId,
         runAsUserId: userA,
       });
 
-      const afterList = await listScheduledTriggers(manageDbClient)({
+      const afterList = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       expect(afterList.length).toBe(1);
@@ -926,13 +955,13 @@ describe('User-Scoped Scheduled Triggers', () => {
       });
       expect(res.status).toBe(201);
 
-      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+      await deleteScheduledTriggersByRunAsUserId(runDbClient)({
         tenantId,
         projectId,
         runAsUserId: 'nonexistent-user',
       });
 
-      const afterList = await listScheduledTriggers(manageDbClient)({
+      const afterList = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       expect(afterList.length).toBe(1);
@@ -958,16 +987,16 @@ describe('User-Scoped Scheduled Triggers', () => {
         runAsUserId: userId,
       });
 
-      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+      await deleteScheduledTriggersByRunAsUserId(runDbClient)({
         tenantId,
         projectId,
         runAsUserId: userId,
       });
 
-      const list1 = await listScheduledTriggers(manageDbClient)({
+      const list1 = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId: agent1 },
       });
-      const list2 = await listScheduledTriggers(manageDbClient)({
+      const list2 = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId: agent2Id },
       });
       expect(list1.length).toBe(0);

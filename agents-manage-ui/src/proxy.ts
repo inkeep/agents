@@ -2,46 +2,73 @@ import { isSessionCookie } from '@inkeep/agents-core/auth/cookie-names';
 import { isDevelopment } from '@inkeep/agents-core/utils/env-detection';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
+
+const runtimeConfig = getRuntimeConfig();
+
+function toWebSocketOrigin(origin: string | null | undefined): string | null {
+  if (!origin) return null;
+
+  try {
+    const url = new URL(origin);
+
+    if (url.protocol === 'https:') {
+      url.protocol = 'wss:';
+      return url.origin;
+    }
+
+    if (url.protocol === 'http:') {
+      url.protocol = 'ws:';
+      return url.origin;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 function buildCsp() {
+  // PostHog Cloud may use multiple changing subdomains; keep CSP aligned with:
+  // https://posthog.com/docs/advanced/content-security-policy
+  const posthogHost = runtimeConfig.PUBLIC_POSTHOG_HOST ? 'https://*.posthog.com' : null;
+
   const connectSrcDomains = [
     "'self'",
-    process.env.PUBLIC_INKEEP_AGENTS_API_URL || process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL,
-    process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST,
-    process.env.PUBLIC_SIGNOZ_URL || process.env.NEXT_PUBLIC_SIGNOZ_URL,
-    process.env.PUBLIC_NANGO_SERVER_URL || process.env.NEXT_PUBLIC_NANGO_SERVER_URL,
-    process.env.PUBLIC_NANGO_CONNECT_BASE_URL || process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL,
-    process.env.NEXT_PUBLIC_SENTRY_DSN
-      ? (() => {
-          try {
-            return new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).origin;
-          } catch {
-            return null;
-          }
-        })()
-      : null,
+    runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL,
+    posthogHost,
+    process.env.NEXT_PUBLIC_SENTRY_DSN ? 'https://*.sentry.io' : null,
+    runtimeConfig.PUBLIC_SIGNOZ_URL,
+    runtimeConfig.PUBLIC_NANGO_SERVER_URL,
+    toWebSocketOrigin(runtimeConfig.PUBLIC_NANGO_SERVER_URL),
+    runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
   ]
     .filter(Boolean)
     .join(' ');
 
   const frameSrcDomains = [
     "'self'",
-    process.env.PUBLIC_NANGO_CONNECT_BASE_URL || process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL,
+    runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
     'https://accounts.google.com',
   ]
     .filter(Boolean)
     .join(' ');
 
-  const scriptSrc =
-    process.env.NODE_ENV === 'production'
-      ? "'self' 'unsafe-inline'"
-      : "'self' 'unsafe-inline' 'unsafe-eval'";
+  const scriptSrcDomains = [
+    "'self'",
+    "'unsafe-inline'",
+    "'wasm-unsafe-eval'",
+    process.env.NODE_ENV === 'production' ? null : "'unsafe-eval'",
+    posthogHost,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return [
     `default-src 'self'`,
-    `script-src ${scriptSrc}`,
-    `style-src 'self' 'unsafe-inline'`,
-    `font-src 'self'`,
+    `script-src ${scriptSrcDomains}`,
+    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+    `font-src 'self' https://fonts.gstatic.com`,
     `img-src 'self' https: data:`,
     `connect-src ${connectSrcDomains}`,
     `frame-src ${frameSrcDomains}`,
@@ -137,7 +164,7 @@ export async function proxy(request: NextRequest) {
 }
 
 async function tryDevAutoLogin(): Promise<string | null> {
-  const apiUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+  const apiUrl = runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL;
   const bypassSecret = process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
 
   if (!bypassSecret) {
