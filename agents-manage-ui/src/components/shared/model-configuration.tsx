@@ -1,5 +1,6 @@
 'use client';
 
+import { GATEWAY_ROUTABLE_PROVIDERS } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, useEffect, useRef, useState } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
@@ -425,6 +426,11 @@ export function ModelConfiguration({
   const effectiveProviderOptions = value ? internalProviderOptions : inheritedProviderOptions;
   const isUsingInheritedOptions = !value && !!inheritedValue;
 
+  const modelProvider = effectiveModel?.split('/')[0] ?? '';
+  const isGatewayRoutable =
+    (GATEWAY_ROUTABLE_PROVIDERS as readonly string[]).includes(modelProvider) ||
+    modelProvider === 'gateway';
+
   const jsonPlaceholder = getJsonPlaceholder
     ? getJsonPlaceholder(effectiveModel)
     : getDefaultJsonPlaceholder(effectiveModel);
@@ -489,25 +495,31 @@ export function ModelConfiguration({
       )}
 
       {/* Allowed Providers */}
-      {capabilities?.modelFallback?.enabled && effectiveModel && onAllowedProvidersChange && (
-        <AllowedProvidersSection
-          allowedProviders={allowedProviders}
-          inheritedAllowedProviders={inheritedAllowedProviders}
-          onAllowedProvidersChange={onAllowedProvidersChange}
-          disabled={disabled}
-        />
-      )}
+      {capabilities?.modelFallback?.enabled &&
+        effectiveModel &&
+        isGatewayRoutable &&
+        onAllowedProvidersChange && (
+          <AllowedProvidersSection
+            allowedProviders={allowedProviders}
+            inheritedAllowedProviders={inheritedAllowedProviders}
+            onAllowedProvidersChange={onAllowedProvidersChange}
+            disabled={disabled}
+          />
+        )}
 
       {/* Fallback Models */}
-      {capabilities?.modelFallback?.enabled && effectiveModel && onFallbackModelsChange && (
-        <FallbackModelsSection
-          editorNamePrefix={editorNamePrefix}
-          fallbackModels={fallbackModels}
-          inheritedFallbackModels={inheritedFallbackModels}
-          onFallbackModelsChange={onFallbackModelsChange}
-          disabled={disabled}
-        />
-      )}
+      {capabilities?.modelFallback?.enabled &&
+        effectiveModel &&
+        isGatewayRoutable &&
+        onFallbackModelsChange && (
+          <FallbackModelsSection
+            editorNamePrefix={editorNamePrefix}
+            fallbackModels={fallbackModels}
+            inheritedFallbackModels={inheritedFallbackModels}
+            onFallbackModelsChange={onFallbackModelsChange}
+            disabled={disabled}
+          />
+        )}
     </div>
   );
 }
