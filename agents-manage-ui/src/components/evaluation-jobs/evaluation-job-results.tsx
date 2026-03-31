@@ -305,6 +305,8 @@ export function EvaluationJobResults({
 
       {selectedEvaluator && (
         <EvaluatorViewDialog
+          tenantId={tenantId}
+          projectId={projectId}
           evaluator={selectedEvaluator}
           isOpen={selectedEvaluator !== undefined}
           onOpenChange={(open) => !open && setSelectedEvaluatorId(null)}

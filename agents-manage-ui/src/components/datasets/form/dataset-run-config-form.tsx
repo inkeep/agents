@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState } from 'react';
-import { useController, useForm } from 'react-hook-form';
+import { useController, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { GenericInput } from '@/components/form/generic-input';
@@ -21,7 +21,7 @@ import {
   createDatasetRunConfigAction,
   updateDatasetRunConfigAction,
 } from '@/lib/actions/dataset-run-configs';
-import { fetchDatasetAgents, fetchEvaluatorAgents } from '@/lib/api/agent-relations';
+import { fetchDatasetAgents, fetchEvaluatorAgentScopesBatch } from '@/lib/api/agent-relations';
 import type { DatasetRunConfigInsert } from '@/lib/api/dataset-run-configs';
 import { useAgentsQuery } from '@/lib/query/agents';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
@@ -115,15 +115,14 @@ export function DatasetRunConfigForm({
   useEffect(() => {
     if (evaluators.length === 0) return;
     const abortController = new AbortController();
-    Promise.all(
-      evaluators.map(async (ev) => {
-        const relations = await fetchEvaluatorAgents(tenantId, projectId, ev.id);
-        return [ev.id, relations.map((r) => r.agentId)] as const;
-      })
+    fetchEvaluatorAgentScopesBatch(
+      tenantId,
+      projectId,
+      evaluators.map((ev) => ev.id)
     )
-      .then((entries) => {
+      .then((map) => {
         if (!abortController.signal.aborted) {
-          setEvaluatorAgentMap(new Map(entries));
+          setEvaluatorAgentMap(map);
         }
       })
       .catch(() => toast.error('Failed to load evaluator agent scopes'));
@@ -141,6 +140,17 @@ export function DatasetRunConfigForm({
   }, [evaluators, agentIds, evaluatorAgentMap]);
 
   const evaluatorLookup = useMemo(() => createLookup(filteredEvaluators), [filteredEvaluators]);
+
+  const selectedEvaluatorIds = useWatch({ control: form.control, name: 'evaluatorIds' });
+
+  useEffect(() => {
+    if (!filteredEvaluators.length) return;
+    const validIds = new Set(filteredEvaluators.map((e) => e.id));
+    const filtered = (selectedEvaluatorIds || []).filter((id) => validIds.has(id));
+    if (filtered.length !== (selectedEvaluatorIds || []).length) {
+      form.setValue('evaluatorIds', filtered);
+    }
+  }, [filteredEvaluators, selectedEvaluatorIds, form]);
 
   const onSubmit = async (data: DatasetRunConfigFormData) => {
     try {

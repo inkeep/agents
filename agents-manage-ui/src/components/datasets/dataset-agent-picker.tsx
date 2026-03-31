@@ -20,7 +20,7 @@ interface DatasetAgentPickerProps {
 export function DatasetAgentPicker({ tenantId, projectId, datasetId }: DatasetAgentPickerProps) {
   const { data: agents, isFetching: loadingAgents } = useAgentsQuery();
   const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
-  const [_syncing, setSyncing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -73,9 +73,11 @@ export function DatasetAgentPicker({ tenantId, projectId, datasetId }: DatasetAg
     <div className="space-y-2">
       <span className="text-sm font-medium">Agent Scope</span>
       <p className="text-xs text-muted-foreground">
-        {selectedAgentIds.length === 0
-          ? 'No agents selected — this test suite is available to all agents in the project.'
-          : 'This test suite is scoped to the selected agents only.'}
+        {syncing
+          ? 'Saving...'
+          : selectedAgentIds.length === 0
+            ? 'No agents selected — this test suite is available to all agents in the project.'
+            : 'This test suite is scoped to the selected agents only.'}
       </p>
       <ComponentSelector
         componentLookup={agentLookup}

@@ -64,6 +64,19 @@ export async function fetchEvaluatorAgents(
   return res.data;
 }
 
+export async function fetchEvaluatorAgentScopesBatch(
+  tenantId: string,
+  projectId: string,
+  evaluatorIds: string[]
+): Promise<Map<string, string[]>> {
+  if (evaluatorIds.length === 0) return new Map();
+  const res = await makeManagementApiRequest<{ data: Record<string, string[]> }>(
+    `${evalsPath(tenantId, projectId)}/evaluators/batch-agent-scopes`,
+    { method: 'POST', body: JSON.stringify({ evaluatorIds }) }
+  );
+  return new Map(Object.entries(res.data));
+}
+
 export async function addEvaluatorAgent(
   tenantId: string,
   projectId: string,

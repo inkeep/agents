@@ -294,6 +294,27 @@ app.openapi(
         }),
       ]);
 
+      if (datasetItems.length === 0) {
+        return c.json(
+          createApiError({
+            code: 'bad_request',
+            message: 'Dataset has no items. Add items to the dataset before triggering a run.',
+          }),
+          400
+        ) as any;
+      }
+
+      if (allAgentRelations.length === 0) {
+        return c.json(
+          createApiError({
+            code: 'bad_request',
+            message:
+              'No agents configured for this run config. Add agents to the run configuration.',
+          }),
+          400
+        ) as any;
+      }
+
       let agentRelations = allAgentRelations;
       if (datasetAgentRelations.length > 0) {
         const allowedAgentIds = new Set(datasetAgentRelations.map((r) => r.agentId));
@@ -330,6 +351,7 @@ app.openapi(
         datasetId: config.datasetId,
         datasetRunConfigId: runConfigId,
         evaluationJobConfigId: undefined,
+        ref: c.get('resolvedRef'),
       });
 
       let evaluationRunId: string | undefined;
@@ -362,6 +384,7 @@ app.openapi(
           tenantId,
           projectId,
           evaluationJobConfigId: jobConfigId,
+          ref: c.get('resolvedRef'),
         });
       }
 

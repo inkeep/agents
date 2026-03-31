@@ -7,6 +7,7 @@ import {
   deleteAgentEvaluatorRelation,
   generateId,
   getAgentEvaluatorRelationsByEvaluator,
+  getAgentIdsForEvaluators,
   isUniqueConstraintError,
   ListResponseSchema,
   SingleResponseSchema,
@@ -19,6 +20,71 @@ import type { ManageAppVariables } from '../../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('agentEvaluatorRelations');
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/batch-agent-scopes',
+    summary: 'Batch get agent scopes for evaluators',
+    operationId: 'batch-get-evaluator-agent-scopes',
+    tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              evaluatorIds: z.array(z.string()).min(1).max(200),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Map of evaluator ID to array of scoped agent IDs',
+        content: {
+          'application/json': {
+            schema: z.object({
+              data: z.record(z.string(), z.array(z.string())),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId } = c.req.valid('param');
+    const { evaluatorIds } = c.req.valid('json');
+
+    try {
+      const resultMap = await getAgentIdsForEvaluators(db)({
+        scopes: { tenantId, projectId },
+        evaluatorIds,
+      });
+      const data: Record<string, string[]> = {};
+      for (const [key, value] of resultMap) {
+        data[key] = value;
+      }
+      return c.json({ data }) as any;
+    } catch (error) {
+      logger.error(
+        { error, tenantId, projectId, evaluatorIds },
+        'Failed to batch get evaluator agent scopes'
+      );
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to batch get evaluator agent scopes',
+        }),
+        500
+      );
+    }
+  }
+);
 
 app.openapi(
   createProtectedRoute({
