@@ -3,7 +3,7 @@ title: Troubleshooting Guide
 sidebarTitle: Troubleshooting
 description: Learn how to diagnose and resolve issues when something breaks in your Inkeep agent system.
 icon: LuWrench
-keywords: troubleshooting, debugging, errors, timeline, signoz, retry, retryable errors, error handling
+keywords: troubleshooting, debugging, errors, timeline, signoz, retry, retryable errors, error handling, entitlement, 402, payment required, seat limit, quota
 ---
 
 ## Overview
@@ -206,3 +206,41 @@ These transient network issues are also automatically retried:
 - `ECONNREFUSED` — Connection refused (network level)
 - `ENOTFOUND` — DNS lookup failures
 - Fetch/request failures
+
+
+## Entitlement Limit Errors
+
+When your organization reaches a configured limit (such as seat limits or project quotas), API requests return a `402 Payment Required` error with a structured body:
+
+```json
+{
+  "code": "ENTITLEMENT_LIMIT_REACHED",
+  "resourceType": "seat:admin",
+  "current": 5,
+  "limit": 5
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `code` | Always `ENTITLEMENT_LIMIT_REACHED` |
+| `resourceType` | The entitlement type that was exceeded (e.g., `seat:admin`, `seat:member`, `quota:project`) |
+| `current` | Current usage count |
+| `limit` | Maximum allowed for this resource type |
+
+### Common Resource Types
+
+| Resource Type | Triggered By |
+| --- | --- |
+| `seat:admin` | Inviting or promoting a user to Admin or Owner role |
+| `seat:member` | Inviting a user as a Member |
+| `quota:project` | Creating a new project |
+
+### How to Resolve
+
+- **Seat limits**: Remove inactive members or pending invitations, or contact your administrator to increase limits
+- **Project quotas**: Delete unused projects or request a quota increase
+
+<Note>
+  Self-hosted deployments do not enforce entitlement limits by default. These limits only apply when entitlement rows are explicitly configured.
+</Note>
