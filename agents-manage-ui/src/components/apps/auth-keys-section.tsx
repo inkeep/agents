@@ -198,7 +198,7 @@ export function AuthKeysSection({
         <div className="space-y-3 rounded-md border p-3">
           <div className="space-y-1.5">
             <Label htmlFor="auth-kid" className="text-sm">
-              Key ID (kid)
+              Key ID (kid) <span className="text-destructive">*</span>
             </Label>
             <Input
               id="auth-kid"
@@ -228,7 +228,7 @@ export function AuthKeysSection({
 
           <div className="space-y-1.5">
             <Label htmlFor="auth-public-key" className="text-sm">
-              Public Key (PEM)
+              Public Key (PEM) <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="auth-public-key"
