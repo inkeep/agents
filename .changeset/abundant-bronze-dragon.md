@@ -2,4 +2,4 @@
 "@inkeep/agents-api": patch
 ---
 
-Add PATCH /auth/keys/settings endpoint to update app auth settings (allowAnonymous)
+Add server-side config merge for web client app updates and enforce allowAnonymous across all auth paths
