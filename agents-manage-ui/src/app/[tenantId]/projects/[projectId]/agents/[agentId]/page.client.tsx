@@ -701,23 +701,25 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         </ReactFlow>
       </ResizablePanel>
 
-      <Activity mode={showSidePane ? 'visible' : 'hidden'}>
-        <ResizableHandle withHandle />
-        <ResizablePanel
-          minSize={30}
-          // Panel id and order props recommended when panels are dynamically rendered
-          id="side-pane"
-          order={2}
-        >
-          <SidePane
-            selectedNodeId={selectedNode?.id ?? null}
-            selectedEdgeId={selectedEdge?.id ?? null}
-            onClose={closeSidePane}
-            backToAgent={backToAgent}
-            disabled={isCopilotStreaming || !canEdit}
-          />
-        </ResizablePanel>
-      </Activity>
+      {showSidePane && (
+        /* fix Uncaught Error: Previous layout not found for panel index 2 */ <>
+          <ResizableHandle withHandle />
+          <ResizablePanel
+            minSize={30}
+            // Panel id and order props recommended when panels are dynamically rendered
+            id="side-pane"
+            order={2}
+          >
+            <SidePane
+              selectedNodeId={selectedNode?.id ?? null}
+              selectedEdgeId={selectedEdge?.id ?? null}
+              onClose={closeSidePane}
+              backToAgent={backToAgent}
+              disabled={isCopilotStreaming || !canEdit}
+            />
+          </ResizablePanel>
+        </>
+      )}
       <Activity mode={showPlayground ? 'visible' : 'hidden'}>
         {!showTraces && <ResizableHandle withHandle />}
         <ResizablePanel
