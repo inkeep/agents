@@ -33,7 +33,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
 
   const [pendingKeysToAdd, setPendingKeysToAdd] = useState<PendingKey[]>([]);
   const [kidsToDelete, setKidsToDelete] = useState<string[]>([]);
-  const [requireAuth, setRequireAuth] = useState(false);
+  const [requireAuth, setRequireAuth] = useState(true);
 
   const form = useForm<AppCreateFormInput>({
     resolver: zodResolver(AppCreateFormSchema),

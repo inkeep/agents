@@ -57,7 +57,7 @@ export function AppUpdateForm({
   const [serverKeys, setServerKeys] = useState<PublicKeyDisplay[]>([]);
   const [pendingKeysToAdd, setPendingKeysToAdd] = useState<PendingKey[]>([]);
   const [kidsToDelete, setKidsToDelete] = useState<string[]>([]);
-  const [requireAuth, setRequireAuth] = useState(webConfig?.auth?.allowAnonymous === false);
+  const [requireAuth, setRequireAuth] = useState(webConfig?.auth?.allowAnonymous !== true);
   const [isLoadingKeys, setIsLoadingKeys] = useState(app.type === 'web_client');
 
   const loadKeys = useCallback(async () => {
