@@ -1,9 +1,10 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useController, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
@@ -20,10 +21,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
+import {
+  addEvaluatorAgentAction,
+  fetchEvaluatorAgentsAction,
+  removeEvaluatorAgentAction,
+} from '@/lib/actions/agent-relations';
 import { createEvaluatorAction, updateEvaluatorAction } from '@/lib/actions/evaluators';
 import type { ActionResult } from '@/lib/actions/types';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { useAgentsQuery } from '@/lib/query/agents';
 import { evaluatorSchemaTemplate, providerOptionsTemplate } from '@/lib/templates';
+import { createLookup } from '@/lib/utils';
 import { PassCriteriaBuilder } from './pass-criteria-builder';
 import { type EvaluatorFormData, evaluatorSchema } from './validation';
 
@@ -82,11 +90,28 @@ export function EvaluatorFormDialog({
     defaultValues: formatFormData(initialData),
   });
 
+  const { data: agents, isFetching: loadingAgents } = useAgentsQuery();
+  const agentLookup = useMemo(() => createLookup(agents), [agents]);
+  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
+  const [initialAgentIds, setInitialAgentIds] = useState<string[]>([]);
+
   useEffect(() => {
     if (isOpen) {
       form.reset(formatFormData(initialData));
+      if (evaluatorId) {
+        fetchEvaluatorAgentsAction(tenantId, projectId, evaluatorId).then((result) => {
+          if (result.success && result.data) {
+            const ids = result.data.map((r) => r.agentId);
+            setSelectedAgentIds(ids);
+            setInitialAgentIds(ids);
+          }
+        });
+      } else {
+        setSelectedAgentIds([]);
+        setInitialAgentIds([]);
+      }
     }
-  }, [isOpen, initialData, form]);
+  }, [isOpen, initialData, form, evaluatorId, tenantId, projectId]);
 
   const { isSubmitting } = form.formState;
 
@@ -168,6 +193,18 @@ export function EvaluatorFormDialog({
           toast.error(result.error || 'Failed to create evaluator');
           return;
         }
+      }
+
+      const savedId = evaluatorId ?? result.data?.id;
+      if (savedId) {
+        const added = selectedAgentIds.filter((id) => !initialAgentIds.includes(id));
+        const removed = initialAgentIds.filter((id) => !selectedAgentIds.includes(id));
+        await Promise.all([
+          ...added.map((agentId) => addEvaluatorAgentAction(tenantId, projectId, savedId, agentId)),
+          ...removed.map((agentId) =>
+            removeEvaluatorAgentAction(tenantId, projectId, savedId, agentId)
+          ),
+        ]);
       }
 
       setIsOpen(false);
@@ -283,6 +320,28 @@ export function EvaluatorFormDialog({
               })()}
               disabled={isSubmitting}
             />
+
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Agent Scope</span>
+              {loadingAgents ? (
+                <p className="text-sm text-muted-foreground">Loading agents...</p>
+              ) : (
+                <ComponentSelector
+                  componentLookup={agentLookup}
+                  selectedComponents={selectedAgentIds}
+                  onSelectionChange={setSelectedAgentIds}
+                  emptyStateMessage="No agents available."
+                  emptyStateActionText="Create agent"
+                  emptyStateActionHref={`/${tenantId}/projects/${projectId}/agents`}
+                  placeholder="Select agents..."
+                />
+              )}
+              <p className="text-xs text-muted-foreground">
+                {selectedAgentIds.length === 0
+                  ? 'No agents selected — this evaluator applies to all agents in the project.'
+                  : 'This evaluator is scoped to the selected agents only.'}
+              </p>
+            </div>
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>

@@ -3,6 +3,12 @@ import type {
   AgentApiInsertSchema,
   AgentApiSelectSchema,
   AgentApiUpdateSchema,
+  AgentDatasetRelationInsertSchema,
+  AgentDatasetRelationSelectSchema,
+  AgentDatasetRelationUpdateSchema,
+  AgentEvaluatorRelationInsertSchema,
+  AgentEvaluatorRelationSelectSchema,
+  AgentEvaluatorRelationUpdateSchema,
   AgentInsertSchema,
   AgentSelectSchema,
   AgentUpdateSchema,
@@ -257,7 +263,6 @@ import type {
   TriggerApiUpdateSchema,
   TriggerBatchConversationEvaluationSchema,
   TriggerConversationEvaluationSchema,
-  TriggerDatasetRunSchema,
   TriggerEvaluationJobSchema,
   TriggerInsertSchema,
   TriggerInvocationApiInsertSchema,
@@ -356,6 +361,12 @@ export type DatasetItemUpdate = z.infer<typeof DatasetItemUpdateSchema>;
 export type DatasetRunConfigSelect = z.infer<typeof DatasetRunConfigSelectSchema>;
 export type DatasetRunConfigInsert = z.infer<typeof DatasetRunConfigInsertSchema>;
 export type DatasetRunConfigUpdate = z.infer<typeof DatasetRunConfigUpdateSchema>;
+export type AgentDatasetRelationSelect = z.infer<typeof AgentDatasetRelationSelectSchema>;
+export type AgentDatasetRelationInsert = z.infer<typeof AgentDatasetRelationInsertSchema>;
+export type AgentDatasetRelationUpdate = z.infer<typeof AgentDatasetRelationUpdateSchema>;
+export type AgentEvaluatorRelationSelect = z.infer<typeof AgentEvaluatorRelationSelectSchema>;
+export type AgentEvaluatorRelationInsert = z.infer<typeof AgentEvaluatorRelationInsertSchema>;
+export type AgentEvaluatorRelationUpdate = z.infer<typeof AgentEvaluatorRelationUpdateSchema>;
 export type DatasetRunConfigAgentRelationSelect = z.infer<
   typeof DatasetRunConfigAgentRelationSelectSchema
 >;
@@ -366,7 +377,6 @@ export type DatasetRunConfigAgentRelationUpdate = z.infer<
   typeof DatasetRunConfigAgentRelationUpdateSchema
 >;
 export type DatasetRunItem = z.infer<typeof DatasetRunItemSchema>;
-export type TriggerDatasetRunRequest = z.infer<typeof TriggerDatasetRunSchema>;
 export type TriggerConversationEvaluationRequest = z.infer<
   typeof TriggerConversationEvaluationSchema
 >;
