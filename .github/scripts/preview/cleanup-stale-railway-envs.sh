@@ -13,6 +13,7 @@ require_env_vars \
 
 DRY_RUN="${DRY_RUN:-false}"
 DELETE_UNKNOWN_PREVIEW_ENVS="${DELETE_UNKNOWN_PREVIEW_ENVS:-false}"
+GITHUB_API_URL="${GITHUB_API_URL:-https://api.github.com}"
 
 github_pr_state() {
   local pr_number="$1"
@@ -28,7 +29,7 @@ github_pr_state() {
       -w '%{http_code}' \
       -H "Authorization: Bearer ${GH_TOKEN}" \
       -H "Accept: application/vnd.github+json" \
-      "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}"
+      "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}"
   )"
 
   case "${status}" in
@@ -54,7 +55,10 @@ delete_env_and_verify() {
   local env_name="$2"
 
   preview_log "Deleting stale Railway preview environment ${env_name}."
-  railway_environment_delete_by_id "${env_id}" >/dev/null
+  if ! railway_environment_delete_by_id "${env_id}" >/dev/null; then
+    echo "Failed to delete Railway environment ${env_name}." >&2
+    return 1
+  fi
   railway_wait_for_environment_absent "${RAILWAY_PROJECT_ID}" "${env_name}" 10 2
 }
 
@@ -75,6 +79,7 @@ unknown_seen=0
 unknown_skipped=0
 stale_targets=0
 errors=0
+deletion_failures=0
 deleted_names=()
 unknown_names=()
 
@@ -99,9 +104,12 @@ while IFS= read -r row; do
       if [ "${DRY_RUN}" = "true" ]; then
         preview_log "[dry-run] Would delete stale Railway preview environment ${env_name}."
       else
-        delete_env_and_verify "${env_id}" "${env_name}"
-        deleted=$((deleted + 1))
-        deleted_names+=("${env_name}")
+        if ! delete_env_and_verify "${env_id}" "${env_name}"; then
+          deletion_failures=$((deletion_failures + 1))
+        else
+          deleted=$((deleted + 1))
+          deleted_names+=("${env_name}")
+        fi
       fi
       ;;
     missing)
@@ -112,9 +120,12 @@ while IFS= read -r row; do
         if [ "${DRY_RUN}" = "true" ]; then
           preview_log "[dry-run] Would delete orphaned Railway preview environment ${env_name}."
         else
-          delete_env_and_verify "${env_id}" "${env_name}"
-          deleted=$((deleted + 1))
-          deleted_names+=("${env_name}")
+          if ! delete_env_and_verify "${env_id}" "${env_name}"; then
+            deletion_failures=$((deletion_failures + 1))
+          else
+            deleted=$((deleted + 1))
+            deleted_names+=("${env_name}")
+          fi
         fi
       else
         unknown_skipped=$((unknown_skipped + 1))
@@ -136,6 +147,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     echo "- Open PR envs kept: \`${kept}\`"
     echo "- Closed/orphaned PR envs targeted: \`${stale_targets}\`"
     echo "- Railway envs deleted: \`${deleted}\`"
+    echo "- Railway deletion failures: \`${deletion_failures}\`"
     echo "- Unknown PR envs seen: \`${unknown_seen}\`"
     echo "- Unknown PR envs left in place: \`${unknown_skipped}\`"
     echo "- GitHub lookup errors: \`${errors}\`"
@@ -148,7 +160,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   } >> "${GITHUB_STEP_SUMMARY}"
 fi
 
-if [ "${errors}" -gt 0 ]; then
-  echo "Encountered ${errors} GitHub lookup error(s) during Railway preview janitor." >&2
+if [ "${errors}" -gt 0 ] || [ "${deletion_failures}" -gt 0 ]; then
+  echo "Encountered ${errors} GitHub lookup error(s) and ${deletion_failures} Railway deletion failure(s) during Railway preview janitor." >&2
   exit 1
 fi

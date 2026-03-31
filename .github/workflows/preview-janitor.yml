@@ -52,7 +52,9 @@ jobs:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           GH_TOKEN: ${{ github.token }}
+          GITHUB_API_URL: ${{ github.api_url }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          # Scheduled janitor runs intentionally perform real cleanup. Manual runs default to dry-run.
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
           DELETE_UNKNOWN_PREVIEW_ENVS: ${{ github.event_name == 'workflow_dispatch' && inputs.delete_unknown_railway_envs && 'true' || 'false' }}
         run: bash .github/scripts/preview/cleanup-stale-railway-envs.sh

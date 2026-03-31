@@ -118,6 +118,12 @@ refresh_service_env_dump() {
   )"
 }
 
+runtime_var_is_unresolved() {
+  local value="${1:-}"
+
+  [ -z "${value}" ] || printf '%s' "${value}" | grep -q '\$[{][{]'
+}
+
 ensure_runtime_var_seeded() {
   local key="$1"
   local explicit_template="$2"
@@ -234,12 +240,6 @@ preview_log "Ensuring required runtime variables are seeded for ${RAILWAY_ENV_NA
 ensure_runtime_var_seeded "${RAILWAY_MANAGE_DB_URL_KEY}" "${RAILWAY_MANAGE_DB_URL_TEMPLATE:-}"
 ensure_runtime_var_seeded "${RAILWAY_RUN_DB_URL_KEY}" "${RAILWAY_RUN_DB_URL_TEMPLATE:-}"
 ensure_runtime_var_seeded "${RAILWAY_SPICEDB_ENDPOINT_KEY}" "${RAILWAY_SPICEDB_ENDPOINT_TEMPLATE:-${DEFAULT_SPICEDB_ENDPOINT_TEMPLATE}}"
-
-runtime_var_is_unresolved() {
-  local value="${1:-}"
-
-  [ -z "${value}" ] || printf '%s' "${value}" | grep -q '\$[{][{]'
-}
 
 preview_log "Resolving rendered runtime variables for ${RAILWAY_ENV_NAME}."
 resolve_runtime_vars

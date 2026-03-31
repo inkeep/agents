@@ -193,6 +193,7 @@ railway_environment_create_from_source() {
   local env_name="$2"
   local source_environment_id="$3"
   local variables_json=""
+  local response=""
 
   variables_json="$(jq -nc \
     --arg project_id "${project_id}" \
@@ -200,16 +201,27 @@ railway_environment_create_from_source() {
     --arg source_environment_id "${source_environment_id}" \
     '{input: {projectId: $project_id, name: $env_name, sourceEnvironmentId: $source_environment_id}}')"
 
-  railway_graphql 'mutation($input: EnvironmentCreateInput!) { environmentCreate(input: $input) { id name } }' "${variables_json}"
+  response="$(
+    railway_graphql 'mutation($input: EnvironmentCreateInput!) { environmentCreate(input: $input) { id name } }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error creating Railway environment" || return 1
+
+  printf '%s' "${response}"
 }
 
 railway_environment_delete_by_id() {
   local environment_id="$1"
   local variables_json=""
+  local response=""
 
   variables_json="$(jq -nc --arg environment_id "${environment_id}" '{id: $environment_id}')"
 
-  railway_graphql 'mutation($id: String!) { environmentDelete(id: $id) }' "${variables_json}"
+  response="$(
+    railway_graphql 'mutation($id: String!) { environmentDelete(id: $id) }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error deleting Railway environment" || return 1
+
+  printf '%s' "${response}"
 }
 
 railway_project_service_id() {
@@ -268,6 +280,7 @@ railway_variable_collection_upsert() {
   local skip_deploys="${4:-true}"
   local variables_payload="$5"
   local variables_json=""
+  local response=""
 
   variables_json="$(jq -nc \
     --arg project_id "${project_id}" \
@@ -277,7 +290,12 @@ railway_variable_collection_upsert() {
     --argjson variables "${variables_payload}" \
     '{input: {projectId: $project_id, environmentId: $environment_id, serviceId: $service_id, skipDeploys: $skip_deploys, variables: $variables}}')"
 
-  railway_graphql 'mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }' "${variables_json}"
+  response="$(
+    railway_graphql 'mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error upserting Railway variables" || return 1
+
+  printf '%s' "${response}"
 }
 
 railway_environment_id() {
