@@ -121,13 +121,10 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
       details: 'Original details.',
     };
 
-    await makeRequest(
-      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
-      {
-        method: 'POST',
-        body: JSON.stringify(createData),
-      }
-    );
+    await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(createData),
+    });
 
     const patchRes = await makeRequest(
       `/manage/tenants/${tenantId}/projects/${projectId}/feedback/${createData.id}`,
@@ -169,14 +166,14 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
       details: 'Did not like it.',
     };
 
-    await makeRequest(
-      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
-      { method: 'POST', body: JSON.stringify(positive) }
-    );
-    await makeRequest(
-      `/manage/tenants/${tenantId}/projects/${projectId}/feedback`,
-      { method: 'POST', body: JSON.stringify(negative) }
-    );
+    await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(positive),
+    });
+    await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(negative),
+    });
 
     const positiveRes = await makeRequest(
       `/manage/tenants/${tenantId}/projects/${projectId}/feedback?type=positive`
