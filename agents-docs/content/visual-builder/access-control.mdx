@@ -1,6 +1,7 @@
 ---
 title: Access Control
-description: Multi-tenant authentication with organizations, team management, and fine-grained project permissions
+description: Multi-tenant authentication with organizations, team management, seat limits, and fine-grained project permissions
+keywords: access control, authentication, authorization, roles, permissions, seat limits, entitlements
 icon: LuShieldCheck
 ---
 
@@ -56,6 +57,25 @@ If email is not configured, the invitation link is displayed directly in the UI 
 <Tip>
   For self-hosted deployments, email requires SMTP configuration. See [Configure Email](/deployment/email) for setup instructions.
 </Tip>
+
+### Seat Limits
+
+Enterprise cloud deployments may have seat limits that restrict the number of users per role:
+
+| Limit Type | Counts |
+|------------|--------|
+| `seat:admin` | Owner + Admin users, plus pending Admin invitations |
+| `seat:member` | Member users, plus pending Member invitations |
+
+<Warning>
+  Pending invitations count toward seat limits. If you're at capacity, you must remove a pending invitation or existing member before inviting someone new.
+</Warning>
+
+When a seat limit is reached, attempts to invite users or change roles return a `402 Payment Required` error with a structured error body containing the current usage and limit.
+
+<Note>
+  Self-hosted deployments do not enforce seat limits by default. Seat limits only apply when entitlement rows are configured for the organization.
+</Note>
 
 ## Password Reset
 
